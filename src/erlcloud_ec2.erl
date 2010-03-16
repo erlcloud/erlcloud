@@ -2,6 +2,9 @@
 
 -include_lib("xmerl/include/xmerl.hrl").
 
+%% Library initialization.
+-export([configure/2, configure/3, new/2, new/3]).
+
 %% EC2 API Functions
 -export([
     %% Amazon DevPay
@@ -104,69 +107,26 @@
 ]).
 
 -define(API_VERSION, "2009-11-30").
--record(ec2_config, {url, host, access_key_id, secret_access_key}).
--type(proplist() :: [{atom(), term()}]).
--type(datetime() :: {{pos_integer(), 1..12, 1..31}, {0..23, 0..59, 0..60}}).
--type(ec2_shutdown_behavior() :: stop | terminate | undefined).
--type(ec2_volume_size() :: 1..1024).
--record(ec2_block_device_mapping, {
-    device_name::string(),
-    virtual_name::string(),
-    snapshot_id::string(),
-    volume_size::ec2_volume_size(),
-    delete_on_termination::boolean()
-}).
--type(ec2_block_device_mapping() :: #ec2_block_device_mapping{}).
--record(ec2_instance_spec, {
-    image_id::string(),
-    min_count=1::pos_integer(),
-    max_count=1::pos_integer(),
-    key_name::string(),
-    group_set::[string()],
-    user_data::binary(),
-    instance_type::string(),
-    availability_zone::string(),
-    kernel_id::string(),
-    ramdisk_id::string(),
-    block_device_mapping::[ec2_block_device_mapping()],
-    monitoring_enabled=false::boolean(),
-    subnet_id::string(),
-    disable_api_termination=false::boolean(),
-    instance_initiated_shutdown_behavior::ec2_shutdown_behavior()
-}).
--record(ec2_image_spec, {
-    image_location::string(),
-    name::string(),
-    description::string(),
-    architecture::string(),
-    kernel_id::string(),
-    ramdisk_id::string(),
-    root_device_name::string(),
-    block_device_mapping::[ec2_block_device_mapping()]
-}).
--record(ec2_spot_instance_request, {
-    spot_price::string(),
-    instance_count=1::pos_integer(),
-    type=one_time::one_time|persistent,
-    valid_from::datetime(),
-    valid_until::datetime(),
-    launch_group::string(),
-    availability_zone_group::string(),
-    launch_specification::#ec2_instance_spec{}
-}).
--record(ec2_ingress_spec, {
-    ip_protocol::tcp|udp|icmp,
-    from_port::-1 | 0..65535,
-    to_port::-1 | 0..65535,
-    source_security_group_owner_id::string(),
-    source_security_group_name::string(),
-    cidr_ip::string()
-}).
--type(ec2_config() :: #ec2_config{}).
--type(ec2_image_spec() :: #ec2_image_spec{}).
--type(ec2_instance_spec() :: #ec2_instance_spec{}).
--type(ec2_ingress_spec() :: #ec2_ingress_spec{}).
--type(ec2_spot_instance_request() :: #ec2_spot_instance_request{}).
+-include("erlcloud_ec2.hrl").
+
+-spec(new/2 :: (string(), string()) -> ec2_config()).
+new(AccessKeyID, SecretAccessKey) ->
+    #ec2_config{access_key_id=AccessKeyID, secret_access_key=SecretAccessKey}.
+
+-spec(new/3 :: (string(), string(), string()) -> ec2_config()).
+new(AccessKeyID, SecretAccessKey, Host) ->
+    #ec2_config{access_key_id=AccessKeyID, secret_access_key=SecretAccessKey,
+                host=Host}.
+
+-spec(configure/2 :: (string(), string()) -> ok).
+configure(AccessKeyID, SecretAccessKey) ->
+    put(ec2_config, new(AccessKeyID, SecretAccessKey)),
+    ok.
+
+-spec(configure/3 :: (string(), string(), string()) -> ok).
+configure(AccessKeyID, SecretAccessKey, Host) ->
+    put(ec2_config, new(AccessKeyID, SecretAccessKey, Host)),
+    ok.
 
 -spec(allocate_address/0 :: () -> string()).
 allocate_address() -> allocate_address(default_config()).
@@ -1471,8 +1431,10 @@ ec2_query(Config, Action, Params) ->
     
     Query = [QueryToSign, "&Signature=", url_encode(Signature)],
     
+    URL = lists:flatten(["https://", Config#ec2_config.host, "/"]),
+    
     case http:request(post, 
-      {Config#ec2_config.url, [], "application/x-www-form-urlencoded",
+      {URL, [], "application/x-www-form-urlencoded",
        list_to_binary(Query)},
       [], []) of
         {ok, {{_HTTPVer, 200, _StatusLine}, _Headers, Body}} ->
@@ -1486,8 +1448,7 @@ ec2_query(Config, Action, Params) ->
 default_config() ->
     case get(ec2_config) of
         undefined ->
-            #ec2_config{url="https://ec2.amazonaws.com/",
-                        host="ec2.amazonaws.com",
+            #ec2_config{host="ec2.amazonaws.com",
                         access_key_id=get(aws_access_key_id),
                         secret_access_key=get(aws_secret_access_key)};
         Config ->

@@ -1,0 +1,33 @@
+erlcloud: Cloud Computing APIs For Erlang
+
+This is version 0.1.0.  The API is subject to change.
+
+Currently, this library implements the Amazon Elastic Compute Cloud (EC2) API,
+version 2009-11-30. All API functions have been implemented.  Not all functions
+have been tested, so exercise care when integrating this library into
+production code.  Please send bug reports and patches.
+
+The library can be used two ways: either you can specify configuration
+parameters in the process dictionary, or you can create a configuration object
+and pass that to each request as the final parameter.
+
+Per-process configuration:
+
+erlcloud_aws:configure(AccessKeyId, SecretAccessKey [, Hostname])
+
+Hostname defaults to "ec2.amazonaws.com".
+
+Then you can simply call, e.g. erlcloud_ec2:describe_images().
+
+
+Configuration object usage:
+
+EC2 = erlcloud_ec2:new(AccessKeyId, SecretAccessKey [, Hostname])
+
+erlcloud_ec2:describe_images(EC2).
+
+
+For usage information, consult the source code and refer to the EC2 API reference at:
+
+http://docs.amazonwebservices.com/AWSEC2/2009-11-30/APIReference/
+
