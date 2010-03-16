@@ -11,9 +11,19 @@ The library can be used two ways: either you can specify configuration
 parameters in the process dictionary, or you can create a configuration object
 and pass that to each request as the final parameter.
 
+Getting started
+---------------
+
+If you're using erlcloud in your applicaiton, add it as a dependency
+in your application's configuration file.  To use erlcloud in the shell,
+you can ensure that all its dependencies have been started by calling:
+
+> erlcloud:start().
+
+
 Per-process configuration:
 
-erlcloud_ec2:configure(AccessKeyId, SecretAccessKey [, Hostname])
+> erlcloud_ec2:configure(AccessKeyId, SecretAccessKey [, Hostname])
 
 Hostname defaults to "ec2.amazonaws.com".
 
@@ -27,9 +37,9 @@ variables.
 
 Configuration object usage:
 
-EC2 = erlcloud_ec2:new(AccessKeyId, SecretAccessKey [, Hostname])
+> EC2 = erlcloud_ec2:new(AccessKeyId, SecretAccessKey [, Hostname])
 
-erlcloud_ec2:describe_images(EC2).
+> erlcloud_ec2:describe_images(EC2).
 
 
 For usage information, consult the source code and refer to the EC2 API reference at:
