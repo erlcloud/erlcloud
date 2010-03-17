@@ -526,36 +526,36 @@ extract_permissions([_|Nodes], Accum) ->
     extract_permissions(Nodes, Accum).
 
 -spec(describe_images/0 :: () -> proplist()).
-describe_images() -> describe_images([]).
+describe_images() -> describe_images([], "self").
 
 -spec(describe_images/1 :: ([string()] | ec2_config()) -> proplist()).
 describe_images(Config)
   when is_record(Config, ec2_config) ->
-    describe_images(none, [], none, Config);
-describe_images(ExecutableBy) ->
-    describe_images(ExecutableBy, [], none, default_config()).
+    describe_images([], "self", none, Config);
+describe_images(ImageIDs) ->
+    describe_images(ImageIDs, none, none, default_config()).
 
--spec(describe_images/2 :: (string() | none, ec2_config()) -> proplist() ;
-                           (string() | none, [string()]) -> proplist()).
-describe_images(ExecutableBy, Config)
+-spec(describe_images/2 :: ([string()], ec2_config()) -> proplist() ;
+                           ([string()], string() | none) -> proplist()).
+describe_images(ImageIDs, Config)
   when is_record(Config, ec2_config) ->
-    describe_images(ExecutableBy, [], none, Config);
-describe_images(ExecutableBy, ImageIDs) ->
-    describe_images(ExecutableBy, ImageIDs, none, default_config()).
+    describe_images(ImageIDs, none, none, Config);
+describe_images(ImageIDs, Owner) ->
+    describe_images(ImageIDs, Owner, none, default_config()).
 
--spec(describe_images/3 :: (string() | none, [string()], ec2_config()) -> proplist() ;
-                           (string() | none, [string()], string() | none) -> proplist()).
-describe_images(ExecutableBy, ImageIDs, Config)
+-spec(describe_images/3 :: ([string()], string() | none, ec2_config()) -> proplist() ;
+                           ([string()], string() | none, string() | none) -> proplist()).
+describe_images(ImageIDs, Owner, Config)
   when is_record(Config, ec2_config) ->
-    describe_images(ExecutableBy, ImageIDs, none, Config);
-describe_images(ExecutableBy, ImageIDs, Owner) ->
-    describe_images(ExecutableBy, ImageIDs, Owner, default_config()).
+    describe_images(ImageIDs, Owner, none, Config);
+describe_images(ImageIDs, Owner, ExecutableBy) ->
+    describe_images(ImageIDs, Owner, ExecutableBy, default_config()).
 
--spec(describe_images/4 :: (string() | none, [string()], string() | none, ec2_config()) -> proplist  ()).
-describe_images(ExecutableBy, ImageIDs, Owner, Config)
-  when is_list(ExecutableBy) orelse ExecutableBy =:= none,
-       is_list(ImageIDs),
-       is_list(Owner) orelse Owner =:= none ->
+-spec(describe_images/4 :: ([string()], string() | none, string() | none, ec2_config()) -> proplist  ()).
+describe_images(ImageIDs, Owner, ExecutableBy, Config)
+  when is_list(ImageIDs),
+        is_list(Owner) orelse Owner =:= none,
+        is_list(ExecutableBy) orelse ExecutableBy =:= none ->
     Params = [
         {"ExecutableBy", ExecutableBy}, {"Owner", Owner}|
         param_list(ImageIDs, "ImageId")
@@ -837,12 +837,12 @@ describe_snapshot_attribute(SnapshotID, create_volume_permission, Config)
     extract_permissions(xmerl_xpath:string("/DescribeSnapshotAttributeResponse/createVolumePermission/item", Doc)).
 
 -spec(describe_snapshots/0 :: () -> [proplist()]).
-describe_snapshots() -> describe_snapshots([]).
+describe_snapshots() -> describe_snapshots([], "self").
 
 -spec(describe_snapshots/1 :: ([string()] | ec2_config()) -> proplist()).
 describe_snapshots(Config)
   when is_record(Config, ec2_config) ->
-    describe_snapshots([], Config);
+    describe_snapshots([], "self", Config);
 describe_snapshots(SnapshotIDs) ->
     describe_snapshots(SnapshotIDs, none, none, default_config()).
 
