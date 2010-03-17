@@ -22,7 +22,7 @@
     availability_zone::string(),
     kernel_id::string(),
     ramdisk_id::string(),
-    block_device_mapping::[ec2_block_device_mapping()],
+    block_device_mapping=[]::[ec2_block_device_mapping()],
     monitoring_enabled=false::boolean(),
     subnet_id::string(),
     disable_api_termination=false::boolean(),
@@ -36,7 +36,7 @@
     kernel_id::string(),
     ramdisk_id::string(),
     root_device_name::string(),
-    block_device_mapping::[ec2_block_device_mapping()]
+    block_device_mapping=[]::[ec2_block_device_mapping()]
 }).
 -record(ec2_spot_instance_request, {
     spot_price::string(),
