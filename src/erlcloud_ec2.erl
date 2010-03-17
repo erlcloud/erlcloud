@@ -598,7 +598,7 @@ describe_instance_attribute(InstanceID, Attribute) ->
 describe_instance_attribute(InstanceID, Attribute, Config)
   when is_list(InstanceID), is_atom(Attribute) ->
     AttributeName = case Attribute of
-        instance_type -> "instnaceType";
+        instance_type -> "instanceType";
         kernel -> "kernel";
         ramdisk -> "ramdisk";
         user_data -> "userData";
@@ -608,7 +608,10 @@ describe_instance_attribute(InstanceID, Attribute, Config)
         block_device_mapping -> "blockDeviceMapping"
     end,
     Doc = ec2_query(Config, "DescribeInstanceAttribute", [{"InstanceId", InstanceID}, {"Attribute", AttributeName}]),
-    Node = xmerl_xpath:string("/DescribeInstanceAttributeResponse/" ++ AttributeName, Doc),
+    Node = case Attribute of
+        block_device_mapping -> hd(xmerl_xpath:string("/DescribeInstanceAttributeResponse/" ++ AttributeName, Doc));
+        _ -> hd(xmerl_xpath:string("/DescribeInstanceAttributeResponse/" ++ AttributeName ++ "/value", Doc))
+    end,
     case Attribute of
         user_data -> base64:decode(get_text(Node));
         disable_api_termination -> list_to_existing_atom(get_text(Node));
