@@ -1063,7 +1063,7 @@ get_console_output(InstanceID, Config)
     Doc = ec2_query(Config, "GetConsoleOutput", [{"InstanceId", InstanceID}]),
     [{instance_id, get_text("/GetConsoleOutputResponse/instanceId", Doc)},
      {timestamp, get_time("/GetConsoleOutputResponse/timestamp", Doc)},
-     {output, get_text("/GetConsoleOutputResponse/output", Doc)}
+     {output, base64:decode(get_text("/GetConsoleOutputResponse/output", Doc))}
     ].
 
 -spec(get_password_data/1 :: (string()) -> proplist()).
