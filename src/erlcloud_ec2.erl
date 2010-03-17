@@ -641,7 +641,7 @@ describe_instances(InstanceIDs, Config)
 extract_reservation(Node) ->
     [{reservation_id, get_text("reservationId", Node)},
      {owner_id, get_text("ownerId", Node)},
-     {group_set, get_list("groupSet/item/GroupId", Node)},
+     {group_set, get_list("groupSet/item/groupId", Node)},
      {instances_set, [extract_instance(Item) || Item <- xmerl_xpath:string("instancesSet/item", Node)]}
     ].
 
@@ -1322,10 +1322,7 @@ run_instances(InstanceSpec, Config)
     GParams = param_list(InstanceSpec#ec2_instance_spec.group_set, "SecurityGroup"),
     BDParams = block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping),
     Doc = ec2_query(Config, "RunInsances", Params ++ GParams ++ BDParams),
-    [{reservation_id, get_text("/RunInstancesResponse/reservationId")},
-     {owner_id, get_text("/RunInstancesResponse/ownerId")},
-     {groups, get_list("/RunInstancesResponse/groupSet/item", Doc)},
-     {instances, [extract_instance(Node) || Node <- xmerl_xpath:string("/RunInstancesResponse/instancesSet/item", Doc)]}].
+    extract_reservation(hd(xmerl_xpath:string("/RunInstancesResponse", Doc))).
 
 block_device_params(Mappings) ->
     param_list(
