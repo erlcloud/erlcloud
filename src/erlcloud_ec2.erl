@@ -1218,11 +1218,12 @@ request_spot_instances(Request, Config) ->
     Params = [
         {"SpotPrice", Request#ec2_spot_instance_request.spot_price},
         {"InstanceCount", Request#ec2_spot_instance_request.instance_count},
-        {"Type", case Request#ec2_spot_instance_request.type of one_time -> "one_time" ; persistent -> "persistent" end},
+        {"Type", case Request#ec2_spot_instance_request.type of one_time -> "one-time" ; persistent -> "persistent" end},
         {"ValidFrom", Request#ec2_spot_instance_request.valid_from},
         {"ValidUntil", Request#ec2_spot_instance_request.valid_until},
         {"LaunchGroup", Request#ec2_spot_instance_request.launch_group},
         {"AvailabilityZoneGroup", Request#ec2_spot_instance_request.availability_zone_group},
+        {"LaunchSpecification.ImageId", InstanceSpec#ec2_instance_spec.image_id},
         {"LaunchSpecification.KeyName", InstanceSpec#ec2_instance_spec.key_name},
         {"LaunchSpecification.UserData",
          case InstanceSpec#ec2_instance_spec.user_data of
