@@ -668,7 +668,7 @@ extract_instance(Node) ->
      {vpc_id, get_text("vpcId", Node)},
      {private_ip_address, get_text("privateIpAddress", Node)},
      {ip_address, get_text("ipAddress", Node)},
-     {state_reason, [{code, get_integer("stateReason/code", Node)}, {message, get_text("stateReason/message", Node)}]},
+     {state_reason, [{code, get_text("stateReason/code", Node)}, {message, get_text("stateReason/message", Node)}]},
      {architecture, get_text("architecture", Node)},
      {root_device_type, get_text("rootDeviceType", Node)},
      {root_device_name, get_text("rootDeviceName", Node)},
