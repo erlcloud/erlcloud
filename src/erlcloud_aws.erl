@@ -1,5 +1,6 @@
 -module(erlcloud_aws).
--export([aws_request/6, aws_request_xml/6]).
+-export([aws_request/6, aws_request_xml/6,
+         param_list/2]).
 
 aws_request_xml(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey),
@@ -39,6 +40,17 @@ aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
         {error, Error} ->
             erlang:error({ec2_error, {socket_error, Error}})
     end.
+
+param_list([], _Key) -> [];
+param_list([[{_, _}|_]|_] = Values, Key) ->
+    lists:flatten(
+        [[{lists:flatten([Key, $., integer_to_list(I), $., SubKey]),
+           value_to_string(Value)} || {SubKey, Value} <- SValues] ||
+         {I, SValues} <- lists:zip(lists:seq(0, length(Values) - 1), Values)]
+    );
+param_list(Values, Key) ->
+    [{lists:flatten([Key, $., integer_to_list(I)]), Value} ||
+     {I, Value} <- lists:zip(lists:seq(0, length(Values) - 1), Values)].
 
 value_to_string(Integer) when is_integer(Integer) -> integer_to_list(Integer);
 value_to_string(Atom) when is_atom(Atom) -> atom_to_list(Atom);
