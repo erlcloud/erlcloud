@@ -1419,32 +1419,10 @@ ec2_simple_query(Config, Action, Params) ->
     ok.
 
 ec2_query(Config, Action, Params) ->
-    Timestamp = format_timestamp(erlang:universaltime()),
-    FParams = [{Key, value_to_string(Value)} || {Key, Value} <- Params, Value =/= none, Value =/= undefined],
-    QParams = lists:sort([
-        {"Action", Action}, {"Timestamp", Timestamp}, {"SignatureVersion", "2"},
-        {"SignatureMethod", "HmacSHA1"}, {"Version", ?API_VERSION},
-        {"AWSAccessKeyId", Config#ec2_config.access_key_id}|FParams]),
-
-    QueryToSign = string:join([[Key, "=", url_encode(Value)] || {Key, Value} <- QParams], "&"),
-    RequestToSign = ["POST\n", Config#ec2_config.host, "\n", "/", "\n", QueryToSign],
-    Signature = base64:encode(crypto:sha_mac(Config#ec2_config.secret_access_key, RequestToSign)),
-    
-    Query = [QueryToSign, "&Signature=", url_encode(Signature)],
-    
-    URL = lists:flatten(["https://", Config#ec2_config.host, "/"]),
-    
-    case http:request(post, 
-      {URL, [], "application/x-www-form-urlencoded",
-       list_to_binary(Query)},
-      [], []) of
-        {ok, {{_HTTPVer, 200, _StatusLine}, _Headers, Body}} ->
-            element(1, xmerl_scan:string(Body));
-        {ok, {{_HTTPVer, Status, _StatusLine}, _Headers, _Body}} ->
-            erlang:error({ec2_error, {http_error, Status, _StatusLine, _Body}});
-        {error, Error} ->
-            erlang:error({ec2_error, {socket_error, Error}})
-    end.
+    QParams = [{"Action", Action}, {"Version", ?API_VERSION}|Params],
+    erlcloud_aws:aws_request_xml(post, Config#ec2_config.host,
+        "/", QParams, Config#ec2_config.access_key_id,
+        Config#ec2_config.secret_access_key).
 
 default_config() ->
     case get(ec2_config) of
@@ -1460,35 +1438,6 @@ format_timestamp({{Yr, Mo, Da}, {H, M, S}}) ->
     lists:flatten(
         io_lib:format("~4.10.0b-~2.10.0b-~2.10.0bT~2.10.0b:~2.10.0b:~2.10.0bZ",
                       [Yr, Mo, Da, H, M, S])).
-
-url_encode(String) ->
-    url_encode(String, []).
-url_encode([], Accum) ->
-    lists:reverse(Accum);
-url_encode([Char|String], Accum)
-  when Char >= $A, Char =< $Z; 
-       Char >= $a, Char =< $z;
-       Char >= $0, Char =< $9;
-       Char =:= $-; Char =:= $_;
-       Char =:= $.; Char =:= $~ ->
-    url_encode(String, [Char|Accum]);
-url_encode([Char|String], Accum)
-  when Char >=0, Char =< 255 ->
-    url_encode(String, [hex_char(Char rem 16), hex_char(Char div 16),$%|Accum]);
-url_encode(<<>>, Accum) ->
-    lists:reverse(Accum);
-url_encode(<<Char, String/binary>>, Accum)
-  when Char >= $A, Char =< $Z; 
-       Char >= $a, Char =< $z;
-       Char >= $0, Char =< $9;
-       Char =:= $-; Char =:= $_;
-       Char =:= $.; Char =:= $~ ->
-    url_encode(String, [Char|Accum]);
-url_encode(<<Char, String/binary>>, Accum) ->
-    url_encode(String, [hex_char(Char rem 16), hex_char(Char div 16),$%|Accum]).
-
-hex_char(C) when C >= 0, C =< 9 -> $0 + C;
-hex_char(C) when C >= 10, C =< 15 -> $A + C - 10.
 
 get_text(#xmlText{value=Value}) -> Value;
 get_text(#xmlElement{content=Content}) ->
