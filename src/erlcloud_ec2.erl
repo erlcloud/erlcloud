@@ -1363,7 +1363,7 @@ stop_instances(InstanceIDs, Force) ->
 stop_instances(InstanceIDs, Force, Config)
   when is_list(InstanceIDs), is_boolean(Force) ->
     Doc = ec2_query(Config, "StopInstances",
-      [{"force", atom_to_list(Force)}|param_list(InstanceIDs, "InstanceId")]),
+      [{"Force", atom_to_list(Force)}|param_list(InstanceIDs, "InstanceId")]),
     [extract_instance_state_change(Node) || Node <- xmerl_xpath:string("/StopInstancesResponse/instancesSet/item", Doc)].
 
 -spec(terminate_instances/1 :: ([string()]) -> proplist()).
