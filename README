@@ -1,11 +1,15 @@
 erlcloud: Cloud Computing APIs For Erlang
 
-This is version 0.1.0.  The API is subject to change.
+This is version 0.2.0.  The API is subject to change.
 
 Currently, this library implements the Amazon Elastic Compute Cloud (EC2) API,
 version 2009-11-30. All API functions have been implemented.  Not all functions
 have been tested, so exercise care when integrating this library into
 production code.  Please send bug reports and patches.
+
+This library also implements the Amazon SimpleDB API, version 2009-04-15.  All API
+functions have undergone basic testing, but not under real-world conditions.  This
+is still alpha software.
 
 The library can be used two ways: either you can specify configuration
 parameters in the process dictionary, or you can create a configuration object
