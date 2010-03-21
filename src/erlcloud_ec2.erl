@@ -107,28 +107,29 @@
 ]).
 
 -define(API_VERSION, "2009-11-30").
--define(DEFAULT_HOST, "ec2.amazonaws.com").
+-include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 -include("erlcloud_ec2.hrl").
 
 -spec(new/2 :: (string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey) ->
-    new(AccessKeyID, SecretAccessKey, ?DEFAULT_HOST).
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey}.
 
 -spec(new/3 :: (string(), string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
-                host=Host}.
+                ec2_host=Host}.
 
 -spec(configure/2 :: (string(), string()) -> ok).
 configure(AccessKeyID, SecretAccessKey) ->
-    put(ec2_config, new(AccessKeyID, SecretAccessKey)),
+    put(aws_config, new(AccessKeyID, SecretAccessKey)),
     ok.
 
 -spec(configure/3 :: (string(), string(), string()) -> ok).
 configure(AccessKeyID, SecretAccessKey, Host) ->
-    put(ec2_config, new(AccessKeyID, SecretAccessKey, Host)),
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
 
 -spec(allocate_address/0 :: () -> string()).
@@ -1406,15 +1407,14 @@ ec2_simple_query(Config, Action, Params) ->
 
 ec2_query(Config, Action, Params) ->
     QParams = [{"Action", Action}, {"Version", ?API_VERSION}|Params],
-    erlcloud_aws:aws_request_xml(post, Config#aws_config.host,
+    erlcloud_aws:aws_request_xml(post, Config#aws_config.ec2_host,
         "/", QParams, Config#aws_config.access_key_id,
         Config#aws_config.secret_access_key).
 
 default_config() ->
-    case get(ec2_config) of
+    case get(aws_config) of
         undefined ->
-            #aws_config{host=?DEFAULT_HOST,
-                        access_key_id=os:getenv("AMAZON_ACCESS_KEY_ID"),
+            #aws_config{access_key_id=os:getenv("AMAZON_ACCESS_KEY_ID"),
                         secret_access_key=os:getenv("AMAZON_SECRET_ACCESS_KEY")};
         Config ->
             Config

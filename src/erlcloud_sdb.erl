@@ -27,36 +27,36 @@
     select/1, select/2, select/3, select/4
 ]).
 
+-include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 
--define(DEFAULT_HOST, "sdb.amazonaws.com").
 -define(API_VERSION, "2009-04-15").
 
 -spec(new/2 :: (string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey) ->
-    new(AccessKeyID, SecretAccessKey, ?DEFAULT_HOST).
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey}.
 
 -spec(new/3 :: (string(), string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
-                host=Host}.
+                sdb_host=Host}.
 
 -spec(configure/2 :: (string(), string()) -> ok).
 configure(AccessKeyID, SecretAccessKey) ->
-    put(ec2_config, new(AccessKeyID, SecretAccessKey)),
+    put(aws_config, new(AccessKeyID, SecretAccessKey)),
     ok.
 
 -spec(configure/3 :: (string(), string(), string()) -> ok).
 configure(AccessKeyID, SecretAccessKey, Host) ->
-    put(ec2_config, new(AccessKeyID, SecretAccessKey, Host)),
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
 
 default_config() ->
-    case get(sdb_config) of
+    case get(aws_config) of
         undefined ->
-            #aws_config{host=?DEFAULT_HOST,
-                        access_key_id=os:getenv("AMAZON_ACCESS_KEY_ID"),
+            #aws_config{access_key_id=os:getenv("AMAZON_ACCESS_KEY_ID"),
                         secret_access_key=os:getenv("AMAZON_SECRET_ACCESS_KEY")};
         Config ->
             Config
@@ -262,7 +262,7 @@ extract_item(Item) ->
 
 sdb_request(Config, Action, Params) ->
     QParams = [{"Action", Action}, {"Version", ?API_VERSION}|Params],
-    Doc = erlcloud_aws:aws_request_xml(post, Config#aws_config.host,
+    Doc = erlcloud_aws:aws_request_xml(post, Config#aws_config.sdb_host,
         "/", QParams, Config#aws_config.access_key_id,
         Config#aws_config.secret_access_key),
     {Doc, [{box_usage, erlcloud_xml:get_float("/*/ResponseMetadata/BoxUsage", Doc)}]}.

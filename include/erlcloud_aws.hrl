@@ -1,5 +1,10 @@
--record(aws_config, {host, access_key_id, secret_access_key}).
+-record(aws_config, {
+    ec2_host="ec2.amazonaws.com"::string(),
+    s3_host="s3.amazonaws.com"::string(),
+    sdb_host="sdb.amazonaws.com"::string(),
+    mturk_host="mechanicalturk.amazonaws.com"::string(),
+    access_key_id::string(),
+    secret_access_key::string()
+}).
 -type(aws_config() :: #aws_config{}).
 
--type(proplist() :: [{atom(), term()}]).
--type(datetime() :: {{pos_integer(), 1..12, 1..31}, {0..23, 0..59, 0..60}}).
