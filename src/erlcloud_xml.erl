@@ -19,10 +19,14 @@ decode(Values, Node) ->
 get_value(XPath, Type, Node) ->
     case Type of
         text -> get_text(XPath, Node);
+        optional_text -> get_text(XPath, Node, undefined);
         integer -> get_integer(XPath, Node);
         float -> get_float(XPath, Node);
         time -> get_time(XPath, Node);
-        list -> get_list(XPath, Node)
+        list -> get_list(XPath, Node);
+        boolean -> get_bool(XPath, Node);
+        Fun when is_function(Fun, 1) ->
+            Fun(xmerl_xpath:string(XPath, Node))
     end.
 
 get_float(XPath, Node) ->
