@@ -1,6 +1,6 @@
 -module(erlcloud_aws).
 -export([aws_request/6, aws_request_xml/6,
-         param_list/2]).
+         param_list/2, default_config/0]).
 
 aws_request_xml(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey),
@@ -61,3 +61,12 @@ format_timestamp({{Yr, Mo, Da}, {H, M, S}}) ->
     lists:flatten(
         io_lib:format("~4.10.0b-~2.10.0b-~2.10.0bT~2.10.0b:~2.10.0b:~2.10.0bZ",
                       [Yr, Mo, Da, H, M, S])).
+
+default_config() ->
+    case get(aws_config) of
+        undefined ->
+            #aws_config{access_key_id=os:getenv("AMAZON_ACCESS_KEY_ID"),
+                        secret_access_key=os:getenv("AMAZON_SECRET_ACCESS_KEY")};
+        Config ->
+            Config
+    end.

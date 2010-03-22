@@ -1411,14 +1411,7 @@ ec2_query(Config, Action, Params) ->
         "/", QParams, Config#aws_config.access_key_id,
         Config#aws_config.secret_access_key).
 
-default_config() ->
-    case get(aws_config) of
-        undefined ->
-            #aws_config{access_key_id=os:getenv("AMAZON_ACCESS_KEY_ID"),
-                        secret_access_key=os:getenv("AMAZON_SECRET_ACCESS_KEY")};
-        Config ->
-            Config
-    end.
+default_config() -> erlcloud_aws:default_config().
 
 get_text(#xmlText{value=Value}) -> Value;
 get_text(#xmlElement{content=Content}) ->

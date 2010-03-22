@@ -53,14 +53,7 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
 
-default_config() ->
-    case get(aws_config) of
-        undefined ->
-            #aws_config{access_key_id=os:getenv("AMAZON_ACCESS_KEY_ID"),
-                        secret_access_key=os:getenv("AMAZON_SECRET_ACCESS_KEY")};
-        Config ->
-            Config
-    end.
+default_config() -> erlcloud_aws:default_config().
 
 -spec create_domain/1 :: (string()) -> proplist().
 create_domain(Name) ->
