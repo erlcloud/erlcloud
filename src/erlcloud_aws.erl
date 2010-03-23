@@ -1,6 +1,6 @@
 -module(erlcloud_aws).
 -export([aws_request/6, aws_request_xml/6,
-         param_list/2, default_config/0]).
+         param_list/2, default_config/0, format_timestamp/1]).
 
 -include("erlcloud_aws.hrl").
 
@@ -43,15 +43,22 @@ aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     end.
 
 param_list([], _Key) -> [];
+param_list(Values, Key) when is_tuple(Key) ->
+    Seq = lists:seq(1, size(Key)),
+    lists:flatten(
+        [[{lists:append([element(J, Key), ".", integer_to_list(I)]),
+           element(J, Value)} || J <- Seq] ||
+         {I, Value} <- lists:zip(lists:seq(1, length(Values)), Values)]
+    );
 param_list([[{_, _}|_]|_] = Values, Key) ->
     lists:flatten(
         [[{lists:flatten([Key, $., integer_to_list(I), $., SubKey]),
            value_to_string(Value)} || {SubKey, Value} <- SValues] ||
-         {I, SValues} <- lists:zip(lists:seq(0, length(Values) - 1), Values)]
+         {I, SValues} <- lists:zip(lists:seq(1, length(Values)), Values)]
     );
 param_list(Values, Key) ->
     [{lists:flatten([Key, $., integer_to_list(I)]), Value} ||
-     {I, Value} <- lists:zip(lists:seq(0, length(Values) - 1), Values)].
+     {I, Value} <- lists:zip(lists:seq(1, length(Values)), Values)].
 
 value_to_string(Integer) when is_integer(Integer) -> integer_to_list(Integer);
 value_to_string(Atom) when is_atom(Atom) -> atom_to_list(Atom);

@@ -1,11 +1,12 @@
 erlcloud: Cloud Computing APIs For Erlang
 
-This is version 0.2.0.  The API is subject to change.
+This is version 0.3.0.  The API is subject to change.
 
 Service APIs implemented:
 
 - Amazon Elastic Compute Cloud (EC2)
 - Amazon Simple Storage Service (S3)
+- Amazon Simple Queue Service (SQS)
 - Amazon SimpleDB
 
 All API functions have been implemented.  Not all functions
