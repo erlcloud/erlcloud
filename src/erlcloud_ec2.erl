@@ -149,7 +149,7 @@ associate_address(PublicIP, InstanceID, Config)
   when is_list(PublicIP), is_list(InstanceID) ->
     ec2_simple_query(Config, "AssociateAddress", [{"InstanceId", InstanceID}, {"PublicIp", PublicIP}]).
 
--spec(attach_volume/3 :: (string(), string(), string()) -> ok).
+-spec(attach_volume/3 :: (string(), string(), string()) -> proplist()).
 attach_volume(VolumeID, InstanceID, Device) ->
     attach_volume(VolumeID, InstanceID, Device, default_config()).
 
@@ -260,7 +260,7 @@ confirm_product_instance(ProductCode, InstanceID, Config)
     Doc = ec2_query(Config, "ConfirmProductInstance", Params),
     [
         {return, get_bool("/ConfirmProductInstanceResponse/return", Doc)},
-        {owner_id, get_text("/ConfirmProductInstanceResponse/ownerId")}
+        {owner_id, get_text("/ConfirmProductInstanceResponse/ownerId", Doc)}
     ].
 
 -spec(create_key_pair/1 :: (string()) -> proplist()).
@@ -286,14 +286,14 @@ create_image(InstanceID, Name, Config)
 create_image(InstanceID, Name, Description) ->
     create_image(InstanceID, Name, Description, default_config()).
 
--spec(create_image/4 :: (string(), string(), string(), boolean() | aws_config()) -> proplist()).
+-spec(create_image/4 :: (string(), string(), string() | none, boolean() | aws_config()) -> proplist()).
 create_image(InstanceID, Name, Description, Config)
   when is_record(Config, aws_config) ->
     create_image(InstanceID, Name, Description, false, Config);
 create_image(InstanceID, Name, Description, NoReboot) ->
     create_image(InstanceID, Name, Description, NoReboot, default_config()).
 
--spec(create_image/5 :: (string(), string(), string(), boolean(), aws_config()) -> proplist()).
+-spec(create_image/5 :: (string(), string(), string() | none, boolean(), aws_config()) -> proplist()).
 create_image(InstanceID, Name, Description, NoReboot, Config)
   when is_list(InstanceID), is_list(Name),
        is_list(Description) orelse Description =:= none,
@@ -347,14 +347,14 @@ create_snapshot(VolumeID, Description, Config)
 create_spot_datafeed_subscription(Bucket) ->
     create_spot_datafeed_subscription(Bucket, none).
 
--spec(create_spot_datafeed_subscription/2 :: (string(), string() | aws_config()) -> proplist()).
+-spec(create_spot_datafeed_subscription/2 :: (string(), string() | none | aws_config()) -> proplist()).
 create_spot_datafeed_subscription(Bucket, Config)
   when is_record(Config, aws_config) ->
     create_spot_datafeed_subscription(Bucket, none, Config);
 create_spot_datafeed_subscription(Bucket, Prefix) ->
     create_spot_datafeed_subscription(Bucket, Prefix, default_config()).
 
--spec(create_spot_datafeed_subscription/3 :: (string(), string(), aws_config()) -> proplist()).
+-spec(create_spot_datafeed_subscription/3 :: (string(), string() | none, aws_config()) -> proplist()).
 create_spot_datafeed_subscription(Bucket, Prefix, Config)
   when is_list(Bucket),
        is_list(Prefix) orelse Prefix =:= none ->
@@ -818,7 +818,7 @@ extract_security_group(Node) ->
         {group_name, get_text("groupName", Node)},
         {group_description, get_text("groupDescription", Node)},
         {ip_permissions,
-         [extract_ip_permissions(Item) || Item <- xmerl_xpath:string("ipPermissions/item")]}
+         [extract_ip_permissions(Item) || Item <- xmerl_xpath:string("ipPermissions/item", Node)]}
     ].
 
 extract_ip_permissions(Node) ->
@@ -953,30 +953,30 @@ extract_launch_specification(Node) ->
 
 -spec(describe_spot_price_history/0 :: () -> proplist()).
 describe_spot_price_history() ->
-    describe_spot_price_history(none, none, [], none).
+    describe_spot_price_history(none).
 
--spec(describe_spot_price_history/1 :: (datetime() | aws_config()) -> proplist()).
+-spec(describe_spot_price_history/1 :: (datetime() | none | aws_config()) -> proplist()).
 describe_spot_price_history(Config)
   when is_record(Config, aws_config) ->
-    describe_spot_price_history(none, none, [], none, Config);
+    describe_spot_price_history(none, Config);
 describe_spot_price_history(StartTime) ->
-    describe_spot_price_history(StartTime, none, [], none).
+    describe_spot_price_history(StartTime, none).
 
--spec(describe_spot_price_history/2 :: (datetime(), datetime() | aws_config()) -> proplist()).
+-spec(describe_spot_price_history/2 :: (datetime() | none, datetime() | none | aws_config()) -> proplist()).
 describe_spot_price_history(StartTime, Config)
   when is_record(Config, aws_config) ->
-    describe_spot_price_history(StartTime, none, [], none, Config);
+    describe_spot_price_history(StartTime, none, Config);
 describe_spot_price_history(StartTime, EndTime) ->
-    describe_spot_price_history(StartTime, EndTime, [], none).
+    describe_spot_price_history(StartTime, EndTime, []).
 
--spec(describe_spot_price_history/3 :: (datetime(), datetime(), [string()] | aws_config()) -> proplist()).
+-spec(describe_spot_price_history/3 :: (datetime() | none, datetime() | none, [string()] | aws_config()) -> proplist()).
 describe_spot_price_history(StartTime, EndTime, Config)
   when is_record(Config, aws_config) ->
-    describe_spot_price_history(StartTime, EndTime, [], none, Config);
+    describe_spot_price_history(StartTime, EndTime, [], Config);
 describe_spot_price_history(StartTime, EndTime, InstanceTypes) ->
     describe_spot_price_history(StartTime, EndTime, InstanceTypes, none).
 
--spec(describe_spot_price_history/4 :: (datetime(), datetime(), [string()], string() | aws_config()) -> proplist()).
+-spec(describe_spot_price_history/4 :: (datetime() | none, datetime() | none, [string()], string() | none | aws_config()) -> proplist()).
 describe_spot_price_history(StartTime, EndTime, InstanceTypes, Config)
   when is_record(Config, aws_config) ->
     describe_spot_price_history(StartTime, EndTime, InstanceTypes, none, Config);
@@ -984,7 +984,7 @@ describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescriptio
     describe_spot_price_history(StartTime, EndTime, InstanceTypes,
                                 ProductDescription, default_config()).
 
--spec(describe_spot_price_history/5 :: (datetime(), datetime(), [string()], string(), aws_config()) -> proplist()).
+-spec(describe_spot_price_history/5 :: (datetime() | none, datetime() | none, [string()], string() | none, aws_config()) -> proplist()).
 describe_spot_price_history(StartTime, EndTime, InstanceTypes,
                             ProductDescription, Config)
   when is_list(InstanceTypes),
@@ -1039,10 +1039,10 @@ extract_volume(Node) ->
      }
     ].
 
--spec(detach_volume/1 :: (string()) -> ok).
+-spec(detach_volume/1 :: (string()) -> proplist()).
 detach_volume(VolumeID) -> detach_volume(VolumeID, default_config()).
 
--spec(detach_volume/2 :: (string(), aws_config()) -> ok).
+-spec(detach_volume/2 :: (string(), aws_config()) -> proplist()).
 detach_volume(VolumeID, Config)
   when is_list(VolumeID) ->
     Params = [{"VolumeId", VolumeID}],
@@ -1234,7 +1234,7 @@ request_spot_instances(Request, Config) ->
         {"LaunchSpecification.KeyName", InstanceSpec#ec2_instance_spec.key_name},
         {"LaunchSpecification.UserData",
          case InstanceSpec#ec2_instance_spec.user_data of
-             none -> none;
+             undefined -> undefined;
              Data -> base64:encode(Data)
          end},
         {"LaunchSpecification.InstanceType", InstanceSpec#ec2_instance_spec.instance_type},
@@ -1311,7 +1311,7 @@ run_instances(InstanceSpec, Config)
         {"KeyName", InstanceSpec#ec2_instance_spec.key_name},
         {"UserData",
          case InstanceSpec#ec2_instance_spec.user_data of
-             none -> none;
+             undefined -> undefined;
              Data -> base64:encode(Data)
          end},
         {"InstanceType", InstanceSpec#ec2_instance_spec.instance_type},

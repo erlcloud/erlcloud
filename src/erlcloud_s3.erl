@@ -28,6 +28,7 @@
 
 -type(s3_bucket_attribute_name() :: acl | location | logging | request_payment | versioning).
 -type(s3_bucket_acl() :: private | public_read | public_read_write | authenticated_read | bucket_owner_read | bucket_owner_full_control).
+-type(s3_location_constraint() :: none | us_west_1 | eu).
 
 -define(XMLNS_S3, "http://s3.amazonaws.com/doc/2006-03-01/").
 
@@ -72,15 +73,16 @@ create_bucket(BucketName, Config)
 create_bucket(BucketName, ACL) ->
     create_bucket(BucketName, ACL, none).
 
--spec create_bucket/3 :: (string(), s3_bucket_acl(), string() | aws_config()) -> ok.
+-spec create_bucket/3 :: (string(), s3_bucket_acl(), s3_location_constraint() | aws_config()) -> ok.
 create_bucket(BucketName, ACL, Config)
   when is_record(Config, aws_config) ->
     create_bucket(BucketName, ACL, none, Config);
 create_bucket(BucketName, ACL, LocationConstraint) ->
     create_bucket(BucketName, ACL, LocationConstraint, default_config()).
 
--spec create_bucket/4 :: (string(), s3_bucket_acl(), string(), aws_config()) -> ok.
-create_bucket(BucketName, ACL, LocationConstraint, Config) ->
+-spec create_bucket/4 :: (string(), s3_bucket_acl(), s3_location_constraint(), aws_config()) -> ok.
+create_bucket(BucketName, ACL, LocationConstraint, Config)
+  when is_list(BucketName), is_atom(ACL), is_atom(LocationConstraint) ->
     Headers = case ACL of
         private -> [];  %% private is the default
         _ -> [{"x-amz-acl", encode_acl(ACL)}]
@@ -119,7 +121,7 @@ delete_bucket(BucketName, Config)
 
 -spec delete_object/2 :: (string(), string()) -> proplist().
 delete_object(BucketName, Key) ->
-    delete_object(BucketName, Key, "").
+    delete_object(BucketName, Key, default_config()).
 
 -spec delete_object/3 :: (string(), string(), aws_config()) -> proplist().
 delete_object(BucketName, Key, Config)
@@ -359,9 +361,9 @@ extract_metadata(Headers) ->
 
 -spec get_object_torrent/2 :: (string(), string()) -> proplist().
 get_object_torrent(BucketName, Key) ->
-    get_object_torrent(BucketName, Key, []).
+    get_object_torrent(BucketName, Key, default_config()).
 
--spec get_object_torrent/3 :: (string(), string(), proplist() | aws_config()) -> proplist().
+-spec get_object_torrent/3 :: (string(), string(), aws_config()) -> proplist().
 get_object_torrent(BucketName, Key, Config) ->
     {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], "torrent",
         [], <<>>, []),
@@ -490,11 +492,11 @@ set_object_acl(BucketName, Key, ACL, Config)
       [
           {'Owner',
               [
-                  {'ID', [proplist:get_value(id, proplist:get_value(owner, ACL))]},
-                  {'DisplayName', [proplist:get_value(display_name, proplist:get_value(owner, ACL))]}
+                  {'ID', [proplists:get_value(id, proplists:get_value(owner, ACL))]},
+                  {'DisplayName', [proplists:get_value(display_name, proplists:get_value(owner, ACL))]}
               ]
           },
-          {'AccessControlList', encode_grants(proplist:get_value(access_control_list, ACL))}
+          {'AccessControlList', encode_grants(proplists:get_value(access_control_list, ACL))}
       ]
     },
     XMLText = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
@@ -513,11 +515,11 @@ set_bucket_attribute(BucketName, AttributeName, Value, Config)
                 [
                     {'Owner',
                         [
-                            {'ID', [proplist:get_value(id, proplist:get_value(owner, Value))]},
-                            {'DisplayName', [proplist:get_value(display_name, proplist:get_value(owner, Value))]}
+                            {'ID', [proplists:get_value(id, proplists:get_value(owner, Value))]},
+                            {'DisplayName', [proplists:get_value(display_name, proplists:get_value(owner, Value))]}
                         ]
                     },
-                    {'AccessControlList', encode_grants(proplist:get_value(access_control_list, Value))}
+                    {'AccessControlList', encode_grants(proplists:get_value(access_control_list, Value))}
                 ]
             },
             {"acl", ACLXML};
@@ -573,16 +575,16 @@ encode_grants(Grants) ->
     [encode_grant(Grant) || Grant <- Grants].
 
 encode_grant(Grant) ->
-    Grantee = proplist:get_value(grantee, Grant),
+    Grantee = proplists:get_value(grantee, Grant),
     {'Grant',
         [
             {'Grantee', [{xmlns, ?XMLNS_S3}],
                 [
-                    {'ID', [proplist:get_value(id, proplist:get_value(owner, Grantee))]},
-                    {'DisplayName', [proplist:get_value(display_name, proplist:get_value(owner, Grantee))]}
+                    {'ID', [proplists:get_value(id, proplists:get_value(owner, Grantee))]},
+                    {'DisplayName', [proplists:get_value(display_name, proplists:get_value(owner, Grantee))]}
                 ]
             },
-            {'Permission', [encode_permission(proplist:get_value(permission, Grant))]}
+            {'Permission', [encode_permission(proplists:get_value(permission, Grant))]}
         ]
     }.
 
