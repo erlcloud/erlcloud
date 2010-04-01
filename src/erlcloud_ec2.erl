@@ -162,16 +162,19 @@ attach_volume(VolumeID, InstanceID, Device, Config)
             {"Device", Device},
             {"VolumeId", VolumeID}
         ]),
-    extract_volume_status(Doc).
+    extract_volume_status(hd(xmerl_xpath:string("AttachVolumeResponse", Doc))).
 
 extract_volume_status(Node) ->
-    [
-        {volume_id, get_text("/AttachVolumeResponse/volumeId", Node)},
-        {instance_id, get_text("/AttachVolumeResponse/instanceId", Node)},
-        {device, get_text("/AttachVolumeResponse/device", Node)},
-        {status, get_text("/AttachVolumeResponse/status", Node)},
-        {attach_time, get_time("/AttachVolumeResponse/attachTime", Node)}
-    ].
+    erlcloud_xml:decode(
+        [
+            {volume_id, "volumeId", text},
+            {instance_id, "instanceId", text},
+            {device, "device", text},
+            {status, "status", text},
+            {attach_time, "attachTime", time}
+        ],
+        Node
+    ).
 
 -spec(authorize_security_group_ingress/2 :: (string(), ec2_ingress_spec()) -> ok).
 authorize_security_group_ingress(GroupName, IngressSpec) ->
@@ -204,8 +207,8 @@ extract_bundle_task([Node]) ->
         {instance_id, get_text("instanceId", Node)},
         {bundle_id, get_text("bundleId", Node)},
         {state, get_text("state", Node)},
-        {start_time, get_time("startTime", Node)},
-        {update_time, get_time("updateTime", Node)},
+        {start_time, erlcloud_xml:get_time("startTime", Node)},
+        {update_time, erlcloud_xml:get_time("updateTime", Node)},
         {progress, get_text("progress", Node)},
         {bucket, get_text("storage/S3/bucket", Node)},
         {prefix, get_text("storage/S3/prefix", Node)}
@@ -337,7 +340,7 @@ create_snapshot(VolumeID, Description, Config)
         {volume_id, get_text("/CreateSnapshotResponse/volumeId", Doc)},
         {volume_size, get_integer("/CreateSnapshotResponse/volumeSize", Doc)},
         {status, get_text("/CreateSnapshotResponse/status", Doc)},
-        {start_time, get_time("/CreateSnapshotResponse/attachTime", Doc)},
+        {start_time, erlcloud_xml:get_time("/CreateSnapshotResponse/attachTime", Doc)},
         {progress, get_text("/CreateSnapshotResponse/progress", Doc)},
         {owner_id, get_text("/CreateSnapshotResponse/ownerId", Doc)},
         {description, get_text("/CreateSnapshotResponse/description", Doc)}
@@ -393,7 +396,7 @@ create_volume(Size, SnapshotID, AvailabilityZone, Config)
      {snapshot_id, get_text("snapshotId", Doc, none)},
      {availability_zone, get_text("availabilityZone", Doc, none)},
      {status, get_text("status", Doc, none)},
-     {create_time, get_time("createTime", Doc)}
+     {create_time, erlcloud_xml:get_time("createTime", Doc)}
     ].
 
 -spec(delete_key_pair/1 :: (string()) -> ok).
@@ -663,7 +666,7 @@ extract_instance(Node) ->
      {ami_launch_index, list_to_integer(get_text("amiLaunchIndex", Node, "0"))},
      {product_codes, get_list("productCodes/item/productCode", Node)},
      {instance_type, get_text("instanceType", Node)},
-     {launch_time, get_time("launchTime", Node)},
+     {launch_time, erlcloud_xml:get_time("launchTime", Node)},
      {placement, [{availability_zone, get_text("placement/availabilityZone", Node)}]},
      {kernel_id, get_text("kernelId", Node)},
      {ramdisk_id, get_text("ramdiskId", Node)},
@@ -686,7 +689,7 @@ extract_block_device_mapping_status(Node) ->
         {device_name, get_text("deviceName", Node)},
         {volume_id, get_text("ebs/volumeId", Node)},
         {status, get_text("ebs/status", Node)},
-        {attach_time, get_time("ebs/attachTime", Node)},
+        {attach_time, erlcloud_xml:get_time("ebs/attachTime", Node)},
         {delete_on_termination, get_bool("ebs/deleteOnTermination", Node)}
     ].
 
@@ -751,7 +754,7 @@ extract_reserved_instance(Node) ->
         {reserved_instance_id, get_text("reservedInstanceId", Node)},
         {instance_type, get_text("instanceType", Node)},
         {availability_zone, get_text("availabilityZone", Node)},
-        {start, get_time("start", Node)},
+        {start, erlcloud_xml:get_time("start", Node)},
         {duration, get_integer("duration", Node)},
         {fixed_price, get_text("fixedPrice", Node)},
         {usage_price, get_text("usagePrice", Node)},
@@ -880,7 +883,7 @@ extract_snapshot(Node) ->
     [{snapshot_id, get_text("snapshotId", Node)},
      {volume_id, get_text("volumeId", Node)},
      {status, get_text("status", Node)},
-     {start_time, get_time("startTime", Node)},
+     {start_time, erlcloud_xml:get_time("startTime", Node)},
      {progress, get_text("progress", Node, none)},
      {owner_id, get_text("ownerId", Node)},
      {volume_size, get_integer("volumeSize", Node)},
@@ -925,11 +928,11 @@ extract_spot_instance_request(Node) ->
         {fault, [{code, get_text("fault/code", Node)},
                  {message, get_text("fault/message", Node)}
                 ]},
-        {valid_from, get_time("validFrom", Node)},
-        {valid_until, get_time("validUntil", Node)},
+        {valid_from, erlcloud_xml:get_time("validFrom", Node)},
+        {valid_until, erlcloud_xml:get_time("validUntil", Node)},
         {launch_group, get_text("launchGroup", Node, none)},
         {availability_zone_group, get_text("availabilityZoneGroup", Node, none)},
-        {create_time, get_time("createTime", Node)},
+        {create_time, erlcloud_xml:get_time("createTime", Node)},
         {product_description, get_text("productDescription", Node)},
         {launch_specification, extract_launch_specification(hd(xmerl_xpath:string("launchSpecification", Node)))},
         {instance_id, get_text("instanceId", Node, none)}
@@ -1001,7 +1004,7 @@ extract_spot_price_history(Node) ->
         {instance_type, get_text("instanceType", Node)},
         {product_description, get_text("productDescription", Node)},
         {spot_price, get_text("spotPrice", Node)},
-        {timestamp, get_time("timestamp", Node)}
+        {timestamp, erlcloud_xml:get_time("timestamp", Node)}
     ].
 
 -spec(describe_volumes/0 :: () -> proplist()).
@@ -1026,13 +1029,13 @@ extract_volume(Node) ->
      {snapshot_id, get_text("snapshotId", Node, none)},
      {availability_zone, get_text("availabilityZone", Node, none)},
      {status, get_text("status", Node, none)},
-     {create_time, get_time("createTime", Node)},
+     {create_time, erlcloud_xml:get_time("createTime", Node)},
      {attachment_set,
       [[{volume_id, get_text("volumeId", Item)},
         {instance_id, get_text("instanceId",Item)},
         {device, get_text("device", Item)},
         {status, get_text("status", Item)},
-        {attach_time, get_time("attachTime", Item)}
+        {attach_time, erlcloud_xml:get_time("attachTime", Item)}
        ] ||
        Item <- xmerl_xpath:string("attachmentSet/item", Node)
       ]
@@ -1047,7 +1050,7 @@ detach_volume(VolumeID, Config)
   when is_list(VolumeID) ->
     Params = [{"VolumeId", VolumeID}],
     Doc = ec2_query(Config, "DetachVolume", Params),
-    extract_volume_status(Doc).
+    extract_volume_status(hd(xmerl_xpath:string("DetachVolumeResponse", Doc))).
 
 -spec(disassociate_address/1 :: (string()) -> ok).
 disassociate_address(PublicIP) ->
@@ -1066,7 +1069,7 @@ get_console_output(InstanceID, Config)
   when is_list(InstanceID) ->
     Doc = ec2_query(Config, "GetConsoleOutput", [{"InstanceId", InstanceID}]),
     [{instance_id, get_text("/GetConsoleOutputResponse/instanceId", Doc)},
-     {timestamp, get_time("/GetConsoleOutputResponse/timestamp", Doc)},
+     {timestamp, erlcloud_xml:get_time("/GetConsoleOutputResponse/timestamp", Doc)},
      {output, base64:decode(get_text("/GetConsoleOutputResponse/output", Doc))}
     ].
 
@@ -1078,7 +1081,7 @@ get_password_data(InstanceID, Config)
   when is_list(InstanceID) ->
     Doc = ec2_query(Config, "GetPasswordData", [{"InstanceId", InstanceID}]),
     [{instance_id, get_text("/GetPasswordDataResponse/instanceId", Doc)},
-     {timestamp, get_time("/GetPasswordDataResponse/timestamp", Doc)},
+     {timestamp, erlcloud_xml:get_time("/GetPasswordDataResponse/timestamp", Doc)},
      {password_data, get_text("/GetPasswordDataResponse/passwordData", Doc)}
     ].
 
@@ -1440,7 +1443,3 @@ get_bool(XPath, Doc) ->
         "true" -> true;
         _ -> false
     end.
-
-get_time(XPath, Doc) ->
-    % XXX: Unimplemented.
-    get_text(XPath, Doc, none).

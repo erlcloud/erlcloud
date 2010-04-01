@@ -61,5 +61,16 @@ get_bool(XPath, Doc) ->
     end.
 
 get_time(XPath, Doc) ->
-    % XXX: Unimplemented.
-    get_text(XPath, Doc, none).
+    case get_text(XPath, Doc, undefined) of
+        undefined -> undefined;
+        Time -> parse_time(Time)
+    end.
+
+parse_time(String) ->
+    case re:run(String, "^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d+)?Z", [{capture, all_but_first, list}]) of
+        {match, [Yr, Mo, Da, H, M, S]} ->
+            {{list_to_integer(Yr), list_to_integer(Mo), list_to_integer(Da)},
+             {list_to_integer(H), list_to_integer(M), list_to_integer(S)}};
+        nomatch ->
+            error
+    end.
