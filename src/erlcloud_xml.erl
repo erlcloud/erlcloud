@@ -1,5 +1,5 @@
 -module(erlcloud_xml).
--export([decode/2, get_bool/2, get_float/2, get_integer/2, get_list/2,
+-export([decode/2, decode/3, get_bool/2, get_float/2, get_integer/2, get_list/2,
          get_text/1, get_text/2, get_time/2]).
 
 -include_lib("xmerl/include/xmerl.hrl").
@@ -16,17 +16,54 @@ decode(Values, Node) ->
             end, [], Values)
     ).
 
+decode(Values, Node, Record) ->
+    lists:foldl(
+        fun ({Index, XPath, Type}, Output) ->
+            case get_value(XPath, Type, Node) of
+                undefined -> Output;
+                Value -> setelement(Index, Output, Value)
+            end
+        end, Record, Values
+    ).
+
 get_value(XPath, Type, Node) ->
     case Type of
         text -> get_text(XPath, Node);
         optional_text -> get_text(XPath, Node, undefined);
         integer -> get_integer(XPath, Node);
+        optional_integer ->
+            case get_text(XPath, Node, undefined) of
+                undefined -> undefined;
+                Text -> list_to_integer(Text)
+            end;
         float -> get_float(XPath, Node);
         time -> get_time(XPath, Node);
         list -> get_list(XPath, Node);
         boolean -> get_bool(XPath, Node);
+        optional_boolean ->
+            case get_text(XPath, Node, undefined) of
+                undefined -> undefined;
+                "true" -> true;
+                _ -> false
+            end;
+        present -> xmerl_xpath:string(XPath, Node) =/= [];
+        xml -> Node;
         Fun when is_function(Fun, 1) ->
-            Fun(xmerl_xpath:string(XPath, Node))
+            Fun(xmerl_xpath:string(XPath, Node));
+        {single, Fun} when is_function(Fun, 1) ->
+            case xmerl_xpath:string(XPath, Node) of
+                [] -> undefined;
+                [SubNode] -> Fun(SubNode)
+            end;
+        {single, List} when is_list(List) ->
+            case xmerl_xpath:string(XPath, Node) of
+                [] -> undefined;
+                [SubNode] -> decode(List, SubNode)
+            end;
+        {value, Fun} when is_function(Fun, 1) ->
+            Fun(get_text(XPath, Node));
+        List when is_list(List) ->
+            [decode(List, SubNode) || SubNode <- xmerl_xpath:string(XPath, Node)]
     end.
 
 get_float(XPath, Node) ->
@@ -37,6 +74,11 @@ get_text(#xmlElement{content=Content}) ->
     lists:flatten([get_text(Node) || Node <- Content]).
 
 get_text(XPath, Doc) -> get_text(XPath, Doc, "").
+get_text({XPath, AttrName}, Doc, Default) ->
+    case xmerl_xpath:string(XPath ++ "/@" ++ AttrName, Doc) of
+        [] -> Default;
+        [#xmlAttribute{value=Value}|_] -> Value
+    end;
 get_text(XPath, Doc, Default) ->
     case xmerl_xpath:string(XPath ++ "/text()", Doc) of
         [] -> Default;

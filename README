@@ -8,6 +8,7 @@ Service APIs implemented:
 - Amazon Simple Storage Service (S3)
 - Amazon Simple Queue Service (SQS)
 - Amazon SimpleDB
+- Amazon Mechanical Turk
 
 All API functions have been implemented.  Not all functions
 have been thoroughly tested, so exercise care when integrating
