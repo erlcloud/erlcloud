@@ -254,7 +254,11 @@ get_bucket_attribute(BucketName, AttributeName, Config)
         request_payment ->
             erlcloud_xml:get_text("/RequestPaymentConfiguration/Payer", Doc);
         versioning ->
-            erlcloud_xml:get_text("/VersioningConfiguration/Status", Doc)
+            case erlcloud_xml:get_text("/VersioningConfiguration/Status", Doc) of
+                "Enabled" -> enabled;
+                "Suspended" -> suspended;
+                _ -> disabled
+            end
     end.
 
 extract_acl(ACL) ->
@@ -475,8 +479,9 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
         {"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}
         |HTTPHeaders
     ] ++ [{["x-amz-meta-"|string:to_lower(MKey)], MValue} || {MKey, MValue} <- proplists:get_value(meta, Options, [])],
-    {Headers, _Body} = s3_request(Config, put, BucketName, Key, "", [],
-        iolist_to_binary(Value), RequestHeaders),
+    POSTData = {iolist_to_binary(Value), proplists:get_value("content-type", HTTPHeaders, "application/octet_stream")},
+    {Headers, _Body} = s3_request(Config, put, BucketName, [$/|Key], "", [],
+        POSTData, RequestHeaders),
     [
         {version_id, proplists:get_value("x-amz-version-id", Headers, "null")}
     ].
@@ -500,7 +505,7 @@ set_object_acl(BucketName, Key, ACL, Config)
       ]
     },
     XMLText = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
-    s3_simple_request(Config, put, BucketName, Key, "acl", [], XMLText, []).
+    s3_simple_request(Config, put, BucketName, [$/|Key], "acl", [], XMLText, []).
 
 -spec set_bucket_attribute/3 :: (string(), atom(), term()) -> ok.
 set_bucket_attribute(BucketName, AttributeName, Value) ->
@@ -557,7 +562,7 @@ set_bucket_attribute(BucketName, AttributeName, Value, Config)
             end,
             MFADelete = case proplists:get_value(mfa_delete, Value, disabled) of
                 enabled -> "Enabled";
-                disabeld -> "Disabled"
+                disabled -> "Disabled"
             end,
             VersioningXML = {'VersioningConfiguration', [{xmlns, ?XMLNS_S3}],
                 [
@@ -617,10 +622,10 @@ s3_xml_request(Config, Method, Host, Path, Subresource, Params, POSTData, Header
     end.
 
 s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
-    {ContentMD5, ContentType} = case Method of
-        put -> {base64:encode(crypto:md5(POSTData)),
-                proplists:get_value("content-type", Headers, "application/octet_stream")};
-        _ -> {"", ""}
+    {ContentMD5, ContentType, Body} = case POSTData of
+        {PD, CT} ->
+            {base64:encode(crypto:md5(PD)), CT, PD};
+        PD -> {"", "", PD}
     end,
     AmzHeaders = lists:filter(fun (["x-amz-"|_]) -> true; (_) -> false end, Headers),
     Date = httpd_util:rfc1123_date(erlang:localtime()),
@@ -628,7 +633,11 @@ s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) -
         Date, AmzHeaders, Host, Path, Subresource),
     
     FHeaders = [Header || {_, Value} = Header <- Headers, Value =/= undefined],
-    RequestHeaders = [{"date", Date}, {"authorization", Authorization}|FHeaders],
+    RequestHeaders = [{"date", Date}, {"authorization", Authorization}|FHeaders] ++
+        case ContentMD5 of
+            "" -> [];
+            _ -> [{"content-md5", binary_to_list(ContentMD5)}]
+        end,
 
     RequestURI = lists:flatten([
         "https://",
@@ -646,15 +655,15 @@ s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) -
     Response = case Method of
         get -> http:request(Method, {RequestURI, RequestHeaders}, [], []);
         delete -> http:request(Method, {RequestURI, RequestHeaders}, [], []);
-        _ -> http:request(Method, {RequestURI, RequestHeaders, ContentType, POSTData}, [], [])
+        _ -> http:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, [], [])
     end,
     
     case Response of
-        {ok, {{_HTTPVer, OKStatus, _StatusLine}, ResponseHeaders, Body}}
+        {ok, {{_HTTPVer, OKStatus, _StatusLine}, ResponseHeaders, ResponseBody}}
           when OKStatus >= 200, OKStatus =< 299 ->
-            {ResponseHeaders, Body};
-        {ok, {{_HTTPVer, Status, _StatusLine}, _ResponseHeaders, _Body}} ->
-            erlang:error({aws_error, {http_error, Status, _StatusLine, _Body}});
+            {ResponseHeaders, ResponseBody};
+        {ok, {{_HTTPVer, Status, _StatusLine}, _ResponseHeaders, _ResponseBody}} ->
+            erlang:error({aws_error, {http_error, Status, _StatusLine, _ResponseBody}});
         {error, Error} ->
             erlang:error({aws_error, {socket_error, Error}})
     end.
