@@ -15,7 +15,7 @@
     delete_object/2, delete_object/3,
     delete_object_version/3, delete_object_version/4,
     get_object/2, get_object/3,
-    get_object_acl/2, get_object_acl/3,
+    get_object_acl/2, get_object_acl/3, get_object_acl/4,
     get_object_torrent/2, get_object_torrent/3,
     get_object_metadata/2, get_object_metadata/3, get_object_metadata/4,
     put_object/3, put_object/4, put_object/5,
@@ -46,8 +46,12 @@ copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, Options) ->
 
 -spec copy_object/6 :: (string(), string(), string(), string(), proplist(), aws_config()) -> proplist().
 copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, Options, Config) ->
+    SrcVersion = case proplists:get_value(version_id, Options) of
+        undefined -> "";
+        VersionID -> ["?versionId=", VersionID]
+    end,
     RequestHeaders = [
-        {"x-amz-copy-source", [SrcBucketName, $/, SrcKeyName]},
+        {"x-amz-copy-source", [SrcBucketName, $/, SrcKeyName, SrcVersion]},
         {"x-amz-metadata-directive", proplists:get_value(metadata_directive, Options)},
         {"x-amz-copy-source-if-match", proplists:get_value(if_match, Options)},
         {"x-amz-copy-source-if-none-match", proplists:get_value(if_none_match, Options)},
@@ -58,8 +62,8 @@ copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, Options, Con
     {Headers, _Body} = s3_request(Config, put, DestBucketName, [$/|DestKeyName],
         "", [], <<>>, RequestHeaders),
     [
-        {copy_source_version_id, list_to_existing_atom(proplists:get_value("x-amz-copy-source-version-id", Headers, "false"))},
-        {version_id, list_to_existing_atom(proplists:get_value("x-amz-verrsion-id", Headers, "null"))}
+        {copy_source_version_id, proplists:get_value("x-amz-copy-source-version-id", Headers, "false")},
+        {version_id, proplists:get_value("x-amz-version-id", Headers, "null")}
     ].
 
 -spec create_bucket/1 :: (string()) -> ok.
@@ -129,7 +133,7 @@ delete_object(BucketName, Key, Config)
     {Headers, _Body} = s3_request(Config, delete, BucketName, [$/|Key], "", [], <<>>, []),
     [
         {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
-        {version_id, list_to_existing_atom(proplists:get_value("x-amz-version-id", Headers, "null"))}
+        {version_id, proplists:get_value("x-amz-version-id", Headers, "null")}
     ].
 
 -spec delete_object_version/3 :: (string(), string(), string()) -> proplist().
@@ -139,12 +143,10 @@ delete_object_version(BucketName, Key, Version) ->
 -spec delete_object_version/4 :: (string(), string(), string(), aws_config()) -> proplist().
 delete_object_version(BucketName, Key, Version, Config)
   when is_list(BucketName), is_list(Key), is_list(Version)->
-    %% XXX: Is this correct for authentication purposes?
-    %% The docs describe this as a "subresource".
     {Headers, _Body} = s3_request(Config, delete, BucketName, [$/|Key], ["versionId=", Version], [], <<>>, []),
     [
         {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
-        {version_id, list_to_existing_atom(proplists:get_value("x-amz-version-id", Headers, "null"))}
+        {version_id, proplists:get_value("x-amz-version-id", Headers, "null")}
     ].
 
 -spec list_buckets/0 :: () -> proplist().
@@ -252,7 +254,10 @@ get_bucket_attribute(BucketName, AttributeName, Config)
                      )]
             end;
         request_payment ->
-            erlcloud_xml:get_text("/RequestPaymentConfiguration/Payer", Doc);
+            case erlcloud_xml:get_text("/RequestPaymentConfiguration/Payer", Doc) of
+                "Requester" -> requester;
+                _ -> bucket_owner
+            end;
         versioning ->
             case erlcloud_xml:get_text("/VersioningConfiguration/Status", Doc) of
                 "Enabled" -> enabled;
@@ -302,7 +307,11 @@ get_object(BucketName, Key, Options, Config) ->
         {"If-Match", proplists:get_value(if_match, Options)},
         {"If-None-Match", proplists:get_value(if_none_match, Options)}
     ],
-    {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], "", [], <<>>,
+    Subresource = case proplists:get_value(version_id, Options) of
+        undefined -> "";
+        Version -> ["versionId=", Version]
+    end,
+    {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], Subresource, [], <<>>,
         RequestHeaders),
     [
         {etag, proplists:get_value("etag", Headers)},
@@ -318,9 +327,21 @@ get_object(BucketName, Key, Options, Config) ->
 get_object_acl(BucketName, Key) ->
     get_object_acl(BucketName, Key, default_config()).
 
--spec get_object_acl/3 :: (string(), string(), aws_config()) -> proplist().
-get_object_acl(BucketName, Key, Config) ->
-    Doc = s3_xml_request(Config, get, BucketName, [$/|Key], "acl", [], <<>>, []),
+-spec get_object_acl/3 :: (string(), string(), proplist() | aws_config()) -> proplist().
+get_object_acl(BucketName, Key, Config)
+  when is_record(Config, aws_config) ->
+    get_object_acl(BucketName, Key, [], Config);
+get_object_acl(BucketName, Key, Options) ->
+    get_object_acl(BucketName, Key, Options, default_config()).
+
+-spec get_object_acl/4 :: (string(), string(), proplist(), aws_config()) -> proplist().
+get_object_acl(BucketName, Key, Options, Config)
+  when is_list(BucketName), is_list(Key), is_list(Options) ->
+    Subresource = case proplists:get_value(version_id, Options) of
+        undefined -> "";
+        Version -> ["&versionId=", Version]
+    end,
+    Doc = s3_xml_request(Config, get, BucketName, [$/|Key], "acl" ++ Subresource, [], <<>>, []),
     erlcloud_xml:decode(
         [
             {owner, "Owner", fun extract_user/1},
@@ -348,7 +369,11 @@ get_object_metadata(BucketName, Key, Options, Config) ->
         {"If-Match", proplists:get_value(if_match, Options)},
         {"If-None-Match", proplists:get_value(if_none_match, Options)}
     ],
-    {Headers, _Body} = s3_request(Config, get, BucketName, [$/|Key], "", [], <<>>,
+    Subresource = case proplists:get_value(version_id, Options) of
+        undefined -> "";
+        Version -> ["versionId=", Version]
+    end,
+    {Headers, _Body} = s3_request(Config, get, BucketName, [$/|Key], Subresource, [], <<>>,
         RequestHeaders),
     [
         {last_modified, proplists:get_value("last-modified", Headers)},
@@ -356,7 +381,7 @@ get_object_metadata(BucketName, Key, Options, Config) ->
         {content_length, proplists:get_value("content-length", Headers)},
         {content_type, proplists:get_value("content-type", Headers)},
         {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
-        {version_id, proplists:get_value("x-amz-delete-marker", Headers, "false")}|
+        {version_id, proplists:get_value("x-amz-version-id", Headers, "false")}|
         extract_metadata(Headers)
     ].
 
@@ -439,7 +464,7 @@ extract_delete_marker(Node) ->
     erlcloud_xml:decode(
         [
             {key, "Key", text},
-            {version_id, "VersionId, text"},
+            {version_id, "VersionId", text},
             {is_latest, "IsLatest", boolean},
             {owner, "Owner", fun extract_user/1}
         ],
@@ -627,7 +652,7 @@ s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) -
             {base64:encode(crypto:md5(PD)), CT, PD};
         PD -> {"", "", PD}
     end,
-    AmzHeaders = lists:filter(fun (["x-amz-"|_]) -> true; (_) -> false end, Headers),
+    AmzHeaders = lists:filter(fun ({"x-amz-" ++ _, V}) when V =/= undefined -> true; (_) -> false end, Headers),
     Date = httpd_util:rfc1123_date(erlang:localtime()),
     Authorization = make_authorization(Config, Method, ContentMD5, ContentType,
         Date, AmzHeaders, Host, Path, Subresource),
