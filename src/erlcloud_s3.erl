@@ -654,8 +654,9 @@ s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) -
     end,
     AmzHeaders = lists:filter(fun ({"x-amz-" ++ _, V}) when V =/= undefined -> true; (_) -> false end, Headers),
     Date = httpd_util:rfc1123_date(erlang:localtime()),
+    EscapedPath = erlcloud_http:url_encode_loose(Path),
     Authorization = make_authorization(Config, Method, ContentMD5, ContentType,
-        Date, AmzHeaders, Host, Path, Subresource),
+        Date, AmzHeaders, Host, EscapedPath, Subresource),
     
     FHeaders = [Header || {_, Value} = Header <- Headers, Value =/= undefined],
     RequestHeaders = [{"date", Date}, {"authorization", Authorization}|FHeaders] ++
@@ -668,7 +669,7 @@ s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) -
         "https://",
         case Host of "" -> ""; _ -> [Host, $.] end,
         Config#aws_config.s3_host,
-        Path,
+        EscapedPath,
         case Subresource of "" -> ""; _ -> [$?, Subresource] end,
         if
             Params =:= [] -> "";
