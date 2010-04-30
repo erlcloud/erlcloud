@@ -138,7 +138,7 @@ allocate_address() -> allocate_address(default_config()).
 -spec(allocate_address/1 :: (aws_config()) -> string()).
 allocate_address(Config) ->
     Doc = ec2_query(Config, "AllocateAddress", []),
-    get_text("/AllocateAddressResponseType/publicIp", Doc).
+    get_text("/AllocateAddressResponse/publicIp", Doc).
 
 -spec(associate_address/2 :: (string(), string()) -> ok).
 associate_address(PublicIP, InstanceID) ->
@@ -1259,7 +1259,7 @@ request_spot_instances(Request, Config) ->
 -spec(release_address/2 :: (string(), aws_config()) -> ok).
 release_address(PublicIP, Config)
   when is_list(PublicIP) ->
-    ec2_simple_query(Config, "ReleaseAddress", [{"publicIp", PublicIP}]).
+    ec2_simple_query(Config, "ReleaseAddress", [{"PublicIp", PublicIP}]).
 
 -spec(reset_image_attribute/2 :: (string(), atom()) -> ok).
 reset_image_attribute(ImageID, Attribute) ->
