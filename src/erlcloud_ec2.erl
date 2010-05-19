@@ -162,7 +162,7 @@ attach_volume(VolumeID, InstanceID, Device, Config)
             {"Device", Device},
             {"VolumeId", VolumeID}
         ]),
-    extract_volume_status(hd(xmerl_xpath:string("AttachVolumeResponse", Doc))).
+    extract_volume_status(hd(xmerl_xpath:string("/AttachVolumeResponse", Doc))).
 
 extract_volume_status(Node) ->
     erlcloud_xml:decode(
@@ -1050,7 +1050,7 @@ detach_volume(VolumeID, Config)
   when is_list(VolumeID) ->
     Params = [{"VolumeId", VolumeID}],
     Doc = ec2_query(Config, "DetachVolume", Params),
-    extract_volume_status(hd(xmerl_xpath:string("DetachVolumeResponse", Doc))).
+    extract_volume_status(hd(xmerl_xpath:string("/DetachVolumeResponse", Doc))).
 
 -spec(disassociate_address/1 :: (string()) -> ok).
 disassociate_address(PublicIP) ->
