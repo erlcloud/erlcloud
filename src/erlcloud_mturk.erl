@@ -952,11 +952,13 @@ decode_xml(#xmlElement{name='SelectionAnswer'} = Element) ->
             {#mturk_selection_answer.min_selection_count, "MinSelectionCount", integer},
             {#mturk_selection_answer.max_selection_count, "MaxSelectionCount", integer},
             {#mturk_selection_answer.style_suggestion, "StyleSuggestion", {value, fun (V) -> list_to_existing_atom(V) end}},
-            {#mturk_selection_answer.selections, "Selection", fun decode_xml/1}
+            {#mturk_selection_answer.selections, "Selections", {single, fun decode_xml/1}}
         ],
         Element,
         #mturk_selection_answer{}
     );
+decode_xml(#xmlElement{name='Selections', content=Content}) ->
+    decode_xml(Content);
 decode_xml(#xmlElement{name='Selection'} = Element) ->
     erlcloud_xml:decode(
         [
@@ -1489,7 +1491,7 @@ encode_xml(#mturk_selection_answer{
              none -> undefined;
              _ -> [atom_to_list(StyleSuggestion)]
          end}
-    ]) ++ encode_xml_list(Selections)};
+    ]) ++ [{'Selections', encode_xml_list(Selections)}]};
 encode_xml(#mturk_selection{selection_identifier=SId, text=Text, formatted_content=Content, binary=Binary}) ->
     {'Selection', filter_undefined([
         {'SelectionIdentifier', [SId]},
