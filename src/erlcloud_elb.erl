@@ -1,12 +1,5 @@
 -module(erlcloud_elb).
 
--type elb_attribute() :: {string(), string() | {replace, string()}}.
--type elb_attributes() :: [elb_attribute()].
--type elb_conditional() :: {string(), string() | exists | not_exists}.
--type elb_conditionals() :: [elb_conditional()].
--type elb_delete_attribute() :: {string(), string()} | string().
--type elb_delete_attributes() :: [elb_delete_attribute()].
-
 %% Library initialization.
 -export([configure/2, configure/3, new/2, new/3]).
 
@@ -15,7 +8,9 @@
          delete_load_balancer/1, delete_load_balancer/2,
 
          register_instance/2, register_instance/3,
-         deregister_instance/2, deregister_instance/3]).
+         deregister_instance/2, deregister_instance/3,
+
+         configure_health_check/2, configure_health_check/3]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -96,6 +91,19 @@ deregister_instance(LB, InstanceId, Config) when is_list(LB) ->
                        [{"LoadBalancerName", [LB]} |
                         erlcloud_aws:param_list([[{"InstanceId", InstanceId}]], "Instances.member")]).
 
+
+
+-spec configure_health_check/2 :: (string(), string()) -> proplist().
+configure_health_check(LB, Target) when is_list(LB),
+                                        is_list(Target) ->
+    configure_health_check(LB, Target, default_config()).
+
+-spec configure_health_check/3 :: (string(), string(), aws_config()) -> proplist().
+configure_health_check(LB, Target, Config) when is_list(LB) ->
+    elb_simple_request(Config,
+                       "ConfigureHealthCheck",
+                       [{"LoadBalancerName", [LB]},
+                        {"HealthCheck.Target", Target}]).
 
 
 
