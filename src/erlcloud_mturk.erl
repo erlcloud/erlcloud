@@ -3,6 +3,8 @@
 %% Library initialization.
 -export([configure/2, configure/3, new/2, new/3]).
 
+-export([decode_xml/1]).
+
 %% Mechanical Turk API Functions
 -export([
     approve_assignment/2, approve_assignment/3,
@@ -863,6 +865,24 @@ decode_xml(#xmlElement{name='AnswerKey', parents=[]} = Element) ->
         Element,
         #mturk_answer_key{}
     );
+decode_xml(#xmlElement{name='QualificationValueMapping', content=Content}) ->
+    hd(decode_xml(Content));
+decode_xml(#xmlElement{name='PercentageMapping'} = Element) ->
+    erlcloud_xml:decode(
+        [
+            {#mturk_percentage_mapping.maximum_summed_score, "MaximumSummedScore", integer}
+        ],
+        Element,
+        #mturk_percentage_mapping{}
+    );
+decode_xml(#xmlElement{name='ScaleMapping'} = Element) ->
+    erlcloud_xml:decode(
+        [
+            {#mturk_scale_mapping.summed_score_multiplier, "SummedScoreMultiplier", integer}
+        ],
+        Element,
+        #mturk_percentage_mapping{}
+    );
 decode_xml(#xmlElement{name='Test'} = Element) ->
     XML = element(1,xmerl_scan:string(erlcloud_xml:get_text(Element))),
     decode_xml(XML);
@@ -1392,7 +1412,7 @@ encode_question_content(Items) ->
 encode_xml_list(List) when is_list(List) ->
     [encode_xml(Item) || Item <- List];
 encode_xml_list(undefined) -> [];
-encode_xml_list(XML) -> encode_xml(XML).
+encode_xml_list(XML) -> [encode_xml(XML)].
 
 encode_xml({title, Title}) ->
     {'Title', [Title]};
@@ -1549,7 +1569,8 @@ encode_qualification_type_status(active) -> "Active";
 encode_qualification_type_status(inactive) -> "Inactive".
 
 decode_qualification_type_status("Active") -> active;
-decode_qualification_type_status("Inactive") -> inactive.
+decode_qualification_type_status("Inactive") -> inactive;
+decode_qualification_type_status("Disposing") -> disposing.
 
 filter_undefined(List) ->
     [Elem || {_, Value} = Elem <- List, Value =/= undefined, Value =/= [undefined]].
