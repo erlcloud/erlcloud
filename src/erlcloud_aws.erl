@@ -10,29 +10,36 @@ aws_request_xml(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
 
 aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     Timestamp = format_timestamp(erlang:universaltime()),
-    QParams = lists:sort([
-        {"Timestamp", Timestamp}, {"SignatureVersion", "2"},
-        {"SignatureMethod", "HmacSHA1"},
-        {"AWSAccessKeyId", AccessKeyID}|Params]),
+    QParams = lists:sort([{"Timestamp", Timestamp},
+                          {"SignatureVersion", "2"},
+                          {"SignatureMethod", "HmacSHA1"},
+                          {"AWSAccessKeyId", AccessKeyID}|Params]),
 
     QueryToSign = erlcloud_http:make_query_string(QParams),
-    RequestToSign = [string:to_upper(atom_to_list(Method)), $\n,
-                     Host, $\n, Path, $\n, QueryToSign],
+
+    RequestToSign = [string:to_upper(atom_to_list(Method)), "\n",
+                     string:to_lower(Host), "\n",
+                     Path, "\n",
+                     QueryToSign],
+
     Signature = base64:encode(crypto:sha_mac(SecretAccessKey, RequestToSign)),
-    
+
     Query = [QueryToSign, "&Signature=", erlcloud_http:url_encode(Signature)],
-    
+
     URL = ["https://", Host, Path],
 
-    Response = case Method of
-        get ->
-            http:request(lists:flatten([URL, $?, Query]));
-        _ ->
-            http:request(Method,
-                         {lists:flatten(URL), [], "application/x-www-form-urlencoded",
-                          list_to_binary(Query)}, [], [])
-    end,
-    
+    Response =
+        case Method of
+            get ->
+                Req = lists:flatten([URL, $?, Query]),
+                io:format("Req: >~s<~n", [Req]),
+                http:request(Req);
+            _ ->
+                http:request(Method,
+                             {lists:flatten(URL), [], "application/x-www-form-urlencoded",
+                              list_to_binary(Query)}, [], [])
+        end,
+
     case Response of
         {ok, {{_HTTPVer, 200, _StatusLine}, _Headers, Body}} ->
             Body;

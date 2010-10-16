@@ -2,7 +2,8 @@
 -export([make_query_string/1, url_encode/1, url_encode_loose/1]).
 
 make_query_string(Params) ->
-    string:join([[Key, "=", url_encode(value_to_string(Value))] || {Key, Value} <- Params, Value =/= none, Value =/= undefined], "&").
+    string:join([[Key, "=", url_encode(value_to_string(Value))]
+                 || {Key, Value} <- Params, Value =/= none, Value =/= undefined], "&").
 
 value_to_string(Integer) when is_integer(Integer) -> integer_to_list(Integer);
 value_to_string(Atom) when is_atom(Atom) -> atom_to_list(Atom);
@@ -16,12 +17,11 @@ url_encode(String) ->
 url_encode([], Accum) ->
     lists:reverse(Accum);
 url_encode([Char|String], Accum)
-  when Char >= $A, Char =< $Z; 
+  when Char >= $A, Char =< $Z;
        Char >= $a, Char =< $z;
        Char >= $0, Char =< $9;
        Char =:= $-; Char =:= $_;
-       Char =:= $.; Char =:= $~;
-       Char =:= $: ->
+       Char =:= $.; Char =:= $~ ->
     url_encode(String, [Char|Accum]);
 url_encode([Char|String], Accum)
   when Char >=0, Char =< 255 ->
@@ -34,7 +34,7 @@ url_encode_loose(String) ->
 url_encode_loose([], Accum) ->
     lists:reverse(Accum);
 url_encode_loose([Char|String], Accum)
-  when Char >= $A, Char =< $Z; 
+  when Char >= $A, Char =< $Z;
        Char >= $a, Char =< $z;
        Char >= $0, Char =< $9;
        Char =:= $-; Char =:= $_;
