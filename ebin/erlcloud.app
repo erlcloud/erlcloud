@@ -3,7 +3,7 @@
   {vsn, "0.3.0"},
   {modules, [erlcloud, erlcloud_aws, erlcloud_ec2, erlcloud_http,
              erlcloud_mturk, erlcloud_s3, erlcloud_sdb, erlcloud_sqs,
-             erlcloud_xml]},
+             erlcloud_elb, erlcloud_xml]},
   {registered, []},
   {applications, [stdlib, kernel, sasl, crypto, ssl, inets]},
   {env, []}
