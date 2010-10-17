@@ -20,8 +20,7 @@ url_encode([Char|String], Accum)
        Char >= $a, Char =< $z;
        Char >= $0, Char =< $9;
        Char =:= $-; Char =:= $_;
-       Char =:= $.; Char =:= $~;
-       Char =:= $: ->
+       Char =:= $.; Char =:= $~ ->
     url_encode(String, [Char|Accum]);
 url_encode([Char|String], Accum)
   when Char >=0, Char =< 255 ->
