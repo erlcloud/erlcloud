@@ -5,7 +5,7 @@
              erlcloud_mturk, erlcloud_s3, erlcloud_sdb, erlcloud_sqs,
              erlcloud_elb, erlcloud_xml]},
   {registered, []},
-  {applications, [stdlib, kernel, sasl, crypto, ssl, inets]},
+  {applications, [stdlib, kernel, sasl, crypto, ssl, xmerl, inets]},
   {env, []}
  ]
 }.
