@@ -17,6 +17,8 @@
 
 -define(API_VERSION, "2009-05-15").
 
+-import(erlcloud_xml, [get_text/1, get_text/2, get_integer/2]).
+
 -spec(new/2 :: (string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id=AccessKeyID,
@@ -49,15 +51,15 @@ create_load_balancer(LB, Port, Protocol) when is_list(LB),
 create_load_balancer(LB, Port, Protocol, Config) when is_list(LB),
                                                       is_integer(Port),
                                                       is_atom(Protocol) ->
-    elb_simple_request(Config,
-                       "CreateLoadBalancer",
-                       [{"AvailabilityZones.member.1", "us-east-1d"},
-                        {"LoadBalancerName", LB} |
-                        erlcloud_aws:param_list([[{"LoadBalancerPort", Port},
-                                                  {"InstancePort", Port},
-                                                  {"Protocol", string:to_upper(atom_to_list(Protocol))}]],
-                                                "Listeners.member")]).
-
+    XML = elb_request(Config,
+                      "CreateLoadBalancer",
+                      [{"AvailabilityZones.member.1", "us-east-1d"},
+                       {"LoadBalancerName", LB} |
+                       erlcloud_aws:param_list([[{"LoadBalancerPort", Port},
+                                                 {"InstancePort", Port},
+                                                 {"Protocol", string:to_upper(atom_to_list(Protocol))}]],
+                                               "Listeners.member")]),
+    {ok, get_text("/CreateLoadBalancerResponse/CreateLoadBalancerResult/DNSName", XML)}.
 
 delete_load_balancer(LB) when is_list(LB) ->
     delete_load_balancer(LB, default_config()).

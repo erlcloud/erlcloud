@@ -36,7 +36,7 @@
     detach_volume/1, detach_volume/2,
     modify_snapshot_attribute/3, modify_snapshot_attribute/4,
     reset_snapshot_attribute/2, reset_snapshot_attribute/3,
-    
+
     %% Elastic IP addresses.
     allocate_address/0, allocate_address/1,
     associate_address/2, associate_address/3,
@@ -50,7 +50,7 @@
     %% Images
     register_image/1, register_image/2,
     reset_image_attribute/2, reset_image_attribute/3,
-    
+
     %% Instances
     describe_instance_attribute/2, describe_instance_attribute/3,
     describe_instances/0, describe_instances/1, describe_instances/2,
@@ -61,7 +61,7 @@
     start_instances/1, start_instances/2,
     stop_instances/1, stop_instances/2, stop_instances/3,
     terminate_instances/1, terminate_instances/2,
-    
+
     %% Key Pairs
     create_key_pair/1, create_key_pair/2,
     delete_key_pair/1, delete_key_pair/2,
@@ -70,7 +70,7 @@
     %% Monitoring
     monitor_instances/1, monitor_instances/2,
     unmonitor_instances/1, unmonitor_instances/2,
-    
+
     %% Reserved Instances
     describe_reserved_instances/0, describe_reserved_instances/1,
     describe_reserved_instances/2,
@@ -79,7 +79,7 @@
     describe_reserved_instances_offerings/2,
     purchase_reserved_instances_offering/1,
     purchase_reserved_instances_offering/2,
-    
+
     %% Security Groups
     authorize_security_group_ingress/2, authorize_security_group_ingress/3,
     create_security_group/2, create_security_group/3,
@@ -98,13 +98,15 @@
     describe_spot_price_history/2, describe_spot_price_history/3,
     describe_spot_price_history/5,
     request_spot_instances/1, request_spot_instances/2,
-    
+
     %% Windows
     bundle_instance/6, bundle_instance/7,
     cancel_bundle_task/1, cancel_bundle_task/2,
     describe_bundle_tasks/0, describe_bundle_tasks/1, describe_bundle_tasks/2,
     get_password_data/1, get_password_data/2
 ]).
+
+-import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
 
 -define(API_VERSION, "2009-11-30").
 -include("erlcloud.hrl").
@@ -191,7 +193,7 @@ bundle_instance(InstanceID, Bucket, Prefix, AccessKeyID, UploadPolicy,
                 UploadPolicySignature) ->
     bundle_instance(InstanceID, Bucket, Prefix, AccessKeyID, UploadPolicy,
                 UploadPolicySignature, default_config()).
-                    
+
 -spec(bundle_instance/7 :: (string(), string(), string(), string(), string(), string(), aws_config()) -> proplist()).
 bundle_instance(InstanceID, Bucket, Prefix, AccessKeyID, UploadPolicy,
                 UploadPolicySignature, Config) ->
@@ -255,7 +257,7 @@ extract_spot_instance_state(Node) ->
 -spec(confirm_product_instance/2 :: (string(), string()) -> proplist()).
 confirm_product_instance(ProductCode, InstanceID) ->
     confirm_product_instance(ProductCode, InstanceID, default_config()).
-    
+
 -spec(confirm_product_instance/3 :: (string(), string(), aws_config()) -> proplist()).
 confirm_product_instance(ProductCode, InstanceID, Config)
   when is_list(ProductCode), is_list(InstanceID) ->
@@ -1101,7 +1103,7 @@ modify_image_attribute(ImageID, Attribute, Value, Config) ->
         {product_codes, ProductCodes} ->
             {"productCodes", none, erlcloud_aws:param_list(ProductCodes, "ProductCode")}
     end,
-        
+
     Params = [{"ImageId", ImageID},
               {"Attribute", AttributeName},
               {"OperationType", OperationType}|
@@ -1251,7 +1253,7 @@ request_spot_instances(Request, Config) ->
     BDParams = [
         {"LaunchSpecification." ++ Key, Value} ||
         {Key, Value} <- block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping)],
-    
+
     Doc = ec2_query(Config, "RequestSpotInstances", Params ++ BDParams ++ GParams),
     [extract_spot_instance_request(Item) ||
      Item <- xmerl_xpath:string("/RequestSpotInstancesResponse/spotInstanceRequestSet/item", Doc)].
@@ -1415,31 +1417,3 @@ ec2_query(Config, Action, Params) ->
         Config#aws_config.secret_access_key).
 
 default_config() -> erlcloud_aws:default_config().
-
-get_text(#xmlText{value=Value}) -> Value;
-get_text(#xmlElement{content=Content}) ->
-    lists:flatten([get_text(Node) || Node <- Content]).
-
-get_text(XPath, Doc) -> get_text(XPath, Doc, "").
-get_text(XPath, Doc, Default) ->
-    case xmerl_xpath:string(XPath ++ "/text()", Doc) of
-        [] -> Default;
-        TextNodes ->
-            lists:flatten([Node#xmlText.value || Node <- TextNodes])
-    end.
-
-get_list(XPath, Doc) ->
-    [get_text(Node) || Node <- xmerl_xpath:string(XPath, Doc)].
-
-get_integer(XPath, Doc) -> get_integer(XPath, Doc, 0).
-get_integer(XPath, Doc, Default) ->
-    case get_text(XPath, Doc) of
-        "" -> Default;
-        Text -> list_to_integer(Text)
-    end.
-
-get_bool(XPath, Doc) ->
-    case get_text(XPath, Doc, "false") of
-        "true" -> true;
-        _ -> false
-    end.
