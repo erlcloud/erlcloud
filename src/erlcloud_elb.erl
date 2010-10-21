@@ -10,6 +10,9 @@
          register_instance/2, register_instance/3,
          deregister_instance/2, deregister_instance/3,
 
+         describe_load_balancer/1, describe_load_balancer/2,
+         describe_load_balancers/1, describe_load_balancers/2,
+
          configure_health_check/2, configure_health_check/3]).
 
 -include("erlcloud.hrl").
@@ -106,6 +109,20 @@ configure_health_check(LB, Target, Config) when is_list(LB) ->
                        "ConfigureHealthCheck",
                        [{"LoadBalancerName", [LB]},
                         {"HealthCheck.Target", Target}]).
+
+
+describe_load_balancer(Name) ->
+    describe_load_balancer(Name, default_config()).
+describe_load_balancer(Name, Config) ->
+    describe_load_balancers([Name], Config).
+
+
+describe_load_balancers(Names) ->
+    describe_load_balancers(Names, default_config()).
+describe_load_balancers(Names, Config) ->
+    elb_request(Config,
+                       "DescribeLoadBalancers",
+                       [erlcloud_aws:param_list(Names, "LoadBalancerNames.member")]).
 
 
 
