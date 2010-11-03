@@ -656,7 +656,7 @@ extract_reservation(Node) ->
 
 extract_instance(Node) ->
     [{instance_id, get_text("instanceId", Node)},
-     {image_id, get_text("ImageId", Node)},
+     {image_id, get_text("imageId", Node)},
      {instance_state, [
        {code, list_to_integer(get_text("instanceState/code", Node, "0"))},
        {name, get_text("instanceState/name", Node)}
