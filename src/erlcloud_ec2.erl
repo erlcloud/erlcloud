@@ -1330,7 +1330,7 @@ run_instances(InstanceSpec, Config)
     ],
     GParams = erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, "SecurityGroup"),
     BDParams = block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping),
-    Doc = ec2_query(Config, "RunInsances", Params ++ GParams ++ BDParams),
+    Doc = ec2_query(Config, "RunInstances", Params ++ GParams ++ BDParams),
     extract_reservation(hd(xmerl_xpath:string("/RunInstancesResponse", Doc))).
 
 block_device_params(Mappings) ->
