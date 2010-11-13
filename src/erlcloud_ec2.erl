@@ -103,7 +103,10 @@
     bundle_instance/6, bundle_instance/7,
     cancel_bundle_task/1, cancel_bundle_task/2,
     describe_bundle_tasks/0, describe_bundle_tasks/1, describe_bundle_tasks/2,
-    get_password_data/1, get_password_data/2
+    get_password_data/1, get_password_data/2,
+
+    %% Tagging. Uses different version of AWS API
+    create_tags/3
 ]).
 
 -import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
@@ -1333,6 +1336,22 @@ run_instances(InstanceSpec, Config)
     Doc = ec2_query(Config, "RunInstances", Params ++ GParams ++ BDParams),
     extract_reservation(hd(xmerl_xpath:string("/RunInstancesResponse", Doc))).
 
+% -spec(run_instances/2 :: ([string()], TagsList::[{key,value}], aws_config()) -> proplist()).
+create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
+   {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
+                                   I = integer_to_list(Index),
+                                   TKKey = "Tag."++I++".Key",
+                                   TVKey = "Tag."++I++".Value",
+                                   {[{TKKey, Key}, {TVKey, Value} | Acc], Index+1}
+                       end, {[], 1}, TagsList),
+    {Resources, _} = lists:foldl(fun(ResourceId, {Acc, Index}) ->
+                                   I = integer_to_list(Index),
+                                   TKey = "ResourceId."++I,
+                                   {[{TKey, ResourceId} | Acc], Index+1}
+                       end, {[], 1}, ResourceIds),
+    io:fwrite("erlcloud_ec2:create_tags(~p).~n", [{Config, "CreateTags", Resources ++ Tags}]),
+    ec2_query(Config, "CreateTags", Resources ++ Tags, "2010-08-31").
+
 block_device_params(Mappings) ->
     erlcloud_aws:param_list(
         [[{"DeviceName", Mapping#ec2_block_device_mapping.device_name},
@@ -1411,7 +1430,10 @@ ec2_simple_query(Config, Action, Params) ->
     ok.
 
 ec2_query(Config, Action, Params) ->
-    QParams = [{"Action", Action}, {"Version", ?API_VERSION}|Params],
+    ec2_query(Config, Action, Params, ?API_VERSION).
+
+ec2_query(Config, Action, Params, ApiVersion) ->
+    QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml(post, Config#aws_config.ec2_host,
         "/", QParams, Config#aws_config.access_key_id,
         Config#aws_config.secret_access_key).
