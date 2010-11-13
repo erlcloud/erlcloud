@@ -506,9 +506,6 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
                      ] ++ [{["x-amz-meta-"|string:to_lower(MKey)], MValue} || {MKey, MValue} <- proplists:get_value(meta, Options, [])],
     POSTData = {iolist_to_binary(Value), proplists:get_value("content-type", HTTPHeaders, "application/octet_stream")},
 
-    io:fwrite("{Config, put, BucketName, [$/|Key], "", [], POSTData, RequestHeaders}: ~n~p~n",
-              [{Config, put, BucketName, [$/|Key], "", [], size(POSTData), RequestHeaders}]),
-
     {Headers, _Body} = s3_request(Config, put, BucketName, [$/|Key], "", [],
                                   POSTData, RequestHeaders),
     [
