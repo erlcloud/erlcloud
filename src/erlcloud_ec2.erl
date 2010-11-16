@@ -1349,7 +1349,6 @@ create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
                                    TKey = "ResourceId."++I,
                                    {[{TKey, ResourceId} | Acc], Index+1}
                        end, {[], 1}, ResourceIds),
-    io:fwrite("erlcloud_ec2:create_tags(~p).~n", [{Config, "CreateTags", Resources ++ Tags}]),
     ec2_query(Config, "CreateTags", Resources ++ Tags, "2010-08-31").
 
 block_device_params(Mappings) ->
