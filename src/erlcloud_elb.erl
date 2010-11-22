@@ -92,8 +92,8 @@ deregister_instance(LB, InstanceId) ->
 -spec deregister_instance/3 :: (string(), string(), aws_config()) -> proplist().
 deregister_instance(LB, InstanceId, Config) when is_list(LB) ->
     elb_simple_request(Config,
-                       "DeregisterInstancesWithLoadBalancer",
-                       [{"LoadBalancerName", [LB]} |
+                       "DeregisterInstancesFromLoadBalancer",
+                       [{"LoadBalancerName", LB} |
                         erlcloud_aws:param_list([[{"InstanceId", InstanceId}]], "Instances.member")]).
 
 
