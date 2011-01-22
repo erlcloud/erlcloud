@@ -13,7 +13,7 @@
     min_count=1::pos_integer(),
     max_count=1::pos_integer(),
     key_name::string(),
-    group_set::[string()],
+    group_set=["default"]::[string()],
     user_data::binary(),
     instance_type::string(),
     availability_zone::string(),

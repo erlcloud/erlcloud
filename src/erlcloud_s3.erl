@@ -18,7 +18,7 @@
     get_object_acl/2, get_object_acl/3, get_object_acl/4,
     get_object_torrent/2, get_object_torrent/3,
     get_object_metadata/2, get_object_metadata/3, get_object_metadata/4,
-    put_object/3, put_object/4, put_object/5,
+    put_object/3, put_object/4, put_object/5, put_object/6,
     set_object_acl/3, set_object_acl/4
 ]).
 
@@ -112,7 +112,7 @@ encode_acl(authenticated_read) -> "authenticated-read";
 encode_acl(bucket_owner_read) -> "bucket-owner-read";
 encode_acl(bucket_owner_full_control) -> "bucket-owner-full-control".
 
-    
+
 
 -spec delete_bucket/1 :: (string()) -> ok.
 delete_bucket(BucketName) ->
@@ -439,7 +439,7 @@ list_object_versions(BucketName, Options, Config)
         ],
         Doc
     ).
-    
+
 extract_versions(Nodes) ->
     [extract_version(Node) || Node <- Nodes].
 
@@ -501,14 +501,15 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
   when is_list(BucketName), is_list(Key), is_list(Value) orelse is_binary(Value),
        is_list(Options) ->
     RequestHeaders = [
-        {"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}
-        |HTTPHeaders
-    ] ++ [{["x-amz-meta-"|string:to_lower(MKey)], MValue} || {MKey, MValue} <- proplists:get_value(meta, Options, [])],
+                      {"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}
+                      |HTTPHeaders
+                     ] ++ [{["x-amz-meta-"|string:to_lower(MKey)], MValue} || {MKey, MValue} <- proplists:get_value(meta, Options, [])],
     POSTData = {iolist_to_binary(Value), proplists:get_value("content-type", HTTPHeaders, "application/octet_stream")},
+
     {Headers, _Body} = s3_request(Config, put, BucketName, [$/|Key], "", [],
-        POSTData, RequestHeaders),
+                                  POSTData, RequestHeaders),
     [
-        {version_id, proplists:get_value("x-amz-version-id", Headers, "null")}
+     {version_id, proplists:get_value("x-amz-version-id", Headers, "null")}
     ].
 
 -spec set_object_acl/3 :: (string(), string(), proplist()) -> ok.
@@ -558,7 +559,7 @@ set_bucket_attribute(BucketName, AttributeName, Value, Config)
                 [{xmlns, ?XMLNS_S3}],
                 case proplists:get_bool(enabled, Value) of
                     true ->
-                        [{'LoggingEnabled', 
+                        [{'LoggingEnabled',
                             [
                                 {'TargetBucket', [proplists:get_value(target_bucket, Value)]},
                                 {'TargetPrefix', [proplists:get_value(target_prefix, Value)]},
@@ -657,7 +658,7 @@ s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) -
     EscapedPath = erlcloud_http:url_encode_loose(Path),
     Authorization = make_authorization(Config, Method, ContentMD5, ContentType,
         Date, AmzHeaders, Host, EscapedPath, Subresource),
-    
+
     FHeaders = [Header || {_, Value} = Header <- Headers, Value =/= undefined],
     RequestHeaders = [{"date", Date}, {"authorization", Authorization}|FHeaders] ++
         case ContentMD5 of
@@ -677,13 +678,13 @@ s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) -
             true -> [$&, erlcloud_http:make_query_string(Params)]
         end
     ]),
-    
+
     Response = case Method of
         get -> http:request(Method, {RequestURI, RequestHeaders}, [], []);
         delete -> http:request(Method, {RequestURI, RequestHeaders}, [], []);
         _ -> http:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, [], [])
     end,
-    
+
     case Response of
         {ok, {{_HTTPVer, OKStatus, _StatusLine}, ResponseHeaders, ResponseBody}}
           when OKStatus >= 200, OKStatus =< 299 ->
@@ -696,7 +697,7 @@ s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) -
 
 make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
                    Host, Resource, Subresource) ->
-    CanonizedAmzHeaders = 
+    CanonizedAmzHeaders =
         [[Name, $:, Value, $\n] || {Name, Value} <- lists:sort(AmzHeaders)],
 
     StringToSign = [
@@ -708,9 +709,9 @@ make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
         case Host of "" -> ""; _ -> [$/, Host] end,
         Resource, case Subresource of "" -> ""; _ -> [$?, Subresource] end
     ],
-    
+
     Signature = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, StringToSign)),
-    
+
     ["AWS ", Config#aws_config.access_key_id, $:, Signature].
 
 default_config() -> erlcloud_aws:default_config().
