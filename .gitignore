@@ -1,3 +1,5 @@
 *.beam
 *.tmproj
 _build
+ebin/*.beam
+ebin/*.app
