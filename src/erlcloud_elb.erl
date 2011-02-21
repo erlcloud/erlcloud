@@ -4,7 +4,7 @@
 -export([configure/2, configure/3, new/2, new/3]).
 
 %% ELB API Functions
--export([create_load_balancer/3, create_load_balancer/4,
+-export([create_load_balancer/3, create_load_balancer/4, create_load_balancer/5,
          delete_load_balancer/1, delete_load_balancer/2,
 
          register_instance/2, register_instance/3,
@@ -54,9 +54,15 @@ create_load_balancer(LB, Port, Protocol) when is_list(LB),
 create_load_balancer(LB, Port, Protocol, Config) when is_list(LB),
                                                       is_integer(Port),
                                                       is_atom(Protocol) ->
+    create_load_balancer(LB, Port, Protocol, "us-east-1d", Config).
+
+create_load_balancer(LB, Port, Protocol, Zone, Config) when is_list(LB),
+                                                            is_integer(Port),
+                                                            is_atom(Protocol),
+                                                            is_list(Zone) ->
     XML = elb_request(Config,
                       "CreateLoadBalancer",
-                      [{"AvailabilityZones.member.1", "us-east-1d"},
+                      [{"AvailabilityZones.member.1", Zone},
                        {"LoadBalancerName", LB} |
                        erlcloud_aws:param_list([[{"LoadBalancerPort", Port},
                                                  {"InstancePort", Port},
