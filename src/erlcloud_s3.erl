@@ -680,9 +680,9 @@ s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) -
     ]),
 
     Response = case Method of
-        get -> http:request(Method, {RequestURI, RequestHeaders}, [], []);
-        delete -> http:request(Method, {RequestURI, RequestHeaders}, [], []);
-        _ -> http:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, [], [])
+        get -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
+        delete -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
+        _ -> httpc:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, [], [])
     end,
 
     case Response of

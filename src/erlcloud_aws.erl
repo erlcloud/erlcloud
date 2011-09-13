@@ -29,9 +29,9 @@ aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
             get ->
                 Req = lists:flatten([URL, $?, Query]),
                 io:format("Req: >~s<~n", [Req]),
-                http:request(Req);
+                httpc:request(Req);
             _ ->
-                http:request(Method,
+                httpc:request(Method,
                              {lists:flatten(URL), [], "application/x-www-form-urlencoded",
                               list_to_binary(Query)}, [], [])
         end,
