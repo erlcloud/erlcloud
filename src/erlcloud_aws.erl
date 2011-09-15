@@ -28,7 +28,7 @@ aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
         case Method of
             get ->
                 Req = lists:flatten([URL, $?, Query]),
-                io:format("Req: >~s<~n", [Req]),
+                %io:format("Req: >~s<~n", [Req]),
                 httpc:request(Req);
             _ ->
                 httpc:request(Method,

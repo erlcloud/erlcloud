@@ -18,11 +18,12 @@
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
+-include("erlcloud_mon.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
-% TODO - define types
+-import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
 
-%-define(XMLNS_MON, "http://monitoring.us-east-1.amazonaws.com/doc/2006-03-01/").
+-define(XMLNS_MON, "http://monitoring.amazonaws.com/doc/2010-08-01/").
 -define(API_VERSION, "2010-08-01").
 
 %%------------------------------------------------------------------------------
@@ -32,7 +33,25 @@
 -spec list_metrics() -> term().
 list_metrics() ->
     Config = default_config(),
-    mon_query(Config, "ListMetrics", []).
+    Doc = mon_query(Config, "ListMetrics", []),
+    Members = xmerl_xpath:string("/ListMetricsResponse/ListMetricsResult/Metrics/member", Doc),
+    [extract_member(Member) || Member <- Members].
+    %Doc.
+
+extract_member(Node) ->
+    [
+        {metric_name,   get_text("MetricName", Node)},
+        {namespace,     get_text("Namespace", Node)},
+        {dimensions, 
+            [extract_dimension(Item) || Item <- xmerl_xpath:string("Dimensions/member", Node)]
+        }
+    ].
+
+extract_dimension(Node) ->
+    [
+        {name,  get_text("Name",  Node)},
+        {value, get_text("Value", Node)}
+    ].
 
 %%------------------------------------------------------------------------------
 %% @doc CloudWatch API - PutMetricData
