@@ -14,7 +14,10 @@
 -export([
     list_metrics/4,
     put_metric_data/2,
-    get_metric_statistics/8
+    put_metric_data/4,
+    get_metric_statistics/8,
+    test/0,
+    test2/0
 ]).
 
 -include("erlcloud.hrl").
@@ -95,6 +98,22 @@ extract_dimension(Node) ->
 %%------------------------------------------------------------------------------
 %% @doc CloudWatch API - PutMetricData
 %% @see [ http://docs.amazonwebservices.com/AmazonCloudWatch/latest/APIReference/index.html?API_PutMetricData.html ]
+%%
+%% &MetricData.member.1.MetricName=buffers
+%% &MetricData.member.1.Unit=Bytes
+%% &MetricData.member.1.Value=231434333
+%% &MetricData.member.1.Dimensions.member.1.Name=InstanceID
+%% &MetricData.member.1.Dimensions.member.1.Value=i-aaba32d4
+%% &MetricData.member.1.Dimensions.member.2.Name=InstanceType
+%% &MetricData.member.1.Dimensions.member.2.Value=m1.small
+%% &MetricData.member.2.MetricName=latency
+%% &MetricData.member.2.Unit=Milliseconds
+%% &MetricData.member.2.Value=23
+%% &MetricData.member.2.Dimensions.member.1.Name=InstanceID
+%% &MetricData.member.2.Dimensions.member.1.Value=i-aaba32d4
+%% &MetricData.member.2.Dimensions.member.2.Name=InstanceType
+%% &MetricData.member.2.Dimensions.member.2.Value=m1.small
+%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec put_metric_data(
@@ -106,12 +125,83 @@ put_metric_data(Namespace, MetricData) ->
     Config = default_config(),
     Params = 
         [
-            {"Namespace",                      Namespace}
-            %,
-            %{"MetricData.member.1.MetricName", MetricName},
-            %{"MetricData.member.1.Value",      Value}
-        ],
+            {"Namespace", Namespace}
+        ]
+        ++
+        lists:flatten(
+           [ params_metric_data(N,MD) || {N,MD} <- lists:zip(lists:seq(1,length(MetricData)), MetricData) ]
+        ),
+
     mon_query(Config, "PutMetricData", Params).
+
+%%------------------------------------------------------------------------------
+-spec params_metric_data(NM::pos_integer(), MD::metric_datum()) -> [{string(),string()}].
+params_metric_data(NM,MD) ->
+    %% TODO - check case when both Value and statistics specified or both undefined
+    Prefix = ?FMT("MetricData.member.~b", [NM]),
+
+    lists:flatten(
+        [
+            [ {?FMT("~s.MetricName",      [Prefix]), MD#metric_datum.metric_name} ],
+            [ {?FMT("~s.Unit",            [Prefix]), MD#metric_datum.unit} || MD#metric_datum.unit=/=undefined ],
+            [ {?FMT("~s.Timestamp",       [Prefix]), MD#metric_datum.timestamp} || MD#metric_datum.timestamp=/=undefined ],
+            [ {?FMT("~s.Value",           [Prefix]), float_to_list(MD#metric_datum.value)} || MD#metric_datum.value=/=undefined ],
+            [ {?FMT("~s.StatisticValues", [Prefix]), stat_to_str(MD#metric_datum.statistic_values)} || MD#metric_datum.statistic_values=/=undefined ],
+            [ params_dimension(Prefix, ND, Dimension)
+              || {ND,Dimension} <- lists:zip(lists:seq(1, length(MD#metric_datum.dimensions)), MD#metric_datum.dimensions)
+            ]
+        ]
+    ).
+
+%%------------------------------------------------------------------------------
+-spec params_dimension(Prefix::string(), ND::pos_integer(), Dimension::dimension()) -> [{string(),string()}].
+params_dimension(Prefix, ND, Dimension) ->
+    DimPrefix = ?FMT("~s.Dimensions.member.~b", [Prefix, ND]),
+    [
+        {?FMT("~s.Name",  [DimPrefix]), Dimension#dimension.name},
+        {?FMT("~s.Value", [DimPrefix]), Dimension#dimension.value}
+    ].
+
+%%------------------------------------------------------------------------------
+%% @doc format statistic value record to string
+%% "Sum=577,Minimum=65,Maximum=189,SampleCount=5"
+%% @end
+%%------------------------------------------------------------------------------
+-spec stat_to_str(StatisticValues::statistic_set()) -> string().
+stat_to_str(StatisticValues) ->
+    ?FMT("Sum=~g,Minimum=~g,Maximum=~g,SampleCount=~b", 
+        [   
+            StatisticValues#statistic_set.sum, 
+            StatisticValues#statistic_set.minimum,
+            StatisticValues#statistic_set.maximum,
+            StatisticValues#statistic_set.sample_count
+        ]
+    ).
+
+%%------------------------------------------------------------------------------
+%% @doc CloudWatch API - PutMetricData
+%% @see [ http://docs.amazonwebservices.com/AmazonCloudWatch/latest/APIReference/index.html?API_PutMetricData.html ]
+%% @end
+%%------------------------------------------------------------------------------
+-spec put_metric_data(
+        Namespace   ::string(),
+        MetricName  ::string(),
+        Value       ::string(),
+        Unit        ::unit()
+    ) -> term().
+
+put_metric_data(Namespace, MetricName, Value, Unit) ->
+    Config = default_config(),
+    Params = 
+        [
+            {"Namespace",                      Namespace},
+            {"MetricData.member.1.MetricName", MetricName},
+            {"MetricData.member.1.Value",      Value}
+        ]
+        ++
+        [ {"MetricData.member.1.Unit", Unit} || Unit=/="", Unit=/=undefined ],
+
+    mon_simple_query(Config, "PutMetricData", Params).
 
 %%------------------------------------------------------------------------------
 %% @doc CloudWatch API - GetMetricStatistics
@@ -159,4 +249,31 @@ mon_query(Config, Action, Params, ApiVersion) ->
                                 Config#aws_config.secret_access_key).
 
 default_config() -> erlcloud_aws:default_config().
+
+%%------------------------------------------------------------------------------
+%% tests
+%% TODO : convert into e-unit tests
+%%------------------------------------------------------------------------------
+test() ->
+    M1 = #metric_datum{
+        metric_name = "zvi",
+        dimensions  = [],
+        statistic_values = undefined,
+        timestamp        = undefined,
+        unit = "Count",
+        value = 10.0
+    },
+    M2 = #metric_datum{
+        metric_name = "zvi",
+        dimensions  = [],
+        statistic_values = #statistic_set{minimum=18.0, maximum=21.4, sum=67.7, sample_count=15},
+        timestamp        = undefined,
+        unit = "Count",
+        value = undefined
+    },
+    %put_metric_data("my", [M1, M2]).
+    put_metric_data("my", [M2]).
+
+test2() ->
+    put_metric_data("my", "zvi", "13", "Count").
 

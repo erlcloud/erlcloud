@@ -6,6 +6,7 @@
 
 aws_request_xml(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey),
+    io:format("Body = ~p~n", [Body]),
     element(1, xmerl_scan:string(Body)).
 
 aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
@@ -28,7 +29,7 @@ aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
         case Method of
             get ->
                 Req = lists:flatten([URL, $?, Query]),
-                %io:format("Req: >~s<~n", [Req]),
+                io:format("Req: >~s<~n", [Req]),
                 httpc:request(Req);
             _ ->
                 httpc:request(Method,
