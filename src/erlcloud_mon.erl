@@ -14,7 +14,7 @@
 -export([
     list_metrics/4,
     put_metric_data/2,
-    put_metric_data/4,
+    put_metric_data/5,
     get_metric_statistics/8,
     test/0,
     test2/0
@@ -143,15 +143,28 @@ params_metric_data(NM,MD) ->
     lists:flatten(
         [
             [ {?FMT("~s.MetricName",[Prefix]), MD#metric_datum.metric_name} ],
-            [ {?FMT("~s.Unit",      [Prefix]), MD#metric_datum.unit} || MD#metric_datum.unit=/=undefined ],
-            [ {?FMT("~s.Timestamp", [Prefix]), MD#metric_datum.timestamp} || MD#metric_datum.timestamp=/=undefined ],
-            [ {?FMT("~s.Value",     [Prefix]), float_to_list(MD#metric_datum.value)} || MD#metric_datum.value=/=undefined ],
-            [ params_stat(Prefix, MD#metric_datum.statistic_values) || MD#metric_datum.statistic_values=/=undefined ],
+            [ {?FMT("~s.Unit",      [Prefix]), MD#metric_datum.unit}                        || MD#metric_datum.unit=/=undefined ],
+            [ {?FMT("~s.Timestamp", [Prefix]), format_timestamp(MD#metric_datum.timestamp)} || MD#metric_datum.timestamp=/=undefined ],
+            [ {?FMT("~s.Value",     [Prefix]), float_to_list(MD#metric_datum.value)}        || MD#metric_datum.value=/=undefined ],
+            [ params_stat(Prefix, MD#metric_datum.statistic_values)                         || MD#metric_datum.statistic_values=/=undefined ],
             [ params_dimension(Prefix, ND, Dimension)
               || {ND,Dimension} <- lists:zip(lists:seq(1, length(MD#metric_datum.dimensions)), MD#metric_datum.dimensions)
             ]
         ]
     ).
+
+%%------------------------------------------------------------------------------
+%% @doc format datetime as Amazon timestamp
+%% @end
+%%------------------------------------------------------------------------------
+format_timestamp({{Yr, Mo, Da}, {H, M, S}} = Timestamp) 
+    when is_integer(Yr), is_integer(Mo), is_integer(Da),  
+         is_integer(H),  is_integer(M),  is_integer(S) 
+    ->
+    erlcloud_aws:format_timestamp(Timestamp);
+
+format_timestamp(Timestamp) when is_list(Timestamp) ->
+    Timestamp.
 
 %%------------------------------------------------------------------------------
 -spec params_dimension(Prefix::string(), ND::pos_integer(), Dimension::dimension()) -> [{string(),string()}].
@@ -163,8 +176,7 @@ params_dimension(Prefix, ND, Dimension) ->
     ].
 
 %%------------------------------------------------------------------------------
-%% @doc format statistic value record to string
-%% "Sum=577,Minimum=65,Maximum=189,SampleCount=5"
+%% @doc format statistic value records to URI params
 %% @end
 %%------------------------------------------------------------------------------
 -spec params_stat(Prefix::string(), StatisticValues::statistic_set()) -> [{string(),string()}].
@@ -185,10 +197,11 @@ params_stat(Prefix, StatisticValues) ->
         Namespace   ::string(),
         MetricName  ::string(),
         Value       ::string(),
-        Unit        ::unit()
+        Unit        ::unit(),
+        Timestamp   ::datetime()|string()
     ) -> term().
 
-put_metric_data(Namespace, MetricName, Value, Unit) ->
+put_metric_data(Namespace, MetricName, Value, Unit, Timestamp) ->
     Config = default_config(),
     Params = 
         [
@@ -197,7 +210,9 @@ put_metric_data(Namespace, MetricName, Value, Unit) ->
             {"MetricData.member.1.Value",      Value}
         ]
         ++
-        [ {"MetricData.member.1.Unit", Unit} || Unit=/="", Unit=/=undefined ],
+        [ {"MetricData.member.1.Unit", Unit} || Unit=/=undefined, Unit=/="" ]
+        ++
+        [ {"MetricData.member.1.Timestamp", format_timestamp(Timestamp)} || Timestamp=/=undefined, Timestamp=/="" ],
 
     mon_simple_query(Config, "PutMetricData", Params).
 
@@ -269,9 +284,9 @@ test() ->
         unit = "Count",
         value = undefined
     },
-    %put_metric_data("my", [M1, M2]).
-    put_metric_data("my", [M2]).
+    put_metric_data("my", [M1, M2]).
+    %put_metric_data("my", [M2]).
 
 test2() ->
-    put_metric_data("my", "zvi", "13", "Count").
+    put_metric_data("my", "zvi", "13", "Count", "").
 

@@ -62,7 +62,7 @@
     dimensions      ::[dimension()],    %% A list of dimensions associated with the metric.
                                         %% Length constraints: Minimum of 0 item(s) in the list. Maximum of 10 item(s) in the list.
     statistic_values::statistic_set(),  %% A set of statistical values describing the metric.
-    timestamp       ::datetime(),       %% The time stamp used for the metric. If not specified, the default value is set to the time the metric data was received.
+    timestamp       ::datetime()|string(),%% The time stamp used for the metric. If not specified, the default value is set to the time the metric data was received.
     unit            ::unit(),           %% The unit of the metric.
     value           ::float()           %% The value for the metric.
 }).
