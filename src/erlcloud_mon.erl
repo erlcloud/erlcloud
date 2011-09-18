@@ -142,11 +142,11 @@ params_metric_data(NM,MD) ->
 
     lists:flatten(
         [
-            [ {?FMT("~s.MetricName",      [Prefix]), MD#metric_datum.metric_name} ],
-            [ {?FMT("~s.Unit",            [Prefix]), MD#metric_datum.unit} || MD#metric_datum.unit=/=undefined ],
-            [ {?FMT("~s.Timestamp",       [Prefix]), MD#metric_datum.timestamp} || MD#metric_datum.timestamp=/=undefined ],
-            [ {?FMT("~s.Value",           [Prefix]), float_to_list(MD#metric_datum.value)} || MD#metric_datum.value=/=undefined ],
-            [ {?FMT("~s.StatisticValues", [Prefix]), stat_to_str(MD#metric_datum.statistic_values)} || MD#metric_datum.statistic_values=/=undefined ],
+            [ {?FMT("~s.MetricName",[Prefix]), MD#metric_datum.metric_name} ],
+            [ {?FMT("~s.Unit",      [Prefix]), MD#metric_datum.unit} || MD#metric_datum.unit=/=undefined ],
+            [ {?FMT("~s.Timestamp", [Prefix]), MD#metric_datum.timestamp} || MD#metric_datum.timestamp=/=undefined ],
+            [ {?FMT("~s.Value",     [Prefix]), float_to_list(MD#metric_datum.value)} || MD#metric_datum.value=/=undefined ],
+            [ params_stat(Prefix, MD#metric_datum.statistic_values) || MD#metric_datum.statistic_values=/=undefined ],
             [ params_dimension(Prefix, ND, Dimension)
               || {ND,Dimension} <- lists:zip(lists:seq(1, length(MD#metric_datum.dimensions)), MD#metric_datum.dimensions)
             ]
@@ -167,16 +167,14 @@ params_dimension(Prefix, ND, Dimension) ->
 %% "Sum=577,Minimum=65,Maximum=189,SampleCount=5"
 %% @end
 %%------------------------------------------------------------------------------
--spec stat_to_str(StatisticValues::statistic_set()) -> string().
-stat_to_str(StatisticValues) ->
-    ?FMT("Sum=~g,Minimum=~g,Maximum=~g,SampleCount=~b", 
-        [   
-            StatisticValues#statistic_set.sum, 
-            StatisticValues#statistic_set.minimum,
-            StatisticValues#statistic_set.maximum,
-            StatisticValues#statistic_set.sample_count
-        ]
-    ).
+-spec params_stat(Prefix::string(), StatisticValues::statistic_set()) -> [{string(),string()}].
+params_stat(Prefix, StatisticValues) ->
+    [ 
+        {?FMT("~s.StatisticValues.Maximum",     [Prefix]),   float_to_list(StatisticValues#statistic_set.maximum)}, 
+        {?FMT("~s.StatisticValues.Minimum",     [Prefix]),   float_to_list(StatisticValues#statistic_set.maximum)}, 
+        {?FMT("~s.StatisticValues.Sum",         [Prefix]),   float_to_list(StatisticValues#statistic_set.sum)}, 
+        {?FMT("~s.StatisticValues.SampleCount", [Prefix]),   integer_to_list(StatisticValues#statistic_set.sample_count)}
+    ].
 
 %%------------------------------------------------------------------------------
 %% @doc CloudWatch API - PutMetricData
