@@ -124,12 +124,12 @@ extract_dimension(Node) ->
 put_metric_data(Namespace, MetricData) ->
     Config = default_config(),
     Params = 
-        [ {"Namespace", Namespace} |
+        [ 
+            {"Namespace", Namespace} |
             lists:flatten(
                [ params_metric_data(N,MD) || {N,MD} <- lists:zip(lists:seq(1,length(MetricData)), MetricData) ]
             )
         ],
-
     mon_query(Config, "PutMetricData", Params).
 
 %%------------------------------------------------------------------------------
@@ -137,7 +137,6 @@ put_metric_data(Namespace, MetricData) ->
 params_metric_data(NM,MD) ->
     %% TODO - check case when both Value and statistics specified or both undefined
     Prefix = ?FMT("MetricData.member.~b", [NM]),
-
     lists:flatten(
         [
             [ {Prefix++".MetricName",   MD#metric_datum.metric_name} ],
@@ -202,16 +201,15 @@ params_stat(Prefix, StatisticValues) ->
 put_metric_data(Namespace, MetricName, Value, Unit, Timestamp) ->
     Config = default_config(),
     Params = 
-        [
-            {"Namespace",                      Namespace},
-            {"MetricData.member.1.MetricName", MetricName},
-            {"MetricData.member.1.Value",      Value}
-        ]
-        ++
-        [ {"MetricData.member.1.Unit", Unit} || Unit=/=undefined, Unit=/="" ]
-        ++
-        [ {"MetricData.member.1.Timestamp", format_timestamp(Timestamp)} || Timestamp=/=undefined, Timestamp=/="" ],
-
+        lists:flatten(
+            [
+                  {"Namespace",                      Namespace},
+                  {"MetricData.member.1.MetricName", MetricName},
+                  {"MetricData.member.1.Value",      Value},
+                [ {"MetricData.member.1.Unit",       Unit}                          || Unit=/=undefined, Unit=/="" ],
+                [ {"MetricData.member.1.Timestamp",  format_timestamp(Timestamp)}   || Timestamp=/=undefined, Timestamp=/="" ]
+            ]
+        ),
     mon_simple_query(Config, "PutMetricData", Params).
 
 %%------------------------------------------------------------------------------
