@@ -124,13 +124,11 @@ extract_dimension(Node) ->
 put_metric_data(Namespace, MetricData) ->
     Config = default_config(),
     Params = 
-        [
-            {"Namespace", Namespace}
-        ]
-        ++
-        lists:flatten(
-           [ params_metric_data(N,MD) || {N,MD} <- lists:zip(lists:seq(1,length(MetricData)), MetricData) ]
-        ),
+        [ {"Namespace", Namespace} |
+            lists:flatten(
+               [ params_metric_data(N,MD) || {N,MD} <- lists:zip(lists:seq(1,length(MetricData)), MetricData) ]
+            )
+        ],
 
     mon_query(Config, "PutMetricData", Params).
 
@@ -142,11 +140,11 @@ params_metric_data(NM,MD) ->
 
     lists:flatten(
         [
-            [ {?FMT("~s.MetricName",[Prefix]), MD#metric_datum.metric_name} ],
-            [ {?FMT("~s.Unit",      [Prefix]), MD#metric_datum.unit}                        || MD#metric_datum.unit=/=undefined ],
-            [ {?FMT("~s.Timestamp", [Prefix]), format_timestamp(MD#metric_datum.timestamp)} || MD#metric_datum.timestamp=/=undefined ],
-            [ {?FMT("~s.Value",     [Prefix]), float_to_list(MD#metric_datum.value)}        || MD#metric_datum.value=/=undefined ],
-            [ params_stat(Prefix, MD#metric_datum.statistic_values)                         || MD#metric_datum.statistic_values=/=undefined ],
+            [ {Prefix++".MetricName",   MD#metric_datum.metric_name} ],
+            [ {Prefix++".Unit",         MD#metric_datum.unit}                       || MD#metric_datum.unit=/=undefined ],
+            [ {Prefix++".Timestamp",    format_timestamp(MD#metric_datum.timestamp)}|| MD#metric_datum.timestamp=/=undefined ],
+            [ {Prefix++".Value",        float_to_list(MD#metric_datum.value)}       || MD#metric_datum.value=/=undefined ],
+            [ params_stat(Prefix, MD#metric_datum.statistic_values)                 || MD#metric_datum.statistic_values=/=undefined ],
             [ params_dimension(Prefix, ND, Dimension)
               || {ND,Dimension} <- lists:zip(lists:seq(1, length(MD#metric_datum.dimensions)), MD#metric_datum.dimensions)
             ]
@@ -171,8 +169,8 @@ format_timestamp(Timestamp) when is_list(Timestamp) ->
 params_dimension(Prefix, ND, Dimension) ->
     DimPrefix = ?FMT("~s.Dimensions.member.~b", [Prefix, ND]),
     [
-        {?FMT("~s.Name",  [DimPrefix]), Dimension#dimension.name},
-        {?FMT("~s.Value", [DimPrefix]), Dimension#dimension.value}
+        {DimPrefix++".Name",    Dimension#dimension.name},
+        {DimPrefix++".Value",   Dimension#dimension.value}
     ].
 
 %%------------------------------------------------------------------------------
@@ -182,10 +180,10 @@ params_dimension(Prefix, ND, Dimension) ->
 -spec params_stat(Prefix::string(), StatisticValues::statistic_set()) -> [{string(),string()}].
 params_stat(Prefix, StatisticValues) ->
     [ 
-        {?FMT("~s.StatisticValues.Maximum",     [Prefix]),   float_to_list(StatisticValues#statistic_set.maximum)}, 
-        {?FMT("~s.StatisticValues.Minimum",     [Prefix]),   float_to_list(StatisticValues#statistic_set.maximum)}, 
-        {?FMT("~s.StatisticValues.Sum",         [Prefix]),   float_to_list(StatisticValues#statistic_set.sum)}, 
-        {?FMT("~s.StatisticValues.SampleCount", [Prefix]),   integer_to_list(StatisticValues#statistic_set.sample_count)}
+        {Prefix++".StatisticValues.Maximum",    float_to_list(StatisticValues#statistic_set.maximum)}, 
+        {Prefix++".StatisticValues.Minimum",    float_to_list(StatisticValues#statistic_set.maximum)}, 
+        {Prefix++".StatisticValues.Sum",        float_to_list(StatisticValues#statistic_set.sum)}, 
+        {Prefix++".StatisticValues.SampleCount",integer_to_list(StatisticValues#statistic_set.sample_count)}
     ].
 
 %%------------------------------------------------------------------------------
