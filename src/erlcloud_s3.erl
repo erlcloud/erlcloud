@@ -2,6 +2,7 @@
 
 -module(erlcloud_s3).
 -export([
+    new/2, new/3, configure/2, configure/3,
     create_bucket/1, create_bucket/2, create_bucket/3,
     delete_bucket/1, delete_bucket/2,
     get_bucket_attribute/2, get_bucket_attribute/3,
@@ -25,6 +26,31 @@
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
+
+-spec new/2 :: (string(), string()) -> aws_config().
+new(AccessKeyID, SecretAccessKey) ->
+  #aws_config{
+    access_key_id=AccessKeyID,
+    secret_access_key=SecretAccessKey
+  }.
+
+-spec new/3 :: (string(), string(), string()) -> aws_config().
+new(AccessKeyID, SecretAccessKey, Host) ->
+  #aws_config{
+    access_key_id=AccessKeyID,
+    secret_access_key=SecretAccessKey,
+    ec2_host=Host
+  }.
+
+-spec configure/2 :: (string(), string()) -> ok.
+configure(AccessKeyID, SecretAccessKey) ->
+  put(aws_config, new(AccessKeyID, SecretAccessKey)),
+  ok.
+
+-spec configure/3 :: (string(), string(), string()) -> ok.
+configure(AccessKeyID, SecretAccessKey, Host) ->
+  put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
+  ok.
 
 -type(s3_bucket_attribute_name() :: acl | location | logging | request_payment | versioning).
 -type(s3_bucket_acl() :: private | public_read | public_read_write | authenticated_read | bucket_owner_read | bucket_owner_full_control).
