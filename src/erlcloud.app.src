@@ -1,11 +1,18 @@
+%% -*- mode: erlang;erlang-indent-level: 4;indent-tabs-mode: nil -*-
+%% ex: ts=4 sw=4 ft=erlang et
+
 {application, erlcloud,
  [{description, "Erlang cloud computing library"},
-  {vsn, "0.3.0"},
-  {modules, [erlcloud, erlcloud_aws, erlcloud_ec2, erlcloud_http,
-             erlcloud_mturk, erlcloud_s3, erlcloud_sdb, erlcloud_sqs,
-             erlcloud_elb, erlcloud_xml]},
+  {vsn, git},
   {registered, []},
-  {applications, [stdlib, kernel, sasl, crypto, ssl, xmerl, inets]},
+  {applications, [stdlib, 
+                  kernel, 
+                  sasl, 
+                  crypto, 
+                  ssl, 
+                  xmerl, 
+                  inets]},
+  {modules, []},
   {env, []}
  ]
 }.
