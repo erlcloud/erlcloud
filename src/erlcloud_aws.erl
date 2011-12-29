@@ -6,6 +6,7 @@
 
 aws_request_xml(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey),
+    %io:format("Body = ~p~n", [Body]),
     element(1, xmerl_scan:string(Body)).
 
 aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
@@ -28,10 +29,10 @@ aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
         case Method of
             get ->
                 Req = lists:flatten([URL, $?, Query]),
-                io:format("Req: >~s<~n", [Req]),
-                http:request(Req);
+                %io:format("Req: >~s<~n", [Req]),
+                httpc:request(Req);
             _ ->
-                http:request(Method,
+                httpc:request(Method,
                              {lists:flatten(URL), [], "application/x-www-form-urlencoded",
                               list_to_binary(Query)}, [], [])
         end,
@@ -77,8 +78,8 @@ format_timestamp({{Yr, Mo, Da}, {H, M, S}}) ->
 default_config() ->
     case get(aws_config) of
         undefined ->
-            #aws_config{access_key_id=os:getenv("AMAZON_ACCESS_KEY_ID"),
-                        secret_access_key=os:getenv("AMAZON_SECRET_ACCESS_KEY")};
+            #aws_config{access_key_id=os:getenv("AWS_ACCESS_KEY_ID"),
+                        secret_access_key=os:getenv("AWS_SECRET_ACCESS_KEY")};
         Config ->
             Config
     end.
