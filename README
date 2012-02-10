@@ -1,6 +1,6 @@
 erlcloud: Cloud Computing APIs For Erlang
 
-This is version 0.3.0.  The API is subject to change.
+This is version 0.4.0.  The API is subject to change.
 
 Service APIs implemented:
 
@@ -9,6 +9,7 @@ Service APIs implemented:
 - Amazon Simple Queue Service (SQS)
 - Amazon SimpleDB
 - Amazon Mechanical Turk
+- Amazon CloudWatch (MON)
 
 All API functions have been implemented.  Not all functions
 have been thoroughly tested, so exercise care when integrating

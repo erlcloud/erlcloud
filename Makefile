@@ -1,5 +1,5 @@
 all:
-	cd src && erl -make
+	./rebar compile
 
 clean:
-	rm -f ebin/*.beam
+	./rebar clean
