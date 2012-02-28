@@ -680,9 +680,9 @@ s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) -
     ]),
 
     Response = case Method of
-        get -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
-        delete -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
-        _ -> httpc:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, [], [])
+        get    -> ibrowse:send_req(RequestURI, RequestHeaders, Method);
+        delete -> ibrowse:send_req(RequestURI, RequestHeaders, Method);
+        _       > ibrowse:send_req(RequestURI, RequestHeaders, Method, Body, [{content_type, ContentType}])
     end,
 
     case Response of

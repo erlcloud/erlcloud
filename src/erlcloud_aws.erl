@@ -30,17 +30,19 @@ aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
             get ->
                 Req = lists:flatten([URL, $?, Query]),
                 %io:format("Req: >~s<~n", [Req]),
-                httpc:request(Req);
+                ibrowse:send_req(Req, [], get);
             _ ->
-                httpc:request(Method,
-                             {lists:flatten(URL), [], "application/x-www-form-urlencoded",
-                              list_to_binary(Query)}, [], [])
+                ibrowse:send_req(lists:flatten(URL), 
+                                 [], 
+                                 Method, 
+                                 list_to_binary(Query), 
+                                 [{content_type, "application/x-www-form-urlencoded"}])
         end,
 
     case Response of
-        {ok, {{_HTTPVer, 200, _StatusLine}, _Headers, Body}} ->
+        {ok, "200", _Headers, Body} ->
             Body;
-        {ok, {{_HTTPVer, Status, _StatusLine}, _Headers, _Body}} ->
+        {ok, _, _, _} ->
             erlang:error({aws_error, {http_error, Status, _StatusLine, _Body}});
         {error, Error} ->
             erlang:error({aws_error, {socket_error, Error}})
