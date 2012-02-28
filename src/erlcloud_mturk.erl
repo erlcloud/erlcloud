@@ -1615,10 +1615,10 @@ mturk_request(Config, Operation, Params) ->
                                 [{content_type, "application/x-www-form-urlencoded"}]),
     
     case Response of
-        {ok, "200", _Headers, Body}} ->
+        {ok, "200", _Headers, Body} ->
             Body;
-        {ok, _    , _       , _} ->
-            erlang:error({aws_error, {http_error, Status, _StatusLine, _Body}});
+        {ok, Status, Headers, Body} ->
+            erlang:error({aws_error, {http_error, Status, Headers, Body}});
         {error, Error} ->
             erlang:error({aws_error, {socket_error, Error}})
     end.

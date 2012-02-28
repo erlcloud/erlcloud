@@ -682,15 +682,14 @@ s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) -
     Response = case Method of
         get    -> ibrowse:send_req(RequestURI, RequestHeaders, Method);
         delete -> ibrowse:send_req(RequestURI, RequestHeaders, Method);
-        _       > ibrowse:send_req(RequestURI, RequestHeaders, Method, Body, [{content_type, ContentType}])
+         _      -> ibrowse:send_req(RequestURI, RequestHeaders, Method, Body,
+                                    [{content_type, ContentType}])
     end,
-
     case Response of
-        {ok, {{_HTTPVer, OKStatus, _StatusLine}, ResponseHeaders, ResponseBody}}
-          when OKStatus >= 200, OKStatus =< 299 ->
+        {ok, ["2", _, _], ResponseHeaders, ResponseBody} ->
             {ResponseHeaders, ResponseBody};
-        {ok, {{_HTTPVer, Status, _StatusLine}, _ResponseHeaders, _ResponseBody}} ->
-            erlang:error({aws_error, {http_error, Status, _StatusLine, _ResponseBody}});
+        {ok, Status,      ResponseHeaders, ResponseBody} ->
+            erlang:error({aws_error, {http_error, Status, ResponseHeaders, ResponseBody}});
         {error, Error} ->
             erlang:error({aws_error, {socket_error, Error}})
     end.
