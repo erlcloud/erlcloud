@@ -20,9 +20,9 @@
     test2/0
 ]).
 
--include("erlcloud.hrl").
--include("erlcloud_aws.hrl").
--include("erlcloud_mon.hrl").
+-include_lib("erlcloud/include/erlcloud.hrl").
+-include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include_lib("erlcloud/include/erlcloud_mon.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
 -import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
@@ -229,14 +229,14 @@ put_metric_data(Namespace, MetricName, Value, Unit, Timestamp) ->
     ) -> term().
 
 get_metric_statistics(
-        Namespace,
-        MetricName,
-        StartTime,
-        EndTime,
-        Period,
-        Unit,
-        Statistics,
-        Dimensions
+        _Namespace,
+        _MetricName,
+        _StartTime,
+        _EndTime,
+        _Period,
+        _Unit,
+        _Statistics,
+        _Dimensions
     ) ->
     todo.
 
