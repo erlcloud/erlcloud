@@ -2,7 +2,7 @@
 -export([aws_request/6, aws_request_xml/6,
          param_list/2, default_config/0, format_timestamp/1]).
 
--include("erlcloud_aws.hrl").
+-include_lib("erlcloud/include/erlcloud_aws.hrl").
 
 aws_request_xml(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey),
