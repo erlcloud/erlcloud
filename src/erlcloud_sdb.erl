@@ -27,8 +27,8 @@
     select/1, select/2, select/3, select/4
 ]).
 
--include("erlcloud.hrl").
--include("erlcloud_aws.hrl").
+-include_lib("erlcloud/include/erlcloud.hrl").
+-include_lib("erlcloud/include/erlcloud_aws.hrl").
 
 -define(API_VERSION, "2009-04-15").
 
