@@ -134,9 +134,12 @@ get_queue_attributes(QueueName, AttributeNames, Config)
         erlcloud_aws:param_list([encode_attribute_name(N) || N <- AttributeNames], "AttributeName")),
     Attrs = decode_attributes(xmerl_xpath:string("GetQueueAttributesResult/Attribute", Doc)),
     [{decode_attribute_name(Name),
-      case Name of "Policy" -> Value; _ -> list_to_integer(Value) end} ||
+      case Name of "Policy" -> Value; "QueueArn" -> Value; _ -> list_to_integer(Value) end} ||
      {Name, Value} <- Attrs].
 
+encode_attribute_name(message_retention_period) -> "MessageRetentionPeriod";
+encode_attribute_name(queue_arn) -> "QueueArn";
+encode_attribute_name(maximum_message_size) -> "MaximumMessageSize";
 encode_attribute_name(visibility_timeout) -> "VisibilityTimeout";
 encode_attribute_name(approximate_number_of_messages) -> "ApproximateNumberOfMessages";
 encode_attribute_name(approximate_number_of_messages_not_visible) -> "ApproximateNumberOfMessagesNotVisible";
@@ -145,6 +148,10 @@ encode_attribute_name(created_timestamp) -> "CreatedTimestamp";
 encode_attribute_name(policy) -> "Policy";
 encode_attribute_name(all) -> "All".
 
+
+decode_attribute_name("MessageRetentionPeriod") -> message_retention_period;
+decode_attribute_name("QueueArn") -> queue_arn;
+decode_attribute_name("MaximumMessageSize") -> maximum_message_size;
 decode_attribute_name("VisibilityTimeout") -> visibility_timeout;
 decode_attribute_name("ApproximateNumberOfMessages") -> approximate_number_of_messages;
 decode_attribute_name("ApproximateNumberOfMessagesNotVisible") -> approximate_number_of_messages_not_visible;
