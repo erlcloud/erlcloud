@@ -554,13 +554,13 @@ set_object_acl(BucketName, Key, ACL, Config)
     XMLText = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
     s3_simple_request(Config, put, BucketName, [$/|Key], "acl", [], XMLText, []).
 
--spec make_link(integer(), string(), string()) -> string().
+-spec make_link(integer(), string(), string()) -> {integer(), string(), string()}.
 
 make_link(Expire_time, BucketName, Key) 
   when is_integer(Expire_time), is_list(BucketName), is_list(Key) ->
     make_link(Expire_time, BucketName, Key, default_config()).
 
--spec make_link(integer(), string(), string(), aws_config()) -> string().
+-spec make_link(integer(), string(), string(), aws_config()) -> {integer(), string(), string()}.
 
 make_link(Expire_time, BucketName, Key, Config) 
   when is_integer(Expire_time), is_list(BucketName), is_list(Key) ->  
