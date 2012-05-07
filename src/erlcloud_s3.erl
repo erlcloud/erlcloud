@@ -38,7 +38,7 @@ new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{
      access_key_id=AccessKeyID,
      secret_access_key=SecretAccessKey,
-     ec2_host=Host
+     s3_host=Host
     }.
 
 
@@ -48,7 +48,7 @@ new(AccessKeyID, SecretAccessKey, Host, Port) ->
     #aws_config{
      access_key_id=AccessKeyID,
      secret_access_key=SecretAccessKey,
-     ec2_host=Host,
+     s3_host=Host,
      s3_port=Port
     }.
 
