@@ -1,7 +1,7 @@
 %% Amazon Simple Storage Service (S3)
 
 -module(erlcloud_s3).
--export([new/2, new/3, configure/2, configure/3,
+-export([new/2, new/3, new/4, configure/2, configure/3, configure/4,
          create_bucket/1, create_bucket/2, create_bucket/3,
          delete_bucket/1, delete_bucket/2,
          get_bucket_attribute/2, get_bucket_attribute/3,
@@ -41,6 +41,17 @@ new(AccessKeyID, SecretAccessKey, Host) ->
      ec2_host=Host
     }.
 
+
+-spec new(string(), string(), string(), non_neg_integer()) -> aws_config().
+
+new(AccessKeyID, SecretAccessKey, Host, Port) ->
+    #aws_config{
+     access_key_id=AccessKeyID,
+     secret_access_key=SecretAccessKey,
+     ec2_host=Host,
+     s3_port=Port
+    }.
+
 -spec configure(string(), string()) -> ok.
 
 configure(AccessKeyID, SecretAccessKey) ->
@@ -53,21 +64,27 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
 
--type s3_bucket_attribute_name() :: acl 
-                                  | location 
-                                  | logging 
-                                  | request_payment 
+-spec configure(string(), string(), string(), non_neg_integer()) -> ok.
+
+configure(AccessKeyID, SecretAccessKey, Host, Port) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port)),
+    ok.
+
+-type s3_bucket_attribute_name() :: acl
+                                  | location
+                                  | logging
+                                  | request_payment
                                   | versioning.
 
--type s3_bucket_acl() :: private 
-                       | public_read 
-                       | public_read_write 
-                       | authenticated_read 
-                       | bucket_owner_read 
+-type s3_bucket_acl() :: private
+                       | public_read
+                       | public_read_write
+                       | authenticated_read
+                       | bucket_owner_read
                        | bucket_owner_full_control.
 
--type s3_location_constraint() :: none 
-                                | us_west_1 
+-type s3_location_constraint() :: none
+                                | us_west_1
                                 | eu.
 
 -define(XMLNS_S3, "http://s3.amazonaws.com/doc/2006-03-01/").
@@ -93,7 +110,7 @@ copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, Options, Con
                      undefined -> "";
                      VersionID -> ["?versionId=", VersionID]
                  end,
-    RequestHeaders = 
+    RequestHeaders =
         [{"x-amz-copy-source", [SrcBucketName, $/, SrcKeyName, SrcVersion]},
          {"x-amz-metadata-directive", proplists:get_value(metadata_directive, Options)},
          {"x-amz-copy-source-if-match", proplists:get_value(if_match, Options)},
@@ -189,10 +206,10 @@ delete_object_version(BucketName, Key, Version) ->
 -spec delete_object_version(string(), string(), string(), aws_config()) -> proplist().
 
 delete_object_version(BucketName, Key, Version, Config)
-  when is_list(BucketName), 
-       is_list(Key), 
+  when is_list(BucketName),
+       is_list(Key),
        is_list(Version)->
-    {Headers, _Body} = s3_request(Config, delete, BucketName, [$/|Key], 
+    {Headers, _Body} = s3_request(Config, delete, BucketName, [$/|Key],
                                   ["versionId=", Version], [], <<>>, []),
     Marker = proplists:get_value("x-amz-delete-marker", Headers, "false"),
     Id = proplists:get_value("x-amz-version-id", Headers, "null"),
@@ -228,7 +245,7 @@ list_objects(BucketName, Options) ->
 -spec list_objects(string(), proplist(), aws_config()) -> proplist().
 
 list_objects(BucketName, Options, Config)
-  when is_list(BucketName), 
+  when is_list(BucketName),
        is_list(Options) ->
     Params = [{"delimiter", proplists:get_value(delimiter, Options)},
               {"marker", proplists:get_value(marker, Options)},
@@ -284,7 +301,7 @@ get_bucket_attribute(BucketName, AttributeName, Config)
             erlcloud_xml:get_text("/LocationConstraint", Doc);
         logging ->
             case xmerl_xpath:string("/BucketLoggingStatus/LoggingEnabled", Doc) of
-                [] -> 
+                [] ->
                     {enabled, false};
                 [LoggingEnabled] ->
                     Attributes = [{target_bucket, "TargetBucket", text},
@@ -496,7 +513,7 @@ extract_delete_marker(Node) ->
 
 extract_bucket(Node) ->
     erlcloud_xml:decode([{name, "Name", text},
-                         {creation_date, "CreationDate", time}], 
+                         {creation_date, "CreationDate", time}],
                         Node).
 
 -spec put_object(string(), string(), iolist()) -> proplist().
@@ -527,8 +544,8 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders) ->
 put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
   when is_list(BucketName), is_list(Key), is_list(Value) orelse is_binary(Value),
        is_list(Options) ->
-    RequestHeaders = [{"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}|HTTPHeaders] 
-        ++ [{["x-amz-meta-"|string:to_lower(MKey)], MValue} || 
+    RequestHeaders = [{"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}|HTTPHeaders]
+        ++ [{["x-amz-meta-"|string:to_lower(MKey)], MValue} ||
                {MKey, MValue} <- proplists:get_value(meta, Options, [])],
     ContentType = proplists:get_value("content-type", HTTPHeaders, "application/octet_stream"),
     POSTData = {iolist_to_binary(Value), ContentType},
@@ -556,22 +573,22 @@ set_object_acl(BucketName, Key, ACL, Config)
 
 -spec make_link(integer(), string(), string()) -> {integer(), string(), string()}.
 
-make_link(Expire_time, BucketName, Key) 
+make_link(Expire_time, BucketName, Key)
   when is_integer(Expire_time), is_list(BucketName), is_list(Key) ->
     make_link(Expire_time, BucketName, Key, default_config()).
 
 -spec make_link(integer(), string(), string(), aws_config()) -> {integer(), string(), string()}.
 
-make_link(Expire_time, BucketName, Key, Config) 
-  when is_integer(Expire_time), is_list(BucketName), is_list(Key) ->  
+make_link(Expire_time, BucketName, Key, Config)
+  when is_integer(Expire_time), is_list(BucketName), is_list(Key) ->
     {Mega, Sec, _Micro} = erlang:now(),
-    Datetime = (Mega * 1000000) + Sec, 
+    Datetime = (Mega * 1000000) + Sec,
     Expires = integer_to_list(Expire_time + Datetime),
     To_sign = lists:flatten(["GET\n\n\n", Expires, "\n/", BucketName, "/", Key]),
     Sig = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, To_sign)),
-    Host = lists:flatten(["http://", BucketName, ".", Config#aws_config.s3_host]),
+    Host = lists:flatten(["http://", BucketName, ".", Config#aws_config.s3_host, port_spec(Config)]),
     URI = lists:flatten(["/", Key, "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), "&Signature=", erlcloud_http:url_encode(Sig), "&Expires=", Expires]),
-    {list_to_integer(Expires), 
+    {list_to_integer(Expires),
      binary_to_list(erlang:iolist_to_binary(Host)),
      binary_to_list(erlang:iolist_to_binary(URI))}.
 
@@ -584,7 +601,7 @@ set_bucket_attribute(BucketName, AttributeName, Value) ->
 
 set_bucket_attribute(BucketName, AttributeName, Value, Config)
   when is_list(BucketName) ->
-    {Subresource, XML} = 
+    {Subresource, XML} =
         case AttributeName of
             acl ->
                 ACLXML = {'AccessControlPolicy',
@@ -677,7 +694,7 @@ s3_xml_request(Config, Method, Host, Path, Subresource, Params, POSTData, Header
     end.
 
 s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
-    {ContentMD5, ContentType, Body} = 
+    {ContentMD5, ContentType, Body} =
         case POSTData of
             {PD, CT} -> {base64:encode(crypto:md5(PD)), CT, PD}; PD -> {"", "", PD}
         end,
@@ -695,7 +712,7 @@ s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) -
     RequestURI = lists:flatten([
         "https://",
         case Host of "" -> ""; _ -> [Host, $.] end,
-        Config#aws_config.s3_host,
+        Config#aws_config.s3_host, port_spec(Config),
         EscapedPath,
         case Subresource of "" -> ""; _ -> [$?, Subresource] end,
         if
@@ -735,3 +752,8 @@ make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
     ["AWS ", Config#aws_config.access_key_id, $:, Signature].
 
 default_config() -> erlcloud_aws:default_config().
+
+port_spec(#aws_config{s3_port=80}) ->
+    "";
+port_spec(#aws_config{s3_port=Port}) ->
+    [":", erlang:integer_to_list(Port)].
