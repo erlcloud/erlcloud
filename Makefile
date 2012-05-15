@@ -1,5 +1,5 @@
 all:
-	./rebar compile
+	rebar compile
 
 clean:
-	./rebar clean
+	rebar clean
