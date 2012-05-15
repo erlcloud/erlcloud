@@ -20,7 +20,7 @@
 
 -define(API_VERSION, "2009-05-15").
 
--import(erlcloud_xml, [get_text/1, get_text/2, get_integer/2]).
+-import(erlcloud_xml, [get_text/2]).
 
 -spec(new/2 :: (string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey) ->
