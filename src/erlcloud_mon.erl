@@ -25,7 +25,7 @@
 -include_lib("erlcloud/include/erlcloud_mon.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
--import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
+-import(erlcloud_xml, [get_text/2]).
 
 -define(XMLNS_MON, "http://monitoring.amazonaws.com/doc/2010-08-01/").
 -define(API_VERSION, "2010-08-01").
@@ -60,7 +60,7 @@ list_metrics(
     ) ->
 
     Config = default_config(),
-    Params = 
+    Params =
         [{"Namespace",  Namespace}  || Namespace/=""]
         ++
         [{"MetricName", MetricName} || MetricName/=""]
@@ -75,7 +75,7 @@ list_metrics(
              end
              || N<-lists:seq(1, length(DimensionFilter))]
         ),
-         
+
     Doc = mon_query(Config, "ListMetrics", Params),
     Members = xmerl_xpath:string("/ListMetricsResponse/ListMetricsResult/Metrics/member", Doc),
     [extract_member(Member) || Member <- Members].
@@ -84,7 +84,7 @@ extract_member(Node) ->
     [
         {metric_name,   get_text("MetricName", Node)},
         {namespace,     get_text("Namespace", Node)},
-        {dimensions, 
+        {dimensions,
             [extract_dimension(Item) || Item <- xmerl_xpath:string("Dimensions/member", Node)]
         }
     ].
@@ -123,8 +123,8 @@ extract_dimension(Node) ->
 
 put_metric_data(Namespace, MetricData) ->
     Config = default_config(),
-    Params = 
-        [ 
+    Params =
+        [
             {"Namespace", Namespace} |
             lists:flatten(
                [ params_metric_data(N,MD) || {N,MD} <- lists:zip(lists:seq(1,length(MetricData)), MetricData) ]
@@ -154,9 +154,9 @@ params_metric_data(NM,MD) ->
 %% @doc format datetime as Amazon timestamp
 %% @end
 %%------------------------------------------------------------------------------
-format_timestamp({{Yr, Mo, Da}, {H, M, S}} = Timestamp) 
-    when is_integer(Yr), is_integer(Mo), is_integer(Da),  
-         is_integer(H),  is_integer(M),  is_integer(S) 
+format_timestamp({{Yr, Mo, Da}, {H, M, S}} = Timestamp)
+    when is_integer(Yr), is_integer(Mo), is_integer(Da),
+         is_integer(H),  is_integer(M),  is_integer(S)
     ->
     erlcloud_aws:format_timestamp(Timestamp);
 
@@ -178,10 +178,10 @@ params_dimension(Prefix, ND, Dimension) ->
 %%------------------------------------------------------------------------------
 -spec params_stat(Prefix::string(), StatisticValues::statistic_set()) -> [{string(),string()}].
 params_stat(Prefix, StatisticValues) ->
-    [ 
-        {Prefix++".StatisticValues.Maximum",    float_to_list(StatisticValues#statistic_set.maximum)}, 
-        {Prefix++".StatisticValues.Minimum",    float_to_list(StatisticValues#statistic_set.maximum)}, 
-        {Prefix++".StatisticValues.Sum",        float_to_list(StatisticValues#statistic_set.sum)}, 
+    [
+        {Prefix++".StatisticValues.Maximum",    float_to_list(StatisticValues#statistic_set.maximum)},
+        {Prefix++".StatisticValues.Minimum",    float_to_list(StatisticValues#statistic_set.maximum)},
+        {Prefix++".StatisticValues.Sum",        float_to_list(StatisticValues#statistic_set.sum)},
         {Prefix++".StatisticValues.SampleCount",integer_to_list(StatisticValues#statistic_set.sample_count)}
     ].
 
@@ -200,7 +200,7 @@ params_stat(Prefix, StatisticValues) ->
 
 put_metric_data(Namespace, MetricName, Value, Unit, Timestamp) ->
     Config = default_config(),
-    Params = 
+    Params =
         lists:flatten(
             [
                   {"Namespace",                      Namespace},
@@ -250,7 +250,7 @@ mon_query(Config, Action, Params) ->
 
 mon_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
-    erlcloud_aws:aws_request_xml(get, 
+    erlcloud_aws:aws_request_xml(get,
                                 Config#aws_config.mon_host,
                                 "/",
                                 QParams,
