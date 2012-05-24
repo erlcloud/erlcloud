@@ -581,7 +581,7 @@ make_link(Expire_time, BucketName, Key)
 
 make_link(Expire_time, BucketName, Key, Config)
   when is_integer(Expire_time), is_list(BucketName), is_list(Key) ->
-    {Mega, Sec, _Micro} = erlang:now(),
+    {Mega, Sec, _Micro} = os:timestamp(),
     Datetime = (Mega * 1000000) + Sec,
     Expires = integer_to_list(Expire_time + Datetime),
     To_sign = lists:flatten(["GET\n\n\n", Expires, "\n/", BucketName, "/", Key]),
