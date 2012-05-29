@@ -437,7 +437,7 @@ get_object_metadata(BucketName, Key, Options, Config) ->
      {version_id, proplists:get_value("x-amz-version-id", Headers, "false")}|extract_metadata(Headers)].
 
 extract_metadata(Headers) ->
-    [{Key, Value} || {["x-amz-meta-"|Key], Value} <- Headers].
+    [{Key, Value} || {Key = "x-amz-meta-" ++ _, Value} <- Headers].
 
 -spec get_object_torrent(string(), string()) -> proplist().
 
