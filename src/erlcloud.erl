@@ -6,5 +6,5 @@
 start() ->
     application:load(?APP),
     {ok, Apps} = application:get_key(?APP, applications),
-    lists:foreach(fun application:start/1, Apps),
+    [application:start(App) || App <- Apps],
     application:start(?APP).
