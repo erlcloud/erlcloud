@@ -16,6 +16,7 @@
     put_metric_data/2,
     put_metric_data/5,
     get_metric_statistics/8,
+    configure_host/3,
     test/0,
     test2/0
 ]).
@@ -251,13 +252,24 @@ mon_query(Config, Action, Params) ->
 mon_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml(get,
-                                Config#aws_config.mon_host,
-                                "/",
-                                QParams,
-                                Config#aws_config.access_key_id,
-                                Config#aws_config.secret_access_key).
+                                 Config#aws_config.mon_prot,
+                                 Config#aws_config.mon_host,
+                                 Config#aws_config.mon_port,
+                                 "/",
+                                 QParams,
+                                 Config#aws_config.access_key_id,
+                                 Config#aws_config.secret_access_key).
 
 default_config() -> erlcloud_aws:default_config().
+
+configure_host(Host, Port, Protocol) ->
+    Config = default_config(),
+    NewConfig = Config#aws_config{mon_host=Host,
+                                  mon_port=Port,
+                                  mon_prot=Protocol},
+    put(aws_config, NewConfig).
+
+
 
 %%------------------------------------------------------------------------------
 %% tests
