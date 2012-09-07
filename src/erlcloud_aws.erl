@@ -1,15 +1,22 @@
 -module(erlcloud_aws).
--export([aws_request/6, aws_request_xml/6,
+-export([aws_request/6,
+         aws_request/8,
+         aws_request_xml/6,
+         aws_request_xml/8,
          param_list/2, default_config/0, format_timestamp/1]).
 
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
 aws_request_xml(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey),
-    %io:format("Body = ~p~n", [Body]),
+    element(1, xmerl_scan:string(Body)).
+aws_request_xml(Method, Prot, Host, Port, Path, Params, AccessKeyID, SecretAccessKey) ->
+    Body = aws_request(Method, Prot, Host, Port, Path, Params, AccessKeyID, SecretAccessKey),
     element(1, xmerl_scan:string(Body)).
 
 aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
+    aws_request(Method, undefined, Host, undefined, Path, Params, AccessKeyID, SecretAccessKey).
+aws_request(Method, Prot, Host, Port, Path, Params, AccessKeyID, SecretAccessKey) ->
     Timestamp = format_timestamp(erlang:universaltime()),
     QParams = lists:sort([{"Timestamp", Timestamp},
                           {"SignatureVersion", "2"},
@@ -23,7 +30,15 @@ aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
 
     Query = [QueryToSign, "&Signature=", erlcloud_http:url_encode(Signature)],
 
-    URL = ["https://", Host, Path],
+    case Prot of
+        undefined -> UProt = "https://";
+        _ -> UProt = [Prot, "://"]
+    end,
+
+    case Port of
+        undefined -> URL = [UProt, Host, Path];
+        _ -> URL = [UProt, Host, $:, Port, Path]
+    end,
 
     Response =
         case Method of
