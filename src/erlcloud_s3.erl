@@ -586,7 +586,7 @@ make_link(Expire_time, BucketName, Key, Config)
     Expires = integer_to_list(Expire_time + Datetime),
     To_sign = lists:flatten(["GET\n\n\n", Expires, "\n/", BucketName, "/", Key]),
     Sig = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, To_sign)),
-    ["https://", BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key, 
+    [Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key, 
      "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), 
      "&Signature=", erlcloud_http:url_encode(Sig), 
      "&Expires=", Expires].
@@ -709,7 +709,7 @@ s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) -
             _ -> [{"content-md5", binary_to_list(ContentMD5)}]
         end,
     RequestURI = lists:flatten([
-        "https://",
+	Config#aws_config.s3_scheme,
         case Host of "" -> ""; _ -> [Host, $.] end,
         Config#aws_config.s3_host, port_spec(Config),
         EscapedPath,
