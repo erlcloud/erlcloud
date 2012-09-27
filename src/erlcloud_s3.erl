@@ -270,6 +270,8 @@ extract_contents(Nodes) ->
                   {owner, "Owner", fun extract_user/1}],
     [erlcloud_xml:decode(Attributes, Node) || Node <- Nodes].
 
+extract_user([]) ->
+    [];
 extract_user([Node]) ->
     Attributes = [{id, "ID", text},
                   {display_name, "DisplayName", optional_text}],
