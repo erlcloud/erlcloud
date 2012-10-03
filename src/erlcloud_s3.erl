@@ -18,7 +18,8 @@
          get_object_metadata/2, get_object_metadata/3, get_object_metadata/4,
          put_object/3, put_object/4, put_object/5, put_object/6,
          set_object_acl/3, set_object_acl/4,
-         make_link/3, make_link/4]).
+         make_link/3, make_link/4,
+         make_get_url/3, make_get_url/4]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -573,21 +574,40 @@ set_object_acl(BucketName, Key, ACL, Config)
     XMLText = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
     s3_simple_request(Config, put, BucketName, [$/|Key], "acl", [], XMLText, []).
 
--spec make_link(integer(), string(), string()) -> iolist().
-
-make_link(Expire_time, BucketName, Key)
-  when is_integer(Expire_time), is_list(BucketName), is_list(Key) ->
-    make_link(Expire_time, BucketName, Key, default_config()).
-
--spec make_link(integer(), string(), string(), aws_config()) -> iolist().
-
-make_link(Expire_time, BucketName, Key, Config)
+-spec sign_get(integer(), string(), string(), aws_config()) -> {string(), string()}.
+sign_get(Expire_time, BucketName, Key, Config)
   when is_integer(Expire_time), is_list(BucketName), is_list(Key) ->
     {Mega, Sec, _Micro} = os:timestamp(),
     Datetime = (Mega * 1000000) + Sec,
     Expires = integer_to_list(Expire_time + Datetime),
     To_sign = lists:flatten(["GET\n\n\n", Expires, "\n/", BucketName, "/", Key]),
     Sig = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, To_sign)),
+    {Sig, Expires}.
+
+-spec make_link(integer(), string(), string()) -> {integer(), string(), string()}.
+
+make_link(Expire_time, BucketName, Key) ->
+    make_link(Expire_time, BucketName, Key, default_config()).
+
+-spec make_link(integer(), string(), string(), aws_config()) -> {integer(), string(), string()}.
+
+make_link(Expire_time, BucketName, Key, Config) ->
+    {Sig, Expires} = sign_get(Expire_time, BucketName, Key, Config),
+    Host = lists:flatten(["http://", BucketName, ".", Config#aws_config.s3_host, port_spec(Config)]),
+    URI = lists:flatten(["/", Key, "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), "&Signature=", erlcloud_http:url_encode(Sig), "&Expires=", Expires]),
+    {list_to_integer(Expires),
+     binary_to_list(erlang:iolist_to_binary(Host)),
+     binary_to_list(erlang:iolist_to_binary(URI))}.
+
+-spec make_get_url(integer(), string(), string()) -> iolist().
+
+make_get_url(Expire_time, BucketName, Key) ->
+    make_get_url(Expire_time, BucketName, Key, default_config()).
+
+-spec make_get_url(integer(), string(), string(), aws_config()) -> iolist().
+
+make_get_url(Expire_time, BucketName, Key, Config) ->
+    {Sig, Expires} = sign_get(Expire_time, BucketName, Key, Config),
     [Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key, 
      "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), 
      "&Signature=", erlcloud_http:url_encode(Sig), 
