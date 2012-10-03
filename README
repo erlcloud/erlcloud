@@ -56,3 +56,12 @@ For usage information, consult the source code and refer to the API reference at
 - http://docs.amazonwebservices.com/AWSEC2/2009-11-30/APIReference/
 - http://docs.amazonwebservices.com/AmazonS3/2006-03-01/API/
 - http://docs.amazonwebservices.com/AmazonSimpleDB/latest/DeveloperGuide/
+
+Roadmap
+-------
+
+v0.8.0
+* Existing code
+
+v1.0.0
+* Refactored code for better return values (issue #7)
