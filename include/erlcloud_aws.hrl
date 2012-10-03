@@ -1,5 +1,6 @@
 -record(aws_config, {
     ec2_host="ec2.amazonaws.com"::string(),
+    s3_scheme="https://"::string(),
     s3_host="s3.amazonaws.com"::string(),
     s3_port=80::non_neg_integer(),
     sdb_host="sdb.amazonaws.com"::string(),
