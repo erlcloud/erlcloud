@@ -38,9 +38,10 @@ Hostname defaults to "ec2.amazonaws.com".
 Then you can simply call, e.g. erlcloud_ec2:describe_images().
 
 You don't need to call erlcloud_ec2:configure() if you provide your credentials
-in the AMAZON_ACCESS_KEY_ID and AMAZON_SECRET_ACCESS_KEY environmental
-variables.
+in the environmental variables
 
+> AWS_ACCESS_KEY_ID
+> AWS_SECRET_ACCESS_KEY
 
 
 Configuration object usage:
@@ -55,3 +56,12 @@ For usage information, consult the source code and refer to the API reference at
 - http://docs.amazonwebservices.com/AWSEC2/2009-11-30/APIReference/
 - http://docs.amazonwebservices.com/AmazonS3/2006-03-01/API/
 - http://docs.amazonwebservices.com/AmazonSimpleDB/latest/DeveloperGuide/
+
+Roadmap
+-------
+
+v0.8.0
+* Existing code
+
+v1.0.0
+* Refactored code for better return values (issue #7)

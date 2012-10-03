@@ -439,7 +439,7 @@ get_object_metadata(BucketName, Key, Options, Config) ->
      {version_id, proplists:get_value("x-amz-version-id", Headers, "false")}|extract_metadata(Headers)].
 
 extract_metadata(Headers) ->
-    [{Key, Value} || {["x-amz-meta-"|Key], Value} <- Headers].
+    [{Key, Value} || {Key = "x-amz-meta-" ++ _, Value} <- Headers].
 
 -spec get_object_torrent(string(), string()) -> proplist().
 
@@ -547,7 +547,7 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
   when is_list(BucketName), is_list(Key), is_list(Value) orelse is_binary(Value),
        is_list(Options) ->
     RequestHeaders = [{"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}|HTTPHeaders]
-        ++ [{["x-amz-meta-"|string:to_lower(MKey)], MValue} ||
+        ++ [{"x-amz-meta-" ++ string:to_lower(MKey), MValue} ||
                {MKey, MValue} <- proplists:get_value(meta, Options, [])],
     ContentType = proplists:get_value("content-type", HTTPHeaders, "application/octet_stream"),
     POSTData = {iolist_to_binary(Value), ContentType},
