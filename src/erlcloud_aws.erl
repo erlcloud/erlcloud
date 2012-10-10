@@ -37,7 +37,7 @@ aws_request(Method, Prot, Host, Port, Path, Params, AccessKeyID, SecretAccessKey
 
     case Port of
         undefined -> URL = [UProt, Host, Path];
-        _ -> URL = [UProt, Host, $:, Port, Path]
+        _ -> URL = [UProt, Host, $:, port_to_str(Port), Path]
     end,
 
     Response =
@@ -98,3 +98,8 @@ default_config() ->
         Config ->
             Config
     end.
+
+port_to_str(Port) when is_integer(Port) ->
+    integer_to_list(Port);
+port_to_str(Port) when is_list(Port) ->
+    Port.
