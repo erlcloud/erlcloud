@@ -8,6 +8,8 @@
     sqs_host="queue.amazonaws.com"::string(),
     mturk_host="mechanicalturk.amazonaws.com"::string(),
     mon_host="monitoring.amazonaws.com"::string(),
+    mon_port=undefined::non_neg_integer()|undefined,
+    mon_protocol=undefined::string()|undefined,
     access_key_id::string(),
     secret_access_key::string()
 }).
