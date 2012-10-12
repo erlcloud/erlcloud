@@ -252,7 +252,7 @@ mon_query(Config, Action, Params) ->
 mon_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml(get,
-                                 Config#aws_config.mon_prot,
+                                 Config#aws_config.mon_protocol,
                                  Config#aws_config.mon_host,
                                  Config#aws_config.mon_port,
                                  "/",
@@ -266,7 +266,7 @@ configure_host(Host, Port, Protocol) ->
     Config = default_config(),
     NewConfig = Config#aws_config{mon_host=Host,
                                   mon_port=Port,
-                                  mon_prot=Protocol},
+                                  mon_protocol=Protocol},
     put(aws_config, NewConfig).
 
 
