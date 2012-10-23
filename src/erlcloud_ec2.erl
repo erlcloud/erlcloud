@@ -83,8 +83,9 @@
     %% Security Groups
     authorize_security_group_ingress/2, authorize_security_group_ingress/3,
     create_security_group/2, create_security_group/3,
-    delete_security_group/1, delete_security_group/2,
+    delete_security_group/1, delete_security_group/2, delete_security_group/3,
     describe_security_groups/0, describe_security_groups/1, describe_security_groups/2,
+    describe_security_groups_filtered/1, describe_security_groups_filtered/2,
     revoke_security_group_ingress/2, revoke_security_group_ingress/3,
 
     %% Spot Instances
@@ -105,6 +106,22 @@
     describe_bundle_tasks/0, describe_bundle_tasks/1, describe_bundle_tasks/2,
     get_password_data/1, get_password_data/2,
 
+    %% VPC
+    describe_subnets/0, describe_subnets/1, describe_subnets/2,
+    create_subnet/2, create_subnet/3, create_subnet/4,
+    delete_subnet/1, delete_subnet/2,
+    describe_vpcs/0, describe_vpcs/1, describe_vpcs/2,         
+    create_vpc/1, create_vpc/2, create_vpc/3,
+    delete_vpc/1, delete_vpc/2,
+    describe_dhcp_options/0, describe_dhcp_options/1, describe_dhcp_options/2,
+    associate_dhcp_options/2, associate_dhcp_options/3,
+    describe_internet_gateways/0, describe_internet_gateways/1, 
+    describe_internet_gateways/2,
+    create_internet_gateway/0, create_internet_gateway/1,
+    attach_internet_gateway/2, attach_internet_gateway/3,
+    delete_internet_gateway/1, delete_internet_gateway/2,
+    detach_internet_gateway/2, detach_internet_gateway/3,
+
     %% Tagging. Uses different version of AWS API
     create_tags/3
 ]).
@@ -112,9 +129,12 @@
 -import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
 
 -define(API_VERSION, "2009-11-30").
+-define(NEW_API_VERSION, "2012-10-01").
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 -include_lib("erlcloud/include/erlcloud_ec2.hrl").
+
+-type(filter_list() :: [{string(),[string()]}]).
 
 -spec(new/2 :: (string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey) ->
@@ -153,6 +173,25 @@ associate_address(PublicIP, InstanceID) ->
 associate_address(PublicIP, InstanceID, Config)
   when is_list(PublicIP), is_list(InstanceID) ->
     ec2_simple_query(Config, "AssociateAddress", [{"InstanceId", InstanceID}, {"PublicIp", PublicIP}]).
+
+-spec(associate_dhcp_options/2 :: (string(), string()) -> proplist()).
+associate_dhcp_options(OptionsID, VpcID) ->
+    associate_dhcp_options(OptionsID, VpcID, default_config()).
+
+-spec(associate_dhcp_options/3 :: (string(), string(), aws_config()) -> proplist()).
+associate_dhcp_options(OptionsID, VpcID, Config) ->
+    ec2_simple_query(Config, "AssociateDhcpOptions", 
+                     [{"DhcpOptionsId", OptionsID}, {"VpcId", VpcID}]).
+
+-spec(attach_internet_gateway/2 :: (string(), string()) -> proplist()).
+attach_internet_gateway(GatewayID, VpcID) ->
+    attach_internet_gateway(GatewayID, VpcID, default_config()).
+
+-spec(attach_internet_gateway/3 :: (string(), string(), aws_config()) -> proplist()).
+attach_internet_gateway(GatewayID, VpcID, Config) ->
+    ec2_simple_query(Config, "AttachInternetGateway",
+                     [{"InternetGatewayId", GatewayID},
+                      {"VpcId", VpcID}], ?NEW_API_VERSION).
 
 -spec(attach_volume/3 :: (string(), string(), string()) -> proplist()).
 attach_volume(VolumeID, InstanceID, Device) ->
@@ -311,6 +350,35 @@ create_image(InstanceID, Name, Description, NoReboot, Config)
     Doc = ec2_query(Config, "CreateImage", Params),
     [{image_id, get_text("/CreateImageResponse/imageId", Doc)}].
 
+-spec(create_internet_gateway/0 :: () -> proplist()).
+create_internet_gateway() ->
+    create_internet_gateway(default_config()).
+
+-spec(create_internet_gateway/1 :: (aws_config()) -> proplist()).
+create_internet_gateway(Config) ->
+    Doc = ec2_query(Config, "CreateInternetGateway", [], ?NEW_API_VERSION),
+    Path = "/CreateInternetGatewayResponse/internetGateway/internetGatewayId",
+    {internet_gateway_id, get_text(Path, Doc) }.
+
+-spec(create_subnet/2 :: (string(), string()) -> proplist()).
+create_subnet(VpcID, CIDR) when is_list(VpcID), is_list(CIDR) ->
+    create_subnet(VpcID, CIDR, none, default_config()).
+
+-spec(create_subnet/3 :: (string(), string(), string() | aws_config()) -> proplist()).
+create_subnet(VpcID, CIDR, Config) when is_record(Config, aws_config) ->
+    create_subnet(VpcID, CIDR, none, Config);
+create_subnet(VpcID, CIDR, Zone) when is_list(Zone) ->
+    create_subnet(VpcID, CIDR, Zone, default_config()).
+
+-spec(create_subnet/4 :: (string(), string(), string() | none, aws_config()) -> proplist()).
+create_subnet(VpcID, CIDR, Zone, Config) when
+      is_list(VpcID), is_list(CIDR), is_list(Zone) orelse Zone =:= none ->
+    Params = [{"VpcId", VpcID}, {"CidrBlock", CIDR},
+              {"AvailabilityZone", Zone}],
+    Doc = ec2_query(Config, "CreateSubnet", Params),
+    Node = hd(xmerl_xpath:string("/CreateSubnetResponse/subnet", Doc)),
+    [extract_subnet(Node)].
+
 -spec(create_security_group/2 :: (string(), string()) -> ok).
 create_security_group(GroupName, GroupDescription) ->
     create_security_group(GroupName, GroupDescription, default_config()).
@@ -404,6 +472,35 @@ create_volume(Size, SnapshotID, AvailabilityZone, Config)
      {create_time, erlcloud_xml:get_time("createTime", Doc)}
     ].
 
+-spec(create_vpc/1 :: (string()) -> proplist()).
+create_vpc(CIDR) ->
+    create_vpc(CIDR, none, default_config()).
+
+-spec(create_vpc/2 :: (string(), string() | none | aws_config()) -> proplist).
+create_vpc(CIDR, InsTen) when is_list(InsTen) ->
+    create_vpc(CIDR, InsTen, default_config());
+create_vpc(CIDR, Config) when is_record(Config, aws_config) ->
+    create_vpc(CIDR, none, Config).
+
+-spec(create_vpc/3 :: (string(), string() | none, aws_config()) -> proplist).
+create_vpc(CIDR, InsTen, Config) when
+      is_list(CIDR), is_list(InsTen) orelse InsTen =:= none ->
+    Doc = ec2_query(Config, "CreateVpc", 
+                    [{"CidrBlock", CIDR}, {"instanceTenancy", InsTen}]),
+    [{vpc_id, get_text("/CreateVpcResponse/vpc/vpcId", Doc)},
+     {state, get_text("/CreateVpcResponse/vpc/state", Doc)},
+     {cidr_block, get_text("/CreateVpcResponse/vpc/cidrBlock", Doc)},
+     {dhcp_options_id, get_text("/CreateVpcResponse/vpc/dhcpOptionsId", Doc)}].
+
+-spec(delete_internet_gateway/1 :: (string()) -> ok).
+delete_internet_gateway(GatewayID) ->
+    delete_internet_gateway(GatewayID, default_config()).
+
+-spec(delete_internet_gateway/2 :: (string(), aws_config()) -> ok).
+delete_internet_gateway(GatewayID, Config) ->
+    ec2_simple_query(Config, "DeleteInternetGateway", 
+                     [{"InternetGatewayId", GatewayID}], ?NEW_API_VERSION).
+
 -spec(delete_key_pair/1 :: (string()) -> ok).
 delete_key_pair(KeyName) -> delete_key_pair(KeyName, default_config()).
 
@@ -413,13 +510,23 @@ delete_key_pair(KeyName, Config)
     ec2_simple_query(Config, "DeleteKeyPair", [{"KeyName", KeyName}]).
 
 -spec(delete_security_group/1 :: (string()) -> ok).
-delete_security_group(GroupName) -> delete_security_group(GroupName, default_config()).
+delete_security_group(GroupName) -> 
+    delete_security_group(groupName, GroupName, default_config()).
 
--spec(delete_security_group/2 :: (string(), aws_config()) -> ok).
+-spec(delete_security_group/2 :: (groupId | groupName | string(), string() | aws_config()) -> ok).
 delete_security_group(GroupName, Config)
-  when is_list(GroupName) ->
-    ec2_simple_query(Config, "DeleteSecurityGroup", [{"GroupName", GroupName}]).
+  when is_list(GroupName), is_record(Config, aws_config) ->
+    delete_security_group(groupName, GroupName, Config);
+delete_security_group(Param, GroupName)
+  when is_atom(Param), is_list(GroupName) ->
+    delete_security_group(Param, GroupName, default_config()).
 
+-spec(delete_security_group/3 :: (groupId | groupName, string(), aws_config()) -> ok).
+delete_security_group(Param, GroupName, Config) ->
+    ParamStr = atom_to_list(Param),
+    Key = [string:to_upper(hd(ParamStr)) | tl(ParamStr)],
+    ec2_simple_query(Config, "DeleteSecurityGroup", [{Key, GroupName}],
+                     ?NEW_API_VERSION).
 -spec(delete_snapshot/1 :: (string()) -> ok).
 delete_snapshot(SnapshotID) -> delete_snapshot(SnapshotID, default_config()).
 
@@ -435,6 +542,14 @@ delete_spot_datafeed_subscription() -> delete_spot_datafeed_subscription(default
 delete_spot_datafeed_subscription(Config) ->
     ec2_simple_query(Config, "DeleteSpotDatafeedSubscription", []).
 
+-spec(delete_subnet/1 :: (string()) -> ok).
+delete_subnet(SubnetID) when is_list(SubnetID) ->
+    delete_subnet(SubnetID, default_config()).
+
+-spec(delete_subnet/2 :: (string(), aws_config()) -> ok).
+delete_subnet(SubnetID, Config) when is_list(SubnetID) ->
+    ec2_simple_query(Config, "DeleteSubnet", [{"SubnetId", SubnetID}]).
+
 -spec(delete_volume/1 :: (string()) -> ok).
 delete_volume(VolumeID) -> delete_volume(VolumeID, default_config()).
 
@@ -442,6 +557,14 @@ delete_volume(VolumeID) -> delete_volume(VolumeID, default_config()).
 delete_volume(VolumeID, Config)
   when is_list(VolumeID) ->
     ec2_simple_query(Config, "DeleteVolume", [{"VolumeId", VolumeID}]).
+
+-spec(delete_vpc/1 :: (string()) -> ok).
+delete_vpc(ID) ->
+    delete_vpc(ID, default_config()).
+
+-spec(delete_vpc/2 :: (string(), aws_config()) -> ok).
+delete_vpc(ID, Config) ->
+    ec2_simple_query(Config, "DeleteVpc", [{"VpcId", ID}]).
 
 -spec(deregister_image/1 :: (string()) -> ok).
 deregister_image(ImageID) -> deregister_image(ImageID, default_config()).
@@ -502,6 +625,32 @@ describe_bundle_tasks(BundleIDs) ->
 describe_bundle_tasks(BundleIDs, Config) ->
     Doc = ec2_query(Config, "DescribeBundleTasks", erlcloud_aws:param_list(BundleIDs, "BundleId")),
     [extract_bundle_task(Item) || Item <- xmerl_xpath:string("/DescribeBundleTasksResponse/bundleInstanceTasksSet/item", Doc)].
+
+-spec(describe_dhcp_options/0 :: () -> proplist()).
+describe_dhcp_options() ->
+    describe_dhcp_options(none, default_config()).
+
+-spec(describe_dhcp_options/1 :: (aws_config() | filter_list() | none) -> proplist()).
+describe_dhcp_options(Config) when is_record(Config, aws_config) ->
+    describe_dhcp_options(none, Config);
+describe_dhcp_options(Filter) when is_list(Filter) ->
+    describe_dhcp_options(Filter, default_config()).
+
+-spec(describe_dhcp_options/2 :: (none | filter_list(), aws_config()) -> proplist()).
+describe_dhcp_options(Filter, Config) ->
+    Params = list_to_ec2_filter(Filter),
+    Doc = ec2_query(Config, "DescribeDhcpOptions", Params, ?NEW_API_VERSION),
+    Path = "/DescribeDhcpOptionsResponse/dhcpOptionsSet/item",
+    [ extract_dhcp_opts(Item) || Item <- xmerl_xpath:string(Path, Doc) ].
+
+extract_dhcp_opts(Node) ->
+    Path = "dhcpConfigurationSet/item",
+    [ {dhcp_options_id, get_text("dhcpOptionsId", Node)},
+      {configuration_set, [ extract_dhcp_opt_kv(Item) || 
+                              Item <- xmerl_xpath:string(Path, Node) ]} ].
+extract_dhcp_opt_kv(Node) ->
+    [ {key, get_text("key", Node)},
+      {value, get_text("valueSet/item/value", Node)} ].
 
 -spec(describe_image_attribute/2 :: (string(), atom()) -> proplist()).
 describe_image_attribute(ImageID, Attribute) ->
@@ -698,6 +847,33 @@ extract_block_device_mapping_status(Node) ->
         {delete_on_termination, get_bool("ebs/deleteOnTermination", Node)}
     ].
 
+-spec(describe_internet_gateways/0 :: () -> proplist()).
+describe_internet_gateways() ->
+    describe_internet_gateways(none, default_config()).
+
+-spec(describe_internet_gateways/1 :: (filter_list | aws_config()) -> proplist()).
+describe_internet_gateways(Config) when is_record(Config, aws_config) ->
+    describe_internet_gateways(none, Config);
+describe_internet_gateways(Filter) ->
+    describe_internet_gateways(Filter, default_config()).
+
+-spec(describe_internet_gateways/2 :: (none | filter_list(), aws_config()) -> [proplist()]).
+describe_internet_gateways(Filter, Config) ->
+    Params = list_to_ec2_filter(Filter),
+    Doc = ec2_query(Config, "DescribeInternetGateways", 
+                    Params, ?NEW_API_VERSION),
+    ResultPath = "/DescribeInternetGatewaysResponse/internetGatewaySet/item",
+    [ extract_igw(Item) || Item <- xmerl_xpath:string(ResultPath, Doc) ].
+
+extract_igw(Node) ->
+    Items = xmerl_xpath:string("attachmentSet/item", Node),
+    [ {internet_gateway_id, get_text("internetGatewayId", Node)},
+      {attachment_set, [ extract_igw_attachments(Item) || Item <- Items]} ].
+
+extract_igw_attachments(Node) ->
+    [ {vpc_id, get_text("vpcId", Node)},
+      {state, get_text("state", Node)} ].
+
 -spec(describe_key_pairs/0 :: () -> proplist()).
 describe_key_pairs() -> describe_key_pairs([]).
 
@@ -820,18 +996,31 @@ describe_security_groups(GroupNames, Config)
     [extract_security_group(Node) ||
      Node <- xmerl_xpath:string("/DescribeSecurityGroupsResponse/securityGroupInfo/item", Doc)].
 
+-spec(describe_security_groups_filtered/1 :: (filter_list()) -> [proplist()]).
+describe_security_groups_filtered(Filter) ->
+    describe_security_groups_filtered(Filter, default_config()).
+
+-spec(describe_security_groups_filtered/2 :: (filter_list(), aws_config()) -> [proplist()]).
+describe_security_groups_filtered(Filter, Config)->
+    Params = list_to_ec2_filter(Filter),
+    Doc = ec2_query(Config, "DescribeSecurityGroups", Params, ?NEW_API_VERSION),
+    Path = "/DescribeSecurityGroupsResponse/securityGroupInfo/item",
+    [extract_security_group(Node) || Node <- xmerl_xpath:string(Path, Doc)].
+
 extract_security_group(Node) ->
     [
         {owner_id, get_text("ownerId", Node)},
         {group_name, get_text("groupName", Node)},
         {group_description, get_text("groupDescription", Node)},
+        {vpc_id, get_text("vpcId", Node)},
+        {group_id, get_text("groupId", Node)},
         {ip_permissions,
          [extract_ip_permissions(Item) || Item <- xmerl_xpath:string("ipPermissions/item", Node)]}
     ].
 
 extract_ip_permissions(Node) ->
     [
-        {ip_protocol, list_to_existing_atom(get_text("ipProtocol", Node))},
+        {ip_protocol, list_to_atom(get_text("ipProtocol", Node))},
         {from_port, get_integer("fromPort", Node)},
         {to_port, get_integer("toPort", Node)},
         {users, get_list("groups/item/userId", Node)},
@@ -1012,6 +1201,32 @@ extract_spot_price_history(Node) ->
         {timestamp, erlcloud_xml:get_time("timestamp", Node)}
     ].
 
+-spec(describe_subnets/0 :: () -> proplist()).
+describe_subnets() ->
+    describe_subnets(none, default_config()).
+
+-spec(describe_subnets/1 :: ([none | filter_list() | string()] | aws_config()) -> proplist()).
+describe_subnets(Config) when is_record(Config, aws_config) ->
+    describe_subnets(none, Config);
+describe_subnets(Filter) when is_list(Filter) ->
+    describe_subnets(Filter, default_config()).
+
+-spec(describe_subnets/2 :: (none | filter_list(), aws_config()) -> proplist()).
+describe_subnets(Filter, Config) ->
+    Params = list_to_ec2_filter(Filter),
+    Doc = ec2_query(Config, "DescribeSubnets", Params, ?NEW_API_VERSION),
+    Subnets = 
+        xmerl_xpath:string("/DescribeSubnetsResponse/subnetSet/item", Doc),
+    [extract_subnet(Item) || Item <- Subnets].
+
+extract_subnet(Node) ->
+    [{subnet_id, get_text("subnetId", Node)},
+     {state, get_text("state", Node)},
+     {vpc_id, get_text("vpcId", Node)},
+     {available_ip_address_count, get_text("availableIpAddressCount", Node)},
+     {availability_zone, get_text("availabilityZone", Node)},
+     {cidr_block, get_text("cidrBlock", Node)}].
+
 -spec(describe_volumes/0 :: () -> proplist()).
 describe_volumes() -> describe_volumes([]).
 
@@ -1046,6 +1261,39 @@ extract_volume(Node) ->
       ]
      }
     ].
+
+-spec(describe_vpcs/0 :: () -> proplist()).
+describe_vpcs() ->
+    describe_vpcs(default_config()).
+
+-spec(describe_vpcs/1 :: (filter_list() | aws_config()) -> proplist()).
+describe_vpcs(Config) when is_record(Config, aws_config) ->
+    describe_vpcs(none, Config);
+describe_vpcs(Filter) ->
+    describe_vpcs(Filter, default_config()).
+
+-spec(describe_vpcs/2 :: (filter_list() | none, aws_config()) -> proplist()).
+describe_vpcs(Filter, Config) ->
+    Params = list_to_ec2_filter(Filter),
+    Doc = ec2_query(Config, "DescribeVpcs", Params),
+    Items = xmerl_xpath:string("/DescribeVpcsResponse/vpcSet/item", Doc),
+    [ extract_vpc(Item) || Item <- Items ].
+
+extract_vpc(Node) ->
+    [ {vpc_id, get_text("vpcId", Node)},
+      {state, get_text("state", Node)},
+      {cidr_block, get_text("cidrBlock", Node)},
+      {dhcp_options_id, get_text("dhcpOptionsId", Node)} ].
+
+-spec(detach_internet_gateway/2 :: (string(), string()) -> ok).
+detach_internet_gateway(GatewayID, VpcID) ->
+    detach_internet_gateway(GatewayID, VpcID, default_config()).
+
+-spec(detach_internet_gateway/3 :: (string(), string(), aws_config()) -> ok).
+detach_internet_gateway(GatewayID, VpcID, Config) ->
+    ec2_simple_query(Config, "DetachInternetGateway", 
+                     [{"InternetGatewayId", GatewayID}, {"VpcId", VpcID}],
+                     ?NEW_API_VERSION).
 
 -spec(detach_volume/1 :: (string()) -> proplist()).
 detach_volume(VolumeID) -> detach_volume(VolumeID, default_config()).
@@ -1428,6 +1676,10 @@ ec2_simple_query(Config, Action, Params) ->
     ec2_query(Config, Action, Params),
     ok.
 
+ec2_simple_query(Config, Action, Params, ApiVersion) ->
+    ec2_query(Config, Action, Params, ApiVersion),
+    ok.
+
 ec2_query(Config, Action, Params) ->
     ec2_query(Config, Action, Params, ?API_VERSION).
 
@@ -1438,3 +1690,21 @@ ec2_query(Config, Action, Params, ApiVersion) ->
         Config#aws_config.secret_access_key).
 
 default_config() -> erlcloud_aws:default_config().
+
+list_to_ec2_filter(none) ->
+    [];
+list_to_ec2_filter(List) ->
+    list_to_ec2_filter(List, 1, []).
+
+list_to_ec2_filter([], _Count, Res) ->
+    Res;
+list_to_ec2_filter([{N, V}|T], Count, Res) ->
+    Tup = {io_lib:format("Filter.~p.Name", [Count]), N},
+    Vals = list_to_ec2_values(V, Count, 1, []),
+    list_to_ec2_filter(T, Count + 1, lists:flatten([Tup, Vals, Res])).
+
+list_to_ec2_values([], _Count, _VCount, Res) ->
+    Res;
+list_to_ec2_values([H|T], Count, VCount, Res) ->
+    Tup = {io_lib:format("Filter.~p.Value.~p", [Count, VCount]), H},
+    list_to_ec2_values(T, Count, VCount + 1, [Tup|Res]).
