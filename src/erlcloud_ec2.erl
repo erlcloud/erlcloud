@@ -123,6 +123,8 @@
          delete_internet_gateway/1, delete_internet_gateway/2,
          detach_internet_gateway/2, detach_internet_gateway/3,
          describe_route_tables/0, describe_route_tables/1, describe_route_tables/2,
+         create_route_table/1, create_route_table/2,
+         delete_route_table/1, delete_route_table/2,
 
          %% Tagging. Uses different version of AWS API
          create_tags/2, create_tags/3,
@@ -363,6 +365,17 @@ create_internet_gateway(Config) ->
     Path = "/CreateInternetGatewayResponse/internetGateway/internetGatewayId",
     {internet_gateway_id, get_text(Path, Doc) }.
 
+-spec(create_route_table/1 :: (string()) -> [proplist()]).
+create_route_table(VpcID) ->
+    create_route_table(VpcID, default_config()).
+
+-spec(create_route_table/2 :: (string(), aws_config()) -> [proplist()]).
+create_route_table(VpcID, Config) ->
+    Doc = ec2_query(Config, "CreateRouteTable", [{"VpcId", VpcID}],
+                    ?NEW_API_VERSION),
+    Path = "/CreateRouteTableResponse/routeTable",
+    [extract_route(RT) || RT <- xmerl_xpath:string(Path, Doc)].
+
 -spec(create_subnet/2 :: (string(), string()) -> proplist()).
 create_subnet(VpcID, CIDR) when is_list(VpcID), is_list(CIDR) ->
     create_subnet(VpcID, CIDR, none, default_config()).
@@ -511,6 +524,15 @@ delete_key_pair(KeyName) -> delete_key_pair(KeyName, default_config()).
 delete_key_pair(KeyName, Config)
   when is_list(KeyName) ->
     ec2_simple_query(Config, "DeleteKeyPair", [{"KeyName", KeyName}]).
+
+-spec(delete_route_table/1 :: (string()) -> ok).
+delete_route_table(RouteTableID) ->
+    delete_route_table(RouteTableID, default_config()).
+
+-spec(delete_route_table/2 :: (string(), aws_config()) -> ok).
+delete_route_table(RouteTableID, Config) ->
+    ec2_simple_query(Config, "DeleteRouteTable",
+                     [{"RouteTableId", RouteTableID}], ?NEW_API_VERSION).
 
 -spec(delete_security_group/1 :: (string()) -> ok).
 delete_security_group(GroupName) ->
