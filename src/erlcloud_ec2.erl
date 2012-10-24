@@ -125,6 +125,7 @@
          describe_route_tables/0, describe_route_tables/1, describe_route_tables/2,
          create_route_table/1, create_route_table/2,
          delete_route_table/1, delete_route_table/2,
+         create_route/4, create_route/5, delete_route/2, delete_route/3,
 
          %% Tagging. Uses different version of AWS API
          create_tags/2, create_tags/3,
@@ -365,6 +366,22 @@ create_internet_gateway(Config) ->
     Path = "/CreateInternetGatewayResponse/internetGateway/internetGatewayId",
     {internet_gateway_id, get_text(Path, Doc) }.
 
+-spec(create_route/4 :: (string(), string(), gateway_id | instance_id | network_interface_id, string()) -> ok).
+create_route(RouteTableID, DestCidrBl, Attachment, Val) ->
+    create_route(RouteTableID, DestCidrBl, Attachment, Val, default_config()).
+
+-spec(create_route/5 :: (string(), string(), gateway_id | instance_id | network_interface_id, string(), aws_config()) -> ok).
+create_route(RouteTableID, DestCidrBl, Attachment, Val, Config) ->
+    ASpec= case Attachment of
+               gateway_id -> {"GatewayId", Val};
+               instance_id -> {"InstanceId", Val};
+               network_interface_id -> {"NetworkInterfaceId", Val};
+               _ -> {}
+           end,
+    Params = [ASpec, {"RouteTableId", RouteTableID},
+              {"DestinationCidrBlock", DestCidrBl}],
+    ec2_simple_query(Config, "CreateRoute", Params, ?NEW_API_VERSION).
+
 -spec(create_route_table/1 :: (string()) -> [proplist()]).
 create_route_table(VpcID) ->
     create_route_table(VpcID, default_config()).
@@ -524,6 +541,16 @@ delete_key_pair(KeyName) -> delete_key_pair(KeyName, default_config()).
 delete_key_pair(KeyName, Config)
   when is_list(KeyName) ->
     ec2_simple_query(Config, "DeleteKeyPair", [{"KeyName", KeyName}]).
+
+-spec(delete_route/2 :: (string(), string()) -> ok).
+delete_route(RouteTableID, DestCidrBlock) ->
+    delete_route(RouteTableID, DestCidrBlock, default_config()).
+
+-spec(delete_route/3 :: (string(), string(), aws_config()) -> ok).
+delete_route(RouteTableID, DestCidrBlock, Config) ->
+    Params = [{"RouteTableId", RouteTableID},
+              {"DestinationCidrBlock", DestCidrBlock}],
+    ec2_simple_query(Config, "DeleteRoute", Params, ?NEW_API_VERSION).
 
 -spec(delete_route_table/1 :: (string()) -> ok).
 delete_route_table(RouteTableID) ->
