@@ -121,6 +121,7 @@
     attach_internet_gateway/2, attach_internet_gateway/3,
     delete_internet_gateway/1, delete_internet_gateway/2,
     detach_internet_gateway/2, detach_internet_gateway/3,
+    describe_route_tables/0, describe_route_tables/1, describe_route_tables/2, 
 
     %% Tagging. Uses different version of AWS API
     create_tags/3
@@ -976,6 +977,49 @@ extract_reserved_instances_offering(Node) ->
         {fixed_price, get_text("fixedPrice", Node)},
         {usage_price, get_text("usagePrice", Node)},
         {product_description, get_text("productDescription", Node)}
+    ].
+
+-spec(describe_route_tables/0 :: () -> [proplist()]).
+describe_route_tables() ->
+    describe_route_tables(none, default_config()).
+
+-spec(describe_route_tables/1 :: (filter_list() | none | aws_config()) -> [proplist()]).
+describe_route_tables(Config) when is_record(Config, aws_config) ->
+    describe_route_tables(none, Config);
+describe_route_tables(Filter) ->
+    describe_route_tables(Filter, default_config()).
+
+-spec(describe_route_tables/2 :: (filter_list() | none, aws_config()) -> [proplist()]).
+describe_route_tables(Filter, Config) ->                                      
+    Params = list_to_ec2_filter(Filter),
+    Doc = ec2_query(Config, "DescribeRouteTables", Params, ?NEW_API_VERSION),
+    Path = "/DescribeRouteTablesResponse/routeTableSet/item",
+    [extract_route(Item) || Item <- xmerl_xpath:string(Path, Doc)].
+
+extract_route(Node) ->
+    [
+      {route_table_id, get_text("routeTableId", Node)},
+      {vpc_id, get_text("vpcId", Node)},
+      {route_set, [extract_route_set(Item) ||
+                      Item <- xmerl_xpath:string("routeSet/item", Node)]},
+      {association_set, 
+       [extract_route_assn(Item) 
+        || Item <-xmerl_xpath:string("associationSet/item", Node)]}
+    ].
+
+extract_route_set(Node) ->
+    [
+     {destination_cidr_block, get_text("destinationCidrBlock", Node)},
+     {gateway_id, get_text("gatewayId", Node)},
+     {state, get_text("state", Node)},
+     {origin, get_text("origin", Node)}
+    ].
+
+extract_route_assn(Node) ->
+    [
+     {route_table_association_id, get_text("routeTableAssociationId", Node)},
+     {route_table_id, get_text("route_table_id", Node)},
+     {main, get_text("main", Node)}
     ].
 
 -spec(describe_security_groups/0 :: () -> [proplist()]).
