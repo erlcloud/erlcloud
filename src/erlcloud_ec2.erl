@@ -1692,15 +1692,20 @@ run_instances(InstanceSpec, Config)
               {"DisableApiTermination", InstanceSpec#ec2_instance_spec.disable_api_termination},
               {"InstanceInitiatedShutdownBehavior", InstanceSpec#ec2_instance_spec.instance_initiated_shutdown_behavior}
              ],
-    GParams = erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, "SecurityGroup"),
+    {SecGrpParam, Version} = case is_list(InstanceSpec#ec2_instance_spec.subnet_id) of
+                                 true -> {"SecurityGroupId", ?NEW_API_VERSION};
+                                 false -> {"SecurityGroup", ?API_VERSION}
+                             end,
+    GParams = erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, SecGrpParam),
     BDParams = block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping),
-    Doc = ec2_query(Config, "RunInstances", Params ++ GParams ++ BDParams),
+    Doc = ec2_query(Config, "RunInstances", Params ++ GParams ++ BDParams, Version),
     extract_reservation(hd(xmerl_xpath:string("/RunInstancesResponse", Doc))).
 
-                                                % -spec(run_instances/2 :: ([string()], TagsList::[{key,value}], aws_config()) -> proplist()).
+-spec(run_instances/2 :: ([string()], TagsList::[{key,value}]) -> proplist()).
 create_tags(ResourceIds, TagsList) when is_list(ResourceIds) ->
     create_tags(ResourceIds, TagsList, default_config()).
 
+-spec(run_instances/2 :: ([string()], TagsList::[{key,value}], aws_config()) -> proplist()).
 create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
     {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
                                     I = integer_to_list(Index),
