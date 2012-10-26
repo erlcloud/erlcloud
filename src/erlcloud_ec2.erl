@@ -82,7 +82,7 @@
 
     %% Security Groups
     authorize_security_group_ingress/2, authorize_security_group_ingress/3,
-    create_security_group/2, create_security_group/3,
+    create_security_group/2, create_security_group/3, create_security_group/4,
     delete_security_group/1, delete_security_group/2, delete_security_group/3,
     describe_security_groups/0, describe_security_groups/1, describe_security_groups/2,
     describe_security_groups_filtered/1, describe_security_groups_filtered/2,
@@ -423,13 +423,25 @@ create_subnet(VpcID, CIDR, Zone, Config) when
 
 -spec(create_security_group/2 :: (string(), string()) -> ok).
 create_security_group(GroupName, GroupDescription) ->
-    create_security_group(GroupName, GroupDescription, default_config()).
+    create_security_group(GroupName, GroupDescription, none, default_config()).
 
--spec(create_security_group/3 :: (string(), string(), aws_config()) -> ok).
-create_security_group(GroupName, GroupDescription, Config)
+-spec(create_security_group/3 :: (string(), string(), aws_config() | string() | none) -> ok).
+create_security_group(GroupName, GroupDescription, Config) 
+  when is_record(Config, aws_config) ->
+    create_security_group(GroupName, GroupDescription, none, Config);
+create_security_group(GroupName, GroupDescription, VpcID) ->
+    create_security_group(GroupName, GroupDescription, VpcID, default_config()).
+
+-spec(create_security_group/4 :: (string(), string(), string() | none, aws_config()) -> ok).
+create_security_group(GroupName, GroupDescription, VpcID, Config)
   when is_list(GroupName), is_list(GroupDescription) ->
-    ec2_simple_query(Config, "CreateSecurityGroup",
-        [{"GroupName", GroupName}, {"GroupDescription", GroupDescription}]).
+    Doc = ec2_query(Config, "CreateSecurityGroup",
+                    [{"GroupName", GroupName}, {"GroupDescription", GroupDescription},
+                     {"VpcId", VpcID}], ?NEW_API_VERSION),
+    case VpcID of
+        none -> ok;
+        _ -> xmerl_xpath:string("/CreateSecurityGroupResponse/groupId")
+    end.
 
 -spec(create_snapshot/1 :: (string()) -> proplist()).
 create_snapshot(VolumeID) ->
