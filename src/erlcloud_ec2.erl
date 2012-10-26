@@ -126,6 +126,7 @@
          create_route_table/1, create_route_table/2,
          delete_route_table/1, delete_route_table/2,
          create_route/4, create_route/5, delete_route/2, delete_route/3,
+         associate_route_table/2, associate_route_table/3,
 
          %% Tagging. Uses different version of AWS API
          create_tags/2, create_tags/3,
@@ -188,6 +189,16 @@ associate_dhcp_options(OptionsID, VpcID) ->
 associate_dhcp_options(OptionsID, VpcID, Config) ->
     ec2_simple_query(Config, "AssociateDhcpOptions",
                      [{"DhcpOptionsId", OptionsID}, {"VpcId", VpcID}]).
+
+-spec(associate_route_table/2 :: (string(), string()) -> string()).
+associate_route_table(RouteTableID, SubnetID) ->
+    associate_route_table(RouteTableID, SubnetID, default_config()).
+
+-spec(associate_route_table/3 :: (string(), string(), aws_config()) -> string()).
+associate_route_table(RouteTableID, SubnetID, Config) ->
+    Params = [{"RouteTableId", RouteTableID}, {"SubnetId", SubnetID}],
+    Doc = ec2_query(Config, "AssociateRouteTable", Params, ?NEW_API_VERSION),
+    get_text("/AssociateRouteTableResponse/associationId", Doc).
 
 -spec(attach_internet_gateway/2 :: (string(), string()) -> proplist()).
 attach_internet_gateway(GatewayID, VpcID) ->
