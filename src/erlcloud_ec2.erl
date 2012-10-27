@@ -1752,11 +1752,11 @@ run_instances(InstanceSpec, Config)
     Doc = ec2_query(Config, "RunInstances", Params ++ GParams ++ BDParams, Version),
     extract_reservation(hd(xmerl_xpath:string("/RunInstancesResponse", Doc))).
 
--spec(create_tags/2 :: ([string()], TagsList::[{key,value}]) -> proplist()).
+-spec(create_tags/2 :: ([string()], [{string(), string()}]) -> proplist()).
 create_tags(ResourceIds, TagsList) when is_list(ResourceIds) ->
     create_tags(ResourceIds, TagsList, default_config()).
 
--spec(create_tags/3 :: ([string()], TagsList::[{key,value}], aws_config()) -> proplist()).
+-spec(create_tags/3 :: ([string()], [{string(), string()}], aws_config()) -> proplist()).
 create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
     {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
                                     I = integer_to_list(Index),
@@ -1769,7 +1769,7 @@ create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
                                          TKey = "ResourceId."++I,
                                          {[{TKey, ResourceId} | Acc], Index+1}
                                  end, {[], 1}, ResourceIds),
-    ec2_query(Config, "CreateTags", Resources ++ Tags, "2010-08-31").
+    ec2_query(Config, "CreateTags", Resources ++ Tags, ?NEW_API_VERSION).
 
 %%------------------------------------------------------------------------------
 %% @doc
