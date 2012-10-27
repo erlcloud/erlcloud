@@ -53,7 +53,18 @@
     source_security_group_name::string(),
     cidr_ip::string()
 }).
+-record(vpc_ingress_spec, {
+    ip_protocol::tcp|udp|icmp,
+    from_port::-1 | 0..65535,
+    to_port::-1 | 0..65535,
+    user_id::[string()],
+    group_name::[string()],
+    group_id::[string()],
+    cidr_ip::[string()]
+}).
 -type(ec2_image_spec() :: #ec2_image_spec{}).
 -type(ec2_instance_spec() :: #ec2_instance_spec{}).
 -type(ec2_ingress_spec() :: #ec2_ingress_spec{}).
 -type(ec2_spot_instance_request() :: #ec2_spot_instance_request{}).
+-type(vpc_ingress_spec() :: #vpc_ingress_spec{}).
+

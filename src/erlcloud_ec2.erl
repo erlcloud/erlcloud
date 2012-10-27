@@ -239,11 +239,59 @@ extract_volume_status(Node) ->
 authorize_security_group_ingress(GroupName, IngressSpec) ->
     authorize_security_group_ingress(GroupName, IngressSpec, default_config()).
 
--spec(authorize_security_group_ingress/3 :: (string(), ec2_ingress_spec(), aws_config()) -> ok).
+-spec(authorize_security_group_ingress/3 :: (string(), ec2_ingress_spec() | [ vpc_ingress_spec() ], aws_config()) -> ok).
 authorize_security_group_ingress(GroupName, IngressSpec, Config)
   when is_list(GroupName), is_record(IngressSpec, ec2_ingress_spec) ->
     Params = [{"GroupName", GroupName}|ingress_spec_params(IngressSpec)],
-    ec2_simple_query(Config, "AuthorizeSecurityGroupIngress", Params).
+    ec2_simple_query(Config, "AuthorizeSecurityGroupIngress", Params);
+authorize_security_group_ingress(GroupID, VPCIngressSpec, Config)
+  when is_list(GroupID), is_list(VPCIngressSpec) ->
+    Params = [{"GroupId", GroupID} | vpc_ingress_spec_to_params(VPCIngressSpec)],
+    ec2_simple_query(Config, "AuthorizeSecurityGroupIngress", Params, ?NEW_API_VERSION).
+
+ingress_spec_params(Spec) ->
+    [
+        {"IpProtocol", Spec#ec2_ingress_spec.ip_protocol},
+        {"FromPort", Spec#ec2_ingress_spec.from_port},
+        {"ToPort", Spec#ec2_ingress_spec.to_port},
+        {"SourceSecurityGroupOwnerId", Spec#ec2_ingress_spec.source_security_group_owner_id},
+        {"SourceSecurityGroupName", Spec#ec2_ingress_spec.source_security_group_name},
+        {"CidrIp", Spec#ec2_ingress_spec.cidr_ip}
+    ].
+
+vpc_ingress_spec_to_params(Spec) ->
+    vpc_ingress_spec_to_params(Spec, 1, []).
+
+vpc_ingress_spec_to_params([], _, Res) -> Res;
+vpc_ingress_spec_to_params([H|T], Count, Res) ->
+    Prefix = lists:flatten(["IpPermissions", $., integer_to_list(Count), $.]),
+    P1 = [ {lists:flatten([Prefix, "IpProtocol"]), 
+            H#vpc_ingress_spec.ip_protocol},
+           {lists:flatten([Prefix, "FromPort"]), H#vpc_ingress_spec.from_port},
+           {lists:flatten([Prefix, "ToPort"]), H#vpc_ingress_spec.to_port}
+         ],
+    UserP = vpc_ingress_details_to_params(
+              H#vpc_ingress_spec.user_id, Count, "Groups", "UserId"),
+    GNameP = vpc_ingress_details_to_params(
+               H#vpc_ingress_spec.group_name, Count, "Groups", "GroupName"),
+    GIdP = vpc_ingress_details_to_params(
+             H#vpc_ingress_spec.group_id, Count, "Groups", "GroupId"),
+    CidrP = vpc_ingress_details_to_params(
+              H#vpc_ingress_spec.cidr_ip, Count, "IpRanges", "CidrIp"),
+    vpc_ingress_spec_to_params(T, Count + 1, lists:flatten([P1, UserP, GNameP, 
+                                                            GIdP, CidrP, Res])).
+
+vpc_ingress_details_to_params(Values, Count, Prefix, Suffix) ->
+    vpc_ingress_details_to_params(Values, Count, Prefix, Suffix, 1, []).
+
+vpc_ingress_details_to_params(undefined, _, _, _, _, _) -> [];
+vpc_ingress_details_to_params([], _, _, _, _, Res) -> lists:flatten(Res);
+vpc_ingress_details_to_params([H|T], Count, Prefix, Suffix, DetailCount, Res) ->
+    Key = lists:flatten(["IpPermissions", $., integer_to_list(Count), $., 
+                         Prefix, $., integer_to_list(DetailCount), $., Suffix]),
+    Param = { Key, H },
+    vpc_ingress_details_to_params(T, Count, Prefix, Suffix, DetailCount + 1,
+                                  [ Param | Res ]).
 
 -spec(bundle_instance/6 :: (string(), string(), string(), string(), string(), string()) -> proplist()).
 bundle_instance(InstanceID, Bucket, Prefix, AccessKeyID, UploadPolicy,
@@ -271,16 +319,6 @@ extract_bundle_task([Node]) ->
         {progress, get_text("progress", Node)},
         {bucket, get_text("storage/S3/bucket", Node)},
         {prefix, get_text("storage/S3/prefix", Node)}
-    ].
-
-ingress_spec_params(Spec) ->
-    [
-        {"IpProtocol", Spec#ec2_ingress_spec.ip_protocol},
-        {"FromPort", Spec#ec2_ingress_spec.from_port},
-        {"ToPort", Spec#ec2_ingress_spec.to_port},
-        {"SourceSecurityGroupOwnerId", Spec#ec2_ingress_spec.source_security_group_owner_id},
-        {"SourceSecurityGroupName", Spec#ec2_ingress_spec.source_security_group_name},
-        {"CidrIp", Spec#ec2_ingress_spec.cidr_ip}
     ].
 
 -spec(cancel_bundle_task/1 :: (string()) -> proplist()).
@@ -440,7 +478,7 @@ create_security_group(GroupName, GroupDescription, VpcID, Config)
                      {"VpcId", VpcID}], ?NEW_API_VERSION),
     case VpcID of
         none -> ok;
-        _ -> xmerl_xpath:string("/CreateSecurityGroupResponse/groupId")
+        _ -> get_text("/CreateSecurityGroupResponse/groupId", Doc)
     end.
 
 -spec(create_snapshot/1 :: (string()) -> proplist()).
