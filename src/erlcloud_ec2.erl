@@ -55,6 +55,7 @@
     describe_instance_attribute/2, describe_instance_attribute/3,
     describe_instances/0, describe_instances/1, describe_instances/2,
     modify_instance_attribute/3, modify_instance_attribute/4,
+    modify_instance_attribute/5,         
     reboot_instances/1, reboot_instances/2,
     reset_instance_attribute/2, reset_instance_attribute/3,
     run_instances/1, run_instances/2,
@@ -1539,7 +1540,9 @@ modify_image_attribute(ImageID, Attribute, Value, Config) ->
 modify_instance_attribute(InstanceID, Attribute, Value) ->
     modify_instance_attribute(InstanceID, Attribute, Value, default_config()).
 
--spec(modify_instance_attribute/4 :: (string(), atom(), term(), aws_config()) -> ok).
+-spec(modify_instance_attribute/4 :: (newstyle | string(), string()|atom(), string()|atom()|term(), string()|aws_config()) -> ok).
+modify_instance_attribute(newstyle, InstanceID, Attribute, Value) ->
+    modify_instance_attribute(newstyle, InstanceID, Attribute, Value, default_config());
 modify_instance_attribute(InstanceID, Attribute, Value, Config) ->
     {AttributeName, AParams} = case Attribute of
         instance_type when is_list(Value) -> {"instanceType", [{"Value", Value}]};
@@ -1557,6 +1560,11 @@ modify_instance_attribute(InstanceID, Attribute, Value, Config) ->
     end,
     Params = [{"InstanceID", InstanceID}, {"Attribute", AttributeName}|AParams],
     ec2_simple_query(Config, "ModifyInstanceAttribute", Params).
+
+-spec(modify_instance_attribute/5 :: (newstyle, string(), string(), string(), aws_config()) -> ok).
+modify_instance_attribute(newstyle, InstanceID, Attribute, Value, Config) ->
+    ec2_simple_query(Config, "ModifyInstanceAttribute", 
+                     [{"InstanceId", InstanceID}, {Attribute, Value}], ?NEW_API_VERSION).
 
 permission_list(Permissions) ->
     UserIDs = [UserID || {user_id, UserID} <- Permissions],
