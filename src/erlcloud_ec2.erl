@@ -128,7 +128,7 @@
     associate_route_table/2, associate_route_table/3,
 
     %% Tagging. Uses different version of AWS API
-    create_tags/3
+    create_tags/2, create_tags/3
 ]).
 
 -import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
@@ -540,6 +540,25 @@ extract_spot_datafeed_subscription([Node]) ->
                  {message, get_text("fault/message", Node)}
                 ]}
     ].
+
+-spec(create_tags/2 :: ([string()], [{string(), string()}]) -> ok).
+create_tags(ResourceIds, TagsList) ->
+    create_tags(ResourceIds, TagsList, default_config()).
+
+-spec(create_tags/3 :: ([string()], [{string(), string()}], aws_config()) -> ok).
+create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
+   {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
+                                   I = integer_to_list(Index),
+                                   TKKey = "Tag."++I++".Key",
+                                   TVKey = "Tag."++I++".Value",
+                                   {[{TKKey, Key}, {TVKey, Value} | Acc], Index+1}
+                       end, {[], 1}, TagsList),
+    {Resources, _} = lists:foldl(fun(ResourceId, {Acc, Index}) ->
+                                   I = integer_to_list(Index),
+                                   TKey = "ResourceId."++I,
+                                   {[{TKey, ResourceId} | Acc], Index+1}
+                       end, {[], 1}, ResourceIds),
+    ec2_simple_query(Config, "CreateTags", Resources ++ Tags, ?NEW_API_VERSION).
 
 -spec(create_volume/3 :: (ec2_volume_size(), string(), string()) -> proplist()).
 create_volume(Size, SnapshotID, AvailabilityZone) ->
@@ -1741,21 +1760,6 @@ run_instances(InstanceSpec, Config)
     BDParams = block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping),
     Doc = ec2_query(Config, "RunInstances", Params ++ GParams ++ BDParams, Version),
     extract_reservation(hd(xmerl_xpath:string("/RunInstancesResponse", Doc))).
-    
-% -spec(run_instances/2 :: ([string()], TagsList::[{key,value}], aws_config()) -> proplist()).
-create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
-   {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
-                                   I = integer_to_list(Index),
-                                   TKKey = "Tag."++I++".Key",
-                                   TVKey = "Tag."++I++".Value",
-                                   {[{TKKey, Key}, {TVKey, Value} | Acc], Index+1}
-                       end, {[], 1}, TagsList),
-    {Resources, _} = lists:foldl(fun(ResourceId, {Acc, Index}) ->
-                                   I = integer_to_list(Index),
-                                   TKey = "ResourceId."++I,
-                                   {[{TKey, ResourceId} | Acc], Index+1}
-                       end, {[], 1}, ResourceIds),
-    ec2_query(Config, "CreateTags", Resources ++ Tags, "2010-08-31").
 
 block_device_params(Mappings) ->
     erlcloud_aws:param_list(
@@ -1772,7 +1776,7 @@ block_device_params(Mappings) ->
              []
          end ||
          Mapping <- Mappings], "BlockDeviceMapping").
-
+    
 -spec(start_instances/1 :: ([string()]) -> proplist()).
 start_instances(InstanceIDs) -> start_instances(InstanceIDs, default_config()).
 
