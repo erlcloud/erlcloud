@@ -38,8 +38,8 @@
     reset_snapshot_attribute/2, reset_snapshot_attribute/3,
 
     %% Elastic IP addresses.
-    allocate_address/0, allocate_address/1,
-    associate_address/2, associate_address/3,
+    allocate_address/0, allocate_address/1, allocate_address/2,
+    associate_address/2, associate_address/3, associate_address/4,
     describe_addresses/0, describe_addresses/1, describe_addresses/2,
     disassociate_address/1, disassociate_address/2,
     release_address/1, release_address/2,
@@ -164,22 +164,51 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
     ok.
 
 -spec(allocate_address/0 :: () -> string()).
-allocate_address() -> allocate_address(default_config()).
+allocate_address() -> allocate_address(none, default_config()).
 
 -spec(allocate_address/1 :: (aws_config()) -> string()).
-allocate_address(Config) ->
-    Doc = ec2_query(Config, "AllocateAddress", []),
-    get_text("/AllocateAddressResponse/publicIp", Doc).
+allocate_address(Config) when is_record(Config, aws_config) ->
+    allocate_address(none, Config);
+allocate_address(Domain) when is_atom(Domain) ->
+    allocate_address(Domain, default_config()).
+
+-spec(allocate_address/2 :: (none | vpc, aws_config()) -> string() | { string() | string() }).
+allocate_address(Domain, Config) ->
+    Params = case Domain of
+                 vpc -> [{"Domain", "vpc"}];
+                 none -> []
+             end,
+    Doc = ec2_query(Config, "AllocateAddress", Params, ?NEW_API_VERSION),
+    case Domain of
+        vpc -> 
+            { get_text("/AllocateAddressResponse/publicIp", Doc),
+              get_text("/AllocateAddressResponse/allocationId", Doc) };
+        none ->
+            get_text("/AllocateAddressResponse/publicIp", Doc)
+    end.
 
 -spec(associate_address/2 :: (string(), string()) -> ok).
 associate_address(PublicIP, InstanceID) ->
     associate_address(PublicIP, InstanceID, default_config()).
 
--spec(associate_address/3 :: (string(), string(), aws_config()) -> ok).
+-spec(associate_address/3 :: (string(), string(), string() | aws_config()) -> ok).
 associate_address(PublicIP, InstanceID, Config)
-  when is_list(PublicIP), is_list(InstanceID) ->
-    ec2_simple_query(Config, "AssociateAddress", [{"InstanceId", InstanceID}, {"PublicIp", PublicIP}]).
+  when is_list(PublicIP), is_list(InstanceID), is_record(Config, aws_config) ->
+    associate_address(PublicIP, InstanceID, none, Config);
+associate_address(PublicIP, InstanceID, AllocationID)
+  when is_list(PublicIP), is_list(InstanceID), is_list(AllocationID) ->
+    associate_address(PublicIP, InstanceID, AllocationID, default_config()).
 
+-spec(associate_address/4 :: (string(), string(), string() | none, aws_config()) -> ok).
+associate_address(PublicIP, InstanceID, AllocationID, Config) ->
+    AllocationParam = case AllocationID of
+                          none -> [{ "PublicIp", PublicIP} ];
+                          ID -> [{ "AllocationId", ID }]
+                      end,
+    ec2_simple_query(Config, "AssociateAddress", 
+                     [{"InstanceId", InstanceID} | AllocationParam], 
+                     ?NEW_API_VERSION).
+    
 -spec(associate_dhcp_options/2 :: (string(), string()) -> proplist()).
 associate_dhcp_options(OptionsID, VpcID) ->
     associate_dhcp_options(OptionsID, VpcID, default_config()).
