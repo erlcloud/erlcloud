@@ -1,5 +1,6 @@
 -type(ec2_shutdown_behavior() :: stop | terminate | undefined).
 -type(ec2_volume_size() :: 1..1024).
+
 -record(ec2_block_device_mapping, {
           device_name::string(),
           virtual_name::string(),
@@ -8,6 +9,7 @@
           delete_on_termination::boolean()
          }).
 -type(ec2_block_device_mapping() :: #ec2_block_device_mapping{}).
+
 -record(ec2_instance_spec, {
           image_id::string(),
           min_count=1::pos_integer(),
@@ -53,10 +55,21 @@
           source_security_group_name::string(),
           cidr_ip::string()
          }).
+-record(vpc_ingress_spec, {
+          ip_protocol::tcp|udp|icmp,
+          from_port::-1 | 0..65535,
+          to_port::-1 | 0..65535,
+          user_id::[string()],
+          group_name::[string()],
+          group_id::[string()],
+          cidr_ip::[string()]
+         }).
+
 -type(ec2_image_spec() :: #ec2_image_spec{}).
 -type(ec2_instance_spec() :: #ec2_instance_spec{}).
 -type(ec2_ingress_spec() :: #ec2_ingress_spec{}).
 -type(ec2_spot_instance_request() :: #ec2_spot_instance_request{}).
+-type(vpc_ingress_spec() :: #vpc_ingress_spec{}).
 -record(ec2_tag, {
           resource_id :: string(),
           resource_type :: string(),
