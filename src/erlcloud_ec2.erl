@@ -130,6 +130,9 @@
          delete_route_table/1, delete_route_table/2,
          create_route/4, create_route/5, delete_route/2, delete_route/3,
          associate_route_table/2, associate_route_table/3,
+         create_network_acl/1, create_network_acl/2,
+         delete_network_acl/1, delete_network_acl/2,
+         describe_network_acls/0, describe_network_acls/1, describe_network_acls/2,
 
          %% Tagging. Uses different version of AWS API
          create_tags/2, create_tags/3,
@@ -448,6 +451,32 @@ create_internet_gateway(Config) ->
     Path = "/CreateInternetGatewayResponse/internetGateway/internetGatewayId",
     {internet_gateway_id, get_text(Path, Doc) }.
 
+-spec(create_network_acl/1 :: (string()) -> proplist()).
+create_network_acl(VpcID) ->
+    create_network_acl(VpcID, default_config()).
+
+-spec(create_network_acl/2 :: (string(), aws_config()) -> proplist()).
+create_network_acl(VpcID, Config) ->
+    Doc = ec2_query(Config, "CreateNetworkAcl", [{"VpcId", VpcID}],
+                    ?NEW_API_VERSION),
+    Path = "/CreateNetworkAclResponse/networkAcl",
+    [Node] = xmerl_xpath:string(Path, Doc),
+    extract_acl_response(Node).
+
+extract_acl_response(Node) ->
+    [{network_acl_id, get_text("networkAclId", Node)},
+     {vpcId, get_text("vpcId", Node)},
+     {default, get_text("default", Node)},
+     {entry_set, [ extract_acl_entry_item(Item)
+                   || Item <- xmerl_xpath:string("entrySet/item", Node)]}].
+
+extract_acl_entry_item(Node) ->
+    [{rule_number, get_text("ruleNumber", Node)},
+     {protocol, get_text("protocol", Node)},
+     {rule_action, get_text("ruleAction", Node)},
+     {egress, get_text("egress", Node)},
+     {cidr_block, get_text("cidrBlock", Node)}].
+
 -spec(create_route/4 :: (string(), string(), gateway_id | instance_id | network_interface_id, string()) -> ok).
 create_route(RouteTableID, DestCidrBl, Attachment, Val) ->
     create_route(RouteTableID, DestCidrBl, Attachment, Val, default_config()).
@@ -635,6 +664,15 @@ delete_key_pair(KeyName) -> delete_key_pair(KeyName, default_config()).
 delete_key_pair(KeyName, Config)
   when is_list(KeyName) ->
     ec2_simple_query(Config, "DeleteKeyPair", [{"KeyName", KeyName}]).
+
+-spec(delete_network_acl/1 :: (string()) -> ok).
+delete_network_acl(NetworkAclId) ->
+    delete_network_acl(NetworkAclId, default_config()).
+
+-spec(delete_network_acl/2 :: (string(), aws_config()) -> ok).
+delete_network_acl(NetworkAclId, Config) ->
+    ec2_simple_query(Config, "DeleteNetworkAcl",
+                     [{"NetworkAclId", NetworkAclId}], ?NEW_API_VERSION).
 
 -spec(delete_route/2 :: (string(), string()) -> ok).
 delete_route(RouteTableID, DestCidrBlock) ->
@@ -1072,6 +1110,23 @@ describe_key_pairs(KeyNames, Config)
       {key_fingerprint, get_text("keyFingerprint", Item)}
      ] || Item <- Items
     ].
+
+-spec(describe_network_acls/0 :: () -> [proplist()]).
+describe_network_acls() ->
+    describe_network_acls(none, default_config()).
+
+-spec(describe_network_acls/1 :: (filter_list() | aws_config()) -> [proplist()]).
+describe_network_acls(Config) when is_record(Config, aws_config) ->
+    describe_network_acls(none, Config);
+describe_network_acls(Filter) ->
+    describe_network_acls(Filter, default_config()).
+
+-spec(describe_network_acls/2 :: (filter_list(), aws_config()) -> [proplist()]).
+describe_network_acls(Filter, Config) ->
+    Params = list_to_ec2_filter(Filter),
+    Doc = ec2_query(Config, "DescribeNetworkAcls", Params, ?NEW_API_VERSION),
+    Path = "/DescribeNetworkAclsResponse/networkAclSet/item",
+    [extract_acl_response(Item) || Item <- xmerl_xpath:string(Path, Doc)].
 
 -spec(describe_regions/0 :: () -> proplist()).
 describe_regions() -> describe_regions([]).
