@@ -62,6 +62,8 @@
          start_instances/1, start_instances/2,
          stop_instances/1, stop_instances/2, stop_instances/3,
          terminate_instances/1, terminate_instances/2,
+         describe_instance_status/1, describe_instance_status/2,
+         describe_instance_status/3,
 
          %% Key Pairs
          create_key_pair/1, create_key_pair/2,
@@ -998,6 +1000,30 @@ extract_block_device_mapping_status(Node) ->
      {attach_time, erlcloud_xml:get_time("ebs/attachTime", Node)},
      {delete_on_termination, get_bool("ebs/deleteOnTermination", Node)}
     ].
+
+-spec(describe_instance_status/1 :: (string()) -> proplist()).
+describe_instance_status(InstanceID) ->
+    describe_instance_status([{"InstanceId", InstanceID}], [], default_config()).
+
+-spec(describe_instance_status/2 :: (proplist(), filter_list()) -> proplist()).
+describe_instance_status(Params, Filter) ->
+    describe_instance_status(Params, Filter, default_config()).
+
+-spec(describe_instance_status/3 :: (proplist(), filter_list(), aws_config()) -> proplist()).
+describe_instance_status(Params, Filter, Config) ->
+    AllParams = Params ++ list_to_ec2_filter(Filter),
+    Doc = ec2_query(Config, "DescribeInstanceStatus",
+                    AllParams, ?NEW_API_VERSION),
+    Path = "/DescribeInstanceStatusResponse/instanceStatusSet/item",
+    [ extract_instance_status(Item) || Item <- xmerl_xpath:string(Path, Doc) ].
+
+extract_instance_status(Node) ->
+    %% XXX: abbreviated.
+    [ { instance_id, get_text("instanceId", Node) },
+      { availability_zone, get_text("availabilityZone", Node) },
+      { instance_state_code, get_text("instanceState/code", Node) },
+      { instance_state_name, get_text("instanceState/name", Node) } ].
+
 
 -spec(describe_internet_gateways/0 :: () -> proplist()).
 describe_internet_gateways() ->
