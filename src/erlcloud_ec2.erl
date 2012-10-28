@@ -133,6 +133,10 @@
          create_network_acl/1, create_network_acl/2,
          delete_network_acl/1, delete_network_acl/2,
          describe_network_acls/0, describe_network_acls/1, describe_network_acls/2,
+         create_network_acl_entry/1, create_network_acl_entry/2,
+         replace_network_acl_entry/1, replace_network_acl_entry/2,
+         delete_network_acl_entry/2, delete_network_acl_entry/3,
+         delete_network_acl_entry/4,
 
          %% Tagging. Uses different version of AWS API
          create_tags/2, create_tags/3,
@@ -477,6 +481,27 @@ extract_acl_entry_item(Node) ->
      {egress, get_text("egress", Node)},
      {cidr_block, get_text("cidrBlock", Node)}].
 
+-spec(create_network_acl_entry/1 :: (ec2_network_acl_spec()) -> ok).
+create_network_acl_entry(Spec) ->
+    create_network_acl_entry(Spec, default_config()).
+
+-spec(create_network_acl_entry/2 :: (ec2_network_acl_spec(), aws_config()) -> ok).
+create_network_acl_entry(Spec, Config) ->
+    Params = network_acl_spec_to_params(Spec),
+    ec2_simple_query(Config, "CreateNetworkAclEntry", Params, ?NEW_API_VERSION).
+
+network_acl_spec_to_params(Spec) ->
+    [{ "NetworkAclId", Spec#ec2_network_acl_spec.network_acl_id },
+     { "RuleNumber", Spec#ec2_network_acl_spec.rule_number },
+     { "Protocol", Spec#ec2_network_acl_spec.protocol },
+     { "RuleAction", Spec#ec2_network_acl_spec.rule_action },
+     { "Egress", Spec#ec2_network_acl_spec.egress },
+     { "CidrBlock", Spec#ec2_network_acl_spec.cidr_block },
+     { "Icmp.Code", Spec#ec2_network_acl_spec.icmp_code },
+     { "Icmp.Type", Spec#ec2_network_acl_spec.icmp_type },
+     { "PortRange.From", Spec#ec2_network_acl_spec.port_range_from },
+     { "PortRange.To", Spec#ec2_network_acl_spec.port_range_to }].
+
 -spec(create_route/4 :: (string(), string(), gateway_id | instance_id | network_interface_id, string()) -> ok).
 create_route(RouteTableID, DestCidrBl, Attachment, Val) ->
     create_route(RouteTableID, DestCidrBl, Attachment, Val, default_config()).
@@ -673,6 +698,24 @@ delete_network_acl(NetworkAclId) ->
 delete_network_acl(NetworkAclId, Config) ->
     ec2_simple_query(Config, "DeleteNetworkAcl",
                      [{"NetworkAclId", NetworkAclId}], ?NEW_API_VERSION).
+
+-spec(delete_network_acl_entry/2 :: (string(), string()) -> ok).
+delete_network_acl_entry(NetworkAclID, RuleNumber) ->
+    delete_network_acl_entry(NetworkAclID, RuleNumber, false, default_config()).
+
+-spec(delete_network_acl_entry/3 :: (string(), string(), boolean() | aws_config()) -> ok).
+delete_network_acl_entry(NetworkAclID, RuleNumber, Config)
+  when is_record(Config, aws_config) ->
+    delete_network_acl_entry(NetworkAclID, RuleNumber, false, Config);
+delete_network_acl_entry(NetworkAclID, RuleNumber, Egress) ->
+    delete_network_acl_entry(NetworkAclID, RuleNumber, Egress, default_config()).
+
+-spec(delete_network_acl_entry/4 :: (string(), string(), boolean(), aws_config()) -> ok).
+delete_network_acl_entry(NetworkAclID, RuleNumber, Egress, Config) ->
+    Params = [{"NetworkAclId", NetworkAclID},
+              {"RuleNumber", RuleNumber},
+              {"Egress", Egress}],
+    ec2_simple_query(Config, "DeleteNetworkAclEntry", Params, ?NEW_API_VERSION).
 
 -spec(delete_route/2 :: (string(), string()) -> ok).
 delete_route(RouteTableID, DestCidrBlock) ->
@@ -1753,6 +1796,15 @@ register_image(ImageSpec, Config) ->
 
 -spec(release_address/1 :: (string()) -> ok).
 release_address(PublicIP) -> release_address(PublicIP, default_config()).
+
+-spec(replace_network_acl_entry/1 :: (ec2_network_acl_spec()) -> ok).
+replace_network_acl_entry(Spec) ->
+    replace_network_acl_entry(Spec, default_config()).
+
+-spec(replace_network_acl_entry/2 :: (ec2_network_acl_spec(), aws_config()) -> ok).
+replace_network_acl_entry(Spec, Config) ->
+    Params = network_acl_spec_to_params(Spec),
+    ec2_simple_query(Config, "ReplaceNetworkAclEntry", Params, ?NEW_API_VERSION).
 
 -spec(request_spot_instances/1 :: (ec2_spot_instance_request()) -> [proplist()]).
 request_spot_instances(Request) ->
