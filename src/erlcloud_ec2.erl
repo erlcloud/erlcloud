@@ -130,6 +130,8 @@
          delete_route_table/1, delete_route_table/2,
          create_route/4, create_route/5, delete_route/2, delete_route/3,
          associate_route_table/2, associate_route_table/3,
+
+         %% VPC/Network ACLs
          create_network_acl/1, create_network_acl/2,
          delete_network_acl/1, delete_network_acl/2,
          describe_network_acls/0, describe_network_acls/1, describe_network_acls/2,
@@ -137,6 +139,7 @@
          replace_network_acl_entry/1, replace_network_acl_entry/2,
          delete_network_acl_entry/2, delete_network_acl_entry/3,
          delete_network_acl_entry/4,
+         replace_network_acl_association/2, replace_network_acl_association/3,
 
          %% Tagging. Uses different version of AWS API
          create_tags/2, create_tags/3,
@@ -469,10 +472,17 @@ create_network_acl(VpcID, Config) ->
 
 extract_acl_response(Node) ->
     [{network_acl_id, get_text("networkAclId", Node)},
-     {vpcId, get_text("vpcId", Node)},
+     {vpc_id, get_text("vpcId", Node)},
      {default, get_text("default", Node)},
+     {association_set, [ extract_acl_association_item(Item)
+                         || Item <- xmerl_xpath:string("associationSet/item", Node)]},
      {entry_set, [ extract_acl_entry_item(Item)
                    || Item <- xmerl_xpath:string("entrySet/item", Node)]}].
+
+extract_acl_association_item(Node) ->
+    [{network_acl_association_id, get_text("networkAclAssociationId", Node)},
+     {network_acl_id, get_text("networkAclId", Node)},
+     {subnet_id, get_text("subnetId", Node)}].
 
 extract_acl_entry_item(Node) ->
     [{rule_number, get_text("ruleNumber", Node)},
@@ -1796,6 +1806,19 @@ register_image(ImageSpec, Config) ->
 
 -spec(release_address/1 :: (string()) -> ok).
 release_address(PublicIP) -> release_address(PublicIP, default_config()).
+
+-spec(replace_network_acl_association/2 :: (string(), string()) -> string()).
+replace_network_acl_association(AssociationID, NetworkAclID) ->
+    replace_network_acl_association(AssociationID, NetworkAclID, default_config()).
+
+-spec(replace_network_acl_association/3 :: (string(), string(), aws_config()) -> string()).
+replace_network_acl_association(AssociationID, NetworkAclID, Config) ->
+    Params = [{"AssociationId", AssociationID},
+              {"NetworkAclId", NetworkAclID}],
+    Doc = ec2_query(Config, "ReplaceNetworkAclAssociation",
+                    Params, ?NEW_API_VERSION),
+    Path = "/ReplaceNetworkAclAssociationResponse/newAssociationId",
+    get_text(Path, Doc).
 
 -spec(replace_network_acl_entry/1 :: (ec2_network_acl_spec()) -> ok).
 replace_network_acl_entry(Spec) ->
