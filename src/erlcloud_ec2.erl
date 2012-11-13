@@ -1247,7 +1247,7 @@ request_spot_instances(Request, Config) ->
          end},
         {"LaunchSpecification.InstanceType", InstanceSpec#ec2_instance_spec.instance_type},
         {"LaunchSpecification.KernelId", InstanceSpec#ec2_instance_spec.kernel_id},
-        {"LaunchSpecification.Ramdiskd", InstanceSpec#ec2_instance_spec.ramdisk_id},
+        {"LaunchSpecification.RamdiskId", InstanceSpec#ec2_instance_spec.ramdisk_id},
         {"LaunchSpecification.Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
         {"LaunchSpecification.SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
         {"LaunchSpecification.Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone}
@@ -1324,7 +1324,7 @@ run_instances(InstanceSpec, Config)
          end},
         {"InstanceType", InstanceSpec#ec2_instance_spec.instance_type},
         {"KernelId", InstanceSpec#ec2_instance_spec.kernel_id},
-        {"Ramdiskd", InstanceSpec#ec2_instance_spec.ramdisk_id},
+        {"RamdiskId", InstanceSpec#ec2_instance_spec.ramdisk_id},
         {"Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
         {"SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
         {"Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone},
