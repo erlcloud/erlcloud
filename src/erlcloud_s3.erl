@@ -622,12 +622,16 @@ make_post_url(Expire_time, BucketName, Key, Policy) ->
 -spec make_post_url(integer(), string(), string(), string(), aws_config()) -> {iolist(), iolist()}.
 
 make_post_url(Expire_time, BucketName, Key, Policy, Config) ->
-	PolicySig = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, Policy)),
+	PolicySig = erlcloud_http:url_encode(base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, Policy))),
 	Url = lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/"]),
+    {Mega, Sec, _Micro} = os:timestamp(),
+    Datetime = (Mega * 1000000) + Sec,
+    Expires = integer_to_list(Expire_time + Datetime),
 	Data = lists:flatten([ 
 			 "?key=", Key,
 		     "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), 
-		     "&policy=", base64:encode(Policy),
+		     "&policy=", erlcloud_http:url_encode(base64:encode(Policy)),
+		     "&expires=", Expires,
 		     "&signature=", PolicySig]),
 	{Url, Data}.
 
