@@ -20,7 +20,7 @@
          set_object_acl/3, set_object_acl/4,
          make_link/3, make_link/4,
          make_get_url/3, make_get_url/4,
-		 make_post_url/3, make_post_url/4]).
+		 make_post_url/4, make_post_url/5]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -622,13 +622,13 @@ make_post_url(Expire_time, BucketName, Key, Policy) ->
 -spec make_post_url(integer(), string(), string(), string(), aws_config()) -> {iolist(), iolist()}.
 
 make_post_url(Expire_time, BucketName, Key, Policy, Config) ->
-	Sig = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, Policy)),
+	PolicySig = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, Policy)),
 	Url = lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/"]),
 	Data = lists:flatten([ 
 			 "?key=", Key,
 		     "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), 
-		     "&Signature=", erlcloud_http:url_encode(Sig), 
-		     "&Expires=", Expires]),
+		     "&policy=", base64:encode(Policy),
+		     "&signature=", PolicySig]),
 	{Url, Data}.
 
 -spec set_bucket_attribute(string(), atom(), term()) -> ok.
