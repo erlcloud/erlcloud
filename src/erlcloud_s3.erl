@@ -645,11 +645,11 @@ format_multipart_formdata(Boundary, Fields, Data) ->
                                     FieldContent]
                            end, Fields),
     FieldParts2 = lists:append(FieldParts),
-    FileParts =  [lists:concat(["--", Boundary]),
+    FileParts =  [[lists:concat(["--", Boundary]),
                   lists:concat(["Content-Disposition: form-data; name=\"file\""]),
                   lists:concat(["Content-Type: ", "text/plain"]),
                   "",
-                  Data],
+                  Data]],
     FileParts2 = lists:append(FileParts),
     EndingParts = [lists:concat(["--", Boundary, "--"]), ""],
     Parts = lists:append([FieldParts2, FileParts2, EndingParts]),
