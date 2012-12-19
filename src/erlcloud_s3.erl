@@ -639,7 +639,7 @@ make_post_http_request(Url, Fields, Data) ->
 %%
 format_multipart_formdata(Boundary, Fields, Data) when is_binary(Data) ->
 	format_multipart_formdata(Boundary, Fields, binary_to_list(Data), "application/octet-stream");
-format_multipart_form_data(Boundary, Fields, Data) when is_list(Data) ->
+format_multipart_formdata(Boundary, Fields, Data) when is_list(Data) ->
 	format_multipart_formdata(Boundary, Fields, Data, "text/plain").
 	
 format_multipart_formdata(Boundary, Fields, Data, Type) ->
