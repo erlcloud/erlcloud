@@ -637,7 +637,12 @@ make_post_http_request(Url, Fields, Data) ->
 %%
 %% credit to http://lethain.com/formatting-multipart-formdata-in-erlang/ for the original code here
 %%
-format_multipart_formdata(Boundary, Fields, Data) ->
+format_multipart_formdata(Boundary, Fields, Data) when is_binary(Data) ->
+	format_multipart_formdata(Boundary, Fields, binary_to_list(Data), "application/octet-stream");
+format_multipart_form_data(Boundary, Fields, Data) when is_list(Data) ->
+	format_multipart_formdata(Boundary, Fields, Data, "text/plain").
+	
+format_multipart_formdata(Boundary, Fields, Data, Type) ->
     FieldParts = lists:map(fun({FieldName, FieldContent}) ->
                                    [lists:concat(["--", Boundary]),
                                     lists:concat(["Content-Disposition: form-data; name=\"",atom_to_list(FieldName),"\""]),
@@ -647,7 +652,7 @@ format_multipart_formdata(Boundary, Fields, Data) ->
     FieldParts2 = lists:append(FieldParts),
     FileParts =  [[lists:concat(["--", Boundary]),
                   lists:concat(["Content-Disposition: form-data; name=\"file\""]),
-                  lists:concat(["Content-Type: ", "text/plain"]),
+                  lists:concat(["Content-Type: ", Type]),
                   "",
                   Data]],
     FileParts2 = lists:append(FileParts),
