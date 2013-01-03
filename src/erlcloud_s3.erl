@@ -801,7 +801,7 @@ update_config(#aws_config{} = Config) ->
     Role = string:sub_word(Body, 1, $\n),
     {ok, {{_, 200, _}, _, Json}} = 
 	httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ Role),
-    Credentials = jsx:decode(Json),
+    Credentials = jsx:decode(list_to_binary(Json)),
     Config#aws_config{
       access_key_id = proplists:get_value("AccessKeyId", Credentials),
       secret_access_key = proplists:get_value("SecretAccessKey", Credentials),
