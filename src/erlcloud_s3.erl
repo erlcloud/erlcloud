@@ -577,11 +577,12 @@ set_object_acl(BucketName, Key, ACL, Config)
 -spec sign_get(integer(), string(), string(), aws_config()) -> {string(), string()}.
 sign_get(Expire_time, BucketName, Key, Config)
   when is_integer(Expire_time), is_list(BucketName), is_list(Key) ->
+    Config1 = update_config(Config),
     {Mega, Sec, _Micro} = os:timestamp(),
     Datetime = (Mega * 1000000) + Sec,
     Expires = integer_to_list(Expire_time + Datetime),
     To_sign = lists:flatten(["GET\n\n\n", Expires, "\n/", BucketName, "/", Key]),
-    Sig = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, To_sign)),
+    Sig = base64:encode(crypto:sha_mac(Config1#aws_config.secret_access_key, To_sign)),
     {Sig, Expires}.
 
 -spec make_link(integer(), string(), string()) -> {integer(), string(), string()}.
@@ -594,7 +595,11 @@ make_link(Expire_time, BucketName, Key) ->
 make_link(Expire_time, BucketName, Key, Config) ->
     {Sig, Expires} = sign_get(Expire_time, BucketName, Key, Config),
     Host = lists:flatten(["http://", BucketName, ".", Config#aws_config.s3_host, port_spec(Config)]),
-    URI = lists:flatten(["/", Key, "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), "&Signature=", erlcloud_http:url_encode(Sig), "&Expires=", Expires]),
+    URI = lists:flatten(["/", Key, "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), "&Signature=", erlcloud_http:url_encode(Sig), "&Expires=", Expires] ++
+	case Config#aws_config.security_token of
+	    undefined -> [];
+	    Token -> ["&SecurityToken=", Token]
+	end),
     {list_to_integer(Expires),
      binary_to_list(erlang:iolist_to_binary(Host)),
      binary_to_list(erlang:iolist_to_binary(URI))}.
@@ -611,7 +616,11 @@ make_get_url(Expire_time, BucketName, Key, Config) ->
     [Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key, 
      "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), 
      "&Signature=", erlcloud_http:url_encode(Sig), 
-     "&Expires=", Expires].
+     "&Expires=", Expires] ++
+	case Config#aws_config.security_token of
+	    undefined -> [];
+	    Token -> ["&SecurityToken=", Token]
+	end.
 
 -spec set_bucket_attribute(string(), atom(), term()) -> ok.
 
@@ -714,17 +723,22 @@ s3_xml_request(Config, Method, Host, Path, Subresource, Params, POSTData, Header
             XML
     end.
 
-s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
+s3_request(Config0, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
     {ContentMD5, ContentType, Body} =
         case POSTData of
             {PD, CT} -> {base64:encode(crypto:md5(PD)), CT, PD}; PD -> {"", "", PD}
         end,
-    AmzHeaders = lists:filter(fun ({"x-amz-" ++ _, V}) when V =/= undefined -> true; (_) -> false end, Headers),
+    Config = update_config(Config0),
+    Headers = case Config#aws_config.security_token of
+    		  undefined -> Headers0;
+    		  Token when is_list(Token) -> [{"x-amz-security-token", Token} | Headers0]
+    	      end,
+    FHeaders = [Header || {_, Value} = Header <- Headers, Value =/= undefined],
+    AmzHeaders = [Header || {"x-amz-" ++ _, _} = Header <- FHeaders],
     Date = httpd_util:rfc1123_date(erlang:localtime()),
     EscapedPath = erlcloud_http:url_encode_loose(Path),
     Authorization = make_authorization(Config, Method, ContentMD5, ContentType,
         Date, AmzHeaders, Host, EscapedPath, Subresource),
-    FHeaders = [Header || {_, Value} = Header <- Headers, Value =/= undefined],
     RequestHeaders = [{"date", Date}, {"authorization", Authorization}|FHeaders] ++
         case ContentMD5 of
             "" -> [];
@@ -773,6 +787,25 @@ make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
     ["AWS ", Config#aws_config.access_key_id, $:, Signature].
 
 default_config() -> erlcloud_aws:default_config().
+
+-spec update_config(aws_config()) -> aws_config().
+update_config(#aws_config{access_key_id = KeyId} = Config) 
+  when is_list(KeyId) ->
+    Config;
+update_config(#aws_config{} = Config) ->
+    %% AccessKey is not set. Try to read from role metadata.
+    %% First get the list of roles
+    {ok, {{_, 200, _}, _, Body}} = 
+	httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/"),
+    %% Always use the first role
+    Role = string:sub_word(Body, 1, $\n),
+    {ok, {{_, 200, _}, _, Json}} = 
+	httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ Role),
+    Credentials = jsx:decode(Json),
+    Config#aws_config{
+      access_key_id = proplists:get_value("AccessKeyId", Credentials),
+      secret_access_key = proplists:get_value("SecretAccessKey", Credentials),
+      security_token = proplists:get_value("Token", Credentials)}.
 
 port_spec(#aws_config{s3_port=80}) ->
     "";

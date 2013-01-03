@@ -10,8 +10,9 @@
     mon_host="monitoring.amazonaws.com"::string(),
     mon_port=undefined::non_neg_integer()|undefined,
     mon_protocol=undefined::string()|undefined,
-    access_key_id::string(),
-    secret_access_key::string()
+    access_key_id::string()|undefined|false,
+    secret_access_key::string()|undefined|false,
+    security_token=undefined::string()|undefined
 }).
 -type(aws_config() :: #aws_config{}).
 
