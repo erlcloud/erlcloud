@@ -256,8 +256,7 @@ extract_item(Item) ->
 sdb_request(Config, Action, Params) ->
     QParams = [{"Action", Action}, {"Version", ?API_VERSION}|Params],
     Doc = erlcloud_aws:aws_request_xml(post, Config#aws_config.sdb_host,
-        "/", QParams, Config#aws_config.access_key_id,
-        Config#aws_config.secret_access_key),
+        "/", QParams, Config),
     {Doc, [{box_usage, erlcloud_xml:get_float("/*/ResponseMetadata/BoxUsage", Doc)}]}.
 
 sdb_simple_request(Config, Action, Params) ->
