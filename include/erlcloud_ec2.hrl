@@ -57,3 +57,9 @@
 -type(ec2_instance_spec() :: #ec2_instance_spec{}).
 -type(ec2_ingress_spec() :: #ec2_ingress_spec{}).
 -type(ec2_spot_instance_request() :: #ec2_spot_instance_request{}).
+-record(ec2_tag, {
+	  resource_id :: string(),
+	  resource_type :: string(),
+	  key :: string(),
+	  value :: string()
+}).
