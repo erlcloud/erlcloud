@@ -12,7 +12,8 @@
                   public_key,
                   ssl,
                   xmerl,
-                  inets]},
+                  inets,
+                  jsx]},
   {modules, []},
   {env, []}
  ]
