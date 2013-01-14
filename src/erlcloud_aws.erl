@@ -1,32 +1,43 @@
 -module(erlcloud_aws).
--export([aws_request/6,
-         aws_request/8,
-         aws_request_xml/6,
-         aws_request_xml/8,
-         param_list/2, default_config/0, format_timestamp/1]).
+-export([aws_request/5, aws_request/6, aws_request/7, aws_request/8,
+         aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
+         param_list/2, default_config/0, update_config/1, format_timestamp/1]).
 
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
+aws_request_xml(Method, Host, Path, Params, #aws_config{} = Config) ->
+    Body = aws_request(Method, Host, Path, Params, Config),
+    element(1, xmerl_scan:string(Body)).
 aws_request_xml(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey),
+    element(1, xmerl_scan:string(Body)).
+aws_request_xml(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
+    Body = aws_request(Method, Protocol, Host, Port, Path, Params, Config),
     element(1, xmerl_scan:string(Body)).
 aws_request_xml(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey),
     element(1, xmerl_scan:string(Body)).
 
+aws_request(Method, Host, Path, Params, #aws_config{} = Config) ->
+    aws_request(Method, undefined, Host, undefined, Path, Params, Config).
 aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     aws_request(Method, undefined, Host, undefined, Path, Params, AccessKeyID, SecretAccessKey).
-aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey) ->
+aws_request(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config0) ->
+    Config = update_config(Config0),
     Timestamp = format_timestamp(erlang:universaltime()),
     QParams = lists:sort([{"Timestamp", Timestamp},
                           {"SignatureVersion", "2"},
                           {"SignatureMethod", "HmacSHA1"},
-                          {"AWSAccessKeyId", AccessKeyID}|Params]),
+                          {"AWSAccessKeyId", Config#aws_config.access_key_id}|Params] ++
+			     case Config#aws_config.security_token of
+				 undefined -> [];
+				 Token -> [{"SecurityToken", Token}]
+			     end),
 
     QueryToSign = erlcloud_http:make_query_string(QParams),
     RequestToSign = [string:to_upper(atom_to_list(Method)), $\n,
                      string:to_lower(Host), $\n, Path, $\n, QueryToSign],
-    Signature = base64:encode(crypto:sha_mac(SecretAccessKey, RequestToSign)),
+    Signature = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, RequestToSign)),
 
     Query = [QueryToSign, "&Signature=", erlcloud_http:url_encode(Signature)],
 
@@ -60,6 +71,9 @@ aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAcces
         {error, Error} ->
             erlang:error({aws_error, {socket_error, Error}})
     end.
+aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey) ->
+    aws_request(Method, Protocol, Host, Port, Path, Params, 
+		#aws_config{access_key_id = AccessKeyID, secret_access_key = SecretAccessKey}).
 
 param_list([], _Key) -> [];
 param_list(Values, Key) when is_tuple(Key) ->
@@ -98,6 +112,28 @@ default_config() ->
         Config ->
             Config
     end.
+
+-spec update_config(aws_config()) -> aws_config().
+update_config(#aws_config{access_key_id = KeyId} = Config) 
+  when is_list(KeyId) ->
+    %% In order to support caching of the aws_config, we could store the expiration_time
+    %% and check it here. If it is about to expire (within 5 minutes is what boto uses)
+    %% then we should get the new config.
+    Config;
+update_config(#aws_config{} = Config) ->
+    %% AccessKey is not set. Try to read from role metadata.
+    %% First get the list of roles
+    {ok, {{_, 200, _}, _, Body}} = 
+	httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/"),
+    %% Always use the first role
+    Role = string:sub_word(Body, 1, $\n),
+    {ok, {{_, 200, _}, _, Json}} = 
+	httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ Role),
+    Credentials = jsx:decode(list_to_binary(Json)),
+    Config#aws_config{
+      access_key_id = binary_to_list(proplists:get_value(<<"AccessKeyId">>, Credentials)),
+      secret_access_key = binary_to_list(proplists:get_value(<<"SecretAccessKey">>, Credentials)),
+      security_token = binary_to_list(proplists:get_value(<<"Token">>, Credentials))}.
 
 port_to_str(Port) when is_integer(Port) ->
     integer_to_list(Port);
