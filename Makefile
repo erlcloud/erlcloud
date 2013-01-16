@@ -1,9 +1,9 @@
 REBAR=$(shell which rebar || echo ./rebar)
 
+all: get-deps compile
+
 get-deps:
 	@$(REBAR) get-deps
-
-all: compile
 
 clean:
 	@$(REBAR) clean
