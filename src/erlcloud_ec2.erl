@@ -621,18 +621,26 @@ describe_instance_attribute(InstanceID, Attribute, Config)
         block_device_mapping -> "blockDeviceMapping"
     end,
     Doc = ec2_query(Config, "DescribeInstanceAttribute", [{"InstanceId", InstanceID}, {"Attribute", AttributeName}]),
-    Node = case Attribute of
-        block_device_mapping -> hd(xmerl_xpath:string("/DescribeInstanceAttributeResponse/" ++ AttributeName, Doc));
-        _ -> hd(xmerl_xpath:string("/DescribeInstanceAttributeResponse/" ++ AttributeName ++ "/value", Doc))
-    end,
-    case Attribute of
-        user_data -> base64:decode(get_text(Node));
-        disable_api_termination -> list_to_existing_atom(get_text(Node));
-        instance_initiated_shutdown_behavior -> list_to_existing_atom(get_text(Node));
-        block_device_mapping ->
-            [extract_block_device_mapping_status(Item) || Item <- xmerl_xpath:string("item", Node)];
-        _ -> get_text(Node)
+    case xmerl_xpath:string(attribute_xpath(Attribute, AttributeName), Doc) of
+        % attribute might not be defined
+        [] -> 
+            undefined;
+        [Node | _] ->
+            case Attribute of
+                user_data -> base64:decode(get_text(Node));
+                disable_api_termination -> list_to_existing_atom(get_text(Node));
+                instance_initiated_shutdown_behavior -> list_to_existing_atom(get_text(Node));
+                block_device_mapping ->
+                    [extract_block_device_mapping_status(Item) || Item <- xmerl_xpath:string("item", Node)];
+                _ -> get_text(Node)
+            end
     end.
+
+attribute_xpath(block_device_mapping, AttributeName) ->
+   "/DescribeInstanceAttributeResponse/" ++ AttributeName;
+attribute_xpath(_, AttributeName) ->
+   "/DescribeInstanceAttributeResponse/" ++ AttributeName ++ "/value".
+
 
 -spec(describe_instances/0 :: () -> proplist()).
 describe_instances() -> describe_instances([]).
