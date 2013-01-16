@@ -94,6 +94,7 @@
     delete_spot_datafeed_subscription/0, delete_spot_datafeed_subscription/1,
     describe_spot_datafeed_subscription/0, describe_spot_datafeed_subscription/1,
     describe_spot_instance_requests/0, describe_spot_instance_requests/1,
+    describe_spot_instance_requests/2,
     describe_spot_price_history/0, describe_spot_price_history/1,
     describe_spot_price_history/2, describe_spot_price_history/3,
     describe_spot_price_history/5,
