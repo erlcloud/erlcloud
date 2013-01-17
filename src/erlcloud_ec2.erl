@@ -5,6 +5,10 @@
 %% Library initialization.
 -export([configure/2, configure/3, new/2, new/3]).
 
+%% Instance specification
+-export([instance_spec/1]).
+
+
 %% EC2 API Functions
 -export([
     %% Amazon DevPay
@@ -107,7 +111,8 @@
     get_password_data/1, get_password_data/2,
 
     %% Tagging. Uses different version of AWS API
-    create_tags/3
+    create_tags/3,
+    describe_tags/0, describe_tags/1
 ]).
 
 -import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
@@ -1360,6 +1365,23 @@ create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
                        end, {[], 1}, ResourceIds),
     ec2_query(Config, "CreateTags", Resources ++ Tags, "2010-08-31").
 
+describe_tags() ->
+    describe_tags(default_config()).
+
+describe_tags(Config) ->
+    Doc = ec2_query(Config, "DescribeTags", "", "2012-12-01"),
+    [extract_tags(Item) ||
+        Item <- xmerl_xpath:string("/DescribeTagsResponse/tagSet/item", Doc)].
+
+extract_tags(Node) ->
+    [
+        {resource_id, get_text("resourceId", Node)},
+        {resource_type, get_text("resourceType", Node)},
+        {key, get_text("key", Node)},
+        {value, get_text("value", Node)}
+    ].
+
+
 block_device_params(Mappings) ->
     erlcloud_aws:param_list(
         [[{"DeviceName", Mapping#ec2_block_device_mapping.device_name},
@@ -1446,3 +1468,72 @@ ec2_query(Config, Action, Params, ApiVersion) ->
         "/", QParams, Config).
 
 default_config() -> erlcloud_aws:default_config().
+
+%%%------------------------------------------------------------------
+%%%
+%%% Instance specification
+%%%
+%%%------------------------------------------------------------------ 
+
+-spec(instance_spec/1 :: (atom() | string()) -> ec2_instance_spec()).
+instance_spec(Name) when is_atom(Name) ->
+    {ok, Spec} = application:get_env(erlcloud, Name),
+    proplist_to_instance_spec(Spec);
+
+instance_spec(File) when is_list(File) ->
+    case filename:extension(File) of
+        % config is erlang terms
+        ".config" ->
+            {ok, Spec} = file:consult(File),
+            proplist_to_instance_spec(Spec);
+        ".json"   ->
+            {ok, Spec} = file:read_file(File),
+            proplist_to_instance_spec(jsx:to_term(Spec, [{label, atom}]))
+    end.
+
+
+proplist_to_instance_spec(PropList) ->
+   #ec2_instance_spec{
+      image_id   = proplist_val(image,    PropList),
+      min_count  = proplist_val(count, 1, PropList),
+      max_count  = proplist_val(count, 1, PropList),
+      key_name   = proplist_val(keyname,  PropList),
+      group_set  = proplist_val(security_group, ["default"], PropList),
+      user_data  = proplist_val(user_data ,PropList),
+      instance_type     = proplist_val(type, PropList),
+      availability_zone = proplist_val(zone, undefined,  PropList),
+      kernel_id  = proplist_val(kernel,  undefined, PropList),
+      ramdisk_id = proplist_val(ramdisk, undefined, PropList),
+      block_device_mapping = lists:map(fun proplist_to_dev_spec/1, proplist_val(devices, [], PropList)),
+      monitoring_enabled   = proplist_val(monitor, false, PropList),
+      subnet_id            = proplist_val(subnet,  undefined, PropList),
+      disable_api_termination = proplist_val(killable, false, PropList),
+      instance_initiated_shutdown_behavior = proplist_val(shutdown,  terminate, PropList)
+   }.
+
+proplist_to_dev_spec(PropList) ->
+    #ec2_block_device_mapping{
+        device_name  = proplist_val(dev,   PropList),
+        virtual_name = proplist_val(mount, PropList),
+        snapshot_id  = proplist_val(snapshot, undefined, PropList),
+        volume_size  = proplist_val(size,     undefined, PropList),
+        delete_on_termination = proplist_val(delete_on_termination, true, PropList)
+    }.
+
+
+proplist_val(Key, PropList) ->
+    case lists:keyfind(Key, 1, PropList) of
+        {_, Val} -> Val;
+        _        -> throw({badarg, Key})
+    end.
+
+proplist_val(Key, Default, PropList) ->
+    case lists:keyfind(Key, 1, PropList) of
+        {_, Val} -> Val;
+        _        -> Default
+    end.
+
+
+
+
+
