@@ -107,7 +107,7 @@
     get_password_data/1, get_password_data/2,
 
     %% Tagging. Uses different version of AWS API
-    create_tags/3,
+    create_tags/2, create_tags/3,
     describe_tags/0, describe_tags/1, describe_tags/2
 ]).
 
@@ -1347,6 +1347,8 @@ run_instances(InstanceSpec, Config)
     extract_reservation(hd(xmerl_xpath:string("/RunInstancesResponse", Doc))).
 
 % -spec(run_instances/2 :: ([string()], TagsList::[{key,value}], aws_config()) -> proplist()).
+create_tags(ResourceIds, TagsList) ->
+   create_tags(ResourceIds, TagsList, default_config()).
 create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
    {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
                                    I = integer_to_list(Index),
