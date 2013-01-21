@@ -1352,19 +1352,21 @@ create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
                        end, {[], 1}, ResourceIds),
     ec2_query(Config, "CreateTags", Resources ++ Tags, "2010-08-31").
 
+%% describe_tags follows new API patterns. It returning {ok, _} or {error, _}
+%% and by using records instead of property lists.
 -type filter_name() :: key | resource_id | resource_type | value.
 -type filter() :: {filter_name(), [string()]}.
--spec describe_tags() -> [#ec2_tag{}].
+-spec describe_tags() -> {ok, [#ec2_tag{}]} | {error, tuple()}.
 describe_tags() ->
     describe_tags([], default_config()).
 
--spec describe_tags([filter()] | aws_config()) -> [#ec2_tag{}].
+-spec describe_tags([filter()] | aws_config()) -> {ok, [#ec2_tag{}]} | {error, tuple()}.
 describe_tags(#aws_config{} = Config) ->
     describe_tags([], Config);
 describe_tags(Filters) ->
     describe_tags(Filters, default_config()).
 
--spec describe_tags([filter()], aws_config()) -> [#ec2_tag{}].
+-spec describe_tags([filter()], aws_config()) -> {ok, [#ec2_tag{}]} | {error, tuple()}.
 describe_tags(Filters, Config) ->
     {Params, _} = 
 	lists:foldl(
@@ -1375,9 +1377,13 @@ describe_tags(Filters, Config) ->
 		  {value_list_params(Values, Prefix) ++ [{Key, filter_name(Name)} | Acc], Index + 1}
 	  end, {[], 1}, Filters),
 
-    Doc = ec2_query(Config, "DescribeTags", Params, "2012-12-01"),
-    Tags = xmerl_xpath:string("/DescribeTagsResponse/tagSet/item", Doc),
-    [extract_tag(Tag) || Tag <- Tags].
+    case ec2_query2(Config, "DescribeTags", Params, "2012-12-01") of
+	{ok, Doc} ->
+	    Tags = xmerl_xpath:string("/DescribeTagsResponse/tagSet/item", Doc),
+	    {ok, [extract_tag(Tag) || Tag <- Tags]};
+	{error, Reason} ->
+	    {error, Reason}
+    end.
 
 -spec filter_name(filter_name()) -> string().
 filter_name(key) -> "key";
@@ -1485,6 +1491,11 @@ ec2_query(Config, Action, Params) ->
 ec2_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml(post, Config#aws_config.ec2_host,
+        "/", QParams, Config).
+
+ec2_query2(Config, Action, Params, ApiVersion) ->
+    QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
+    erlcloud_aws:aws_request_xml2(post, Config#aws_config.ec2_host,
         "/", QParams, Config).
 
 default_config() -> erlcloud_aws:default_config().
