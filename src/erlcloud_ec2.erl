@@ -1352,6 +1352,11 @@ create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
                        end, {[], 1}, ResourceIds),
     ec2_query(Config, "CreateTags", Resources ++ Tags, "2010-08-31").
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% @see describe_tags/2.
+%% @end
+%%------------------------------------------------------------------------------
 %% describe_tags follows new API patterns. It returning {ok, _} or {error, _}
 %% and by using records instead of property lists.
 -type filter_name() :: key | resource_id | resource_type | value.
@@ -1360,12 +1365,31 @@ create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
 describe_tags() ->
     describe_tags([], default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% @see describe_tags/2.
+%% @end
+%%------------------------------------------------------------------------------
 -spec describe_tags([filter()] | aws_config()) -> {ok, [#ec2_tag{}]} | {error, tuple()}.
 describe_tags(#aws_config{} = Config) ->
     describe_tags([], Config);
 describe_tags(Filters) ->
     describe_tags(Filters, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc EC2 API:
+%% [http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-query-DescribeTags.html]
+%%
+%% ===Example===
+%% Get "Tag1" and "Tag2" for a specific instance
+%%
+%% <code>
+%% {ok, Tags} = erlcloud_ec2:describe_tags([{resource_id, [InstanceId]}, {key, ["Tag1", "Tag2"]}], Config), <br/>
+%% Tag1 = lists:keyfind("Tag1", #ec2_tag.key, Tags), <br/>
+%% Tag1Value = Tag1#ec2_tag.value,
+%% </code>
+%% @end
+%%------------------------------------------------------------------------------
 -spec describe_tags([filter()], aws_config()) -> {ok, [#ec2_tag{}]} | {error, tuple()}.
 describe_tags(Filters, Config) ->
     {Params, _} = 
