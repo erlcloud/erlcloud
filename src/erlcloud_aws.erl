@@ -157,10 +157,10 @@ update_config(#aws_config{} = Config) ->
                     {error, Reason};
                 {ok, Json} ->
                     Credentials = jsx:decode(list_to_binary(Json)),
-                    Config#aws_config{
-                      access_key_id = binary_to_list(proplists:get_value(<<"AccessKeyId">>, Credentials)),
-                      secret_access_key = binary_to_list(proplists:get_value(<<"SecretAccessKey">>, Credentials)),
-                      security_token = binary_to_list(proplists:get_value(<<"Token">>, Credentials))}
+                    {ok, Config#aws_config{
+                           access_key_id = binary_to_list(proplists:get_value(<<"AccessKeyId">>, Credentials)),
+                           secret_access_key = binary_to_list(proplists:get_value(<<"SecretAccessKey">>, Credentials)),
+                           security_token = binary_to_list(proplists:get_value(<<"Token">>, Credentials))}}
             end
     end.
 
