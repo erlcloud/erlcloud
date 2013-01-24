@@ -1,8 +1,8 @@
 -module(erlcloud_aws).
 -export([aws_request/5, aws_request/6, aws_request/7, aws_request/8,
          aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
-	 aws_request2/7,
-	 aws_request_xml2/5, aws_request_xml2/7,
+         aws_request2/7,
+         aws_request_xml2/5, aws_request_xml2/7,
          param_list/2, default_config/0, update_config/1, format_timestamp/1]).
 
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -24,10 +24,10 @@ aws_request_xml2(Method, Host, Path, Params, #aws_config{} = Config) ->
     aws_request_xml2(Method, undefined, Host, undefined, Path, Params, Config).
 aws_request_xml2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     case aws_request2(Method, Protocol, Host, Port, Path, Params, Config) of
-	{ok, Body} ->
-	    {ok, element(1, xmerl_scan:string(Body))};
-	{error, Reason} ->
-	    {error, Reason}
+        {ok, Body} ->
+            {ok, element(1, xmerl_scan:string(Body))};
+        {error, Reason} ->
+            {error, Reason}
     end.
 
 aws_request(Method, Host, Path, Params, #aws_config{} = Config) ->
@@ -36,14 +36,14 @@ aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     aws_request(Method, undefined, Host, undefined, Path, Params, AccessKeyID, SecretAccessKey).
 aws_request(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     case aws_request2(Method, Protocol, Host, Port, Path, Params, Config) of
-	{ok, Body} ->
+        {ok, Body} ->
             Body;
-	{error, Reason} ->
+        {error, Reason} ->
             erlang:error({aws_error, Reason})
     end.
 aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey) ->
-    aws_request(Method, Protocol, Host, Port, Path, Params, 
-		#aws_config{access_key_id = AccessKeyID, secret_access_key = SecretAccessKey}).
+    aws_request(Method, Protocol, Host, Port, Path, Params,
+                #aws_config{access_key_id = AccessKeyID, secret_access_key = SecretAccessKey}).
 
 %% aws_request2 returns {ok, Body} or {error, Reason} instead of throwing as aws_request does
 %% This is the preferred pattern for new APIs
@@ -54,10 +54,10 @@ aws_request2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config0
                           {"SignatureVersion", "2"},
                           {"SignatureMethod", "HmacSHA1"},
                           {"AWSAccessKeyId", Config#aws_config.access_key_id}|Params] ++
-			     case Config#aws_config.security_token of
-				 undefined -> [];
-				 Token -> [{"SecurityToken", Token}]
-			     end),
+                             case Config#aws_config.security_token of
+                                 undefined -> [];
+                                 Token -> [{"SecurityToken", Token}]
+                             end),
 
     QueryToSign = erlcloud_http:make_query_string(QParams),
     RequestToSign = [string:to_upper(atom_to_list(Method)), $\n,
@@ -80,19 +80,18 @@ aws_request2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config0
         case Method of
             get ->
                 Req = lists:flatten([URL, $?, Query]),
-                %io:format("Req: >~s<~n", [Req]),
                 httpc:request(Req);
             _ ->
                 httpc:request(Method,
-                             {lists:flatten(URL), [], "application/x-www-form-urlencoded",
-                              list_to_binary(Query)}, [], [])
+                              {lists:flatten(URL), [], "application/x-www-form-urlencoded",
+                               list_to_binary(Query)}, [], [])
         end,
 
     case Response of
         {ok, {{_HTTPVer, 200, _StatusLine}, _Headers, Body}} ->
             {ok, Body};
         {ok, {{_HTTPVer, Status, StatusLine}, _Headers, Body}} ->
-	    {error, {http_error, Status, StatusLine, Body}};
+            {error, {http_error, Status, StatusLine, Body}};
         {error, Error} ->
             {error, {socket_error, Error}}
     end.
@@ -136,7 +135,7 @@ default_config() ->
     end.
 
 -spec update_config(aws_config()) -> aws_config().
-update_config(#aws_config{access_key_id = KeyId} = Config) 
+update_config(#aws_config{access_key_id = KeyId} = Config)
   when is_list(KeyId) ->
     %% In order to support caching of the aws_config, we could store the expiration_time
     %% and check it here. If it is about to expire (within 5 minutes is what boto uses)
@@ -145,12 +144,12 @@ update_config(#aws_config{access_key_id = KeyId} = Config)
 update_config(#aws_config{} = Config) ->
     %% AccessKey is not set. Try to read from role metadata.
     %% First get the list of roles
-    {ok, {{_, 200, _}, _, Body}} = 
-	httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/"),
+    {ok, {{_, 200, _}, _, Body}} =
+        httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/"),
     %% Always use the first role
     Role = string:sub_word(Body, 1, $\n),
-    {ok, {{_, 200, _}, _, Json}} = 
-	httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ Role),
+    {ok, {{_, 200, _}, _, Json}} =
+        httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ Role),
     Credentials = jsx:decode(list_to_binary(Json)),
     Config#aws_config{
       access_key_id = binary_to_list(proplists:get_value(<<"AccessKeyId">>, Credentials)),

@@ -1402,20 +1402,20 @@ describe_tags(Filters) ->
 -spec describe_tags([filter()], aws_config()) -> {ok, [#ec2_tag{}]} | {error, tuple()}.
 describe_tags(Filters, Config) ->
     {Params, _} = 
-	lists:foldl(
-	  fun({Name, Values}, {Acc, Index}) ->
-		  I = integer_to_list(Index),
-		  Key = "Filter."++I++".Name",
-		  Prefix = "Filter."++I++".Value.",
-		  {value_list_params(Values, Prefix) ++ [{Key, filter_name(Name)} | Acc], Index + 1}
-	  end, {[], 1}, Filters),
+        lists:foldl(
+          fun({Name, Values}, {Acc, Index}) ->
+                  I = integer_to_list(Index),
+                  Key = "Filter."++I++".Name",
+                  Prefix = "Filter."++I++".Value.",
+                  {value_list_params(Values, Prefix) ++ [{Key, filter_name(Name)} | Acc], Index + 1}
+          end, {[], 1}, Filters),
 
     case ec2_query2(Config, "DescribeTags", Params, "2012-12-01") of
-	{ok, Doc} ->
-	    Tags = xmerl_xpath:string("/DescribeTagsResponse/tagSet/item", Doc),
-	    {ok, [extract_tag(Tag) || Tag <- Tags]};
-	{error, Reason} ->
-	    {error, Reason}
+        {ok, Doc} ->
+            Tags = xmerl_xpath:string("/DescribeTagsResponse/tagSet/item", Doc),
+            {ok, [extract_tag(Tag) || Tag <- Tags]};
+        {error, Reason} ->
+            {error, Reason}
     end.
 
 -spec filter_name(filter_name()) -> string().
@@ -1427,10 +1427,10 @@ filter_name(value) -> "value".
 -spec value_list_params([string()], string()) -> [{string(), string()}].
 value_list_params(Values, Prefix) ->
     {Params, _} = lists:foldl(fun(Value, {Acc, Index}) ->
-				      I = integer_to_list(Index),
-				      Key = Prefix ++ I,
-				      {[{Key, Value} | Acc], Index + 1}
-			      end, {[], 1}, Values),
+                                      I = integer_to_list(Index),
+                                      Key = Prefix ++ I,
+                                      {[{Key, Value} | Acc], Index + 1}
+                              end, {[], 1}, Values),
     Params.
 
 -spec extract_tag(term()) -> #ec2_tag{}.
