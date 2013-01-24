@@ -1,6 +1,8 @@
 -module(erlcloud_aws).
 -export([aws_request/5, aws_request/6, aws_request/7, aws_request/8,
          aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
+	 aws_request2/7,
+	 aws_request_xml2/5, aws_request_xml2/7,
          param_list/2, default_config/0, update_config/1, format_timestamp/1]).
 
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -18,11 +20,34 @@ aws_request_xml(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretA
     Body = aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey),
     element(1, xmerl_scan:string(Body)).
 
+aws_request_xml2(Method, Host, Path, Params, #aws_config{} = Config) ->
+    aws_request_xml2(Method, undefined, Host, undefined, Path, Params, Config).
+aws_request_xml2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
+    case aws_request2(Method, Protocol, Host, Port, Path, Params, Config) of
+	{ok, Body} ->
+	    {ok, element(1, xmerl_scan:string(Body))};
+	{error, Reason} ->
+	    {error, Reason}
+    end.
+
 aws_request(Method, Host, Path, Params, #aws_config{} = Config) ->
     aws_request(Method, undefined, Host, undefined, Path, Params, Config).
 aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     aws_request(Method, undefined, Host, undefined, Path, Params, AccessKeyID, SecretAccessKey).
-aws_request(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config0) ->
+aws_request(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
+    case aws_request2(Method, Protocol, Host, Port, Path, Params, Config) of
+	{ok, Body} ->
+            Body;
+	{error, Reason} ->
+            erlang:error({aws_error, Reason})
+    end.
+aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey) ->
+    aws_request(Method, Protocol, Host, Port, Path, Params, 
+		#aws_config{access_key_id = AccessKeyID, secret_access_key = SecretAccessKey}).
+
+%% aws_request2 returns {ok, Body} or {error, Reason} instead of throwing as aws_request does
+%% This is the preferred pattern for new APIs
+aws_request2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config0) ->
     Config = update_config(Config0),
     Timestamp = format_timestamp(erlang:universaltime()),
     QParams = lists:sort([{"Timestamp", Timestamp},
@@ -65,15 +90,12 @@ aws_request(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config0)
 
     case Response of
         {ok, {{_HTTPVer, 200, _StatusLine}, _Headers, Body}} ->
-            Body;
-        {ok, {{_HTTPVer, Status, _StatusLine}, _Headers, _Body}} ->
-            erlang:error({aws_error, {http_error, Status, _StatusLine, _Body}});
+            {ok, Body};
+        {ok, {{_HTTPVer, Status, StatusLine}, _Headers, Body}} ->
+	    {error, {http_error, Status, StatusLine, Body}};
         {error, Error} ->
-            erlang:error({aws_error, {socket_error, Error}})
+            {error, {socket_error, Error}}
     end.
-aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey) ->
-    aws_request(Method, Protocol, Host, Port, Path, Params, 
-		#aws_config{access_key_id = AccessKeyID, secret_access_key = SecretAccessKey}).
 
 param_list([], _Key) -> [];
 param_list(Values, Key) when is_tuple(Key) ->
