@@ -13,13 +13,13 @@
 %% @doc date time
 %% @end
 %%------------------------------------------------------------------------------
-%-type datetime() :: string().
+                                                %-type datetime() :: string().
 
 %%------------------------------------------------------------------------------
 %% @doc The unit of the metric.
-%% Valid Values: Seconds | Microseconds | Milliseconds 
-%%  | Bytes | Kilobytes | Megabytes | Gigabytes | Terabytes | Bits | Kilobits | Megabits | Gigabits | Terabits 
-%%  | Percent | Count | Bytes/Second | Kilobytes/Second | Megabytes/Second | Gigabytes/Second | Terabytes/Second 
+%% Valid Values: Seconds | Microseconds | Milliseconds
+%%  | Bytes | Kilobytes | Megabytes | Gigabytes | Terabytes | Bits | Kilobits | Megabits | Gigabits | Terabits
+%%  | Percent | Count | Bytes/Second | Kilobytes/Second | Megabytes/Second | Gigabytes/Second | Terabytes/Second
 %%  | Bits/Second | Kilobits/Second | Megabits/Second | Gigabits/Second | Terabits/Second | Count/Second | None
 %% @end
 %%------------------------------------------------------------------------------
@@ -33,9 +33,9 @@
 %% @end
 %%------------------------------------------------------------------------------
 -record(dimension, {
-    name    ::string(), %% The name of the dimension. Length constraints: Minimum value of 1. Maximum value of 255.
-    value   ::string()  %% The value representing the dimension measurement. Length constraints: Minimum value of 1. Maximum value of 255.
-}).
+          name    ::string(), %% The name of the dimension. Length constraints: Minimum value of 1. Maximum value of 255.
+          value   ::string()  %% The value representing the dimension measurement. Length constraints: Minimum value of 1. Maximum value of 255.
+         }).
 -type dimension() :: #dimension{}.
 
 %%------------------------------------------------------------------------------
@@ -44,11 +44,11 @@
 %% @end
 %%------------------------------------------------------------------------------
 -record(statistic_set, {
-    sample_count    ::non_neg_integer(), %% The number of samples used for the statistic set.
-    maximum         ::float(), %% The maximum value of the sample set.
-    minimum         ::float(), %% The minimum value of the sample set.
-    sum             ::float()  %% The sum of values for the sample set.
-}).
+          sample_count    ::non_neg_integer(), %% The number of samples used for the statistic set.
+          maximum         ::float(), %% The maximum value of the sample set.
+          minimum         ::float(), %% The minimum value of the sample set.
+          sum             ::float()  %% The sum of values for the sample set.
+         }).
 -type statistic_set() :: #statistic_set{}.
 
 %%------------------------------------------------------------------------------
@@ -57,14 +57,13 @@
 %% @end
 %%------------------------------------------------------------------------------
 -record(metric_datum, {
-    metric_name	    ::string(),         %% The name of the metric.
-                                        %% Length constraints: Minimum value of 1. Maximum value of 255.
-    dimensions      ::[dimension()],    %% A list of dimensions associated with the metric.
-                                        %% Length constraints: Minimum of 0 item(s) in the list. Maximum of 10 item(s) in the list.
-    statistic_values::statistic_set(),  %% A set of statistical values describing the metric.
-    timestamp       ::datetime()|string(),%% The time stamp used for the metric. If not specified, the default value is set to the time the metric data was received.
-    unit            ::unit(),           %% The unit of the metric.
-    value           ::float()           %% The value for the metric.
-}).
+          metric_name       ::string(),         %% The name of the metric.
+          %% Length constraints: Minimum value of 1. Maximum value of 255.
+          dimensions      ::[dimension()],    %% A list of dimensions associated with the metric.
+          %% Length constraints: Minimum of 0 item(s) in the list. Maximum of 10 item(s) in the list.
+          statistic_values::statistic_set(),  %% A set of statistical values describing the metric.
+          timestamp       ::datetime()|string(),%% The time stamp used for the metric. If not specified, the default value is set to the time the metric data was received.
+          unit            ::unit(),           %% The unit of the metric.
+          value           ::float()           %% The value for the metric.
+         }).
 -type metric_datum() :: #metric_datum{}.
-

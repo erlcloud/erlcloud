@@ -87,3 +87,9 @@ v0.9.0
 
 v1.0.0
 * Refactored code for better return values (issue #7)
+
+## Notes ##
+
+Indentation in contributions should follow indentation style of
+surrounding text. In general it follows default indentation rules of
+official erlang-mode as provided by OTP team.
