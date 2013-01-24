@@ -100,19 +100,19 @@ param_list([], _Key) -> [];
 param_list(Values, Key) when is_tuple(Key) ->
     Seq = lists:seq(1, size(Key)),
     lists:flatten(
-        [[{lists:append([element(J, Key), ".", integer_to_list(I)]),
-           element(J, Value)} || J <- Seq] ||
-         {I, Value} <- lists:zip(lists:seq(1, length(Values)), Values)]
-    );
+      [[{lists:append([element(J, Key), ".", integer_to_list(I)]),
+         element(J, Value)} || J <- Seq] ||
+          {I, Value} <- lists:zip(lists:seq(1, length(Values)), Values)]
+     );
 param_list([[{_, _}|_]|_] = Values, Key) ->
     lists:flatten(
-        [[{lists:flatten([Key, $., integer_to_list(I), $., SubKey]),
-           value_to_string(Value)} || {SubKey, Value} <- SValues] ||
-         {I, SValues} <- lists:zip(lists:seq(1, length(Values)), Values)]
-    );
+      [[{lists:flatten([Key, $., integer_to_list(I), $., SubKey]),
+         value_to_string(Value)} || {SubKey, Value} <- SValues] ||
+          {I, SValues} <- lists:zip(lists:seq(1, length(Values)), Values)]
+     );
 param_list(Values, Key) ->
     [{lists:flatten([Key, $., integer_to_list(I)]), Value} ||
-     {I, Value} <- lists:zip(lists:seq(1, length(Values)), Values)].
+        {I, Value} <- lists:zip(lists:seq(1, length(Values)), Values)].
 
 value_to_string(Integer) when is_integer(Integer) -> integer_to_list(Integer);
 value_to_string(Atom) when is_atom(Atom) -> atom_to_list(Atom);
@@ -122,8 +122,8 @@ value_to_string({{_Yr, _Mo, _Da}, {_Hr, _Min, _Sec}} = Timestamp) -> format_time
 
 format_timestamp({{Yr, Mo, Da}, {H, M, S}}) ->
     lists:flatten(
-        io_lib:format("~4.10.0b-~2.10.0b-~2.10.0bT~2.10.0b:~2.10.0b:~2.10.0bZ",
-                      [Yr, Mo, Da, H, M, S])).
+      io_lib:format("~4.10.0b-~2.10.0b-~2.10.0bT~2.10.0b:~2.10.0b:~2.10.0bZ",
+                    [Yr, Mo, Da, H, M, S])).
 
 default_config() ->
     case get(aws_config) of
