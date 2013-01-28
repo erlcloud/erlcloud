@@ -7,109 +7,109 @@
 
 %% EC2 API Functions
 -export([
-    %% Amazon DevPay
-    confirm_product_instance/2, confirm_product_instance/3,
+         %% Amazon DevPay
+         confirm_product_instance/2, confirm_product_instance/3,
 
-    %% AMIs
-    create_image/2, create_image/3, create_image/4, create_image/5,
-    deregister_image/1, deregister_image/2,
-    describe_image_attribute/2, describe_image_attribute/3,
-    describe_images/0, describe_images/1, describe_images/2,
-    describe_images/3, describe_images/4,
-    modify_image_attribute/3, modify_image_attribute/4,
+         %% AMIs
+         create_image/2, create_image/3, create_image/4, create_image/5,
+         deregister_image/1, deregister_image/2,
+         describe_image_attribute/2, describe_image_attribute/3,
+         describe_images/0, describe_images/1, describe_images/2,
+         describe_images/3, describe_images/4,
+         modify_image_attribute/3, modify_image_attribute/4,
 
-    %% Availability Zones and Regions
-    describe_availability_zones/0, describe_availability_zones/1,
-    describe_availability_zones/2,
-    describe_regions/0, describe_regions/1, describe_regions/2,
+         %% Availability Zones and Regions
+         describe_availability_zones/0, describe_availability_zones/1,
+         describe_availability_zones/2,
+         describe_regions/0, describe_regions/1, describe_regions/2,
 
-    %% Elastic Block Store
-    attach_volume/3, attach_volume/4,
-    create_snapshot/1, create_snapshot/2, create_snapshot/3,
-    create_volume/3, create_volume/4,
-    delete_snapshot/1, delete_snapshot/2,
-    delete_volume/1, delete_volume/2,
-    describe_snapshot_attribute/2, describe_snapshot_attribute/3,
-    describe_snapshots/0, describe_snapshots/1, describe_snapshots/2,
-    describe_snapshots/3, describe_snapshots/4,
-    describe_volumes/0, describe_volumes/1, describe_volumes/2,
-    detach_volume/1, detach_volume/2,
-    modify_snapshot_attribute/3, modify_snapshot_attribute/4,
-    reset_snapshot_attribute/2, reset_snapshot_attribute/3,
+         %% Elastic Block Store
+         attach_volume/3, attach_volume/4,
+         create_snapshot/1, create_snapshot/2, create_snapshot/3,
+         create_volume/3, create_volume/4,
+         delete_snapshot/1, delete_snapshot/2,
+         delete_volume/1, delete_volume/2,
+         describe_snapshot_attribute/2, describe_snapshot_attribute/3,
+         describe_snapshots/0, describe_snapshots/1, describe_snapshots/2,
+         describe_snapshots/3, describe_snapshots/4,
+         describe_volumes/0, describe_volumes/1, describe_volumes/2,
+         detach_volume/1, detach_volume/2,
+         modify_snapshot_attribute/3, modify_snapshot_attribute/4,
+         reset_snapshot_attribute/2, reset_snapshot_attribute/3,
 
-    %% Elastic IP addresses.
-    allocate_address/0, allocate_address/1,
-    associate_address/2, associate_address/3,
-    describe_addresses/0, describe_addresses/1, describe_addresses/2,
-    disassociate_address/1, disassociate_address/2,
-    release_address/1, release_address/2,
+         %% Elastic IP addresses.
+         allocate_address/0, allocate_address/1,
+         associate_address/2, associate_address/3,
+         describe_addresses/0, describe_addresses/1, describe_addresses/2,
+         disassociate_address/1, disassociate_address/2,
+         release_address/1, release_address/2,
 
-    %% General
-    get_console_output/1, get_console_output/2,
+         %% General
+         get_console_output/1, get_console_output/2,
 
-    %% Images
-    register_image/1, register_image/2,
-    reset_image_attribute/2, reset_image_attribute/3,
+         %% Images
+         register_image/1, register_image/2,
+         reset_image_attribute/2, reset_image_attribute/3,
 
-    %% Instances
-    describe_instance_attribute/2, describe_instance_attribute/3,
-    describe_instances/0, describe_instances/1, describe_instances/2,
-    modify_instance_attribute/3, modify_instance_attribute/4,
-    reboot_instances/1, reboot_instances/2,
-    reset_instance_attribute/2, reset_instance_attribute/3,
-    run_instances/1, run_instances/2,
-    start_instances/1, start_instances/2,
-    stop_instances/1, stop_instances/2, stop_instances/3,
-    terminate_instances/1, terminate_instances/2,
+         %% Instances
+         describe_instance_attribute/2, describe_instance_attribute/3,
+         describe_instances/0, describe_instances/1, describe_instances/2,
+         modify_instance_attribute/3, modify_instance_attribute/4,
+         reboot_instances/1, reboot_instances/2,
+         reset_instance_attribute/2, reset_instance_attribute/3,
+         run_instances/1, run_instances/2,
+         start_instances/1, start_instances/2,
+         stop_instances/1, stop_instances/2, stop_instances/3,
+         terminate_instances/1, terminate_instances/2,
 
-    %% Key Pairs
-    create_key_pair/1, create_key_pair/2,
-    delete_key_pair/1, delete_key_pair/2,
-    describe_key_pairs/0, describe_key_pairs/1, describe_key_pairs/2,
+         %% Key Pairs
+         create_key_pair/1, create_key_pair/2,
+         delete_key_pair/1, delete_key_pair/2,
+         describe_key_pairs/0, describe_key_pairs/1, describe_key_pairs/2,
 
-    %% Monitoring
-    monitor_instances/1, monitor_instances/2,
-    unmonitor_instances/1, unmonitor_instances/2,
+         %% Monitoring
+         monitor_instances/1, monitor_instances/2,
+         unmonitor_instances/1, unmonitor_instances/2,
 
-    %% Reserved Instances
-    describe_reserved_instances/0, describe_reserved_instances/1,
-    describe_reserved_instances/2,
-    describe_reserved_instances_offerings/0,
-    describe_reserved_instances_offerings/1,
-    describe_reserved_instances_offerings/2,
-    purchase_reserved_instances_offering/1,
-    purchase_reserved_instances_offering/2,
+         %% Reserved Instances
+         describe_reserved_instances/0, describe_reserved_instances/1,
+         describe_reserved_instances/2,
+         describe_reserved_instances_offerings/0,
+         describe_reserved_instances_offerings/1,
+         describe_reserved_instances_offerings/2,
+         purchase_reserved_instances_offering/1,
+         purchase_reserved_instances_offering/2,
 
-    %% Security Groups
-    authorize_security_group_ingress/2, authorize_security_group_ingress/3,
-    create_security_group/2, create_security_group/3,
-    delete_security_group/1, delete_security_group/2,
-    describe_security_groups/0, describe_security_groups/1, describe_security_groups/2,
-    revoke_security_group_ingress/2, revoke_security_group_ingress/3,
+         %% Security Groups
+         authorize_security_group_ingress/2, authorize_security_group_ingress/3,
+         create_security_group/2, create_security_group/3,
+         delete_security_group/1, delete_security_group/2,
+         describe_security_groups/0, describe_security_groups/1, describe_security_groups/2,
+         revoke_security_group_ingress/2, revoke_security_group_ingress/3,
 
-    %% Spot Instances
-    cancel_spot_instance_requests/1, cancel_spot_instance_requests/2,
-    create_spot_datafeed_subscription/1, create_spot_datafeed_subscription/2,
-    create_spot_datafeed_subscription/3,
-    delete_spot_datafeed_subscription/0, delete_spot_datafeed_subscription/1,
-    describe_spot_datafeed_subscription/0, describe_spot_datafeed_subscription/1,
-    describe_spot_instance_requests/0, describe_spot_instance_requests/1,
-    describe_spot_instance_requests/2,
-    describe_spot_price_history/0, describe_spot_price_history/1,
-    describe_spot_price_history/2, describe_spot_price_history/3,
-    describe_spot_price_history/5,
-    request_spot_instances/1, request_spot_instances/2,
+         %% Spot Instances
+         cancel_spot_instance_requests/1, cancel_spot_instance_requests/2,
+         create_spot_datafeed_subscription/1, create_spot_datafeed_subscription/2,
+         create_spot_datafeed_subscription/3,
+         delete_spot_datafeed_subscription/0, delete_spot_datafeed_subscription/1,
+         describe_spot_datafeed_subscription/0, describe_spot_datafeed_subscription/1,
+         describe_spot_instance_requests/0, describe_spot_instance_requests/1,
+         describe_spot_instance_requests/2,
+         describe_spot_price_history/0, describe_spot_price_history/1,
+         describe_spot_price_history/2, describe_spot_price_history/3,
+         describe_spot_price_history/5,
+         request_spot_instances/1, request_spot_instances/2,
 
-    %% Windows
-    bundle_instance/6, bundle_instance/7,
-    cancel_bundle_task/1, cancel_bundle_task/2,
-    describe_bundle_tasks/0, describe_bundle_tasks/1, describe_bundle_tasks/2,
-    get_password_data/1, get_password_data/2,
+         %% Windows
+         bundle_instance/6, bundle_instance/7,
+         cancel_bundle_task/1, cancel_bundle_task/2,
+         describe_bundle_tasks/0, describe_bundle_tasks/1, describe_bundle_tasks/2,
+         get_password_data/1, get_password_data/2,
 
-    %% Tagging. Uses different version of AWS API
-    create_tags/2, create_tags/3,
-    describe_tags/0, describe_tags/1, describe_tags/2
-]).
+         %% Tagging. Uses different version of AWS API
+         create_tags/3,
+         describe_tags/0, describe_tags/1, describe_tags/2
+        ]).
 
 -import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
 
@@ -164,24 +164,24 @@ attach_volume(VolumeID, InstanceID, Device) ->
 attach_volume(VolumeID, InstanceID, Device, Config)
   when is_list(VolumeID), is_list(InstanceID), is_list(Device) ->
     Doc = ec2_query(Config, "AttachVolume",
-        [
-            {"InstanceId", InstanceID},
-            {"Device", Device},
-            {"VolumeId", VolumeID}
-        ]),
+                    [
+                     {"InstanceId", InstanceID},
+                     {"Device", Device},
+                     {"VolumeId", VolumeID}
+                    ]),
     extract_volume_status(hd(xmerl_xpath:string("/AttachVolumeResponse", Doc))).
 
 extract_volume_status(Node) ->
     erlcloud_xml:decode(
-        [
-            {volume_id, "volumeId", text},
-            {instance_id, "instanceId", text},
-            {device, "device", text},
-            {status, "status", text},
-            {attach_time, "attachTime", time}
-        ],
-        Node
-    ).
+      [
+       {volume_id, "volumeId", text},
+       {instance_id, "instanceId", text},
+       {device, "device", text},
+       {status, "status", text},
+       {attach_time, "attachTime", time}
+      ],
+      Node
+     ).
 
 -spec(authorize_security_group_ingress/2 :: (string(), ec2_ingress_spec()) -> ok).
 authorize_security_group_ingress(GroupName, IngressSpec) ->
@@ -197,38 +197,38 @@ authorize_security_group_ingress(GroupName, IngressSpec, Config)
 bundle_instance(InstanceID, Bucket, Prefix, AccessKeyID, UploadPolicy,
                 UploadPolicySignature) ->
     bundle_instance(InstanceID, Bucket, Prefix, AccessKeyID, UploadPolicy,
-                UploadPolicySignature, default_config()).
+                    UploadPolicySignature, default_config()).
 
 -spec(bundle_instance/7 :: (string(), string(), string(), string(), string(), string(), aws_config()) -> proplist()).
 bundle_instance(InstanceID, Bucket, Prefix, AccessKeyID, UploadPolicy,
                 UploadPolicySignature, Config) ->
     Doc = ec2_query(Config, "BundleInstance",
-        [{"InstanceId", InstanceID}, {"Storage.S3.Bucket", Bucket},
-         {"Storage.S3.Prefix", Prefix}, {"Storage.S3.AWSAccessKeyId", AccessKeyID},
-         {"Storage.S3.UploadPolicy", UploadPolicy},
-         {"Storage.S3.UploadPolicySignature", UploadPolicySignature}]),
+                    [{"InstanceId", InstanceID}, {"Storage.S3.Bucket", Bucket},
+                     {"Storage.S3.Prefix", Prefix}, {"Storage.S3.AWSAccessKeyId", AccessKeyID},
+                     {"Storage.S3.UploadPolicy", UploadPolicy},
+                     {"Storage.S3.UploadPolicySignature", UploadPolicySignature}]),
     extract_bundle_task(xmerl_xpath:string("/BundleInstanceResponse/bundleInstanceTask", Doc)).
 
 extract_bundle_task([Node]) ->
     [
-        {instance_id, get_text("instanceId", Node)},
-        {bundle_id, get_text("bundleId", Node)},
-        {state, get_text("state", Node)},
-        {start_time, erlcloud_xml:get_time("startTime", Node)},
-        {update_time, erlcloud_xml:get_time("updateTime", Node)},
-        {progress, get_text("progress", Node)},
-        {bucket, get_text("storage/S3/bucket", Node)},
-        {prefix, get_text("storage/S3/prefix", Node)}
+     {instance_id, get_text("instanceId", Node)},
+     {bundle_id, get_text("bundleId", Node)},
+     {state, get_text("state", Node)},
+     {start_time, erlcloud_xml:get_time("startTime", Node)},
+     {update_time, erlcloud_xml:get_time("updateTime", Node)},
+     {progress, get_text("progress", Node)},
+     {bucket, get_text("storage/S3/bucket", Node)},
+     {prefix, get_text("storage/S3/prefix", Node)}
     ].
 
 ingress_spec_params(Spec) ->
     [
-        {"IpProtocol", Spec#ec2_ingress_spec.ip_protocol},
-        {"FromPort", Spec#ec2_ingress_spec.from_port},
-        {"ToPort", Spec#ec2_ingress_spec.to_port},
-        {"SourceSecurityGroupOwnerId", Spec#ec2_ingress_spec.source_security_group_owner_id},
-        {"SourceSecurityGroupName", Spec#ec2_ingress_spec.source_security_group_name},
-        {"CidrIp", Spec#ec2_ingress_spec.cidr_ip}
+     {"IpProtocol", Spec#ec2_ingress_spec.ip_protocol},
+     {"FromPort", Spec#ec2_ingress_spec.from_port},
+     {"ToPort", Spec#ec2_ingress_spec.to_port},
+     {"SourceSecurityGroupOwnerId", Spec#ec2_ingress_spec.source_security_group_owner_id},
+     {"SourceSecurityGroupName", Spec#ec2_ingress_spec.source_security_group_name},
+     {"CidrIp", Spec#ec2_ingress_spec.cidr_ip}
     ].
 
 -spec(cancel_bundle_task/1 :: (string()) -> proplist()).
@@ -251,12 +251,12 @@ cancel_spot_instance_requests(SpotInstanceRequestIDs, Config)
     Doc = ec2_query(Config, "CancelSpotInstanceRequests",
                     erlcloud_aws:param_list(SpotInstanceRequestIDs, "SpotInstanceRequestId")),
     [extract_spot_instance_state(Item) ||
-     Item <- xmerl_xpath:string("/CancelSpotInstanceRequestsResponse/spotInstanceRequestSet/item", Doc)].
+        Item <- xmerl_xpath:string("/CancelSpotInstanceRequestsResponse/spotInstanceRequestSet/item", Doc)].
 
 extract_spot_instance_state(Node) ->
     [
-        {spot_instance_request_id, get_text("spotInstanceRequestId", Node)},
-        {state, get_text("state", Node)}
+     {spot_instance_request_id, get_text("spotInstanceRequestId", Node)},
+     {state, get_text("state", Node)}
     ].
 
 -spec(confirm_product_instance/2 :: (string(), string()) -> proplist()).
@@ -269,8 +269,8 @@ confirm_product_instance(ProductCode, InstanceID, Config)
     Params = [{"ProductCode", ProductCode}, {"InstanceId", InstanceID}],
     Doc = ec2_query(Config, "ConfirmProductInstance", Params),
     [
-        {return, get_bool("/ConfirmProductInstanceResponse/return", Doc)},
-        {owner_id, get_text("/ConfirmProductInstanceResponse/ownerId", Doc)}
+     {return, get_bool("/ConfirmProductInstanceResponse/return", Doc)},
+     {owner_id, get_text("/ConfirmProductInstanceResponse/ownerId", Doc)}
     ].
 
 -spec(create_key_pair/1 :: (string()) -> proplist()).
@@ -281,9 +281,9 @@ create_key_pair(KeyName, Config)
   when is_list(KeyName) ->
     Doc = ec2_query(Config, "CreateKeyPair", [{"KeyName", KeyName}]),
     [
-        {key_name, get_text("/CreateKeyPairResponse/keyName", Doc)},
-        {key_fingerprint, get_text("/CreateKeyPairResponse/keyFingerprint", Doc)},
-        {key_material, get_text("/CreateKeyPairResponse/keyMaterial", Doc)}
+     {key_name, get_text("/CreateKeyPairResponse/keyName", Doc)},
+     {key_fingerprint, get_text("/CreateKeyPairResponse/keyFingerprint", Doc)},
+     {key_material, get_text("/CreateKeyPairResponse/keyMaterial", Doc)}
     ].
 
 -spec(create_image/2 :: (string(), string()) -> proplist()).
@@ -321,7 +321,7 @@ create_security_group(GroupName, GroupDescription) ->
 create_security_group(GroupName, GroupDescription, Config)
   when is_list(GroupName), is_list(GroupDescription) ->
     ec2_simple_query(Config, "CreateSecurityGroup",
-        [{"GroupName", GroupName}, {"GroupDescription", GroupDescription}]).
+                     [{"GroupName", GroupName}, {"GroupDescription", GroupDescription}]).
 
 -spec(create_snapshot/1 :: (string()) -> proplist()).
 create_snapshot(VolumeID) ->
@@ -338,19 +338,19 @@ create_snapshot(VolumeID, Description) ->
 create_snapshot(VolumeID, Description, Config)
   when is_list(VolumeID), is_list(Description) ->
     Doc = ec2_query(Config, "CreateSnapshot",
-        [
-            {"VolumeId", VolumeID},
-            {"Description", Description}
-        ]),
+                    [
+                     {"VolumeId", VolumeID},
+                     {"Description", Description}
+                    ]),
     [
-        {snapshot_id, get_text("/CreateSnapshotResponse/snapshotId", Doc)},
-        {volume_id, get_text("/CreateSnapshotResponse/volumeId", Doc)},
-        {volume_size, get_integer("/CreateSnapshotResponse/volumeSize", Doc)},
-        {status, get_text("/CreateSnapshotResponse/status", Doc)},
-        {start_time, erlcloud_xml:get_time("/CreateSnapshotResponse/attachTime", Doc)},
-        {progress, get_text("/CreateSnapshotResponse/progress", Doc)},
-        {owner_id, get_text("/CreateSnapshotResponse/ownerId", Doc)},
-        {description, get_text("/CreateSnapshotResponse/description", Doc)}
+     {snapshot_id, get_text("/CreateSnapshotResponse/snapshotId", Doc)},
+     {volume_id, get_text("/CreateSnapshotResponse/volumeId", Doc)},
+     {volume_size, get_integer("/CreateSnapshotResponse/volumeSize", Doc)},
+     {status, get_text("/CreateSnapshotResponse/status", Doc)},
+     {start_time, erlcloud_xml:get_time("/CreateSnapshotResponse/attachTime", Doc)},
+     {progress, get_text("/CreateSnapshotResponse/progress", Doc)},
+     {owner_id, get_text("/CreateSnapshotResponse/ownerId", Doc)},
+     {description, get_text("/CreateSnapshotResponse/description", Doc)}
     ].
 
 -spec(create_spot_datafeed_subscription/1 :: (string()) -> proplist()).
@@ -369,18 +369,18 @@ create_spot_datafeed_subscription(Bucket, Prefix, Config)
   when is_list(Bucket),
        is_list(Prefix) orelse Prefix =:= none ->
     Doc = ec2_query(Config, "CreateSpotDatafeedSubscription",
-        [{"Bucket", Bucket}, {Prefix, Prefix}]),
+                    [{"Bucket", Bucket}, {Prefix, Prefix}]),
     extract_spot_datafeed_subscription(xmerl_xpath:string("/CreateSpotDatafeedSubscriptionResponse/spotDatafeedSubscription", Doc)).
 
 extract_spot_datafeed_subscription([Node]) ->
     [
-        {owner_id, get_text("ownerId", Node)},
-        {bucket, get_text("bucket", Node)},
-        {prefix, get_text("prefix", Node)},
-        {state, get_text("state", Node)},
-        {fault, [{code, get_text("fault/code", Node)},
-                 {message, get_text("fault/message", Node)}
-                ]}
+     {owner_id, get_text("ownerId", Node)},
+     {bucket, get_text("bucket", Node)},
+     {prefix, get_text("prefix", Node)},
+     {state, get_text("state", Node)},
+     {fault, [{code, get_text("fault/code", Node)},
+              {message, get_text("fault/message", Node)}
+             ]}
     ].
 
 -spec(create_volume/3 :: (ec2_volume_size(), string(), string()) -> proplist()).
@@ -393,10 +393,10 @@ create_volume(Size, SnapshotID, AvailabilityZone, Config)
        is_list(SnapshotID) orelse SnapshotID =:= none,
        is_list(AvailabilityZone) ->
     Params = [
-        {"Size", integer_to_list(Size)},
-        {"AvailabilityZone", AvailabilityZone},
-        {"SnapshotId", SnapshotID}
-    ],
+              {"Size", integer_to_list(Size)},
+              {"AvailabilityZone", AvailabilityZone},
+              {"SnapshotId", SnapshotID}
+             ],
     Doc = ec2_query(Config, "CreateVolume", Params),
     [{volume_id, get_text("volumeId", Doc)},
      {size, get_integer("size", Doc)},
@@ -513,10 +513,10 @@ describe_image_attribute(ImageID, Attribute) ->
 describe_image_attribute(ImageID, Attribute, Config)
   when is_list(ImageID), is_atom(Attribute) ->
     AttributeName = case Attribute of
-        launch_permission -> "launchPermission";
-        product_codes -> "productCodes";
-        block_device_mapping -> "blockDeviceMapping"
-    end,
+                        launch_permission -> "launchPermission";
+                        product_codes -> "productCodes";
+                        block_device_mapping -> "blockDeviceMapping"
+                    end,
     Doc = ec2_query(Config, "DescribeImageAttribute", [{"ImageId", ImageID}, {"Attribute", AttributeName}]),
     case Attribute of
         launch_permission ->
@@ -568,12 +568,12 @@ describe_images(ImageIDs, Owner, ExecutableBy) ->
 -spec(describe_images/4 :: ([string()], string() | none, string() | none, aws_config()) -> proplist  ()).
 describe_images(ImageIDs, Owner, ExecutableBy, Config)
   when is_list(ImageIDs),
-        is_list(Owner) orelse Owner =:= none,
-        is_list(ExecutableBy) orelse ExecutableBy =:= none ->
+       is_list(Owner) orelse Owner =:= none,
+       is_list(ExecutableBy) orelse ExecutableBy =:= none ->
     Params = [
-        {"ExecutableBy", ExecutableBy}, {"Owner", Owner}|
-        erlcloud_aws:param_list(ImageIDs, "ImageId")
-    ],
+              {"ExecutableBy", ExecutableBy}, {"Owner", Owner}|
+              erlcloud_aws:param_list(ImageIDs, "ImageId")
+             ],
     Doc = ec2_query(Config, "DescribeImages", Params),
     [extract_image(Item) || Item <- xmerl_xpath:string("/DescribeImagesResponse/imagesSet/item", Doc)].
 
@@ -597,12 +597,12 @@ extract_image(Node) ->
 
 extract_block_device_mapping(Node) ->
     #ec2_block_device_mapping{
-        device_name=get_text("deviceName", Node),
-        virtual_name=get_text("virtualName", Node),
-        snapshot_id=get_text("ebs/snapshotId", Node, none),
-        volume_size=list_to_integer(get_text("ebs/volumeSize", Node, "0")),
-        delete_on_termination=get_bool("ebs/deleteOnTermination", Node)
-    }.
+       device_name=get_text("deviceName", Node),
+       virtual_name=get_text("virtualName", Node),
+       snapshot_id=get_text("ebs/snapshotId", Node, none),
+       volume_size=list_to_integer(get_text("ebs/volumeSize", Node, "0")),
+       delete_on_termination=get_bool("ebs/deleteOnTermination", Node)
+      }.
 
 -spec(describe_instance_attribute/2 :: (string(), atom()) -> proplist()).
 describe_instance_attribute(InstanceID, Attribute) ->
@@ -612,19 +612,19 @@ describe_instance_attribute(InstanceID, Attribute) ->
 describe_instance_attribute(InstanceID, Attribute, Config)
   when is_list(InstanceID), is_atom(Attribute) ->
     AttributeName = case Attribute of
-        instance_type -> "instanceType";
-        kernel -> "kernel";
-        ramdisk -> "ramdisk";
-        user_data -> "userData";
-        disable_api_termination -> "disableApiTermination";
-        instance_initiated_shutdown_behavior -> "instanceInitiatedShutdownBehavior";
-        root_device_name -> "rootDeviceName";
-        block_device_mapping -> "blockDeviceMapping"
-    end,
+                        instance_type -> "instanceType";
+                        kernel -> "kernel";
+                        ramdisk -> "ramdisk";
+                        user_data -> "userData";
+                        disable_api_termination -> "disableApiTermination";
+                        instance_initiated_shutdown_behavior -> "instanceInitiatedShutdownBehavior";
+                        root_device_name -> "rootDeviceName";
+                        block_device_mapping -> "blockDeviceMapping"
+                    end,
     Doc = ec2_query(Config, "DescribeInstanceAttribute", [{"InstanceId", InstanceID}, {"Attribute", AttributeName}]),
     case xmerl_xpath:string(attribute_xpath(Attribute, AttributeName), Doc) of
-        % attribute might not be defined
-        [] -> 
+                                                % attribute might not be defined
+        [] ->
             undefined;
         [Node | _] ->
             case Attribute of
@@ -638,9 +638,9 @@ describe_instance_attribute(InstanceID, Attribute, Config)
     end.
 
 attribute_xpath(block_device_mapping, AttributeName) ->
-   "/DescribeInstanceAttributeResponse/" ++ AttributeName;
+    "/DescribeInstanceAttributeResponse/" ++ AttributeName;
 attribute_xpath(_, AttributeName) ->
-   "/DescribeInstanceAttributeResponse/" ++ AttributeName ++ "/value".
+    "/DescribeInstanceAttributeResponse/" ++ AttributeName ++ "/value".
 
 
 -spec(describe_instances/0 :: () -> proplist()).
@@ -671,9 +671,9 @@ extract_instance(Node) ->
     [{instance_id, get_text("instanceId", Node)},
      {image_id, get_text("imageId", Node)},
      {instance_state, [
-       {code, list_to_integer(get_text("instanceState/code", Node, "0"))},
-       {name, get_text("instanceState/name", Node)}
-     ]},
+                       {code, list_to_integer(get_text("instanceState/code", Node, "0"))},
+                       {name, get_text("instanceState/name", Node)}
+                      ]},
      {private_dns_name, get_text("privateDnsName", Node)},
      {dns_name, get_text("dnsName", Node)},
      {reason, get_text("reason", Node, none)},
@@ -701,11 +701,11 @@ extract_instance(Node) ->
 
 extract_block_device_mapping_status(Node) ->
     [
-        {device_name, get_text("deviceName", Node)},
-        {volume_id, get_text("ebs/volumeId", Node)},
-        {status, get_text("ebs/status", Node)},
-        {attach_time, erlcloud_xml:get_time("ebs/attachTime", Node)},
-        {delete_on_termination, get_bool("ebs/deleteOnTermination", Node)}
+     {device_name, get_text("deviceName", Node)},
+     {volume_id, get_text("ebs/volumeId", Node)},
+     {status, get_text("ebs/status", Node)},
+     {attach_time, erlcloud_xml:get_time("ebs/attachTime", Node)},
+     {delete_on_termination, get_bool("ebs/deleteOnTermination", Node)}
     ].
 
 -spec(describe_key_pairs/0 :: () -> proplist()).
@@ -723,10 +723,10 @@ describe_key_pairs(KeyNames, Config)
     Doc = ec2_query(Config, "DescribeKeyPairs", erlcloud_aws:param_list(KeyNames, "KeyName")),
     Items = xmerl_xpath:string("/DescribeKeyPairsResponse/keySet/item", Doc),
     [
-        [
-            {key_name, get_text("keyName", Item)},
-            {key_fingerprint, get_text("keyFingerprint", Item)}
-        ] || Item <- Items
+     [
+      {key_name, get_text("keyName", Item)},
+      {key_fingerprint, get_text("keyFingerprint", Item)}
+     ] || Item <- Items
     ].
 
 -spec(describe_regions/0 :: () -> proplist()).
@@ -766,16 +766,16 @@ describe_reserved_instances(ReservedInstanceIDs, Config)
 
 extract_reserved_instance(Node) ->
     [
-        {reserved_instance_id, get_text("reservedInstanceId", Node)},
-        {instance_type, get_text("instanceType", Node)},
-        {availability_zone, get_text("availabilityZone", Node)},
-        {start, erlcloud_xml:get_time("start", Node)},
-        {duration, get_integer("duration", Node)},
-        {fixed_price, get_text("fixedPrice", Node)},
-        {usage_price, get_text("usagePrice", Node)},
-        {instance_count, get_integer("instanceCount", Node)},
-        {product_description, get_text("productDescription", Node)},
-        {state, get_text("state", Node)}
+     {reserved_instance_id, get_text("reservedInstanceId", Node)},
+     {instance_type, get_text("instanceType", Node)},
+     {availability_zone, get_text("availabilityZone", Node)},
+     {start, erlcloud_xml:get_time("start", Node)},
+     {duration, get_integer("duration", Node)},
+     {fixed_price, get_text("fixedPrice", Node)},
+     {usage_price, get_text("usagePrice", Node)},
+     {instance_count, get_integer("instanceCount", Node)},
+     {product_description, get_text("productDescription", Node)},
+     {state, get_text("state", Node)}
     ].
 
 -spec(describe_reserved_instances_offerings/0 :: () -> proplist()).
@@ -795,21 +795,21 @@ describe_reserved_instances_offerings(Selector, Config)
     AvailabilityZones = [Value || {Key, Value} <- Selector, Key =:= availability_zone],
     Descs = [Value || {Key, Value} <- Selector, Key =:= product_description],
     Params = erlcloud_aws:param_list(InstanceTypes, "InstanceType") ++
-             erlcloud_aws:param_list(AvailabilityZones, "AvailabilityZone") ++
-             erlcloud_aws:param_list(Descs, "ProductDescription"),
+        erlcloud_aws:param_list(AvailabilityZones, "AvailabilityZone") ++
+        erlcloud_aws:param_list(Descs, "ProductDescription"),
     Doc = ec2_query(Config, "DescribeReservedInstancesOfferings", Params),
     [extract_reserved_instances_offering(Node) ||
-     Node <- xmerl_xpath:string("/DescribeReservedInstancesOfferingsResponse/reservedInstancesOfferingsSet/item", Doc)].
+        Node <- xmerl_xpath:string("/DescribeReservedInstancesOfferingsResponse/reservedInstancesOfferingsSet/item", Doc)].
 
 extract_reserved_instances_offering(Node) ->
     [
-        {reserved_instances_offering_id, get_text("reservedInstancesOfferingId", Node)},
-        {instance_type, get_text("instanceType", Node)},
-        {availability_zone, get_text("availabilityZone", Node)},
-        {duration, get_integer("duration", Node)},
-        {fixed_price, get_text("fixedPrice", Node)},
-        {usage_price, get_text("usagePrice", Node)},
-        {product_description, get_text("productDescription", Node)}
+     {reserved_instances_offering_id, get_text("reservedInstancesOfferingId", Node)},
+     {instance_type, get_text("instanceType", Node)},
+     {availability_zone, get_text("availabilityZone", Node)},
+     {duration, get_integer("duration", Node)},
+     {fixed_price, get_text("fixedPrice", Node)},
+     {usage_price, get_text("usagePrice", Node)},
+     {product_description, get_text("productDescription", Node)}
     ].
 
 -spec(describe_security_groups/0 :: () -> [proplist()]).
@@ -828,24 +828,24 @@ describe_security_groups(GroupNames, Config)
   when is_list(GroupNames) ->
     Doc = ec2_query(Config, "DescribeSecurityGroups", erlcloud_aws:param_list(GroupNames, "GroupName")),
     [extract_security_group(Node) ||
-     Node <- xmerl_xpath:string("/DescribeSecurityGroupsResponse/securityGroupInfo/item", Doc)].
+        Node <- xmerl_xpath:string("/DescribeSecurityGroupsResponse/securityGroupInfo/item", Doc)].
 
 extract_security_group(Node) ->
     [
-        {owner_id, get_text("ownerId", Node)},
-        {group_name, get_text("groupName", Node)},
-        {group_description, get_text("groupDescription", Node)},
-        {ip_permissions,
-         [extract_ip_permissions(Item) || Item <- xmerl_xpath:string("ipPermissions/item", Node)]}
+     {owner_id, get_text("ownerId", Node)},
+     {group_name, get_text("groupName", Node)},
+     {group_description, get_text("groupDescription", Node)},
+     {ip_permissions,
+      [extract_ip_permissions(Item) || Item <- xmerl_xpath:string("ipPermissions/item", Node)]}
     ].
 
 extract_ip_permissions(Node) ->
     [
-        {ip_protocol, list_to_existing_atom(get_text("ipProtocol", Node))},
-        {from_port, get_integer("fromPort", Node)},
-        {to_port, get_integer("toPort", Node)},
-        {users, get_list("groups/item/userId", Node)},
-        {ip_ranges, get_list("ipRanges/item/cidrIp", Node)}
+     {ip_protocol, list_to_existing_atom(get_text("ipProtocol", Node))},
+     {from_port, get_integer("fromPort", Node)},
+     {to_port, get_integer("toPort", Node)},
+     {users, get_list("groups/item/userId", Node)},
+     {ip_ranges, get_list("ipRanges/item/cidrIp", Node)}
     ].
 
 -spec(describe_snapshot_attribute/2 :: (string(), atom()) -> proplist()).
@@ -932,25 +932,25 @@ describe_spot_instance_requests(SpotInstanceRequestIDs, Config)
     Doc = ec2_query(Config, "DescribeSpotInstanceRequests",
                     erlcloud_aws:param_list(SpotInstanceRequestIDs, "SpotInstanceRequestId")),
     [extract_spot_instance_request(Item) ||
-     Item <- xmerl_xpath:string("/DescribeSpotInstanceRequestsResponse/spotInstanceRequestSet/item", Doc)].
+        Item <- xmerl_xpath:string("/DescribeSpotInstanceRequestsResponse/spotInstanceRequestSet/item", Doc)].
 
 extract_spot_instance_request(Node) ->
     [
-        {spot_instance_request_id, get_text("spotInstanceRequestId", Node)},
-        {spot_price, get_text("spotPrice", Node)},
-        {type, extract_spot_instance_request_type(get_text("type", Node))},
-        {state, get_text("state", Node)},
-        {fault, [{code, get_text("fault/code", Node)},
-                 {message, get_text("fault/message", Node)}
-                ]},
-        {valid_from, erlcloud_xml:get_time("validFrom", Node)},
-        {valid_until, erlcloud_xml:get_time("validUntil", Node)},
-        {launch_group, get_text("launchGroup", Node, none)},
-        {availability_zone_group, get_text("availabilityZoneGroup", Node, none)},
-        {create_time, erlcloud_xml:get_time("createTime", Node)},
-        {product_description, get_text("productDescription", Node)},
-        {launch_specification, extract_launch_specification(hd(xmerl_xpath:string("launchSpecification", Node)))},
-        {instance_id, get_text("instanceId", Node, none)}
+     {spot_instance_request_id, get_text("spotInstanceRequestId", Node)},
+     {spot_price, get_text("spotPrice", Node)},
+     {type, extract_spot_instance_request_type(get_text("type", Node))},
+     {state, get_text("state", Node)},
+     {fault, [{code, get_text("fault/code", Node)},
+              {message, get_text("fault/message", Node)}
+             ]},
+     {valid_from, erlcloud_xml:get_time("validFrom", Node)},
+     {valid_until, erlcloud_xml:get_time("validUntil", Node)},
+     {launch_group, get_text("launchGroup", Node, none)},
+     {availability_zone_group, get_text("availabilityZoneGroup", Node, none)},
+     {create_time, erlcloud_xml:get_time("createTime", Node)},
+     {product_description, get_text("productDescription", Node)},
+     {launch_specification, extract_launch_specification(hd(xmerl_xpath:string("launchSpecification", Node)))},
+     {instance_id, get_text("instanceId", Node, none)}
     ].
 
 extract_spot_instance_request_type("one-time") -> one_time;
@@ -958,15 +958,15 @@ extract_spot_instance_request_type("persistent") -> persistent.
 
 extract_launch_specification(Node) ->
     [
-        {image_id, get_text("imageId", Node)},
-        {key_name, get_text("keyName", Node, none)},
-        {group_set, get_list("groupSet/item/groupId", Node)},
-        {user_data, base64:decode(get_text("userData/data", Node))},
-        {instance_type, get_text("instanceType", Node)},
-        {availability_zone, get_text("placement/availabilityZone", Node)},
-        {kernel_id, get_text("kernelId", Node)},
-        {ramdisk_id, get_text("ramdiskId", Node)},
-        {subnet_id, get_text("subnetId", Node)}
+     {image_id, get_text("imageId", Node)},
+     {key_name, get_text("keyName", Node, none)},
+     {group_set, get_list("groupSet/item/groupId", Node)},
+     {user_data, base64:decode(get_text("userData/data", Node))},
+     {instance_type, get_text("instanceType", Node)},
+     {availability_zone, get_text("placement/availabilityZone", Node)},
+     {kernel_id, get_text("kernelId", Node)},
+     {ramdisk_id, get_text("ramdiskId", Node)},
+     {subnet_id, get_text("subnetId", Node)}
     ].
 
 -spec(describe_spot_price_history/0 :: () -> proplist()).
@@ -1008,18 +1008,18 @@ describe_spot_price_history(StartTime, EndTime, InstanceTypes,
   when is_list(InstanceTypes),
        is_list(ProductDescription) orelse ProductDescription =:= none ->
     Doc = ec2_query(Config, "DescribeSpotPriceHistory",
-        [{"StartTime", StartTime}, {"EndTime", EndTime},
-         {"ProductDescription", ProductDescription}|
-         erlcloud_aws:param_list(InstanceTypes, "InstanceType")]),
+                    [{"StartTime", StartTime}, {"EndTime", EndTime},
+                     {"ProductDescription", ProductDescription}|
+                     erlcloud_aws:param_list(InstanceTypes, "InstanceType")]),
     [extract_spot_price_history(Item) ||
-     Item <- xmerl_xpath:string("/DescribeSpotPriceHistoryResponse/spotPriceHistorySet/item", Doc)].
+        Item <- xmerl_xpath:string("/DescribeSpotPriceHistoryResponse/spotPriceHistorySet/item", Doc)].
 
 extract_spot_price_history(Node) ->
     [
-        {instance_type, get_text("instanceType", Node)},
-        {product_description, get_text("productDescription", Node)},
-        {spot_price, get_text("spotPrice", Node)},
-        {timestamp, erlcloud_xml:get_time("timestamp", Node)}
+     {instance_type, get_text("instanceType", Node)},
+     {product_description, get_text("productDescription", Node)},
+     {spot_price, get_text("spotPrice", Node)},
+     {timestamp, erlcloud_xml:get_time("timestamp", Node)}
     ].
 
 -spec(describe_volumes/0 :: () -> proplist()).
@@ -1052,7 +1052,7 @@ extract_volume(Node) ->
         {status, get_text("status", Item)},
         {attach_time, erlcloud_xml:get_time("attachTime", Item)}
        ] ||
-       Item <- xmerl_xpath:string("attachmentSet/item", Node)
+          Item <- xmerl_xpath:string("attachmentSet/item", Node)
       ]
      }
     ].
@@ -1107,15 +1107,15 @@ modify_image_attribute(ImageID, Attribute, Value) ->
 -spec(modify_image_attribute/4 :: (string(), atom(), term(), aws_config()) -> ok).
 modify_image_attribute(ImageID, Attribute, Value, Config) ->
     {AttributeName, OperationType, Values} = case {Attribute, Value} of
-        {launch_permission, {Operation, Permissions}}
-          when Operation =:= add orelse Operation =:= remove,
-               is_list(Permissions) ->
-            {"launchPermission", Operation, permission_list(Permissions)};
-        {description, Desc} ->
-            {"description", none, [{"Description", Desc}]};
-        {product_codes, ProductCodes} ->
-            {"productCodes", none, erlcloud_aws:param_list(ProductCodes, "ProductCode")}
-    end,
+                                                 {launch_permission, {Operation, Permissions}}
+                                                   when Operation =:= add orelse Operation =:= remove,
+                                                        is_list(Permissions) ->
+                                                     {"launchPermission", Operation, permission_list(Permissions)};
+                                                 {description, Desc} ->
+                                                     {"description", none, [{"Description", Desc}]};
+                                                 {product_codes, ProductCodes} ->
+                                                     {"productCodes", none, erlcloud_aws:param_list(ProductCodes, "ProductCode")}
+                                             end,
 
     Params = [{"ImageId", ImageID},
               {"Attribute", AttributeName},
@@ -1131,19 +1131,19 @@ modify_instance_attribute(InstanceID, Attribute, Value) ->
 -spec(modify_instance_attribute/4 :: (string(), atom(), term(), aws_config()) -> ok).
 modify_instance_attribute(InstanceID, Attribute, Value, Config) ->
     {AttributeName, AParams} = case Attribute of
-        instance_type when is_list(Value) -> {"instanceType", [{"Value", Value}]};
-        kernel when is_list(Value) -> {"kernel", [{"Value", Value}]};
-        ramdisk when is_list(Value) -> {"ramdisk", [{"Value", Value}]};
-        user_data when is_list(Value); is_binary(Value) -> {"userData", [{"Value", base64:encode(Value)}]};
-        disable_api_termination when is_boolean(Value) ->
-            {"disableApiTermination", [{"Value", Value}]};
-        instance_initiated_shutdown_behavior
-          when Value =:= stop; Value =:= terminate ->
-            {"instanceInitiatedShutdownBehavior", [{"Value", Value}]};
-        root_device_name when is_list(Value) -> {"rootDeviceName", Value};
-        block_device_mapping when is_list(Value) ->
-            {"blockDeviceMapping", block_device_params(Value)}
-    end,
+                                   instance_type when is_list(Value) -> {"instanceType", [{"Value", Value}]};
+                                   kernel when is_list(Value) -> {"kernel", [{"Value", Value}]};
+                                   ramdisk when is_list(Value) -> {"ramdisk", [{"Value", Value}]};
+                                   user_data when is_list(Value); is_binary(Value) -> {"userData", [{"Value", base64:encode(Value)}]};
+                                   disable_api_termination when is_boolean(Value) ->
+                                       {"disableApiTermination", [{"Value", Value}]};
+                                   instance_initiated_shutdown_behavior
+                                     when Value =:= stop; Value =:= terminate ->
+                                       {"instanceInitiatedShutdownBehavior", [{"Value", Value}]};
+                                   root_device_name when is_list(Value) -> {"rootDeviceName", Value};
+                                   block_device_mapping when is_list(Value) ->
+                                       {"blockDeviceMapping", block_device_params(Value)}
+                               end,
     Params = [{"InstanceID", InstanceID}, {"Attribute", AttributeName}|AParams],
     ec2_simple_query(Config, "ModifyInstanceAttribute", Params).
 
@@ -1179,8 +1179,8 @@ monitor_instances(InstanceIDs, Config) ->
 
 extract_monitor_state(Node) ->
     [
-        {instance_id, get_text("instanceId", Node)},
-        {monitoring_state, get_text("monitoring/state", Node)}
+     {instance_id, get_text("instanceId", Node)},
+     {monitoring_state, get_text("monitoring/state", Node)}
     ].
 
 -spec(purchase_reserved_instances_offering/1 :: ([string() | {string(), pos_integer()}]) -> [string()]).
@@ -1191,16 +1191,16 @@ purchase_reserved_instances_offering(ReservedInstancesOfferings) ->
 purchase_reserved_instances_offering(ReservedInstancesOfferings, Config)
   when is_list(ReservedInstancesOfferings), length(ReservedInstancesOfferings) > 0 ->
     Params = lists:flatten(
-        [case Offering of
-            {OfferingID, Count} ->
-                [
-                    {"ReservedInstancesOfferingId." ++ integer_to_list(I), OfferingID},
-                    {"InstanceCount." ++ integer_to_list(I), Count}
-                ];
-            OfferingID when is_list(OfferingID) ->
-                [{"ReservedInstancesOfferingId." ++ integer_to_list(I), OfferingID}]
-         end || {I, Offering} <- lists:zip(lists:seq(0, length(ReservedInstancesOfferings) - 1),
-                                           ReservedInstancesOfferings)]),
+               [case Offering of
+                    {OfferingID, Count} ->
+                        [
+                         {"ReservedInstancesOfferingId." ++ integer_to_list(I), OfferingID},
+                         {"InstanceCount." ++ integer_to_list(I), Count}
+                        ];
+                    OfferingID when is_list(OfferingID) ->
+                        [{"ReservedInstancesOfferingId." ++ integer_to_list(I), OfferingID}]
+                end || {I, Offering} <- lists:zip(lists:seq(0, length(ReservedInstancesOfferings) - 1),
+                                                  ReservedInstancesOfferings)]),
     Doc = ec2_query(Config, "PurchaseReservedInstancesOffering", Params),
     get_list("/PurchaseReservedInstancesOfferingResponse/reservedInstancesId", Doc).
 
@@ -1218,14 +1218,14 @@ register_image(ImageSpec) -> register_image(ImageSpec, default_config()).
 -spec(register_image/2 :: (ec2_image_spec(), aws_config()) -> proplist()).
 register_image(ImageSpec, Config) ->
     Params = [
-        {"ImageLocation", ImageSpec#ec2_image_spec.image_location},
-        {"Name", ImageSpec#ec2_image_spec.name},
-        {"Description", ImageSpec#ec2_image_spec.description},
-        {"Architecture", ImageSpec#ec2_image_spec.architecture},
-        {"KernelId", ImageSpec#ec2_image_spec.kernel_id},
-        {"RamdiskId", ImageSpec#ec2_image_spec.ramdisk_id},
-        {"RootDeviceName", ImageSpec#ec2_image_spec.root_device_name}
-    ],
+              {"ImageLocation", ImageSpec#ec2_image_spec.image_location},
+              {"Name", ImageSpec#ec2_image_spec.name},
+              {"Description", ImageSpec#ec2_image_spec.description},
+              {"Architecture", ImageSpec#ec2_image_spec.architecture},
+              {"KernelId", ImageSpec#ec2_image_spec.kernel_id},
+              {"RamdiskId", ImageSpec#ec2_image_spec.ramdisk_id},
+              {"RootDeviceName", ImageSpec#ec2_image_spec.root_device_name}
+             ],
     BDParams = block_device_params(ImageSpec#ec2_image_spec.block_device_mapping),
     Doc = ec2_query(Config, "RegisterImage", Params ++ BDParams),
     [{image_id, get_text("/CreateImageResponse/imageId", Doc)}].
@@ -1241,35 +1241,35 @@ request_spot_instances(Request) ->
 request_spot_instances(Request, Config) ->
     InstanceSpec = Request#ec2_spot_instance_request.launch_specification,
     Params = [
-        {"SpotPrice", Request#ec2_spot_instance_request.spot_price},
-        {"InstanceCount", Request#ec2_spot_instance_request.instance_count},
-        {"Type", case Request#ec2_spot_instance_request.type of one_time -> "one-time" ; persistent -> "persistent" end},
-        {"ValidFrom", Request#ec2_spot_instance_request.valid_from},
-        {"ValidUntil", Request#ec2_spot_instance_request.valid_until},
-        {"LaunchGroup", Request#ec2_spot_instance_request.launch_group},
-        {"AvailabilityZoneGroup", Request#ec2_spot_instance_request.availability_zone_group},
-        {"LaunchSpecification.ImageId", InstanceSpec#ec2_instance_spec.image_id},
-        {"LaunchSpecification.KeyName", InstanceSpec#ec2_instance_spec.key_name},
-        {"LaunchSpecification.UserData",
-         case InstanceSpec#ec2_instance_spec.user_data of
-             undefined -> undefined;
-             Data -> base64:encode(Data)
-         end},
-        {"LaunchSpecification.InstanceType", InstanceSpec#ec2_instance_spec.instance_type},
-        {"LaunchSpecification.KernelId", InstanceSpec#ec2_instance_spec.kernel_id},
-        {"LaunchSpecification.RamdiskId", InstanceSpec#ec2_instance_spec.ramdisk_id},
-        {"LaunchSpecification.Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
-        {"LaunchSpecification.SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
-        {"LaunchSpecification.Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone}
-    ],
+              {"SpotPrice", Request#ec2_spot_instance_request.spot_price},
+              {"InstanceCount", Request#ec2_spot_instance_request.instance_count},
+              {"Type", case Request#ec2_spot_instance_request.type of one_time -> "one-time" ; persistent -> "persistent" end},
+              {"ValidFrom", Request#ec2_spot_instance_request.valid_from},
+              {"ValidUntil", Request#ec2_spot_instance_request.valid_until},
+              {"LaunchGroup", Request#ec2_spot_instance_request.launch_group},
+              {"AvailabilityZoneGroup", Request#ec2_spot_instance_request.availability_zone_group},
+              {"LaunchSpecification.ImageId", InstanceSpec#ec2_instance_spec.image_id},
+              {"LaunchSpecification.KeyName", InstanceSpec#ec2_instance_spec.key_name},
+              {"LaunchSpecification.UserData",
+               case InstanceSpec#ec2_instance_spec.user_data of
+                   undefined -> undefined;
+                   Data -> base64:encode(Data)
+               end},
+              {"LaunchSpecification.InstanceType", InstanceSpec#ec2_instance_spec.instance_type},
+              {"LaunchSpecification.KernelId", InstanceSpec#ec2_instance_spec.kernel_id},
+              {"LaunchSpecification.RamdiskId", InstanceSpec#ec2_instance_spec.ramdisk_id},
+              {"LaunchSpecification.Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
+              {"LaunchSpecification.SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
+              {"LaunchSpecification.Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone}
+             ],
     GParams = erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, "LaunchSpecification.SecurityGroup"),
     BDParams = [
-        {"LaunchSpecification." ++ Key, Value} ||
-        {Key, Value} <- block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping)],
+                {"LaunchSpecification." ++ Key, Value} ||
+                   {Key, Value} <- block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping)],
 
     Doc = ec2_query(Config, "RequestSpotInstances", Params ++ BDParams ++ GParams),
     [extract_spot_instance_request(Item) ||
-     Item <- xmerl_xpath:string("/RequestSpotInstancesResponse/spotInstanceRequestSet/item", Doc)].
+        Item <- xmerl_xpath:string("/RequestSpotInstancesResponse/spotInstanceRequestSet/item", Doc)].
 
 -spec(release_address/2 :: (string(), aws_config()) -> ok).
 release_address(PublicIP, Config)
@@ -1283,7 +1283,7 @@ reset_image_attribute(ImageID, Attribute) ->
 -spec(reset_image_attribute/3 :: (string(), atom(), aws_config()) -> ok).
 reset_image_attribute(ImageID, launch_permission, Config) ->
     ec2_simple_query(Config, "ResetImageAttribute",
-        [{"ImageId", ImageID}, {"Attribute", "launchPermission"}]).
+                     [{"ImageId", ImageID}, {"Attribute", "launchPermission"}]).
 
 -spec(reset_instance_attribute/2 :: (string(), atom()) -> ok).
 reset_instance_attribute(InstanceID, Attribute) ->
@@ -1294,7 +1294,7 @@ reset_instance_attribute(InstanceID, Attribute, Config)
   when is_list(InstanceID),
        Attribute =:= kernel orelse Attribute =:= ramdisk ->
     ec2_simple_query(Config, "ResetInstanceAttribute",
-        [{"InstanceId", InstanceID}, {"Attribute", Attribute}]).
+                     [{"InstanceId", InstanceID}, {"Attribute", Attribute}]).
 
 -spec(reset_snapshot_attribute/2 :: (string(), atom()) -> ok).
 reset_snapshot_attribute(SnapshotID, Attribute) ->
@@ -1304,7 +1304,7 @@ reset_snapshot_attribute(SnapshotID, Attribute) ->
 reset_snapshot_attribute(SnapshotID, create_volume_permission, Config)
   when is_list(SnapshotID) ->
     ec2_simple_query(Config, "ResetSnapshotAttribute",
-        [{"snapshotId", SnapshotID}, {"Attribute", "createVolumePermission"}]).
+                     [{"snapshotId", SnapshotID}, {"Attribute", "createVolumePermission"}]).
 
 -spec(revoke_security_group_ingress/2 :: (string(), ec2_ingress_spec()) -> ok).
 revoke_security_group_ingress(GroupName, IngressSpec) ->
@@ -1323,72 +1323,100 @@ run_instances(InstanceSpec) -> run_instances(InstanceSpec, default_config()).
 run_instances(InstanceSpec, Config)
   when is_record(InstanceSpec, ec2_instance_spec) ->
     Params = [
-        {"ImageId", InstanceSpec#ec2_instance_spec.image_id},
-        {"MaxCount", InstanceSpec#ec2_instance_spec.max_count},
-        {"MinCount", InstanceSpec#ec2_instance_spec.min_count},
-        {"KeyName", InstanceSpec#ec2_instance_spec.key_name},
-        {"UserData",
-         case InstanceSpec#ec2_instance_spec.user_data of
-             undefined -> undefined;
-             Data -> base64:encode(Data)
-         end},
-        {"InstanceType", InstanceSpec#ec2_instance_spec.instance_type},
-        {"KernelId", InstanceSpec#ec2_instance_spec.kernel_id},
-        {"RamdiskId", InstanceSpec#ec2_instance_spec.ramdisk_id},
-        {"Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
-        {"SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
-        {"Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone},
-        {"DisableApiTermination", InstanceSpec#ec2_instance_spec.disable_api_termination},
-        {"InstanceInitiatedShutdownBehavior", InstanceSpec#ec2_instance_spec.instance_initiated_shutdown_behavior}
-    ],
+              {"ImageId", InstanceSpec#ec2_instance_spec.image_id},
+              {"MaxCount", InstanceSpec#ec2_instance_spec.max_count},
+              {"MinCount", InstanceSpec#ec2_instance_spec.min_count},
+              {"KeyName", InstanceSpec#ec2_instance_spec.key_name},
+              {"UserData",
+               case InstanceSpec#ec2_instance_spec.user_data of
+                   undefined -> undefined;
+                   Data -> base64:encode(Data)
+               end},
+              {"InstanceType", InstanceSpec#ec2_instance_spec.instance_type},
+              {"KernelId", InstanceSpec#ec2_instance_spec.kernel_id},
+              {"RamdiskId", InstanceSpec#ec2_instance_spec.ramdisk_id},
+              {"Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
+              {"SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
+              {"Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone},
+              {"DisableApiTermination", InstanceSpec#ec2_instance_spec.disable_api_termination},
+              {"InstanceInitiatedShutdownBehavior", InstanceSpec#ec2_instance_spec.instance_initiated_shutdown_behavior}
+             ],
     GParams = erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, "SecurityGroup"),
     BDParams = block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping),
     Doc = ec2_query(Config, "RunInstances", Params ++ GParams ++ BDParams),
     extract_reservation(hd(xmerl_xpath:string("/RunInstancesResponse", Doc))).
 
-% -spec(run_instances/2 :: ([string()], TagsList::[{key,value}], aws_config()) -> proplist()).
-create_tags(ResourceIds, TagsList) ->
-   create_tags(ResourceIds, TagsList, default_config()).
+                                                % -spec(run_instances/2 :: ([string()], TagsList::[{key,value}], aws_config()) -> proplist()).
 create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
-   {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
-                                   I = integer_to_list(Index),
-                                   TKKey = "Tag."++I++".Key",
-                                   TVKey = "Tag."++I++".Value",
-                                   {[{TKKey, Key}, {TVKey, Value} | Acc], Index+1}
-                       end, {[], 1}, TagsList),
+    {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
+                                    I = integer_to_list(Index),
+                                    TKKey = "Tag."++I++".Key",
+                                    TVKey = "Tag."++I++".Value",
+                                    {[{TKKey, Key}, {TVKey, Value} | Acc], Index+1}
+                            end, {[], 1}, TagsList),
     {Resources, _} = lists:foldl(fun(ResourceId, {Acc, Index}) ->
-                                   I = integer_to_list(Index),
-                                   TKey = "ResourceId."++I,
-                                   {[{TKey, ResourceId} | Acc], Index+1}
-                       end, {[], 1}, ResourceIds),
+                                         I = integer_to_list(Index),
+                                         TKey = "ResourceId."++I,
+                                         {[{TKey, ResourceId} | Acc], Index+1}
+                                 end, {[], 1}, ResourceIds),
     ec2_query(Config, "CreateTags", Resources ++ Tags, "2010-08-31").
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% @see describe_tags/2.
+%% @end
+%%------------------------------------------------------------------------------
+%% describe_tags follows new API patterns. It returning {ok, _} or {error, _}
+%% and by using records instead of property lists.
 -type filter_name() :: key | resource_id | resource_type | value.
 -type filter() :: {filter_name(), [string()]}.
--spec describe_tags() -> [proplist()].
+-spec describe_tags() -> {ok, [#ec2_tag{}]} | {error, tuple()}.
 describe_tags() ->
     describe_tags([], default_config()).
 
--spec describe_tags([filter()] | aws_config()) -> [proplist()].
+%%------------------------------------------------------------------------------
+%% @doc
+%% @see describe_tags/2.
+%% @end
+%%------------------------------------------------------------------------------
+-spec describe_tags([filter()] | aws_config()) -> {ok, [#ec2_tag{}]} | {error, tuple()}.
 describe_tags(#aws_config{} = Config) ->
     describe_tags([], Config);
 describe_tags(Filters) ->
     describe_tags(Filters, default_config()).
 
--spec describe_tags([filter()], aws_config()) -> [proplist()].
+%%------------------------------------------------------------------------------
+%% @doc EC2 API:
+%% [http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-query-DescribeTags.html]
+%%
+%% ===Example===
+%% Get "Tag1" and "Tag2" for a specific instance
+%%
+%% <code>
+%% {ok, Tags} = erlcloud_ec2:describe_tags([{resource_id, [InstanceId]}, {key, ["Tag1", "Tag2"]}], Config), <br/>
+%% Tag1 = lists:keyfind("Tag1", #ec2_tag.key, Tags), <br/>
+%% Tag1Value = Tag1#ec2_tag.value,
+%% </code>
+%% @end
+%%------------------------------------------------------------------------------
+-spec describe_tags([filter()], aws_config()) -> {ok, [#ec2_tag{}]} | {error, tuple()}.
 describe_tags(Filters, Config) ->
-    {Params, _} = 
-    lists:foldl(
-      fun({Name, Values}, {Acc, Index}) ->
-          I = integer_to_list(Index),
-          Key = "Filter."++I++".Name",
-          Prefix = "Filter."++I++".Value.",
-          {value_list_params(Values, Prefix) ++ [{Key, filter_name(Name)} | Acc], Index + 1}
-      end, {[], 1}, Filters),
+    {Params, _} =
+        lists:foldl(
+          fun({Name, Values}, {Acc, Index}) ->
+                  I = integer_to_list(Index),
+                  Key = "Filter."++I++".Name",
+                  Prefix = "Filter."++I++".Value.",
+                  {value_list_params(Values, Prefix) ++ [{Key, filter_name(Name)} | Acc], Index + 1}
+          end, {[], 1}, Filters),
 
-    Doc = ec2_query(Config, "DescribeTags", Params, "2012-12-01"),
-    Tags = xmerl_xpath:string("/DescribeTagsResponse/tagSet/item", Doc),
-    [extract_tag(Tag) || Tag <- Tags].
+    case ec2_query2(Config, "DescribeTags", Params, "2012-12-01") of
+        {ok, Doc} ->
+            Tags = xmerl_xpath:string("/DescribeTagsResponse/tagSet/item", Doc),
+            {ok, [extract_tag(Tag) || Tag <- Tags]};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 -spec filter_name(filter_name()) -> string().
 filter_name(key) -> "key";
@@ -1399,37 +1427,35 @@ filter_name(value) -> "value".
 -spec value_list_params([string()], string()) -> [{string(), string()}].
 value_list_params(Values, Prefix) ->
     {Params, _} = lists:foldl(fun(Value, {Acc, Index}) ->
-                      I = integer_to_list(Index),
-                      Key = Prefix ++ I,
-                      {[{Key, Value} | Acc], Index + 1}
-                  end, {[], 1}, Values),
+                                      I = integer_to_list(Index),
+                                      Key = Prefix ++ I,
+                                      {[{Key, Value} | Acc], Index + 1}
+                              end, {[], 1}, Values),
     Params.
 
--spec extract_tag(term()) -> [proplist()].
+-spec extract_tag(term()) -> #ec2_tag{}.
 extract_tag(Node) ->
-    [
-        {resource_id, get_text("resourceId", Node)},
-        {resource_type, get_text("resourceType", Node)},
-        {key, get_text("key", Node)},
-        {value, get_text("value", Node)}
-    ].
-
+    #ec2_tag{
+       resource_id = get_text("resourceId", Node),
+       resource_type = get_text("resourceType", Node),
+       key = get_text("key", Node),
+       value = get_text("value", Node)}.
 
 block_device_params(Mappings) ->
     erlcloud_aws:param_list(
-        [[{"DeviceName", Mapping#ec2_block_device_mapping.device_name},
-          {"VirtualName", Mapping#ec2_block_device_mapping.virtual_name}] ++
-         if Mapping#ec2_block_device_mapping.snapshot_id =/= none,
-            Mapping#ec2_block_device_mapping.snapshot_id =/= undefined ->
-             [{"Ebs.SnapshotId", Mapping#ec2_block_device_mapping.snapshot_id},
-              {"Ebs.DeleteOnTermination", Mapping#ec2_block_device_mapping.delete_on_termination}];
-            is_integer(Mapping#ec2_block_device_mapping.volume_size) ->
-             [{"Ebs.VolumeSize", Mapping#ec2_block_device_mapping.volume_size},
-              {"Ebs.DeleteOnTermination", Mapping#ec2_block_device_mapping.delete_on_termination}];
-            true ->
-             []
-         end ||
-         Mapping <- Mappings], "BlockDeviceMapping").
+      [[{"DeviceName", Mapping#ec2_block_device_mapping.device_name},
+        {"VirtualName", Mapping#ec2_block_device_mapping.virtual_name}] ++
+           if Mapping#ec2_block_device_mapping.snapshot_id =/= none,
+              Mapping#ec2_block_device_mapping.snapshot_id =/= undefined ->
+                   [{"Ebs.SnapshotId", Mapping#ec2_block_device_mapping.snapshot_id},
+                    {"Ebs.DeleteOnTermination", Mapping#ec2_block_device_mapping.delete_on_termination}];
+              is_integer(Mapping#ec2_block_device_mapping.volume_size) ->
+                   [{"Ebs.VolumeSize", Mapping#ec2_block_device_mapping.volume_size},
+                    {"Ebs.DeleteOnTermination", Mapping#ec2_block_device_mapping.delete_on_termination}];
+              true ->
+                   []
+           end ||
+          Mapping <- Mappings], "BlockDeviceMapping").
 
 -spec(start_instances/1 :: ([string()]) -> proplist()).
 start_instances(InstanceIDs) -> start_instances(InstanceIDs, default_config()).
@@ -1454,7 +1480,7 @@ stop_instances(InstanceIDs, Force) ->
 stop_instances(InstanceIDs, Force, Config)
   when is_list(InstanceIDs), is_boolean(Force) ->
     Doc = ec2_query(Config, "StopInstances",
-      [{"Force", atom_to_list(Force)}|erlcloud_aws:param_list(InstanceIDs, "InstanceId")]),
+                    [{"Force", atom_to_list(Force)}|erlcloud_aws:param_list(InstanceIDs, "InstanceId")]),
     [extract_instance_state_change(Node) || Node <- xmerl_xpath:string("/StopInstancesResponse/instancesSet/item", Doc)].
 
 -spec(terminate_instances/1 :: ([string()]) -> proplist()).
@@ -1468,15 +1494,15 @@ terminate_instances(InstanceIDs, Config)
 
 extract_instance_state_change(Node) ->
     [
-        {instance_id, get_text("instanceId", Node)},
-        {current_state,
-            {code, list_to_integer(get_text("currentState/code", Node, "0"))},
-            {name, get_text("currentState/name", Node)}
-        },
-        {previous_state,
-            {code, list_to_integer(get_text("previousState/code", Node, "0"))},
-            {name, get_text("previousState/name", Node)}
-        }
+     {instance_id, get_text("instanceId", Node)},
+     {current_state,
+      {code, list_to_integer(get_text("currentState/code", Node, "0"))},
+      {name, get_text("currentState/name", Node)}
+     },
+     {previous_state,
+      {code, list_to_integer(get_text("previousState/code", Node, "0"))},
+      {name, get_text("previousState/name", Node)}
+     }
     ].
 
 -spec(unmonitor_instances/1 :: ([string()]) -> proplist()).
@@ -1498,6 +1524,11 @@ ec2_query(Config, Action, Params) ->
 ec2_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml(post, Config#aws_config.ec2_host,
-        "/", QParams, Config).
+                                 "/", QParams, Config).
+
+ec2_query2(Config, Action, Params, ApiVersion) ->
+    QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
+    erlcloud_aws:aws_request_xml2(post, Config#aws_config.ec2_host,
+                                  "/", QParams, Config).
 
 default_config() -> erlcloud_aws:default_config().

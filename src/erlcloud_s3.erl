@@ -29,29 +29,29 @@
 
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{
-     access_key_id=AccessKeyID,
-     secret_access_key=SecretAccessKey
-    }.
+       access_key_id=AccessKeyID,
+       secret_access_key=SecretAccessKey
+      }.
 
 -spec new(string(), string(), string()) -> aws_config().
 
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{
-     access_key_id=AccessKeyID,
-     secret_access_key=SecretAccessKey,
-     s3_host=Host
-    }.
+       access_key_id=AccessKeyID,
+       secret_access_key=SecretAccessKey,
+       s3_host=Host
+      }.
 
 
 -spec new(string(), string(), string(), non_neg_integer()) -> aws_config().
 
 new(AccessKeyID, SecretAccessKey, Host, Port) ->
     #aws_config{
-     access_key_id=AccessKeyID,
-     secret_access_key=SecretAccessKey,
-     s3_host=Host,
-     s3_port=Port
-    }.
+       access_key_id=AccessKeyID,
+       secret_access_key=SecretAccessKey,
+       s3_host=Host,
+       s3_port=Port
+      }.
 
 -spec configure(string(), string()) -> ok.
 
@@ -608,9 +608,9 @@ make_get_url(Expire_time, BucketName, Key) ->
 
 make_get_url(Expire_time, BucketName, Key, Config) ->
     {Sig, Expires} = sign_get(Expire_time, BucketName, Key, Config),
-    [Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key, 
-     "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), 
-     "&Signature=", erlcloud_http:url_encode(Sig), 
+    [Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key,
+     "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id),
+     "&Signature=", erlcloud_http:url_encode(Sig),
      "&Expires=", Expires].
 
 -spec set_bucket_attribute(string(), atom(), term()) -> ok.
@@ -721,37 +721,37 @@ s3_request(Config0, Method, Host, Path, Subresource, Params, POSTData, Headers0)
         end,
     Config = erlcloud_aws:update_config(Config0),
     Headers = case Config#aws_config.security_token of
-    		  undefined -> Headers0;
-    		  Token when is_list(Token) -> [{"x-amz-security-token", Token} | Headers0]
-    	      end,
+                  undefined -> Headers0;
+                  Token when is_list(Token) -> [{"x-amz-security-token", Token} | Headers0]
+              end,
     FHeaders = [Header || {_, Value} = Header <- Headers, Value =/= undefined],
     AmzHeaders = [Header || {"x-amz-" ++ _, _} = Header <- FHeaders],
     Date = httpd_util:rfc1123_date(erlang:localtime()),
     EscapedPath = erlcloud_http:url_encode_loose(Path),
     Authorization = make_authorization(Config, Method, ContentMD5, ContentType,
-        Date, AmzHeaders, Host, EscapedPath, Subresource),
+                                       Date, AmzHeaders, Host, EscapedPath, Subresource),
     RequestHeaders = [{"date", Date}, {"authorization", Authorization}|FHeaders] ++
         case ContentMD5 of
             "" -> [];
             _ -> [{"content-md5", binary_to_list(ContentMD5)}]
         end,
     RequestURI = lists:flatten([
-	Config#aws_config.s3_scheme,
-        case Host of "" -> ""; _ -> [Host, $.] end,
-        Config#aws_config.s3_host, port_spec(Config),
-        EscapedPath,
-        case Subresource of "" -> ""; _ -> [$?, Subresource] end,
-        if
-            Params =:= [] -> "";
-            Subresource =:= "" -> [$?, erlcloud_http:make_query_string(Params)];
-            true -> [$&, erlcloud_http:make_query_string(Params)]
-        end
-    ]),
+                                Config#aws_config.s3_scheme,
+                                case Host of "" -> ""; _ -> [Host, $.] end,
+                                Config#aws_config.s3_host, port_spec(Config),
+                                EscapedPath,
+                                case Subresource of "" -> ""; _ -> [$?, Subresource] end,
+                                if
+                                    Params =:= [] -> "";
+                                    Subresource =:= "" -> [$?, erlcloud_http:make_query_string(Params)];
+                                    true -> [$&, erlcloud_http:make_query_string(Params)]
+                                end
+                               ]),
     Response = case Method of
-        get -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
-        delete -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
-        _ -> httpc:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, [], [])
-    end,
+                   get -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
+                   delete -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
+                   _ -> httpc:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, [], [])
+               end,
     case Response of
         {ok, {{_HTTPVer, OKStatus, _StatusLine}, ResponseHeaders, ResponseBody}}
           when OKStatus >= 200, OKStatus =< 299 ->

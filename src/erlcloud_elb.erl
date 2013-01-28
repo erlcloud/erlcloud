@@ -127,8 +127,8 @@ describe_load_balancers(Names) ->
     describe_load_balancers(Names, default_config()).
 describe_load_balancers(Names, Config) ->
     elb_request(Config,
-                       "DescribeLoadBalancers",
-                       [erlcloud_aws:param_list(Names, "LoadBalancerNames.member")]).
+                "DescribeLoadBalancers",
+                [erlcloud_aws:param_list(Names, "LoadBalancerNames.member")]).
 
 
 
@@ -141,4 +141,3 @@ elb_request(Config, Action, Params) ->
 elb_simple_request(Config, Action, Params) ->
     _Doc = elb_request(Config, Action, Params),
     ok.
-
