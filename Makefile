@@ -11,5 +11,8 @@ clean:
 compile:
 	@$(REBAR) compile
 
+run:
+	erl -pa deps/*/ebin -pa ./ebin
+
 eunit: compile
 	@$(REBAR) eunit skip_deps=true
