@@ -6,25 +6,25 @@
 
 decode(Values, Node) ->
     lists:reverse(
-        lists:foldl(
-            fun ({Name, XPath, Type}, Output) ->
+      lists:foldl(
+        fun ({Name, XPath, Type}, Output) ->
                 case get_value(XPath, Type, Node) of
                     undefined -> Output;
                     Value ->
                         [{Name, Value}|Output]
                 end
-            end, [], Values)
-    ).
+        end, [], Values)
+     ).
 
 decode(Values, Node, Record) ->
     lists:foldl(
-        fun ({Index, XPath, Type}, Output) ->
-            case get_value(XPath, Type, Node) of
-                undefined -> Output;
-                Value -> setelement(Index, Output, Value)
-            end
-        end, Record, Values
-    ).
+      fun ({Index, XPath, Type}, Output) ->
+              case get_value(XPath, Type, Node) of
+                  undefined -> Output;
+                  Value -> setelement(Index, Output, Value)
+              end
+      end, Record, Values
+     ).
 
 get_value(XPath, Type, Node) ->
     case Type of
