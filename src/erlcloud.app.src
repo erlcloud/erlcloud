@@ -7,7 +7,6 @@
   {registered, []},
   {applications, [stdlib,
                   kernel,
-                  sasl,
                   crypto,
                   public_key,
                   ssl,
