@@ -83,7 +83,7 @@ aws_request2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config0
                 httpc:request(Req);
             _ ->
                 httpc:request(Method,
-                              {lists:flatten(URL), [], "application/x-www-form-urlencoded",
+                              {lists:flatten(URL), [], "application/x-www-form-urlencoded; charset=utf-8",
                                list_to_binary(Query)}, [], [])
         end,
 
