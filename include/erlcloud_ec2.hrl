@@ -63,3 +63,61 @@
           key :: string(),
           value :: string()
          }).
+
+%%
+%% @see http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-ItemType-ReservationInfoType.html
+-record(ec2_reservation, {
+          id        :: string(),
+          owner     :: string(),
+          group_set,
+          instances_set
+         }).
+
+%%
+%% @see http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-ItemType-RunningInstancesItemType.html
+-record(ec2_instance, {
+          id           :: string(),
+          type         :: atom(),
+          zone         :: string(),
+
+          arch         :: string(),
+          image        :: string(),
+          kernel       :: string(),
+          ramdisk      :: string(),
+
+          state        :: pending | running | 'shutting-down' | terminated | stopping | stopped,
+          reason       :: string() | undefined,
+
+          host         :: string(),
+          addr         :: string(),
+          private_host :: string(),
+          private_addr :: string(),
+          subnet       :: string(),
+          vpc          :: string(),
+          key_name     :: string(),
+
+
+          monitoring   :: enabled | disabled | pending,
+          launch_time  :: datetime(),
+          ami_launch_index :: 0..65535,
+          product_codes,
+          state_reason,
+
+          root_dev_type :: ebs | 'instance-store',
+          root_dev      :: string(),
+          devices,
+
+          lifecycle,
+          spot_instance_request
+         }).
+
+%%
+%% @see http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-ItemType-BlockDeviceMappingItemType.html
+-record(ec2_dev, {
+          name     :: string(),
+          volume   :: string(),
+          status   :: attaching | attached | detaching | detached,
+          attach_time :: datetime(),
+          transient:: true | false % delete on termination
+         }).
+

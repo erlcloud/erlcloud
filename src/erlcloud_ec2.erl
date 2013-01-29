@@ -656,57 +656,68 @@ describe_instances(InstanceIDs) ->
 -spec(describe_instances/2 :: ([string()], aws_config()) -> proplist()).
 describe_instances(InstanceIDs, Config)
   when is_list(InstanceIDs) ->
-    Doc = ec2_query(Config, "DescribeInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId")),
-    Reservations = xmerl_xpath:string("/DescribeInstancesResponse/reservationSet/item", Doc),
-    [extract_reservation(Item) || Item <- Reservations].
+    case ec2_query2(Config, "DescribeInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId")) of
+        {ok, Doc} -> 
+           Reservations = xmerl_xpath:string("/DescribeInstancesResponse/reservationSet/item", Doc),
+           {ok, [extract_reservation(Item) || Item <- Reservations]};
+        Error     -> 
+            Error
+    end.
+
 
 extract_reservation(Node) ->
-    [{reservation_id, get_text("reservationId", Node)},
-     {owner_id, get_text("ownerId", Node)},
-     {group_set, get_list("groupSet/item/groupId", Node)},
-     {instances_set, [extract_instance(Item) || Item <- xmerl_xpath:string("instancesSet/item", Node)]}
-    ].
+    #ec2_reservation{
+        id    = get_text("reservationId", Node),
+        owner = get_text("ownerId", Node),
+        group_set = get_list("groupSet/item/groupId", Node),
+        instances_set = [extract_instance(Item) || Item <- xmerl_xpath:string("instancesSet/item", Node)]
+    }.
 
 extract_instance(Node) ->
-    [{instance_id, get_text("instanceId", Node)},
-     {image_id, get_text("imageId", Node)},
-     {instance_state, [
-                       {code, list_to_integer(get_text("instanceState/code", Node, "0"))},
-                       {name, get_text("instanceState/name", Node)}
-                      ]},
-     {private_dns_name, get_text("privateDnsName", Node)},
-     {dns_name, get_text("dnsName", Node)},
-     {reason, get_text("reason", Node, none)},
-     {key_name, get_text("keyName", Node, none)},
-     {ami_launch_index, list_to_integer(get_text("amiLaunchIndex", Node, "0"))},
-     {product_codes, get_list("productCodes/item/productCode", Node)},
-     {instance_type, get_text("instanceType", Node)},
-     {launch_time, erlcloud_xml:get_time("launchTime", Node)},
-     {placement, [{availability_zone, get_text("placement/availabilityZone", Node)}]},
-     {kernel_id, get_text("kernelId", Node)},
-     {ramdisk_id, get_text("ramdiskId", Node)},
-     {monitoring, [{enabled, get_bool("monitoring/enabled", Node)}, {state, get_text("monitoring/state", Node)}]},
-     {subnet_id, get_text("subnetId", Node)},
-     {vpc_id, get_text("vpcId", Node)},
-     {private_ip_address, get_text("privateIpAddress", Node)},
-     {ip_address, get_text("ipAddress", Node)},
-     {state_reason, [{code, get_text("stateReason/code", Node)}, {message, get_text("stateReason/message", Node)}]},
-     {architecture, get_text("architecture", Node)},
-     {root_device_type, get_text("rootDeviceType", Node)},
-     {root_device_name, get_text("rootDeviceName", Node)},
-     {block_device_mapping, [extract_block_device_mapping_status(Item) || Item <- xmerl_xpath:string("blockDeviceMapping/item", Node)]},
-     {instance_lifecycle, get_text("instanceLifecycle", Node, none)},
-     {spot_instance_request_id, get_text("spotInstanceRequestId", Node, none)}
-    ].
+    #ec2_instance{
+        id     = get_text("instanceId", Node),
+        type   = list_to_atom(get_text("instanceType", Node)),
+        zone   = get_text("placement/availabilityZone", Node),
+
+        arch    = get_text("architecture", Node),
+        image   = get_text("imageId", Node),
+        kernel  = get_text("kernelId", Node),
+        ramdisk = get_text("ramdiskId", Node),
+
+        state  = list_to_atom(get_text("instanceState/name", Node)), %% list_to_integer(get_text("instanceState/code", Node, "0"))
+        reason = get_text("reason", Node, undefined),
+
+        host   = get_text("dnsName", Node),
+        addr   = get_text("ipAddress", Node),
+        private_host = get_text("privateDnsName", Node),
+        private_addr = get_text("privateIpAddress", Node),
+        subnet       = get_text("subnetId", Node),
+        vpc          = get_text("vpcId", Node),
+        key_name     = get_text("keyName", Node, undefined),
+
+        monitoring       = list_to_atom(get_text("monitoring/state", Node)),
+        launch_time      = erlcloud_xml:get_time("launchTime", Node),
+        ami_launch_index = list_to_integer(get_text("amiLaunchIndex", Node, "0")),
+        product_codes    = get_list("productCodes/item/productCode", Node),
+        state_reason     = get_text("stateReason/code", Node), % {message, get_text("stateReason/message", Node)}
+        
+        root_dev_type = list_to_atom(get_text("rootDeviceType", Node)),
+        root_dev      = get_text("rootDeviceName", Node),
+        devices       = [extract_block_device_mapping_status(Item) || Item <- xmerl_xpath:string("blockDeviceMapping/item", Node)],
+
+        lifecycle     = list_to_atom(get_text("instanceLifecycle", Node, "undefined")),
+        spot_instance_request = get_text("spotInstanceRequestId", Node, undefined)
+    }.
+
 
 extract_block_device_mapping_status(Node) ->
-    [
-     {device_name, get_text("deviceName", Node)},
-     {volume_id, get_text("ebs/volumeId", Node)},
-     {status, get_text("ebs/status", Node)},
-     {attach_time, erlcloud_xml:get_time("ebs/attachTime", Node)},
-     {delete_on_termination, get_bool("ebs/deleteOnTermination", Node)}
-    ].
+    #ec2_dev{
+        name   = get_text("deviceName", Node),
+        volume = get_text("ebs/volumeId", Node),
+        status = list_to_atom(get_text("ebs/status", Node)),
+        attach_time = erlcloud_xml:get_time("ebs/attachTime", Node),
+        transient   = get_bool("ebs/deleteOnTermination", Node)
+    }.
 
 -spec(describe_key_pairs/0 :: () -> proplist()).
 describe_key_pairs() -> describe_key_pairs([]).
@@ -1528,6 +1539,9 @@ ec2_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml(post, Config#aws_config.ec2_host,
                                  "/", QParams, Config).
+
+ec2_query2(Config, Action, Params) ->
+    ec2_query2(Config, Action, Params, ?API_VERSION).
 
 ec2_query2(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
