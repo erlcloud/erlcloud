@@ -3,7 +3,8 @@
          aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
          aws_request2/7,
          aws_request_xml2/5, aws_request_xml2/7,
-         param_list/2, default_config/0, update_config/1, format_timestamp/1]).
+         param_list/2, default_config/0, update_config/1, format_timestamp/1,
+         http_headers_body/1]).
 
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
@@ -47,8 +48,15 @@ aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAcces
 
 %% aws_request2 returns {ok, Body} or {error, Reason} instead of throwing as aws_request does
 %% This is the preferred pattern for new APIs
-aws_request2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config0) ->
-    Config = update_config(Config0),
+aws_request2(Method, Protocol, Host, Port, Path, Params, Config) ->
+    case update_config(Config) of
+        {ok, Config1} ->
+            aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, Config1);
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     Timestamp = format_timestamp(erlang:universaltime()),
     QParams = lists:sort([{"Timestamp", Timestamp},
                           {"SignatureVersion", "2"},
@@ -58,24 +66,24 @@ aws_request2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config0
                                  undefined -> [];
                                  Token -> [{"SecurityToken", Token}]
                              end),
-
+    
     QueryToSign = erlcloud_http:make_query_string(QParams),
     RequestToSign = [string:to_upper(atom_to_list(Method)), $\n,
                      string:to_lower(Host), $\n, Path, $\n, QueryToSign],
     Signature = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, RequestToSign)),
-
+    
     Query = [QueryToSign, "&Signature=", erlcloud_http:url_encode(Signature)],
-
+    
     case Protocol of
         undefined -> UProtocol = "https://";
         _ -> UProtocol = [Protocol, "://"]
     end,
-
+    
     case Port of
         undefined -> URL = [UProtocol, Host, Path];
         _ -> URL = [UProtocol, Host, $:, port_to_str(Port), Path]
     end,
-
+    
     Response =
         case Method of
             get ->
@@ -83,18 +91,11 @@ aws_request2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config0
                 httpc:request(Req);
             _ ->
                 httpc:request(Method,
-                              {lists:flatten(URL), [], "application/x-www-form-urlencoded",
+                              {lists:flatten(URL), [], "application/x-www-form-urlencoded; charset=utf-8",
                                list_to_binary(Query)}, [], [])
         end,
-
-    case Response of
-        {ok, {{_HTTPVer, 200, _StatusLine}, _Headers, Body}} ->
-            {ok, Body};
-        {ok, {{_HTTPVer, Status, StatusLine}, _Headers, Body}} ->
-            {error, {http_error, Status, StatusLine, Body}};
-        {error, Error} ->
-            {error, {socket_error, Error}}
-    end.
+    
+    http_body(Response).
 
 param_list([], _Key) -> [];
 param_list(Values, Key) when is_tuple(Key) ->
@@ -134,29 +135,56 @@ default_config() ->
             Config
     end.
 
--spec update_config(aws_config()) -> aws_config().
+-spec update_config(aws_config()) -> {ok, aws_config()} | {error, tuple}.
 update_config(#aws_config{access_key_id = KeyId} = Config)
   when is_list(KeyId) ->
     %% In order to support caching of the aws_config, we could store the expiration_time
     %% and check it here. If it is about to expire (within 5 minutes is what boto uses)
     %% then we should get the new config.
-    Config;
+    {ok, Config};
 update_config(#aws_config{} = Config) ->
     %% AccessKey is not set. Try to read from role metadata.
     %% First get the list of roles
-    {ok, {{_, 200, _}, _, Body}} =
-        httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/"),
-    %% Always use the first role
-    Role = string:sub_word(Body, 1, $\n),
-    {ok, {{_, 200, _}, _, Json}} =
-        httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ Role),
-    Credentials = jsx:decode(list_to_binary(Json)),
-    Config#aws_config{
-      access_key_id = binary_to_list(proplists:get_value(<<"AccessKeyId">>, Credentials)),
-      secret_access_key = binary_to_list(proplists:get_value(<<"SecretAccessKey">>, Credentials)),
-      security_token = binary_to_list(proplists:get_value(<<"Token">>, Credentials))}.
+    case http_body(httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/")) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Body} ->
+            %% Always use the first role
+            Role = string:sub_word(Body, 1, $\n),
+            case http_body(httpc:request(
+                             "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ Role)) of
+                {error, Reason} ->
+                    {error, Reason};
+                {ok, Json} ->
+                    Credentials = jsx:decode(list_to_binary(Json)),
+                    {ok, Config#aws_config{
+                           access_key_id = binary_to_list(proplists:get_value(<<"AccessKeyId">>, Credentials)),
+                           secret_access_key = binary_to_list(proplists:get_value(<<"SecretAccessKey">>, Credentials)),
+                           security_token = binary_to_list(proplists:get_value(<<"Token">>, Credentials))}}
+            end
+    end.
 
 port_to_str(Port) when is_integer(Port) ->
     integer_to_list(Port);
 port_to_str(Port) when is_list(Port) ->
     Port.
+
+-spec http_body({ok, tuple()} | {error, term()}) -> {ok, string()} | {error, tuple()}.
+%% Extract the body and do error handling on the return of a httpc:request call.
+http_body(Return) ->
+    case http_headers_body(Return) of
+        {ok, {_, Body}} ->
+            {ok, Body};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+-spec http_headers_body({ok, tuple()} | {error, term()}) -> {ok, {http:headers(), string()}} | {error, tuple()}.
+%% Extract the headers and body and do error handling on the return of a httpc:request call.
+http_headers_body({ok, {{_HTTPVer, OKStatus, _StatusLine}, Headers, Body}}) 
+  when OKStatus >= 200, OKStatus =< 299 ->
+    {ok, {Headers, Body}};
+http_headers_body({ok, {{_HTTPVer, Status, StatusLine}, _Headers, Body}}) ->
+    {error, {http_error, Status, StatusLine, Body}};
+http_headers_body({error, Reason}) ->
+    {error, {socket_error, Reason}}.

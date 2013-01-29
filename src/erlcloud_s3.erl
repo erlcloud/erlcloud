@@ -714,12 +714,29 @@ s3_xml_request(Config, Method, Host, Path, Subresource, Params, POSTData, Header
             XML
     end.
 
-s3_request(Config0, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
+s3_request(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) ->
+    case s3_request2(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) of
+        {ok, Result} ->
+            Result;
+        {error, Reason} ->
+            erlang:error({aws_error, Reason})
+    end.
+
+%% s3_request2 returns {ok, Body} or {error, Reason} instead of throwing as s3_request does
+%% This is the preferred pattern for new APIs
+s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
+    case erlcloud_aws:update_config(Config) of
+        {ok, Config1} ->
+            s3_request2_no_update(Config1, Method, Host, Path, Subresource, Params, POSTData, Headers);
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
     {ContentMD5, ContentType, Body} =
         case POSTData of
             {PD, CT} -> {base64:encode(crypto:md5(PD)), CT, PD}; PD -> {"", "", PD}
         end,
-    Config = erlcloud_aws:update_config(Config0),
     Headers = case Config#aws_config.security_token of
                   undefined -> Headers0;
                   Token when is_list(Token) -> [{"x-amz-security-token", Token} | Headers0]
@@ -752,15 +769,7 @@ s3_request(Config0, Method, Host, Path, Subresource, Params, POSTData, Headers0)
                    delete -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
                    _ -> httpc:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, [], [])
                end,
-    case Response of
-        {ok, {{_HTTPVer, OKStatus, _StatusLine}, ResponseHeaders, ResponseBody}}
-          when OKStatus >= 200, OKStatus =< 299 ->
-            {ResponseHeaders, ResponseBody};
-        {ok, {{_HTTPVer, Status, _StatusLine}, _ResponseHeaders, _ResponseBody}} ->
-            erlang:error({aws_error, {http_error, Status, _StatusLine, _ResponseBody}});
-        {error, Error} ->
-            erlang:error({aws_error, {socket_error, Error}})
-    end.
+    erlcloud_aws:http_headers_body(Response).
 
 make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
                    Host, Resource, Subresource) ->
