@@ -40,7 +40,7 @@ get_url_from_history([{_, {httpc, request, [Url]}, _}]) ->
     Url.
 
 test_url(ExpScheme, ExpHost, ExpPort, ExpPath, Url) ->
-    {Scheme, _UserInfo, Host, Port, Path, _Query} = http_uri:parse(Url),
+    {ok, {Scheme, _UserInfo, Host, Port, Path, _Query}} = http_uri:parse(Url),
     [?_assertEqual(ExpScheme, Scheme),
      ?_assertEqual(ExpHost, Host),
      ?_assertEqual(ExpPort, Port),
