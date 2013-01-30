@@ -144,8 +144,23 @@
 -record(ec2_dev, {
           name     :: string(),
           volume   :: string(),
+          instance :: string(),
           status   :: attaching | attached | detaching | detached,
           attach_time :: datetime(),
           transient:: true | false % delete on termination
          }).
+
+%%
+%% @see http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-ItemType-DescribeVolumesSetItemResponseType.html
+-record(ec2_volume, {
+          id       :: string(),
+          size     :: ec2_volume_size(),
+          snapshot :: string(),
+          zone     :: string(),
+          status   :: creating | available | 'in-use' | deleting | deleted | error,
+          created  :: datetime(),
+          attachment_set
+         }).
+
+
 
