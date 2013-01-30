@@ -1580,8 +1580,12 @@ describe_volumes(VolumeIDs) ->
 -spec(describe_volumes/2 :: ([string()], aws_config()) -> proplist()).
 describe_volumes(VolumeIDs, Config)
   when is_list(VolumeIDs) ->
-    Doc = ec2_query(Config, "DescribeVolumes", erlcloud_aws:param_list(VolumeIDs, "VolumeId")),
-    [extract_volume(Item) || Item <- xmerl_xpath:string("/DescribeVolumesResponse/volumeSet/item", Doc)].
+    case ec2_query2(Config, "DescribeVolumes", erlcloud_aws:param_list(VolumeIDs, "VolumeId")) of
+        {ok, Doc} ->
+            {ok, [extract_volume(Item) || Item <- xmerl_xpath:string("/DescribeVolumesResponse/volumeSet/item", Doc)]};
+        Error ->
+            Error
+    end.
 
 extract_volume(Node) ->
     #ec2_volume{
