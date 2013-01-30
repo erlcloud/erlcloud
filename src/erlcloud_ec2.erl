@@ -1016,7 +1016,7 @@ describe_instance_attribute(InstanceID, Attribute, Config)
                 disable_api_termination -> list_to_existing_atom(get_text(Node));
                 instance_initiated_shutdown_behavior -> list_to_existing_atom(get_text(Node));
                 block_device_mapping ->
-                    [extract_block_device_mapping_status(Item) || Item <- xmerl_xpath:string("item", Node)];
+                    [extract_block_device_mapping_status(InstanceID, Item) || Item <- xmerl_xpath:string("item", Node)];
                 _ -> get_text(Node)
             end
     end.
@@ -1087,17 +1087,18 @@ extract_instance(Node) ->
         
         root_dev_type = list_to_atom(get_text("rootDeviceType", Node)),
         root_dev      = get_text("rootDeviceName", Node),
-        devices       = [extract_block_device_mapping_status(Item) || Item <- xmerl_xpath:string("blockDeviceMapping/item", Node)],
+        devices       = [extract_block_device_mapping_status(get_text("instanceId", Node), Item) || Item <- xmerl_xpath:string("blockDeviceMapping/item", Node)],
 
         lifecycle     = list_to_atom(get_text("instanceLifecycle", Node, "undefined")),
         spot_instance_request = get_text("spotInstanceRequestId", Node, undefined)
     }.
 
 
-extract_block_device_mapping_status(Node) ->
+extract_block_device_mapping_status(Instance, Node) ->
     #ec2_dev{
         name   = get_text("deviceName", Node),
         volume = get_text("ebs/volumeId", Node),
+        instance = Instance,
         status = list_to_atom(get_text("ebs/status", Node)),
         attach_time = erlcloud_xml:get_time("ebs/attachTime", Node),
         transient   = get_bool("ebs/deleteOnTermination", Node)
@@ -1583,23 +1584,25 @@ describe_volumes(VolumeIDs, Config)
     [extract_volume(Item) || Item <- xmerl_xpath:string("/DescribeVolumesResponse/volumeSet/item", Doc)].
 
 extract_volume(Node) ->
-    [{volume_id, get_text("volumeId", Node)},
-     {size, get_integer("size", Node)},
-     {snapshot_id, get_text("snapshotId", Node, none)},
-     {availability_zone, get_text("availabilityZone", Node, none)},
-     {status, get_text("status", Node, none)},
-     {create_time, erlcloud_xml:get_time("createTime", Node)},
-     {attachment_set,
-      [[{volume_id, get_text("volumeId", Item)},
-        {instance_id, get_text("instanceId",Item)},
-        {device, get_text("device", Item)},
-        {status, get_text("status", Item)},
-        {attach_time, erlcloud_xml:get_time("attachTime", Item)}
-       ] ||
-          Item <- xmerl_xpath:string("attachmentSet/item", Node)
-      ]
-     }
-    ].
+    #ec2_volume{
+        id   = get_text("volumeId", Node),
+        size = get_integer("size", Node),
+        snapshot = get_text("snapshotId", Node, undefined),
+        zone     = get_text("availabilityZone", Node, undefined),
+        status   = list_to_atom(get_text("status", Node, none)),
+        created  = erlcloud_xml:get_time("createTime", Node),
+        attachment_set = [extract_volume_attachement(Item) || Item <- xmerl_xpath:string("attachmentSet/item", Node)]
+    }.
+
+extract_volume_attachement(Item) ->
+    #ec2_dev{
+        name     = get_text("device", Item),
+        volume   = get_text("volumeId", Item),
+        instance = get_text("instanceId",Item),
+        status   = list_to_atom(get_text("status", Item)),
+        attach_time = erlcloud_xml:get_time("attachTime", Item),
+        transient= get_bool("deleteOnTermination",Item)
+    }.
 
 -spec(describe_vpcs/0 :: () -> proplist()).
 describe_vpcs() ->
