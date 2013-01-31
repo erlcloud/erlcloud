@@ -31,35 +31,12 @@
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 
-%% Library initialization.
--export([configure/2, configure/3, new/2, new/3]).
-
 %% DDB API Functions
--export([get_item/2, get_item/3, get_item/4
+-export([delete_item/2, delete_item/3, delete_item/4,
+         get_item/2, get_item/3, get_item/4
         ]).
 
 -export_type([key/0]).
-
--spec(new/2 :: (string(), string()) -> aws_config()).
-new(AccessKeyID, SecretAccessKey) ->
-    #aws_config{access_key_id=AccessKeyID,
-                secret_access_key=SecretAccessKey}.
-
--spec(new/3 :: (string(), string(), string()) -> aws_config()).
-new(AccessKeyID, SecretAccessKey, Host) ->
-    #aws_config{access_key_id=AccessKeyID,
-                secret_access_key=SecretAccessKey,
-                ddb_host=Host}.
-
--spec(configure/2 :: (string(), string()) -> ok).
-configure(AccessKeyID, SecretAccessKey) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey)),
-    ok.
-
--spec(configure/3 :: (string(), string(), string()) -> ok).
-configure(AccessKeyID, SecretAccessKey, Host) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
-    ok.
 
 -type table_name() :: binary().
 -type attr_type() :: binary().
@@ -82,6 +59,23 @@ key_value({HK, HV} = HashKey) when
 -spec key_json(key()) -> {binary(), jsx:json_term()}.
 key_json(Key) ->
     {<<"Key">>, key_value(Key)}.
+
+
+-spec delete_item(table_name(), key()) -> json_reply().
+delete_item(Table, Key) ->
+    delete_item(Table, Key, [], default_config()).
+
+-spec delete_item(table_name(), key(), jsx:json_term()) -> json_reply().
+delete_item(Table, Key, Optional) ->
+    delete_item(Table, Key, Optional, default_config()).
+
+-spec delete_item(table_name(), key(), jsx:json_term(), aws_config()) -> json_reply().
+delete_item(Table, Key, Optional, Config) ->
+    JSON = [{<<"TableName">>, Table},
+            key_json(Key)] 
+        ++ Optional,
+    request(Config, "DeleteItem", JSON).
+
     
 -spec get_item(table_name(), key()) -> json_reply().
 get_item(Table, Key) ->
@@ -110,6 +104,7 @@ request(Config0, Operation, JSON) ->
             {error, Reason}
     end.
 
+-type headers() :: [{string(), string()}].
 -spec request_and_retry(aws_config(), headers(), jsx:json_text()) -> term().
 request_and_retry(Config, Headers, Body) ->
     case httpc:request(post, {url(Config), Headers, "application/x-amz-json-1.0", Body}, [], 

@@ -8,8 +8,35 @@
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 
--export([get_item/2, get_item/3, get_item/4
+%%% Library initialization.
+-export([configure/2, configure/3, new/2, new/3]).
+
+-export([delete_item/2, delete_item/3, delete_item/4,
+         get_item/2, get_item/3, get_item/4
         ]).
+
+%%% Library initialization.
+-spec(new/2 :: (string(), string()) -> aws_config()).
+new(AccessKeyID, SecretAccessKey) ->
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey}.
+
+-spec(new/3 :: (string(), string(), string()) -> aws_config()).
+new(AccessKeyID, SecretAccessKey, Host) ->
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey,
+                ddb_host=Host}.
+
+-spec(configure/2 :: (string(), string()) -> ok).
+configure(AccessKeyID, SecretAccessKey) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey)),
+    ok.
+
+-spec(configure/3 :: (string(), string(), string()) -> ok).
+configure(AccessKeyID, SecretAccessKey, Host) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
+    ok.
+
 
 %% DDB API Functions
 -type table_name() :: binary().
@@ -22,6 +49,14 @@
 -type in_attr_typed_value() :: {attr_type(), in_attr_data()}.
 -type in_attr_value() :: in_attr_data() | in_attr_typed_value().
 -type in_attr() :: {attr_name(), in_attr_value()}.
+-type in_expected() :: {attr_name(), false | in_attr_value()}.
+
+-type json_attr_type() :: binary().
+-type json_attr_data() :: binary() | [binary()].
+-type json_attr_value() :: {json_attr_type(), json_attr_data()}.
+-type json_attr() :: {attr_name(), [json_attr_value()]}.
+-type json_item() :: [json_attr()].
+-type json_expected() :: {attr_name(), [json_attr_value()] | [{binary(), boolean()}]}.
 
 -type hash_key() :: in_attr_value().
 -type range_key() :: in_attr_value().
@@ -32,6 +67,7 @@
 -type out_attr() :: {attr_name(), out_attr_value()}.
 -type out_item() :: [out_attr()].
 -type item_return() :: {ok, out_item()} | {error, term()}.
+
 
 %% Dynamize does type inference.
 %% Binaries are assumed to be strings.
@@ -47,7 +83,7 @@ dynamize_set(ns, Values) ->
 dynamize_set(bs, Values) ->
     [base64:encode(Value) || Value <- Values].
 
--spec dynamize_value(in_attr_value()) -> {binary(), binary() | [binary()]}.
+-spec dynamize_value(in_attr_value()) -> json_attr_value().
 dynamize_value({s, Value}) when is_binary(Value) ->
     {<<"S">>, Value};
 dynamize_value({s, Value}) when is_list(Value) ->
@@ -70,8 +106,12 @@ dynamize_value(Value) when is_list(Value) ->
     dynamize_value({s, Value});
 dynamize_value(Value) when is_integer(Value) ->
     dynamize_value({n, Value});
-dynamize_value(Attr) ->
-    throw({erlcould_ddb_error, {invalid_attr_type, Attr}}).
+dynamize_value(Value) ->
+    throw({erlcould_ddb_error, {invalid_attr_value, Value}}).
+
+%% -spec dynamize_attr(in_attr()) -> json_attr().
+%% dynamize_attr({Name, Value}) ->
+%%     {Name, [dynamize_value(Value)]}.
 
 -spec dynamize_key(key()) -> erlcloud_ddb1:key().
 dynamize_key({HashType, _} = HashKey) when is_atom(HashType) ->
@@ -81,8 +121,14 @@ dynamize_key({HashKey, RangeKey}) ->
 dynamize_key(HashKey) ->
     dynamize_value(HashKey).
 
+-spec dynamize_expected(in_expected()) -> json_expected().
+dynamize_expected({Name, false}) ->
+    {Name, [{<<"Exists">>, false}]};
+dynamize_expected({Name, Value}) ->
+    {Name, [{<<"Value">>, [dynamize_value(Value)]}]}.
 
--spec json_value_to_value({binary(), binary() | [binary()]}) -> out_attr_value().
+
+-spec json_value_to_value(json_attr_value()) -> out_attr_value().
 json_value_to_value({<<"S">>, Value}) when is_binary(Value) ->
     Value;
 json_value_to_value({<<"N">>, Value}) ->
@@ -96,13 +142,52 @@ json_value_to_value({<<"NS">>, Values}) ->
 json_value_to_value({<<"BS">>, Values}) ->
     [base64:decode(Value) || Value <- Values].
 
--spec json_attr_to_attr({binary(), jsx:json_term()}) -> out_attr().
+-spec json_attr_to_attr(json_attr()) -> out_attr().
 json_attr_to_attr({Name, [ValueJson]}) ->
     {Name, json_value_to_value(ValueJson)}.
 
--spec json_term_to_item(jsx:json_term()) -> out_item().
+-spec json_term_to_item(json_item()) -> out_item().
 json_term_to_item(Json) ->
     [json_attr_to_attr(Attr) || Attr <- Json].
+
+
+-type delete_item_opt() :: {expected, in_attr()} | 
+                           {return_values, none | all_old}.
+-type delete_item_opts() :: [delete_item_opt()].
+
+-spec delete_item_opt(delete_item_opt()) -> {binary(), jsx:json_term()}.
+delete_item_opt({expected, Value}) ->
+    {<<"Expected">>, [dynamize_expected(Value)]};
+delete_item_opt({return_values, none}) ->
+    {<<"ReturnValues">>, <<"NONE">>};
+delete_item_opt({return_values, all_old}) ->
+    {<<"ReturnValues">>, <<"ALL_OLD">>}.
+
+-spec delete_item_opts(delete_item_opts()) -> jsx:json_term().
+delete_item_opts(Opts) ->
+    [delete_item_opt(Opt) || Opt <- Opts].
+
+-spec delete_item(table_name(), key()) -> item_return().
+delete_item(Table, Key) ->
+    delete_item(Table, Key, [], default_config()).
+
+-spec delete_item(table_name(), key(), delete_item_opts()) -> item_return().
+delete_item(Table, Key, Opts) ->
+    delete_item(Table, Key, Opts, default_config()).
+
+-spec delete_item(table_name(), key(), delete_item_opts(), aws_config()) -> item_return().
+delete_item(Table, Key, Opts, Config) ->
+    case erlcloud_ddb1:delete_item(Table, dynamize_key(Key), delete_item_opts(Opts), Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            case proplists:get_value(<<"Attributes">>, Json) of
+                undefined ->
+                    {ok, []};
+                Item ->
+                    {ok, json_term_to_item(Item)}
+            end
+    end.
 
 
 -type get_item_opt() :: {attributes_to_get, [binary()]} | 

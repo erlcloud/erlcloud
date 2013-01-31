@@ -21,11 +21,13 @@
 %%% Test entry points
 %%%===================================================================
 
-get_item_test_() ->
+operation_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
-     [fun get_item_input_tests/1,
+     [fun delete_item_input_tests/1,
+      fun delete_item_output_tests/1,
+      fun get_item_input_tests/1,
       fun get_item_output_tests/1]}.
 
 start() ->
@@ -44,7 +46,14 @@ stop(_) ->
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(Body, Expected) ->
-    ?assertEqual(jsx:decode(list_to_binary(Expected)), jsx:decode(Body)).
+    Want = jsx:decode(list_to_binary(Expected)), 
+    Actual = jsx:decode(Body),
+    case Want =:= Actual of
+        true -> ok;
+        false ->
+            ?debugFmt("~nEXPECTED~n~p~nACTUAL~n~p~n", [Want, Actual])
+    end,
+    ?assertEqual(Want, Actual).
 
 %% returns the mock of the httpc function input tests expect to be called.
 %% Validates the request body and responds with the provided response.
@@ -64,7 +73,7 @@ input_test(Response, {Line, {Description, Fun, Expected}}) when
      {Line,
       fun() ->
               meck:expect(httpc, request, input_expect(Response, Expected)),
-              erlcloud_ddb1:configure(string:copies("A", 20), string:copies("a", 40)),
+              erlcloud_ddb:configure(string:copies("A", 20), string:copies("a", 40)),
               Fun()
       end}}.
 %% input_test(Response, {Line, {Fun, Params}}) ->
@@ -94,7 +103,7 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
      {Line,
       fun() ->
               meck:expect(httpc, request, output_expect(Response)),
-              erlcloud_ddb1:configure(string:copies("A", 20), string:copies("a", 40)),
+              erlcloud_ddb:configure(string:copies("A", 20), string:copies("a", 40)),
               Actual = Fun(),
               ?assertEqual(Result, Actual)
       end}}.
@@ -111,6 +120,55 @@ output_tests(Fun, Tests) ->
 %%% Actual test specifiers
 %%%===================================================================
 
+%% DeleteItem test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteItem.html
+delete_item_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"DeleteItem example request",
+             ?_f(erlcloud_ddb:delete_item(<<"comp-table">>, {"Mingus", 200},
+                                          [{expected, {<<"status">>, "shopping"}},
+                                           {return_values, all_old}])), "
+{\"TableName\":\"comp-table\",
+    \"Key\":
+        {\"HashKeyElement\":{\"S\":\"Mingus\"},\"RangeKeyElement\":{\"N\":\"200\"}},
+    \"Expected\":
+        {\"status\":{\"Value\":{\"S\":\"shopping\"}}},
+    \"ReturnValues\":\"ALL_OLD\"
+}"
+            })
+        ],
+
+    Response = "
+{\"Attributes\":
+    {\"friends\":{\"SS\":[\"Dooley\",\"Ben\",\"Daisy\"]},
+    \"status\":{\"S\":\"shopping\"},
+    \"time\":{\"N\":\"200\"},
+    \"user\":{\"S\":\"Mingus\"}
+    },
+\"ConsumedCapacityUnits\":1
+}",
+    input_tests(Response, Tests).
+
+delete_item_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"DeleteItem example response", "
+{\"Attributes\":
+    {\"friends\":{\"SS\":[\"Dooley\",\"Ben\",\"Daisy\"]},
+    \"status\":{\"S\":\"shopping\"},
+    \"time\":{\"N\":\"200\"},
+    \"user\":{\"S\":\"Mingus\"}
+    },
+\"ConsumedCapacityUnits\":1
+}",
+             {ok, [{<<"friends">>, [<<"Dooley">>, <<"Ben">>, <<"Daisy">>]},
+                   {<<"status">>, <<"shopping">>},
+                   {<<"time">>, 200},
+                   {<<"user">>, <<"Mingus">>}]}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb:delete_item(<<"table">>, <<"key">>)), Tests).
 
 %% GetItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_GetItem.html
@@ -126,19 +184,19 @@ get_item_input_tests(_) ->
 
     Tests =
         [?_ddb_test(
-            {"Example from API with fully specified keys",
+            {"GetItem example request, with fully specified keys",
              ?_f(erlcloud_ddb:get_item(<<"comptable">>, {{s, <<"Julie">>}, {n, 1307654345}}, 
                                        [{attributes_to_get, [<<"status">>, <<"friends">>]},
                                         {consistent_read, true}])),
              Example1Response}),
          ?_ddb_test(
-            {"Example from API with inferred key types",
+            {"GetItem example request, with inferred key types",
              ?_f(erlcloud_ddb:get_item(<<"comptable">>, {"Julie", 1307654345}, 
                                        [{attributes_to_get, [<<"status">>, <<"friends">>]},
                                         {consistent_read, true}])),
              Example1Response}),
          ?_ddb_test(
-            {"Simple call with only hash key and no options",
+            {"GetItem Simple call with only hash key and no options",
              ?_f(erlcloud_ddb:get_item(<<"comptable">>, {s, "Julie"})), "
 {\"TableName\":\"comptable\",
 	\"Key\":
@@ -159,7 +217,7 @@ get_item_input_tests(_) ->
 get_item_output_tests(_) ->
     Tests = 
         [?_ddb_test(
-            {"Example from API doc", "
+            {"GetItem example response", "
 {\"Item\":
 	{\"friends\":{\"SS\":[\"Lynda\", \"Aaron\"]},
 	 \"status\":{\"S\":\"online\"}
@@ -169,7 +227,7 @@ get_item_output_tests(_) ->
              {ok, [{<<"friends">>, [<<"Lynda">>, <<"Aaron">>]},
                    {<<"status">>, <<"online">>}]}}),
          ?_ddb_test(
-            {"Test all attribute types", "
+            {"GetItem test all attribute types", "
 {\"Item\":
 	{\"ss\":{\"SS\":[\"Lynda\", \"Aaron\"]},
 	 \"ns\":{\"NS\":[\"12\",\"13\",\"14\"]},
@@ -192,5 +250,4 @@ get_item_output_tests(_) ->
                    {<<"empty">>, <<>>}]}})
         ],
     
-    %% Remaining AWS API examples return subsets of the same data
     output_tests(?_f(erlcloud_ddb:get_item(<<"table">>, <<"key">>)), Tests).
