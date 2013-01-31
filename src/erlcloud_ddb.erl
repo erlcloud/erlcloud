@@ -12,7 +12,8 @@
 -export([configure/2, configure/3, new/2, new/3]).
 
 -export([delete_item/2, delete_item/3, delete_item/4,
-         get_item/2, get_item/3, get_item/4
+         get_item/2, get_item/3, get_item/4,
+         put_item/2, put_item/3, put_item/4
         ]).
 
 %%% Library initialization.
@@ -50,6 +51,7 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 -type in_attr_value() :: in_attr_data() | in_attr_typed_value().
 -type in_attr() :: {attr_name(), in_attr_value()}.
 -type in_expected() :: {attr_name(), false | in_attr_value()}.
+-type in_item() :: [in_attr()].
 
 -type json_attr_type() :: binary().
 -type json_attr_data() :: binary() | [binary()].
@@ -109,9 +111,9 @@ dynamize_value(Value) when is_integer(Value) ->
 dynamize_value(Value) ->
     throw({erlcould_ddb_error, {invalid_attr_value, Value}}).
 
-%% -spec dynamize_attr(in_attr()) -> json_attr().
-%% dynamize_attr({Name, Value}) ->
-%%     {Name, [dynamize_value(Value)]}.
+-spec dynamize_attr(in_attr()) -> json_attr().
+dynamize_attr({Name, Value}) ->
+    {Name, [dynamize_value(Value)]}.
 
 -spec dynamize_key(key()) -> erlcloud_ddb1:key().
 dynamize_key({HashType, _} = HashKey) when is_atom(HashType) ->
@@ -127,6 +129,9 @@ dynamize_expected({Name, false}) ->
 dynamize_expected({Name, Value}) ->
     {Name, [{<<"Value">>, [dynamize_value(Value)]}]}.
 
+-spec dynamize_item(in_item()) -> json_item().
+dynamize_item(Item) ->
+    [dynamize_attr(Attr) || Attr <- Item].
 
 -spec json_value_to_value(json_attr_value()) -> out_attr_value().
 json_value_to_value({<<"S">>, Value}) when is_binary(Value) ->
@@ -151,7 +156,12 @@ json_term_to_item(Json) ->
     [json_attr_to_attr(Attr) || Attr <- Json].
 
 
--type delete_item_opt() :: {expected, in_attr()} | 
+-spec opts(fun(), [{atom(), term()}]) -> jsx:json_term().
+opts(Fun, Opts) ->
+    [Fun(Opt) || Opt <- Opts].
+
+
+-type delete_item_opt() :: {expected, in_expected()} | 
                            {return_values, none | all_old}.
 -type delete_item_opts() :: [delete_item_opt()].
 
@@ -163,10 +173,6 @@ delete_item_opt({return_values, none}) ->
 delete_item_opt({return_values, all_old}) ->
     {<<"ReturnValues">>, <<"ALL_OLD">>}.
 
--spec delete_item_opts(delete_item_opts()) -> jsx:json_term().
-delete_item_opts(Opts) ->
-    [delete_item_opt(Opt) || Opt <- Opts].
-
 -spec delete_item(table_name(), key()) -> item_return().
 delete_item(Table, Key) ->
     delete_item(Table, Key, [], default_config()).
@@ -177,7 +183,7 @@ delete_item(Table, Key, Opts) ->
 
 -spec delete_item(table_name(), key(), delete_item_opts(), aws_config()) -> item_return().
 delete_item(Table, Key, Opts, Config) ->
-    case erlcloud_ddb1:delete_item(Table, dynamize_key(Key), delete_item_opts(Opts), Config) of
+    case erlcloud_ddb1:delete_item(Table, dynamize_key(Key), opts(fun delete_item_opt/1, Opts), Config) of
         {error, Reason} ->
             {error, Reason};
         {ok, Json} ->
@@ -200,10 +206,6 @@ get_item_opt({attributes_to_get, Value}) ->
 get_item_opt({consistent_read, Value}) ->
     {<<"ConsistentRead">>, Value}.
 
--spec get_item_opts(get_item_opts()) -> jsx:json_term().
-get_item_opts(Opts) ->
-    [get_item_opt(Opt) || Opt <- Opts].
-
 -spec get_item(table_name(), key()) -> item_return().
 get_item(Table, Key) ->
     get_item(Table, Key, [], default_config()).
@@ -214,11 +216,47 @@ get_item(Table, Key, Opts) ->
 
 -spec get_item(table_name(), key(), get_item_opts(), aws_config()) -> item_return().
 get_item(Table, Key, Opts, Config) ->
-    case erlcloud_ddb1:get_item(Table, dynamize_key(Key), get_item_opts(Opts), Config) of
+    case erlcloud_ddb1:get_item(Table, dynamize_key(Key), opts(fun get_item_opt/1, Opts), Config) of
         {error, Reason} ->
             {error, Reason};
         {ok, Json} ->
             {ok, json_term_to_item(proplists:get_value(<<"Item">>, Json))}
     end.
+
+
+-type put_item_opt() :: {expected, in_expected()} | 
+                        {return_values, none | all_old}.
+-type put_item_opts() :: [put_item_opt()].
+
+-spec put_item_opt(put_item_opt()) -> {binary(), jsx:json_term()}.
+put_item_opt({expected, Value}) ->
+    {<<"Expected">>, [dynamize_expected(Value)]};
+put_item_opt({return_values, none}) ->
+    {<<"ReturnValues">>, <<"NONE">>};
+put_item_opt({return_values, all_old}) ->
+    {<<"ReturnValues">>, <<"ALL_OLD">>}.
+
+-spec put_item(table_name(), in_item()) -> item_return().
+put_item(Table, Item) ->
+    put_item(Table, Item, [], default_config()).
+
+-spec put_item(table_name(), in_item(), put_item_opts()) -> item_return().
+put_item(Table, Item, Opts) ->
+    put_item(Table, Item, Opts, default_config()).
+
+-spec put_item(table_name(), in_item(), put_item_opts(), aws_config()) -> item_return().
+put_item(Table, Item, Opts, Config) ->
+    case erlcloud_ddb1:put_item(Table, dynamize_item(Item), opts(fun put_item_opt/1, Opts), Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            case proplists:get_value(<<"Attributes">>, Json) of
+                undefined ->
+                    {ok, []};
+                Return ->
+                    {ok, json_term_to_item(Return)}
+            end
+    end.
+
 
 default_config() -> erlcloud_aws:default_config().
