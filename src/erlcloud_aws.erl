@@ -6,6 +6,7 @@
          param_list/2, default_config/0, update_config/1, format_timestamp/1,
          http_headers_body/1]).
 
+-include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
 aws_request_xml(Method, Host, Path, Params, #aws_config{} = Config) ->
@@ -179,7 +180,7 @@ http_body(Return) ->
             {error, Reason}
     end.
 
--spec http_headers_body({ok, tuple()} | {error, term()}) -> {ok, {http:headers(), string()}} | {error, tuple()}.
+-spec http_headers_body({ok, tuple()} | {error, term()}) -> {ok, {headers(), string()}} | {error, tuple()}.
 %% Extract the headers and body and do error handling on the return of a httpc:request call.
 http_headers_body({ok, {{_HTTPVer, OKStatus, _StatusLine}, Headers, Body}}) 
   when OKStatus >= 200, OKStatus =< 299 ->

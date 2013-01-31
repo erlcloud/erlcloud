@@ -10,6 +10,9 @@
           mon_host="monitoring.amazonaws.com"::string(),
           mon_port=undefined::non_neg_integer()|undefined,
           mon_protocol=undefined::string()|undefined,
+          ddb_scheme="https://"::string(),
+          ddb_host="dynamodb.us-east-1.amazonaws.com"::string(),
+          ddb_port=80::non_neg_integer(),
           access_key_id::string()|undefined|false,
           secret_access_key::string()|undefined|false,
           security_token=undefined::string()|undefined
