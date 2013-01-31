@@ -112,7 +112,6 @@ request(Config0, Operation, JSON) ->
 
 -spec request_and_retry(aws_config(), headers(), jsx:json_text()) -> term().
 request_and_retry(Config, Headers, Body) ->
-    io:format("HEADERS ~p~n", [Headers]),
     case httpc:request(post, {url(Config), Headers, "application/x-amz-json-1.0", Body}, [], 
                        [{body_format, binary}]) of
         {ok, {{_HTTPVer, 200, _StatusLine}, _RespHeaders, RespBody}} ->

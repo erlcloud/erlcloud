@@ -16,15 +16,15 @@
 -type attr_type() :: s | n | b | ss | ns | bs.
 -type attr_name() :: binary().
 %% TODO decimal support
--type in_attr_data_scalar() :: iolist() | binary() | integer.
--type in_attr_data_set() :: [iolist() | binary()] | [integer].
+-type in_attr_data_scalar() :: iolist() | binary() | integer().
+-type in_attr_data_set() :: [iolist() | binary()] | [integer()].
 -type in_attr_data() :: in_attr_data_scalar() | in_attr_data_set().
 -type in_attr_typed_value() :: {attr_type(), in_attr_data()}.
 -type in_attr_value() :: in_attr_data() | in_attr_typed_value().
 -type in_attr() :: {attr_name(), in_attr_value()}.
 
--type hash_key() :: in_attr().
--type range_key() :: in_attr().
+-type hash_key() :: in_attr_value().
+-type range_key() :: in_attr_value().
 -type hash_range_key() :: {hash_key(), range_key()}.
 -type key() :: hash_key() | hash_range_key().
 
@@ -58,11 +58,11 @@ dynamize_value({b, Value}) when is_binary(Value) orelse is_list(Value) ->
     {<<"B">>, base64:encode(Value)};
 
 dynamize_value({ss, Value}) when is_list(Value) ->
-    {<<"SS">>, dynamize_set(s, Value)};
+    {<<"SS">>, dynamize_set(ss, Value)};
 dynamize_value({ns, Value}) when is_list(Value) ->
-    {<<"NS">>, dynamize_set(n, Value)};
+    {<<"NS">>, dynamize_set(ns, Value)};
 dynamize_value({bs, Value}) when is_list(Value) ->
-    {<<"BS">>, dynamize_set(b, Value)};
+    {<<"BS">>, dynamize_set(bs, Value)};
 
 dynamize_value(Value) when is_binary(Value) ->
     dynamize_value({s, Value});
@@ -80,6 +80,30 @@ dynamize_key({HashKey, RangeKey}) ->
     {dynamize_value(HashKey), dynamize_value(RangeKey)};
 dynamize_key(HashKey) ->
     dynamize_value(HashKey).
+
+
+-spec json_value_to_value({binary(), binary() | [binary()]}) -> out_attr_value().
+json_value_to_value({<<"S">>, Value}) when is_binary(Value) ->
+    Value;
+json_value_to_value({<<"N">>, Value}) ->
+    list_to_integer(binary_to_list(Value));
+json_value_to_value({<<"B">>, Value}) ->
+    base64:decode(Value);
+json_value_to_value({<<"SS">>, Values}) when is_list(Values) ->
+    Values;
+json_value_to_value({<<"NS">>, Values}) ->
+    [list_to_integer(binary_to_list(Value)) || Value <- Values];
+json_value_to_value({<<"BS">>, Values}) ->
+    [base64:decode(Value) || Value <- Values].
+
+-spec json_attr_to_attr({binary(), jsx:json_term()}) -> out_attr().
+json_attr_to_attr({Name, [ValueJson]}) ->
+    {Name, json_value_to_value(ValueJson)}.
+
+-spec json_term_to_item(jsx:json_term()) -> out_item().
+json_term_to_item(Json) ->
+    [json_attr_to_attr(Attr) || Attr <- Json].
+
 
 -type get_item_opt() :: {attributes_to_get, [binary()]} | 
                         {consistent_read, boolean()}.
@@ -111,27 +135,5 @@ get_item(Table, Key, Opts, Config) ->
         {ok, Json} ->
             {ok, json_term_to_item(proplists:get_value(<<"Item">>, Json))}
     end.
-
--spec json_value_to_value({binary(), binary() | [binary()]}) -> out_attr_value().
-json_value_to_value({<<"S">>, Value}) when is_binary(Value) ->
-    Value;
-json_value_to_value({<<"N">>, Value}) ->
-    list_to_integer(binary_to_list(Value));
-json_value_to_value({<<"B">>, Value}) ->
-    base64:decode(Value);
-json_value_to_value({<<"SS">>, Values}) when is_list(Values) ->
-    Values;
-json_value_to_value({<<"NS">>, Values}) ->
-    [list_to_integer(binary_to_list(Value)) || Value <- Values];
-json_value_to_value({<<"BS">>, Values}) ->
-    [base64:decode(Value) || Value <- Values].
-
--spec json_attr_to_attr({binary(), jsx:json_term()}) -> out_attr().
-json_attr_to_attr({Name, [ValueJson]}) ->
-    {Name, json_value_to_value(ValueJson)}.
-
--spec json_term_to_item(jsx:json_term()) -> out_item().
-json_term_to_item(Json) ->
-    [json_attr_to_attr(Attr) || Attr <- Json].
 
 default_config() -> erlcloud_aws:default_config().
