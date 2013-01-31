@@ -104,6 +104,9 @@ input_test(Response, {Line, {Description, Fun, Params}}) when
      {Line,
       fun() ->
               meck:expect(httpc, request, input_expect(Response, Params)),
+              %% Configure to make sure there is a key. Would like to do this in start, but
+              %% that isn't called in the same process
+              erlcloud_ec2:configure(string:copies("A", 20), string:copies("a", 40)),
               Fun()
       end}};
 input_test(Response, {Line, {Fun, Params}}) ->
@@ -133,6 +136,7 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
      {Line,
       fun() ->
               meck:expect(httpc, request, output_expect(Response)),
+              erlcloud_ec2:configure(string:copies("A", 20), string:copies("a", 40)),
               Actual = Fun(),
               ?assertEqual(Result, Actual)
       end}};
