@@ -17,8 +17,13 @@ run:
 eunit: compile
 	@$(REBAR) eunit skip_deps=true
 
-dialyzer: compile
+dialyzer: eunit
+# Lots of dialyzer warnings I don't want to fix - just check clean files for now
 	dialyzer --verbose --no_check_plt --no_native --fullpath \
-		ebin/erlcloud_ddb1.beam ebin/erlcloud_aws.beam \
+		ebin/erlcloud_ddb1.beam \
+		ebin/erlcloud_ddb.beam \
+		ebin/erlcloud_aws.beam \
+		.eunit/erlcloud_ec2_tests.beam \
+		.eunit/erlcloud_ddb_tests.beam \
 		-Wunmatched_returns \
 		-Werror_handling
