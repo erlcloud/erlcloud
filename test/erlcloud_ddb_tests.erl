@@ -28,7 +28,9 @@ operation_test_() ->
      [fun delete_item_input_tests/1,
       fun delete_item_output_tests/1,
       fun get_item_input_tests/1,
-      fun get_item_output_tests/1]}.
+      fun get_item_output_tests/1,
+      fun put_item_input_tests/1,
+      fun put_item_output_tests/1]}.
 
 start() ->
     meck:new(httpc, [unstick]),
@@ -251,3 +253,54 @@ get_item_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb:get_item(<<"table">>, <<"key">>)), Tests).
+
+%% PutItem test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_PutItem.html
+put_item_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"PutItem example request",
+             ?_f(erlcloud_ddb:put_item(<<"comp5">>, 
+                                       [{<<"time">>, 300}, 
+                                        {<<"feeling">>, <<"not surprised">>},
+                                        {<<"user">>, <<"Riley">>}],
+                                       [{expected, {<<"feeling">>, <<"surprised">>}},
+                                        {return_values, all_old}])), "
+{\"TableName\":\"comp5\",
+	\"Item\":
+		{\"time\":{\"N\":\"300\"},
+		\"feeling\":{\"S\":\"not surprised\"},
+		\"user\":{\"S\":\"Riley\"}
+		},
+	\"Expected\":
+		{\"feeling\":{\"Value\":{\"S\":\"surprised\"}}},
+	\"ReturnValues\":\"ALL_OLD\"
+}"
+            })
+        ],
+
+    Response = "
+{\"Attributes\":
+	{\"feeling\":{\"S\":\"surprised\"},
+	\"time\":{\"N\":\"300\"},
+	\"user\":{\"S\":\"Riley\"}},
+\"ConsumedCapacityUnits\":1
+}",
+    input_tests(Response, Tests).
+
+put_item_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"PutItem example response", "
+{\"Attributes\":
+	{\"feeling\":{\"S\":\"surprised\"},
+	\"time\":{\"N\":\"300\"},
+	\"user\":{\"S\":\"Riley\"}},
+\"ConsumedCapacityUnits\":1
+}",
+             {ok, [{<<"feeling">>, <<"surprised">>},
+                   {<<"time">>, 300},
+                   {<<"user">>, <<"Riley">>}]}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb:put_item(<<"table">>, [])), Tests).
