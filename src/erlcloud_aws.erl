@@ -180,6 +180,7 @@ http_body(Return) ->
             {error, Reason}
     end.
 
+-type headers() :: [{string(), string()}].
 -spec http_headers_body({ok, tuple()} | {error, term()}) -> {ok, {headers(), string()}} | {error, tuple()}.
 %% Extract the headers and body and do error handling on the return of a httpc:request call.
 http_headers_body({ok, {{_HTTPVer, OKStatus, _StatusLine}, Headers, Body}}) 
