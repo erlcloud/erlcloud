@@ -177,6 +177,10 @@ json_attr_to_attr({Name, [ValueJson]}) ->
     {Name, json_value_to_value(ValueJson)}.
 
 -spec json_term_to_item(json_item()) -> out_item().
+json_term_to_item([{}]) ->
+    %% jsx returns [{}] for {} (as in "Item":{}), which is the JSON returned if none of the items attributes match
+    %% the attributes to get.
+    [];
 json_term_to_item(Json) ->
     [json_attr_to_attr(Attr) || Attr <- Json].
 
@@ -240,7 +244,12 @@ get_item(Table, Key, Opts, Config) ->
         {error, Reason} ->
             {error, Reason};
         {ok, Json} ->
-            {ok, json_term_to_item(proplists:get_value(<<"Item">>, Json))}
+            case proplists:get_value(<<"Item">>, Json) of
+                undefined ->
+                    {error, item_not_found};
+                Item ->
+                    {ok, json_term_to_item(Item)}
+            end
     end.
 
 
