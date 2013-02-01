@@ -34,7 +34,8 @@
 %% DDB API Functions
 -export([delete_item/2, delete_item/3, delete_item/4,
          get_item/2, get_item/3, get_item/4,
-         put_item/2, put_item/3, put_item/4
+         put_item/2, put_item/3, put_item/4,
+         update_item/3, update_item/4, update_item/5
         ]).
 
 -export_type([key/0]).
@@ -48,6 +49,7 @@
 -type hash_range_key() :: {hash_key(), range_key()}.
 -type key() :: hash_key() | hash_range_key().
 -type item() :: jsx:json_term().
+-type updates() :: jsx:json_term().
 -type json_reply() :: {ok, jsx:json_term()} | {error, term()}.
 
 -spec key_value(key()) -> jsx:json_term().
@@ -65,6 +67,11 @@ key_json(Key) ->
 -spec item_json(item()) -> {binary(), item()}.
 item_json(Item) ->
     {<<"Item">>, Item}.
+
+-spec updates_json(updates()) -> {binary(), updates()}.
+updates_json(Updates) ->
+    {<<"AttributeUpdates">>, Updates}.
+
 
 -spec delete_item(table_name(), key()) -> json_reply().
 delete_item(Table, Key) ->
@@ -114,6 +121,23 @@ put_item(Table, Item, Optional, Config) ->
     request(Config, "PutItem", JSON).
 
 
+-spec update_item(table_name(), key(), updates()) -> json_reply().
+update_item(Table, Key, Updates) ->
+    update_item(Table, Key, Updates, [], default_config()).
+
+-spec update_item(table_name(), key(), updates(), jsx:json_term()) -> json_reply().
+update_item(Table, Key, Updates, Optional) ->
+    update_item(Table, Key, Updates, Optional, default_config()).
+
+-spec update_item(table_name(), key(), updates(), jsx:json_term(), aws_config()) -> json_reply().
+update_item(Table, Key, Updates, Optional, Config) ->
+    JSON = [{<<"TableName">>, Table},
+            key_json(Key),
+            updates_json(Updates)] 
+        ++ Optional,
+    request(Config, "UpdateItem", JSON).
+
+    
 -type operation() :: string().
 -spec request(aws_config(), operation(), jsx:json_term()) -> json_reply().
 request(Config0, Operation, JSON) ->

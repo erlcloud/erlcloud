@@ -30,7 +30,9 @@ operation_test_() ->
       fun get_item_input_tests/1,
       fun get_item_output_tests/1,
       fun put_item_input_tests/1,
-      fun put_item_output_tests/1]}.
+      fun put_item_output_tests/1,
+      fun update_item_input_tests/1,
+      fun update_item_output_tests/1]}.
 
 start() ->
     meck:new(httpc, [unstick]),
@@ -304,3 +306,75 @@ put_item_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb:put_item(<<"table">>, [])), Tests).
+
+%% UpdateItem test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateItem.html
+update_item_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"UpdateItem example request",
+             ?_f(erlcloud_ddb:update_item(<<"comp5">>, {"Julie", 1307654350},
+                                          [{<<"status">>, <<"online">>, put}],
+                                          [{expected, {<<"status">>, "offline"}},
+                                           {return_values, all_new}])), "
+{\"TableName\":\"comp5\",
+    \"Key\":
+        {\"HashKeyElement\":{\"S\":\"Julie\"},\"RangeKeyElement\":{\"N\":\"1307654350\"}},
+    \"AttributeUpdates\":
+        {\"status\":{\"Value\":{\"S\":\"online\"},
+        \"Action\":\"PUT\"}},
+    \"Expected\":{\"status\":{\"Value\":{\"S\":\"offline\"}}},
+    \"ReturnValues\":\"ALL_NEW\"
+}"
+            }),
+         ?_ddb_test(
+            {"UpdateItem different update types",
+             ?_f(erlcloud_ddb:update_item(<<"comp5">>, {"Julie", 1307654350},
+                                          [{<<"number">>, 5, add},
+                                           {<<"numberset">>, {ns, [3]}, add},
+                                           {<<"todelete">>, delete},
+                                           {<<"toremove">>, {ss, [<<"bye">>]}, delete},
+                                           {<<"defaultput">>, <<"online">>}])), "
+{\"TableName\":\"comp5\",
+    \"Key\":
+        {\"HashKeyElement\":{\"S\":\"Julie\"},\"RangeKeyElement\":{\"N\":\"1307654350\"}},
+    \"AttributeUpdates\":
+        {\"number\":{\"Value\":{\"N\":\"5\"}, \"Action\":\"ADD\"},
+         \"numberset\":{\"Value\":{\"NS\":[\"3\"]}, \"Action\":\"ADD\"},
+         \"todelete\":{\"Action\":\"DELETE\"},
+         \"toremove\":{\"Value\":{\"SS\":[\"bye\"]}, \"Action\":\"DELETE\"},
+         \"defaultput\":{\"Value\":{\"S\":\"online\"}}}
+}"
+            })
+
+        ],
+
+    Response = "
+{\"Attributes\":
+    {\"friends\":{\"SS\":[\"Lynda, Aaron\"]},
+    \"status\":{\"S\":\"online\"},
+    \"time\":{\"N\":\"1307654350\"},
+    \"user\":{\"S\":\"Julie\"}},
+\"ConsumedCapacityUnits\":1
+}",
+    input_tests(Response, Tests).
+
+update_item_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"UpdateItem example response", "
+{\"Attributes\":
+    {\"friends\":{\"SS\":[\"Lynda\", \"Aaron\"]},
+    \"status\":{\"S\":\"online\"},
+    \"time\":{\"N\":\"1307654350\"},
+    \"user\":{\"S\":\"Julie\"}},
+\"ConsumedCapacityUnits\":1
+}",
+             {ok, [{<<"friends">>, [<<"Lynda">>, <<"Aaron">>]},
+                   {<<"status">>, <<"online">>},
+                   {<<"time">>, 1307654350},
+                   {<<"user">>, <<"Julie">>}]}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb:update_item(<<"table">>, <<"key">>, [])), Tests).
+
