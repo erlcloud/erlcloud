@@ -318,7 +318,15 @@ get_item_output_tests(_) ->
                    {<<"s">>, <<"Lynda">>},
                    {<<"n">>, 12},
                    {<<"b">>, <<5,182>>},
-                   {<<"empty">>, <<>>}]}})
+                   {<<"empty">>, <<>>}]}}),
+         ?_ddb_test(
+            {"GetItem item not found", 
+             "{\"ConsumedCapacityUnits\": 0.5}",
+             {error, item_not_found}}),
+         ?_ddb_test(
+            {"GetItem no attributes returned", 
+             "{\"ConsumedCapacityUnits\":0.5,\"Item\":{}}",
+             {ok, []}})
         ],
     
     output_tests(?_f(erlcloud_ddb:get_item(<<"table">>, <<"key">>)), Tests).
