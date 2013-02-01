@@ -145,20 +145,87 @@ request(Config0, Operation, JSON) ->
     case erlcloud_aws:update_config(Config0) of
         {ok, Config} ->
             Headers = headers(Config, Operation, Body),
-            request_and_retry(Config, Headers, Body);
+            request_and_retry(Config, Headers, Body, 1, undefined);
         {error, Reason} ->
             {error, Reason}
     end.
 
+%% Error handling
+%% see http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html
+
+%% Although it is documented that you should use exponential backoff, exact delays or number of retries
+%% are not specified.
+%% boto (if I read the code correctly) waits 2^(Attempt - 2)*50ms before an attempt and will make 10 attempts,
+%% which means it will wait up to 12.8 seconds before the last attempt.
+%% This algorithm is similar, except that it waits a random interval up to 2^(Attempt-2)*100ms. The average
+%% wait time should be the same as boto.
+
+%% TODO make delay configurable
+%% TODO refactor retry logic so that it can be used by all requests and move to erlcloud_aws
+
+-define(NUM_ATTEMPTS, 10).
+
+-spec backoff(pos_integer()) -> ok.
+backoff(1) -> ok;
+backoff(2) -> ok;
+backoff(Attempt) -> 
+    timer:sleep(random:uniform((1 bsl (Attempt - 2)) * 100)).
+    
 -type headers() :: [{string(), string()}].
--spec request_and_retry(aws_config(), headers(), jsx:json_text()) -> term().
-request_and_retry(Config, Headers, Body) ->
+-spec request_and_retry(aws_config(), headers(), jsx:json_text(), pos_integer(), term()) -> 
+                               {ok, jsx:json_term()} | {error, term()}.
+request_and_retry(_, _, _, Attempt, LastReason) when Attempt > ?NUM_ATTEMPTS ->
+    {error, LastReason};
+request_and_retry(Config, Headers, Body, Attempt, _) ->
+    backoff(Attempt),
     case httpc:request(post, {url(Config), Headers, "application/x-amz-json-1.0", Body}, [], 
                        [{body_format, binary}]) of
-        {ok, {{_HTTPVer, 200, _StatusLine}, _RespHeaders, RespBody}} ->
+
+        {ok, {{_, 200, _}, _, RespBody}} ->
             %% TODO check crc
-            {ok, jsx:decode(RespBody)}
-            %% TODO retry logic
+            {ok, jsx:decode(RespBody)};
+
+        {ok, {{_, Status, StatusLine}, _, RespBody}} when Status >= 400 andalso Status < 500 ->
+            case client_error(Status, StatusLine, RespBody) of
+                {retry, Reason} ->
+                    request_and_retry(Config, Headers, Body, Attempt + 1, Reason);
+                {error, Reason} ->
+                    {error, Reason}
+            end;
+                            
+        {ok, {{_, Status, StatusLine}, _, RespBody}} when Status >= 500 ->
+            request_and_retry(Config, Headers, Body, Attempt + 1, {http_error, Status, StatusLine, RespBody});
+                            
+        {ok, {{_, Status, StatusLine}, _, RespBody}} ->
+            {error, {http_error, Status, StatusLine, RespBody}};
+                            
+        {error, Reason} ->
+            %% TODO there may be some http errors, such as certificate error, that we don't want to retry
+            request_and_retry(Config, Headers, Body, Attempt + 1, Reason)
+    end.
+
+-spec client_error(pos_integer(), string(), binary()) -> {retry, term()} | {error, term()}.
+client_error(Status, StatusLine, Body) ->
+    case jsx:is_json(Body) of
+        false ->
+            {error, {http_error, Status, StatusLine, Body}};
+        true ->
+            Json = jsx:decode(Body),
+            case proplists:get_value(<<"__type">>, Json) of
+                undefined ->
+                    {error, {http_error, Status, StatusLine, Body}};
+                FullType ->
+                    case binary:split(FullType, <<"#">>) of
+                        [_, <<"ProvisionedThroughputExceededException">> = Type] ->
+                            {retry, Type};
+                        [_, <<"ThrottlingException">> = Type] ->
+                            {retry, Type};
+                        [_, Type] ->
+                            {error, Type};
+                        _ ->
+                            {error, {http_error, Status, StatusLine, Body}}
+                    end
+            end
     end.
 
 -spec headers(aws_config(), string(), binary()) -> headers().
