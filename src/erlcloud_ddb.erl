@@ -7,15 +7,21 @@
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
+-include("erlcloud_ddb.hrl").
 
 %%% Library initialization.
 -export([configure/2, configure/3, new/2, new/3]).
 
+%%% DynamoDB API
 -export([delete_item/2, delete_item/3, delete_item/4,
          get_item/2, get_item/3, get_item/4,
          put_item/2, put_item/3, put_item/4,
+         %% Note that query is a Erlang reserved word, so we use q instead
+         q/2, q/3, q/4,
          update_item/3, update_item/4, update_item/5
         ]).
+
+-export_type([hash_range_key/0, out_item/0]).
 
 %%% Library initialization.
 -spec(new/2 :: (string(), string()) -> aws_config()).
@@ -65,16 +71,23 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 -type json_expected() :: {attr_name(), [json_attr_value()] | [{binary(), boolean()}]}.
 -type json_update_action() :: {binary(), binary()}.
 -type json_update() :: {attr_name(), [{binary(), json_attr_value()} | json_update_action()]}.
+-type json_range_key_condition() :: jsx:json_term().
+-type json_key() :: [json_attr(),...].
 
 -type hash_key() :: in_attr_value().
 -type range_key() :: in_attr_value().
 -type hash_range_key() :: {hash_key(), range_key()}.
 -type key() :: hash_key() | hash_range_key().
 
+-type comparison_operator() :: eq | le | lt | ge | gt | begins_with | between.
+-type range_key_condition() :: {in_attr_value(), comparison_operator()} | 
+                               {in_attr_value(), in_attr_value(), between}.
+
 -type out_attr_value() :: binary() | integer() | [binary()] | [integer()].
 -type out_attr() :: {attr_name(), out_attr_value()}.
 -type out_item() :: [out_attr()].
 -type item_return() :: {ok, out_item()} | {error, term()}.
+-type q_return() :: {ok, #ddb_q{}} | {error, term()}.
 
 
 %% Dynamize does type inference.
@@ -115,7 +128,7 @@ dynamize_value(Value) when is_list(Value) ->
 dynamize_value(Value) when is_integer(Value) ->
     dynamize_value({n, Value});
 dynamize_value(Value) ->
-    throw({erlcould_ddb_error, {invalid_attr_value, Value}}).
+    throw({erlcloud_ddb_error, {invalid_attr_value, Value}}).
 
 -spec dynamize_attr(in_attr()) -> json_attr().
 dynamize_attr({Name, Value}) ->
@@ -136,8 +149,10 @@ dynamize_expected({Name, Value}) ->
     {Name, [{<<"Value">>, [dynamize_value(Value)]}]}.
 
 -spec dynamize_item(in_item()) -> json_item().
+dynamize_item(Item) when is_list(Item) ->
+    [dynamize_attr(Attr) || Attr <- Item];
 dynamize_item(Item) ->
-    [dynamize_attr(Attr) || Attr <- Item].
+    throw({erlcloud_ddb_error, {invalid_item, Item}}).
 
 -spec dynamize_action(update_action()) -> json_update_action().
 dynamize_action(put) ->
@@ -156,7 +171,28 @@ dynamize_update({Name, Value}) ->
     %% Uses the default action of put
     {Name, [{<<"Value">>, [dynamize_value(Value)]}]}.
 
+-spec dynamize_comparison(comparison_operator()) -> {binary(), binary()}.
+dynamize_comparison(eq) ->
+    {<<"ComparisonOperator">>, <<"EQ">>};
+dynamize_comparison(le) ->
+    {<<"ComparisonOperator">>, <<"LE">>};
+dynamize_comparison(lt) ->
+    {<<"ComparisonOperator">>, <<"LT">>};
+dynamize_comparison(ge) ->
+    {<<"ComparisonOperator">>, <<"GE">>};
+dynamize_comparison(gt) ->
+    {<<"ComparisonOperator">>, <<"GT">>};
+dynamize_comparison(begins_with) ->
+    {<<"ComparisonOperator">>, <<"BEGINS_WITH">>};
+dynamize_comparison(between) ->
+    {<<"ComparisonOperator">>, <<"BETWEEN">>}.
 
+-spec dynamize_range_key_condition(range_key_condition()) -> json_range_key_condition().
+dynamize_range_key_condition({Value1, Value2, between}) ->
+    [{<<"AttributeValueList">>, [[dynamize_value(Value1)], [dynamize_value(Value2)]],
+      dynamize_comparison(between)}];
+dynamize_range_key_condition({Value, Comparison}) ->
+    [{<<"AttributeValueList">>, [[dynamize_value(Value)]]}, dynamize_comparison(Comparison)].
 
 -spec json_value_to_value(json_attr_value()) -> out_attr_value().
 json_value_to_value({<<"S">>, Value}) when is_binary(Value) ->
@@ -184,6 +220,17 @@ json_term_to_item([{}]) ->
 json_term_to_item(Json) ->
     [json_attr_to_attr(Attr) || Attr <- Json].
 
+-spec json_attr_value_to_typed_value(json_attr_value()) -> in_attr_typed_value().
+json_attr_value_to_typed_value({<<"S">>, Value}) ->
+    {s, Value};
+json_attr_value_to_typed_value({<<"N">>, Value}) ->
+    {n, list_to_integer(binary_to_list(Value))};
+json_attr_value_to_typed_value({<<"B">>, Value}) ->
+    {b, base64:decode(Value)}.
+
+-spec json_key_to_key(json_key()) -> hash_range_key().
+json_key_to_key([{<<"HashKeyElement">>, [HashKey]}, {<<"RangeKeyElement">>, [RangeKey]}]) ->
+    {json_attr_value_to_typed_value(HashKey), json_attr_value_to_typed_value(RangeKey)}.
 
 -type delete_item_opt() :: {expected, in_expected()} | 
                            {return_values, none | all_old}.
@@ -285,6 +332,61 @@ put_item(Table, Item, Opts, Config) ->
                 Return ->
                     {ok, json_term_to_item(Return)}
             end
+    end.
+
+
+-type q_opt() :: {attributes_to_get, [binary()]} | 
+                     {limit, pos_integer()} |
+                     {consistent_read, boolean()} |
+                     {count, boolean()} |
+                     {range_key_condition, range_key_condition()} |
+                     {scan_index_forward, boolean()} |
+                     {exclusive_start_key, key()}.
+-type q_opts() :: [q_opt()].
+
+-spec q_opt(q_opt()) -> {binary(), jsx:json_term()}.
+q_opt({attributes_to_get, Value}) ->
+    {<<"AttributesToGet">>, Value};
+q_opt({limit, Value}) ->
+    {<<"Limit">>, Value};
+q_opt({consistent_read, Value}) ->
+    {<<"ConsistentRead">>, Value};
+q_opt({count, Value}) ->
+    {<<"Count">>, Value};
+q_opt({range_key_condition, Value}) ->
+    {<<"RangeKeyCondition">>, dynamize_range_key_condition(Value)};
+q_opt({scan_index_forward, Value}) ->
+    {<<"ScanIndexForward">>, Value};
+q_opt({exclusive_start_key, Value}) ->
+    {<<"ExclusiveStartKey">>, erlcloud_ddb1:key_value(dynamize_key(Value))}.
+
+-spec q_folder({binary(), term()}, #ddb_q{}) -> #ddb_q{}.
+q_folder({<<"Items">>, ItemList}, Q) ->
+    Q#ddb_q{items = [json_term_to_item(I) || I <- ItemList]};
+q_folder({<<"Count">>, Count}, Q) ->
+    Q#ddb_q{count = Count};
+q_folder({<<"LastEvaluatedKey">>, Key}, Q) ->
+    Q#ddb_q{last_evaluated_key = json_key_to_key(Key)};
+q_folder({<<"ConsumedCapacityUnits">>, Units}, Q) ->
+    Q#ddb_q{consumed_capacity_units = Units};
+q_folder(_, Q) ->
+    Q.
+
+-spec q(table_name(), hash_key()) -> q_return().
+q(Table, HashKey) ->
+    q(Table, HashKey, [], default_config()).
+
+-spec q(table_name(), hash_key(), q_opts()) -> q_return().
+q(Table, HashKey, Opts) ->
+    q(Table, HashKey, Opts, default_config()).
+
+-spec q(table_name(), hash_key(), q_opts(), aws_config()) -> q_return().
+q(Table, HashKey, Opts, Config) ->
+    case erlcloud_ddb1:q(Table, dynamize_key(HashKey), lists:map(fun q_opt/1, Opts), Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            {ok, lists:foldl(fun q_folder/2, #ddb_q{}, Json)}
     end.
 
 
