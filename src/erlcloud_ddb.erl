@@ -13,7 +13,8 @@
 
 -export([delete_item/2, delete_item/3, delete_item/4,
          get_item/2, get_item/3, get_item/4,
-         put_item/2, put_item/3, put_item/4
+         put_item/2, put_item/3, put_item/4,
+         update_item/3, update_item/4, update_item/5
         ]).
 
 %%% Library initialization.
@@ -43,6 +44,8 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 -type table_name() :: binary().
 -type attr_type() :: s | n | b | ss | ns | bs.
 -type attr_name() :: binary().
+-type update_action() :: put | add | delete.
+
 %% TODO decimal support
 -type in_attr_data_scalar() :: iolist() | binary() | integer().
 -type in_attr_data_set() :: [iolist() | binary()] | [integer()].
@@ -52,6 +55,7 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 -type in_attr() :: {attr_name(), in_attr_value()}.
 -type in_expected() :: {attr_name(), false | in_attr_value()}.
 -type in_item() :: [in_attr()].
+-type in_update() :: {attr_name(), in_attr_value(), update_action()} | in_attr() | {attr_name(), delete}.
 
 -type json_attr_type() :: binary().
 -type json_attr_data() :: binary() | [binary()].
@@ -59,6 +63,8 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 -type json_attr() :: {attr_name(), [json_attr_value()]}.
 -type json_item() :: [json_attr()].
 -type json_expected() :: {attr_name(), [json_attr_value()] | [{binary(), boolean()}]}.
+-type json_update_action() :: {binary(), binary()}.
+-type json_update() :: {attr_name(), [{binary(), json_attr_value()} | json_update_action()]}.
 
 -type hash_key() :: in_attr_value().
 -type range_key() :: in_attr_value().
@@ -133,6 +139,25 @@ dynamize_expected({Name, Value}) ->
 dynamize_item(Item) ->
     [dynamize_attr(Attr) || Attr <- Item].
 
+-spec dynamize_action(update_action()) -> json_update_action().
+dynamize_action(put) ->
+    {<<"Action">>, <<"PUT">>};
+dynamize_action(add) ->
+    {<<"Action">>, <<"ADD">>};
+dynamize_action(delete) ->
+    {<<"Action">>, <<"DELETE">>}.
+
+-spec dynamize_update(in_update()) -> json_update().
+dynamize_update({Name, Value, Action}) ->
+    {Name, [{<<"Value">>, [dynamize_value(Value)]}, dynamize_action(Action)]};
+dynamize_update({Name, delete}) ->
+    {Name, [dynamize_action(delete)]};
+dynamize_update({Name, Value}) ->
+    %% Uses the default action of put
+    {Name, [{<<"Value">>, [dynamize_value(Value)]}]}.
+
+
+
 -spec json_value_to_value(json_attr_value()) -> out_attr_value().
 json_value_to_value({<<"S">>, Value}) when is_binary(Value) ->
     Value;
@@ -154,11 +179,6 @@ json_attr_to_attr({Name, [ValueJson]}) ->
 -spec json_term_to_item(json_item()) -> out_item().
 json_term_to_item(Json) ->
     [json_attr_to_attr(Attr) || Attr <- Json].
-
-
--spec opts(fun(), [{atom(), term()}]) -> jsx:json_term().
-opts(Fun, Opts) ->
-    [Fun(Opt) || Opt <- Opts].
 
 
 -type delete_item_opt() :: {expected, in_expected()} | 
@@ -183,7 +203,7 @@ delete_item(Table, Key, Opts) ->
 
 -spec delete_item(table_name(), key(), delete_item_opts(), aws_config()) -> item_return().
 delete_item(Table, Key, Opts, Config) ->
-    case erlcloud_ddb1:delete_item(Table, dynamize_key(Key), opts(fun delete_item_opt/1, Opts), Config) of
+    case erlcloud_ddb1:delete_item(Table, dynamize_key(Key), lists:map(fun delete_item_opt/1, Opts), Config) of
         {error, Reason} ->
             {error, Reason};
         {ok, Json} ->
@@ -216,7 +236,7 @@ get_item(Table, Key, Opts) ->
 
 -spec get_item(table_name(), key(), get_item_opts(), aws_config()) -> item_return().
 get_item(Table, Key, Opts, Config) ->
-    case erlcloud_ddb1:get_item(Table, dynamize_key(Key), opts(fun get_item_opt/1, Opts), Config) of
+    case erlcloud_ddb1:get_item(Table, dynamize_key(Key), lists:map(fun get_item_opt/1, Opts), Config) of
         {error, Reason} ->
             {error, Reason};
         {ok, Json} ->
@@ -246,7 +266,7 @@ put_item(Table, Item, Opts) ->
 
 -spec put_item(table_name(), in_item(), put_item_opts(), aws_config()) -> item_return().
 put_item(Table, Item, Opts, Config) ->
-    case erlcloud_ddb1:put_item(Table, dynamize_item(Item), opts(fun put_item_opt/1, Opts), Config) of
+    case erlcloud_ddb1:put_item(Table, dynamize_item(Item), lists:map(fun put_item_opt/1, Opts), Config) of
         {error, Reason} ->
             {error, Reason};
         {ok, Json} ->
@@ -255,6 +275,48 @@ put_item(Table, Item, Opts, Config) ->
                     {ok, []};
                 Return ->
                     {ok, json_term_to_item(Return)}
+            end
+    end.
+
+
+-type update_item_opt() :: {expected, in_expected()} | 
+                           {return_values, none | all_old | updated_old | all_new | updated_new}.
+-type update_item_opts() :: [update_item_opt()].
+
+-spec update_item_opt(update_item_opt()) -> {binary(), jsx:json_term()}.
+update_item_opt({expected, Value}) ->
+    {<<"Expected">>, [dynamize_expected(Value)]};
+update_item_opt({return_values, none}) ->
+    {<<"ReturnValues">>, <<"NONE">>};
+update_item_opt({return_values, all_old}) ->
+    {<<"ReturnValues">>, <<"ALL_OLD">>};
+update_item_opt({return_values, updated_old}) ->
+    {<<"ReturnValues">>, <<"UPDATED_OLD">>};
+update_item_opt({return_values, all_new}) ->
+    {<<"ReturnValues">>, <<"ALL_NEW">>};
+update_item_opt({return_values, updated_new}) ->
+    {<<"ReturnValues">>, <<"UPDATED_NEW">>}.
+
+-spec update_item(table_name(), key(), [in_update()]) -> item_return().
+update_item(Table, Key, Updates) ->
+    update_item(Table, Key, Updates, [], default_config()).
+
+-spec update_item(table_name(), key(), [in_update()], update_item_opts()) -> item_return().
+update_item(Table, Key, Updates, Opts) ->
+    update_item(Table, Key, Updates, Opts, default_config()).
+
+-spec update_item(table_name(), key(), [in_update()], update_item_opts(), aws_config()) -> item_return().
+update_item(Table, Key, Updates, Opts, Config) ->
+    case erlcloud_ddb1:update_item(Table, dynamize_key(Key), lists:map(fun dynamize_update/1, Updates), 
+                                   lists:map(fun update_item_opt/1, Opts), Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            case proplists:get_value(<<"Attributes">>, Json) of
+                undefined ->
+                    {ok, []};
+                Item ->
+                    {ok, json_term_to_item(Item)}
             end
     end.
 
