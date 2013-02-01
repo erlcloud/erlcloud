@@ -35,8 +35,13 @@
 -export([delete_item/2, delete_item/3, delete_item/4,
          get_item/2, get_item/3, get_item/4,
          put_item/2, put_item/3, put_item/4,
+         %% Note that query is a Erlang reserved word, so we use q instead
+         q/2, q/3, q/4,
          update_item/3, update_item/4, update_item/5
         ]).
+
+%% Internal use only
+-export([key_value/1]).
 
 -export_type([key/0]).
 
@@ -63,6 +68,10 @@ key_value({HK, HV} = HashKey) when
 -spec key_json(key()) -> {binary(), jsx:json_term()}.
 key_json(Key) ->
     {<<"Key">>, key_value(Key)}.
+
+-spec hash_key_json(hash_key()) -> {binary(), jsx:json_term()}.
+hash_key_json(HashKey) ->
+    {<<"HashKeyValue">>, [HashKey]}.
 
 -spec item_json(item()) -> {binary(), item()}.
 item_json(Item) ->
@@ -119,6 +128,22 @@ put_item(Table, Item, Optional, Config) ->
             item_json(Item)] 
         ++ Optional,
     request(Config, "PutItem", JSON).
+
+
+-spec q(table_name(), hash_key()) -> json_reply().
+q(Table, HashKey) ->
+    q(Table, HashKey, [], default_config()).
+
+-spec q(table_name(), hash_key(), jsx:json_term()) -> json_reply().
+q(Table, HashKey, Optional) ->
+    q(Table, HashKey, Optional, default_config()).
+
+-spec q(table_name(), hash_key(), jsx:json_term(), aws_config()) -> json_reply().
+q(Table, HashKey, Optional, Config) ->
+    JSON = [{<<"TableName">>, Table},
+            hash_key_json(HashKey)] 
+        ++ Optional,
+    request(Config, "Query", JSON).
 
 
 -spec update_item(table_name(), key(), updates()) -> json_reply().

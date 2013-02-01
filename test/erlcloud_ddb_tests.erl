@@ -2,6 +2,7 @@
 -module(erlcloud_ddb_tests).
 -include_lib("eunit/include/eunit.hrl").
 -include("erlcloud.hrl").
+-include("erlcloud_ddb.hrl").
 
 %% Unit tests for ddb.
 %% These tests work by using meck to mock httpc. There are two classes of test: input and output.
@@ -32,6 +33,8 @@ operation_test_() ->
       fun get_item_output_tests/1,
       fun put_item_input_tests/1,
       fun put_item_output_tests/1,
+      fun q_item_input_tests/1,
+      fun q_item_output_tests/1,
       fun update_item_input_tests/1,
       fun update_item_output_tests/1]}.
 
@@ -150,6 +153,14 @@ error_tests(Fun, Tests) ->
 %%%===================================================================
 %%% Actual test specifiers
 %%%===================================================================
+
+input_exception_test_() ->
+    [?_assertThrow({erlcloud_ddb_error, {invalid_attr_value, {n, "string"}}},
+                   erlcloud_ddb:get_item(<<"Table">>, {n, "string"})),
+     %% This test causes an expected dialyzer error
+     ?_assertThrow({erlcloud_ddb_error, {invalid_item, <<"Attr">>}},
+                   erlcloud_ddb:put_item(<<"Table">>, <<"Attr">>))
+    ].
 
 %% Error handling tests based on:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html
@@ -381,6 +392,101 @@ put_item_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb:put_item(<<"table">>, [])), Tests).
+
+%% Query test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Query.html
+q_item_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"Query example 1 request",
+             ?_f(erlcloud_ddb:q(<<"1-hash-rangetable">>, <<"John">> ,
+                                [{limit, 2},
+                                 {scan_index_forward, false},
+                                 {exclusive_start_key, {{s, <<"John">>}, {s, <<"The Matrix">>}}}])), "
+{\"TableName\":\"1-hash-rangetable\",
+	\"HashKeyValue\":{\"S\":\"John\"},
+	\"Limit\":2,
+	\"ScanIndexForward\":false,
+	\"ExclusiveStartKey\":{
+		\"HashKeyElement\":{\"S\":\"John\"},
+		\"RangeKeyElement\":{\"S\":\"The Matrix\"}
+	}
+}"
+            }),
+         ?_ddb_test(
+            {"Query example 2 request",
+             ?_f(erlcloud_ddb:q(<<"1-hash-rangetable">>, <<"Airplane">>,
+                                [{limit, 2},
+                                 {range_key_condition, {1980, eq}},
+                                 {scan_index_forward, false}])), "
+{\"TableName\":\"1-hash-rangetable\",
+	\"HashKeyValue\":{\"S\":\"Airplane\"},
+	\"Limit\":2,
+	\"RangeKeyCondition\":{\"AttributeValueList\":[{\"N\":\"1980\"}],\"ComparisonOperator\":\"EQ\"},
+	\"ScanIndexForward\":false}"
+            })
+        ],
+
+    Response = "
+{\"Count\":1,\"Items\":[{
+	\"fans\":{\"SS\":[\"Dave\",\"Aaron\"]},
+	\"name\":{\"S\":\"Airplane\"},
+	\"rating\":{\"S\":\"***\"},
+	\"year\":{\"N\":\"1980\"}
+	}],
+\"ConsumedCapacityUnits\":1
+}",
+    input_tests(Response, Tests).
+
+q_item_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"Query example 1 response", "
+{\"Count\":2,\"Items\":[{
+	\"fans\":{\"SS\":[\"Jody\",\"Jake\"]},
+	\"name\":{\"S\":\"John\"},
+	\"rating\":{\"S\":\"***\"},
+	\"title\":{\"S\":\"The End\"}
+	},{
+	\"fans\":{\"SS\":[\"Jody\",\"Jake\"]},
+	\"name\":{\"S\":\"John\"},
+	\"rating\":{\"S\":\"***\"},
+	\"title\":{\"S\":\"The Beatles\"}
+	}],
+	\"LastEvaluatedKey\":{\"HashKeyElement\":{\"S\":\"John\"},\"RangeKeyElement\":{\"S\":\"The Beatles\"}},
+\"ConsumedCapacityUnits\":1
+}",
+             {ok, #ddb_q{count = 2,
+                         items = [[{<<"fans">>, [<<"Jody">>, <<"Jake">>]},
+                                   {<<"name">>, <<"John">>},
+                                   {<<"rating">>, <<"***">>},
+                                   {<<"title">>, <<"The End">>}],
+                                  [{<<"fans">>, [<<"Jody">>, <<"Jake">>]},
+                                   {<<"name">>, <<"John">>},
+                                   {<<"rating">>, <<"***">>},
+                                   {<<"title">>, <<"The Beatles">>}]],
+                         last_evaluated_key = {{s, <<"John">>}, {s, <<"The Beatles">>}},
+                         consumed_capacity_units = 1}}}),
+         ?_ddb_test(
+            {"Query example 2 response", "
+{\"Count\":1,\"Items\":[{
+	\"fans\":{\"SS\":[\"Dave\",\"Aaron\"]},
+	\"name\":{\"S\":\"Airplane\"},
+	\"rating\":{\"S\":\"***\"},
+	\"year\":{\"N\":\"1980\"}
+	}],
+\"ConsumedCapacityUnits\":1
+}",
+             {ok, #ddb_q{count = 1,
+                         items = [[{<<"fans">>, [<<"Dave">>, <<"Aaron">>]},
+                                   {<<"name">>, <<"Airplane">>},
+                                   {<<"rating">>, <<"***">>},
+                                   {<<"year">>, 1980}]],
+                         last_evaluated_key = undefined,
+                         consumed_capacity_units = 1}}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb:q(<<"table">>, <<"key">>)), Tests).
 
 %% UpdateItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateItem.html
