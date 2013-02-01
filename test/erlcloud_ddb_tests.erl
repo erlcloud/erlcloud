@@ -25,7 +25,8 @@ operation_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
-     [fun delete_item_input_tests/1,
+     [fun error_handling_tests/1,
+      fun delete_item_input_tests/1,
       fun delete_item_output_tests/1,
       fun get_item_input_tests/1,
       fun get_item_output_tests/1,
@@ -121,8 +122,74 @@ output_tests(Fun, Tests) ->
 
 
 %%%===================================================================
+%%% Error test helpers
+%%%===================================================================
+
+-spec httpc_response(pos_integer(), string()) -> tuple().
+httpc_response(Code, Body) ->
+    {ok, {{"", Code, ""}, [], list_to_binary(Body)}}.
+    
+-type error_test_spec() :: {pos_integer(), {string(), list(), term()}}.
+-spec error_test(fun(), error_test_spec()) -> tuple().
+error_test(Fun, {Line, {Description, Responses, Result}}) ->
+    %% Add a bogus response to the end of the request to make sure we don't call too many times
+    Responses1 = Responses ++ [httpc_response(200, "TOO MANY REQUESTS")],
+    {Description,
+     {Line,
+      fun() ->
+              meck:sequence(httpc, request, 4, Responses1),
+              erlcloud_ddb:configure(string:copies("A", 20), string:copies("a", 40)),
+              Actual = Fun(),
+              ?assertEqual(Result, Actual)
+      end}}.
+      
+-spec error_tests(fun(), [error_test_spec()]) -> [term()].
+error_tests(Fun, Tests) ->
+    [error_test(Fun, Test) || Test <- Tests].
+
+%%%===================================================================
 %%% Actual test specifiers
 %%%===================================================================
+
+%% Error handling tests based on:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html
+error_handling_tests(_) ->
+    OkResponse = httpc_response(200, "
+{\"Item\":
+	{\"friends\":{\"SS\":[\"Lynda\", \"Aaron\"]},
+	 \"status\":{\"S\":\"online\"}
+	},
+\"ConsumedCapacityUnits\": 1
+}"                                   
+                                  ),
+    OkResult = {ok, [{<<"friends">>, [<<"Lynda">>, <<"Aaron">>]},
+                     {<<"status">>, <<"online">>}]},
+
+    Tests = 
+        [?_ddb_test(
+            {"Test retry after ProvisionedThroughputExceededException",
+             [httpc_response(400, "
+{\"__type\":\"com.amazonaws.dynamodb.v20111205#ProvisionedThroughputExceededException\",
+\"message\":\"The level of configured provisioned throughput for the table was exceeded. Consider increasing your provisioning level with the UpdateTable API\"}"
+                            ),
+              OkResponse],
+             OkResult}),
+         ?_ddb_test(
+            {"Test ConditionalCheckFailed error",
+             [httpc_response(400, "
+{\"__type\":\"com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException\",
+\"message\":\"The expected value did not match what was stored in the system.\"}"
+                            )],
+             {error, <<"ConditionalCheckFailedException">>}}),
+         ?_ddb_test(
+            {"Test retry after 500",
+             [httpc_response(500, ""),
+              OkResponse],
+             OkResult})
+        ],
+    
+    error_tests(?_f(erlcloud_ddb:get_item(<<"table">>, <<"key">>)), Tests).
+
 
 %% DeleteItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteItem.html
