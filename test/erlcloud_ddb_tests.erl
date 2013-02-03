@@ -35,6 +35,8 @@ operation_test_() ->
       fun create_table_output_tests/1,
       fun delete_item_input_tests/1,
       fun delete_item_output_tests/1,
+      fun delete_table_input_tests/1,
+      fun delete_table_output_tests/1,
       fun get_item_input_tests/1,
       fun get_item_output_tests/1,
       fun put_item_input_tests/1,
@@ -625,6 +627,58 @@ delete_item_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb:delete_item(<<"table">>, <<"key">>)), Tests).
+
+%% DeleteTable test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteTable.html
+delete_table_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"DeleteTable example request",
+             ?_f(erlcloud_ddb:delete_table(<<"Table1">>)), 
+             "{\"TableName\":\"Table1\"}"
+            })
+        ],
+
+    Response = "
+{\"TableDescription\":
+    {\"CreationDateTime\":1.313362508446E9,
+    \"KeySchema\":
+        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
+        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
+    \"ProvisionedThroughput\":{\"ReadCapacityUnits\":10,\"WriteCapacityUnits\":10},
+    \"TableName\":\"Table1\",
+    \"TableStatus\":\"DELETING\"
+    }
+}",
+    input_tests(Response, Tests).
+
+delete_table_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"DeleteTable example response", "
+{\"TableDescription\":
+    {\"CreationDateTime\":1.313362508446E9,
+    \"KeySchema\":
+        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
+        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
+    \"ProvisionedThroughput\":{\"ReadCapacityUnits\":10,\"WriteCapacityUnits\":10},
+    \"TableName\":\"Table1\",
+    \"TableStatus\":\"DELETING\"
+    }
+}",
+             {ok, #ddb_table_description
+              {creation_date_time = 1313362508.446,
+               key_schema = {{<<"user">>, s}, {<<"time">>, n}},
+               provisioned_throughput = #ddb_provisioned_throughput{
+                                           read_capacity_units = 10,
+                                           write_capacity_units = 10,
+                                           last_decrease_date_time = undefined,
+                                           last_increase_date_time = undefined},
+               name = <<"Table1">>,
+               status = <<"DELETING">>}}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb:delete_table(<<"name">>)), Tests).
 
 %% GetItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_GetItem.html
