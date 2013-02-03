@@ -16,6 +16,7 @@
 -export([batch_get_item/1, batch_get_item/2,
          batch_write_item/1, batch_write_item/2,
          create_table/4, create_table/5,
+         delete_table/1, delete_table/2,
          delete_item/2, delete_item/3, delete_item/4,
          get_item/2, get_item/3, get_item/4,
          put_item/2, put_item/3, put_item/4,
@@ -324,6 +325,14 @@ table_description_folder(_, A) ->
 undynamize_table_description(Json) ->
     lists:foldl(fun table_description_folder/2, #ddb_table_description{}, Json).
 
+-spec table_description_return(jsx:json_term()) -> {ok, #ddb_table_description{}} | {error, term()}.
+table_description_return(Json) ->
+    case proplists:get_value(<<"TableDescription">>, Json) of
+        undefined ->
+            {error, no_table_description};
+        Description ->
+            {ok, undynamize_table_description(Description)}
+    end.
 
 -type get_item_opt() :: {attributes_to_get, [binary()]} | 
                         {consistent_read, boolean()}.
@@ -480,12 +489,7 @@ create_table(Table, KeySchema, ReadUnits, WriteUnits, Config) ->
         {error, Reason} ->
             {error, Reason};
         {ok, Json} ->
-            case proplists:get_value(<<"TableDescription">>, Json) of
-                undefined ->
-                    {error, no_table_description};
-                Description ->
-                    {ok, undynamize_table_description(Description)}
-            end
+            table_description_return(Json)
     end.
 
 
@@ -521,6 +525,20 @@ delete_item(Table, Key, Opts, Config) ->
                 Item ->
                     {ok, json_term_to_item(Item)}
             end
+    end.
+
+
+-spec delete_table(table_name()) -> item_return().
+delete_table(Table) ->
+    delete_table(Table, default_config()).
+
+-spec delete_table(table_name(), aws_config()) -> item_return().
+delete_table(Table, Config) ->
+    case erlcloud_ddb1:delete_table(Table, Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            table_description_return(Json)
     end.
 
 

@@ -36,6 +36,7 @@
          batch_write_item/1, batch_write_item/2,
          create_table/4, create_table/5,
          delete_item/2, delete_item/3, delete_item/4,
+         delete_table/1, delete_table/2,
          get_item/2, get_item/3, get_item/4,
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
@@ -170,6 +171,16 @@ delete_item(Table, Key, Optional, Config) ->
             key_json(Key)] 
         ++ Optional,
     request(Config, "DeleteItem", JSON).
+
+    
+-spec delete_table(table_name()) -> json_reply().
+delete_table(Table) ->
+    delete_table(Table, default_config()).
+
+-spec delete_table(table_name(), aws_config()) -> json_reply().
+delete_table(Table, Config) ->
+    JSON = [{<<"TableName">>, Table}],
+    request(Config, "DeleteTable", JSON).
 
     
 -spec get_item(table_name(), key()) -> json_reply().
