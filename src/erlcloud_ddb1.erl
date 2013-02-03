@@ -33,6 +33,7 @@
 
 %% DDB API Functions
 -export([batch_get_item/1, batch_get_item/2,
+         batch_write_item/1, batch_write_item/2,
          delete_item/2, delete_item/3, delete_item/4,
          get_item/2, get_item/3, get_item/4,
          put_item/2, put_item/3, put_item/4,
@@ -44,7 +45,7 @@
 %% Internal use only
 -export([key_value/1]).
 
--export_type([key/0]).
+-export_type([key/0, batch_write_item_request/0]).
 
 -type table_name() :: binary().
 -type attr_type() :: binary().
@@ -84,22 +85,46 @@ updates_json(Updates) ->
     {<<"AttributeUpdates">>, Updates}.
 
 
--type batch_get_item_request() :: {table_name(), [key(),...], opts()} | {table_name(), [key(),...]}.
+-type batch_get_item_request_item() :: {table_name(), [key(),...], opts()} | {table_name(), [key(),...]}.
 
--spec request_json(batch_get_item_request()) -> {binary(), jsx:json_term()}.
-request_json({Table, Keys}) ->
-    request_json({Table, Keys, []});
-request_json({Table, Keys, Optional}) ->
+-spec batch_get_item_request_item_json(batch_get_item_request_item()) -> {binary(), jsx:json_term()}.
+batch_get_item_request_item_json({Table, Keys}) ->
+    batch_get_item_request_item_json({Table, Keys, []});
+batch_get_item_request_item_json({Table, Keys, Optional}) ->
     {Table, [{<<"Keys">>, [key_value(K) || K <- Keys]}] ++ Optional}.
 
--spec batch_get_item([batch_get_item_request()]) -> json_reply().
-batch_get_item(Requests) ->
-    batch_get_item(Requests, default_config()).
+-spec batch_get_item([batch_get_item_request_item()]) -> json_reply().
+batch_get_item(RequestItems) ->
+    batch_get_item(RequestItems, default_config()).
 
--spec batch_get_item([batch_get_item_request()], aws_config()) -> json_reply().
-batch_get_item(Requests, Config) ->
-    JSON = [{<<"RequestItems">>, [request_json(R) || R <- Requests]}],
+-spec batch_get_item([batch_get_item_request_item()], aws_config()) -> json_reply().
+batch_get_item(RequestItems, Config) ->
+    JSON = [{<<"RequestItems">>, [batch_get_item_request_item_json(R) || R <- RequestItems]}],
     request(Config, "BatchGetItem", JSON).
+
+-type batch_write_item_put() :: {put, item()}.
+-type batch_write_item_delete() :: {delete, key()}.
+-type batch_write_item_request() :: batch_write_item_put() | batch_write_item_delete().
+-type batch_write_item_request_item() :: {table_name(), [batch_write_item_request()]}.
+
+-spec batch_write_item_request_json(batch_write_item_request()) -> {binary(), jsx:json_term()}.
+batch_write_item_request_json({put, Item}) ->
+    {<<"PutRequest">>, [item_json(Item)]};
+batch_write_item_request_json({delete, Key}) ->
+    {<<"DeleteRequest">>, [key_json(Key)]}.
+
+-spec batch_write_item_request_item_json(batch_write_item_request_item()) -> {binary(), jsx:json_term()}.
+batch_write_item_request_item_json({Table, Requests}) ->
+    {Table, [[batch_write_item_request_json(R)] || R <- Requests]}.
+
+-spec batch_write_item([batch_write_item_request_item()]) -> json_reply().
+batch_write_item(RequestItems) ->
+    batch_get_item(RequestItems, default_config()).
+
+-spec batch_write_item([batch_write_item_request_item()], aws_config()) -> json_reply().
+batch_write_item(RequestItems, Config) ->
+    JSON = [{<<"RequestItems">>, [batch_write_item_request_item_json(R) || R <- RequestItems]}],
+    request(Config, "BatchWriteItem", JSON).
 
 
 -spec delete_item(table_name(), key()) -> json_reply().
