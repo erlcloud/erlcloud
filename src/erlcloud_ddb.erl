@@ -14,6 +14,7 @@
 
 %%% DynamoDB API
 -export([batch_get_item/1, batch_get_item/2,
+         batch_write_item/1, batch_write_item/2,
          delete_item/2, delete_item/3, delete_item/4,
          get_item/2, get_item/3, get_item/4,
          put_item/2, put_item/3, put_item/4,
@@ -22,7 +23,10 @@
          update_item/3, update_item/4, update_item/5
         ]).
 
--export_type([hash_range_key/0, out_item/0, batch_get_item_request/0, table_name/0]).
+-export_type([table_name/0, hash_range_key/0, out_item/0, 
+              batch_get_item_request_item/0,
+              batch_write_item_request_item/0
+             ]).
 
 %%% Library initialization.
 -spec(new/2 :: (string(), string()) -> aws_config()).
@@ -246,12 +250,13 @@ get_item_opt({attributes_to_get, Value}) ->
 get_item_opt({consistent_read, Value}) ->
     {<<"ConsistentRead">>, Value}.
 
--type batch_get_item_request() :: {table_name(), [key(),...], get_item_opts()} | {table_name(), [key(),...]}.
+-type batch_get_item_request_item() :: {table_name(), [key(),...], get_item_opts()} | {table_name(), [key(),...]}.
 
--spec dynamize_batch_get_item_request(batch_get_item_request()) -> {binary(), jsx:json_term(), jsx:json_term()}.
-dynamize_batch_get_item_request({Table, Keys}) ->
-    dynamize_batch_get_item_request({Table, Keys, []});
-dynamize_batch_get_item_request({Table, Keys, Opts}) ->
+-spec dynamize_batch_get_item_request_item(batch_get_item_request_item()) 
+                                          -> {binary(), jsx:json_term(), jsx:json_term()}.
+dynamize_batch_get_item_request_item({Table, Keys}) ->
+    dynamize_batch_get_item_request_item({Table, Keys, []});
+dynamize_batch_get_item_request_item({Table, Keys, Opts}) ->
     {Table, [dynamize_key(K) || K <- Keys], lists:map(fun get_item_opt/1, Opts)}.
 
 -spec batch_get_item_response_folder({binary(), term()}, #ddb_batch_get_item_response{}) ->
@@ -267,17 +272,18 @@ batch_get_item_response_folder(_, A) ->
 undynamize_batch_get_item_response({Table, Json}) ->
     lists:foldl(fun batch_get_item_response_folder/2, #ddb_batch_get_item_response{table = Table}, Json).
 
--spec batch_get_item_request_folder({binary(), term()}, batch_get_item_request()) -> batch_get_item_request().
-batch_get_item_request_folder({<<"Keys">>, Keys}, {Table, _, Opts}) ->
+-spec batch_get_item_request_item_folder({binary(), term()}, batch_get_item_request_item()) 
+                                        -> batch_get_item_request_item().
+batch_get_item_request_item_folder({<<"Keys">>, Keys}, {Table, _, Opts}) ->
     {Table, [json_key_to_key(K) || K <- Keys], Opts};
-batch_get_item_request_folder({<<"AttributesToGet">>, Value}, {Table, Keys, Opts}) ->
+batch_get_item_request_item_folder({<<"AttributesToGet">>, Value}, {Table, Keys, Opts}) ->
     {Table, Keys, [{attributes_to_get, Value} | Opts]};
-batch_get_item_request_folder({<<"ConsistentRead">>, Value}, {Table, Keys, Opts}) ->
+batch_get_item_request_item_folder({<<"ConsistentRead">>, Value}, {Table, Keys, Opts}) ->
     {Table, Keys, [{consistent_read, Value} | Opts]}.
 
--spec undynamize_batch_get_item_request({table_name(), jsx:json_term()}) -> batch_get_item_request().
-undynamize_batch_get_item_request({Table, Json}) ->
-    lists:foldl(fun batch_get_item_request_folder/2, {Table, [], []}, Json).
+-spec undynamize_batch_get_item_request_item({table_name(), jsx:json_term()}) -> batch_get_item_request_item().
+undynamize_batch_get_item_request_item({Table, Json}) ->
+    lists:foldl(fun batch_get_item_request_item_folder/2, {Table, [], []}, Json).
 
 -spec batch_get_item_folder({binary(), term()}, #ddb_batch_get_item{}) -> #ddb_batch_get_item{}.
 batch_get_item_folder({<<"Responses">>, Responses}, A) ->
@@ -286,22 +292,87 @@ batch_get_item_folder({<<"UnprocessedKeys">>, [{}]}, A) ->
     %% Work around jsx bug
     A#ddb_batch_get_item{unprocessed_keys = []};
 batch_get_item_folder({<<"UnprocessedKeys">>, Keys}, A) ->
-    A#ddb_batch_get_item{unprocessed_keys = [undynamize_batch_get_item_request(K) || K <- Keys]};
+    A#ddb_batch_get_item{unprocessed_keys = [undynamize_batch_get_item_request_item(K) || K <- Keys]};
 batch_get_item_folder(_, A) ->
     A.
 
--spec batch_get_item([batch_get_item_request()]) -> batch_get_item_return().
-batch_get_item(Requests) ->
-    batch_get_item(Requests, default_config()).
-
 -type batch_get_item_return() :: {ok, [#ddb_batch_get_item{}]} | {error, term()}.
--spec batch_get_item([batch_get_item_request()], aws_config()) -> batch_get_item_return().
-batch_get_item(Requests, Config) ->
-    case erlcloud_ddb1:batch_get_item([dynamize_batch_get_item_request(R) || R <- Requests], Config) of 
+-spec batch_get_item([batch_get_item_request_item()]) -> batch_get_item_return().
+batch_get_item(RequestItems) ->
+    batch_get_item(RequestItems, default_config()).
+
+-spec batch_get_item([batch_get_item_request_item()], aws_config()) -> batch_get_item_return().
+batch_get_item(RequestItems, Config) ->
+    case erlcloud_ddb1:batch_get_item([dynamize_batch_get_item_request_item(R) || R <- RequestItems], Config) of 
         {error, Reason} ->
             {error, Reason};
         {ok, Json} ->
             {ok, lists:foldl(fun batch_get_item_folder/2, #ddb_batch_get_item{}, Json)}
+    end.
+
+
+-type batch_write_item_put() :: {put, in_item()}.
+-type batch_write_item_delete() :: {delete, key()}.
+-type batch_write_item_request() :: batch_write_item_put() | batch_write_item_delete().
+-type batch_write_item_request_item() :: {table_name(), [batch_write_item_request()]}.
+
+-spec dynamize_batch_write_item_request(batch_write_item_request()) -> erlcloud_ddb1:batch_write_item_request().
+dynamize_batch_write_item_request({put, Item}) ->
+    {put, dynamize_item(Item)};
+dynamize_batch_write_item_request({delete, Key}) ->
+    {delete, dynamize_key(Key)}.
+
+-spec dynamize_batch_write_item_request_item(batch_write_item_request_item()) 
+                                          -> {binary(), jsx:json_term()}.
+dynamize_batch_write_item_request_item({Table, Requests}) ->
+    {Table, [dynamize_batch_write_item_request(R) || R <- Requests]}.
+
+-spec batch_write_item_response_folder({binary(), term()}, #ddb_batch_write_item_response{}) ->
+                                            #ddb_batch_write_item_response{}.
+batch_write_item_response_folder({<<"ConsumedCapacityUnits">>, Units}, A) ->
+    A#ddb_batch_write_item_response{consumed_capacity_units = Units};
+batch_write_item_response_folder(_, A) ->
+    A.
+
+-spec undynamize_batch_write_item_response({table_name(), jsx:json_term()}) -> #ddb_batch_write_item_response{}.
+undynamize_batch_write_item_response({Table, Json}) ->
+    lists:foldl(fun batch_write_item_response_folder/2, #ddb_batch_write_item_response{table = Table}, Json).
+
+-spec batch_write_item_request_folder([{binary(), term()}], batch_write_item_request_item()) 
+                                     -> batch_write_item_request_item().
+batch_write_item_request_folder([{<<"PutRequest">>, [{<<"Item">>, Item}]}], {Table, Requests}) ->
+    {Table, [{put, json_term_to_item(Item)} | Requests]};
+batch_write_item_request_folder([{<<"DeleteRequest">>, [{<<"Key">>, Key}]}], {Table, Requests}) ->
+    {Table, [{delete, json_key_to_key(Key)} | Requests]}.
+
+-spec undynamize_batch_write_item_request_item({table_name(), jsx:json_term()}) -> batch_write_item_request_item().
+undynamize_batch_write_item_request_item({Table, Json}) ->
+    lists:foldl(fun batch_write_item_request_folder/2, {Table, []}, Json).
+
+-spec batch_write_item_folder({binary(), term()}, #ddb_batch_write_item{}) -> #ddb_batch_write_item{}.
+batch_write_item_folder({<<"Responses">>, Responses}, A) ->
+    A#ddb_batch_write_item{responses = [undynamize_batch_write_item_response(R) || R <- Responses]};
+batch_write_item_folder({<<"UnprocessedItems">>, [{}]}, A) ->
+    %% Work around jsx bug
+    A#ddb_batch_write_item{unprocessed_items = []};
+batch_write_item_folder({<<"UnprocessedItems">>, Items}, A) ->
+    A#ddb_batch_write_item{unprocessed_items = [undynamize_batch_write_item_request_item(I) || I <- Items]};
+batch_write_item_folder(_, A) ->
+    A.
+
+-spec batch_write_item([batch_write_item_request_item()]) -> batch_write_item_return().
+batch_write_item(RequestItems) ->
+    batch_write_item(RequestItems, default_config()).
+
+-type batch_write_item_return() :: {ok, [#ddb_batch_write_item{}]} | {error, term()}.
+-spec batch_write_item([batch_write_item_request_item()], aws_config()) -> batch_write_item_return().
+batch_write_item(RequestItems, Config) ->
+    case erlcloud_ddb1:batch_write_item([dynamize_batch_write_item_request_item(R) || R <- RequestItems], 
+                                        Config) of 
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            {ok, lists:foldl(fun batch_write_item_folder/2, #ddb_batch_write_item{}, Json)}
     end.
 
 

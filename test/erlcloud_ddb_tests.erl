@@ -29,6 +29,8 @@ operation_test_() ->
      [fun error_handling_tests/1,
       fun batch_get_item_input_tests/1,
       fun batch_get_item_output_tests/1,
+      fun batch_write_item_input_tests/1,
+      fun batch_write_item_output_tests/1,
       fun delete_item_input_tests/1,
       fun delete_item_output_tests/1,
       fun get_item_input_tests/1,
@@ -236,7 +238,7 @@ batch_get_item_input_tests(_) ->
         \"AttributesToGet\":[\"user\",\"status\"]}
     }
 }"
-                  })
+            })
         ],
 
     Response = "
@@ -298,6 +300,139 @@ batch_get_item_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb:batch_get_item([])), Tests).
+
+%% BatchWriteItem test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchWriteItem.html
+batch_write_item_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"BatchWriteItem example request",
+             ?_f(erlcloud_ddb:batch_write_item(
+                   [{<<"Reply">>, [{put, [{<<"ReplyDateTime">>, <<"2012-04-03T11:04:47.034Z">>},
+                                          {<<"Id">>, <<"Amazon DynamoDB#DynamoDB Thread 5">>}]},
+                                   {delete, {<<"Amazon DynamoDB#DynamoDB Thread 4">>,
+                                             <<"oops - accidental row">>}}]},
+                    {<<"Thread">>, [{put, [{<<"ForumName">>, <<"Amazon DynamoDB">>},
+                                           {<<"Subject">>, <<"DynamoDB Thread 5">>}]}]}])), "
+{
+  \"RequestItems\":{
+    \"Reply\":[
+      {
+        \"PutRequest\":{
+          \"Item\":{
+            \"ReplyDateTime\":{
+              \"S\":\"2012-04-03T11:04:47.034Z\"
+            },
+            \"Id\":{
+              \"S\":\"Amazon DynamoDB#DynamoDB Thread 5\"
+            }
+          }
+        }
+      },
+      {
+        \"DeleteRequest\":{
+          \"Key\":{
+            \"HashKeyElement\":{
+              \"S\":\"Amazon DynamoDB#DynamoDB Thread 4\"
+            },
+            \"RangeKeyElement\":{
+              \"S\":\"oops - accidental row\"
+            }
+          }
+        }
+      }
+    ],
+    \"Thread\":[
+      {
+        \"PutRequest\":{
+          \"Item\":{
+            \"ForumName\":{
+              \"S\":\"Amazon DynamoDB\"
+            },
+            \"Subject\":{
+              \"S\":\"DynamoDB Thread 5\"
+            }
+          }
+        }
+      }
+    ]
+  }
+}"
+            })
+        ],
+
+    Response = "
+{
+   \"Responses\":{
+      \"Thread\":{
+         \"ConsumedCapacityUnits\":1.0
+      },
+      \"Reply\":{
+         \"ConsumedCapacityUnits\":1.0
+      }
+   },
+   \"UnprocessedItems\":{
+      \"Reply\":[
+         {
+            \"DeleteRequest\":{
+               \"Key\":{
+                  \"HashKeyElement\":{
+                     \"S\":\"Amazon DynamoDB#DynamoDB Thread 4\"
+                  },
+                  \"RangeKeyElement\":{
+                     \"S\":\"oops - accidental row\"
+                  }
+               }
+            }
+         }
+      ]
+   }
+}",
+    input_tests(Response, Tests).
+
+batch_write_item_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"BatchWriteItem example response", "
+{
+   \"Responses\":{
+      \"Thread\":{
+         \"ConsumedCapacityUnits\":1.0
+      },
+      \"Reply\":{
+         \"ConsumedCapacityUnits\":1.0
+      }
+   },
+   \"UnprocessedItems\":{
+      \"Reply\":[
+         {
+            \"DeleteRequest\":{
+               \"Key\":{
+                  \"HashKeyElement\":{
+                     \"S\":\"Amazon DynamoDB#DynamoDB Thread 4\"
+                  },
+                  \"RangeKeyElement\":{
+                     \"S\":\"oops - accidental row\"
+                  }
+               }
+            }
+         }
+      ]
+   }
+}",
+             {ok, #ddb_batch_write_item
+              {responses = 
+                   [#ddb_batch_write_item_response
+                    {table = <<"Thread">>,
+                     consumed_capacity_units = 1.0},
+                    #ddb_batch_write_item_response
+                    {table = <<"Reply">>,
+                     consumed_capacity_units = 1.0}],
+               unprocessed_items = [{<<"Reply">>, [{delete, {{s, <<"Amazon DynamoDB#DynamoDB Thread 4">>},
+                                                             {s, <<"oops - accidental row">>}}}]}]}}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb:batch_write_item([])), Tests).
 
 %% DeleteItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteItem.html
