@@ -37,6 +37,10 @@
         {responses :: [#ddb_batch_write_item_response{}],
          unprocessed_items :: [erlcloud_ddb:batch_write_item_request_item()]
         }).
+-record(ddb_list_tables,
+        {table_names :: [erlcloud_ddb:table_name()],
+         last_evaluated_table_name :: erlcloud_ddb:table_name()
+        }).
 -record(ddb_q, 
         {count :: non_neg_integer(),
          items :: [erlcloud_ddb:out_item()],
