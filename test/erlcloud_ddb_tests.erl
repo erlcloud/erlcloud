@@ -37,6 +37,8 @@ operation_test_() ->
       fun delete_item_output_tests/1,
       fun delete_table_input_tests/1,
       fun delete_table_output_tests/1,
+      fun describe_table_input_tests/1,
+      fun describe_table_output_tests/1,
       fun get_item_input_tests/1,
       fun get_item_output_tests/1,
       fun put_item_input_tests/1,
@@ -679,6 +681,64 @@ delete_table_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb:delete_table(<<"name">>)), Tests).
+
+%% DescribeTable test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DescribeTable.html
+describe_table_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"DescribeTable example request",
+             ?_f(erlcloud_ddb:describe_table(<<"Table1">>)), 
+             "{\"TableName\":\"Table1\"}"
+            })
+        ],
+
+    Response = "
+{\"Table\":
+    {\"CreationDateTime\":1.309988345372E9,
+    \"ItemCount\":23,
+    \"KeySchema\":
+        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
+        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
+    \"ProvisionedThroughput\":{\"LastIncreaseDateTime\": 1.309988345384E9, \"ReadCapacityUnits\":10,\"WriteCapacityUnits\":10},
+    \"TableName\":\"users\",
+    \"TableSizeBytes\":949,
+    \"TableStatus\":\"ACTIVE\"
+    }
+}",
+    input_tests(Response, Tests).
+
+describe_table_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"DescribeTable example response", "
+{\"Table\":
+    {\"CreationDateTime\":1.309988345372E9,
+    \"ItemCount\":23,
+    \"KeySchema\":
+        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
+        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
+    \"ProvisionedThroughput\":{\"LastIncreaseDateTime\": 1.309988345384E9, \"ReadCapacityUnits\":10,\"WriteCapacityUnits\":10},
+    \"TableName\":\"users\",
+    \"TableSizeBytes\":949,
+    \"TableStatus\":\"ACTIVE\"
+    }
+}",
+             {ok, #ddb_table
+              {creation_date_time = 1309988345.372,
+               item_count = 23,
+               key_schema = {{<<"user">>, s}, {<<"time">>, n}},
+               provisioned_throughput = #ddb_provisioned_throughput{
+                                           read_capacity_units = 10,
+                                           write_capacity_units = 10,
+                                           last_decrease_date_time = undefined,
+                                           last_increase_date_time = 1309988345.384},
+               name = <<"users">>,
+               size_bytes = 949,
+               status = <<"ACTIVE">>}}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb:describe_table(<<"name">>)), Tests).
 
 %% GetItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_GetItem.html
