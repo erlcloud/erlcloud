@@ -34,7 +34,10 @@
               batch_write_item_request_item/0
              ]).
 
+%%%------------------------------------------------------------------------------
 %%% Library initialization.
+%%%------------------------------------------------------------------------------
+
 -spec(new/2 :: (string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id=AccessKeyID,
@@ -57,11 +60,13 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
     ok.
 
 
-%% DDB API Functions
+%%%------------------------------------------------------------------------------
+%%% Shared Types
+%%%------------------------------------------------------------------------------
+
 -type table_name() :: binary().
 -type attr_type() :: s | n | b | ss | ns | bs.
 -type attr_name() :: binary().
--type update_action() :: put | add | delete.
 
 %% TODO decimal support
 -type in_attr_data_scalar() :: iolist() | binary() | integer().
@@ -72,7 +77,6 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 -type in_attr() :: {attr_name(), in_attr_value()}.
 -type in_expected() :: {attr_name(), false | in_attr_value()}.
 -type in_item() :: [in_attr()].
--type in_update() :: {attr_name(), in_attr_value(), update_action()} | in_attr() | {attr_name(), delete}.
 
 -type json_attr_type() :: binary().
 -type json_attr_data() :: binary() | [binary()].
@@ -80,9 +84,6 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 -type json_attr() :: {attr_name(), [json_attr_value()]}.
 -type json_item() :: [json_attr()].
 -type json_expected() :: {attr_name(), [json_attr_value()] | [{binary(), boolean()}]}.
--type json_update_action() :: {binary(), binary()}.
--type json_update() :: {attr_name(), [{binary(), json_attr_value()} | json_update_action()]}.
--type json_range_key_condition() :: jsx:json_term().
 -type json_key() :: [json_attr(),...].
 
 -type hash_key() :: in_attr_value().
@@ -95,16 +96,17 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 -type comparison_op() :: eq | ne | le | lt | ge | gt | not_null | null | contains | not_contains | 
                          begins_with | in | between.
 
--type range_key_condition() :: {in_attr_value(), comparison_op()} | 
-                               {{in_attr_value(), in_attr_value()}, between}.
-
 -type out_attr_value() :: binary() | integer() | [binary()] | [integer()].
 -type out_attr() :: {attr_name(), out_attr_value()}.
 -type out_item() :: [out_attr()].
--type item_return() :: {ok, out_item()} | {error, term()}.
--type q_return() :: {ok, #ddb_q{}} | {error, term()}.
+-type ok_return(T) :: {ok, T} | {error, term()}.
+-type item_return() :: ok_return(out_item()).
 
+%%%------------------------------------------------------------------------------
+%%% Shared Dynamizers
+%%%------------------------------------------------------------------------------
 
+%% Convert terms into the form expected by erlcloud_ddb1
 %% Dynamize does type inference.
 %% Binaries are assumed to be strings.
 %% You must explicitly specify the type: {b, <<1,2,3>>} to get a binary
@@ -187,23 +189,6 @@ dynamize_item(Item) when is_list(Item) ->
 dynamize_item(Item) ->
     throw({erlcloud_ddb_error, {invalid_item, Item}}).
 
--spec dynamize_action(update_action()) -> json_update_action().
-dynamize_action(put) ->
-    {<<"Action">>, <<"PUT">>};
-dynamize_action(add) ->
-    {<<"Action">>, <<"ADD">>};
-dynamize_action(delete) ->
-    {<<"Action">>, <<"DELETE">>}.
-
--spec dynamize_update(in_update()) -> json_update().
-dynamize_update({Name, Value, Action}) ->
-    {Name, [{<<"Value">>, [dynamize_value(Value)]}, dynamize_action(Action)]};
-dynamize_update({Name, delete}) ->
-    {Name, [dynamize_action(delete)]};
-dynamize_update({Name, Value}) ->
-    %% Uses the default action of put
-    {Name, [{<<"Value">>, [dynamize_value(Value)]}]}.
-
 -spec dynamize_comparison(comparison_op()) -> {binary(), binary()}.
 dynamize_comparison(eq) ->
     {<<"ComparisonOperator">>, <<"EQ">>};
@@ -232,12 +217,9 @@ dynamize_comparison(in) ->
 dynamize_comparison(between) ->
     {<<"ComparisonOperator">>, <<"BETWEEN">>}.
 
--spec dynamize_range_key_condition(range_key_condition()) -> json_range_key_condition().
-dynamize_range_key_condition({{Value1, Value2}, between}) ->
-    [{<<"AttributeValueList">>, [[dynamize_value(Value1)], [dynamize_value(Value2)]],
-      dynamize_comparison(between)}];
-dynamize_range_key_condition({Value, Comparison}) ->
-    [{<<"AttributeValueList">>, [[dynamize_value(Value)]]}, dynamize_comparison(Comparison)].
+%%%------------------------------------------------------------------------------
+%%% Shared Undynamizers
+%%%------------------------------------------------------------------------------
 
 -spec undynamize_type(json_attr_type()) -> attr_type().
 undynamize_type(<<"S">>) ->
@@ -247,56 +229,45 @@ undynamize_type(<<"N">>) ->
 undynamize_type(<<"B">>) ->
     b.
 
--spec json_value_to_value(json_attr_value()) -> out_attr_value().
-json_value_to_value({<<"S">>, Value}) when is_binary(Value) ->
+-spec undynamize_value(json_attr_value()) -> out_attr_value().
+undynamize_value({<<"S">>, Value}) when is_binary(Value) ->
     Value;
-json_value_to_value({<<"N">>, Value}) ->
+undynamize_value({<<"N">>, Value}) ->
     list_to_integer(binary_to_list(Value));
-json_value_to_value({<<"B">>, Value}) ->
+undynamize_value({<<"B">>, Value}) ->
     base64:decode(Value);
-json_value_to_value({<<"SS">>, Values}) when is_list(Values) ->
+undynamize_value({<<"SS">>, Values}) when is_list(Values) ->
     Values;
-json_value_to_value({<<"NS">>, Values}) ->
+undynamize_value({<<"NS">>, Values}) ->
     [list_to_integer(binary_to_list(Value)) || Value <- Values];
-json_value_to_value({<<"BS">>, Values}) ->
+undynamize_value({<<"BS">>, Values}) ->
     [base64:decode(Value) || Value <- Values].
 
--spec json_attr_to_attr(json_attr()) -> out_attr().
-json_attr_to_attr({Name, [ValueJson]}) ->
-    {Name, json_value_to_value(ValueJson)}.
+-spec undynamize_attr(json_attr()) -> out_attr().
+undynamize_attr({Name, [ValueJson]}) ->
+    {Name, undynamize_value(ValueJson)}.
 
--spec json_term_to_item(json_item()) -> out_item().
-json_term_to_item([{}]) ->
+-spec undynamize_item(json_item()) -> out_item().
+undynamize_item([{}]) ->
     %% jsx returns [{}] for {} (as in "Item":{}), which is the JSON returned if none of the items attributes match
     %% the attributes to get.
     [];
-json_term_to_item(Json) ->
-    [json_attr_to_attr(Attr) || Attr <- Json].
+undynamize_item(Json) ->
+    [undynamize_attr(Attr) || Attr <- Json].
 
--spec json_attr_value_to_typed_value(json_attr_value()) -> in_attr_typed_value().
-json_attr_value_to_typed_value({<<"S">>, Value}) ->
+-spec undynamize_value_typed(json_attr_value()) -> in_attr_typed_value().
+undynamize_value_typed({<<"S">>, Value}) ->
     {s, Value};
-json_attr_value_to_typed_value({<<"N">>, Value}) ->
+undynamize_value_typed({<<"N">>, Value}) ->
     {n, list_to_integer(binary_to_list(Value))};
-json_attr_value_to_typed_value({<<"B">>, Value}) ->
+undynamize_value_typed({<<"B">>, Value}) ->
     {b, base64:decode(Value)}.
 
--spec json_key_to_key(json_key()) -> key().
-json_key_to_key([{<<"HashKeyElement">>, [HashKey]}]) ->
-    {json_attr_value_to_typed_value(HashKey)};
-json_key_to_key([{<<"HashKeyElement">>, [HashKey]}, {<<"RangeKeyElement">>, [RangeKey]}]) ->
-    {json_attr_value_to_typed_value(HashKey), json_attr_value_to_typed_value(RangeKey)}.
-
--spec json_attr_to_typed_attr(json_attr()) -> in_attr().
-json_attr_to_typed_attr({Name, [ValueJson]}) ->
-    {Name, json_attr_value_to_typed_value(ValueJson)}.
-
--spec json_term_to_typed_item(json_item()) -> in_item().
-json_term_to_typed_item([{}]) ->
-    %% jsx bug
-    [];
-json_term_to_typed_item(Json) ->
-    [json_attr_to_typed_attr(Attr) || Attr <- Json].
+-spec undynamize_key(json_key()) -> key().
+undynamize_key([{<<"HashKeyElement">>, [HashKey]}]) ->
+    {undynamize_value_typed(HashKey)};
+undynamize_key([{<<"HashKeyElement">>, [HashKey]}, {<<"RangeKeyElement">>, [RangeKey]}]) ->
+    {undynamize_value_typed(HashKey), undynamize_value_typed(RangeKey)}.
 
 -spec undynamize_key_schema_value(jsx:json_term()) -> key_schema().
 undynamize_key_schema_value([{<<"AttributeName">>, Name}, {<<"AttributeType">>, Type}]) ->
@@ -353,6 +324,10 @@ table_description_return(Json) ->
             {ok, undynamize_table_description(Description)}
     end.
 
+%%%------------------------------------------------------------------------------
+%%% Shared Options
+%%%------------------------------------------------------------------------------
+
 -type get_item_opt() :: {attributes_to_get, [binary()]} | 
                         {consistent_read, boolean()}.
 -type get_item_opts() :: [get_item_opt()].
@@ -362,6 +337,10 @@ get_item_opt({attributes_to_get, Value}) ->
     {<<"AttributesToGet">>, Value};
 get_item_opt({consistent_read, Value}) ->
     {<<"ConsistentRead">>, Value}.
+
+%%%------------------------------------------------------------------------------
+%%% BatchGetItem
+%%%------------------------------------------------------------------------------
 
 -type batch_get_item_request_item() :: {table_name(), [key(),...], get_item_opts()} | {table_name(), [key(),...]}.
 
@@ -375,7 +354,7 @@ dynamize_batch_get_item_request_item({Table, Keys, Opts}) ->
 -spec batch_get_item_response_folder({binary(), term()}, #ddb_batch_get_item_response{}) ->
                                             #ddb_batch_get_item_response{}.
 batch_get_item_response_folder({<<"Items">>, ItemList}, A) ->
-    A#ddb_batch_get_item_response{items = [json_term_to_item(I) || I <- ItemList]};
+    A#ddb_batch_get_item_response{items = [undynamize_item(I) || I <- ItemList]};
 batch_get_item_response_folder({<<"ConsumedCapacityUnits">>, Units}, A) ->
     A#ddb_batch_get_item_response{consumed_capacity_units = Units};
 batch_get_item_response_folder(_, A) ->
@@ -388,7 +367,7 @@ undynamize_batch_get_item_response({Table, Json}) ->
 -spec batch_get_item_request_item_folder({binary(), term()}, batch_get_item_request_item()) 
                                         -> batch_get_item_request_item().
 batch_get_item_request_item_folder({<<"Keys">>, Keys}, {Table, _, Opts}) ->
-    {Table, [json_key_to_key(K) || K <- Keys], Opts};
+    {Table, [undynamize_key(K) || K <- Keys], Opts};
 batch_get_item_request_item_folder({<<"AttributesToGet">>, Value}, {Table, Keys, Opts}) ->
     {Table, Keys, [{attributes_to_get, Value} | Opts]};
 batch_get_item_request_item_folder({<<"ConsistentRead">>, Value}, {Table, Keys, Opts}) ->
@@ -428,6 +407,9 @@ batch_get_item(RequestItems, Config) ->
             {ok, lists:foldl(fun batch_get_item_folder/2, #ddb_batch_get_item{}, Json)}
     end.
 
+%%%------------------------------------------------------------------------------
+%%% BatchWriteItem
+%%%------------------------------------------------------------------------------
 
 -type batch_write_item_put() :: {put, in_item()}.
 -type batch_write_item_delete() :: {delete, key()}.
@@ -456,12 +438,23 @@ batch_write_item_response_folder(_, A) ->
 undynamize_batch_write_item_response({Table, Json}) ->
     lists:foldl(fun batch_write_item_response_folder/2, #ddb_batch_write_item_response{table = Table}, Json).
 
+-spec undynamize_attr_typed(json_attr()) -> in_attr().
+undynamize_attr_typed({Name, [ValueJson]}) ->
+    {Name, undynamize_value_typed(ValueJson)}.
+
+-spec undynamize_item_typed(json_item()) -> in_item().
+undynamize_item_typed([{}]) ->
+    %% jsx bug
+    [];
+undynamize_item_typed(Json) ->
+    [undynamize_attr_typed(Attr) || Attr <- Json].
+
 -spec batch_write_item_request_folder([{binary(), term()}], batch_write_item_request_item()) 
                                      -> batch_write_item_request_item().
 batch_write_item_request_folder([{<<"PutRequest">>, [{<<"Item">>, Item}]}], {Table, Requests}) ->
-    {Table, [{put, json_term_to_typed_item(Item)} | Requests]};
+    {Table, [{put, undynamize_item_typed(Item)} | Requests]};
 batch_write_item_request_folder([{<<"DeleteRequest">>, [{<<"Key">>, Key}]}], {Table, Requests}) ->
-    {Table, [{delete, json_key_to_key(Key)} | Requests]}.
+    {Table, [{delete, undynamize_key(Key)} | Requests]}.
 
 -spec undynamize_batch_write_item_request_item({table_name(), jsx:json_term()}) -> batch_write_item_request_item().
 undynamize_batch_write_item_request_item({Table, Json}) ->
@@ -497,6 +490,9 @@ batch_write_item(RequestItems, Config) ->
             {ok, lists:foldl(fun batch_write_item_folder/2, #ddb_batch_write_item{}, Json)}
     end.
 
+%%%------------------------------------------------------------------------------
+%%% CreateTable
+%%%------------------------------------------------------------------------------
 
 -spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer()) -> table_description_return().
 create_table(Table, KeySchema, ReadUnits, WriteUnits) ->
@@ -512,6 +508,9 @@ create_table(Table, KeySchema, ReadUnits, WriteUnits, Config) ->
             table_description_return(Json)
     end.
 
+%%%------------------------------------------------------------------------------
+%%% DeleteItem
+%%%------------------------------------------------------------------------------
 
 -type delete_item_opt() :: {expected, in_expected()} | 
                            {return_values, none | all_old}.
@@ -543,10 +542,13 @@ delete_item(Table, Key, Opts, Config) ->
                 undefined ->
                     {ok, []};
                 Item ->
-                    {ok, json_term_to_item(Item)}
+                    {ok, undynamize_item(Item)}
             end
     end.
 
+%%%------------------------------------------------------------------------------
+%%% DeleteTable
+%%%------------------------------------------------------------------------------
 
 -spec delete_table(table_name()) -> table_description_return().
 delete_table(Table) ->
@@ -561,6 +563,9 @@ delete_table(Table, Config) ->
             table_description_return(Json)
     end.
 
+%%%------------------------------------------------------------------------------
+%%% DescribeTable
+%%%------------------------------------------------------------------------------
 
 -spec table_folder({binary(), term()}, #ddb_table{}) -> #ddb_table{}.
 table_folder({<<"CreationDateTime">>, Time}, A) ->
@@ -607,6 +612,9 @@ describe_table(Table, Config) ->
             table_return(Json)
     end.
 
+%%%------------------------------------------------------------------------------
+%%% GetItem
+%%%------------------------------------------------------------------------------
 
 -spec get_item(table_name(), key()) -> item_return().
 get_item(Table, Key) ->
@@ -626,10 +634,13 @@ get_item(Table, Key, Opts, Config) ->
                 undefined ->
                     {error, no_item};
                 Item ->
-                    {ok, json_term_to_item(Item)}
+                    {ok, undynamize_item(Item)}
             end
     end.
 
+%%%------------------------------------------------------------------------------
+%%% ListTables
+%%%------------------------------------------------------------------------------
 
 -type list_tables_opt() :: {limit, pos_integer()} | 
                            {exclusive_start_table_name, binary()}.
@@ -668,6 +679,9 @@ list_tables(Opts, Config) ->
             {ok, lists:foldl(fun list_tables_folder/2, #ddb_list_tables{}, Json)}
     end.
 
+%%%------------------------------------------------------------------------------
+%%% PutItem
+%%%------------------------------------------------------------------------------
 
 -type put_item_opt() :: {expected, in_expected()} | 
                         {return_values, none | all_old}.
@@ -699,10 +713,25 @@ put_item(Table, Item, Opts, Config) ->
                 undefined ->
                     {ok, []};
                 Return ->
-                    {ok, json_term_to_item(Return)}
+                    {ok, undynamize_item(Return)}
             end
     end.
 
+%%%------------------------------------------------------------------------------
+%%% Queue
+%%%------------------------------------------------------------------------------
+
+-type q_return() :: ok_return(#ddb_q{}).
+-type json_range_key_condition() :: jsx:json_term().
+-type range_key_condition() :: {in_attr_value(), comparison_op()} | 
+                               {{in_attr_value(), in_attr_value()}, between}.
+
+-spec dynamize_range_key_condition(range_key_condition()) -> json_range_key_condition().
+dynamize_range_key_condition({{Value1, Value2}, between}) ->
+    [{<<"AttributeValueList">>, [[dynamize_value(Value1)], [dynamize_value(Value2)]],
+      dynamize_comparison(between)}];
+dynamize_range_key_condition({Value, Comparison}) ->
+    [{<<"AttributeValueList">>, [[dynamize_value(Value)]]}, dynamize_comparison(Comparison)].
 
 -type q_opt() :: {attributes_to_get, [binary()]} | 
                  {limit, pos_integer()} |
@@ -731,11 +760,11 @@ q_opt({exclusive_start_key, Value}) ->
 
 -spec q_folder({binary(), term()}, #ddb_q{}) -> #ddb_q{}.
 q_folder({<<"Items">>, ItemList}, A) ->
-    A#ddb_q{items = [json_term_to_item(I) || I <- ItemList]};
+    A#ddb_q{items = [undynamize_item(I) || I <- ItemList]};
 q_folder({<<"Count">>, Count}, A) ->
     A#ddb_q{count = Count};
 q_folder({<<"LastEvaluatedKey">>, Key}, A) ->
-    A#ddb_q{last_evaluated_key = json_key_to_key(Key)};
+    A#ddb_q{last_evaluated_key = undynamize_key(Key)};
 q_folder({<<"ConsumedCapacityUnits">>, Units}, A) ->
     A#ddb_q{consumed_capacity_units = Units};
 q_folder(_, A) ->
@@ -757,6 +786,10 @@ q(Table, HashKey, Opts, Config) ->
         {ok, Json} ->
             {ok, lists:foldl(fun q_folder/2, #ddb_q{}, Json)}
     end.
+
+%%%------------------------------------------------------------------------------
+%%% Scan
+%%%------------------------------------------------------------------------------
 
 -type scan_filter_item() :: {attr_name(), [in_attr_value()], in} |
                             {attr_name(), {in_attr_value(), in_attr_value()}, between} |
@@ -795,13 +828,13 @@ scan_opt({exclusive_start_key, Value}) ->
 
 -spec scan_folder({binary(), term()}, #ddb_scan{}) -> #ddb_scan{}.
 scan_folder({<<"Items">>, ItemList}, A) ->
-    A#ddb_scan{items = [json_term_to_item(I) || I <- ItemList]};
+    A#ddb_scan{items = [undynamize_item(I) || I <- ItemList]};
 scan_folder({<<"Count">>, Count}, A) ->
     A#ddb_scan{count = Count};
 scan_folder({<<"ScannedCount">>, Count}, A) ->
     A#ddb_scan{scanned_count = Count};
 scan_folder({<<"LastEvaluatedKey">>, Key}, A) ->
-    A#ddb_scan{last_evaluated_key = json_key_to_key(Key)};
+    A#ddb_scan{last_evaluated_key = undynamize_key(Key)};
 scan_folder({<<"ConsumedCapacityUnits">>, Units}, A) ->
     A#ddb_scan{consumed_capacity_units = Units};
 scan_folder(_, A) ->
@@ -825,6 +858,30 @@ scan(Table, Opts, Config) ->
             {ok, lists:foldl(fun scan_folder/2, #ddb_scan{}, Json)}
     end.
 
+%%%------------------------------------------------------------------------------
+%%% UpdateItem
+%%%------------------------------------------------------------------------------
+
+-type update_action() :: put | add | delete.
+-type in_update() :: {attr_name(), in_attr_value(), update_action()} | in_attr() | {attr_name(), delete}.
+-type json_update_action() :: {binary(), binary()}.
+-type json_update() :: {attr_name(), [{binary(), json_attr_value()} | json_update_action()]}.
+-spec dynamize_action(update_action()) -> json_update_action().
+dynamize_action(put) ->
+    {<<"Action">>, <<"PUT">>};
+dynamize_action(add) ->
+    {<<"Action">>, <<"ADD">>};
+dynamize_action(delete) ->
+    {<<"Action">>, <<"DELETE">>}.
+
+-spec dynamize_update(in_update()) -> json_update().
+dynamize_update({Name, Value, Action}) ->
+    {Name, [{<<"Value">>, [dynamize_value(Value)]}, dynamize_action(Action)]};
+dynamize_update({Name, delete}) ->
+    {Name, [dynamize_action(delete)]};
+dynamize_update({Name, Value}) ->
+    %% Uses the default action of put
+    {Name, [{<<"Value">>, [dynamize_value(Value)]}]}.
 
 -type update_item_opt() :: {expected, in_expected()} | 
                            {return_values, none | all_old | updated_old | all_new | updated_new}.
@@ -863,10 +920,13 @@ update_item(Table, Key, Updates, Opts, Config) ->
                 undefined ->
                     {ok, []};
                 Item ->
-                    {ok, json_term_to_item(Item)}
+                    {ok, undynamize_item(Item)}
             end
     end.
 
+%%%------------------------------------------------------------------------------
+%%% UpdateTable
+%%%------------------------------------------------------------------------------
 
 -spec update_table(table_name(), non_neg_integer(), non_neg_integer()) -> table_description_return().
 update_table(Table, ReadUnits, WriteUnits) ->
