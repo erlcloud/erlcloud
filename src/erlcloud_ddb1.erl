@@ -34,6 +34,7 @@
 %% DDB API Functions
 -export([batch_get_item/1, batch_get_item/2,
          batch_write_item/1, batch_write_item/2,
+         create_table/4, create_table/5,
          delete_item/2, delete_item/3, delete_item/4,
          get_item/2, get_item/3, get_item/4,
          put_item/2, put_item/3, put_item/4,
@@ -45,7 +46,8 @@
 %% Internal use only
 -export([key_value/1]).
 
--export_type([key/0, batch_write_item_request/0]).
+-export_type([key/0, key_schema_value/0, key_schema/0,
+              batch_write_item_request/0]).
 
 -type table_name() :: binary().
 -type attr_type() :: binary().
@@ -55,6 +57,9 @@
 -type range_key() :: attr().
 -type hash_range_key() :: {hash_key(), range_key()}.
 -type key() :: hash_key() | hash_range_key().
+-type attr_name() :: binary().
+-type key_schema_value() :: {attr_name(), attr_type()}.
+-type key_schema() :: key_schema_value() | {key_schema_value(), key_schema_value()}.
 -type item() :: jsx:json_term().
 -type opts() :: jsx:json_term().
 -type updates() :: jsx:json_term().
@@ -127,6 +132,30 @@ batch_write_item(RequestItems, Config) ->
     request(Config, "BatchWriteItem", JSON).
 
 
+-spec key_schema_value_json(key_schema_value()) -> jsx:json_term().
+key_schema_value_json({Name, Type}) ->
+    [{<<"AttributeName">>, Name}, {<<"AttributeType">>, Type}].
+
+-spec key_schema_json(key_schema()) -> {binary(), jsx:json_term()}.
+key_schema_json({{_, _} = HashKey, {_, _} = RangeKey}) ->
+    {<<"KeySchema">>, [{<<"HashKeyElement">>, key_schema_value_json(HashKey)},
+                       {<<"RangeKeyElement">>, key_schema_value_json(RangeKey)}]};
+key_schema_json(HashKey) ->
+    {<<"KeySchema">>, [{<<"HashKeyElement">>, key_schema_value_json(HashKey)}]}.
+                       
+-spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer()) -> json_reply().
+create_table(Table, KeySchema, ReadUnits, WriteUnits) ->
+    create_table(Table, KeySchema, ReadUnits, WriteUnits, default_config()).
+
+-spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), aws_config()) -> json_reply().
+create_table(Table, KeySchema, ReadUnits, WriteUnits, Config) ->
+    JSON = [{<<"TableName">>, Table},
+            key_schema_json(KeySchema),
+            {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
+                                           {<<"WriteCapacityUnits">>, WriteUnits}]}],
+    request(Config, "CreateTable", JSON).
+
+    
 -spec delete_item(table_name(), key()) -> json_reply().
 delete_item(Table, Key) ->
     delete_item(Table, Key, [], default_config()).
