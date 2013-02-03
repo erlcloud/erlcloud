@@ -20,6 +20,7 @@
          delete_table/1, delete_table/2,
          describe_table/1, describe_table/2,
          get_item/2, get_item/3, get_item/4,
+         list_tables/0, list_tables/1, list_tables/2,
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
          q/2, q/3, q/4,
@@ -611,6 +612,44 @@ get_item(Table, Key, Opts, Config) ->
                 Item ->
                     {ok, json_term_to_item(Item)}
             end
+    end.
+
+
+-type list_tables_opt() :: {limit, pos_integer()} | 
+                           {exclusive_start_table_name, binary()}.
+-type list_tables_opts() :: [list_tables_opt()].
+
+-spec list_tables_opt(list_tables_opt()) -> {binary(), jsx:json_term()}.
+list_tables_opt({limit, Value}) ->
+    {<<"Limit">>, Value};
+list_tables_opt({exclusive_start_table_name, Name}) ->
+    {<<"ExclusiveStartTableName">>, Name}.
+
+-spec list_tables_folder({binary(), term()}, #ddb_list_tables{}) -> #ddb_list_tables{}.
+list_tables_folder({<<"TableNames">>, Names}, A) ->
+    A#ddb_list_tables{table_names = Names};
+list_tables_folder({<<"LastEvaluatedTableName">>, Name}, A) ->
+    A#ddb_list_tables{last_evaluated_table_name = Name};
+list_tables_folder(_, A) ->
+    A.
+
+-type list_tables_return() :: {ok, #ddb_list_tables{}} | {error, term()}.
+
+-spec list_tables() -> list_tables_return().
+list_tables() ->
+    list_tables([], default_config()).
+
+-spec list_tables(list_tables_opts()) -> list_tables_return().
+list_tables(Opts) ->
+    list_tables(Opts, default_config()).
+
+-spec list_tables(list_tables_opts(), aws_config()) -> list_tables_return().
+list_tables(Opts, Config) ->
+    case erlcloud_ddb1:list_tables(lists:map(fun list_tables_opt/1, Opts), Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            {ok, lists:foldl(fun list_tables_folder/2, #ddb_list_tables{}, Json)}
     end.
 
 

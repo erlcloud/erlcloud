@@ -39,6 +39,7 @@
          delete_table/1, delete_table/2,
          describe_table/1, describe_table/2,
          get_item/2, get_item/3, get_item/4,
+         list_tables/0, list_tables/1, list_tables/2,
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
          q/2, q/3, q/4,
@@ -184,6 +185,16 @@ delete_table(Table, Config) ->
     request(Config, "DeleteTable", JSON).
 
     
+-spec describe_table(table_name()) -> json_reply().
+describe_table(Table) ->
+    describe_table(Table, default_config()).
+
+-spec describe_table(table_name(), aws_config()) -> json_reply().
+describe_table(Table, Config) ->
+    JSON = [{<<"TableName">>, Table}],
+    request(Config, "DescribeTable", JSON).
+
+
 -spec get_item(table_name(), key()) -> json_reply().
 get_item(Table, Key) ->
     get_item(Table, Key, [], default_config()).
@@ -200,14 +211,17 @@ get_item(Table, Key, Optional, Config) ->
     request(Config, "GetItem", JSON).
 
 
--spec describe_table(table_name()) -> json_reply().
-describe_table(Table) ->
-    describe_table(Table, default_config()).
+-spec list_tables() -> json_reply().
+list_tables() ->
+    list_tables([], default_config()).
 
--spec describe_table(table_name(), aws_config()) -> json_reply().
-describe_table(Table, Config) ->
-    JSON = [{<<"TableName">>, Table}],
-    request(Config, "DescribeTable", JSON).
+-spec list_tables(opts()) -> json_reply().
+list_tables(Opts) ->
+    list_tables(Opts, default_config()).
+
+-spec list_tables(opts(), aws_config()) -> json_reply().
+list_tables(Opts, Config) ->
+    request(Config, "ListTables", Opts).
 
     
 -spec put_item(table_name(), item()) -> json_reply().

@@ -41,6 +41,8 @@ operation_test_() ->
       fun describe_table_output_tests/1,
       fun get_item_input_tests/1,
       fun get_item_output_tests/1,
+      fun list_tables_input_tests/1,
+      fun list_tables_output_tests/1,
       fun put_item_input_tests/1,
       fun put_item_output_tests/1,
       fun q_item_input_tests/1,
@@ -829,6 +831,32 @@ get_item_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb:get_item(<<"table">>, <<"key">>)), Tests).
+
+%% ListTables test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_ListTables.html
+list_tables_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"ListTables example request",
+             ?_f(erlcloud_ddb:list_tables([{exclusive_start_table_name, <<"comp2">>}, {limit, 3}])), 
+             "{\"ExclusiveStartTableName\":\"comp2\",\"Limit\":3}"
+            })
+        ],
+
+    Response = "{\"LastEvaluatedTableName\":\"comp5\",\"TableNames\":[\"comp3\",\"comp4\",\"comp5\"]}",
+    input_tests(Response, Tests).
+
+list_tables_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"ListTables example response",
+             "{\"LastEvaluatedTableName\":\"comp5\",\"TableNames\":[\"comp3\",\"comp4\",\"comp5\"]}",
+             {ok, #ddb_list_tables
+              {last_evaluated_table_name = <<"comp5">>,
+               table_names = [<<"comp3">>, <<"comp4">>, <<"comp5">>]}}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb:list_tables()), Tests).
 
 %% PutItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_PutItem.html
