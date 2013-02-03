@@ -239,6 +239,16 @@ json_key_to_key([{<<"HashKeyElement">>, [HashKey]}]) ->
 json_key_to_key([{<<"HashKeyElement">>, [HashKey]}, {<<"RangeKeyElement">>, [RangeKey]}]) ->
     {json_attr_value_to_typed_value(HashKey), json_attr_value_to_typed_value(RangeKey)}.
 
+-spec json_attr_to_typed_attr(json_attr()) -> in_attr().
+json_attr_to_typed_attr({Name, [ValueJson]}) ->
+    {Name, json_attr_value_to_typed_value(ValueJson)}.
+
+-spec json_term_to_typed_item(json_item()) -> in_item().
+json_term_to_typed_item([{}]) ->
+    %% jsx bug
+    [];
+json_term_to_typed_item(Json) ->
+    [json_attr_to_typed_attr(Attr) || Attr <- Json].
 
 -type get_item_opt() :: {attributes_to_get, [binary()]} | 
                         {consistent_read, boolean()}.
@@ -286,6 +296,9 @@ undynamize_batch_get_item_request_item({Table, Json}) ->
     lists:foldl(fun batch_get_item_request_item_folder/2, {Table, [], []}, Json).
 
 -spec batch_get_item_folder({binary(), term()}, #ddb_batch_get_item{}) -> #ddb_batch_get_item{}.
+batch_get_item_folder({<<"Responses">>, [{}]}, A) ->
+    %% Work around jsx bug
+    A#ddb_batch_get_item{responses = []};
 batch_get_item_folder({<<"Responses">>, Responses}, A) ->
     A#ddb_batch_get_item{responses = [undynamize_batch_get_item_response(R) || R <- Responses]};
 batch_get_item_folder({<<"UnprocessedKeys">>, [{}]}, A) ->
@@ -341,15 +354,19 @@ undynamize_batch_write_item_response({Table, Json}) ->
 -spec batch_write_item_request_folder([{binary(), term()}], batch_write_item_request_item()) 
                                      -> batch_write_item_request_item().
 batch_write_item_request_folder([{<<"PutRequest">>, [{<<"Item">>, Item}]}], {Table, Requests}) ->
-    {Table, [{put, json_term_to_item(Item)} | Requests]};
+    {Table, [{put, json_term_to_typed_item(Item)} | Requests]};
 batch_write_item_request_folder([{<<"DeleteRequest">>, [{<<"Key">>, Key}]}], {Table, Requests}) ->
     {Table, [{delete, json_key_to_key(Key)} | Requests]}.
 
 -spec undynamize_batch_write_item_request_item({table_name(), jsx:json_term()}) -> batch_write_item_request_item().
 undynamize_batch_write_item_request_item({Table, Json}) ->
-    lists:foldl(fun batch_write_item_request_folder/2, {Table, []}, Json).
+    {Table, Requests} = lists:foldl(fun batch_write_item_request_folder/2, {Table, []}, Json),
+    {Table, lists:reverse(Requests)}.
 
 -spec batch_write_item_folder({binary(), term()}, #ddb_batch_write_item{}) -> #ddb_batch_write_item{}.
+batch_write_item_folder({<<"Responses">>, [{}]}, A) ->
+    %% Work around jsx bug
+    A#ddb_batch_write_item{responses = []};
 batch_write_item_folder({<<"Responses">>, Responses}, A) ->
     A#ddb_batch_write_item{responses = [undynamize_batch_write_item_response(R) || R <- Responses]};
 batch_write_item_folder({<<"UnprocessedItems">>, [{}]}, A) ->
