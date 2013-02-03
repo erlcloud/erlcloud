@@ -261,6 +261,7 @@ batch_get_item_input_tests(_) ->
 
 batch_get_item_output_tests(_) ->
     Tests = 
+        %% Not sure why I'm getting a dialyzer warning on the next line - tests both run
         [?_ddb_test(
             {"BatchGetItem example response", "
 {\"Responses\":
@@ -296,7 +297,33 @@ batch_get_item_output_tests(_) ->
                               [{<<"friends">>, [<<"Dave">>, <<"Peter">>]},
                                {<<"user">>, <<"Julie">>}]],
                      consumed_capacity_units = 1}],
-               unprocessed_keys = []}}})
+               unprocessed_keys = []}}}),
+         ?_ddb_test(
+            {"BatchGetItem unprocessed keys", "
+{\"Responses\":{},
+ \"UnprocessedKeys\":
+   {\"comp2\":
+        {\"Keys\":
+            [{\"HashKeyElement\":{\"S\":\"Julie\"}},{\"HashKeyElement\":{\"S\":\"Mingus\"}}],
+        \"AttributesToGet\":[\"user\",\"friends\"]},
+    \"comp1\":
+        {\"Keys\":
+            [{\"HashKeyElement\":{\"S\":\"Casey\"},\"RangeKeyElement\":{\"N\":\"1319509152\"}},
+            {\"HashKeyElement\":{\"S\":\"Dave\"},\"RangeKeyElement\":{\"N\":\"1319509155\"}},
+            {\"HashKeyElement\":{\"S\":\"Riley\"},\"RangeKeyElement\":{\"N\":\"1319509158\"}}],
+        \"AttributesToGet\":[\"user\",\"status\"]}
+    }
+}",
+             {ok, #ddb_batch_get_item
+              {responses = [], 
+               unprocessed_keys = 
+                   [{<<"comp2">>, [{{s, <<"Julie">>}}, 
+                                   {{s, <<"Mingus">>}}], 
+                     [{attributes_to_get, [<<"user">>, <<"friends">>]}]},
+                    {<<"comp1">>, [{{s, <<"Casey">>}, {n, 1319509152}},
+                                   {{s, <<"Dave">>}, {n, 1319509155}},
+                                   {{s, <<"Riley">>}, {n, 1319509158}}],
+                     [{attributes_to_get, [<<"user">>, <<"status">>]}]}]}}})
         ],
     
     output_tests(?_f(erlcloud_ddb:batch_get_item([])), Tests).
@@ -429,7 +456,63 @@ batch_write_item_output_tests(_) ->
                     {table = <<"Reply">>,
                      consumed_capacity_units = 1.0}],
                unprocessed_items = [{<<"Reply">>, [{delete, {{s, <<"Amazon DynamoDB#DynamoDB Thread 4">>},
-                                                             {s, <<"oops - accidental row">>}}}]}]}}})
+                                                             {s, <<"oops - accidental row">>}}}]}]}}}),
+         ?_ddb_test(
+            {"BatchWriteItem unprocessed response", "
+{
+   \"Responses\":{},
+   \"UnprocessedItems\":{
+    \"Reply\":[
+      {
+        \"PutRequest\":{
+          \"Item\":{
+            \"ReplyDateTime\":{
+              \"S\":\"2012-04-03T11:04:47.034Z\"
+            },
+            \"Id\":{
+              \"S\":\"Amazon DynamoDB#DynamoDB Thread 5\"
+            }
+          }
+        }
+      },
+      {
+        \"DeleteRequest\":{
+          \"Key\":{
+            \"HashKeyElement\":{
+              \"S\":\"Amazon DynamoDB#DynamoDB Thread 4\"
+            },
+            \"RangeKeyElement\":{
+              \"S\":\"oops - accidental row\"
+            }
+          }
+        }
+      }
+    ],
+    \"Thread\":[
+      {
+        \"PutRequest\":{
+          \"Item\":{
+            \"ForumName\":{
+              \"S\":\"Amazon DynamoDB\"
+            },
+            \"Subject\":{
+              \"S\":\"DynamoDB Thread 5\"
+            }
+          }
+        }
+      }
+    ]
+  }
+}",
+             {ok, #ddb_batch_write_item
+              {responses = [],
+               unprocessed_items =
+                   [{<<"Reply">>, [{put, [{<<"ReplyDateTime">>, {s, <<"2012-04-03T11:04:47.034Z">>}},
+                                          {<<"Id">>, {s, <<"Amazon DynamoDB#DynamoDB Thread 5">>}}]},
+                                   {delete, {{s, <<"Amazon DynamoDB#DynamoDB Thread 4">>},
+                                             {s, <<"oops - accidental row">>}}}]},
+                    {<<"Thread">>, [{put, [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                           {<<"Subject">>, {s, <<"DynamoDB Thread 5">>}}]}]}]}}})
         ],
     
     output_tests(?_f(erlcloud_ddb:batch_write_item([])), Tests).
