@@ -45,8 +45,10 @@ operation_test_() ->
       fun list_tables_output_tests/1,
       fun put_item_input_tests/1,
       fun put_item_output_tests/1,
-      fun q_item_input_tests/1,
-      fun q_item_output_tests/1,
+      fun q_input_tests/1,
+      fun q_output_tests/1,
+      fun scan_input_tests/1,
+      fun scan_output_tests/1,
       fun update_item_input_tests/1,
       fun update_item_output_tests/1,
       fun update_table_input_tests/1,
@@ -920,7 +922,7 @@ put_item_output_tests(_) ->
 
 %% Query test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Query.html
-q_item_input_tests(_) ->
+q_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"Query example 1 request",
@@ -963,7 +965,7 @@ q_item_input_tests(_) ->
 }",
     input_tests(Response, Tests).
 
-q_item_output_tests(_) ->
+q_output_tests(_) ->
     Tests = 
         [?_ddb_test(
             {"Query example 1 response", "
@@ -1012,6 +1014,160 @@ q_item_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb:q(<<"table">>, <<"key">>)), Tests).
+
+%% Scan test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Scan.html
+scan_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"Scan example 1 request",
+             ?_f(erlcloud_ddb:scan(<<"1-hash-rangetable">>)), 
+             "{\"TableName\":\"1-hash-rangetable\"}"
+            }),
+         ?_ddb_test(
+            {"Scan example 2 request",
+             ?_f(erlcloud_ddb:scan(<<"comp5">>, [{scan_filter, [{<<"time">>, 400, gt}]}])), "
+{\"TableName\":\"comp5\",
+	\"ScanFilter\":
+		{\"time\":
+			{\"AttributeValueList\":[{\"N\":\"400\"}],
+			\"ComparisonOperator\":\"GT\"}
+	}
+}"
+            }),
+         ?_ddb_test(
+            {"Scan example 3 request",
+             ?_f(erlcloud_ddb:scan(<<"comp5">>, [{limit, 2}, 
+                                                 {scan_filter, [{<<"time">>, 400, gt}]},
+                                                 {exclusive_start_key, {<<"Fredy">>, 2000}}])), "
+{\"TableName\":\"comp5\",
+	\"Limit\":2,
+	\"ScanFilter\":
+		{\"time\":
+			{\"AttributeValueList\":[{\"N\":\"400\"}],
+			\"ComparisonOperator\":\"GT\"}
+	},
+	\"ExclusiveStartKey\":
+		{\"HashKeyElement\":{\"S\":\"Fredy\"},\"RangeKeyElement\":{\"N\":\"2000\"}}
+}"
+            })
+        ],
+
+    Response = "
+{\"Count\":1,
+	\"Items\":[
+		{\"friends\":{\"SS\":[\"Jane\",\"James\",\"John\"]},
+		\"status\":{\"S\":\"exercising\"},
+		\"time\":{\"N\":\"2200\"},
+		\"user\":{\"S\":\"Roger\"}}
+	],
+	\"LastEvaluatedKey\":{\"HashKeyElement\":{\"S\":\"Riley\"},\"RangeKeyElement\":{\"N\":\"250\"}},
+\"ConsumedCapacityUnits\":0.5,
+\"ScannedCount\":2
+}",
+    input_tests(Response, Tests).
+
+scan_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"Scan example 1 response", "
+{\"Count\":4,\"Items\":[{
+	\"date\":{\"S\":\"1980\"},
+	\"fans\":{\"SS\":[\"Dave\",\"Aaron\"]},
+	\"name\":{\"S\":\"Airplane\"},
+	\"rating\":{\"S\":\"***\"}
+	},{
+	\"date\":{\"S\":\"1999\"},
+	\"fans\":{\"SS\":[\"Ziggy\",\"Laura\",\"Dean\"]},
+	\"name\":{\"S\":\"Matrix\"},
+	\"rating\":{\"S\":\"*****\"}
+	},{
+	\"date\":{\"S\":\"1976\"},
+	\"fans\":{\"SS\":[\"Riley\"]},
+	\"name\":{\"S\":\"The Shaggy D.A.\"},
+	\"rating\":{\"S\":\"**\"}
+	},{
+	\"date\":{\"S\":\"1989\"},
+	\"fans\":{\"SS\":[\"Alexis\",\"Keneau\"]},
+	\"name\":{\"S\":\"Bill & Ted's Excellent Adventure\"},
+	\"rating\":{\"S\":\"****\"}
+	}],
+    \"ConsumedCapacityUnits\":0.5,
+	\"ScannedCount\":4
+}",
+             {ok, #ddb_scan
+              {count = 4,
+               items = [[{<<"date">>, <<"1980">>},
+                         {<<"fans">>, [<<"Dave">>, <<"Aaron">>]},
+                         {<<"name">>, <<"Airplane">>},
+                         {<<"rating">>, <<"***">>}],
+                        [{<<"date">>, <<"1999">>},
+                         {<<"fans">>, [<<"Ziggy">>, <<"Laura">>, <<"Dean">>]},
+                         {<<"name">>, <<"Matrix">>},
+                         {<<"rating">>, <<"*****">>}],
+                        [{<<"date">>, <<"1976">>},
+                         {<<"fans">>, [<<"Riley">>]},
+                         {<<"name">>, <<"The Shaggy D.A.">>},
+                         {<<"rating">>, <<"**">>}],
+                        [{<<"date">>, <<"1989">>},
+                         {<<"fans">>, [<<"Alexis">>, <<"Keneau">>]},
+                         {<<"name">>, <<"Bill & Ted's Excellent Adventure">>},
+                         {<<"rating">>, <<"****">>}]],
+               scanned_count = 4,
+               consumed_capacity_units = 0.5}}}),
+         ?_ddb_test(
+            {"Scan example 2 response", "
+{\"Count\":2,
+	\"Items\":[
+		{\"friends\":{\"SS\":[\"Dave\",\"Ziggy\",\"Barrie\"]},
+		\"status\":{\"S\":\"chatting\"},
+		\"time\":{\"N\":\"2000\"},
+		\"user\":{\"S\":\"Casey\"}},
+		{\"friends\":{\"SS\":[\"Dave\",\"Ziggy\",\"Barrie\"]},
+		\"status\":{\"S\":\"chatting\"},
+		\"time\":{\"N\":\"2000\"},
+		\"user\":{\"S\":\"Fredy\"}
+		}],
+\"ConsumedCapacityUnits\":0.5,
+\"ScannedCount\":4
+}",
+             {ok, #ddb_scan
+              {count = 2,
+               items = [[{<<"friends">>, [<<"Dave">>, <<"Ziggy">>, <<"Barrie">>]},
+                         {<<"status">>, <<"chatting">>},
+                         {<<"time">>, 2000},
+                         {<<"user">>, <<"Casey">>}],
+                        [{<<"friends">>, [<<"Dave">>, <<"Ziggy">>, <<"Barrie">>]},
+                         {<<"status">>, <<"chatting">>},
+                         {<<"time">>, 2000},
+                         {<<"user">>, <<"Fredy">>}]],
+               scanned_count = 4,
+               consumed_capacity_units = 0.5}}}),
+         ?_ddb_test(
+            {"Scan example 3 response", "
+{\"Count\":1,
+	\"Items\":[
+		{\"friends\":{\"SS\":[\"Jane\",\"James\",\"John\"]},
+		\"status\":{\"S\":\"exercising\"},
+		\"time\":{\"N\":\"2200\"},
+		\"user\":{\"S\":\"Roger\"}}
+	],
+	\"LastEvaluatedKey\":{\"HashKeyElement\":{\"S\":\"Riley\"},\"RangeKeyElement\":{\"N\":\"250\"}},
+\"ConsumedCapacityUnits\":0.5,
+\"ScannedCount\":2
+}",
+             {ok, #ddb_scan
+              {count = 1,
+               items = [[{<<"friends">>, [<<"Jane">>, <<"James">>, <<"John">>]},
+                         {<<"status">>, <<"exercising">>},
+                         {<<"time">>, 2200},
+                         {<<"user">>, <<"Roger">>}]],
+               last_evaluated_key = {{s, <<"Riley">>}, {n, 250}},
+               scanned_count = 2,
+               consumed_capacity_units = 0.5}}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb:scan(<<"name">>)), Tests).
 
 %% UpdateItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateItem.html

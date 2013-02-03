@@ -47,3 +47,10 @@
          last_evaluated_key :: erlcloud_ddb:hash_range_key(),
          consumed_capacity_units :: number()
         }).
+-record(ddb_scan, 
+        {items :: [erlcloud_ddb:out_item()],
+         count :: non_neg_integer(),
+         scanned_count :: non_neg_integer(),
+         last_evaluated_key :: erlcloud_ddb:hash_range_key(),
+         consumed_capacity_units :: number()
+        }).
