@@ -48,7 +48,10 @@ operation_test_() ->
       fun q_item_input_tests/1,
       fun q_item_output_tests/1,
       fun update_item_input_tests/1,
-      fun update_item_output_tests/1]}.
+      fun update_item_output_tests/1,
+      fun update_table_input_tests/1,
+      fun update_table_output_tests/1
+     ]}.
 
 start() ->
     meck:new(httpc, [unstick]),
@@ -840,7 +843,13 @@ list_tables_input_tests(_) ->
             {"ListTables example request",
              ?_f(erlcloud_ddb:list_tables([{exclusive_start_table_name, <<"comp2">>}, {limit, 3}])), 
              "{\"ExclusiveStartTableName\":\"comp2\",\"Limit\":3}"
+            }),
+         ?_ddb_test(
+            {"ListTables empty request",
+             ?_f(erlcloud_ddb:list_tables()), 
+             "{}"
             })
+
         ],
 
     Response = "{\"LastEvaluatedTableName\":\"comp5\",\"TableNames\":[\"comp3\",\"comp4\",\"comp5\"]}",
@@ -1074,4 +1083,64 @@ update_item_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb:update_item(<<"table">>, <<"key">>, [])), Tests).
+
+%% UpdateTable test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateTable.html
+update_table_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"UpdateTable example request",
+             ?_f(erlcloud_ddb:update_table(<<"comp1">>, 5, 15)), "
+{\"TableName\":\"comp1\",
+    \"ProvisionedThroughput\":{\"ReadCapacityUnits\":5,\"WriteCapacityUnits\":15}
+}"
+            })
+        ],
+
+    Response = "
+{\"TableDescription\":
+    {\"CreationDateTime\":1.321657838135E9,
+    \"KeySchema\":
+        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
+        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
+    \"ProvisionedThroughput\":
+        {\"LastDecreaseDateTime\":1.321661704489E9,
+        \"LastIncreaseDateTime\":1.321663607695E9,
+        \"ReadCapacityUnits\":5,
+        \"WriteCapacityUnits\":10},
+    \"TableName\":\"comp1\",
+    \"TableStatus\":\"UPDATING\"}
+}",
+    input_tests(Response, Tests).
+
+update_table_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"UpdateTable example response", "
+{\"TableDescription\":
+    {\"CreationDateTime\":1.321657838135E9,
+    \"KeySchema\":
+        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
+        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
+    \"ProvisionedThroughput\":
+        {\"LastDecreaseDateTime\":1.321661704489E9,
+        \"LastIncreaseDateTime\":1.321663607695E9,
+        \"ReadCapacityUnits\":5,
+        \"WriteCapacityUnits\":10},
+    \"TableName\":\"comp1\",
+    \"TableStatus\":\"UPDATING\"}
+}",
+             {ok, #ddb_table_description
+              {creation_date_time = 1321657838.135,
+               key_schema = {{<<"user">>, s}, {<<"time">>, n}},
+               provisioned_throughput = #ddb_provisioned_throughput{
+                                           read_capacity_units = 5,
+                                           write_capacity_units = 10,
+                                           last_decrease_date_time = 1321661704.489,
+                                           last_increase_date_time = 1321663607.695},
+               name = <<"comp1">>,
+               status = <<"UPDATING">>}}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb:update_table(<<"name">>, 5, 15)), Tests).
 

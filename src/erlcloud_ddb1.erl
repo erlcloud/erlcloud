@@ -43,7 +43,8 @@
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
          q/2, q/3, q/4,
-         update_item/3, update_item/4, update_item/5
+         update_item/3, update_item/4, update_item/5,
+         update_table/3, update_table/4
         ]).
 
 %% Internal use only
@@ -107,8 +108,8 @@ batch_get_item(RequestItems) ->
 
 -spec batch_get_item([batch_get_item_request_item()], aws_config()) -> json_reply().
 batch_get_item(RequestItems, Config) ->
-    JSON = [{<<"RequestItems">>, [batch_get_item_request_item_json(R) || R <- RequestItems]}],
-    request(Config, "BatchGetItem", JSON).
+    Json = [{<<"RequestItems">>, [batch_get_item_request_item_json(R) || R <- RequestItems]}],
+    request(Config, "BatchGetItem", Json).
 
 -type batch_write_item_put() :: {put, item()}.
 -type batch_write_item_delete() :: {delete, key()}.
@@ -131,8 +132,8 @@ batch_write_item(RequestItems) ->
 
 -spec batch_write_item([batch_write_item_request_item()], aws_config()) -> json_reply().
 batch_write_item(RequestItems, Config) ->
-    JSON = [{<<"RequestItems">>, [batch_write_item_request_item_json(R) || R <- RequestItems]}],
-    request(Config, "BatchWriteItem", JSON).
+    Json = [{<<"RequestItems">>, [batch_write_item_request_item_json(R) || R <- RequestItems]}],
+    request(Config, "BatchWriteItem", Json).
 
 
 -spec key_schema_value_json(key_schema_value()) -> jsx:json_term().
@@ -152,11 +153,11 @@ create_table(Table, KeySchema, ReadUnits, WriteUnits) ->
 
 -spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), aws_config()) -> json_reply().
 create_table(Table, KeySchema, ReadUnits, WriteUnits, Config) ->
-    JSON = [{<<"TableName">>, Table},
+    Json = [{<<"TableName">>, Table},
             key_schema_json(KeySchema),
             {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
                                            {<<"WriteCapacityUnits">>, WriteUnits}]}],
-    request(Config, "CreateTable", JSON).
+    request(Config, "CreateTable", Json).
 
     
 -spec delete_item(table_name(), key()) -> json_reply().
@@ -169,10 +170,10 @@ delete_item(Table, Key, Optional) ->
 
 -spec delete_item(table_name(), key(), opts(), aws_config()) -> json_reply().
 delete_item(Table, Key, Optional, Config) ->
-    JSON = [{<<"TableName">>, Table},
+    Json = [{<<"TableName">>, Table},
             key_json(Key)] 
         ++ Optional,
-    request(Config, "DeleteItem", JSON).
+    request(Config, "DeleteItem", Json).
 
     
 -spec delete_table(table_name()) -> json_reply().
@@ -181,8 +182,8 @@ delete_table(Table) ->
 
 -spec delete_table(table_name(), aws_config()) -> json_reply().
 delete_table(Table, Config) ->
-    JSON = [{<<"TableName">>, Table}],
-    request(Config, "DeleteTable", JSON).
+    Json = [{<<"TableName">>, Table}],
+    request(Config, "DeleteTable", Json).
 
     
 -spec describe_table(table_name()) -> json_reply().
@@ -191,8 +192,8 @@ describe_table(Table) ->
 
 -spec describe_table(table_name(), aws_config()) -> json_reply().
 describe_table(Table, Config) ->
-    JSON = [{<<"TableName">>, Table}],
-    request(Config, "DescribeTable", JSON).
+    Json = [{<<"TableName">>, Table}],
+    request(Config, "DescribeTable", Json).
 
 
 -spec get_item(table_name(), key()) -> json_reply().
@@ -205,10 +206,10 @@ get_item(Table, Key, Optional) ->
 
 -spec get_item(table_name(), key(), opts(), aws_config()) -> json_reply().
 get_item(Table, Key, Optional, Config) ->
-    JSON = [{<<"TableName">>, Table},
+    Json = [{<<"TableName">>, Table},
             key_json(Key)] 
         ++ Optional,
-    request(Config, "GetItem", JSON).
+    request(Config, "GetItem", Json).
 
 
 -spec list_tables() -> json_reply().
@@ -234,10 +235,10 @@ put_item(Table, Item, Optional) ->
 
 -spec put_item(table_name(), item(), opts(), aws_config()) -> json_reply().
 put_item(Table, Item, Optional, Config) ->
-    JSON = [{<<"TableName">>, Table},
+    Json = [{<<"TableName">>, Table},
             item_json(Item)] 
         ++ Optional,
-    request(Config, "PutItem", JSON).
+    request(Config, "PutItem", Json).
 
 
 -spec q(table_name(), hash_key()) -> json_reply().
@@ -250,10 +251,10 @@ q(Table, HashKey, Optional) ->
 
 -spec q(table_name(), hash_key(), opts(), aws_config()) -> json_reply().
 q(Table, HashKey, Optional, Config) ->
-    JSON = [{<<"TableName">>, Table},
+    Json = [{<<"TableName">>, Table},
             hash_key_json(HashKey)] 
         ++ Optional,
-    request(Config, "Query", JSON).
+    request(Config, "Query", Json).
 
 
 -spec update_item(table_name(), key(), updates()) -> json_reply().
@@ -266,17 +267,32 @@ update_item(Table, Key, Updates, Optional) ->
 
 -spec update_item(table_name(), key(), updates(), opts(), aws_config()) -> json_reply().
 update_item(Table, Key, Updates, Optional, Config) ->
-    JSON = [{<<"TableName">>, Table},
+    Json = [{<<"TableName">>, Table},
             key_json(Key),
             updates_json(Updates)] 
         ++ Optional,
-    request(Config, "UpdateItem", JSON).
+    request(Config, "UpdateItem", Json).
 
     
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer()) -> json_reply().
+update_table(Table, ReadUnits, WriteUnits) ->
+    update_table(Table, ReadUnits, WriteUnits, default_config()).
+
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer(), aws_config()) -> json_reply().
+update_table(Table, ReadUnits, WriteUnits, Config) ->
+    Json = [{<<"TableName">>, Table},
+            {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
+                                           {<<"WriteCapacityUnits">>, WriteUnits}]}],
+    request(Config, "UpdateTable", Json).
+
+
 -type operation() :: string().
 -spec request(aws_config(), operation(), jsx:json_term()) -> json_reply().
-request(Config0, Operation, JSON) ->
-    Body = jsx:term_to_json(JSON),
+request(Config0, Operation, Json) ->
+    Body = case Json of
+               [] -> <<"{}">>;
+               _ -> jsx:encode(Json)
+           end,
     case erlcloud_aws:update_config(Config0) of
         {ok, Config} ->
             Headers = headers(Config, Operation, Body),
