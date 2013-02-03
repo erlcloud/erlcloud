@@ -37,6 +37,7 @@
          create_table/4, create_table/5,
          delete_item/2, delete_item/3, delete_item/4,
          delete_table/1, delete_table/2,
+         describe_table/1, describe_table/2,
          get_item/2, get_item/3, get_item/4,
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
@@ -199,6 +200,16 @@ get_item(Table, Key, Optional, Config) ->
     request(Config, "GetItem", JSON).
 
 
+-spec describe_table(table_name()) -> json_reply().
+describe_table(Table) ->
+    describe_table(Table, default_config()).
+
+-spec describe_table(table_name(), aws_config()) -> json_reply().
+describe_table(Table, Config) ->
+    JSON = [{<<"TableName">>, Table}],
+    request(Config, "DescribeTable", JSON).
+
+    
 -spec put_item(table_name(), item()) -> json_reply().
 put_item(Table, Item) ->
     put_item(Table, Item, [], default_config()).

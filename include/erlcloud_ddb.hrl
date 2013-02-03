@@ -1,6 +1,6 @@
 -record(ddb_provisioned_throughput,
-        {read_capacity_units :: non_neg_integer(),
-         write_capacity_units :: non_neg_integer(),
+        {read_capacity_units :: pos_integer(),
+         write_capacity_units :: pos_integer(),
          last_decrease_date_time :: number(),
          last_increase_date_time :: number()
         }).
@@ -9,6 +9,15 @@
          key_schema :: erlcloud_ddb:key_schema(),
          provisioned_throughput :: #ddb_provisioned_throughput{},
          name :: binary(),
+         status :: binary()
+        }).
+-record(ddb_table,
+        {creation_date_time :: number(),
+         item_count :: non_neg_integer(),
+         key_schema :: erlcloud_ddb:key_schema(),
+         provisioned_throughput :: #ddb_provisioned_throughput{},
+         name :: binary(),
+         size_bytes :: non_neg_integer(),
          status :: binary()
         }).
 -record(ddb_batch_get_item_response,

@@ -16,8 +16,9 @@
 -export([batch_get_item/1, batch_get_item/2,
          batch_write_item/1, batch_write_item/2,
          create_table/4, create_table/5,
-         delete_table/1, delete_table/2,
          delete_item/2, delete_item/3, delete_item/4,
+         delete_table/1, delete_table/2,
+         describe_table/1, describe_table/2,
          get_item/2, get_item/3, get_item/4,
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
@@ -325,7 +326,8 @@ table_description_folder(_, A) ->
 undynamize_table_description(Json) ->
     lists:foldl(fun table_description_folder/2, #ddb_table_description{}, Json).
 
--spec table_description_return(jsx:json_term()) -> {ok, #ddb_table_description{}} | {error, term()}.
+-type table_description_return() :: {ok, #ddb_table_description{}} | {error, term()}.
+-spec table_description_return(jsx:json_term()) -> table_description_return().
 table_description_return(Json) ->
     case proplists:get_value(<<"TableDescription">>, Json) of
         undefined ->
@@ -479,11 +481,12 @@ batch_write_item(RequestItems, Config) ->
     end.
 
 
--spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer()) -> item_return().
+-spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer()) -> table_description_return().
 create_table(Table, KeySchema, ReadUnits, WriteUnits) ->
     create_table(Table, KeySchema, ReadUnits, WriteUnits, default_config()).
 
--spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), aws_config()) -> item_return().
+-spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), aws_config()) 
+                  -> table_description_return().
 create_table(Table, KeySchema, ReadUnits, WriteUnits, Config) ->
     case erlcloud_ddb1:create_table(Table, dynamize_key_schema(KeySchema), ReadUnits, WriteUnits, Config) of
         {error, Reason} ->
@@ -528,17 +531,63 @@ delete_item(Table, Key, Opts, Config) ->
     end.
 
 
--spec delete_table(table_name()) -> item_return().
+-spec delete_table(table_name()) -> table_description_return().
 delete_table(Table) ->
     delete_table(Table, default_config()).
 
--spec delete_table(table_name(), aws_config()) -> item_return().
+-spec delete_table(table_name(), aws_config()) -> table_description_return().
 delete_table(Table, Config) ->
     case erlcloud_ddb1:delete_table(Table, Config) of
         {error, Reason} ->
             {error, Reason};
         {ok, Json} ->
             table_description_return(Json)
+    end.
+
+
+-spec table_folder({binary(), term()}, #ddb_table{}) -> #ddb_table{}.
+table_folder({<<"CreationDateTime">>, Time}, A) ->
+    A#ddb_table{creation_date_time = Time};
+table_folder({<<"ItemCount">>, Count}, A) ->
+    A#ddb_table{item_count = Count};
+table_folder({<<"KeySchema">>, KeySchema}, A) ->
+    A#ddb_table{key_schema = undynamize_key_schema(KeySchema)};
+table_folder({<<"ProvisionedThroughput">>, ProvisionedThroughput}, A) ->
+    A#ddb_table{provisioned_throughput = undynamize_provisioned_throughput(ProvisionedThroughput)};
+table_folder({<<"TableName">>, Name}, A) ->
+    A#ddb_table{name = Name};
+table_folder({<<"TableSizeBytes">>, Size}, A) ->
+    A#ddb_table{size_bytes = Size};
+table_folder({<<"TableStatus">>, Status}, A) ->
+    A#ddb_table{status = Status};
+table_folder(_, A) ->
+    A.
+
+-spec undynamize_table(jsx:json_term()) -> #ddb_table{}.
+undynamize_table(Json) ->
+    lists:foldl(fun table_folder/2, #ddb_table{}, Json).
+
+-type table_return() :: {ok, #ddb_table{}} | {error, term()}.
+-spec table_return(jsx:json_term()) -> table_return().
+table_return(Json) ->
+    case proplists:get_value(<<"Table">>, Json) of
+        undefined ->
+            {error, no_table};
+        Description ->
+            {ok, undynamize_table(Description)}
+    end.
+
+-spec describe_table(table_name()) -> table_return().
+describe_table(Table) ->
+    describe_table(Table, default_config()).
+
+-spec describe_table(table_name(), aws_config()) -> table_return().
+describe_table(Table, Config) ->
+    case erlcloud_ddb1:describe_table(Table, Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            table_return(Json)
     end.
 
 
