@@ -43,6 +43,7 @@
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
          q/2, q/3, q/4,
+         scan/1, scan/2, scan/3,
          update_item/3, update_item/4, update_item/5,
          update_table/3, update_table/4
         ]).
@@ -99,8 +100,8 @@ updates_json(Updates) ->
 -spec batch_get_item_request_item_json(batch_get_item_request_item()) -> {binary(), jsx:json_term()}.
 batch_get_item_request_item_json({Table, Keys}) ->
     batch_get_item_request_item_json({Table, Keys, []});
-batch_get_item_request_item_json({Table, Keys, Optional}) ->
-    {Table, [{<<"Keys">>, [key_value(K) || K <- Keys]}] ++ Optional}.
+batch_get_item_request_item_json({Table, Keys, Opts}) ->
+    {Table, [{<<"Keys">>, [key_value(K) || K <- Keys]}] ++ Opts}.
 
 -spec batch_get_item([batch_get_item_request_item()]) -> json_reply().
 batch_get_item(RequestItems) ->
@@ -165,14 +166,14 @@ delete_item(Table, Key) ->
     delete_item(Table, Key, [], default_config()).
 
 -spec delete_item(table_name(), key(), opts()) -> json_reply().
-delete_item(Table, Key, Optional) ->
-    delete_item(Table, Key, Optional, default_config()).
+delete_item(Table, Key, Opts) ->
+    delete_item(Table, Key, Opts, default_config()).
 
 -spec delete_item(table_name(), key(), opts(), aws_config()) -> json_reply().
-delete_item(Table, Key, Optional, Config) ->
+delete_item(Table, Key, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             key_json(Key)] 
-        ++ Optional,
+        ++ Opts,
     request(Config, "DeleteItem", Json).
 
     
@@ -201,14 +202,14 @@ get_item(Table, Key) ->
     get_item(Table, Key, [], default_config()).
 
 -spec get_item(table_name(), key(), opts()) -> json_reply().
-get_item(Table, Key, Optional) ->
-    get_item(Table, Key, Optional, default_config()).
+get_item(Table, Key, Opts) ->
+    get_item(Table, Key, Opts, default_config()).
 
 -spec get_item(table_name(), key(), opts(), aws_config()) -> json_reply().
-get_item(Table, Key, Optional, Config) ->
+get_item(Table, Key, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             key_json(Key)] 
-        ++ Optional,
+        ++ Opts,
     request(Config, "GetItem", Json).
 
 
@@ -230,14 +231,14 @@ put_item(Table, Item) ->
     put_item(Table, Item, [], default_config()).
 
 -spec put_item(table_name(), item(), opts()) -> json_reply().
-put_item(Table, Item, Optional) ->
-    put_item(Table, Item, Optional, default_config()).
+put_item(Table, Item, Opts) ->
+    put_item(Table, Item, Opts, default_config()).
 
 -spec put_item(table_name(), item(), opts(), aws_config()) -> json_reply().
-put_item(Table, Item, Optional, Config) ->
+put_item(Table, Item, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             item_json(Item)] 
-        ++ Optional,
+        ++ Opts,
     request(Config, "PutItem", Json).
 
 
@@ -246,15 +247,30 @@ q(Table, HashKey) ->
     q(Table, HashKey, [], default_config()).
 
 -spec q(table_name(), hash_key(), opts()) -> json_reply().
-q(Table, HashKey, Optional) ->
-    q(Table, HashKey, Optional, default_config()).
+q(Table, HashKey, Opts) ->
+    q(Table, HashKey, Opts, default_config()).
 
 -spec q(table_name(), hash_key(), opts(), aws_config()) -> json_reply().
-q(Table, HashKey, Optional, Config) ->
+q(Table, HashKey, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             hash_key_json(HashKey)] 
-        ++ Optional,
+        ++ Opts,
     request(Config, "Query", Json).
+
+
+-spec scan(table_name()) -> json_reply().
+scan(Table) ->
+    scan(Table, [], default_config()).
+
+-spec scan(table_name(), opts()) -> json_reply().
+scan(Table, Opts) ->
+    scan(Table, Opts, default_config()).
+
+-spec scan(table_name(), opts(), aws_config()) -> json_reply().
+scan(Table, Opts, Config) ->
+    Json = [{<<"TableName">>, Table}]
+        ++ Opts,
+    request(Config, "Scan", Json).
 
 
 -spec update_item(table_name(), key(), updates()) -> json_reply().
@@ -262,15 +278,15 @@ update_item(Table, Key, Updates) ->
     update_item(Table, Key, Updates, [], default_config()).
 
 -spec update_item(table_name(), key(), updates(), opts()) -> json_reply().
-update_item(Table, Key, Updates, Optional) ->
-    update_item(Table, Key, Updates, Optional, default_config()).
+update_item(Table, Key, Updates, Opts) ->
+    update_item(Table, Key, Updates, Opts, default_config()).
 
 -spec update_item(table_name(), key(), updates(), opts(), aws_config()) -> json_reply().
-update_item(Table, Key, Updates, Optional, Config) ->
+update_item(Table, Key, Updates, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             key_json(Key),
             updates_json(Updates)] 
-        ++ Optional,
+        ++ Opts,
     request(Config, "UpdateItem", Json).
 
     

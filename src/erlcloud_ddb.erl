@@ -24,6 +24,7 @@
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
          q/2, q/3, q/4,
+         scan/1, scan/2, scan/3,
          update_item/3, update_item/4, update_item/5,
          update_table/3, update_table/4
         ]).
@@ -91,9 +92,11 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 -type key_schema_value() :: {attr_name(), attr_type()}.
 -type key_schema() :: key_schema_value() | {key_schema_value(), key_schema_value()}.
 
--type comparison_operator() :: eq | le | lt | ge | gt | begins_with | between.
--type range_key_condition() :: {in_attr_value(), comparison_operator()} | 
-                               {in_attr_value(), in_attr_value(), between}.
+-type comparison_op() :: eq | ne | le | lt | ge | gt | not_null | null | contains | not_contains | 
+                         begins_with | in | between.
+
+-type range_key_condition() :: {in_attr_value(), comparison_op()} | 
+                               {{in_attr_value(), in_attr_value()}, between}.
 
 -type out_attr_value() :: binary() | integer() | [binary()] | [integer()].
 -type out_attr() :: {attr_name(), out_attr_value()}.
@@ -201,9 +204,11 @@ dynamize_update({Name, Value}) ->
     %% Uses the default action of put
     {Name, [{<<"Value">>, [dynamize_value(Value)]}]}.
 
--spec dynamize_comparison(comparison_operator()) -> {binary(), binary()}.
+-spec dynamize_comparison(comparison_op()) -> {binary(), binary()}.
 dynamize_comparison(eq) ->
     {<<"ComparisonOperator">>, <<"EQ">>};
+dynamize_comparison(ne) ->
+    {<<"ComparisonOperator">>, <<"NE">>};
 dynamize_comparison(le) ->
     {<<"ComparisonOperator">>, <<"LE">>};
 dynamize_comparison(lt) ->
@@ -212,13 +217,23 @@ dynamize_comparison(ge) ->
     {<<"ComparisonOperator">>, <<"GE">>};
 dynamize_comparison(gt) ->
     {<<"ComparisonOperator">>, <<"GT">>};
+dynamize_comparison(not_null) ->
+    {<<"ComparisonOperator">>, <<"NOT_NULL">>};
+dynamize_comparison(null) ->
+    {<<"ComparisonOperator">>, <<"NULL">>};
+dynamize_comparison(contains) ->
+    {<<"ComparisonOperator">>, <<"CONTAINS">>};
+dynamize_comparison(not_contains) ->
+    {<<"ComparisonOperator">>, <<"NOT_CONTAINS">>};
 dynamize_comparison(begins_with) ->
     {<<"ComparisonOperator">>, <<"BEGINS_WITH">>};
+dynamize_comparison(in) ->
+    {<<"ComparisonOperator">>, <<"IN">>};
 dynamize_comparison(between) ->
     {<<"ComparisonOperator">>, <<"BETWEEN">>}.
 
 -spec dynamize_range_key_condition(range_key_condition()) -> json_range_key_condition().
-dynamize_range_key_condition({Value1, Value2, between}) ->
+dynamize_range_key_condition({{Value1, Value2}, between}) ->
     [{<<"AttributeValueList">>, [[dynamize_value(Value1)], [dynamize_value(Value2)]],
       dynamize_comparison(between)}];
 dynamize_range_key_condition({Value, Comparison}) ->
@@ -741,6 +756,73 @@ q(Table, HashKey, Opts, Config) ->
             {error, Reason};
         {ok, Json} ->
             {ok, lists:foldl(fun q_folder/2, #ddb_q{}, Json)}
+    end.
+
+-type scan_filter_item() :: {attr_name(), [in_attr_value()], in} |
+                            {attr_name(), {in_attr_value(), in_attr_value()}, between} |
+                            {attr_name(), in_attr_value(), comparison_op()}.
+-type scan_filter() :: [scan_filter_item()].
+
+-spec dynamize_scan_filter_item(scan_filter_item()) -> {binary(), jsx:json_term()}.
+dynamize_scan_filter_item({Name, AttrValueList, in}) ->
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(A)] || A <- AttrValueList]},
+            dynamize_comparison(in)]};
+dynamize_scan_filter_item({Name, {AttrValue1, AttrValue2}, between}) ->
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue1)], [dynamize_value(AttrValue2)]]},
+            dynamize_comparison(between)]};
+dynamize_scan_filter_item({Name, AttrValue, Op}) ->
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]},
+            dynamize_comparison(Op)]}.
+
+-type scan_opt() :: {attributes_to_get, [binary()]} | 
+                    {limit, pos_integer()} |
+                    {count, boolean()} |
+                    {scan_filter, scan_filter()} |
+                    {exclusive_start_key, key()}.
+-type scan_opts() :: [scan_opt()].
+
+-spec scan_opt(scan_opt()) -> {binary(), jsx:json_term()}.
+scan_opt({attributes_to_get, Value}) ->
+    {<<"AttributesToGet">>, Value};
+scan_opt({limit, Value}) ->
+    {<<"Limit">>, Value};
+scan_opt({count, Value}) ->
+    {<<"Count">>, Value};
+scan_opt({scan_filter, Value}) ->
+    {<<"ScanFilter">>, [dynamize_scan_filter_item(I) || I <- Value]};
+scan_opt({exclusive_start_key, Value}) ->
+    {<<"ExclusiveStartKey">>, erlcloud_ddb1:key_value(dynamize_key(Value))}.
+
+-spec scan_folder({binary(), term()}, #ddb_scan{}) -> #ddb_scan{}.
+scan_folder({<<"Items">>, ItemList}, A) ->
+    A#ddb_scan{items = [json_term_to_item(I) || I <- ItemList]};
+scan_folder({<<"Count">>, Count}, A) ->
+    A#ddb_scan{count = Count};
+scan_folder({<<"ScannedCount">>, Count}, A) ->
+    A#ddb_scan{scanned_count = Count};
+scan_folder({<<"LastEvaluatedKey">>, Key}, A) ->
+    A#ddb_scan{last_evaluated_key = json_key_to_key(Key)};
+scan_folder({<<"ConsumedCapacityUnits">>, Units}, A) ->
+    A#ddb_scan{consumed_capacity_units = Units};
+scan_folder(_, A) ->
+    A.
+
+-type scan_return() :: {ok, #ddb_scan{}} | {error, term()}.
+-spec scan(table_name()) -> scan_return().
+scan(Table) ->
+    scan(Table, [], default_config()).
+
+-spec scan(table_name(), scan_opts()) -> scan_return().
+scan(Table, Opts) ->
+    scan(Table, Opts, default_config()).
+
+-spec scan(table_name(), scan_opts(), aws_config()) -> scan_return().
+scan(Table, Opts, Config) ->
+    case erlcloud_ddb1:scan(Table, lists:map(fun scan_opt/1, Opts), Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            {ok, lists:foldl(fun scan_folder/2, #ddb_scan{}, Json)}
     end.
 
 
