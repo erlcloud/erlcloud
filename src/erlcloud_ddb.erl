@@ -24,7 +24,8 @@
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
          q/2, q/3, q/4,
-         update_item/3, update_item/4, update_item/5
+         update_item/3, update_item/4, update_item/5,
+         update_table/3, update_table/4
         ]).
 
 -export_type([table_name/0, hash_range_key/0, out_item/0, key_schema/0,
@@ -782,6 +783,21 @@ update_item(Table, Key, Updates, Opts, Config) ->
                 Item ->
                     {ok, json_term_to_item(Item)}
             end
+    end.
+
+
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer()) -> table_description_return().
+update_table(Table, ReadUnits, WriteUnits) ->
+    update_table(Table, ReadUnits, WriteUnits, default_config()).
+
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer(), aws_config()) 
+                  -> table_description_return().
+update_table(Table, ReadUnits, WriteUnits, Config) ->
+    case erlcloud_ddb1:update_table(Table, ReadUnits, WriteUnits, Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            table_description_return(Json)
     end.
 
 
