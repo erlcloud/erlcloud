@@ -27,6 +27,8 @@ operation_test_() ->
      fun start/0,
      fun stop/1,
      [fun error_handling_tests/1,
+      fun batch_get_item_input_tests/1,
+      fun batch_get_item_output_tests/1,
       fun delete_item_input_tests/1,
       fun delete_item_output_tests/1,
       fun get_item_input_tests/1,
@@ -113,6 +115,11 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
               meck:expect(httpc, request, output_expect(Response)),
               erlcloud_ddb:configure(string:copies("A", 20), string:copies("a", 40)),
               Actual = Fun(),
+              case Result =:= Actual of
+                  true -> ok;
+                  false ->
+                      ?debugFmt("~nEXPECTED~n~p~nACTUAL~n~p~n", [Result, Actual])
+              end,
               ?assertEqual(Result, Actual)
       end}}.
 %% output_test(Fun, {Line, {Response, Result}}) ->
@@ -201,6 +208,96 @@ error_handling_tests(_) ->
     
     error_tests(?_f(erlcloud_ddb:get_item(<<"table">>, <<"key">>)), Tests).
 
+
+%% BatchGetItem test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchGetItem.html
+batch_get_item_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"BatchGetItem example request",
+             ?_f(erlcloud_ddb:batch_get_item(
+                   [{<<"comp2">>, [<<"Julie">>, 
+                                   <<"Mingus">>], 
+                     [{attributes_to_get, [<<"user">>, <<"friends">>]}]},
+                    {<<"comp1">>, [{<<"Casey">>, 1319509152},
+                                   {<<"Dave">>, 1319509155},
+                                   {<<"Riley">>, 1319509158}],
+                     [{attributes_to_get, [<<"user">>, <<"status">>]}]}])), "
+{\"RequestItems\":
+    {\"comp2\":
+        {\"Keys\":
+            [{\"HashKeyElement\":{\"S\":\"Julie\"}},{\"HashKeyElement\":{\"S\":\"Mingus\"}}],
+        \"AttributesToGet\":[\"user\",\"friends\"]},
+    \"comp1\":
+        {\"Keys\":
+            [{\"HashKeyElement\":{\"S\":\"Casey\"},\"RangeKeyElement\":{\"N\":\"1319509152\"}},
+            {\"HashKeyElement\":{\"S\":\"Dave\"},\"RangeKeyElement\":{\"N\":\"1319509155\"}},
+            {\"HashKeyElement\":{\"S\":\"Riley\"},\"RangeKeyElement\":{\"N\":\"1319509158\"}}],
+        \"AttributesToGet\":[\"user\",\"status\"]}
+    }
+}"
+                  })
+        ],
+
+    Response = "
+{\"Responses\":
+    {\"comp1\":
+        {\"Items\":
+            [{\"status\":{\"S\":\"online\"},\"user\":{\"S\":\"Casey\"}},
+            {\"status\":{\"S\":\"working\"},\"user\":{\"S\":\"Riley\"}},
+            {\"status\":{\"S\":\"running\"},\"user\":{\"S\":\"Dave\"}}],
+        \"ConsumedCapacityUnits\":1.5},
+    \"comp2\":
+        {\"Items\":
+            [{\"friends\":{\"SS\":[\"Elisabeth\", \"Peter\"]},\"user\":{\"S\":\"Mingus\"}},
+            {\"friends\":{\"SS\":[\"Dave\", \"Peter\"]},\"user\":{\"S\":\"Julie\"}}],
+        \"ConsumedCapacityUnits\":1}
+    },
+    \"UnprocessedKeys\":{}
+}",
+    input_tests(Response, Tests).
+
+batch_get_item_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"BatchGetItem example response", "
+{\"Responses\":
+    {\"comp1\":
+        {\"Items\":
+            [{\"status\":{\"S\":\"online\"},\"user\":{\"S\":\"Casey\"}},
+            {\"status\":{\"S\":\"working\"},\"user\":{\"S\":\"Riley\"}},
+            {\"status\":{\"S\":\"running\"},\"user\":{\"S\":\"Dave\"}}],
+        \"ConsumedCapacityUnits\":1.5},
+    \"comp2\":
+        {\"Items\":
+            [{\"friends\":{\"SS\":[\"Elisabeth\", \"Peter\"]},\"user\":{\"S\":\"Mingus\"}},
+            {\"friends\":{\"SS\":[\"Dave\", \"Peter\"]},\"user\":{\"S\":\"Julie\"}}],
+        \"ConsumedCapacityUnits\":1}
+    },
+    \"UnprocessedKeys\":{}
+}",
+             {ok, #ddb_batch_get_item
+              {responses = 
+                   [#ddb_batch_get_item_response
+                    {table = <<"comp1">>,
+                     items = [[{<<"status">>, <<"online">>},
+                               {<<"user">>, <<"Casey">>}],
+                              [{<<"status">>, <<"working">>},
+                               {<<"user">>, <<"Riley">>}],
+                              [{<<"status">>, <<"running">>},
+                               {<<"user">>, <<"Dave">>}]],
+                     consumed_capacity_units = 1.5},
+                    #ddb_batch_get_item_response
+                    {table = <<"comp2">>,
+                     items = [[{<<"friends">>, [<<"Elisabeth">>, <<"Peter">>]},
+                               {<<"user">>, <<"Mingus">>}],
+                              [{<<"friends">>, [<<"Dave">>, <<"Peter">>]},
+                               {<<"user">>, <<"Julie">>}]],
+                     consumed_capacity_units = 1}],
+               unprocessed_keys = []}}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb:batch_get_item([])), Tests).
 
 %% DeleteItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteItem.html

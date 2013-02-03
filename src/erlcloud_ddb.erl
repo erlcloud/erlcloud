@@ -13,7 +13,8 @@
 -export([configure/2, configure/3, new/2, new/3]).
 
 %%% DynamoDB API
--export([delete_item/2, delete_item/3, delete_item/4,
+-export([batch_get_item/1, batch_get_item/2,
+         delete_item/2, delete_item/3, delete_item/4,
          get_item/2, get_item/3, get_item/4,
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
@@ -21,7 +22,7 @@
          update_item/3, update_item/4, update_item/5
         ]).
 
--export_type([hash_range_key/0, out_item/0]).
+-export_type([hash_range_key/0, out_item/0, batch_get_item_request/0, table_name/0]).
 
 %%% Library initialization.
 -spec(new/2 :: (string(), string()) -> aws_config()).
@@ -228,9 +229,81 @@ json_attr_value_to_typed_value({<<"N">>, Value}) ->
 json_attr_value_to_typed_value({<<"B">>, Value}) ->
     {b, base64:decode(Value)}.
 
--spec json_key_to_key(json_key()) -> hash_range_key().
+-spec json_key_to_key(json_key()) -> key().
+json_key_to_key([{<<"HashKeyElement">>, [HashKey]}]) ->
+    {json_attr_value_to_typed_value(HashKey)};
 json_key_to_key([{<<"HashKeyElement">>, [HashKey]}, {<<"RangeKeyElement">>, [RangeKey]}]) ->
     {json_attr_value_to_typed_value(HashKey), json_attr_value_to_typed_value(RangeKey)}.
+
+
+-type get_item_opt() :: {attributes_to_get, [binary()]} | 
+                        {consistent_read, boolean()}.
+-type get_item_opts() :: [get_item_opt()].
+
+-spec get_item_opt(get_item_opt()) -> {binary(), jsx:json_term()}.
+get_item_opt({attributes_to_get, Value}) ->
+    {<<"AttributesToGet">>, Value};
+get_item_opt({consistent_read, Value}) ->
+    {<<"ConsistentRead">>, Value}.
+
+-type batch_get_item_request() :: {table_name(), [key(),...], get_item_opts()} | {table_name(), [key(),...]}.
+
+-spec dynamize_batch_get_item_request(batch_get_item_request()) -> {binary(), jsx:json_term(), jsx:json_term()}.
+dynamize_batch_get_item_request({Table, Keys}) ->
+    dynamize_batch_get_item_request({Table, Keys, []});
+dynamize_batch_get_item_request({Table, Keys, Opts}) ->
+    {Table, [dynamize_key(K) || K <- Keys], lists:map(fun get_item_opt/1, Opts)}.
+
+-spec batch_get_item_response_folder({binary(), term()}, #ddb_batch_get_item_response{}) ->
+                                            #ddb_batch_get_item_response{}.
+batch_get_item_response_folder({<<"Items">>, ItemList}, A) ->
+    A#ddb_batch_get_item_response{items = [json_term_to_item(I) || I <- ItemList]};
+batch_get_item_response_folder({<<"ConsumedCapacityUnits">>, Units}, A) ->
+    A#ddb_batch_get_item_response{consumed_capacity_units = Units};
+batch_get_item_response_folder(_, A) ->
+    A.
+
+-spec undynamize_batch_get_item_response({table_name(), jsx:json_term()}) -> #ddb_batch_get_item_response{}.
+undynamize_batch_get_item_response({Table, Json}) ->
+    lists:foldl(fun batch_get_item_response_folder/2, #ddb_batch_get_item_response{table = Table}, Json).
+
+-spec batch_get_item_request_folder({binary(), term()}, batch_get_item_request()) -> batch_get_item_request().
+batch_get_item_request_folder({<<"Keys">>, Keys}, {Table, _, Opts}) ->
+    {Table, [json_key_to_key(K) || K <- Keys], Opts};
+batch_get_item_request_folder({<<"AttributesToGet">>, Value}, {Table, Keys, Opts}) ->
+    {Table, Keys, [{attributes_to_get, Value} | Opts]};
+batch_get_item_request_folder({<<"ConsistentRead">>, Value}, {Table, Keys, Opts}) ->
+    {Table, Keys, [{consistent_read, Value} | Opts]}.
+
+-spec undynamize_batch_get_item_request({table_name(), jsx:json_term()}) -> batch_get_item_request().
+undynamize_batch_get_item_request({Table, Json}) ->
+    lists:foldl(fun batch_get_item_request_folder/2, {Table, [], []}, Json).
+
+-spec batch_get_item_folder({binary(), term()}, #ddb_batch_get_item{}) -> #ddb_batch_get_item{}.
+batch_get_item_folder({<<"Responses">>, Responses}, A) ->
+    A#ddb_batch_get_item{responses = [undynamize_batch_get_item_response(R) || R <- Responses]};
+batch_get_item_folder({<<"UnprocessedKeys">>, [{}]}, A) ->
+    %% Work around jsx bug
+    A#ddb_batch_get_item{unprocessed_keys = []};
+batch_get_item_folder({<<"UnprocessedKeys">>, Keys}, A) ->
+    A#ddb_batch_get_item{unprocessed_keys = [undynamize_batch_get_item_request(K) || K <- Keys]};
+batch_get_item_folder(_, A) ->
+    A.
+
+-spec batch_get_item([batch_get_item_request()]) -> batch_get_item_return().
+batch_get_item(Requests) ->
+    batch_get_item(Requests, default_config()).
+
+-type batch_get_item_return() :: {ok, [#ddb_batch_get_item{}]} | {error, term()}.
+-spec batch_get_item([batch_get_item_request()], aws_config()) -> batch_get_item_return().
+batch_get_item(Requests, Config) ->
+    case erlcloud_ddb1:batch_get_item([dynamize_batch_get_item_request(R) || R <- Requests], Config) of 
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            {ok, lists:foldl(fun batch_get_item_folder/2, #ddb_batch_get_item{}, Json)}
+    end.
+
 
 -type delete_item_opt() :: {expected, in_expected()} | 
                            {return_values, none | all_old}.
@@ -266,16 +339,6 @@ delete_item(Table, Key, Opts, Config) ->
             end
     end.
 
-
--type get_item_opt() :: {attributes_to_get, [binary()]} | 
-                        {consistent_read, boolean()}.
--type get_item_opts() :: [get_item_opt()].
-
--spec get_item_opt(get_item_opt()) -> {binary(), jsx:json_term()}.
-get_item_opt({attributes_to_get, Value}) ->
-    {<<"AttributesToGet">>, Value};
-get_item_opt({consistent_read, Value}) ->
-    {<<"ConsistentRead">>, Value}.
 
 -spec get_item(table_name(), key()) -> item_return().
 get_item(Table, Key) ->
@@ -336,12 +399,12 @@ put_item(Table, Item, Opts, Config) ->
 
 
 -type q_opt() :: {attributes_to_get, [binary()]} | 
-                     {limit, pos_integer()} |
-                     {consistent_read, boolean()} |
-                     {count, boolean()} |
-                     {range_key_condition, range_key_condition()} |
-                     {scan_index_forward, boolean()} |
-                     {exclusive_start_key, key()}.
+                 {limit, pos_integer()} |
+                 {consistent_read, boolean()} |
+                 {count, boolean()} |
+                 {range_key_condition, range_key_condition()} |
+                 {scan_index_forward, boolean()} |
+                 {exclusive_start_key, key()}.
 -type q_opts() :: [q_opt()].
 
 -spec q_opt(q_opt()) -> {binary(), jsx:json_term()}.
@@ -361,16 +424,16 @@ q_opt({exclusive_start_key, Value}) ->
     {<<"ExclusiveStartKey">>, erlcloud_ddb1:key_value(dynamize_key(Value))}.
 
 -spec q_folder({binary(), term()}, #ddb_q{}) -> #ddb_q{}.
-q_folder({<<"Items">>, ItemList}, Q) ->
-    Q#ddb_q{items = [json_term_to_item(I) || I <- ItemList]};
-q_folder({<<"Count">>, Count}, Q) ->
-    Q#ddb_q{count = Count};
-q_folder({<<"LastEvaluatedKey">>, Key}, Q) ->
-    Q#ddb_q{last_evaluated_key = json_key_to_key(Key)};
-q_folder({<<"ConsumedCapacityUnits">>, Units}, Q) ->
-    Q#ddb_q{consumed_capacity_units = Units};
-q_folder(_, Q) ->
-    Q.
+q_folder({<<"Items">>, ItemList}, A) ->
+    A#ddb_q{items = [json_term_to_item(I) || I <- ItemList]};
+q_folder({<<"Count">>, Count}, A) ->
+    A#ddb_q{count = Count};
+q_folder({<<"LastEvaluatedKey">>, Key}, A) ->
+    A#ddb_q{last_evaluated_key = json_key_to_key(Key)};
+q_folder({<<"ConsumedCapacityUnits">>, Units}, A) ->
+    A#ddb_q{consumed_capacity_units = Units};
+q_folder(_, A) ->
+    A.
 
 -spec q(table_name(), hash_key()) -> q_return().
 q(Table, HashKey) ->
