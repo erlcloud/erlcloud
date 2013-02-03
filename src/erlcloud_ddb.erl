@@ -15,6 +15,7 @@
 %%% DynamoDB API
 -export([batch_get_item/1, batch_get_item/2,
          batch_write_item/1, batch_write_item/2,
+         create_table/4, create_table/5,
          delete_item/2, delete_item/3, delete_item/4,
          get_item/2, get_item/3, get_item/4,
          put_item/2, put_item/3, put_item/4,
@@ -23,7 +24,7 @@
          update_item/3, update_item/4, update_item/5
         ]).
 
--export_type([table_name/0, hash_range_key/0, out_item/0, 
+-export_type([table_name/0, hash_range_key/0, out_item/0, key_schema/0,
               batch_get_item_request_item/0,
               batch_write_item_request_item/0
              ]).
@@ -83,6 +84,8 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 -type range_key() :: in_attr_value().
 -type hash_range_key() :: {hash_key(), range_key()}.
 -type key() :: hash_key() | hash_range_key().
+-type key_schema_value() :: {attr_name(), attr_type()}.
+-type key_schema() :: key_schema_value() | {key_schema_value(), key_schema_value()}.
 
 -type comparison_operator() :: eq | le | lt | ge | gt | begins_with | between.
 -type range_key_condition() :: {in_attr_value(), comparison_operator()} | 
@@ -100,6 +103,14 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 %% You must explicitly specify the type: {b, <<1,2,3>>} to get a binary
 %% All lists are assumed to be strings.
 %% You must explicitly specify the type: {ss, ["one", "two"]} to get a set
+
+-spec dynamize_type(attr_type()) -> binary().
+dynamize_type(s) ->
+    <<"S">>;
+dynamize_type(n) ->
+    <<"N">>;
+dynamize_type(b) ->
+    <<"B">>.
 
 -spec dynamize_set(attr_type(), in_attr_data_set()) -> [binary()].
 dynamize_set(ss, Values) ->
@@ -146,6 +157,16 @@ dynamize_key({HashKey, RangeKey}) ->
     {dynamize_value(HashKey), dynamize_value(RangeKey)};
 dynamize_key(HashKey) ->
     dynamize_value(HashKey).
+
+-spec dynamize_key_schema_value(key_schema_value()) -> erlcloud_ddb1:key_schema_value().
+dynamize_key_schema_value({Name, Type}) ->
+    {Name, dynamize_type(Type)}.
+
+-spec dynamize_key_schema(key_schema()) -> erlcloud_ddb1:key_schema().
+dynamize_key_schema({{_, _} = HashKey, {_, _} = RangeKey}) ->
+    {dynamize_key_schema_value(HashKey), dynamize_key_schema_value(RangeKey)};
+dynamize_key_schema(HashKey) ->
+    dynamize_key_schema_value(HashKey).
 
 -spec dynamize_expected(in_expected()) -> json_expected().
 dynamize_expected({Name, false}) ->
@@ -199,6 +220,14 @@ dynamize_range_key_condition({Value1, Value2, between}) ->
 dynamize_range_key_condition({Value, Comparison}) ->
     [{<<"AttributeValueList">>, [[dynamize_value(Value)]]}, dynamize_comparison(Comparison)].
 
+-spec undynamize_type(json_attr_type()) -> attr_type().
+undynamize_type(<<"S">>) ->
+    s;
+undynamize_type(<<"N">>) ->
+    n;
+undynamize_type(<<"B">>) ->
+    b.
+
 -spec json_value_to_value(json_attr_value()) -> out_attr_value().
 json_value_to_value({<<"S">>, Value}) when is_binary(Value) ->
     Value;
@@ -249,6 +278,52 @@ json_term_to_typed_item([{}]) ->
     [];
 json_term_to_typed_item(Json) ->
     [json_attr_to_typed_attr(Attr) || Attr <- Json].
+
+-spec undynamize_key_schema_value(jsx:json_term()) -> key_schema().
+undynamize_key_schema_value([{<<"AttributeName">>, Name}, {<<"AttributeType">>, Type}]) ->
+    {Name, undynamize_type(Type)}.
+
+-spec undynamize_key_schema(jsx:json_term()) -> key_schema().
+undynamize_key_schema([{<<"HashKeyElement">>, HashKey}]) ->
+    undynamize_key_schema_value(HashKey);
+undynamize_key_schema([{<<"HashKeyElement">>, HashKey}, {<<"RangeKeyElement">>, RangeKey}]) ->
+    {undynamize_key_schema_value(HashKey), undynamize_key_schema_value(RangeKey)}.
+
+-spec provisioned_throughput_folder({binary(), term()}, #ddb_provisioned_throughput{}) 
+                                   -> #ddb_provisioned_throughput{}.
+provisioned_throughput_folder({<<"ReadCapacityUnits">>, Units}, A) ->
+    A#ddb_provisioned_throughput{read_capacity_units = Units};
+provisioned_throughput_folder({<<"WriteCapacityUnits">>, Units}, A) ->
+    A#ddb_provisioned_throughput{write_capacity_units = Units};
+provisioned_throughput_folder({<<"LastDecreaseDateTime">>, Time}, A) ->
+    A#ddb_provisioned_throughput{last_decrease_date_time = Time};
+provisioned_throughput_folder({<<"LastIncreaseDateTime">>, Time}, A) ->
+    A#ddb_provisioned_throughput{last_increase_date_time = Time};
+provisioned_throughput_folder(_, A) ->
+    A.
+
+-spec undynamize_provisioned_throughput(jsx:json_term()) -> #ddb_provisioned_throughput{}.
+undynamize_provisioned_throughput(Json) ->
+    lists:foldl(fun provisioned_throughput_folder/2, #ddb_provisioned_throughput{}, Json).
+
+-spec table_description_folder({binary(), term()}, #ddb_table_description{}) -> #ddb_table_description{}.
+table_description_folder({<<"CreationDateTime">>, Time}, A) ->
+    A#ddb_table_description{creation_date_time = Time};
+table_description_folder({<<"KeySchema">>, KeySchema}, A) ->
+    A#ddb_table_description{key_schema = undynamize_key_schema(KeySchema)};
+table_description_folder({<<"ProvisionedThroughput">>, ProvisionedThroughput}, A) ->
+    A#ddb_table_description{provisioned_throughput = undynamize_provisioned_throughput(ProvisionedThroughput)};
+table_description_folder({<<"TableName">>, Name}, A) ->
+    A#ddb_table_description{name = Name};
+table_description_folder({<<"TableStatus">>, Status}, A) ->
+    A#ddb_table_description{status = Status};
+table_description_folder(_, A) ->
+    A.
+
+-spec undynamize_table_description(jsx:json_term()) -> #ddb_table_description{}.
+undynamize_table_description(Json) ->
+    lists:foldl(fun table_description_folder/2, #ddb_table_description{}, Json).
+
 
 -type get_item_opt() :: {attributes_to_get, [binary()]} | 
                         {consistent_read, boolean()}.
@@ -316,6 +391,8 @@ batch_get_item(RequestItems) ->
 
 -spec batch_get_item([batch_get_item_request_item()], aws_config()) -> batch_get_item_return().
 batch_get_item(RequestItems, Config) ->
+    %% TODO unprocessed item handling
+    %% TODO simple return
     case erlcloud_ddb1:batch_get_item([dynamize_batch_get_item_request_item(R) || R <- RequestItems], Config) of 
         {error, Reason} ->
             {error, Reason};
@@ -393,6 +470,25 @@ batch_write_item(RequestItems, Config) ->
     end.
 
 
+-spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer()) -> item_return().
+create_table(Table, KeySchema, ReadUnits, WriteUnits) ->
+    create_table(Table, KeySchema, ReadUnits, WriteUnits, default_config()).
+
+-spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), aws_config()) -> item_return().
+create_table(Table, KeySchema, ReadUnits, WriteUnits, Config) ->
+    case erlcloud_ddb1:create_table(Table, dynamize_key_schema(KeySchema), ReadUnits, WriteUnits, Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            case proplists:get_value(<<"TableDescription">>, Json) of
+                undefined ->
+                    {error, no_table_description};
+                Description ->
+                    {ok, undynamize_table_description(Description)}
+            end
+    end.
+
+
 -type delete_item_opt() :: {expected, in_expected()} | 
                            {return_values, none | all_old}.
 -type delete_item_opts() :: [delete_item_opt()].
@@ -444,7 +540,7 @@ get_item(Table, Key, Opts, Config) ->
         {ok, Json} ->
             case proplists:get_value(<<"Item">>, Json) of
                 undefined ->
-                    {error, item_not_found};
+                    {error, no_item};
                 Item ->
                     {ok, json_term_to_item(Item)}
             end

@@ -31,6 +31,8 @@ operation_test_() ->
       fun batch_get_item_output_tests/1,
       fun batch_write_item_input_tests/1,
       fun batch_write_item_output_tests/1,
+      fun create_table_input_tests/1,
+      fun create_table_output_tests/1,
       fun delete_item_input_tests/1,
       fun delete_item_output_tests/1,
       fun get_item_input_tests/1,
@@ -517,6 +519,63 @@ batch_write_item_output_tests(_) ->
     
     output_tests(?_f(erlcloud_ddb:batch_write_item([])), Tests).
 
+%% CreateTable test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_CreateTable.html
+create_table_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"CreateTable example request",
+             ?_f(erlcloud_ddb:create_table(<<"comp-table">>, {{<<"user">>, s}, {<<"time">>, n}}, 5, 10)), "
+{\"TableName\":\"comp-table\",
+    \"KeySchema\":
+        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
+        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
+    \"ProvisionedThroughput\":{\"ReadCapacityUnits\":5,\"WriteCapacityUnits\":10}
+}"
+            })
+        ],
+
+    Response = "
+{\"TableDescription\":
+    {\"CreationDateTime\":1.310506263362E9,
+    \"KeySchema\":
+        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
+        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
+    \"ProvisionedThroughput\":{\"ReadCapacityUnits\":5,\"WriteCapacityUnits\":10},
+    \"TableName\":\"comp-table\",
+    \"TableStatus\":\"CREATING\"
+    }
+}",
+    input_tests(Response, Tests).
+
+create_table_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"CreateTable example response", "
+{\"TableDescription\":
+    {\"CreationDateTime\":1.310506263362E9,
+    \"KeySchema\":
+        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
+        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
+    \"ProvisionedThroughput\":{\"ReadCapacityUnits\":5,\"WriteCapacityUnits\":10},
+    \"TableName\":\"comp-table\",
+    \"TableStatus\":\"CREATING\"
+    }
+}",
+             {ok, #ddb_table_description
+              {creation_date_time = 1310506263.362,
+               key_schema = {{<<"user">>, s}, {<<"time">>, n}},
+               provisioned_throughput = #ddb_provisioned_throughput{
+                                           read_capacity_units = 5,
+                                           write_capacity_units = 10,
+                                           last_decrease_date_time = undefined,
+                                           last_increase_date_time = undefined},
+               name = <<"comp-table">>,
+               status = <<"CREATING">>}}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb:create_table(<<"name">>, {<<"key">>, s}, 5, 10)), Tests).
+
 %% DeleteItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteItem.html
 delete_item_input_tests(_) ->
@@ -648,7 +707,7 @@ get_item_output_tests(_) ->
          ?_ddb_test(
             {"GetItem item not found", 
              "{\"ConsumedCapacityUnits\": 0.5}",
-             {error, item_not_found}}),
+             {error, no_item}}),
          ?_ddb_test(
             {"GetItem no attributes returned", 
              "{\"ConsumedCapacityUnits\":0.5,\"Item\":{}}",
