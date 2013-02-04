@@ -953,6 +953,16 @@ q_input_tests(_) ->
 	\"Limit\":2,
 	\"RangeKeyCondition\":{\"AttributeValueList\":[{\"N\":\"1980\"}],\"ComparisonOperator\":\"EQ\"},
 	\"ScanIndexForward\":false}"
+            }),
+         ?_ddb_test(
+            {"Query between test",
+             ?_f(erlcloud_ddb:q(<<"table">>, <<"key">>,
+                                [{exclusive_start_key, undefined},
+                                 {range_key_condition, {{1980, 1990}, between}}])), "
+{       \"TableName\":\"table\",
+	\"HashKeyValue\":{\"S\":\"key\"},
+	\"RangeKeyCondition\":{\"AttributeValueList\":[{\"N\":\"1980\"},{\"N\":\"1990\"}],
+                               \"ComparisonOperator\":\"BETWEEN\"}}"
             })
         ],
 
