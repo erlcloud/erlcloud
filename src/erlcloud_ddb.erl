@@ -68,6 +68,7 @@ default_config() -> erlcloud_aws:default_config().
 -type table_name() :: binary().
 -type attr_type() :: s | n | b | ss | ns | bs.
 -type attr_name() :: binary().
+-type maybe_list(T) :: T | [T].
 
 %% TODO decimal support
 -type in_attr_data_scalar() :: iolist() | binary() | integer().
@@ -76,7 +77,8 @@ default_config() -> erlcloud_aws:default_config().
 -type in_attr_typed_value() :: {attr_type(), in_attr_data()}.
 -type in_attr_value() :: in_attr_data() | in_attr_typed_value().
 -type in_attr() :: {attr_name(), in_attr_value()}.
--type in_expected() :: {attr_name(), false | in_attr_value()}.
+-type in_expected_item() :: {attr_name(), false | in_attr_value()}.
+-type in_expected() :: maybe_list(in_expected_item()).
 -type in_item() :: [in_attr()].
 
 -type json_pair() :: {binary(), jsx:json_term()}.
@@ -85,7 +87,7 @@ default_config() -> erlcloud_aws:default_config().
 -type json_attr_value() :: {json_attr_type(), json_attr_data()}.
 -type json_attr() :: {attr_name(), [json_attr_value()]}.
 -type json_item() :: [json_attr()].
--type json_expected() :: {attr_name(), [json_attr_value()] | [{binary(), boolean()}]}.
+-type json_expected() :: [{attr_name(), [json_attr_value()] | [{binary(), boolean()}]}].
 -type json_key() :: [json_attr(),...].
 
 -type hash_key() :: in_attr_value().
@@ -180,11 +182,21 @@ dynamize_key_schema({{_, _} = HashKey, {_, _} = RangeKey}) ->
 dynamize_key_schema(HashKey) ->
     dynamize_key_schema_value(HashKey).
 
--spec dynamize_expected(in_expected()) -> json_expected().
-dynamize_expected({Name, false}) ->
+-spec dynamize_maybe_list(fun((A) -> B), maybe_list(A)) -> [B].
+dynamize_maybe_list(DynamizeItem, List) when is_list(List) ->
+    [DynamizeItem(I) || I <- List];
+dynamize_maybe_list(DynamizeItem, Item) ->
+    [DynamizeItem(Item)].
+
+-spec dynamize_expected_item(in_expected()) -> json_pair().
+dynamize_expected_item({Name, false}) ->
     {Name, [{<<"Exists">>, false}]};
-dynamize_expected({Name, Value}) ->
+dynamize_expected_item({Name, Value}) ->
     {Name, [{<<"Value">>, [dynamize_value(Value)]}]}.
+
+-spec dynamize_expected(in_expected()) -> json_expected().
+dynamize_expected(Expected) ->
+    dynamize_maybe_list(fun dynamize_expected_item/1, Expected).
 
 -spec dynamize_return_value(return_value()) -> binary().
 dynamize_return_value(none) ->
@@ -399,11 +411,16 @@ out({ok, Json}, Undynamize, Opts) ->
 -spec out(erlcloud_ddb1:json_return(), undynamize_fun(), ddb_opts(), pos_integer()) 
          -> ok_return(term()).
 out(Result, Undynamize, Opts, Index) ->
+    out(Result, Undynamize, Opts, Index, {error, no_return}).
+
+-spec out(erlcloud_ddb1:json_return(), undynamize_fun(), ddb_opts(), pos_integer(), ok_return(term())) 
+         -> ok_return(term()).
+out(Result, Undynamize, Opts, Index, Default) ->
     case out(Result, Undynamize, Opts) of
         {simple, Record} ->
             case element(Index, Record) of
                 undefined ->
-                    {error, no_return};
+                    Default;
                 Element ->
                     {ok, Element}
             end;
@@ -448,6 +465,11 @@ dynamize_batch_get_item_request_item({Table, Keys}) ->
 dynamize_batch_get_item_request_item({Table, Keys, Opts}) ->
     {AwsOpts, []} = opts(get_item_opts(), Opts),
     {Table, [dynamize_key(K) || K <- Keys], AwsOpts}.
+
+-type batch_get_item_request_items() :: maybe_list(batch_get_item_request_item()).
+-spec dynamize_batch_get_item_request_items(batch_get_item_request_items()) -> [tuple()].
+dynamize_batch_get_item_request_items(Request) ->
+    dynamize_maybe_list(fun dynamize_batch_get_item_request_item/1, Request).
 
 -spec batch_get_item_response_record(table_name()) -> record_desc().
 batch_get_item_response_record(Table) ->
@@ -497,7 +519,7 @@ batch_get_item(RequestItems, Opts) ->
 -spec batch_get_item([batch_get_item_request_item()], ddb_opts(), aws_config()) -> batch_get_item_return().
 batch_get_item(RequestItems, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
-    Return = erlcloud_ddb1:batch_get_item([dynamize_batch_get_item_request_item(R) || R <- RequestItems], Config),
+    Return = erlcloud_ddb1:batch_get_item(dynamize_batch_get_item_request_items(RequestItems), Config),
     case out(Return, fun(Json) -> undynamize_record(batch_get_item_record(), Json) end, DdbOpts) of
         {simple, #ddb_batch_get_item{unprocessed_keys = [_|_]}} ->
             %% TODO resend unprocessed keys automatically (or controlled by option). 
@@ -529,6 +551,11 @@ dynamize_batch_write_item_request({delete, Key}) ->
                                           -> json_pair().
 dynamize_batch_write_item_request_item({Table, Requests}) ->
     {Table, [dynamize_batch_write_item_request(R) || R <- Requests]}.
+
+-type batch_write_item_request_items() :: maybe_list(batch_write_item_request_item()).
+-spec dynamize_batch_write_item_request_items(batch_write_item_request_items()) -> [tuple()].
+dynamize_batch_write_item_request_items(Request) ->
+    dynamize_maybe_list(fun dynamize_batch_write_item_request_item/1, Request).
 
 -spec batch_write_item_response_record(table_name()) -> record_desc().
 batch_write_item_response_record(Table) ->
@@ -584,8 +611,7 @@ batch_write_item(RequestItems, Opts) ->
 -spec batch_write_item([batch_write_item_request_item()], ddb_opts(), aws_config()) -> batch_write_item_return().
 batch_write_item(RequestItems, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
-    Return = erlcloud_ddb1:batch_write_item([dynamize_batch_write_item_request_item(R) || R <- RequestItems],
-                                            Config),
+    Return = erlcloud_ddb1:batch_write_item(dynamize_batch_write_item_request_items(RequestItems), Config),
     case out(Return, fun(Json) -> undynamize_record(batch_write_item_record(), Json) end, DdbOpts) of
         {simple, #ddb_batch_write_item{unprocessed_items = [_|_]}} ->
             %% TODO resend unprocessed items automatically (or controlled by option). 
@@ -637,7 +663,7 @@ create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
 
 -spec delete_item_opts() -> opt_table().
 delete_item_opts() ->
-    [{expected, <<"Expected">>, fun(V) -> [dynamize_expected(V)] end},
+    [{expected, <<"Expected">>, fun dynamize_expected/1},
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1}].
 
 -spec delete_item_record() -> record_desc().
@@ -662,7 +688,7 @@ delete_item(Table, Key, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(delete_item_opts(), Opts),
     Return = erlcloud_ddb1:delete_item(Table, dynamize_key(Key), AwsOpts, Config),
     out(Return, fun(Json) -> undynamize_record(delete_item_record(), Json) end, DdbOpts, 
-        #ddb_delete_item.attributes).
+        #ddb_delete_item.attributes, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% DeleteTable
@@ -756,7 +782,7 @@ get_item(Table, Key, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(get_item_opts(), Opts),
     Return = erlcloud_ddb1:get_item(Table, dynamize_key(Key), AwsOpts, Config),
     out(Return, fun(Json) -> undynamize_record(get_item_record(), Json) end, DdbOpts, 
-        #ddb_get_item.item).
+        #ddb_get_item.item, {error, no_item}).
 
 %%%------------------------------------------------------------------------------
 %%% ListTables
@@ -794,7 +820,7 @@ list_tables(Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(list_tables_opts(), Opts),
     Return = erlcloud_ddb1:list_tables(AwsOpts, Config),
     out(Return, fun(Json) -> undynamize_record(list_tables_record(), Json) end, DdbOpts, 
-        #ddb_list_tables.table_names).
+        #ddb_list_tables.table_names, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% PutItem
@@ -807,7 +833,7 @@ list_tables(Opts, Config) ->
 
 -spec put_item_opts() -> opt_table().
 put_item_opts() ->
-    [{expected, <<"Expected">>, fun(V) -> [dynamize_expected(V)] end},
+    [{expected, <<"Expected">>, fun dynamize_expected/1},
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1}].
 
 -spec put_item_record() -> record_desc().
@@ -832,7 +858,7 @@ put_item(Table, Item, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(put_item_opts(), Opts),
     Return = erlcloud_ddb1:put_item(Table, dynamize_item(Item), AwsOpts, Config),
     out(Return, fun(Json) -> undynamize_record(put_item_record(), Json) end, DdbOpts, 
-        #ddb_put_item.attributes).
+        #ddb_put_item.attributes, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% Queue
@@ -893,7 +919,7 @@ q(Table, HashKey, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(q_opts(), Opts),
     Return = erlcloud_ddb1:q(Table, dynamize_key(HashKey), AwsOpts, Config),
     out(Return, fun(Json) -> undynamize_record(q_record(), Json) end, DdbOpts, 
-        #ddb_q.items).
+        #ddb_q.items, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% Scan
@@ -902,7 +928,7 @@ q(Table, HashKey, Opts, Config) ->
 -type scan_filter_item() :: {attr_name(), [in_attr_value()], in} |
                             {attr_name(), {in_attr_value(), in_attr_value()}, between} |
                             {attr_name(), in_attr_value(), comparison_op()}.
--type scan_filter() :: [scan_filter_item()].
+-type scan_filter() :: maybe_list(scan_filter_item()).
 
 -spec dynamize_scan_filter_item(scan_filter_item()) -> json_pair().
 dynamize_scan_filter_item({Name, AttrValueList, in}) ->
@@ -914,6 +940,10 @@ dynamize_scan_filter_item({Name, {AttrValue1, AttrValue2}, between}) ->
 dynamize_scan_filter_item({Name, AttrValue, Op}) ->
     {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]},
             dynamize_comparison(Op)]}.
+
+-spec dynamize_scan_filter(scan_filter()) -> [json_pair()].
+dynamize_scan_filter(Filter) ->
+    dynamize_maybe_list(fun dynamize_scan_filter_item/1, Filter).
 
 -type scan_opt() :: {attributes_to_get, [binary()]} | 
                     {limit, pos_integer()} |
@@ -928,7 +958,7 @@ scan_opts() ->
     [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
      {limit, <<"Limit">>, fun id/1},
      {count, <<"Count">>, fun id/1},
-     {scan_filter, <<"ScanFilter">>, fun(V) -> [dynamize_scan_filter_item(I) || I <- V] end},
+     {scan_filter, <<"ScanFilter">>, fun dynamize_scan_filter/1},
      {exclusive_start_key, <<"ExclusiveStartKey">>, fun(V) -> erlcloud_ddb1:key_value(dynamize_key(V)) end}].
 
 -spec scan_record() -> record_desc().
@@ -956,7 +986,7 @@ scan(Table, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(scan_opts(), Opts),
     Return = erlcloud_ddb1:scan(Table, AwsOpts, Config),
     out(Return, fun(Json) -> undynamize_record(scan_record(), Json) end, DdbOpts, 
-        #ddb_scan.items).
+        #ddb_scan.items, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateItem
@@ -964,6 +994,7 @@ scan(Table, Opts, Config) ->
 
 -type update_action() :: put | add | delete.
 -type in_update() :: {attr_name(), in_attr_value(), update_action()} | in_attr() | {attr_name(), delete}.
+-type in_updates() :: maybe_list(in_update()).
 -type json_update_action() :: {binary(), binary()}.
 -type json_update() :: {attr_name(), [{binary(), json_attr_value()} | json_update_action()]}.
 -spec dynamize_action(update_action()) -> json_update_action().
@@ -983,6 +1014,10 @@ dynamize_update({Name, Value}) ->
     %% Uses the default action of put
     {Name, [{<<"Value">>, [dynamize_value(Value)]}]}.
 
+-spec dynamize_updates(in_updates()) -> [json_update()].
+dynamize_updates(Updates) ->
+    dynamize_maybe_list(fun dynamize_update/1, Updates).
+
 -type update_item_opt() :: {expected, in_expected()} | 
                            {return_values, return_value()} |
                            out_opt().
@@ -990,7 +1025,7 @@ dynamize_update({Name, Value}) ->
 
 -spec update_item_opts() -> opt_table().
 update_item_opts() ->
-    [{expected, <<"Expected">>, fun(V) -> [dynamize_expected(V)] end},
+    [{expected, <<"Expected">>, fun dynamize_expected/1},
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1}].
 
 -spec update_item_record() -> record_desc().
@@ -1002,21 +1037,21 @@ update_item_record() ->
 
 -type update_item_return() :: ddb_return(#ddb_update_item{}, out_item()).
 
--spec update_item(table_name(), key(), [in_update()]) -> update_item_return().
+-spec update_item(table_name(), key(), in_updates()) -> update_item_return().
 update_item(Table, Key, Updates) ->
     update_item(Table, Key, Updates, [], default_config()).
 
--spec update_item(table_name(), key(), [in_update()], update_item_opts()) -> update_item_return().
+-spec update_item(table_name(), key(), in_updates(), update_item_opts()) -> update_item_return().
 update_item(Table, Key, Updates, Opts) ->
     update_item(Table, Key, Updates, Opts, default_config()).
 
--spec update_item(table_name(), key(), [in_update()], update_item_opts(), aws_config()) -> update_item_return().
+-spec update_item(table_name(), key(), in_updates(), update_item_opts(), aws_config()) -> update_item_return().
 update_item(Table, Key, Updates, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(update_item_opts(), Opts),
-    Return = erlcloud_ddb1:update_item(Table, dynamize_key(Key), lists:map(fun dynamize_update/1, Updates), 
+    Return = erlcloud_ddb1:update_item(Table, dynamize_key(Key), dynamize_updates(Updates),
                                        AwsOpts, Config),
     out(Return, fun(Json) -> undynamize_record(update_item_record(), Json) end, DdbOpts, 
-        #ddb_update_item.attributes).
+        #ddb_update_item.attributes, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateTable
