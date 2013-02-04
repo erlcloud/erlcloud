@@ -1,8 +1,12 @@
 %% -*- mode: erlang;erlang-indent-level: 4;indent-tabs-mode: nil -*-
 
-%%% erlcloud_ddb is a wrapper around erlcloud_ddb1 that provides a more natural
-%%% Erlang API, including auto type inference. 
-%%% It is similar to the layer2 API in boto.
+%% @author Ransom Richardson <ransom@ransomr.net>
+%% @doc
+%% erlcloud_ddb is a wrapper around erlcloud_ddb1 that provides a more natural
+%% Erlang API, including auto type inference. 
+%% It is similar to the layer2 API in boto.
+%% @end
+
 -module(erlcloud_ddb).
 
 -include("erlcloud.hrl").
@@ -336,26 +340,25 @@ undynamize_record({Record, Table}, Json) ->
 -spec id(X) -> X.
 id(X) -> X.
 
--type aws_opts() :: [json_pair()].
--type ddb_opts() :: proplist().
--type opts() :: {aws_opts(), ddb_opts()}.
-
 -type out_type() :: json | record | simple.
 -type out_opt() :: {out, out_type()}.
 -type boolean_opt(Name) :: Name | {Name, boolean()}.
 -type property() :: proplists:property().
 
-ddb_opts() ->
-    [out].
+-type aws_opts() :: [json_pair()].
+-type ddb_opts() :: [out_opt()].
+-type opts() :: {aws_opts(), ddb_opts()}.
 
 -spec verify_ddb_opt(atom(), term()) -> ok.
-verify_ddb_opt(Name, Value) ->
-    case lists:member(Name, ddb_opts()) of
+verify_ddb_opt(out, Value) ->
+    case lists:member(Value, [json, record, simple]) of
         true ->
             ok;
         false ->
-            error({erlcloud_ddb, {invalid_opt, {Name, Value}}})
-    end.
+            error({erlcloud_ddb, {invalid_opt, {out, Value}}})
+    end;
+verify_ddb_opt(Name, Value) ->
+    error({erlcloud_ddb, {invalid_opt, {Name, Value}}}).
 
 -type opt_table() :: [{atom(), binary(), fun((_) -> jsx:json_term())}].
 -spec opt_folder(opt_table(), property(), opts()) -> opts().
@@ -371,8 +374,10 @@ opt_folder(Table, Name, Opts) ->
     opt_folder(Table, {Name, true}, Opts).
 
 -spec opts(opt_table(), proplist()) -> opts().
-opts(Table, Opts) ->
-    lists:foldl(fun(Opt, A) -> opt_folder(Table, Opt, A) end, {[], []}, Opts).
+opts(Table, Opts) when is_list(Opts) ->
+    lists:foldl(fun(Opt, A) -> opt_folder(Table, Opt, A) end, {[], []}, Opts);
+opts(_, _) ->
+    error({erlcloud_ddb, opts_not_list}).
 
 -type get_item_opt() :: {attributes_to_get, [binary()]} | 
                         boolean_opt(consistent_read) |
@@ -877,10 +882,10 @@ dynamize_range_key_condition({Value, Comparison}) ->
 
 -type q_opt() :: {attributes_to_get, [binary()]} | 
                  {limit, pos_integer()} |
-                 {consistent_read, boolean()} |
-                 {count, boolean()} |
+                 boolean_opt(consistent_read) | 
+                 boolean_opt(count) |
                  {range_key_condition, range_key_condition()} |
-                 {scan_index_forward, boolean()} |
+                 boolean_opt(scan_index_forward) |
                  {exclusive_start_key, key()} |
                  out_opt().
 -type q_opts() :: [q_opt()].
@@ -947,7 +952,7 @@ dynamize_scan_filter(Filter) ->
 
 -type scan_opt() :: {attributes_to_get, [binary()]} | 
                     {limit, pos_integer()} |
-                    {count, boolean()} |
+                    boolean_opt(count) |
                     {scan_filter, scan_filter()} |
                     {exclusive_start_key, key()} |
                     out_opt().
@@ -1081,5 +1086,3 @@ update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
     Return = erlcloud_ddb1:update_table(Table, ReadUnits, WriteUnits, Config),
     out(Return, fun(Json) -> undynamize_record(update_table_record(), Json) end, DdbOpts, 
         #ddb_update_table.table_description).
-
-

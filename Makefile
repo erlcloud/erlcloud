@@ -27,3 +27,7 @@ dialyzer: eunit
 		.eunit/erlcloud_ddb_tests.beam \
 		-Wunmatched_returns \
 		-Werror_handling
+
+doc: compile
+	@$(REBAR) doc skip_deps=true
+
