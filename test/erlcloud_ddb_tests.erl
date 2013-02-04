@@ -339,7 +339,7 @@ batch_get_item_output_tests(_) ->
                      [{attributes_to_get, [<<"user">>, <<"status">>]}]}]}}})
         ],
     
-    output_tests(?_f(erlcloud_ddb:batch_get_item([])), Tests).
+    output_tests(?_f(erlcloud_ddb:batch_get_item([], [{out, record}])), Tests).
 
 %% BatchWriteItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchWriteItem.html
@@ -763,14 +763,14 @@ get_item_input_tests(_) ->
         [?_ddb_test(
             {"GetItem example request, with fully specified keys",
              ?_f(erlcloud_ddb:get_item(<<"comptable">>, {{s, <<"Julie">>}, {n, 1307654345}}, 
-                                       [{attributes_to_get, [<<"status">>, <<"friends">>]},
-                                        {consistent_read, true}])),
+                                       [consistent_read,
+                                        {attributes_to_get, [<<"status">>, <<"friends">>]}])),
              Example1Response}),
          ?_ddb_test(
             {"GetItem example request, with inferred key types",
              ?_f(erlcloud_ddb:get_item(<<"comptable">>, {"Julie", 1307654345}, 
-                                       [{attributes_to_get, [<<"status">>, <<"friends">>]},
-                                        {consistent_read, true}])),
+                                       [consistent_read, 
+                                        {attributes_to_get, [<<"status">>, <<"friends">>]}])),
              Example1Response}),
          ?_ddb_test(
             {"GetItem Simple call with only hash key and no options",
