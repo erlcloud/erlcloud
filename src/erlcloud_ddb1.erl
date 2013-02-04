@@ -51,7 +51,7 @@
 %% Internal use only
 -export([key_value/1]).
 
--export_type([key/0, key_schema_value/0, key_schema/0,
+-export_type([key/0, key_schema_value/0, key_schema/0, json_return/0,
               batch_write_item_request/0]).
 
 -type table_name() :: binary().
@@ -68,7 +68,7 @@
 -type item() :: jsx:json_term().
 -type opts() :: jsx:json_term().
 -type updates() :: jsx:json_term().
--type json_reply() :: {ok, jsx:json_term()} | {error, term()}.
+-type json_return() :: {ok, jsx:json_term()} | {error, term()}.
 
 -spec key_value(key()) -> jsx:json_term().
 key_value({{HK, HV} = HashKey, {RK, RV} = RangeKey}) when
@@ -103,11 +103,11 @@ batch_get_item_request_item_json({Table, Keys}) ->
 batch_get_item_request_item_json({Table, Keys, Opts}) ->
     {Table, [{<<"Keys">>, [key_value(K) || K <- Keys]}] ++ Opts}.
 
--spec batch_get_item([batch_get_item_request_item()]) -> json_reply().
+-spec batch_get_item([batch_get_item_request_item()]) -> json_return().
 batch_get_item(RequestItems) ->
     batch_get_item(RequestItems, default_config()).
 
--spec batch_get_item([batch_get_item_request_item()], aws_config()) -> json_reply().
+-spec batch_get_item([batch_get_item_request_item()], aws_config()) -> json_return().
 batch_get_item(RequestItems, Config) ->
     Json = [{<<"RequestItems">>, [batch_get_item_request_item_json(R) || R <- RequestItems]}],
     request(Config, "BatchGetItem", Json).
@@ -127,11 +127,11 @@ batch_write_item_request_json({delete, Key}) ->
 batch_write_item_request_item_json({Table, Requests}) ->
     {Table, [[batch_write_item_request_json(R)] || R <- Requests]}.
 
--spec batch_write_item([batch_write_item_request_item()]) -> json_reply().
+-spec batch_write_item([batch_write_item_request_item()]) -> json_return().
 batch_write_item(RequestItems) ->
     batch_get_item(RequestItems, default_config()).
 
--spec batch_write_item([batch_write_item_request_item()], aws_config()) -> json_reply().
+-spec batch_write_item([batch_write_item_request_item()], aws_config()) -> json_return().
 batch_write_item(RequestItems, Config) ->
     Json = [{<<"RequestItems">>, [batch_write_item_request_item_json(R) || R <- RequestItems]}],
     request(Config, "BatchWriteItem", Json).
@@ -148,11 +148,11 @@ key_schema_json({{_, _} = HashKey, {_, _} = RangeKey}) ->
 key_schema_json(HashKey) ->
     {<<"KeySchema">>, [{<<"HashKeyElement">>, key_schema_value_json(HashKey)}]}.
                        
--spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer()) -> json_reply().
+-spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer()) -> json_return().
 create_table(Table, KeySchema, ReadUnits, WriteUnits) ->
     create_table(Table, KeySchema, ReadUnits, WriteUnits, default_config()).
 
--spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), aws_config()) -> json_reply().
+-spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), aws_config()) -> json_return().
 create_table(Table, KeySchema, ReadUnits, WriteUnits, Config) ->
     Json = [{<<"TableName">>, Table},
             key_schema_json(KeySchema),
@@ -161,15 +161,15 @@ create_table(Table, KeySchema, ReadUnits, WriteUnits, Config) ->
     request(Config, "CreateTable", Json).
 
     
--spec delete_item(table_name(), key()) -> json_reply().
+-spec delete_item(table_name(), key()) -> json_return().
 delete_item(Table, Key) ->
     delete_item(Table, Key, [], default_config()).
 
--spec delete_item(table_name(), key(), opts()) -> json_reply().
+-spec delete_item(table_name(), key(), opts()) -> json_return().
 delete_item(Table, Key, Opts) ->
     delete_item(Table, Key, Opts, default_config()).
 
--spec delete_item(table_name(), key(), opts(), aws_config()) -> json_reply().
+-spec delete_item(table_name(), key(), opts(), aws_config()) -> json_return().
 delete_item(Table, Key, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             key_json(Key)] 
@@ -177,35 +177,35 @@ delete_item(Table, Key, Opts, Config) ->
     request(Config, "DeleteItem", Json).
 
     
--spec delete_table(table_name()) -> json_reply().
+-spec delete_table(table_name()) -> json_return().
 delete_table(Table) ->
     delete_table(Table, default_config()).
 
--spec delete_table(table_name(), aws_config()) -> json_reply().
+-spec delete_table(table_name(), aws_config()) -> json_return().
 delete_table(Table, Config) ->
     Json = [{<<"TableName">>, Table}],
     request(Config, "DeleteTable", Json).
 
     
--spec describe_table(table_name()) -> json_reply().
+-spec describe_table(table_name()) -> json_return().
 describe_table(Table) ->
     describe_table(Table, default_config()).
 
--spec describe_table(table_name(), aws_config()) -> json_reply().
+-spec describe_table(table_name(), aws_config()) -> json_return().
 describe_table(Table, Config) ->
     Json = [{<<"TableName">>, Table}],
     request(Config, "DescribeTable", Json).
 
 
--spec get_item(table_name(), key()) -> json_reply().
+-spec get_item(table_name(), key()) -> json_return().
 get_item(Table, Key) ->
     get_item(Table, Key, [], default_config()).
 
--spec get_item(table_name(), key(), opts()) -> json_reply().
+-spec get_item(table_name(), key(), opts()) -> json_return().
 get_item(Table, Key, Opts) ->
     get_item(Table, Key, Opts, default_config()).
 
--spec get_item(table_name(), key(), opts(), aws_config()) -> json_reply().
+-spec get_item(table_name(), key(), opts(), aws_config()) -> json_return().
 get_item(Table, Key, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             key_json(Key)] 
@@ -213,28 +213,28 @@ get_item(Table, Key, Opts, Config) ->
     request(Config, "GetItem", Json).
 
 
--spec list_tables() -> json_reply().
+-spec list_tables() -> json_return().
 list_tables() ->
     list_tables([], default_config()).
 
--spec list_tables(opts()) -> json_reply().
+-spec list_tables(opts()) -> json_return().
 list_tables(Opts) ->
     list_tables(Opts, default_config()).
 
--spec list_tables(opts(), aws_config()) -> json_reply().
+-spec list_tables(opts(), aws_config()) -> json_return().
 list_tables(Opts, Config) ->
     request(Config, "ListTables", Opts).
 
     
--spec put_item(table_name(), item()) -> json_reply().
+-spec put_item(table_name(), item()) -> json_return().
 put_item(Table, Item) ->
     put_item(Table, Item, [], default_config()).
 
--spec put_item(table_name(), item(), opts()) -> json_reply().
+-spec put_item(table_name(), item(), opts()) -> json_return().
 put_item(Table, Item, Opts) ->
     put_item(Table, Item, Opts, default_config()).
 
--spec put_item(table_name(), item(), opts(), aws_config()) -> json_reply().
+-spec put_item(table_name(), item(), opts(), aws_config()) -> json_return().
 put_item(Table, Item, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             item_json(Item)] 
@@ -242,15 +242,15 @@ put_item(Table, Item, Opts, Config) ->
     request(Config, "PutItem", Json).
 
 
--spec q(table_name(), hash_key()) -> json_reply().
+-spec q(table_name(), hash_key()) -> json_return().
 q(Table, HashKey) ->
     q(Table, HashKey, [], default_config()).
 
--spec q(table_name(), hash_key(), opts()) -> json_reply().
+-spec q(table_name(), hash_key(), opts()) -> json_return().
 q(Table, HashKey, Opts) ->
     q(Table, HashKey, Opts, default_config()).
 
--spec q(table_name(), hash_key(), opts(), aws_config()) -> json_reply().
+-spec q(table_name(), hash_key(), opts(), aws_config()) -> json_return().
 q(Table, HashKey, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             hash_key_json(HashKey)] 
@@ -258,30 +258,30 @@ q(Table, HashKey, Opts, Config) ->
     request(Config, "Query", Json).
 
 
--spec scan(table_name()) -> json_reply().
+-spec scan(table_name()) -> json_return().
 scan(Table) ->
     scan(Table, [], default_config()).
 
--spec scan(table_name(), opts()) -> json_reply().
+-spec scan(table_name(), opts()) -> json_return().
 scan(Table, Opts) ->
     scan(Table, Opts, default_config()).
 
--spec scan(table_name(), opts(), aws_config()) -> json_reply().
+-spec scan(table_name(), opts(), aws_config()) -> json_return().
 scan(Table, Opts, Config) ->
     Json = [{<<"TableName">>, Table}]
         ++ Opts,
     request(Config, "Scan", Json).
 
 
--spec update_item(table_name(), key(), updates()) -> json_reply().
+-spec update_item(table_name(), key(), updates()) -> json_return().
 update_item(Table, Key, Updates) ->
     update_item(Table, Key, Updates, [], default_config()).
 
--spec update_item(table_name(), key(), updates(), opts()) -> json_reply().
+-spec update_item(table_name(), key(), updates(), opts()) -> json_return().
 update_item(Table, Key, Updates, Opts) ->
     update_item(Table, Key, Updates, Opts, default_config()).
 
--spec update_item(table_name(), key(), updates(), opts(), aws_config()) -> json_reply().
+-spec update_item(table_name(), key(), updates(), opts(), aws_config()) -> json_return().
 update_item(Table, Key, Updates, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             key_json(Key),
@@ -290,11 +290,11 @@ update_item(Table, Key, Updates, Opts, Config) ->
     request(Config, "UpdateItem", Json).
 
     
--spec update_table(table_name(), non_neg_integer(), non_neg_integer()) -> json_reply().
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer()) -> json_return().
 update_table(Table, ReadUnits, WriteUnits) ->
     update_table(Table, ReadUnits, WriteUnits, default_config()).
 
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), aws_config()) -> json_reply().
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer(), aws_config()) -> json_return().
 update_table(Table, ReadUnits, WriteUnits, Config) ->
     Json = [{<<"TableName">>, Table},
             {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
@@ -303,7 +303,7 @@ update_table(Table, ReadUnits, WriteUnits, Config) ->
 
 
 -type operation() :: string().
--spec request(aws_config(), operation(), jsx:json_term()) -> json_reply().
+-spec request(aws_config(), operation(), jsx:json_term()) -> json_return().
 request(Config0, Operation, Json) ->
     Body = case Json of
                [] -> <<"{}">>;
