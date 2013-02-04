@@ -395,7 +395,7 @@ get_item_opts() ->
 %%%------------------------------------------------------------------------------
 %%% Output
 %%%------------------------------------------------------------------------------
--type ddb_return(Record, Simple) :: {ok, jsx:json_term() | Record | Simple} | {error, tuple()}.
+-type ddb_return(Record, Simple) :: {ok, jsx:json_term() | Record | Simple} | {error, term()}.
 -type item_return() :: ok_return(out_item()).
 -type undynamize_fun() :: fun((jsx:json_term()) -> tuple()).
 
