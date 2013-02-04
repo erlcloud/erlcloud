@@ -177,11 +177,13 @@ error_tests(Fun, Tests) ->
 %%%===================================================================
 
 input_exception_test_() ->
-    [?_assertThrow({erlcloud_ddb_error, {invalid_attr_value, {n, "string"}}},
+    [?_assertError({erlcloud_ddb, {invalid_attr_value, {n, "string"}}},
                    erlcloud_ddb:get_item(<<"Table">>, {n, "string"})),
      %% This test causes an expected dialyzer error
-     ?_assertThrow({erlcloud_ddb_error, {invalid_item, <<"Attr">>}},
-                   erlcloud_ddb:put_item(<<"Table">>, <<"Attr">>))
+     ?_assertError({erlcloud_ddb, {invalid_item, <<"Attr">>}},
+                   erlcloud_ddb:put_item(<<"Table">>, <<"Attr">>)),
+     ?_assertError({erlcloud_ddb, {invalid_opt, {myopt, myval}}},
+                   erlcloud_ddb:list_tables([{myopt, myval}]))
     ].
 
 %% Error handling tests based on:
@@ -528,7 +530,7 @@ batch_write_item_output_tests(_) ->
                                            {<<"Subject">>, {s, <<"DynamoDB Thread 5">>}}]}]}]}}})
         ],
     
-    output_tests(?_f(erlcloud_ddb:batch_write_item([])), Tests).
+    output_tests(?_f(erlcloud_ddb:batch_write_item([], [{out, record}])), Tests).
 
 %% CreateTable test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_CreateTable.html
@@ -581,8 +583,8 @@ create_table_output_tests(_) ->
                                            write_capacity_units = 10,
                                            last_decrease_date_time = undefined,
                                            last_increase_date_time = undefined},
-               name = <<"comp-table">>,
-               status = <<"CREATING">>}}})
+               table_name = <<"comp-table">>,
+               table_status = <<"CREATING">>}}})
         ],
     
     output_tests(?_f(erlcloud_ddb:create_table(<<"name">>, {<<"key">>, s}, 5, 10)), Tests).
@@ -594,8 +596,8 @@ delete_item_input_tests(_) ->
         [?_ddb_test(
             {"DeleteItem example request",
              ?_f(erlcloud_ddb:delete_item(<<"comp-table">>, {"Mingus", 200},
-                                          [{expected, {<<"status">>, "shopping"}},
-                                           {return_values, all_old}])), "
+                                          [{return_values, all_old},
+                                           {expected, {<<"status">>, "shopping"}}])), "
 {\"TableName\":\"comp-table\",
     \"Key\":
         {\"HashKeyElement\":{\"S\":\"Mingus\"},\"RangeKeyElement\":{\"N\":\"200\"}},
@@ -683,8 +685,8 @@ delete_table_output_tests(_) ->
                                            write_capacity_units = 10,
                                            last_decrease_date_time = undefined,
                                            last_increase_date_time = undefined},
-               name = <<"Table1">>,
-               status = <<"DELETING">>}}})
+               table_name = <<"Table1">>,
+               table_status = <<"DELETING">>}}})
         ],
     
     output_tests(?_f(erlcloud_ddb:delete_table(<<"name">>)), Tests).
@@ -740,9 +742,9 @@ describe_table_output_tests(_) ->
                                            write_capacity_units = 10,
                                            last_decrease_date_time = undefined,
                                            last_increase_date_time = 1309988345.384},
-               name = <<"users">>,
-               size_bytes = 949,
-               status = <<"ACTIVE">>}}})
+               table_name = <<"users">>,
+               table_size_bytes = 949,
+               table_status = <<"ACTIVE">>}}})
         ],
     
     output_tests(?_f(erlcloud_ddb:describe_table(<<"name">>)), Tests).
@@ -828,7 +830,7 @@ get_item_output_tests(_) ->
          ?_ddb_test(
             {"GetItem item not found", 
              "{\"ConsumedCapacityUnits\": 0.5}",
-             {error, no_item}}),
+             {error, no_return}}),
          ?_ddb_test(
             {"GetItem no attributes returned", 
              "{\"ConsumedCapacityUnits\":0.5,\"Item\":{}}",
@@ -843,7 +845,7 @@ list_tables_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"ListTables example request",
-             ?_f(erlcloud_ddb:list_tables([{exclusive_start_table_name, <<"comp2">>}, {limit, 3}])), 
+             ?_f(erlcloud_ddb:list_tables([{limit, 3}, {exclusive_start_table_name, <<"comp2">>}])), 
              "{\"ExclusiveStartTableName\":\"comp2\",\"Limit\":3}"
             }),
          ?_ddb_test(
@@ -867,7 +869,7 @@ list_tables_output_tests(_) ->
                table_names = [<<"comp3">>, <<"comp4">>, <<"comp5">>]}}})
         ],
     
-    output_tests(?_f(erlcloud_ddb:list_tables()), Tests).
+    output_tests(?_f(erlcloud_ddb:list_tables([{out, record}])), Tests).
 
 %% PutItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_PutItem.html
@@ -879,8 +881,8 @@ put_item_input_tests(_) ->
                                        [{<<"time">>, 300}, 
                                         {<<"feeling">>, <<"not surprised">>},
                                         {<<"user">>, <<"Riley">>}],
-                                       [{expected, {<<"feeling">>, <<"surprised">>}},
-                                        {return_values, all_old}])), "
+                                       [{return_values, all_old},
+                                        {expected, {<<"feeling">>, <<"surprised">>}}])), "
 {\"TableName\":\"comp5\",
 	\"Item\":
 		{\"time\":{\"N\":\"300\"},
@@ -927,9 +929,9 @@ q_input_tests(_) ->
         [?_ddb_test(
             {"Query example 1 request",
              ?_f(erlcloud_ddb:q(<<"1-hash-rangetable">>, <<"John">> ,
-                                [{limit, 2},
+                                [{exclusive_start_key, {{s, <<"John">>}, {s, <<"The Matrix">>}}},
                                  {scan_index_forward, false},
-                                 {exclusive_start_key, {{s, <<"John">>}, {s, <<"The Matrix">>}}}])), "
+                                 {limit, 2}])), "
 {\"TableName\":\"1-hash-rangetable\",
 	\"HashKeyValue\":{\"S\":\"John\"},
 	\"Limit\":2,
@@ -943,9 +945,9 @@ q_input_tests(_) ->
          ?_ddb_test(
             {"Query example 2 request",
              ?_f(erlcloud_ddb:q(<<"1-hash-rangetable">>, <<"Airplane">>,
-                                [{limit, 2},
+                                [{scan_index_forward, false},
                                  {range_key_condition, {1980, eq}},
-                                 {scan_index_forward, false}])), "
+                                 {limit, 2}])), "
 {\"TableName\":\"1-hash-rangetable\",
 	\"HashKeyValue\":{\"S\":\"Airplane\"},
 	\"Limit\":2,
@@ -1013,7 +1015,7 @@ q_output_tests(_) ->
                          consumed_capacity_units = 1}}})
         ],
     
-    output_tests(?_f(erlcloud_ddb:q(<<"table">>, <<"key">>)), Tests).
+    output_tests(?_f(erlcloud_ddb:q(<<"table">>, <<"key">>, [{out, record}])), Tests).
 
 %% Scan test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Scan.html
@@ -1037,9 +1039,9 @@ scan_input_tests(_) ->
             }),
          ?_ddb_test(
             {"Scan example 3 request",
-             ?_f(erlcloud_ddb:scan(<<"comp5">>, [{limit, 2}, 
+             ?_f(erlcloud_ddb:scan(<<"comp5">>, [{exclusive_start_key, {<<"Fredy">>, 2000}},
                                                  {scan_filter, [{<<"time">>, 400, gt}]},
-                                                 {exclusive_start_key, {<<"Fredy">>, 2000}}])), "
+                                                 {limit, 2}])), "
 {\"TableName\":\"comp5\",
 	\"Limit\":2,
 	\"ScanFilter\":
@@ -1167,7 +1169,7 @@ scan_output_tests(_) ->
                consumed_capacity_units = 0.5}}})
         ],
     
-    output_tests(?_f(erlcloud_ddb:scan(<<"name">>)), Tests).
+    output_tests(?_f(erlcloud_ddb:scan(<<"name">>, [{out, record}])), Tests).
 
 %% UpdateItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateItem.html
@@ -1177,8 +1179,8 @@ update_item_input_tests(_) ->
             {"UpdateItem example request",
              ?_f(erlcloud_ddb:update_item(<<"comp5">>, {"Julie", 1307654350},
                                           [{<<"status">>, <<"online">>, put}],
-                                          [{expected, {<<"status">>, "offline"}},
-                                           {return_values, all_new}])), "
+                                          [{return_values, all_new},
+                                           {expected, {<<"status">>, "offline"}}])), "
 {\"TableName\":\"comp5\",
     \"Key\":
         {\"HashKeyElement\":{\"S\":\"Julie\"},\"RangeKeyElement\":{\"N\":\"1307654350\"}},
@@ -1294,8 +1296,8 @@ update_table_output_tests(_) ->
                                            write_capacity_units = 10,
                                            last_decrease_date_time = 1321661704.489,
                                            last_increase_date_time = 1321663607.695},
-               name = <<"comp1">>,
-               status = <<"UPDATING">>}}})
+               table_name = <<"comp1">>,
+               table_status = <<"UPDATING">>}}})
         ],
     
     output_tests(?_f(erlcloud_ddb:update_table(<<"name">>, 5, 15)), Tests).
