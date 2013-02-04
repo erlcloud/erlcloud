@@ -78,6 +78,7 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 -type in_expected() :: {attr_name(), false | in_attr_value()}.
 -type in_item() :: [in_attr()].
 
+-type json_pair() :: {binary(), jsx:json_term()}.
 -type json_attr_type() :: binary().
 -type json_attr_data() :: binary() | [binary()].
 -type json_attr_value() :: {json_attr_type(), json_attr_data()}.
@@ -328,15 +329,56 @@ table_description_return(Json) ->
 %%% Shared Options
 %%%------------------------------------------------------------------------------
 
+-type aws_opts() :: [json_pair()].
+-type ddb_opts() :: proplist().
+-type opts() :: {aws_opts(), ddb_opts()}.
+
+-type out_type() :: json | record | simple.
+-type out_opt() :: {out, out_type()}.
+-type boolean_opt(Name) :: Name | {Name, boolean()}.
+-type property() :: proplists:property().
+
+-type opt_folder() :: fun((property(), opts()) -> opts()).
+
+-spec opts(proplist(), opt_folder()) -> opts().
+opts(Opts, Fun) ->
+    lists:foldl(Fun, {[], []}, Opts).
+
 -type get_item_opt() :: {attributes_to_get, [binary()]} | 
-                        {consistent_read, boolean()}.
+                        boolean_opt(consistent_read) |
+                        out_opt().
 -type get_item_opts() :: [get_item_opt()].
 
--spec get_item_opt(get_item_opt()) -> {binary(), jsx:json_term()}.
-get_item_opt({attributes_to_get, Value}) ->
-    {<<"AttributesToGet">>, Value};
-get_item_opt({consistent_read, Value}) ->
-    {<<"ConsistentRead">>, Value}.
+-spec get_item_opt(property(), opts()) -> opts().
+get_item_opt({attributes_to_get, Value}, {A,D}) ->
+    {[{<<"AttributesToGet">>, Value} | A], D};
+get_item_opt(consistent_read, {A,D}) ->
+    {[{<<"ConsistentRead">>, true} | A], D};
+get_item_opt({consistent_read, Value}, {A,D}) ->
+    {[{<<"ConsistentRead">>, Value} | A], D};
+get_item_opt(Opt, {A,D}) ->
+    {A, [Opt | D]}.
+
+%%%------------------------------------------------------------------------------
+%%% Output
+%%%------------------------------------------------------------------------------
+-type ddb_return(Record, Simple) :: {ok, jsx:json_term() | Record | Simple} | {error, tuple()}.
+-type undynamize_fun() :: fun((jsx:json_term(), ddb_opts()) -> tuple()).
+-spec out(erlcloud_ddb1:json_return(), undynamize_fun(), ddb_opts()) 
+         -> {ok, jsx:json_term() | tuple()} |
+            {simple, tuple()} |
+            {error, term()}.
+out({error, Reason}, _, _) ->
+    {error, Reason};
+out({ok, Json}, Undynamize, Opts) ->
+    case proplists:get_value(out, Opts, simple) of
+        json ->
+            {ok, Json};
+        record ->
+            {ok, Undynamize(Json, Opts)};
+        simple ->
+            {simple, Undynamize(Json, Opts)}
+    end.
 
 %%%------------------------------------------------------------------------------
 %%% BatchGetItem
@@ -349,7 +391,8 @@ get_item_opt({consistent_read, Value}) ->
 dynamize_batch_get_item_request_item({Table, Keys}) ->
     dynamize_batch_get_item_request_item({Table, Keys, []});
 dynamize_batch_get_item_request_item({Table, Keys, Opts}) ->
-    {Table, [dynamize_key(K) || K <- Keys], lists:map(fun get_item_opt/1, Opts)}.
+    {AwsOpts, _} = opts(Opts, fun get_item_opt/2),
+    {Table, [dynamize_key(K) || K <- Keys], AwsOpts}.
 
 -spec batch_get_item_response_folder({binary(), term()}, #ddb_batch_get_item_response{}) ->
                                             #ddb_batch_get_item_response{}.
@@ -391,20 +434,32 @@ batch_get_item_folder({<<"UnprocessedKeys">>, Keys}, A) ->
 batch_get_item_folder(_, A) ->
     A.
 
--type batch_get_item_return() :: {ok, [#ddb_batch_get_item{}]} | {error, term()}.
+-spec undynamize_batch_get_item(jsx:json_term(), ddb_opts()) -> #ddb_batch_get_item{}.
+undynamize_batch_get_item(Json, _) ->
+    lists:foldl(fun batch_get_item_folder/2, #ddb_batch_get_item{}, Json).
+
+-type batch_get_item_return() :: ddb_return(#ddb_batch_get_item{}, [erlcloud_ddb:out_item()]).
+
 -spec batch_get_item([batch_get_item_request_item()]) -> batch_get_item_return().
 batch_get_item(RequestItems) ->
-    batch_get_item(RequestItems, default_config()).
+    batch_get_item(RequestItems, [], default_config()).
 
--spec batch_get_item([batch_get_item_request_item()], aws_config()) -> batch_get_item_return().
-batch_get_item(RequestItems, Config) ->
-    %% TODO unprocessed item handling
-    %% TODO simple return
-    case erlcloud_ddb1:batch_get_item([dynamize_batch_get_item_request_item(R) || R <- RequestItems], Config) of 
-        {error, Reason} ->
-            {error, Reason};
-        {ok, Json} ->
-            {ok, lists:foldl(fun batch_get_item_folder/2, #ddb_batch_get_item{}, Json)}
+-spec batch_get_item([batch_get_item_request_item()], ddb_opts()) -> batch_get_item_return().
+batch_get_item(RequestItems, DdbOpts) ->
+    batch_get_item(RequestItems, DdbOpts, default_config()).
+
+-spec batch_get_item([batch_get_item_request_item()], ddb_opts(), aws_config()) -> batch_get_item_return().
+batch_get_item(RequestItems, Opts, Config) ->
+    Return = erlcloud_ddb1:batch_get_item([dynamize_batch_get_item_request_item(R) || R <- RequestItems], Config),
+    case out(Return, fun undynamize_batch_get_item/2, Opts) of
+        {simple, #ddb_batch_get_item{unprocessed_keys = [_|_]}} ->
+            %% TODO resend unprocessed keys automatically (or controlled by option). For now return an error.
+            {error, unprocessed};
+        {simple, #ddb_batch_get_item{unprocessed_keys = [], responses = Responses}} ->
+            %% Simple return for batch_get_item is all items from all tables in a single list
+            {ok, lists:flatmap(fun(#ddb_batch_get_item_response{items = I}) -> I end, Responses)};
+        {ok, _} = Out -> Out;
+        {error, _} = Out -> Out
     end.
 
 %%%------------------------------------------------------------------------------
@@ -423,7 +478,7 @@ dynamize_batch_write_item_request({delete, Key}) ->
     {delete, dynamize_key(Key)}.
 
 -spec dynamize_batch_write_item_request_item(batch_write_item_request_item()) 
-                                          -> {binary(), jsx:json_term()}.
+                                          -> json_pair().
 dynamize_batch_write_item_request_item({Table, Requests}) ->
     {Table, [dynamize_batch_write_item_request(R) || R <- Requests]}.
 
@@ -516,7 +571,7 @@ create_table(Table, KeySchema, ReadUnits, WriteUnits, Config) ->
                            {return_values, none | all_old}.
 -type delete_item_opts() :: [delete_item_opt()].
 
--spec delete_item_opt(delete_item_opt()) -> {binary(), jsx:json_term()}.
+-spec delete_item_opt(delete_item_opt()) -> json_pair().
 delete_item_opt({expected, Value}) ->
     {<<"Expected">>, [dynamize_expected(Value)]};
 delete_item_opt({return_values, none}) ->
@@ -626,7 +681,8 @@ get_item(Table, Key, Opts) ->
 
 -spec get_item(table_name(), key(), get_item_opts(), aws_config()) -> item_return().
 get_item(Table, Key, Opts, Config) ->
-    case erlcloud_ddb1:get_item(Table, dynamize_key(Key), lists:map(fun get_item_opt/1, Opts), Config) of
+    {AwsOpts, _} = opts(Opts, fun get_item_opt/2),
+    case erlcloud_ddb1:get_item(Table, dynamize_key(Key), AwsOpts, Config) of
         {error, Reason} ->
             {error, Reason};
         {ok, Json} ->
@@ -646,7 +702,7 @@ get_item(Table, Key, Opts, Config) ->
                            {exclusive_start_table_name, binary()}.
 -type list_tables_opts() :: [list_tables_opt()].
 
--spec list_tables_opt(list_tables_opt()) -> {binary(), jsx:json_term()}.
+-spec list_tables_opt(list_tables_opt()) -> json_pair().
 list_tables_opt({limit, Value}) ->
     {<<"Limit">>, Value};
 list_tables_opt({exclusive_start_table_name, Name}) ->
@@ -687,7 +743,7 @@ list_tables(Opts, Config) ->
                         {return_values, none | all_old}.
 -type put_item_opts() :: [put_item_opt()].
 
--spec put_item_opt(put_item_opt()) -> {binary(), jsx:json_term()}.
+-spec put_item_opt(put_item_opt()) -> json_pair().
 put_item_opt({expected, Value}) ->
     {<<"Expected">>, [dynamize_expected(Value)]};
 put_item_opt({return_values, none}) ->
@@ -742,7 +798,7 @@ dynamize_range_key_condition({Value, Comparison}) ->
                  {exclusive_start_key, key()}.
 -type q_opts() :: [q_opt()].
 
--spec q_opt(q_opt()) -> {binary(), jsx:json_term()}.
+-spec q_opt(q_opt()) -> json_pair().
 q_opt({attributes_to_get, Value}) ->
     {<<"AttributesToGet">>, Value};
 q_opt({limit, Value}) ->
@@ -796,7 +852,7 @@ q(Table, HashKey, Opts, Config) ->
                             {attr_name(), in_attr_value(), comparison_op()}.
 -type scan_filter() :: [scan_filter_item()].
 
--spec dynamize_scan_filter_item(scan_filter_item()) -> {binary(), jsx:json_term()}.
+-spec dynamize_scan_filter_item(scan_filter_item()) -> json_pair().
 dynamize_scan_filter_item({Name, AttrValueList, in}) ->
     {Name, [{<<"AttributeValueList">>, [[dynamize_value(A)] || A <- AttrValueList]},
             dynamize_comparison(in)]};
@@ -814,7 +870,7 @@ dynamize_scan_filter_item({Name, AttrValue, Op}) ->
                     {exclusive_start_key, key()}.
 -type scan_opts() :: [scan_opt()].
 
--spec scan_opt(scan_opt()) -> {binary(), jsx:json_term()}.
+-spec scan_opt(scan_opt()) -> json_pair().
 scan_opt({attributes_to_get, Value}) ->
     {<<"AttributesToGet">>, Value};
 scan_opt({limit, Value}) ->
@@ -887,7 +943,7 @@ dynamize_update({Name, Value}) ->
                            {return_values, none | all_old | updated_old | all_new | updated_new}.
 -type update_item_opts() :: [update_item_opt()].
 
--spec update_item_opt(update_item_opt()) -> {binary(), jsx:json_term()}.
+-spec update_item_opt(update_item_opt()) -> json_pair().
 update_item_opt({expected, Value}) ->
     {<<"Expected">>, [dynamize_expected(Value)]};
 update_item_opt({return_values, none}) ->
