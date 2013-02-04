@@ -362,6 +362,9 @@ verify_ddb_opt(Name, Value) ->
 
 -type opt_table() :: [{atom(), binary(), fun((_) -> jsx:json_term())}].
 -spec opt_folder(opt_table(), property(), opts()) -> opts().
+opt_folder(_, {_, undefined}, Opts) ->
+    %% ignore options set to undefined
+    Opts;
 opt_folder(Table, {Name, Value}, {AwsOpts, DdbOpts}) ->
     case lists:keyfind(Name, 1, Table) of
         {Name, Key, ValueFun} ->
@@ -875,8 +878,8 @@ put_item(Table, Item, Opts, Config) ->
 
 -spec dynamize_range_key_condition(range_key_condition()) -> json_range_key_condition().
 dynamize_range_key_condition({{Value1, Value2}, between}) ->
-    [{<<"AttributeValueList">>, [[dynamize_value(Value1)], [dynamize_value(Value2)]],
-      dynamize_comparison(between)}];
+    [{<<"AttributeValueList">>, [[dynamize_value(Value1)], [dynamize_value(Value2)]]},
+      dynamize_comparison(between)];
 dynamize_range_key_condition({Value, Comparison}) ->
     [{<<"AttributeValueList">>, [[dynamize_value(Value)]]}, dynamize_comparison(Comparison)].
 
@@ -886,7 +889,7 @@ dynamize_range_key_condition({Value, Comparison}) ->
                  boolean_opt(count) |
                  {range_key_condition, range_key_condition()} |
                  boolean_opt(scan_index_forward) |
-                 {exclusive_start_key, key()} |
+                 {exclusive_start_key, key() | undefined} |
                  out_opt().
 -type q_opts() :: [q_opt()].
 
