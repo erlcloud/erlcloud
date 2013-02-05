@@ -178,7 +178,7 @@ get_metadata_credentials() ->
     end.
 
 timestamp_to_gregorian_seconds(Timestamp) ->
-    {ok, [Yr, Mo, Da, H, M, S], []} = io_lib:fread("~d-~d-~dT~d:~d:~dZ", Timestamp),
+    {ok, [Yr, Mo, Da, H, M, S], []} = io_lib:fread("~d-~d-~dT~d:~d:~dZ", binary_to_list(Timestamp)),
     calendar:datetime_to_gregorian_seconds({{Yr, Mo, Da}, {H, M, S}}).
     
 -spec get_credentials_from_metadata() -> {ok, #metadata_credentials{}} | {error, term()}.
