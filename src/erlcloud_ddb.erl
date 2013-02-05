@@ -33,7 +33,7 @@
          update_table/3, update_table/4, update_table/5
         ]).
 
--export_type([table_name/0, hash_range_key/0, out_item/0, key_schema/0,
+-export_type([table_name/0, hash_range_key/0, in_attr/0, out_item/0, key_schema/0,
               batch_get_item_request_item/0,
               batch_write_item_request_item/0
              ]).
