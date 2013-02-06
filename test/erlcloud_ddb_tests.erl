@@ -830,7 +830,7 @@ get_item_output_tests(_) ->
          ?_ddb_test(
             {"GetItem item not found", 
              "{\"ConsumedCapacityUnits\": 0.5}",
-             {error, no_item}}),
+             {ok, []}}),
          ?_ddb_test(
             {"GetItem no attributes returned", 
              "{\"ConsumedCapacityUnits\":0.5,\"Item\":{}}",

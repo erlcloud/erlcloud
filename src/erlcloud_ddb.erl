@@ -790,7 +790,7 @@ get_item(Table, Key, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(get_item_opts(), Opts),
     Return = erlcloud_ddb1:get_item(Table, dynamize_key(Key), AwsOpts, Config),
     out(Return, fun(Json) -> undynamize_record(get_item_record(), Json) end, DdbOpts, 
-        #ddb_get_item.item, {error, no_item}).
+        #ddb_get_item.item, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% ListTables
