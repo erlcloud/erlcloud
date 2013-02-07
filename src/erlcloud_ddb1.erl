@@ -382,13 +382,14 @@ client_error(Status, StatusLine, Body) ->
                 undefined ->
                     {error, {http_error, Status, StatusLine, Body}};
                 FullType ->
+                    Message = proplists:get_value(<<"message">>, Json, <<>>),
                     case binary:split(FullType, <<"#">>) of
                         [_, <<"ProvisionedThroughputExceededException">> = Type] ->
-                            {retry, Type};
+                            {retry, {Type, Message}};
                         [_, <<"ThrottlingException">> = Type] ->
-                            {retry, Type};
+                            {retry, {Type, Message}};
                         [_, Type] ->
-                            {error, Type};
+                            {error, {Type, Message}};
                         _ ->
                             {error, {http_error, Status, StatusLine, Body}}
                     end

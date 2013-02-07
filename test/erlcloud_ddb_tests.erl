@@ -215,7 +215,7 @@ error_handling_tests(_) ->
 {\"__type\":\"com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException\",
 \"message\":\"The expected value did not match what was stored in the system.\"}"
                             )],
-             {error, <<"ConditionalCheckFailedException">>}}),
+             {error, {<<"ConditionalCheckFailedException">>, <<"The expected value did not match what was stored in the system.">>}}}),
          ?_ddb_test(
             {"Test retry after 500",
              [httpc_response(500, ""),
