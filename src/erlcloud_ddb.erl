@@ -2,9 +2,70 @@
 
 %% @author Ransom Richardson <ransom@ransomr.net>
 %% @doc
-%% erlcloud_ddb is a wrapper around erlcloud_ddb1 that provides a more natural
-%% Erlang API, including auto type inference. 
-%% It is similar to the layer2 API in boto.
+%% An Erlang interface to Amazon's DynamoDB.
+%%
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/operationlist.html]
+%%
+%% Currently the entire 20111205 API is implemented.
+%%
+%% Method names match DynamoDB operations converted to
+%% lower_case_with_underscores. The one exception is query, which is
+%% an Erlang reserved word. The 'q' method implements Query.
+%%
+%% Required parameters are passed as function arguments. In addition
+%% all methods take an options proplist argument which can be used to
+%% pass optional parameters. See function documentation for examples.
+%%
+%% Table names, key names, attribute names and any other input strings
+%% except attribute values must be binary strings.
+%%
+%% Attribute values may be either `{Type, Value}' or `Value'. If only
+%% `Value' is provided then the type is inferred. Lists (iolists are
+%% handled) and binaries are assumed to be strings. The following are
+%% equivalent: `{s, <<"value">>}', `<<"value">>', `"value"'. Numbers
+%% are assumed to be numbers. The following are equivalent: `{n, 42}',
+%% `42'. To specify the AWS binary or set types an explicit `Type'
+%% must be provided. For example: `{b, <<1,2,3>>}' or `{ns,
+%% [4,5,6]}'. Note that binary values will be base64 encoded and
+%% decoded automatically.
+%%
+%% Output is in the form of `{ok, Value}' or `{error, Reason}'. The
+%% format of `Value' is controlled by the `out' option, which defaults
+%% to `simple'. The possible values are: 
+%%
+%% * `simple' - The most interesting part of the output. For example
+%% `get_item' will return the item.
+%%
+%% * `record' - A record containing all the information from the
+%% DynamoDB response. This is useful if you need more detailed
+%% information than what is returned with `simple'. For example, with
+%% `scan' and `query' the record will contain the last evaluated key
+%% which can be used to continue the operation.
+%%
+%% * `json' - The output from DynamoDB as processed by `jsx:decode'
+%% but with no further manipulation. This would rarely be useful,
+%% unless the DynamoDB API is updated to include data that is not yet
+%% parsed correctly.
+%%
+%% Items will be returned as a list of `{Name, Value}'. In most cases
+%% the output will have type information removed. For example:
+%% `[{<<"String Attribute">>, <<"value">>}, {<<"Number Attribute">>,
+%% 42}, {<<"BinaryAttribute">>, <<1,2,3>>'. The exception is for
+%% output fields that are intended to be passed to a subsequent call,
+%% such as `unprocessed_keys' and `last_evaluated_key'. Those will
+%% contain typed attribute values so that they may be correctly passed
+%% to subsequent calls.
+%%
+%% DynamoDB errors are return in the form `{error, {ErrorCode,
+%% Message}}' where `ErrorCode' and 'Message' are both binary
+%% strings. List of error codes:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html]. So
+%% to handle conditional check failures, match `{error,
+%% {<<"ConditionalCheckFailedException">>, _}}'.
+%%
+%% `erlcloud_ddb1' provides a lower level API that takes JSON terms as
+%% defined by `jsx'. Masochists may find it preferrable. It may also be
+%% useful to pass options that are not yet supported by this module.
 %% @end
 
 -module(erlcloud_ddb).

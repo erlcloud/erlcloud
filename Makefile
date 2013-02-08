@@ -1,3 +1,5 @@
+.PHONY: all get-deps clean compile run eunit dialyzer doc
+
 REBAR=$(shell which rebar || echo ./rebar)
 
 all: get-deps compile
@@ -28,6 +30,6 @@ dialyzer: eunit
 		-Wunmatched_returns \
 		-Werror_handling
 
-doc: compile
+doc:
 	@$(REBAR) doc skip_deps=true
 
