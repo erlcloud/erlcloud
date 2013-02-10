@@ -227,7 +227,7 @@ error_handling_tests(_) ->
 
 
 %% BatchGetItem test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchGetItem.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchGetItems.html
 batch_get_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -692,7 +692,7 @@ delete_table_output_tests(_) ->
     output_tests(?_f(erlcloud_ddb:delete_table(<<"name">>)), Tests).
 
 %% DescribeTable test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DescribeTable.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DescribeTables.html
 describe_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -947,7 +947,7 @@ q_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"Query example 1 request",
-             ?_f(erlcloud_ddb:q(<<"1-hash-rangetable">>, <<"John">> ,
+             ?_f(erlcloud_ddb:q(<<"1-hash-rangetable">>, <<"John">>,
                                 [{exclusive_start_key, {{s, <<"John">>}, {s, <<"The Matrix">>}}},
                                  {scan_index_forward, false},
                                  {limit, 2}])), "

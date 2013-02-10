@@ -603,6 +603,29 @@ batch_get_item(RequestItems) ->
 batch_get_item(RequestItems, Opts) ->
     batch_get_item(RequestItems, Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchGetItems.html]
+%%
+%% ===Example===
+%%
+%% Get attributes "user" and "friends" from items with keys "Julie"
+%% and "Mingus" in table "comp2" and attributes "user" and "status"
+%% from three items in table "comp1".
+%%
+%% `
+%% {ok, Items} = erlcloud_ddb:batch_get_item(
+%%                    [{<<"comp2">>, [<<"Julie">>, 
+%%                                    <<"Mingus">>], 
+%%                      [{attributes_to_get, [<<"user">>, <<"friends">>]}]},
+%%                     {<<"comp1">>, [{<<"Casey">>, 1319509152},
+%%                                    {<<"Dave">>, 1319509155},
+%%                                    {<<"Riley">>, 1319509158}],
+%%                      [{attributes_to_get, [<<"user">>, <<"status">>]}]}])
+%% '
+%% @end
+%%------------------------------------------------------------------------------
 -spec batch_get_item([batch_get_item_request_item()], ddb_opts(), aws_config()) -> batch_get_item_return().
 batch_get_item(RequestItems, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
@@ -695,6 +718,26 @@ batch_write_item(RequestItems) ->
 batch_write_item(RequestItems, Opts) ->
     batch_write_item(RequestItems, Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchWriteItem.html]
+%%
+%% ===Example===
+%%
+%% Put and delete an item in the "Reply" table and put an item in the "Thread" table.
+%%
+%% `
+%% {ok, _} = erlcloud_ddb:batch_write_item(
+%%                    [{<<"Reply">>, [{put, [{<<"ReplyDateTime">>, <<"2012-04-03T11:04:47.034Z">>},
+%%                                           {<<"Id">>, <<"Amazon DynamoDB#DynamoDB Thread 5">>}]},
+%%                                    {delete, {<<"Amazon DynamoDB#DynamoDB Thread 4">>,
+%%                                              <<"oops - accidental row">>}}]},
+%%                     {<<"Thread">>, [{put, [{<<"ForumName">>, <<"Amazon DynamoDB">>},
+%%                                            {<<"Subject">>, <<"DynamoDB Thread 5">>}]}]}])
+%% '
+%% @end
+%%------------------------------------------------------------------------------
 -spec batch_write_item([batch_write_item_request_item()], ddb_opts(), aws_config()) -> batch_write_item_return().
 batch_write_item(RequestItems, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
@@ -731,6 +774,22 @@ create_table(Table, KeySchema, ReadUnits, WriteUnits) ->
 create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts) ->
     create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_CreateTable.html]
+%%
+%% ===Example===
+%%
+%% Create "comp-table" with "user" as a string hash key and "time" as
+%% a number range key and provisioned throughput of 5 read units and
+%% 10 write units.
+%%
+%% `
+%% {ok, _} = erlcloud_ddb:create_table(<<"comp-table">>, {{<<"user">>, s}, {<<"time">>, n}}, 5, 10)
+%% '
+%% @end
+%%------------------------------------------------------------------------------
 -spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), ddb_opts(), aws_config()) 
                   -> create_table_return().
 create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
@@ -770,6 +829,24 @@ delete_item(Table, Key) ->
 delete_item(Table, Key, Opts) ->
     delete_item(Table, Key, Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteItem.html]
+%%
+%% ===Example===
+%%
+%% Delete item with hash key "Mingus" and range key 200 from
+%% "comp-table" if the "status" field is "shopping". Return all old
+%% values.
+%%
+%% `
+%% {ok, OldValues} = erlcloud_ddb:delete_item(<<"comp-table">>, {"Mingus", 200},
+%%                                           [{return_values, all_old},
+%%                                            {expected, {<<"status">>, "shopping"}}])
+%% '
+%% @end
+%%------------------------------------------------------------------------------
 -spec delete_item(table_name(), key(), delete_item_opts(), aws_config()) -> delete_item_return().
 delete_item(Table, Key, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(delete_item_opts(), Opts),
@@ -798,6 +875,20 @@ delete_table(Table) ->
 delete_table(Table, Opts) ->
     delete_table(Table, Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteTable.html]
+%%
+%% ===Example===
+%%
+%% Delete "Table1".
+%%
+%% `
+%% {ok, _} = erlcloud_ddb:delete_table(<<"Table1">>)
+%% '
+%% @end
+%%------------------------------------------------------------------------------
 -spec delete_table(table_name(), ddb_opts(), aws_config()) -> delete_table_return().
 delete_table(Table, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
@@ -838,6 +929,20 @@ describe_table(Table) ->
 describe_table(Table, Opts) ->
     describe_table(Table, Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DescribeTables.html]
+%%
+%% ===Example===
+%%
+%% Describe "Table1".
+%%
+%% `
+%% {ok, Table} = erlcloud_ddb:describe_table(<<"Table1">>)
+%% '
+%% @end
+%%------------------------------------------------------------------------------
 -spec describe_table(table_name(), ddb_opts(), aws_config()) -> describe_table_return().
 describe_table(Table, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
@@ -864,6 +969,24 @@ get_item(Table, Key) ->
 get_item(Table, Key, Opts) ->
     get_item(Table, Key, Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_GetItem.html]
+%%
+%% ===Example===
+%%
+%% Get attributes "status" and "friends" from the item with hash key
+%% "Julie" and range key 1307654345 in the table "comptable" using a
+%% consistent read.
+%%
+%% `
+%% {ok, Item} = erlcloud_ddb:get_item(<<"comptable">>, {"Julie", 1307654345}, 
+%%                                        [consistent_read, 
+%%                                         {attributes_to_get, [<<"status">>, <<"friends">>]}])
+%% '
+%% @end
+%%------------------------------------------------------------------------------
 -spec get_item(table_name(), key(), get_item_opts(), aws_config()) -> item_return().
 get_item(Table, Key, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(get_item_opts(), Opts),
@@ -902,6 +1025,20 @@ list_tables() ->
 list_tables(Opts) ->
     list_tables(Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_ListTables.html]
+%%
+%% ===Example===
+%%
+%% Get the next 3 table names after "comp2".
+%%
+%% `
+%% {ok, TableNames} = erlcloud_ddb:list_tables([{limit, 3}, {exclusive_start_table_name, <<"comp2">>}])
+%% '
+%% @end
+%%------------------------------------------------------------------------------
 -spec list_tables(list_tables_opts(), aws_config()) -> list_tables_return().
 list_tables(Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(list_tables_opts(), Opts),
@@ -940,6 +1077,28 @@ put_item(Table, Item) ->
 put_item(Table, Item, Opts) ->
     put_item(Table, Item, Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_PutItem.html]
+%%
+%% ===Example===
+%%
+%% Put item with attributes "time" of 300, "feeling" of "not
+%% surprised" and "user" of "Riley" into table "comp5", but only if an
+%% item with the same key exists and has field "feeling" set to
+%% "surprised". Return all the old attributes.
+%%
+%% `
+%% {ok, OldItem} = erlcloud_ddb:put_item(<<"comp5">>, 
+%%                                        [{<<"time">>, 300}, 
+%%                                         {<<"feeling">>, <<"not surprised">>},
+%%                                         {<<"user">>, <<"Riley">>}],
+%%                                        [{return_values, all_old},
+%%                                         {expected, {<<"feeling">>, <<"surprised">>}}])
+%% '
+%% @end
+%%------------------------------------------------------------------------------
 -spec put_item(table_name(), in_item(), put_item_opts(), aws_config()) -> put_item_return().
 put_item(Table, Item, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(put_item_opts(), Opts),
@@ -1001,6 +1160,24 @@ q(Table, HashKey) ->
 q(Table, HashKey, Opts) ->
     q(Table, HashKey, Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Query.html]
+%%
+%% ===Example===
+%%
+%% Get up to 2 items with hash key "John" and with range keys coming
+%% before "The Matrix" from table "1-hash-rangetable".
+%%
+%% `
+%% {ok, Items} = erlcloud_ddb:q(<<"1-hash-rangetable">>, <<"John">>,
+%%                                 [{exclusive_start_key, {{s, <<"John">>}, {s, <<"The Matrix">>}}},
+%%                                  {scan_index_forward, false},
+%%                                  {limit, 2}])
+%% '
+%% @end
+%%------------------------------------------------------------------------------
 -spec q(table_name(), hash_key(), q_opts(), aws_config()) -> q_return().
 q(Table, HashKey, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(q_opts(), Opts),
@@ -1068,6 +1245,20 @@ scan(Table) ->
 scan(Table, Opts) ->
     scan(Table, Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Scan.html]
+%%
+%% ===Example===
+%%
+%% Return all items from table "comp5" with "time" greater than 400.
+%%
+%% `
+%% {ok, Items} = erlcloud_ddb:scan(<<"comp5">>, [{scan_filter, [{<<"time">>, 400, gt}]}])
+%% '
+%% @end
+%%------------------------------------------------------------------------------
 -spec scan(table_name(), scan_opts(), aws_config()) -> scan_return().
 scan(Table, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(scan_opts(), Opts),
@@ -1132,6 +1323,25 @@ update_item(Table, Key, Updates) ->
 update_item(Table, Key, Updates, Opts) ->
     update_item(Table, Key, Updates, Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateItem.html]
+%%
+%% ===Example===
+%%
+%% Update item with hash key "Julie" and range key 1307654350 in table
+%% "comp5" by changing the status from "offline" to "online" and
+%% return the new item.
+%%
+%% `
+%% {ok, NewItem} = erlcloud_ddb:update_item(<<"comp5">>, {"Julie", 1307654350},
+%%                                           [{<<"status">>, <<"online">>, put}],
+%%                                           [{return_values, all_new},
+%%                                            {expected, {<<"status">>, "offline"}}])
+%% '
+%% @end
+%%------------------------------------------------------------------------------
 -spec update_item(table_name(), key(), in_updates(), update_item_opts(), aws_config()) -> update_item_return().
 update_item(Table, Key, Updates, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(update_item_opts(), Opts),
@@ -1161,6 +1371,20 @@ update_table(Table, ReadUnits, WriteUnits) ->
 update_table(Table, ReadUnits, WriteUnits, Opts) ->
     update_table(Table, ReadUnits, WriteUnits, Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateTable.html]
+%%
+%% ===Example===
+%%
+%% Update table "comp1" to have provisioned capacity of 5 read units and 15 write units.
+%%
+%% `
+%% {ok, _} = erlcloud_ddb:update_table(<<"comp1">>, 5, 15)
+%% '
+%% @end
+%%------------------------------------------------------------------------------
 -spec update_table(table_name(), non_neg_integer(), non_neg_integer(), ddb_opts(), aws_config()) 
                   -> update_table_return().
 update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
