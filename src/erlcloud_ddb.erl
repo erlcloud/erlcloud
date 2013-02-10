@@ -64,8 +64,9 @@
 %% {<<"ConditionalCheckFailedException">>, _}}'.
 %%
 %% `erlcloud_ddb1' provides a lower level API that takes JSON terms as
-%% defined by `jsx'. Masochists may find it preferrable. It may also be
-%% useful to pass options that are not yet supported by this module.
+%% defined by `jsx'. It may be useful to pass options that are not yet
+%% supported by this module.
+%%
 %% @end
 
 -module(erlcloud_ddb).
@@ -135,9 +136,8 @@ default_config() -> erlcloud_aws:default_config().
 -type attr_name() :: binary().
 -type maybe_list(T) :: T | [T].
 
-%% TODO decimal support
--type in_attr_data_scalar() :: iolist() | binary() | integer().
--type in_attr_data_set() :: [iolist() | binary()] | [integer()].
+-type in_attr_data_scalar() :: iolist() | binary() | number().
+-type in_attr_data_set() :: [iolist() | binary()] | [number()].
 -type in_attr_data() :: in_attr_data_scalar() | in_attr_data_set().
 -type in_attr_typed_value() :: {attr_type(), in_attr_data()}.
 -type in_attr_value() :: in_attr_data() | in_attr_typed_value().
@@ -191,11 +191,19 @@ dynamize_type(n) ->
 dynamize_type(b) ->
     <<"B">>.
 
+-spec dynamize_number(number()) -> binary().
+dynamize_number(Value) when is_integer(Value) ->
+    list_to_binary(integer_to_list(Value));
+dynamize_number(Value) when is_float(Value) ->
+    %% Note that float_to_list produces overly precise and long string
+    [String] = io_lib:format("~p", [Value]),
+    list_to_binary(String).
+
 -spec dynamize_set(attr_type(), in_attr_data_set()) -> [binary()].
 dynamize_set(ss, Values) ->
     [iolist_to_binary(Value) || Value <- Values];
 dynamize_set(ns, Values) ->
-    [list_to_binary(integer_to_list(Value)) || Value <- Values];
+    [dynamize_number(Value) || Value <- Values];
 dynamize_set(bs, Values) ->
     [base64:encode(Value) || Value <- Values].
 
@@ -204,8 +212,8 @@ dynamize_value({s, Value}) when is_binary(Value) ->
     {<<"S">>, Value};
 dynamize_value({s, Value}) when is_list(Value) ->
     {<<"S">>, list_to_binary(Value)};
-dynamize_value({n, Value}) when is_integer(Value) ->
-    {<<"N">>, list_to_binary(integer_to_list(Value))};
+dynamize_value({n, Value}) when is_number(Value) ->
+    {<<"N">>, dynamize_number(Value)};
 dynamize_value({b, Value}) when is_binary(Value) orelse is_list(Value) ->
     {<<"B">>, base64:encode(Value)};
 
@@ -220,7 +228,7 @@ dynamize_value(Value) when is_binary(Value) ->
     dynamize_value({s, Value});
 dynamize_value(Value) when is_list(Value) ->
     dynamize_value({s, Value});
-dynamize_value(Value) when is_integer(Value) ->
+dynamize_value(Value) when is_number(Value) ->
     dynamize_value({n, Value});
 dynamize_value(Value) ->
     error({erlcloud_ddb, {invalid_attr_value, Value}}).
@@ -321,17 +329,27 @@ undynamize_type(<<"N">>) ->
 undynamize_type(<<"B">>) ->
     b.
 
+-spec undynamize_number(binary()) -> number().
+undynamize_number(Value) ->
+    String = binary_to_list(Value),
+    case lists:member($., String) of
+        true ->
+            list_to_float(String);
+        false ->
+            list_to_integer(String)
+    end.
+            
 -spec undynamize_value(json_attr_value()) -> out_attr_value().
 undynamize_value({<<"S">>, Value}) when is_binary(Value) ->
     Value;
 undynamize_value({<<"N">>, Value}) ->
-    list_to_integer(binary_to_list(Value));
+    undynamize_number(Value);
 undynamize_value({<<"B">>, Value}) ->
     base64:decode(Value);
 undynamize_value({<<"SS">>, Values}) when is_list(Values) ->
     Values;
 undynamize_value({<<"NS">>, Values}) ->
-    [list_to_integer(binary_to_list(Value)) || Value <- Values];
+    [undynamize_number(Value) || Value <- Values];
 undynamize_value({<<"BS">>, Values}) ->
     [base64:decode(Value) || Value <- Values].
 

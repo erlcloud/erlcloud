@@ -809,22 +809,24 @@ get_item_output_tests(_) ->
             {"GetItem test all attribute types", "
 {\"Item\":
 	{\"ss\":{\"SS\":[\"Lynda\", \"Aaron\"]},
-	 \"ns\":{\"NS\":[\"12\",\"13\",\"14\"]},
+	 \"ns\":{\"NS\":[\"12\",\"13.0\",\"14.1\"]},
 	 \"bs\":{\"BS\":[\"BbY=\"]},
 	 \"es\":{\"SS\":[]},
 	 \"s\":{\"S\":\"Lynda\"},
 	 \"n\":{\"N\":\"12\"},
+	 \"f\":{\"N\":\"12.34\"},
 	 \"b\":{\"B\":\"BbY=\"},
 	 \"empty\":{\"S\":\"\"}
 	},
 \"ConsumedCapacityUnits\": 1
 }",
              {ok, [{<<"ss">>, [<<"Lynda">>, <<"Aaron">>]},
-                   {<<"ns">>, [12,13,14]},
+                   {<<"ns">>, [12,13.0,14.1]},
                    {<<"bs">>, [<<5,182>>]},
                    {<<"es">>, []},
                    {<<"s">>, <<"Lynda">>},
                    {<<"n">>, 12},
+                   {<<"f">>, 12.34},
                    {<<"b">>, <<5,182>>},
                    {<<"empty">>, <<>>}]}}),
          ?_ddb_test(
@@ -886,12 +888,29 @@ put_item_input_tests(_) ->
 {\"TableName\":\"comp5\",
 	\"Item\":
 		{\"time\":{\"N\":\"300\"},
-		\"feeling\":{\"S\":\"not surprised\"},
-		\"user\":{\"S\":\"Riley\"}
+		 \"feeling\":{\"S\":\"not surprised\"},
+	  	 \"user\":{\"S\":\"Riley\"}
 		},
 	\"Expected\":
 		{\"feeling\":{\"Value\":{\"S\":\"surprised\"}}},
 	\"ReturnValues\":\"ALL_OLD\"
+}"
+            }),
+         ?_ddb_test(
+            {"PutItem float inputs",
+             ?_f(erlcloud_ddb:put_item(<<"comp5">>, 
+                                       [{<<"time">>, 300}, 
+                                        {<<"typed float">>, {n, 1.2}},
+                                        {<<"untyped float">>, 3.456},
+                                        {<<"mixed set">>, {ns, [7.8, 9.0, 10]}}],
+                                       [])), "
+{\"TableName\":\"comp5\",
+	\"Item\":
+		{\"time\":{\"N\":\"300\"},
+		 \"typed float\":{\"N\":\"1.2\"},
+		 \"untyped float\":{\"N\":\"3.456\"},
+		 \"mixed set\":{\"NS\":[\"7.8\", \"9.0\", \"10\"]}
+		}
 }"
             })
         ],
