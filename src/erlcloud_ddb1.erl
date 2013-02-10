@@ -401,7 +401,6 @@ headers(Config, Operation, Body) ->
     Date = httpd_util:rfc1123_date(erlang:localtime()),
     Headers = [{"x-amz-date", Date},
                {"x-amz-target", "DynamoDB_20111205." ++ Operation}]
-        %% TODO removed content type header here - don't think I need it
         ++ case Config#aws_config.security_token of
                undefined -> [];
                SecurityToken -> [{"x-amz-security-token", SecurityToken}]
