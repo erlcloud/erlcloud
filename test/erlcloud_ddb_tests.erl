@@ -276,7 +276,6 @@ batch_get_item_input_tests(_) ->
 
 batch_get_item_output_tests(_) ->
     Tests = 
-        %% Not sure why I'm getting a dialyzer warning on the next line - tests both run
         [?_ddb_test(
             {"BatchGetItem example response", "
 {\"Responses\":
@@ -332,8 +331,8 @@ batch_get_item_output_tests(_) ->
              {ok, #ddb_batch_get_item
               {responses = [], 
                unprocessed_keys = 
-                   [{<<"comp2">>, [{{s, <<"Julie">>}}, 
-                                   {{s, <<"Mingus">>}}], 
+                   [{<<"comp2">>, [{s, <<"Julie">>}, 
+                                   {s, <<"Mingus">>}], 
                      [{attributes_to_get, [<<"user">>, <<"friends">>]}]},
                     {<<"comp1">>, [{{s, <<"Casey">>}, {n, 1319509152}},
                                    {{s, <<"Dave">>}, {n, 1319509155}},
@@ -341,7 +340,7 @@ batch_get_item_output_tests(_) ->
                      [{attributes_to_get, [<<"user">>, <<"status">>]}]}]}}})
         ],
     
-    output_tests(?_f(erlcloud_ddb:batch_get_item([], [{out, record}])), Tests).
+    output_tests(?_f(erlcloud_ddb:batch_get_item([{<<"table">>, [<<"key">>]}], [{out, record}])), Tests).
 
 %% BatchWriteItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchWriteItem.html

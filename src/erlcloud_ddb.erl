@@ -167,7 +167,7 @@ default_config() -> erlcloud_aws:default_config().
 -type comparison_op() :: eq | ne | le | lt | ge | gt | not_null | null | contains | not_contains | 
                          begins_with | in | between.
 
--type out_attr_value() :: binary() | integer() | [binary()] | [integer()].
+-type out_attr_value() :: binary() | number() | [binary()] | [number()].
 -type out_attr() :: {attr_name(), out_attr_value()}.
 -type out_item() :: [out_attr()].
 -type ok_return(T) :: {ok, T} | {error, term()}.
@@ -372,13 +372,13 @@ undynamize_item(Json) ->
 undynamize_value_typed({<<"S">>, Value}) ->
     {s, Value};
 undynamize_value_typed({<<"N">>, Value}) ->
-    {n, list_to_integer(binary_to_list(Value))};
+    {n, undynamize_number(Value)};
 undynamize_value_typed({<<"B">>, Value}) ->
     {b, base64:decode(Value)}.
 
 -spec undynamize_key(json_key()) -> key().
 undynamize_key([{<<"HashKeyElement">>, [HashKey]}]) ->
-    {undynamize_value_typed(HashKey)};
+    undynamize_value_typed(HashKey);
 undynamize_key([{<<"HashKeyElement">>, [HashKey]}, {<<"RangeKeyElement">>, [RangeKey]}]) ->
     {undynamize_value_typed(HashKey), undynamize_value_typed(RangeKey)}.
 
