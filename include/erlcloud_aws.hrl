@@ -13,6 +13,7 @@
           ddb_scheme="https://"::string(),
           ddb_host="dynamodb.us-east-1.amazonaws.com"::string(),
           ddb_port=80::non_neg_integer(),
+          ddb_retry=fun erlcloud_ddb1:retry/2::erlcloud_ddb1:retry_fun(),
           access_key_id::string()|undefined|false,
           secret_access_key::string()|undefined|false,
           security_token=undefined::string()|undefined
