@@ -10,7 +10,7 @@
 %%
 %% Method names match DynamoDB operations converted to
 %% lower_case_with_underscores. The one exception is query, which is
-%% an Erlang reserved word. The 'q' method implements Query.
+%% an Erlang reserved word. The `q' method implements Query.
 %%
 %% Required parameters are passed as function arguments. In addition
 %% all methods take an options proplist argument which can be used to
@@ -50,7 +50,7 @@
 %% Items will be returned as a list of `{Name, Value}'. In most cases
 %% the output will have type information removed. For example:
 %% `[{<<"String Attribute">>, <<"value">>}, {<<"Number Attribute">>,
-%% 42}, {<<"BinaryAttribute">>, <<1,2,3>>'. The exception is for
+%% 42}, {<<"BinaryAttribute">>, <<1,2,3>>}]'. The exception is for
 %% output fields that are intended to be passed to a subsequent call,
 %% such as `unprocessed_keys' and `last_evaluated_key'. Those will
 %% contain typed attribute values so that they may be correctly passed
@@ -66,6 +66,9 @@
 %% `erlcloud_ddb1' provides a lower level API that takes JSON terms as
 %% defined by `jsx'. It may be useful to pass options that are not yet
 %% supported by this module.
+%%
+%% See the unit tests for additional usage examples beyond what are
+%% provided for each function.
 %%
 %% @end
 
@@ -177,11 +180,6 @@ default_config() -> erlcloud_aws:default_config().
 %%%------------------------------------------------------------------------------
 
 %% Convert terms into the form expected by erlcloud_ddb1
-%% Dynamize does type inference.
-%% Binaries are assumed to be strings.
-%% You must explicitly specify the type: {b, <<1,2,3>>} to get a binary
-%% All lists are assumed to be strings.
-%% You must explicitly specify the type: {ss, ["one", "two"]} to get a set
 
 -spec dynamize_type(attr_type()) -> binary().
 dynamize_type(s) ->
