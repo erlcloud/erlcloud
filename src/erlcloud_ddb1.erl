@@ -55,11 +55,11 @@
          update_table/3, update_table/4
         ]).
 
-%% Internal use only
--export([key_value/1]).
+%% Helpers
+-export([key_value/1, backoff/1, retry/2]).
 
 -export_type([key/0, key_schema_value/0, key_schema/0, json_return/0,
-              batch_write_item_request/0]).
+              batch_write_item_request/0, attempt/0, retry_fun/0]).
 
 -type table_name() :: binary().
 -type attr_type() :: binary().
@@ -319,7 +319,7 @@ request(Config0, Operation, Json) ->
     case erlcloud_aws:update_config(Config0) of
         {ok, Config} ->
             Headers = headers(Config, Operation, Body),
-            request_and_retry(Config, Headers, Body, 1, undefined);
+            request_and_retry(Config, Headers, Body, {attempt, 1});
         {error, Reason} ->
             {error, Reason}
     end.
@@ -339,19 +339,28 @@ request(Config0, Operation, Json) ->
 
 -define(NUM_ATTEMPTS, 10).
 
+%% Sleep after an attempt
 -spec backoff(pos_integer()) -> ok.
 backoff(1) -> ok;
-backoff(2) -> ok;
 backoff(Attempt) -> 
-    timer:sleep(random:uniform((1 bsl (Attempt - 2)) * 100)).
+    timer:sleep(random:uniform((1 bsl (Attempt - 1)) * 100)).
+
+-type attempt() :: {attempt, pos_integer()} | {error, term()}.
+-type retry_fun() :: fun((pos_integer(), term()) -> attempt()).
+-spec retry(pos_integer(), term()) -> attempt().
+retry(Attempt, Reason) when Attempt >= ?NUM_ATTEMPTS ->
+    {error, Reason};
+retry(Attempt, _) ->
+    backoff(Attempt),
+    {attempt, Attempt + 1}.
     
 -type headers() :: [{string(), string()}].
--spec request_and_retry(aws_config(), headers(), jsx:json_text(), pos_integer(), term()) -> 
+-spec request_and_retry(aws_config(), headers(), jsx:json_text(), attempt()) -> 
                                {ok, jsx:json_term()} | {error, term()}.
-request_and_retry(_, _, _, Attempt, LastReason) when Attempt > ?NUM_ATTEMPTS ->
-    {error, LastReason};
-request_and_retry(Config, Headers, Body, Attempt, _) ->
-    backoff(Attempt),
+request_and_retry(_, _, _, {error, Reason}) ->
+    {error, Reason};
+request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
+    RetryFun = Config#aws_config.ddb_retry,
     case httpc:request(post, {url(Config), Headers, "application/x-amz-json-1.0", Body}, [], 
                        [{body_format, binary}]) of
 
@@ -362,20 +371,20 @@ request_and_retry(Config, Headers, Body, Attempt, _) ->
         {ok, {{_, Status, StatusLine}, _, RespBody}} when Status >= 400 andalso Status < 500 ->
             case client_error(Status, StatusLine, RespBody) of
                 {retry, Reason} ->
-                    request_and_retry(Config, Headers, Body, Attempt + 1, Reason);
+                    request_and_retry(Config, Headers, Body, RetryFun(Attempt, Reason));
                 {error, Reason} ->
                     {error, Reason}
             end;
                             
         {ok, {{_, Status, StatusLine}, _, RespBody}} when Status >= 500 ->
-            request_and_retry(Config, Headers, Body, Attempt + 1, {http_error, Status, StatusLine, RespBody});
+            request_and_retry(Config, Headers, Body, RetryFun(Attempt, {http_error, Status, StatusLine, RespBody}));
                             
         {ok, {{_, Status, StatusLine}, _, RespBody}} ->
             {error, {http_error, Status, StatusLine, RespBody}};
                             
         {error, Reason} ->
             %% TODO there may be some http errors, such as certificate error, that we don't want to retry
-            request_and_retry(Config, Headers, Body, Attempt + 1, Reason)
+            request_and_retry(Config, Headers, Body, RetryFun(Attempt, Reason))
     end.
 
 -spec client_error(pos_integer(), string(), binary()) -> {retry, term()} | {error, term()}.
