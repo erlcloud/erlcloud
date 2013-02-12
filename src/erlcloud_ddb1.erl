@@ -361,7 +361,8 @@ request_and_retry(_, _, _, {error, Reason}) ->
     {error, Reason};
 request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
     RetryFun = Config#aws_config.ddb_retry,
-    case httpc:request(post, {url(Config), Headers, "application/x-amz-json-1.0", Body}, [], 
+    case httpc:request(post, {url(Config), Headers, "application/x-amz-json-1.0", Body}, 
+                       [{timeout, 1000}], 
                        [{body_format, binary}]) of
 
         {ok, {{_, 200, _}, _, RespBody}} ->

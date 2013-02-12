@@ -84,7 +84,7 @@ validate_body(Body, Expected) ->
 %% Validates the request body and responds with the provided response.
 -spec input_expect(string(), expected_body()) -> fun().
 input_expect(Response, Expected) ->
-    fun(post, {_Url, _Headers, _ContentType, Body}, [], _Opts) -> 
+    fun(post, {_Url, _Headers, _ContentType, Body}, _HTTPOpts, _Opts) -> 
             validate_body(Body, Expected),
             {ok, {{0, 200, 0}, 0, list_to_binary(Response)}} 
     end.
@@ -116,7 +116,7 @@ input_tests(Response, Tests) ->
 %% returns the mock of the httpc function output tests expect to be called.
 -spec output_expect(string()) -> fun().
 output_expect(Response) ->
-    fun(post, {_Url, _Headers, _ContentType, _Body}, [], _Opts) -> 
+    fun(post, {_Url, _Headers, _ContentType, _Body}, _HTTPOpts, _Opts) -> 
             {ok, {{0, 200, 0}, 0, list_to_binary(Response)}} 
     end.
 
