@@ -1586,8 +1586,8 @@ describe_volumes(VolumeIDs, Config)
     case ec2_query2(Config, "DescribeVolumes", erlcloud_aws:param_list(VolumeIDs, "VolumeId")) of
         {ok, Doc} ->
             {ok, [extract_volume(Item) || Item <- xmerl_xpath:string("/DescribeVolumesResponse/volumeSet/item", Doc)]};
-        Error ->
-            Error
+        {error, Reason} ->
+            ec2_error(Reason)
     end.
 
 extract_volume(Node) ->
@@ -2041,7 +2041,7 @@ describe_tags(Filters, Config) ->
             Tags = xmerl_xpath:string("/DescribeTagsResponse/tagSet/item", Doc),
             {ok, [extract_tag(Tag) || Tag <- Tags]};
         {error, Reason} ->
-            {error, Reason}
+            ec2_error(Reason)
     end.
 
 -spec filter_name(filter_name()) -> string().
