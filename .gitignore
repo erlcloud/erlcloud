@@ -7,3 +7,4 @@ ebin/*.app
 rebar
 *.sublime-*
 deps/
+doc/
