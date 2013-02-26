@@ -150,9 +150,9 @@
 
 -define(API_VERSION, "2009-11-30").
 -define(NEW_API_VERSION, "2012-10-01").
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
--include_lib("erlcloud/include/erlcloud_ec2.hrl").
+-include("include/erlcloud.hrl").
+-include("include/erlcloud_aws.hrl").
+-include("include/erlcloud_ec2.hrl").
 
 -type(filter_list() :: [{string(),[string()]}]).
 
@@ -1047,8 +1047,8 @@ describe_instances(InstanceIDs, Config)
         {ok, Doc} -> 
            Reservations = xmerl_xpath:string("/DescribeInstancesResponse/reservationSet/item", Doc),
            {ok, [extract_reservation(Item) || Item <- Reservations]};
-        Error     -> 
-            Error
+        {error, Reason} -> 
+            ec2_error(Reason)
     end.
 
 
@@ -2163,6 +2163,12 @@ ec2_query2(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml2(post, Config#aws_config.ec2_host,
                                   "/", QParams, Config).
+
+ec2_error({http_error, Code, _Msg, Body}) ->
+    Doc = element(1, xmerl_scan:string(Body)),
+    Err = get_text("/Response/Errors/Error/Code", Doc),
+    {error, {Code, Err}}.
+
 
 default_config() -> erlcloud_aws:default_config().
 
