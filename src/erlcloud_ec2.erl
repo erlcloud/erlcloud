@@ -663,6 +663,9 @@ create_volume(Size, SnapshotID, AvailabilityZone, Config)
      {create_time, erlcloud_xml:get_time("createTime", Doc)}
     ].
 
+
+
+
 -spec(create_vpc/1 :: (string()) -> proplist()).
 create_vpc(CIDR) ->
     create_vpc(CIDR, none, default_config()).
@@ -1874,7 +1877,8 @@ request_spot_instances(Request, Config) ->
               {"LaunchSpecification.RamdiskId", InstanceSpec#ec2_instance_spec.ramdisk_id},
               {"LaunchSpecification.Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
               {"LaunchSpecification.SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
-              {"LaunchSpecification.Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone}
+              {"LaunchSpecification.Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone},
+              {"LaunchSpecification.EbsOptimized", InstanceSpec#ec2_instance_spec.ebs_optimized}
              ],
     GParams = erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, "LaunchSpecification.SecurityGroup"),
     BDParams = [
