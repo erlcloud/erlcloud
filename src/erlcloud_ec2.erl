@@ -1885,7 +1885,7 @@ request_spot_instances(Request, Config) ->
                 {"LaunchSpecification." ++ Key, Value} ||
                    {Key, Value} <- block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping)],
 
-    Doc = ec2_query(Config, "RequestSpotInstances", Params ++ BDParams ++ GParams),
+    Doc = ec2_query(Config, "RequestSpotInstances", Params ++ BDParams ++ GParams, ?NEW_API_VERSION),
     [extract_spot_instance_request(Item) ||
         Item <- xmerl_xpath:string("/RequestSpotInstancesResponse/spotInstanceRequestSet/item", Doc)].
 
