@@ -150,9 +150,9 @@
 
 -define(API_VERSION, "2009-11-30").
 -define(NEW_API_VERSION, "2012-10-01").
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
--include_lib("erlcloud/include/erlcloud_ec2.hrl").
+-include("include/erlcloud.hrl").
+-include("include/erlcloud_aws.hrl").
+-include("include/erlcloud_ec2.hrl").
 
 -type(filter_list() :: [{string(),[string()]}]).
 
@@ -663,6 +663,9 @@ create_volume(Size, SnapshotID, AvailabilityZone, Config)
      {create_time, erlcloud_xml:get_time("createTime", Doc)}
     ].
 
+
+
+
 -spec(create_vpc/1 :: (string()) -> proplist()).
 create_vpc(CIDR) ->
     create_vpc(CIDR, none, default_config()).
@@ -1044,8 +1047,8 @@ describe_instances(InstanceIDs, Config)
         {ok, Doc} -> 
            Reservations = xmerl_xpath:string("/DescribeInstancesResponse/reservationSet/item", Doc),
            {ok, [extract_reservation(Item) || Item <- Reservations]};
-        Error     -> 
-            Error
+        {error, Reason} -> 
+            ec2_error(Reason)
     end.
 
 
@@ -1583,8 +1586,8 @@ describe_volumes(VolumeIDs, Config)
     case ec2_query2(Config, "DescribeVolumes", erlcloud_aws:param_list(VolumeIDs, "VolumeId")) of
         {ok, Doc} ->
             {ok, [extract_volume(Item) || Item <- xmerl_xpath:string("/DescribeVolumesResponse/volumeSet/item", Doc)]};
-        Error ->
-            Error
+        {error, Reason} ->
+            ec2_error(Reason)
     end.
 
 extract_volume(Node) ->
@@ -1874,14 +1877,15 @@ request_spot_instances(Request, Config) ->
               {"LaunchSpecification.RamdiskId", InstanceSpec#ec2_instance_spec.ramdisk_id},
               {"LaunchSpecification.Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
               {"LaunchSpecification.SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
-              {"LaunchSpecification.Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone}
+              {"LaunchSpecification.Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone},
+              {"LaunchSpecification.EbsOptimized", InstanceSpec#ec2_instance_spec.ebs_optimized}
              ],
     GParams = erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, "LaunchSpecification.SecurityGroup"),
     BDParams = [
                 {"LaunchSpecification." ++ Key, Value} ||
                    {Key, Value} <- block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping)],
 
-    Doc = ec2_query(Config, "RequestSpotInstances", Params ++ BDParams ++ GParams),
+    Doc = ec2_query(Config, "RequestSpotInstances", Params ++ BDParams ++ GParams, ?NEW_API_VERSION),
     [extract_spot_instance_request(Item) ||
         Item <- xmerl_xpath:string("/RequestSpotInstancesResponse/spotInstanceRequestSet/item", Doc)].
 
@@ -2037,7 +2041,7 @@ describe_tags(Filters, Config) ->
             Tags = xmerl_xpath:string("/DescribeTagsResponse/tagSet/item", Doc),
             {ok, [extract_tag(Tag) || Tag <- Tags]};
         {error, Reason} ->
-            {error, Reason}
+            ec2_error(Reason)
     end.
 
 -spec filter_name(filter_name()) -> string().
@@ -2159,6 +2163,12 @@ ec2_query2(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml2(post, Config#aws_config.ec2_host,
                                   "/", QParams, Config).
+
+ec2_error({http_error, Code, _Msg, Body}) ->
+    Doc = element(1, xmerl_scan:string(Body)),
+    Err = get_text("/Response/Errors/Error/Code", Doc),
+    {error, {Code, Err}}.
+
 
 default_config() -> erlcloud_aws:default_config().
 
