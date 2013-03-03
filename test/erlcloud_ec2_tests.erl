@@ -73,9 +73,9 @@ validate_param(Param, Expected) ->
             case length(Expected) - 1 =:= length(Expected1) of
                 true -> ok;
                 false -> 
-                    ?debugFmt("Parameter not expected: ~p", [{Key, Value}]),
-                    ?assert(false)
+                    ?debugFmt("Parameter not expected: ~p", [{Key, Value}])
             end,
+            ?assertEqual(length(Expected) - 1, length(Expected1)),
             Expected1
     end.
 
@@ -108,9 +108,9 @@ input_test(Response, {Line, {Description, Fun, Params}}) when
               %% that isn't called in the same process
               erlcloud_ec2:configure(string:copies("A", 20), string:copies("a", 40)),
               Fun()
-      end}};
-input_test(Response, {Line, {Fun, Params}}) ->
-    input_test(Response, {Line, {"", Fun, Params}}).
+      end}}.
+%% input_test(Response, {Line, {Fun, Params}}) ->
+%%     input_test(Response, {Line, {"", Fun, Params}}).
 
 %% input_tests converts a list of input_test specifiers into an eunit test generator
 -spec input_tests(string(), [input_test_spec()]) -> [tuple()].
@@ -139,9 +139,9 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
               erlcloud_ec2:configure(string:copies("A", 20), string:copies("a", 40)),
               Actual = Fun(),
               ?assertEqual(Result, Actual)
-      end}};
-output_test(Fun, {Line, {Response, Result}}) ->
-    output_test(Fun, {Line, {"", Response, Result}}).
+      end}}.
+%% output_test(Fun, {Line, {Response, Result}}) ->
+%%     output_test(Fun, {Line, {"", Response, Result}}).
       
 %% output_tests converts a list of output_test specifiers into an eunit test generator
 -spec output_tests(fun(), [output_test_spec()]) -> [term()].       
