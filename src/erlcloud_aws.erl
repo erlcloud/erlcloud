@@ -6,7 +6,15 @@
          param_list/2, default_config/0, update_config/1, format_timestamp/1,
          http_headers_body/1]).
 
+-include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
+
+-record(metadata_credentials, 
+        {access_key_id :: string(),
+         secret_access_key :: string(),
+         security_token=undefined :: string(),
+         expiration_gregorian_seconds :: integer()
+        }).
 
 aws_request_xml(Method, Host, Path, Params, #aws_config{} = Config) ->
     Body = aws_request(Method, Host, Path, Params, Config),
@@ -135,7 +143,7 @@ default_config() ->
             Config
     end.
 
--spec update_config(aws_config()) -> {ok, aws_config()} | {error, tuple}.
+-spec update_config(aws_config()) -> {ok, aws_config()} | {error, term()}.
 update_config(#aws_config{access_key_id = KeyId} = Config)
   when is_list(KeyId) ->
     %% In order to support caching of the aws_config, we could store the expiration_time
@@ -144,6 +152,38 @@ update_config(#aws_config{access_key_id = KeyId} = Config)
     {ok, Config};
 update_config(#aws_config{} = Config) ->
     %% AccessKey is not set. Try to read from role metadata.
+    case get_metadata_credentials() of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Credentials} ->
+            {ok, Config#aws_config {
+                   access_key_id = Credentials#metadata_credentials.access_key_id,
+                   secret_access_key = Credentials#metadata_credentials.secret_access_key,
+                   security_token = Credentials#metadata_credentials.security_token}}
+    end.
+
+-spec get_metadata_credentials() -> {ok, #metadata_credentials{}} | {error, term()}.
+get_metadata_credentials() ->
+    %% See if we have cached credentials
+    case application:get_env(erlcloud, metadata_credentials) of
+        {ok, #metadata_credentials{expiration_gregorian_seconds = Expiration} = Credentials} ->
+            Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
+            %% Get new credentials if these will expire in less than 5 minutes
+            case Expiration - Now < 300 of
+                true -> get_credentials_from_metadata();
+                false -> {ok, Credentials}
+            end;
+        undefined ->
+            get_credentials_from_metadata()
+    end.
+
+timestamp_to_gregorian_seconds(Timestamp) ->
+    {ok, [Yr, Mo, Da, H, M, S], []} = io_lib:fread("~d-~d-~dT~d:~d:~dZ", binary_to_list(Timestamp)),
+    calendar:datetime_to_gregorian_seconds({{Yr, Mo, Da}, {H, M, S}}).
+    
+-spec get_credentials_from_metadata() -> {ok, #metadata_credentials{}} | {error, term()}.
+get_credentials_from_metadata() ->
+    %% TODO this function should retry on errors getting credentials
     %% First get the list of roles
     case http_body(httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/")) of
         {error, Reason} ->
@@ -156,11 +196,15 @@ update_config(#aws_config{} = Config) ->
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
-                    Credentials = jsx:decode(list_to_binary(Json)),
-                    {ok, Config#aws_config{
-                           access_key_id = binary_to_list(proplists:get_value(<<"AccessKeyId">>, Credentials)),
-                           secret_access_key = binary_to_list(proplists:get_value(<<"SecretAccessKey">>, Credentials)),
-                           security_token = binary_to_list(proplists:get_value(<<"Token">>, Credentials))}}
+                    Creds = jsx:decode(list_to_binary(Json)),
+                    Record = #metadata_credentials
+                        {access_key_id = binary_to_list(proplists:get_value(<<"AccessKeyId">>, Creds)),
+                         secret_access_key = binary_to_list(proplists:get_value(<<"SecretAccessKey">>, Creds)),
+                         security_token = binary_to_list(proplists:get_value(<<"Token">>, Creds)),
+                         expiration_gregorian_seconds = timestamp_to_gregorian_seconds(
+                                                          proplists:get_value(<<"Expiration">>, Creds))},
+                    application:set_env(erlcloud, metadata_credentials, Record),
+                    {ok, Record}
             end
     end.
 
@@ -179,7 +223,8 @@ http_body(Return) ->
             {error, Reason}
     end.
 
--spec http_headers_body({ok, tuple()} | {error, term()}) -> {ok, {http:headers(), string()}} | {error, tuple()}.
+-type headers() :: [{string(), string()}].
+-spec http_headers_body({ok, tuple()} | {error, term()}) -> {ok, {headers(), string()}} | {error, tuple()}.
 %% Extract the headers and body and do error handling on the return of a httpc:request call.
 http_headers_body({ok, {{_HTTPVer, OKStatus, _StatusLine}, Headers, Body}}) 
   when OKStatus >= 200, OKStatus =< 299 ->
