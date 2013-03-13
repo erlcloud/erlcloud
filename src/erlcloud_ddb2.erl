@@ -52,6 +52,10 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts) ->
 %%
 %% ===Example===
 %%
+%% '
+%% ok = erlcloud_ddb2:delete_hash_key(<<"table_name">>, <<"hash_key_value">>, <<"range_key_name">>, [])
+%% '
+%%
 %% @end
 %%------------------------------------------------------------------------------
 
@@ -65,6 +69,8 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts, Config) ->
                         Config) of
         {error, Reason} ->
             {error, Reason};
+        {ok, #ddb_q{count = 0}} ->
+            ok;
         {ok, QResult} ->
             case erlcloud_ddb:batch_write_item(
                    [{Table, [{delete, {HashKey, RangeKey}} || [{_, RangeKey}] <- QResult#ddb_q.items]}],
