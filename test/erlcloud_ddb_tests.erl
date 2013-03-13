@@ -17,6 +17,8 @@
 -define(_ddb_test(T), {?LINE, T}).
 %% The _f macro is a terse way to wrap code in a fun. Similar to _test but doesn't annotate with a line number
 -define(_f(F), fun() -> F end).
+
+-export([validate_body/2]).
                             
 %%%===================================================================
 %%% Test entry points
