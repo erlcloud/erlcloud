@@ -119,6 +119,22 @@ delete_hash_key_tests(_) ->
                  }],
              ok}),
          ?_ddb_test(
+            {"delete_hash_key no items",
+             ?_f(erlcloud_ddb2:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
+             [{"
+{\"TableName\":\"tn\",
+ \"HashKeyValue\":{\"S\":\"hk\"},
+ \"AttributesToGet\":[\"rkn\"],
+ \"Limit\":25,
+ \"ConsistentRead\":true
+}", "
+{\"Count\":0,
+ \"Items\":[],
+ \"ConsumedCapacityUnits\":1
+}"
+              }],
+             ok}),
+         ?_ddb_test(
             {"delete_hash_key incomplete query",
              ?_f(erlcloud_ddb2:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
              [{"
