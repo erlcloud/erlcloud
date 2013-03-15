@@ -7,6 +7,7 @@ REBAR=$(shell which rebar || echo ./rebar)
 CHECK_FILES=\
 	ebin/erlcloud_ddb1.beam \
 	ebin/erlcloud_ddb.beam \
+	ebin/erlcloud_ddb2.beam \
 	ebin/erlcloud_aws.beam
 
 # Checks on the eunit files can help find bad specs and other issues,
@@ -15,7 +16,8 @@ CHECK_FILES=\
 CHECK_EUNIT_FILES=\
 	$(CHECK_FILES) \
         .eunit/erlcloud_ec2_tests.beam \
-        .eunit/erlcloud_ddb_tests.beam
+        .eunit/erlcloud_ddb_tests.beam \
+        .eunit/erlcloud_ddb2_tests.beam
 
 all: get-deps compile
 
