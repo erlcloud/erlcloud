@@ -8,7 +8,7 @@ make_query_string(Params) ->
 value_to_string(Integer) when is_integer(Integer) -> integer_to_list(Integer);
 value_to_string(Atom) when is_atom(Atom) -> atom_to_list(Atom);
 value_to_string(Binary) when is_binary(Binary) -> Binary;
-value_to_string(String) when is_list(String) -> String.
+value_to_string(String) when is_list(String) -> unicode:characters_to_binary(String).
 
 url_encode(Binary) when is_binary(Binary) ->
     url_encode(binary_to_list(Binary));

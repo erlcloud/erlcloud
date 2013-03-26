@@ -7,12 +7,12 @@
   {registered, []},
   {applications, [stdlib,
                   kernel,
-                  sasl,
                   crypto,
                   public_key,
                   ssl,
                   xmerl,
-                  inets]},
+                  inets,
+                  jsx]},
   {modules, []},
   {env, []}
  ]
