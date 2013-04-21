@@ -16,6 +16,7 @@
           ddb_retry=fun erlcloud_ddb1:retry/2::erlcloud_ddb1:retry_fun(),
           access_key_id::string()|undefined|false,
           secret_access_key::string()|undefined|false,
-          security_token=undefined::string()|undefined
+          security_token=undefined::string()|undefined,
+          http_options=[]::proplists:proplist()
          }).
 -type(aws_config() :: #aws_config{}).
