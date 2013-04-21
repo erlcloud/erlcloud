@@ -1,7 +1,8 @@
 %% Amazon Simple Storage Service (S3)
 
 -module(erlcloud_s3).
--export([new/2, new/3, new/4, configure/2, configure/3, configure/4,
+-export([new/2, new/3, new/4, new/6, new/8,
+         configure/2, configure/3, configure/4, configure/6, configure/8,
          create_bucket/1, create_bucket/2, create_bucket/3,
          delete_bucket/1, delete_bucket/2,
          get_bucket_attribute/2, get_bucket_attribute/3,
@@ -53,6 +54,31 @@ new(AccessKeyID, SecretAccessKey, Host, Port) ->
        s3_port=Port
       }.
 
+-spec new(string(), string(), string(), string(), non_neg_integer(), proplist()) -> aws_config().
+
+new(AccessKeyID, SecretAccessKey, Scheme, Host, Port, HttpOptions) ->
+    #aws_config{
+     access_key_id=AccessKeyID,
+     secret_access_key=SecretAccessKey,
+     s3_scheme=Scheme,
+     s3_host=Host,
+     s3_port=Port,
+     http_options=HttpOptions
+    }.
+
+-spec new(string(),
+          string(),
+          string(),
+          string(),
+          non_neg_integer(),
+          string(),
+          non_neg_integer(),
+          proplist()) -> aws_config().
+
+new(AccessKeyID, SecretAccessKey, Scheme, Host, Port, ProxyHost, ProxyPort, HttpOptions) ->
+    UpdHttpOptions = [{proxy, {{ProxyHost, ProxyPort}, []}}] ++ HttpOptions,
+    new(AccessKeyID, SecretAccessKey, Scheme, Host, Port, UpdHttpOptions).
+
 -spec configure(string(), string()) -> ok.
 
 configure(AccessKeyID, SecretAccessKey) ->
@@ -69,6 +95,37 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 
 configure(AccessKeyID, SecretAccessKey, Host, Port) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port)),
+    ok.
+
+-spec configure(string(), string(), string(), string(), non_neg_integer(), proplist()) -> ok.
+
+configure(AccessKeyID, SecretAccessKey, Scheme, Host, Port, HTTPOptions) ->
+    put(aws_config, new(AccessKeyID,
+                        SecretAccessKey,
+                        Scheme,
+                        Host,
+                        Port,
+                        HTTPOptions)),
+    ok.
+
+-spec configure(string(),
+                string(),
+                string(),
+                string(),
+                non_neg_integer(),
+                string(),
+                non_neg_integer(),
+                proplist()) -> ok.
+
+configure(AccessKeyID, SecretAccessKey, Scheme, Host, Port, ProxyHost, ProxyPort, HTTPOptions) ->
+    put(aws_config, new(AccessKeyID,
+                        SecretAccessKey,
+                        Scheme,
+                        Host,
+                        Port,
+                        ProxyHost,
+                        ProxyPort,
+                        HTTPOptions)),
     ok.
 
 -type s3_bucket_attribute_name() :: acl
@@ -764,6 +821,7 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
                                     true -> [$&, erlcloud_http:make_query_string(Params)]
                                 end
                                ]),
+    httpc:set_options(Config#aws_config.http_options),
     Response = case Method of
                    get -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
                    delete -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
