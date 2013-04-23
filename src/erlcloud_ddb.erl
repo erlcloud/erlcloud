@@ -533,6 +533,15 @@ out(Result, Undynamize, Opts, Index, Default) ->
 %%% Shared Records
 %%%------------------------------------------------------------------------------
 
+-spec consumed_capacity_record() -> record_desc().
+consumed_capacity_record() ->
+    {#ddb_consumed_capacity{},
+     [{<<"CapacityUnits">>, #ddb_consumed_capacity.capacity_units, fun id/1},
+      {<<"TableName">>, #ddb_consumed_capacity.table_name, fun id/1}]}.
+
+undynamize_consumed_capacity(V) ->
+    undynamize_record(consumed_capacity_record(), V).
+
 -spec provisioned_throughput_record() -> record_desc().
 provisioned_throughput_record() ->
     {#ddb_provisioned_throughput{},
@@ -972,7 +981,7 @@ describe_table(Table, Opts, Config) ->
 get_item_record() ->
     {#ddb_get_item{},
      [{<<"Item">>, #ddb_get_item.item, fun undynamize_item/1},
-      {<<"ConsumedCapacityUnits">>, #ddb_get_item.consumed_capacity_units, fun id/1}
+      {<<"ConsumedCapacity">>, #ddb_get_item.consumed_capacity, fun undynamize_consumed_capacity/1}
      ]}.
 
 -spec get_item(table_name(), key()) -> item_return().
