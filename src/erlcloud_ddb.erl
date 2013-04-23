@@ -380,6 +380,10 @@ undynamize_object(PairFun, List) ->
 undynamize_item(Json) ->
     undynamize_object(fun undynamize_attr/1, Json).
 
+-spec undynamize_items([json_item()]) -> [out_item()].
+undynamize_items(Items) ->
+    [undynamize_item(I) || I <- Items].
+
 -spec undynamize_value_typed(json_attr_value()) -> in_attr_typed_value().
 undynamize_value_typed({<<"S">>, Value}) ->
     {s, Value};
@@ -389,10 +393,10 @@ undynamize_value_typed({<<"B">>, Value}) ->
     {b, base64:decode(Value)}.
 
 -spec undynamize_key(json_key()) -> key().
-undynamize_key([{<<"HashKeyElement">>, [HashKey]}]) ->
-    undynamize_value_typed(HashKey);
-undynamize_key([{<<"HashKeyElement">>, [HashKey]}, {<<"RangeKeyElement">>, [RangeKey]}]) ->
-    {undynamize_value_typed(HashKey), undynamize_value_typed(RangeKey)}.
+undynamize_key([HashKey]) ->
+    undynamize_attr_typed(HashKey);
+undynamize_key([HashKey, RangeKey]) ->
+    {undynamize_attr_typed(HashKey), undynamize_attr_typed(RangeKey)}.
 
 -spec undynamize_key_schema_value(jsx:json_term()) -> key_schema().
 undynamize_key_schema_value([{<<"AttributeName">>, Name}, {<<"AttributeType">>, Type}]) ->
@@ -542,6 +546,9 @@ consumed_capacity_record() ->
 undynamize_consumed_capacity(V) ->
     undynamize_record(consumed_capacity_record(), V).
 
+undynamize_consumed_capacity_list(V) ->
+    [undynamize_record(consumed_capacity_record(), I) || I <- V].
+
 -spec provisioned_throughput_record() -> record_desc().
 provisioned_throughput_record() ->
     {#ddb_provisioned_throughput{},
@@ -566,6 +573,14 @@ table_description_record() ->
 %%% BatchGetItem
 %%%------------------------------------------------------------------------------
 
+-type batch_get_item_opt() :: return_consumed_capacity_opt() |
+                              out_opt().
+-type batch_get_item_opts() :: [batch_get_item_opt()].
+
+-spec batch_get_item_opts() -> opt_table().
+batch_get_item_opts() ->
+    [{return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1}].
+
 -type batch_get_item_request_item() :: {table_name(), [key(),...], get_item_opts()} | {table_name(), [key(),...]}.
 
 -spec dynamize_batch_get_item_request_item(batch_get_item_request_item()) 
@@ -574,19 +589,12 @@ dynamize_batch_get_item_request_item({Table, Keys}) ->
     dynamize_batch_get_item_request_item({Table, Keys, []});
 dynamize_batch_get_item_request_item({Table, Keys, Opts}) ->
     {AwsOpts, []} = opts(get_item_opts(), Opts),
-    {Table, [dynamize_key(K) || K <- Keys], AwsOpts}.
+    {Table, [{<<"Keys">>, [dynamize_key(K) || K <- Keys]}] ++ AwsOpts}.
 
 -type batch_get_item_request_items() :: maybe_list(batch_get_item_request_item()).
 -spec dynamize_batch_get_item_request_items(batch_get_item_request_items()) -> [tuple()].
 dynamize_batch_get_item_request_items(Request) ->
     dynamize_maybe_list(fun dynamize_batch_get_item_request_item/1, Request).
-
--spec batch_get_item_response_record(table_name()) -> record_desc().
-batch_get_item_response_record(Table) ->
-    {#ddb_batch_get_item_response{table = Table},
-     [{<<"Items">>, #ddb_batch_get_item_response.items, fun(V) -> [undynamize_item(I) || I <- V] end},
-      {<<"ConsumedCapacityUnits">>, #ddb_batch_get_item_response.consumed_capacity_units, fun id/1}
-     ]}.
 
 -spec batch_get_item_request_item_folder({binary(), term()}, batch_get_item_request_item()) 
                                         -> batch_get_item_request_item().
@@ -601,14 +609,19 @@ batch_get_item_request_item_folder({<<"ConsistentRead">>, Value}, {Table, Keys, 
 undynamize_batch_get_item_request_item(Table, Json) ->
     lists:foldl(fun batch_get_item_request_item_folder/2, {Table, [], []}, Json).
 
+undynamize_batch_get_item_response({Table, Json}) ->
+    #ddb_batch_get_item_response{
+       table = Table,
+       items = undynamize_items(Json)}.
+
+undynamize_batch_get_item_responses(Response) ->
+    undynamize_object(fun undynamize_batch_get_item_response/1, Response).
+
 -spec batch_get_item_record() -> record_desc().    
 batch_get_item_record() ->
     {#ddb_batch_get_item{},
-     [{<<"Responses">>, #ddb_batch_get_item.responses, 
-       fun(V) -> undynamize_object(fun({Table, Json}) ->
-                                           undynamize_record(batch_get_item_response_record(Table), Json)
-                                   end, V)
-       end},
+     [{<<"ConsumedCapacity">>, #ddb_batch_get_item.consumed_capacity, fun undynamize_consumed_capacity_list/1},
+      {<<"Responses">>, #ddb_batch_get_item.responses, fun undynamize_batch_get_item_responses/1},
       {<<"UnprocessedKeys">>, #ddb_batch_get_item.unprocessed_keys,
        fun(V) -> undynamize_object(fun({Table, Json}) ->
                                            undynamize_batch_get_item_request_item(Table, Json)
@@ -622,7 +635,7 @@ batch_get_item_record() ->
 batch_get_item(RequestItems) ->
     batch_get_item(RequestItems, [], default_config()).
 
--spec batch_get_item([batch_get_item_request_item()], ddb_opts()) -> batch_get_item_return().
+-spec batch_get_item([batch_get_item_request_item()], batch_get_item_opts()) -> batch_get_item_return().
 batch_get_item(RequestItems, Opts) ->
     batch_get_item(RequestItems, Opts, default_config()).
 
@@ -649,10 +662,11 @@ batch_get_item(RequestItems, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec batch_get_item([batch_get_item_request_item()], ddb_opts(), aws_config()) -> batch_get_item_return().
+-spec batch_get_item([batch_get_item_request_item()], batch_get_item_opts(), aws_config()) -> 
+                            batch_get_item_return().
 batch_get_item(RequestItems, Opts, Config) ->
-    {[], DdbOpts} = opts([], Opts),
-    Return = erlcloud_ddb1:batch_get_item(dynamize_batch_get_item_request_items(RequestItems), Config),
+    {AwsOpts, DdbOpts} = opts(batch_get_item_opts(), Opts),
+    Return = erlcloud_ddb1:batch_get_item(dynamize_batch_get_item_request_items(RequestItems), AwsOpts, Config),
     case out(Return, fun(Json) -> undynamize_record(batch_get_item_record(), Json) end, DdbOpts) of
         {simple, #ddb_batch_get_item{unprocessed_keys = [_|_]}} ->
             %% TODO resend unprocessed keys automatically (or controlled by option). 
