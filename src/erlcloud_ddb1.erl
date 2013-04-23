@@ -215,7 +215,7 @@ get_item(Table, Key, Opts) ->
 -spec get_item(table_name(), key(), opts(), aws_config()) -> json_return().
 get_item(Table, Key, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
-            key_json(Key)] 
+            {<<"Key">>, Key}] 
         ++ Opts,
     request(Config, "GetItem", Json).
 
@@ -417,7 +417,7 @@ client_error(Status, StatusLine, Body) ->
 headers(Config, Operation, Body) ->
     Date = httpd_util:rfc1123_date(erlang:localtime()),
     Headers = [{"x-amz-date", Date},
-               {"x-amz-target", "DynamoDB_20111205." ++ Operation}]
+               {"x-amz-target", "DynamoDB_20120810." ++ Operation}]
         ++ case Config#aws_config.security_token of
                undefined -> [];
                SecurityToken -> [{"x-amz-security-token", SecurityToken}]
