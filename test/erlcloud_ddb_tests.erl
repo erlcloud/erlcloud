@@ -849,9 +849,13 @@ get_item_output_tests(_) ->
         }
     }
 }",
-             {ok, [{<<"Tags">>, [<<"Update">>, <<"Multiple Items">>, <<"HelpMe">>]},
-                   {<<"LastPostDateTime">>, <<"201303190436">>},
-                   {<<"Message">>, <<"I want to update multiple items in a single API call. What's the best way to do that?">>}]}}),
+             {ok, #ddb_get_item{
+                     item = [{<<"Tags">>, [<<"Update">>, <<"Multiple Items">>, <<"HelpMe">>]},
+                             {<<"LastPostDateTime">>, <<"201303190436">>},
+                             {<<"Message">>, <<"I want to update multiple items in a single API call. What's the best way to do that?">>}],
+                    consumed_capacity = #ddb_consumed_capacity{
+                                          capacity_units = 1,
+                                          table_name = <<"Thread">>}}}}),
          ?_ddb_test(
             {"GetItem test all attribute types", "
 {\"Item\":
@@ -866,26 +870,28 @@ get_item_output_tests(_) ->
 	 \"empty\":{\"S\":\"\"}
 	}
 }",
-             {ok, [{<<"ss">>, [<<"Lynda">>, <<"Aaron">>]},
-                   {<<"ns">>, [12,13.0,14.1]},
-                   {<<"bs">>, [<<5,182>>]},
-                   {<<"es">>, []},
-                   {<<"s">>, <<"Lynda">>},
-                   {<<"n">>, 12},
-                   {<<"f">>, 12.34},
-                   {<<"b">>, <<5,182>>},
-                   {<<"empty">>, <<>>}]}}),
+             {ok, #ddb_get_item{
+                     item = [{<<"ss">>, [<<"Lynda">>, <<"Aaron">>]},
+                             {<<"ns">>, [12,13.0,14.1]},
+                             {<<"bs">>, [<<5,182>>]},
+                             {<<"es">>, []},
+                             {<<"s">>, <<"Lynda">>},
+                             {<<"n">>, 12},
+                             {<<"f">>, 12.34},
+                             {<<"b">>, <<5,182>>},
+                             {<<"empty">>, <<>>}],
+                    consumed_capacity = undefined}}}),
          ?_ddb_test(
             {"GetItem item not found", 
-             "{\"ConsumedCapacityUnits\": 0.5}",
-             {ok, []}}),
+             "{}",
+             {ok, #ddb_get_item{item = undefined}}}),
          ?_ddb_test(
             {"GetItem no attributes returned", 
-             "{\"ConsumedCapacityUnits\":0.5,\"Item\":{}}",
-             {ok, []}})
+             "{\"Item\":{}}",
+             {ok, #ddb_get_item{item = []}}})
         ],
     
-    output_tests(?_f(erlcloud_ddb:get_item(<<"table">>, {<<"k">>, <<"v">>})), Tests).
+    output_tests(?_f(erlcloud_ddb:get_item(<<"table">>, {<<"k">>, <<"v">>}, [{out, record}])), Tests).
 
 %% ListTables test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_ListTables.html

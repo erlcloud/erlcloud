@@ -11,6 +11,10 @@
          table_name :: binary(),
          table_status :: binary()
         }).
+-record(ddb_consumed_capacity,
+        {capacity_units :: number(),
+         table_name :: binary()
+        }).
 
 -record(ddb_batch_get_item_response,
         {table :: erlcloud_ddb:table_name(),
@@ -59,7 +63,7 @@
 
 -record(ddb_get_item,
         {item :: erlcloud_ddb:out_item(),
-         consumed_capacity_units :: number()
+         consumed_capacity :: #ddb_consumed_capacity{}
         }).
 
 -record(ddb_list_tables,
