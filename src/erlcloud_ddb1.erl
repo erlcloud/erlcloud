@@ -39,7 +39,7 @@
 -include("erlcloud_aws.hrl").
 
 %% DDB API Functions
--export([batch_get_item/1, batch_get_item/2,
+-export([batch_get_item/1, batch_get_item/2, batch_get_item/3,
          batch_write_item/1, batch_write_item/2,
          create_table/4, create_table/5,
          delete_item/2, delete_item/3, delete_item/4,
@@ -104,19 +104,18 @@ updates_json(Updates) ->
 
 -type batch_get_item_request_item() :: {table_name(), [key(),...], opts()} | {table_name(), [key(),...]}.
 
--spec batch_get_item_request_item_json(batch_get_item_request_item()) -> {binary(), jsx:json_term()}.
-batch_get_item_request_item_json({Table, Keys}) ->
-    batch_get_item_request_item_json({Table, Keys, []});
-batch_get_item_request_item_json({Table, Keys, Opts}) ->
-    {Table, [{<<"Keys">>, [key_value(K) || K <- Keys]}] ++ Opts}.
-
 -spec batch_get_item([batch_get_item_request_item()]) -> json_return().
 batch_get_item(RequestItems) ->
-    batch_get_item(RequestItems, default_config()).
+    batch_get_item(RequestItems, [], default_config()).
 
--spec batch_get_item([batch_get_item_request_item()], aws_config()) -> json_return().
-batch_get_item(RequestItems, Config) ->
-    Json = [{<<"RequestItems">>, [batch_get_item_request_item_json(R) || R <- RequestItems]}],
+-spec batch_get_item([batch_get_item_request_item()], opts()) -> json_return().
+batch_get_item(RequestItems, Opts) ->
+    batch_get_item(RequestItems, Opts, default_config()).
+
+-spec batch_get_item([batch_get_item_request_item()], opts(), aws_config()) -> json_return().
+batch_get_item(RequestItems, Opts, Config) ->
+    Json = [{<<"RequestItems">>, RequestItems}]
+        ++ Opts,
     request(Config, "BatchGetItem", Json).
 
 -type batch_write_item_put() :: {put, item()}.

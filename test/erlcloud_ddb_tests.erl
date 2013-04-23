@@ -29,8 +29,8 @@ operation_test_() ->
      fun start/0,
      fun stop/1,
      [fun error_handling_tests/1,
-      %% fun batch_get_item_input_tests/1,
-      %% fun batch_get_item_output_tests/1,
+      fun batch_get_item_input_tests/1,
+      fun batch_get_item_output_tests/1,
       %% fun batch_write_item_input_tests/1,
       %% fun batch_write_item_output_tests/1,
       %% fun create_table_input_tests/1,
@@ -241,44 +241,121 @@ batch_get_item_input_tests(_) ->
         [?_ddb_test(
             {"BatchGetItem example request",
              ?_f(erlcloud_ddb:batch_get_item(
-                   [{<<"comp2">>, [<<"Julie">>, 
-                                   <<"Mingus">>], 
-                     [{attributes_to_get, [<<"user">>, <<"friends">>]}]},
-                    {<<"comp1">>, [{<<"Casey">>, 1319509152},
-                                   {<<"Dave">>, 1319509155},
-                                   {<<"Riley">>, 1319509158}],
-                     [{attributes_to_get, [<<"user">>, <<"status">>]}]}])), "
-{\"RequestItems\":
-    {\"comp2\":
-        {\"Keys\":
-            [{\"HashKeyElement\":{\"S\":\"Julie\"}},{\"HashKeyElement\":{\"S\":\"Mingus\"}}],
-        \"AttributesToGet\":[\"user\",\"friends\"]},
-    \"comp1\":
-        {\"Keys\":
-            [{\"HashKeyElement\":{\"S\":\"Casey\"},\"RangeKeyElement\":{\"N\":\"1319509152\"}},
-            {\"HashKeyElement\":{\"S\":\"Dave\"},\"RangeKeyElement\":{\"N\":\"1319509155\"}},
-            {\"HashKeyElement\":{\"S\":\"Riley\"},\"RangeKeyElement\":{\"N\":\"1319509158\"}}],
-        \"AttributesToGet\":[\"user\",\"status\"]}
-    }
+                   [{<<"Forum">>, 
+                     [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
+                      {<<"Name">>, {s, <<"Amazon RDS">>}}, 
+                      {<<"Name">>, {s, <<"Amazon Redshift">>}}],
+                     [{attributes_to_get, [<<"Name">>, <<"Threads">>, <<"Messages">>, <<"Views">>]}]},
+                    {<<"Thread">>, 
+                     [{{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
+                       {<<"Subject">>, {s, <<"Concurrent reads">>}}}],
+                     [{attributes_to_get, [<<"Tags">>, <<"Message">>]}]}],
+                   [{return_consumed_capacity, total}])), "
+{
+    \"RequestItems\": {
+        \"Forum\": {
+            \"Keys\": [
+                {
+                    \"Name\":{\"S\":\"Amazon DynamoDB\"}
+                },
+                {
+                    \"Name\":{\"S\":\"Amazon RDS\"}
+                },
+                {
+                    \"Name\":{\"S\":\"Amazon Redshift\"}
+                }
+            ],
+            \"AttributesToGet\": [
+                \"Name\",\"Threads\",\"Messages\",\"Views\"
+            ]
+        },
+        \"Thread\": {
+            \"Keys\": [
+                {
+                    \"ForumName\":{\"S\":\"Amazon DynamoDB\"},
+                    \"Subject\":{\"S\":\"Concurrent reads\"}
+                }
+            ],
+            \"AttributesToGet\": [
+                \"Tags\",\"Message\"
+            ]
+        }
+    },
+    \"ReturnConsumedCapacity\": \"TOTAL\"
 }"
             })
         ],
 
     Response = "
-{\"Responses\":
-    {\"comp1\":
-        {\"Items\":
-            [{\"status\":{\"S\":\"online\"},\"user\":{\"S\":\"Casey\"}},
-            {\"status\":{\"S\":\"working\"},\"user\":{\"S\":\"Riley\"}},
-            {\"status\":{\"S\":\"running\"},\"user\":{\"S\":\"Dave\"}}],
-        \"ConsumedCapacityUnits\":1.5},
-    \"comp2\":
-        {\"Items\":
-            [{\"friends\":{\"SS\":[\"Elisabeth\", \"Peter\"]},\"user\":{\"S\":\"Mingus\"}},
-            {\"friends\":{\"SS\":[\"Dave\", \"Peter\"]},\"user\":{\"S\":\"Julie\"}}],
-        \"ConsumedCapacityUnits\":1}
+{
+    \"Responses\": {
+        \"Forum\": [
+            {
+                \"Name\":{
+                    \"S\":\"Amazon DynamoDB\"
+                },
+                \"Threads\":{
+                    \"N\":\"5\"
+                },
+                \"Messages\":{
+                    \"N\":\"19\"
+                },
+                \"Views\":{
+                    \"N\":\"35\"
+                }
+            },
+            {
+                \"Name\":{
+                    \"S\":\"Amazon RDS\"
+                },
+                \"Threads\":{
+                    \"N\":\"8\"
+                },
+                \"Messages\":{
+                    \"N\":\"32\"
+                },
+                \"Views\":{
+                    \"N\":\"38\"
+                }
+            },
+            {
+                \"Name\":{
+                    \"S\":\"Amazon Redshift\"
+                },
+                \"Threads\":{
+                    \"N\":\"12\"
+                },
+                \"Messages\":{
+                    \"N\":\"55\"
+                },
+                \"Views\":{
+                    \"N\":\"47\"
+                }
+            }
+        ],
+        \"Thread\": [
+            {
+                \"Tags\":{
+                    \"SS\":[\"Reads\",\"MultipleUsers\"]
+                },
+                \"Message\":{
+                    \"S\":\"How many users can read a single data item at a time? Are there any limits?\"
+                }
+            }
+        ]
     },
-    \"UnprocessedKeys\":{}
+    \"UnprocessedKeys\": {
+    },
+    \"ConsumedCapacity\": [
+        {
+            \"TableName\": \"Forum\",
+            \"CapacityUnits\": 3
+        },
+        {
+            \"TableName\": \"Thread\",
+            \"CapacityUnits\": 1
+        }
+    ]
 }",
     input_tests(Response, Tests).
 
@@ -286,69 +363,149 @@ batch_get_item_output_tests(_) ->
     Tests = 
         [?_ddb_test(
             {"BatchGetItem example response", "
-{\"Responses\":
-    {\"comp1\":
-        {\"Items\":
-            [{\"status\":{\"S\":\"online\"},\"user\":{\"S\":\"Casey\"}},
-            {\"status\":{\"S\":\"working\"},\"user\":{\"S\":\"Riley\"}},
-            {\"status\":{\"S\":\"running\"},\"user\":{\"S\":\"Dave\"}}],
-        \"ConsumedCapacityUnits\":1.5},
-    \"comp2\":
-        {\"Items\":
-            [{\"friends\":{\"SS\":[\"Elisabeth\", \"Peter\"]},\"user\":{\"S\":\"Mingus\"}},
-            {\"friends\":{\"SS\":[\"Dave\", \"Peter\"]},\"user\":{\"S\":\"Julie\"}}],
-        \"ConsumedCapacityUnits\":1}
+{
+    \"Responses\": {
+        \"Forum\": [
+            {
+                \"Name\":{
+                    \"S\":\"Amazon DynamoDB\"
+                },
+                \"Threads\":{
+                    \"N\":\"5\"
+                },
+                \"Messages\":{
+                    \"N\":\"19\"
+                },
+                \"Views\":{
+                    \"N\":\"35\"
+                }
+            },
+            {
+                \"Name\":{
+                    \"S\":\"Amazon RDS\"
+                },
+                \"Threads\":{
+                    \"N\":\"8\"
+                },
+                \"Messages\":{
+                    \"N\":\"32\"
+                },
+                \"Views\":{
+                    \"N\":\"38\"
+                }
+            },
+            {
+                \"Name\":{
+                    \"S\":\"Amazon Redshift\"
+                },
+                \"Threads\":{
+                    \"N\":\"12\"
+                },
+                \"Messages\":{
+                    \"N\":\"55\"
+                },
+                \"Views\":{
+                    \"N\":\"47\"
+                }
+            }
+        ],
+        \"Thread\": [
+            {
+                \"Tags\":{
+                    \"SS\":[\"Reads\",\"MultipleUsers\"]
+                },
+                \"Message\":{
+                    \"S\":\"How many users can read a single data item at a time? Are there any limits?\"
+                }
+            }
+        ]
     },
-    \"UnprocessedKeys\":{}
+    \"UnprocessedKeys\": {
+    },
+    \"ConsumedCapacity\": [
+        {
+            \"TableName\": \"Forum\",
+            \"CapacityUnits\": 3
+        },
+        {
+            \"TableName\": \"Thread\",
+            \"CapacityUnits\": 1
+        }
+    ]
 }",
              {ok, #ddb_batch_get_item
-              {responses = 
+              {consumed_capacity = 
+                   [#ddb_consumed_capacity{table_name = <<"Forum">>, capacity_units = 3},
+                    #ddb_consumed_capacity{table_name = <<"Thread">>, capacity_units = 1}],
+               responses = 
                    [#ddb_batch_get_item_response
-                    {table = <<"comp1">>,
-                     items = [[{<<"status">>, <<"online">>},
-                               {<<"user">>, <<"Casey">>}],
-                              [{<<"status">>, <<"working">>},
-                               {<<"user">>, <<"Riley">>}],
-                              [{<<"status">>, <<"running">>},
-                               {<<"user">>, <<"Dave">>}]],
-                     consumed_capacity_units = 1.5},
+                    {table = <<"Forum">>,
+                     items = [[{<<"Name">>, <<"Amazon DynamoDB">>},
+                               {<<"Threads">>, 5},
+                               {<<"Messages">>, 19},
+                               {<<"Views">>, 35}],
+                              [{<<"Name">>, <<"Amazon RDS">>},
+                               {<<"Threads">>, 8},
+                               {<<"Messages">>, 32},
+                               {<<"Views">>, 38}],
+                              [{<<"Name">>, <<"Amazon Redshift">>},
+                               {<<"Threads">>, 12},
+                               {<<"Messages">>, 55},
+                               {<<"Views">>, 47}]]},
                     #ddb_batch_get_item_response
-                    {table = <<"comp2">>,
-                     items = [[{<<"friends">>, [<<"Elisabeth">>, <<"Peter">>]},
-                               {<<"user">>, <<"Mingus">>}],
-                              [{<<"friends">>, [<<"Dave">>, <<"Peter">>]},
-                               {<<"user">>, <<"Julie">>}]],
-                     consumed_capacity_units = 1}],
+                    {table = <<"Thread">>,
+                     items = [[{<<"Tags">>, [<<"Reads">>, <<"MultipleUsers">>]},
+                               {<<"Message">>, <<"How many users can read a single data item at a time? Are there any limits?">>}]]}],
                unprocessed_keys = []}}}),
          ?_ddb_test(
             {"BatchGetItem unprocessed keys", "
-{\"Responses\":{},
- \"UnprocessedKeys\":
-   {\"comp2\":
-        {\"Keys\":
-            [{\"HashKeyElement\":{\"S\":\"Julie\"}},{\"HashKeyElement\":{\"S\":\"Mingus\"}}],
-        \"AttributesToGet\":[\"user\",\"friends\"]},
-    \"comp1\":
-        {\"Keys\":
-            [{\"HashKeyElement\":{\"S\":\"Casey\"},\"RangeKeyElement\":{\"N\":\"1319509152\"}},
-            {\"HashKeyElement\":{\"S\":\"Dave\"},\"RangeKeyElement\":{\"N\":\"1319509155\"}},
-            {\"HashKeyElement\":{\"S\":\"Riley\"},\"RangeKeyElement\":{\"N\":\"1319509158\"}}],
-        \"AttributesToGet\":[\"user\",\"status\"]}
+{
+    \"Responses\": {},
+    \"UnprocessedKeys\": {
+        \"Forum\": {
+            \"Keys\": [
+                {
+                    \"Name\":{\"S\":\"Amazon DynamoDB\"}
+                },
+                {
+                    \"Name\":{\"S\":\"Amazon RDS\"}
+                },
+                {
+                    \"Name\":{\"S\":\"Amazon Redshift\"}
+                }
+            ],
+            \"AttributesToGet\": [
+                \"Name\",\"Threads\",\"Messages\",\"Views\"
+            ]
+        },
+        \"Thread\": {
+            \"Keys\": [
+                {
+                    \"ForumName\":{\"S\":\"Amazon DynamoDB\"},
+                    \"Subject\":{\"S\":\"Concurrent reads\"}
+                }
+            ],
+            \"AttributesToGet\": [
+                \"Tags\",\"Message\"
+            ]
+        }
     }
 }",
              {ok, #ddb_batch_get_item
               {responses = [], 
                unprocessed_keys = 
-                   [{<<"comp2">>, [{s, <<"Julie">>}, 
-                                   {s, <<"Mingus">>}], 
-                     [{attributes_to_get, [<<"user">>, <<"friends">>]}]},
-                    {<<"comp1">>, [{{s, <<"Casey">>}, {n, 1319509152}},
-                                   {{s, <<"Dave">>}, {n, 1319509155}},
-                                   {{s, <<"Riley">>}, {n, 1319509158}}],
-                     [{attributes_to_get, [<<"user">>, <<"status">>]}]}]}}})
+                   [{<<"Forum">>, 
+                     [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
+                      {<<"Name">>, {s, <<"Amazon RDS">>}}, 
+                      {<<"Name">>, {s, <<"Amazon Redshift">>}}],
+                     [{attributes_to_get, [<<"Name">>, <<"Threads">>, <<"Messages">>, <<"Views">>]}]},
+                    {<<"Thread">>, 
+                     [{{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
+                       {<<"Subject">>, {s, <<"Concurrent reads">>}}}],
+                     [{attributes_to_get, [<<"Tags">>, <<"Message">>]}]}]}}})
         ],
     
-    output_tests(?_f(erlcloud_ddb:batch_get_item([{<<"table">>, [<<"key">>]}], [{out, record}])), Tests).
+    output_tests(?_f(erlcloud_ddb:batch_get_item([{<<"table">>, [{<<"k">>, <<"v">>}]}], [{out, record}])), Tests).
 
 %% BatchWriteItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchWriteItem.html

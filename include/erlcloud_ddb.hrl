@@ -18,11 +18,11 @@
 
 -record(ddb_batch_get_item_response,
         {table :: erlcloud_ddb:table_name(),
-         items :: [erlcloud_ddb:out_item()],
-         consumed_capacity_units :: number()
+         items :: [erlcloud_ddb:out_item()]
         }).
 -record(ddb_batch_get_item,
-        {responses :: [#ddb_batch_get_item_response{}],
+        {consumed_capacity :: [#ddb_consumed_capacity{}],
+         responses :: [#ddb_batch_get_item_response{}],
          unprocessed_keys :: [erlcloud_ddb:batch_get_item_request_item()]
         }).
 
