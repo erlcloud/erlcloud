@@ -22,12 +22,12 @@
 %%% Test entry points
 %%%===================================================================
 
-operation_test_() ->
-    {foreach,
-     fun start/0,
-     fun stop/1,
-     [fun delete_hash_key_tests/1
-     ]}.
+%% operation_test_() ->
+%%     {foreach,
+%%      fun start/0,
+%%      fun stop/1,
+%%      [fun delete_hash_key_tests/1
+%%      ]}.
 
 start() ->
     meck:new(httpc, [unstick]),

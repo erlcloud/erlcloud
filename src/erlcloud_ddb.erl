@@ -162,8 +162,8 @@ default_config() -> erlcloud_aws:default_config().
 -type json_expected() :: [{attr_name(), [json_attr_value()] | [{binary(), boolean()}]}].
 -type json_key() :: [json_attr(),...].
 
--type hash_key() :: in_attr_value().
--type range_key() :: in_attr_value().
+-type hash_key() :: in_attr().
+-type range_key() :: in_attr().
 -type hash_range_key() :: {hash_key(), range_key()}.
 -type key() :: hash_key() | hash_range_key().
 -type key_schema_value() :: {attr_name(), attr_type()}.
@@ -236,16 +236,18 @@ dynamize_value(Value) ->
     error({erlcloud_ddb, {invalid_attr_value, Value}}).
 
 -spec dynamize_attr(in_attr()) -> json_attr().
-dynamize_attr({Name, Value}) ->
-    {Name, [dynamize_value(Value)]}.
+dynamize_attr({Name, Value}) when is_binary(Name) ->
+    {Name, [dynamize_value(Value)]};
+dynamize_attr({Name, _}) ->
+    error({erlcloud_ddb, {invalid_attr_name, Name}});
+dynamize_attr(Attr) ->
+    error({erlcloud_ddb, {invalid_attr, Attr}}).
 
--spec dynamize_key(key()) -> erlcloud_ddb1:key().
-dynamize_key({HashType, _} = HashKey) when is_atom(HashType) ->
-    dynamize_value(HashKey);
-dynamize_key({HashKey, RangeKey}) ->
-    {dynamize_value(HashKey), dynamize_value(RangeKey)};
+-spec dynamize_key(key()) -> jsx:json_term().
+dynamize_key({HashKey, RangeKey}) when is_tuple(HashKey) ->
+    [dynamize_attr(HashKey), dynamize_attr(RangeKey)];
 dynamize_key(HashKey) ->
-    dynamize_value(HashKey).
+    [dynamize_attr(HashKey)].
 
 -spec dynamize_key_schema_value(key_schema_value()) -> erlcloud_ddb1:key_schema_value().
 dynamize_key_schema_value({Name, Type}) ->
@@ -318,6 +320,14 @@ dynamize_comparison(in) ->
     {<<"ComparisonOperator">>, <<"IN">>};
 dynamize_comparison(between) ->
     {<<"ComparisonOperator">>, <<"BETWEEN">>}.
+
+-type return_consumed_capacity() :: none | total.
+-type return_consumed_capacity_opt() :: {return_consumed_capacity, return_consumed_capacity()}.
+-spec dynamize_return_consumed_capacity(return_consumed_capacity()) -> binary().
+dynamize_return_consumed_capacity(none) ->
+    <<"NONE">>;
+dynamize_return_consumed_capacity(total) ->
+    <<"TOTAL">>.
 
 %%%------------------------------------------------------------------------------
 %%% Shared Undynamizers
@@ -453,25 +463,27 @@ opt_folder(Table, {Name, Value}, {AwsOpts, DdbOpts}) ->
         false ->
             verify_ddb_opt(Name, Value),
             {AwsOpts, [{Name, Value} | DdbOpts]}
-    end;
-opt_folder(Table, Name, Opts) ->
-    opt_folder(Table, {Name, true}, Opts).
+    end.
 
 -spec opts(opt_table(), proplist()) -> opts().
 opts(Table, Opts) when is_list(Opts) ->
-    lists:foldl(fun(Opt, A) -> opt_folder(Table, Opt, A) end, {[], []}, Opts);
+    %% remove duplicate options
+    Opts1 = lists:ukeysort(1, proplists:unfold(Opts)),
+    lists:foldl(fun(Opt, A) -> opt_folder(Table, Opt, A) end, {[], []}, Opts1);
 opts(_, _) ->
     error({erlcloud_ddb, opts_not_list}).
 
 -type get_item_opt() :: {attributes_to_get, [binary()]} | 
                         boolean_opt(consistent_read) |
+                        return_consumed_capacity_opt() |
                         out_opt().
 -type get_item_opts() :: [get_item_opt()].
 
 -spec get_item_opts() -> opt_table().
 get_item_opts() ->
     [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
-     {consistent_read, <<"ConsistentRead">>, fun id/1}].
+     {consistent_read, <<"ConsistentRead">>, fun id/1},
+     {return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1}].
 
 %%%------------------------------------------------------------------------------
 %%% Output
