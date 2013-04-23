@@ -28,8 +28,7 @@ operation_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
-     [
-      %% fun error_handling_tests/1,
+     [fun error_handling_tests/1,
       %% fun batch_get_item_input_tests/1,
       %% fun batch_get_item_output_tests/1,
       %% fun batch_write_item_input_tests/1,
@@ -232,7 +231,7 @@ error_handling_tests(_) ->
              OkResult})
         ],
     
-    error_tests(?_f(erlcloud_ddb:get_item(<<"table">>, <<"key">>)), Tests).
+    error_tests(?_f(erlcloud_ddb:get_item(<<"table">>, {<<"k">>, <<"v">>})), Tests).
 
 
 %% BatchGetItem test based on the API examples:
