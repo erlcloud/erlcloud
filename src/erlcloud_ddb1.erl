@@ -49,7 +49,7 @@
          list_tables/0, list_tables/1, list_tables/2,
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
-         q/2, q/3, q/4,
+         q/1, q/2, q/3,
          scan/1, scan/2, scan/3,
          update_item/3, update_item/4, update_item/5,
          update_table/3, update_table/4
@@ -89,10 +89,6 @@ key_value({HK, HV} = HashKey) when
 -spec key_json(key()) -> {binary(), jsx:json_term()}.
 key_json(Key) ->
     {<<"Key">>, key_value(Key)}.
-
--spec hash_key_json(hash_key()) -> {binary(), jsx:json_term()}.
-hash_key_json(HashKey) ->
-    {<<"HashKeyValue">>, [HashKey]}.
 
 -spec item_json(item()) -> {binary(), item()}.
 item_json(Item) ->
@@ -241,18 +237,17 @@ put_item(Table, Item, Opts, Config) ->
     request(Config, "PutItem", Json).
 
 
--spec q(table_name(), hash_key()) -> json_return().
-q(Table, HashKey) ->
-    q(Table, HashKey, [], default_config()).
+-spec q(table_name()) -> json_return().
+q(Table) ->
+    q(Table, [], default_config()).
 
--spec q(table_name(), hash_key(), opts()) -> json_return().
-q(Table, HashKey, Opts) ->
-    q(Table, HashKey, Opts, default_config()).
+-spec q(table_name(), opts()) -> json_return().
+q(Table, Opts) ->
+    q(Table, Opts, default_config()).
 
--spec q(table_name(), hash_key(), opts(), aws_config()) -> json_return().
-q(Table, HashKey, Opts, Config) ->
-    Json = [{<<"TableName">>, Table},
-            hash_key_json(HashKey)] 
+-spec q(table_name(), opts(), aws_config()) -> json_return().
+q(Table, Opts, Config) ->
+    Json = [{<<"TableName">>, Table}]
         ++ Opts,
     request(Config, "Query", Json).
 
