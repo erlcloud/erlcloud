@@ -31,8 +31,8 @@ operation_test_() ->
      [fun error_handling_tests/1,
       fun batch_get_item_input_tests/1,
       fun batch_get_item_output_tests/1,
-      %% fun batch_write_item_input_tests/1,
-      %% fun batch_write_item_output_tests/1,
+      fun batch_write_item_input_tests/1,
+      fun batch_write_item_output_tests/1,
       %% fun create_table_input_tests/1,
       %% fun create_table_output_tests/1,
       %% fun delete_item_input_tests/1,
@@ -514,85 +514,135 @@ batch_write_item_input_tests(_) ->
         [?_ddb_test(
             {"BatchWriteItem example request",
              ?_f(erlcloud_ddb:batch_write_item(
-                   [{<<"Reply">>, [{put, [{<<"ReplyDateTime">>, <<"2012-04-03T11:04:47.034Z">>},
-                                          {<<"Id">>, <<"Amazon DynamoDB#DynamoDB Thread 5">>}]},
-                                   {delete, {<<"Amazon DynamoDB#DynamoDB Thread 4">>,
-                                             <<"oops - accidental row">>}}]},
-                    {<<"Thread">>, [{put, [{<<"ForumName">>, <<"Amazon DynamoDB">>},
-                                           {<<"Subject">>, <<"DynamoDB Thread 5">>}]}]}])), "
+                   [{<<"Forum">>, [{put, [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
+                                          {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+                                   {put, [{<<"Name">>, {s, <<"Amazon RDS">>}},
+                                          {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+                                   {put, [{<<"Name">>, {s, <<"Amazon Redshift">>}},
+                                          {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+                                   {put, [{<<"Name">>, {s, <<"Amazon ElastiCache">>}},
+                                          {<<"Category">>, {s, <<"Amazon Web Services">>}}]}
+                                   ]}],
+                  [{return_consumed_capacity, total}])), "
 {
-  \"RequestItems\":{
-    \"Reply\":[
-      {
-        \"PutRequest\":{
-          \"Item\":{
-            \"ReplyDateTime\":{
-              \"S\":\"2012-04-03T11:04:47.034Z\"
+    \"RequestItems\": {
+        \"Forum\": [
+            {
+                \"PutRequest\": {
+                    \"Item\": {
+                        \"Name\": {
+                            \"S\": \"Amazon DynamoDB\"
+                        },
+                        \"Category\": {
+                            \"S\": \"Amazon Web Services\"
+                        }
+                    }
+                }
             },
-            \"Id\":{
-              \"S\":\"Amazon DynamoDB#DynamoDB Thread 5\"
-            }
-          }
-        }
-      },
-      {
-        \"DeleteRequest\":{
-          \"Key\":{
-            \"HashKeyElement\":{
-              \"S\":\"Amazon DynamoDB#DynamoDB Thread 4\"
+            {
+                \"PutRequest\": {
+                    \"Item\": {
+                        \"Name\": {
+                            \"S\": \"Amazon RDS\"
+                        },
+                        \"Category\": {
+                            \"S\": \"Amazon Web Services\"
+                        }
+                    }
+                }
             },
-            \"RangeKeyElement\":{
-              \"S\":\"oops - accidental row\"
-            }
-          }
-        }
-      }
-    ],
-    \"Thread\":[
-      {
-        \"PutRequest\":{
-          \"Item\":{
-            \"ForumName\":{
-              \"S\":\"Amazon DynamoDB\"
+            {
+                \"PutRequest\": {
+                    \"Item\": {
+                        \"Name\": {
+                            \"S\": \"Amazon Redshift\"
+                        },
+                        \"Category\": {
+                            \"S\": \"Amazon Web Services\"
+                        }
+                    }
+                }
             },
-            \"Subject\":{
-              \"S\":\"DynamoDB Thread 5\"
+            {
+                \"PutRequest\": {
+                    \"Item\": {
+                        \"Name\": {
+                            \"S\": \"Amazon ElastiCache\"
+                        },
+                        \"Category\": {
+                            \"S\": \"Amazon Web Services\"
+                        }
+                    }
+                }
             }
-          }
-        }
-      }
-    ]
-  }
+        ]
+    },
+    \"ReturnConsumedCapacity\": \"TOTAL\"
+}"
+            }),
+        ?_ddb_test(
+            {"BatchWriteItem put, delete and item collection metrics",
+             ?_f(erlcloud_ddb:batch_write_item(
+                   [{<<"Forum">>, [{put, [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
+                                          {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+                                   {delete, {<<"Name">>, {s, <<"Amazon RDS">>}}}
+                                  ]}],
+                  [{return_item_collection_metrics, size}])), "
+{
+    \"RequestItems\": {
+        \"Forum\": [
+            {
+                \"PutRequest\": {
+                    \"Item\": {
+                        \"Name\": {
+                            \"S\": \"Amazon DynamoDB\"
+                        },
+                        \"Category\": {
+                            \"S\": \"Amazon Web Services\"
+                        }
+                    }
+                }
+            },
+            {
+                \"DeleteRequest\": {
+                    \"Key\": {
+                        \"Name\": {
+                            \"S\": \"Amazon RDS\"
+                        }
+                    }
+                }
+            }
+        ]
+    },
+    \"ReturnItemCollectionMetrics\": \"SIZE\"
 }"
             })
         ],
 
     Response = "
 {
-   \"Responses\":{
-      \"Thread\":{
-         \"ConsumedCapacityUnits\":1.0
-      },
-      \"Reply\":{
-         \"ConsumedCapacityUnits\":1.0
-      }
-   },
-   \"UnprocessedItems\":{
-      \"Reply\":[
-         {
-            \"DeleteRequest\":{
-               \"Key\":{
-                  \"HashKeyElement\":{
-                     \"S\":\"Amazon DynamoDB#DynamoDB Thread 4\"
-                  },
-                  \"RangeKeyElement\":{
-                     \"S\":\"oops - accidental row\"
-                  }
-               }
+    \"UnprocessedItems\": {
+        \"Forum\": [
+            {
+                \"PutRequest\": {
+                    \"Item\": {
+                        \"Name\": {
+                            \"S\": \"Amazon ElastiCache\"
+                        },
+                        \"Category\": {
+                            \"S\": \"Amazon Web Services\"
+                        }
+                    }
+                }
             }
-         }
-      ]
-   }
+        ]
+    },
+    \"ConsumedCapacity\": [
+        {
+            \"TableName\": \"Forum\",
+            \"CapacityUnits\": 3
+        }
+    ]
 }",
     input_tests(Response, Tests).
 
@@ -601,97 +651,136 @@ batch_write_item_output_tests(_) ->
         [?_ddb_test(
             {"BatchWriteItem example response", "
 {
-   \"Responses\":{
-      \"Thread\":{
-         \"ConsumedCapacityUnits\":1.0
-      },
-      \"Reply\":{
-         \"ConsumedCapacityUnits\":1.0
-      }
-   },
-   \"UnprocessedItems\":{
-      \"Reply\":[
-         {
-            \"DeleteRequest\":{
-               \"Key\":{
-                  \"HashKeyElement\":{
-                     \"S\":\"Amazon DynamoDB#DynamoDB Thread 4\"
-                  },
-                  \"RangeKeyElement\":{
-                     \"S\":\"oops - accidental row\"
-                  }
-               }
+    \"UnprocessedItems\": {
+        \"Forum\": [
+            {
+                \"PutRequest\": {
+                    \"Item\": {
+                        \"Name\": {
+                            \"S\": \"Amazon ElastiCache\"
+                        },
+                        \"Category\": {
+                            \"S\": \"Amazon Web Services\"
+                        }
+                    }
+                }
             }
-         }
-      ]
-   }
+        ]
+    },
+    \"ConsumedCapacity\": [
+        {
+            \"TableName\": \"Forum\",
+            \"CapacityUnits\": 3
+        }
+    ]
 }",
              {ok, #ddb_batch_write_item
-              {responses = 
-                   [#ddb_batch_write_item_response
-                    {table = <<"Thread">>,
-                     consumed_capacity_units = 1.0},
-                    #ddb_batch_write_item_response
-                    {table = <<"Reply">>,
-                     consumed_capacity_units = 1.0}],
-               unprocessed_items = [{<<"Reply">>, [{delete, {{s, <<"Amazon DynamoDB#DynamoDB Thread 4">>},
-                                                             {s, <<"oops - accidental row">>}}}]}]}}}),
+              {consumed_capacity = [#ddb_consumed_capacity{table_name = <<"Forum">>, capacity_units = 3}],
+               item_collection_metrics = undefined,
+               unprocessed_items = [{<<"Forum">>, 
+                                     [{put, [{<<"Name">>, {s, <<"Amazon ElastiCache">>}},
+                                             {<<"Category">>, {s, <<"Amazon Web Services">>}}]}]}]}}}),
          ?_ddb_test(
             {"BatchWriteItem unprocessed response", "
 {
-   \"Responses\":{},
    \"UnprocessedItems\":{
-    \"Reply\":[
-      {
-        \"PutRequest\":{
-          \"Item\":{
-            \"ReplyDateTime\":{
-              \"S\":\"2012-04-03T11:04:47.034Z\"
+        \"Forum\": [
+            {
+                \"PutRequest\": {
+                    \"Item\": {
+                        \"Name\": {
+                            \"S\": \"Amazon DynamoDB\"
+                        },
+                        \"Category\": {
+                            \"S\": \"Amazon Web Services\"
+                        }
+                    }
+                }
             },
-            \"Id\":{
-              \"S\":\"Amazon DynamoDB#DynamoDB Thread 5\"
+            {
+                \"DeleteRequest\": {
+                    \"Key\": {
+                        \"Name\": {
+                            \"S\": \"Amazon RDS\"
+                        }
+                    }
+                }
             }
-          }
-        }
-      },
-      {
-        \"DeleteRequest\":{
-          \"Key\":{
-            \"HashKeyElement\":{
-              \"S\":\"Amazon DynamoDB#DynamoDB Thread 4\"
-            },
-            \"RangeKeyElement\":{
-              \"S\":\"oops - accidental row\"
-            }
-          }
-        }
-      }
-    ],
-    \"Thread\":[
-      {
-        \"PutRequest\":{
-          \"Item\":{
-            \"ForumName\":{
-              \"S\":\"Amazon DynamoDB\"
-            },
-            \"Subject\":{
-              \"S\":\"DynamoDB Thread 5\"
-            }
-          }
-        }
-      }
-    ]
-  }
+        ]
+    }
 }",
              {ok, #ddb_batch_write_item
-              {responses = [],
+              {consumed_capacity = undefined, 
+               item_collection_metrics = undefined,
                unprocessed_items =
-                   [{<<"Reply">>, [{put, [{<<"ReplyDateTime">>, {s, <<"2012-04-03T11:04:47.034Z">>}},
-                                          {<<"Id">>, {s, <<"Amazon DynamoDB#DynamoDB Thread 5">>}}]},
-                                   {delete, {{s, <<"Amazon DynamoDB#DynamoDB Thread 4">>},
-                                             {s, <<"oops - accidental row">>}}}]},
-                    {<<"Thread">>, [{put, [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
-                                           {<<"Subject">>, {s, <<"DynamoDB Thread 5">>}}]}]}]}}})
+                   [{<<"Forum">>, [{put, [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
+                                          {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+                                   {delete, {<<"Name">>, {s, <<"Amazon RDS">>}}}
+                                  ]}]}}}),
+         ?_ddb_test(
+            {"BatchWriteItem item collection metrics", "
+{
+    \"ItemCollectionMetrics\": {
+        \"Table1\": [
+            {
+                \"ItemCollectionKey\": {
+                    \"key\": {
+                        \"S\": \"value1\"
+                    }
+                },
+                \"SizeEstimateRangeGB\": [
+                    2,
+                    4
+                ]
+            },
+            {
+                \"ItemCollectionKey\": {
+                    \"key\": {
+                        \"S\": \"value2\"
+                    }
+                },
+                \"SizeEstimateRangeGB\": [
+                    0.1,
+                    0.2
+                ]
+            }
+        ],
+        \"Table2\": [
+            {
+                \"ItemCollectionKey\": {
+                    \"key2\": {
+                        \"N\": \"3\"
+                    }
+                },
+                \"SizeEstimateRangeGB\": [
+                    1.2,
+                    1.4
+                ]
+            }
+        ]
+    }
+}",
+             {ok, #ddb_batch_write_item
+              {consumed_capacity = undefined, 
+               item_collection_metrics = 
+                   [#ddb_item_collection_metrics
+                    {table = <<"Table1">>,
+                     entries = 
+                         [#ddb_item_collection_metric
+                          {item_collection_key = <<"value1">>,
+                           size_estimate_range_gb = {2, 4}},
+                          #ddb_item_collection_metric
+                          {item_collection_key = <<"value2">>,
+                           size_estimate_range_gb = {0.1, 0.2}}
+                         ]},
+                    #ddb_item_collection_metrics
+                    {table = <<"Table2">>,
+                     entries = 
+                         [#ddb_item_collection_metric
+                          {item_collection_key = 3,
+                           size_estimate_range_gb = {1.2, 1.4}}
+                         ]}],
+               unprocessed_items = undefined}}})
         ],
     
     output_tests(?_f(erlcloud_ddb:batch_write_item([], [{out, record}])), Tests).

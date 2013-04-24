@@ -40,7 +40,7 @@
 
 %% DDB API Functions
 -export([batch_get_item/1, batch_get_item/2, batch_get_item/3,
-         batch_write_item/1, batch_write_item/2,
+         batch_write_item/1, batch_write_item/2, batch_write_item/3,
          create_table/4, create_table/5,
          delete_item/2, delete_item/3, delete_item/4,
          delete_table/1, delete_table/2,
@@ -135,11 +135,16 @@ batch_write_item_request_item_json({Table, Requests}) ->
 
 -spec batch_write_item([batch_write_item_request_item()]) -> json_return().
 batch_write_item(RequestItems) ->
-    batch_get_item(RequestItems, default_config()).
+    batch_get_item(RequestItems, [], default_config()).
 
--spec batch_write_item([batch_write_item_request_item()], aws_config()) -> json_return().
-batch_write_item(RequestItems, Config) ->
-    Json = [{<<"RequestItems">>, [batch_write_item_request_item_json(R) || R <- RequestItems]}],
+-spec batch_write_item([batch_write_item_request_item()], opts()) -> json_return().
+batch_write_item(RequestItems, Opts) ->
+    batch_get_item(RequestItems, Opts, default_config()).
+
+-spec batch_write_item([batch_write_item_request_item()], opts(), aws_config()) -> json_return().
+batch_write_item(RequestItems, Opts, Config) ->
+    Json = [{<<"RequestItems">>, RequestItems}]
+        ++ Opts,
     request(Config, "BatchWriteItem", Json).
 
 
