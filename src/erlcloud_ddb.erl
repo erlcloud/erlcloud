@@ -87,7 +87,7 @@
 %%% DynamoDB API
 -export([batch_get_item/1, batch_get_item/2, batch_get_item/3,
          batch_write_item/1, batch_write_item/2, batch_write_item/3,
-         create_table/4, create_table/5, create_table/6,
+         create_table/5, create_table/6, create_table/7,
          delete_item/2, delete_item/3, delete_item/4,
          delete_table/1, delete_table/2, delete_table/3,
          describe_table/1, describe_table/2, describe_table/3,
@@ -166,8 +166,8 @@ default_config() -> erlcloud_aws:default_config().
 -type range_key() :: in_attr().
 -type hash_range_key() :: {hash_key(), range_key()}.
 -type key() :: hash_key() | hash_range_key().
--type key_schema_value() :: {attr_name(), attr_type()}.
--type key_schema() :: key_schema_value() | {key_schema_value(), key_schema_value()}.
+-type attr_defs() :: maybe_list({attr_name(), attr_type()}).
+-type key_schema() :: attr_name() | {attr_name(), attr_name()}.
 
 -type return_value() :: none | all_old | updated_old | all_new | updated_new.
 
@@ -249,15 +249,21 @@ dynamize_key({HashKey, RangeKey}) when is_tuple(HashKey) ->
 dynamize_key(HashKey) ->
     [dynamize_attr(HashKey)].
 
--spec dynamize_key_schema_value(key_schema_value()) -> erlcloud_ddb1:key_schema_value().
-dynamize_key_schema_value({Name, Type}) ->
-    {Name, dynamize_type(Type)}.
+-spec dynamize_attr_defs(attr_defs()) -> jsx:json_term().
+dynamize_attr_defs({Name, Type}) ->
+    [[{<<"AttributeName">>, Name},
+      {<<"AttributeType">>, dynamize_type(Type)}]];
+dynamize_attr_defs(AttrDefs) ->
+    [[{<<"AttributeName">>, Name},
+      {<<"AttributeType">>, dynamize_type(Type)}]
+     || {Name, Type} <- AttrDefs].
 
--spec dynamize_key_schema(key_schema()) -> erlcloud_ddb1:key_schema().
-dynamize_key_schema({{_, _} = HashKey, {_, _} = RangeKey}) ->
-    {dynamize_key_schema_value(HashKey), dynamize_key_schema_value(RangeKey)};
+-spec dynamize_key_schema(key_schema()) -> jsx:json_term().
+dynamize_key_schema({HashKey, RangeKey}) ->
+    [[{<<"AttributeName">>, HashKey}, {<<"KeyType">>, <<"HASH">>}],
+     [{<<"AttributeName">>, RangeKey}, {<<"KeyType">>, <<"RANGE">>}]];
 dynamize_key_schema(HashKey) ->
-    dynamize_key_schema_value(HashKey).
+    [[{<<"AttributeName">>, HashKey}, {<<"KeyType">>, <<"HASH">>}]].
 
 -spec dynamize_maybe_list(fun((A) -> B), maybe_list(A)) -> [B].
 dynamize_maybe_list(DynamizeItem, List) when is_list(List) ->
@@ -406,16 +412,32 @@ undynamize_typed_key([HashKey]) ->
 undynamize_typed_key([HashKey, RangeKey]) ->
     {undynamize_attr_typed(HashKey), undynamize_attr_typed(RangeKey)}.
 
--spec undynamize_key_schema_value(jsx:json_term()) -> key_schema().
-undynamize_key_schema_value([{<<"AttributeName">>, Name}, {<<"AttributeType">>, Type}]) ->
-    {Name, undynamize_type(Type)}.
+-spec undynamize_attr_defs([json_item()]) -> attr_defs().
+undynamize_attr_defs(V) ->
+    [{proplists:get_value(<<"AttributeName">>, I),
+      undynamize_type(proplists:get_value(<<"AttributeType">>, I))}
+     || I <- V].
+    
+key_name(Key) ->
+    proplists:get_value(<<"AttributeName">>, Key).
+    
+-spec undynamize_key_schema([json_item()]) -> key_schema().
+undynamize_key_schema([HashKey]) ->
+    key_name(HashKey);
+undynamize_key_schema([Key1, Key2]) ->
+    case proplists:get_value(<<"KeyType">>, Key1) of
+        <<"HASH">> ->
+            {key_name(Key1), key_name(Key2)};
+        <<"RANGE">> ->
+            {key_name(Key2), key_name(Key1)}
+    end.
 
--spec undynamize_key_schema(jsx:json_term()) -> key_schema().
-undynamize_key_schema([{<<"HashKeyElement">>, HashKey}]) ->
-    undynamize_key_schema_value(HashKey);
-undynamize_key_schema([{<<"HashKeyElement">>, HashKey}, {<<"RangeKeyElement">>, RangeKey}]) ->
-    {undynamize_key_schema_value(HashKey), undynamize_key_schema_value(RangeKey)}.
-
+-spec undynamize_table_status(binary()) -> table_status().
+undynamize_table_status(<<"CREATING">>) -> creating;
+undynamize_table_status(<<"UPDATING">>) -> updating;
+undynamize_table_status(<<"DELETING">>) -> deleting;
+undynamize_table_status(<<"ACTIVE">>)   -> active.
+    
 -type field_table() :: [{binary(), pos_integer(), fun((jsx:json_term()) -> term())}].
 
 -spec undynamize_folder(field_table(), json_pair(), tuple()) -> tuple().
@@ -576,24 +598,50 @@ undynamize_item_collection_metrics(Table, V) ->
        table = Table,
        entries = [undynamize_item_collection_metric(I) || I <- V]}.
 
--spec provisioned_throughput_record() -> record_desc().
-provisioned_throughput_record() ->
-    {#ddb_provisioned_throughput{},
-     [{<<"ReadCapacityUnits">>, #ddb_provisioned_throughput.read_capacity_units, fun id/1},
-      {<<"WriteCapacityUnits">>, #ddb_provisioned_throughput.write_capacity_units, fun id/1},
-      {<<"LastDecreaseDateTime">>, #ddb_provisioned_throughput.last_decrease_date_time, fun id/1},
-      {<<"LastIncreaseDateTime">>, #ddb_provisioned_throughput.last_increase_date_time, fun id/1}
+undynamize_projection(V) ->
+    case proplists:get_value(<<"ProjectionType">>, V) of
+        <<"KEYS_ONLY">> ->
+            keys_only;
+        <<"ALL">> ->
+            all;
+        <<"INCLUDE">> ->
+            {include, proplists:get_value(<<"NonKeyAttributes">>, V)}
+    end.
+    
+-spec local_secondary_index_description_record() -> record_desc().
+local_secondary_index_description_record() ->
+    {#ddb_local_secondary_index_description{},
+     [{<<"IndexName">>, #ddb_local_secondary_index_description.index_name, fun id/1},
+      {<<"IndexSizeBytes">>, #ddb_local_secondary_index_description.index_size_bytes, fun id/1},
+      {<<"ItemCount">>, #ddb_local_secondary_index_description.item_count, fun id/1},
+      {<<"KeySchema">>, #ddb_local_secondary_index_description.key_schema, fun undynamize_key_schema/1},
+      {<<"Projection">>, #ddb_local_secondary_index_description.projection, fun undynamize_projection/1}
+     ]}.
+
+-spec provisioned_throughput_description_record() -> record_desc().
+provisioned_throughput_description_record() ->
+    {#ddb_provisioned_throughput_description{},
+     [{<<"LastDecreaseDateTime">>, #ddb_provisioned_throughput_description.last_decrease_date_time, fun id/1},
+      {<<"LastIncreaseDateTime">>, #ddb_provisioned_throughput_description.last_increase_date_time, fun id/1},
+      {<<"NumberOfDecreasesToday">>, #ddb_provisioned_throughput_description.number_of_decreases_today, fun id/1},
+      {<<"ReadCapacityUnits">>, #ddb_provisioned_throughput_description.read_capacity_units, fun id/1},
+      {<<"WriteCapacityUnits">>, #ddb_provisioned_throughput_description.write_capacity_units, fun id/1}
      ]}.
 
 -spec table_description_record() -> record_desc().
 table_description_record() ->
     {#ddb_table_description{},
-     [{<<"CreationDateTime">>, #ddb_table_description.creation_date_time, fun id/1},
-      {<<"KeySchema">>, #ddb_table_description.key_schema, fun(V) -> undynamize_key_schema(V) end},
+     [{<<"AttributeDefinitions">>, #ddb_table_description.attribute_definitions, fun undynamize_attr_defs/1},
+      {<<"CreationDateTime">>, #ddb_table_description.creation_date_time, fun id/1},
+      {<<"ItemCount">>, #ddb_table_description.item_count, fun id/1},
+      {<<"KeySchema">>, #ddb_table_description.key_schema, fun undynamize_key_schema/1},
+      {<<"LocalSecondaryIndexes">>, #ddb_table_description.local_secondary_indexes,
+       fun(V) -> [undynamize_record(local_secondary_index_description_record(), I) || I <- V] end},
       {<<"ProvisionedThroughput">>, #ddb_table_description.provisioned_throughput,
-       fun(V) -> undynamize_record(provisioned_throughput_record(), V) end},
+       fun(V) -> undynamize_record(provisioned_throughput_description_record(), V) end},
       {<<"TableName">>, #ddb_table_description.table_name, fun id/1},
-      {<<"TableStatus">>, #ddb_table_description.table_status, fun id/1}
+      {<<"TableSizeBytes">>, #ddb_table_description.table_size_bytes, fun id/1},
+      {<<"TableStatus">>, #ddb_table_description.table_status, fun undynamize_table_status/1}
      ]}.
 
 %%%------------------------------------------------------------------------------
@@ -826,6 +874,40 @@ batch_write_item(RequestItems, Opts, Config) ->
 %%% CreateTable
 %%%------------------------------------------------------------------------------
 
+-type index_name() :: binary().
+-type range_key_name() :: attr_name().
+-type projection() :: keys_only |
+                      {include, [attr_name()]} |
+                      all.
+-type local_secondary_index_def() :: {index_name(), range_key_name(), projection()}.
+
+dynamize_projection(keys_only) ->
+    [{<<"ProjectionType">>, <<"KEYS_ONLY">>}];
+dynamize_projection(all) ->
+    [{<<"ProjectionType">>, <<"ALL">>}];
+dynamize_projection({include, AttrNames}) ->
+    [{<<"ProjectionType">>, <<"INCLUDE">>},
+     {<<"NonKeyAttributes">>, AttrNames}].
+
+dynamize_local_secondary_index(HashKey, {IndexName, RangeKey, Projection}) ->
+    [{<<"IndexName">>, IndexName},
+     {<<"KeySchema">>, [[{<<"AttributeName">>, HashKey},
+                         {<<"KeyType">>, <<"HASH">>}],
+                        [{<<"AttributeName">>, RangeKey},
+                         {<<"KeyType">>, <<"RANGE">>}]]},
+     {<<"Projection">>, dynamize_projection(Projection)}].
+
+dynamize_local_secondary_indexes({HashKey, _RangeKey}, Value) ->
+    [dynamize_local_secondary_index(HashKey, I) || I <- Value].
+
+-type create_table_opt() :: {local_secondary_indexes, [local_secondary_index_def()]}.
+-type create_table_opts() :: [create_table_opt()].
+
+-spec create_table_opts(key_schema()) -> opt_table().
+create_table_opts(KeySchema) ->
+    [{local_secondary_indexes, <<"LocalSecondaryIndexes">>, 
+      fun(V) -> dynamize_local_secondary_indexes(KeySchema, V) end}].
+
 -spec create_table_record() -> record_desc().
 create_table_record() ->
     {#ddb_create_table{},
@@ -835,14 +917,16 @@ create_table_record() ->
 
 -type create_table_return() :: ddb_return(#ddb_create_table{}, #ddb_table_description{}).
 
--spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer()) -> create_table_return().
-create_table(Table, KeySchema, ReadUnits, WriteUnits) ->
-    create_table(Table, KeySchema, ReadUnits, WriteUnits, [], default_config()).
-
--spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), ddb_opts())
+-spec create_table(table_name(), attr_defs(), key_schema(), non_neg_integer(), non_neg_integer()) 
                   -> create_table_return().
-create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts) ->
-    create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts, default_config()).
+create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits) ->
+    create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, [], default_config()).
+
+-spec create_table(table_name(), attr_defs(), key_schema(), non_neg_integer(), non_neg_integer(), 
+                   create_table_opts())
+                  -> create_table_return().
+create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
+    create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -860,11 +944,13 @@ create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), ddb_opts(), aws_config()) 
+-spec create_table(table_name(), attr_defs(), key_schema(), non_neg_integer(), non_neg_integer(), 
+                   create_table_opts(), aws_config()) 
                   -> create_table_return().
-create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
-    {[], DdbOpts} = opts([], Opts),
-    Return = erlcloud_ddb1:create_table(Table, dynamize_key_schema(KeySchema), ReadUnits, WriteUnits, Config),
+create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
+    {AwsOpts, DdbOpts} = opts(create_table_opts(KeySchema), Opts),
+    Return = erlcloud_ddb1:create_table(Table, dynamize_attr_defs(AttrDefs), dynamize_key_schema(KeySchema), 
+                                        ReadUnits, WriteUnits, AwsOpts, Config),
     out(Return, fun(Json) -> undynamize_record(create_table_record(), Json) end, DdbOpts, 
         #ddb_create_table.table_description).
 
@@ -970,26 +1056,13 @@ delete_table(Table, Opts, Config) ->
 %%% DescribeTable
 %%%------------------------------------------------------------------------------
 
--spec table_record() -> record_desc().
-table_record() ->
-    {#ddb_table{},
-     [{<<"CreationDateTime">>, #ddb_table.creation_date_time, fun id/1},
-      {<<"ItemCount">>, #ddb_table.item_count, fun id/1},
-      {<<"KeySchema">>, #ddb_table.key_schema, fun(V) -> undynamize_key_schema(V) end},
-      {<<"ProvisionedThroughput">>, #ddb_table.provisioned_throughput,
-       fun(V) -> undynamize_record(provisioned_throughput_record(), V) end},
-      {<<"TableName">>, #ddb_table.table_name, fun id/1},
-      {<<"TableSizeBytes">>, #ddb_table.table_size_bytes, fun id/1},
-      {<<"TableStatus">>, #ddb_table.table_status, fun id/1}
-     ]}.
-
 -spec describe_table_record() -> record_desc().
 describe_table_record() ->
     {#ddb_describe_table{},
-     [{<<"Table">>, #ddb_describe_table.table, fun(V) -> undynamize_record(table_record(), V) end}
+     [{<<"Table">>, #ddb_describe_table.table, fun(V) -> undynamize_record(table_description_record(), V) end}
      ]}. 
 
--type describe_table_return() :: ddb_return(#ddb_describe_table{}, #ddb_table{}).
+-type describe_table_return() :: ddb_return(#ddb_describe_table{}, #ddb_table_description{}).
 
 -spec describe_table(table_name()) -> describe_table_return().
 describe_table(Table) ->
