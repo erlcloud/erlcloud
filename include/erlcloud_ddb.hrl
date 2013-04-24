@@ -30,13 +30,9 @@
         {capacity_units :: number(),
          table_name :: erlcloud_ddb:table_name()
         }).
--record(ddb_item_collection_metric,
+-record(ddb_item_collection_metrics,
         {item_collection_key :: erlcloud_ddb:out_attr_value(),
          size_estimate_range_gb :: {number(), number()}
-        }).
--record(ddb_item_collection_metrics,
-        {table :: erlcloud_ddb:table_name(),
-         entries :: [#ddb_item_collection_metric{}]
         }).
 
 -record(ddb_batch_get_item_response,
@@ -55,7 +51,7 @@
         }).
 -record(ddb_batch_write_item,
         {consumed_capacity :: [#ddb_consumed_capacity{}],
-         item_collection_metrics :: [#ddb_item_collection_metrics{}],
+         item_collection_metrics :: [{erlcloud_ddb:table_name(), [#ddb_item_collection_metrics{}]}],
          unprocessed_items :: [erlcloud_ddb:batch_write_item_request_item()]
         }).
 
@@ -65,7 +61,8 @@
 
 -record(ddb_delete_item,
         {attributes :: erlcloud_ddb:out_item(),
-         consumed_capacity_units :: number()
+         consumed_capacity :: #ddb_consumed_capacity{},
+         item_collection_metrics :: #ddb_item_collection_metrics{}
         }).
 
 -record(ddb_delete_table,
