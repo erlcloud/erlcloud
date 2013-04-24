@@ -33,8 +33,8 @@ operation_test_() ->
       fun batch_get_item_output_tests/1,
       fun batch_write_item_input_tests/1,
       fun batch_write_item_output_tests/1,
-      %% fun create_table_input_tests/1,
-      %% fun create_table_output_tests/1,
+      fun create_table_input_tests/1,
+      fun create_table_output_tests/1,
       %% fun delete_item_input_tests/1,
       %% fun delete_item_output_tests/1,
       %% fun delete_table_input_tests/1,
@@ -791,25 +791,219 @@ create_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"CreateTable example request",
-             ?_f(erlcloud_ddb:create_table(<<"comp-table">>, {{<<"user">>, s}, {<<"time">>, n}}, 5, 10)), "
-{\"TableName\":\"comp-table\",
-    \"KeySchema\":
-        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
-        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
-    \"ProvisionedThroughput\":{\"ReadCapacityUnits\":5,\"WriteCapacityUnits\":10}
+             ?_f(erlcloud_ddb:create_table(
+                   <<"Thread">>,
+                   [{<<"ForumName">>, s},
+                    {<<"Subject">>, s},
+                    {<<"LastPostDateTime">>, s}],
+                   {<<"ForumName">>, <<"Subject">>},
+                   5, 
+                   5,
+                   [{local_secondary_indexes,
+                     [{<<"LastPostIndex">>, <<"LastPostDateTime">>, keys_only}]}]
+                  )), "
+{
+    \"AttributeDefinitions\": [
+        {
+            \"AttributeName\": \"ForumName\",
+            \"AttributeType\": \"S\"
+        },
+        {
+            \"AttributeName\": \"Subject\",
+            \"AttributeType\": \"S\"
+        },
+        {
+            \"AttributeName\": \"LastPostDateTime\",
+            \"AttributeType\": \"S\"
+        }
+    ],
+    \"TableName\": \"Thread\",
+    \"KeySchema\": [
+        {
+            \"AttributeName\": \"ForumName\",
+            \"KeyType\": \"HASH\"
+        },
+        {
+            \"AttributeName\": \"Subject\",
+            \"KeyType\": \"RANGE\"
+        }
+    ],
+    \"LocalSecondaryIndexes\": [
+        {
+            \"IndexName\": \"LastPostIndex\",
+            \"KeySchema\": [
+                {
+                    \"AttributeName\": \"ForumName\",
+                    \"KeyType\": \"HASH\"
+                },
+                {
+                    \"AttributeName\": \"LastPostDateTime\",
+                    \"KeyType\": \"RANGE\"
+                }
+            ],
+            \"Projection\": {
+                \"ProjectionType\": \"KEYS_ONLY\"
+            }
+        }
+    ],
+    \"ProvisionedThroughput\": {
+        \"ReadCapacityUnits\": 5,
+        \"WriteCapacityUnits\": 5
+    }
+}"
+            }),
+         ?_ddb_test(
+            {"CreateTable with INCLUDE local secondary index",
+             ?_f(erlcloud_ddb:create_table(
+                   <<"Thread">>,
+                   [{<<"ForumName">>, s},
+                    {<<"Subject">>, s},
+                    {<<"LastPostDateTime">>, s}],
+                   {<<"ForumName">>, <<"Subject">>},
+                   5, 
+                   5,
+                   [{local_secondary_indexes,
+                     [{<<"LastPostIndex">>, <<"LastPostDateTime">>, {include, [<<"Author">>, <<"Body">>]}}]}]
+                  )), "
+{
+    \"AttributeDefinitions\": [
+        {
+            \"AttributeName\": \"ForumName\",
+            \"AttributeType\": \"S\"
+        },
+        {
+            \"AttributeName\": \"Subject\",
+            \"AttributeType\": \"S\"
+        },
+        {
+            \"AttributeName\": \"LastPostDateTime\",
+            \"AttributeType\": \"S\"
+        }
+    ],
+    \"TableName\": \"Thread\",
+    \"KeySchema\": [
+        {
+            \"AttributeName\": \"ForumName\",
+            \"KeyType\": \"HASH\"
+        },
+        {
+            \"AttributeName\": \"Subject\",
+            \"KeyType\": \"RANGE\"
+        }
+    ],
+    \"LocalSecondaryIndexes\": [
+        {
+            \"IndexName\": \"LastPostIndex\",
+            \"KeySchema\": [
+                {
+                    \"AttributeName\": \"ForumName\",
+                    \"KeyType\": \"HASH\"
+                },
+                {
+                    \"AttributeName\": \"LastPostDateTime\",
+                    \"KeyType\": \"RANGE\"
+                }
+            ],
+            \"Projection\": {
+                \"ProjectionType\": \"INCLUDE\",
+                \"NonKeyAttributes\": [\"Author\", \"Body\"]
+            }
+        }
+    ],
+    \"ProvisionedThroughput\": {
+        \"ReadCapacityUnits\": 5,
+        \"WriteCapacityUnits\": 5
+    }
+}"
+            }),
+         ?_ddb_test(
+            {"CreateTable with only hash key",
+             ?_f(erlcloud_ddb:create_table(
+                   <<"Thread">>,
+                   {<<"ForumName">>, s},
+                   <<"ForumName">>,
+                   1, 
+                   1
+                  )), "
+{
+    \"AttributeDefinitions\": [
+        {
+            \"AttributeName\": \"ForumName\",
+            \"AttributeType\": \"S\"
+        }
+    ],
+    \"TableName\": \"Thread\",
+    \"KeySchema\": [
+        {
+            \"AttributeName\": \"ForumName\",
+            \"KeyType\": \"HASH\"
+        }
+    ],
+    \"ProvisionedThroughput\": {
+        \"ReadCapacityUnits\": 1,
+        \"WriteCapacityUnits\": 1
+    }
 }"
             })
         ],
 
     Response = "
-{\"TableDescription\":
-    {\"CreationDateTime\":1.310506263362E9,
-    \"KeySchema\":
-        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
-        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
-    \"ProvisionedThroughput\":{\"ReadCapacityUnits\":5,\"WriteCapacityUnits\":10},
-    \"TableName\":\"comp-table\",
-    \"TableStatus\":\"CREATING\"
+{
+    \"TableDescription\": {
+        \"AttributeDefinitions\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"AttributeType\": \"S\"
+            },
+            {
+                \"AttributeName\": \"LastPostDateTime\",
+                \"AttributeType\": \"S\"
+            },
+            {
+                \"AttributeName\": \"Subject\",
+                \"AttributeType\": \"S\"
+            }
+        ],
+        \"CreationDateTime\": 1.36372808007E9,
+        \"ItemCount\": 0,
+        \"KeySchema\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"KeyType\": \"HASH\"
+            },
+            {
+                \"AttributeName\": \"Subject\",
+                \"KeyType\": \"RANGE\"
+            }
+        ],
+        \"LocalSecondaryIndexes\": [
+            {
+                \"IndexName\": \"LastPostIndex\",
+                \"IndexSizeBytes\": 0,
+                \"ItemCount\": 0,
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"ForumName\",
+                        \"KeyType\": \"HASH\"
+                    },
+                    {
+                        \"AttributeName\": \"LastPostDateTime\",
+                        \"KeyType\": \"RANGE\"
+                    }
+                ],
+                \"Projection\": {
+                    \"ProjectionType\": \"KEYS_ONLY\"
+                }
+            }
+        ],
+        \"ProvisionedThroughput\": {
+            \"NumberOfDecreasesToday\": 0,
+            \"ReadCapacityUnits\": 5,
+            \"WriteCapacityUnits\": 5
+        },
+        \"TableName\": \"Thread\",
+        \"TableSizeBytes\": 0,
+        \"TableStatus\": \"CREATING\"
     }
 }",
     input_tests(Response, Tests).
@@ -818,29 +1012,220 @@ create_table_output_tests(_) ->
     Tests = 
         [?_ddb_test(
             {"CreateTable example response", "
-{\"TableDescription\":
-    {\"CreationDateTime\":1.310506263362E9,
-    \"KeySchema\":
-        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
-        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
-    \"ProvisionedThroughput\":{\"ReadCapacityUnits\":5,\"WriteCapacityUnits\":10},
-    \"TableName\":\"comp-table\",
-    \"TableStatus\":\"CREATING\"
+{
+    \"TableDescription\": {
+        \"AttributeDefinitions\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"AttributeType\": \"S\"
+            },
+            {
+                \"AttributeName\": \"LastPostDateTime\",
+                \"AttributeType\": \"S\"
+            },
+            {
+                \"AttributeName\": \"Subject\",
+                \"AttributeType\": \"S\"
+            }
+        ],
+        \"CreationDateTime\": 1.36372808007E9,
+        \"ItemCount\": 0,
+        \"KeySchema\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"KeyType\": \"HASH\"
+            },
+            {
+                \"AttributeName\": \"Subject\",
+                \"KeyType\": \"RANGE\"
+            }
+        ],
+        \"LocalSecondaryIndexes\": [
+            {
+                \"IndexName\": \"LastPostIndex\",
+                \"IndexSizeBytes\": 0,
+                \"ItemCount\": 0,
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"ForumName\",
+                        \"KeyType\": \"HASH\"
+                    },
+                    {
+                        \"AttributeName\": \"LastPostDateTime\",
+                        \"KeyType\": \"RANGE\"
+                    }
+                ],
+                \"Projection\": {
+                    \"ProjectionType\": \"KEYS_ONLY\"
+                }
+            }
+        ],
+        \"ProvisionedThroughput\": {
+            \"NumberOfDecreasesToday\": 0,
+            \"ReadCapacityUnits\": 5,
+            \"WriteCapacityUnits\": 5
+        },
+        \"TableName\": \"Thread\",
+        \"TableSizeBytes\": 0,
+        \"TableStatus\": \"CREATING\"
     }
 }",
              {ok, #ddb_table_description
-              {creation_date_time = 1310506263.362,
-               key_schema = {{<<"user">>, s}, {<<"time">>, n}},
-               provisioned_throughput = #ddb_provisioned_throughput{
-                                           read_capacity_units = 5,
-                                           write_capacity_units = 10,
-                                           last_decrease_date_time = undefined,
-                                           last_increase_date_time = undefined},
-               table_name = <<"comp-table">>,
-               table_status = <<"CREATING">>}}})
+              {attribute_definitions = [{<<"ForumName">>, s},
+                                        {<<"LastPostDateTime">>, s},
+                                        {<<"Subject">>, s}],
+               creation_date_time = 1363728080.07,
+               item_count = 0,
+               key_schema = {<<"ForumName">>, <<"Subject">>},
+               local_secondary_indexes =
+                   [#ddb_local_secondary_index_description{
+                       index_name = <<"LastPostIndex">>,
+                       index_size_bytes = 0,
+                       item_count = 0,
+                       key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
+                       projection = keys_only}],
+               provisioned_throughput = 
+                   #ddb_provisioned_throughput_description{
+                      last_decrease_date_time = undefined,
+                      last_increase_date_time = undefined,
+                      number_of_decreases_today = 0,
+                      read_capacity_units = 5,
+                      write_capacity_units = 5},
+               table_name = <<"Thread">>,
+               table_size_bytes = 0,
+               table_status = creating}}}),
+         ?_ddb_test(
+            {"CreateTable response with INCLUDE projection", "
+{
+    \"TableDescription\": {
+        \"AttributeDefinitions\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"AttributeType\": \"S\"
+            },
+            {
+                \"AttributeName\": \"LastPostDateTime\",
+                \"AttributeType\": \"S\"
+            },
+            {
+                \"AttributeName\": \"Subject\",
+                \"AttributeType\": \"S\"
+            }
+        ],
+        \"CreationDateTime\": 1.36372808007E9,
+        \"ItemCount\": 0,
+        \"KeySchema\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"KeyType\": \"HASH\"
+            },
+            {
+                \"AttributeName\": \"Subject\",
+                \"KeyType\": \"RANGE\"
+            }
+        ],
+        \"LocalSecondaryIndexes\": [
+            {
+                \"IndexName\": \"LastPostIndex\",
+                \"IndexSizeBytes\": 0,
+                \"ItemCount\": 0,
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"ForumName\",
+                        \"KeyType\": \"HASH\"
+                    },
+                    {
+                        \"AttributeName\": \"LastPostDateTime\",
+                        \"KeyType\": \"RANGE\"
+                    }
+                ],
+                \"Projection\": {
+                    \"ProjectionType\": \"INCLUDE\",
+                    \"NonKeyAttributes\": [\"Author\", \"Body\"]
+                }
+            }
+        ],
+        \"ProvisionedThroughput\": {
+            \"NumberOfDecreasesToday\": 0,
+            \"ReadCapacityUnits\": 5,
+            \"WriteCapacityUnits\": 5
+        },
+        \"TableName\": \"Thread\",
+        \"TableSizeBytes\": 0,
+        \"TableStatus\": \"CREATING\"
+    }
+}",
+             {ok, #ddb_table_description
+              {attribute_definitions = [{<<"ForumName">>, s},
+                                        {<<"LastPostDateTime">>, s},
+                                        {<<"Subject">>, s}],
+               creation_date_time = 1363728080.07,
+               item_count = 0,
+               key_schema = {<<"ForumName">>, <<"Subject">>},
+               local_secondary_indexes =
+                   [#ddb_local_secondary_index_description{
+                       index_name = <<"LastPostIndex">>,
+                       index_size_bytes = 0,
+                       item_count = 0,
+                       key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
+                       projection = {include, [<<"Author">>, <<"Body">>]}}],
+               provisioned_throughput = 
+                   #ddb_provisioned_throughput_description{
+                      last_decrease_date_time = undefined,
+                      last_increase_date_time = undefined,
+                      number_of_decreases_today = 0,
+                      read_capacity_units = 5,
+                      write_capacity_units = 5},
+               table_name = <<"Thread">>,
+               table_size_bytes = 0,
+               table_status = creating}}}),
+         ?_ddb_test(
+            {"CreateTable response with hash key only", "
+{
+    \"TableDescription\": {
+        \"AttributeDefinitions\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"AttributeType\": \"S\"
+            }
+        ],
+        \"CreationDateTime\": 1.36372808007E9,
+        \"ItemCount\": 0,
+        \"KeySchema\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"KeyType\": \"HASH\"
+            }
+        ],
+        \"ProvisionedThroughput\": {
+            \"NumberOfDecreasesToday\": 0,
+            \"ReadCapacityUnits\": 1,
+            \"WriteCapacityUnits\": 1
+        },
+        \"TableName\": \"Thread\",
+        \"TableSizeBytes\": 0,
+        \"TableStatus\": \"CREATING\"
+    }
+}",
+             {ok, #ddb_table_description
+              {attribute_definitions = [{<<"ForumName">>, s}],
+               creation_date_time = 1363728080.07,
+               item_count = 0,
+               key_schema = <<"ForumName">>,
+               local_secondary_indexes = undefined,
+               provisioned_throughput = 
+                   #ddb_provisioned_throughput_description{
+                      last_decrease_date_time = undefined,
+                      last_increase_date_time = undefined,
+                      number_of_decreases_today = 0,
+                      read_capacity_units = 1,
+                      write_capacity_units = 1},
+               table_name = <<"Thread">>,
+               table_size_bytes = 0,
+               table_status = creating}}})
         ],
     
-    output_tests(?_f(erlcloud_ddb:create_table(<<"name">>, {<<"key">>, s}, 5, 10)), Tests).
+    output_tests(?_f(erlcloud_ddb:create_table(<<"name">>, [{<<"key">>, s}], <<"key">>, 5, 10)), Tests).
 
 %% DeleteItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteItem.html
@@ -933,7 +1318,7 @@ delete_table_output_tests(_) ->
              {ok, #ddb_table_description
               {creation_date_time = 1313362508.446,
                key_schema = {{<<"user">>, s}, {<<"time">>, n}},
-               provisioned_throughput = #ddb_provisioned_throughput{
+               provisioned_throughput = #ddb_provisioned_throughput_description{
                                            read_capacity_units = 10,
                                            write_capacity_units = 10,
                                            last_decrease_date_time = undefined,
@@ -986,11 +1371,11 @@ describe_table_output_tests(_) ->
     \"TableStatus\":\"ACTIVE\"
     }
 }",
-             {ok, #ddb_table
+             {ok, #ddb_table_description
               {creation_date_time = 1309988345.372,
                item_count = 23,
                key_schema = {{<<"user">>, s}, {<<"time">>, n}},
-               provisioned_throughput = #ddb_provisioned_throughput{
+               provisioned_throughput = #ddb_provisioned_throughput_description{
                                            read_capacity_units = 10,
                                            write_capacity_units = 10,
                                            last_decrease_date_time = undefined,
@@ -1617,7 +2002,7 @@ update_table_output_tests(_) ->
              {ok, #ddb_table_description
               {creation_date_time = 1321657838.135,
                key_schema = {{<<"user">>, s}, {<<"time">>, n}},
-               provisioned_throughput = #ddb_provisioned_throughput{
+               provisioned_throughput = #ddb_provisioned_throughput_description{
                                            read_capacity_units = 5,
                                            write_capacity_units = 10,
                                            last_decrease_date_time = 1321661704.489,

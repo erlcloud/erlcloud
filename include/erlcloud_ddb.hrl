@@ -1,15 +1,30 @@
--record(ddb_provisioned_throughput,
-        {read_capacity_units :: pos_integer(),
-         write_capacity_units :: pos_integer(),
-         last_decrease_date_time :: number(),
-         last_increase_date_time :: number()
+-type date_time() :: number().
+-type table_status() :: creating | updating | deleting | active.
+
+-record(ddb_local_secondary_index_description,
+        {index_name :: erlcloud_ddb:index_name(),
+         index_size_bytes :: integer(),
+         item_count :: integer(),
+         key_schema :: erlcloud_ddb:key_schema(),
+         projection :: erlcloud_ddb:projection()
+        }).
+-record(ddb_provisioned_throughput_description,
+        {last_decrease_date_time :: date_time(),
+         last_increase_date_time :: date_time(),
+         number_of_decreases_today :: integer(),
+         read_capacity_units :: pos_integer(),
+         write_capacity_units :: pos_integer()
         }).
 -record(ddb_table_description,
-        {creation_date_time :: number(),
+        {attribute_definitions :: erlcloud_ddb:attr_defs(),
+         creation_date_time :: number(),
+         item_count :: integer(),
          key_schema :: erlcloud_ddb:key_schema(),
-         provisioned_throughput :: #ddb_provisioned_throughput{},
+         local_secondary_indexes :: [#ddb_local_secondary_index_description{}],
+         provisioned_throughput :: #ddb_provisioned_throughput_description{},
          table_name :: binary(),
-         table_status :: binary()
+         table_size_bytes :: integer(),
+         table_status :: table_status()
         }).
 -record(ddb_consumed_capacity,
         {capacity_units :: number(),
@@ -57,17 +72,8 @@
         {table_description :: #ddb_table_description{}
         }).
 
--record(ddb_table,
-        {creation_date_time :: number(),
-         item_count :: non_neg_integer(),
-         key_schema :: erlcloud_ddb:key_schema(),
-         provisioned_throughput :: #ddb_provisioned_throughput{},
-         table_name :: binary(),
-         table_size_bytes :: non_neg_integer(),
-         table_status :: binary()
-        }).
 -record(ddb_describe_table,
-        {table :: #ddb_table{}
+        {table :: #ddb_table_description{}
         }).
 
 -record(ddb_get_item,

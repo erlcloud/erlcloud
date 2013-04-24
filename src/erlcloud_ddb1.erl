@@ -41,7 +41,7 @@
 %% DDB API Functions
 -export([batch_get_item/1, batch_get_item/2, batch_get_item/3,
          batch_write_item/1, batch_write_item/2, batch_write_item/3,
-         create_table/4, create_table/5,
+         create_table/5, create_table/6, create_table/7,
          delete_item/2, delete_item/3, delete_item/4,
          delete_table/1, delete_table/2,
          describe_table/1, describe_table/2,
@@ -71,7 +71,8 @@
 -type key() :: hash_key() | hash_range_key().
 -type attr_name() :: binary().
 -type key_schema_value() :: {attr_name(), attr_type()}.
--type key_schema() :: key_schema_value() | {key_schema_value(), key_schema_value()}.
+-type attr_defs() :: jsx:json_term().
+-type key_schema() :: jsx:json_term().
 -type item() :: jsx:json_term().
 -type opts() :: jsx:json_term().
 -type updates() :: jsx:json_term().
@@ -123,16 +124,6 @@ batch_get_item(RequestItems, Opts, Config) ->
 -type batch_write_item_request() :: batch_write_item_put() | batch_write_item_delete().
 -type batch_write_item_request_item() :: {table_name(), [batch_write_item_request()]}.
 
--spec batch_write_item_request_json(batch_write_item_request()) -> {binary(), jsx:json_term()}.
-batch_write_item_request_json({put, Item}) ->
-    {<<"PutRequest">>, [item_json(Item)]};
-batch_write_item_request_json({delete, Key}) ->
-    {<<"DeleteRequest">>, [key_json(Key)]}.
-
--spec batch_write_item_request_item_json(batch_write_item_request_item()) -> {binary(), jsx:json_term()}.
-batch_write_item_request_item_json({Table, Requests}) ->
-    {Table, [[batch_write_item_request_json(R)] || R <- Requests]}.
-
 -spec batch_write_item([batch_write_item_request_item()]) -> json_return().
 batch_write_item(RequestItems) ->
     batch_get_item(RequestItems, [], default_config()).
@@ -148,27 +139,24 @@ batch_write_item(RequestItems, Opts, Config) ->
     request(Config, "BatchWriteItem", Json).
 
 
--spec key_schema_value_json(key_schema_value()) -> jsx:json_term().
-key_schema_value_json({Name, Type}) ->
-    [{<<"AttributeName">>, Name}, {<<"AttributeType">>, Type}].
+-spec create_table(table_name(), attr_defs(), key_schema(), non_neg_integer(), non_neg_integer()) -> json_return().
+create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits) ->
+    create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, [], default_config()).
 
--spec key_schema_json(key_schema()) -> {binary(), jsx:json_term()}.
-key_schema_json({{_, _} = HashKey, {_, _} = RangeKey}) ->
-    {<<"KeySchema">>, [{<<"HashKeyElement">>, key_schema_value_json(HashKey)},
-                       {<<"RangeKeyElement">>, key_schema_value_json(RangeKey)}]};
-key_schema_json(HashKey) ->
-    {<<"KeySchema">>, [{<<"HashKeyElement">>, key_schema_value_json(HashKey)}]}.
-                       
--spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer()) -> json_return().
-create_table(Table, KeySchema, ReadUnits, WriteUnits) ->
-    create_table(Table, KeySchema, ReadUnits, WriteUnits, default_config()).
+-spec create_table(table_name(), attr_defs(), key_schema(), non_neg_integer(), non_neg_integer(), opts()) -> 
+                          json_return().
+create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
+    create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, default_config()).
 
--spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), aws_config()) -> json_return().
-create_table(Table, KeySchema, ReadUnits, WriteUnits, Config) ->
+-spec create_table(table_name(), attr_defs(), key_schema(), non_neg_integer(), non_neg_integer(), 
+                   opts(), aws_config()) -> json_return().
+create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
-            key_schema_json(KeySchema),
+            {<<"AttributeDefinitions">>, AttrDefs},
+            {<<"KeySchema">>, KeySchema},
             {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
-                                           {<<"WriteCapacityUnits">>, WriteUnits}]}],
+                                           {<<"WriteCapacityUnits">>, WriteUnits}]}]
+        ++ Opts,
     request(Config, "CreateTable", Json).
 
     
