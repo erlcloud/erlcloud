@@ -485,7 +485,8 @@ verify_ddb_opt(out, Value) ->
 verify_ddb_opt(Name, Value) ->
     error({erlcloud_ddb, {invalid_opt, {Name, Value}}}).
 
--type opt_table() :: [{atom(), binary(), fun((_) -> jsx:json_term())}].
+-type opt_table_entry() :: {atom(), binary(), fun((_) -> jsx:json_term())}.
+-type opt_table() :: [opt_table_entry()].
 -spec opt_folder(opt_table(), property(), opts()) -> opts().
 opt_folder(_, {_, undefined}, Opts) ->
     %% ignore options set to undefined
@@ -507,6 +508,15 @@ opts(Table, Opts) when is_list(Opts) ->
 opts(_, _) ->
     error({erlcloud_ddb, opts_not_list}).
 
+-spec return_consumed_capacity_opt() -> opt_table_entry().
+return_consumed_capacity_opt() ->
+    {return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1}.
+
+-spec return_item_collection_metrics_opt() -> opt_table_entry().
+return_item_collection_metrics_opt() ->
+    {return_item_collection_metrics, <<"ReturnItemCollectionMetrics">>, 
+     fun dynamize_return_item_collection_metrics/1}.
+
 -type get_item_opt() :: {attributes_to_get, [binary()]} | 
                         boolean_opt(consistent_read) |
                         return_consumed_capacity_opt() |
@@ -517,7 +527,7 @@ opts(_, _) ->
 get_item_opts() ->
     [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
      {consistent_read, <<"ConsistentRead">>, fun id/1},
-     {return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1}].
+     return_consumed_capacity_opt()].
 
 %%%------------------------------------------------------------------------------
 %%% Output
@@ -579,24 +589,22 @@ undynamize_consumed_capacity(V) ->
 undynamize_consumed_capacity_list(V) ->
     [undynamize_record(consumed_capacity_record(), I) || I <- V].
 
--spec item_collection_metric_record() -> record_desc().
-item_collection_metric_record() ->
-    {#ddb_item_collection_metric{},
-     [{<<"ItemCollectionKey">>, #ddb_item_collection_metric.item_collection_key,
+-spec item_collection_metrics_record() -> record_desc().
+item_collection_metrics_record() ->
+    {#ddb_item_collection_metrics{},
+     [{<<"ItemCollectionKey">>, #ddb_item_collection_metrics.item_collection_key,
        fun([V]) ->
                {_Name, Value} = undynamize_attr(V),
                Value
        end},
-      {<<"SizeEstimateRangeGB">>, #ddb_item_collection_metric.size_estimate_range_gb,
+      {<<"SizeEstimateRangeGB">>, #ddb_item_collection_metrics.size_estimate_range_gb,
        fun([L, H]) -> {L, H} end}]}.
 
-undynamize_item_collection_metric(V) ->
-    undynamize_record(item_collection_metric_record(), V).
+undynamize_item_collection_metrics(V) ->
+    undynamize_record(item_collection_metrics_record(), V).
 
-undynamize_item_collection_metrics(Table, V) ->
-    #ddb_item_collection_metrics{
-       table = Table,
-       entries = [undynamize_item_collection_metric(I) || I <- V]}.
+undynamize_item_collection_metric_list(Table, V) ->
+    {Table, [undynamize_item_collection_metrics(I) || I <- V]}.
 
 undynamize_projection(V) ->
     case proplists:get_value(<<"ProjectionType">>, V) of
@@ -654,7 +662,7 @@ table_description_record() ->
 
 -spec batch_get_item_opts() -> opt_table().
 batch_get_item_opts() ->
-    [{return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1}].
+    [return_consumed_capacity_opt()].
 
 -type batch_get_item_request_item() :: {table_name(), [key(),...], get_item_opts()} | {table_name(), [key(),...]}.
 
@@ -765,8 +773,8 @@ batch_get_item(RequestItems, Opts, Config) ->
 
 -spec batch_write_item_opts() -> opt_table().
 batch_write_item_opts() ->
-    [{return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1},
-     {return_item_collection_metrics, <<"ReturnItemCollectionMetrics">>, fun dynamize_return_item_collection_metrics/1}].
+    [return_consumed_capacity_opt(),
+     return_item_collection_metrics_opt()].
 
 -type batch_write_item_put() :: {put, in_item()}.
 -type batch_write_item_delete() :: {delete, key()}.
@@ -815,7 +823,7 @@ batch_write_item_record() ->
      [{<<"ConsumedCapacity">>, #ddb_batch_write_item.consumed_capacity, fun undynamize_consumed_capacity_list/1},
       {<<"ItemCollectionMetrics">>, #ddb_batch_write_item.item_collection_metrics,
        fun(V) -> undynamize_object(fun({Table, Json}) ->
-                                           undynamize_item_collection_metrics(Table, Json)
+                                           undynamize_item_collection_metric_list(Table, Json)
                                    end, V)
        end},
       {<<"UnprocessedItems">>, #ddb_batch_write_item.unprocessed_items,
@@ -960,19 +968,25 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
 
 -type delete_item_opt() :: {expected, in_expected()} | 
                            {return_values, none | all_old} |
+                           return_consumed_capacity_opt() |
+                           return_item_collection_metrics_opt() |
                            out_opt().
 -type delete_item_opts() :: [delete_item_opt()].
 
 -spec delete_item_opts() -> opt_table().
 delete_item_opts() ->
     [{expected, <<"Expected">>, fun dynamize_expected/1},
-     {return_values, <<"ReturnValues">>, fun dynamize_return_value/1}].
+     {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
+     return_consumed_capacity_opt(),
+     return_item_collection_metrics_opt()].
 
 -spec delete_item_record() -> record_desc().
 delete_item_record() ->
     {#ddb_delete_item{},
      [{<<"Attributes">>, #ddb_delete_item.attributes, fun undynamize_item/1},
-      {<<"ConsumedCapacityUnits">>, #ddb_delete_item.consumed_capacity_units, fun id/1}
+      {<<"ConsumedCapacity">>, #ddb_delete_item.consumed_capacity, fun undynamize_consumed_capacity/1},
+      {<<"ItemCollectionMetrics">>, #ddb_delete_item.item_collection_metrics, 
+       fun undynamize_item_collection_metrics/1}
      ]}.
 
 -type delete_item_return() :: ddb_return(#ddb_delete_item{}, out_item()).

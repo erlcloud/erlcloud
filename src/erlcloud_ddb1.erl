@@ -171,7 +171,7 @@ delete_item(Table, Key, Opts) ->
 -spec delete_item(table_name(), key(), opts(), aws_config()) -> json_return().
 delete_item(Table, Key, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
-            key_json(Key)] 
+            {<<"Key">>, Key}]
         ++ Opts,
     request(Config, "DeleteItem", Json).
 

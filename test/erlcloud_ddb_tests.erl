@@ -35,8 +35,8 @@ operation_test_() ->
       fun batch_write_item_output_tests/1,
       fun create_table_input_tests/1,
       fun create_table_output_tests/1,
-      %% fun delete_item_input_tests/1,
-      %% fun delete_item_output_tests/1,
+      fun delete_item_input_tests/1,
+      fun delete_item_output_tests/1,
       %% fun delete_table_input_tests/1,
       %% fun delete_table_output_tests/1,
       %% fun describe_table_input_tests/1,
@@ -763,23 +763,19 @@ batch_write_item_output_tests(_) ->
              {ok, #ddb_batch_write_item
               {consumed_capacity = undefined, 
                item_collection_metrics = 
-                   [#ddb_item_collection_metrics
-                    {table = <<"Table1">>,
-                     entries = 
-                         [#ddb_item_collection_metric
-                          {item_collection_key = <<"value1">>,
-                           size_estimate_range_gb = {2, 4}},
-                          #ddb_item_collection_metric
-                          {item_collection_key = <<"value2">>,
-                           size_estimate_range_gb = {0.1, 0.2}}
-                         ]},
-                    #ddb_item_collection_metrics
-                    {table = <<"Table2">>,
-                     entries = 
-                         [#ddb_item_collection_metric
-                          {item_collection_key = 3,
-                           size_estimate_range_gb = {1.2, 1.4}}
-                         ]}],
+                   [{<<"Table1">>,
+                     [#ddb_item_collection_metrics
+                      {item_collection_key = <<"value1">>,
+                       size_estimate_range_gb = {2, 4}},
+                      #ddb_item_collection_metrics
+                      {item_collection_key = <<"value2">>,
+                       size_estimate_range_gb = {0.1, 0.2}}
+                     ]},
+                    {<<"Table2">>,
+                     [#ddb_item_collection_metrics
+                      {item_collection_key = 3,
+                       size_estimate_range_gb = {1.2, 1.4}}
+                     ]}],
                unprocessed_items = undefined}}})
         ],
     
@@ -1233,27 +1229,70 @@ delete_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"DeleteItem example request",
-             ?_f(erlcloud_ddb:delete_item(<<"comp-table">>, {"Mingus", 200},
+             ?_f(erlcloud_ddb:delete_item(<<"Thread">>, 
+                                          {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                           {<<"Subject">>, {s, <<"How do I update multiple items?">>}}},
                                           [{return_values, all_old},
-                                           {expected, {<<"status">>, "shopping"}}])), "
-{\"TableName\":\"comp-table\",
-    \"Key\":
-        {\"HashKeyElement\":{\"S\":\"Mingus\"},\"RangeKeyElement\":{\"N\":\"200\"}},
-    \"Expected\":
-        {\"status\":{\"Value\":{\"S\":\"shopping\"}}},
-    \"ReturnValues\":\"ALL_OLD\"
+                                           {expected, {<<"Replies">>, false}}])), "
+{
+    \"TableName\": \"Thread\",
+    \"Key\": {
+        \"ForumName\": {
+            \"S\": \"Amazon DynamoDB\"
+        },
+        \"Subject\": {
+            \"S\": \"How do I update multiple items?\"
+        }
+    },
+    \"Expected\": {
+        \"Replies\": {
+            \"Exists\": false
+        }
+    },
+    \"ReturnValues\": \"ALL_OLD\"
+}"
+            }),
+         ?_ddb_test(
+            {"DeleteItem return metrics",
+             ?_f(erlcloud_ddb:delete_item(<<"Thread">>, 
+                                          {<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                          [{return_consumed_capacity, total},
+                                           {return_item_collection_metrics, size}])), "
+{
+    \"TableName\": \"Thread\",
+    \"Key\": {
+        \"ForumName\": {
+            \"S\": \"Amazon DynamoDB\"
+        }
+    },
+    \"ReturnConsumedCapacity\": \"TOTAL\",
+    \"ReturnItemCollectionMetrics\": \"SIZE\"
 }"
             })
         ],
 
     Response = "
-{\"Attributes\":
-    {\"friends\":{\"SS\":[\"Dooley\",\"Ben\",\"Daisy\"]},
-    \"status\":{\"S\":\"shopping\"},
-    \"time\":{\"N\":\"200\"},
-    \"user\":{\"S\":\"Mingus\"}
-    },
-\"ConsumedCapacityUnits\":1
+{
+    \"Attributes\": {
+        \"LastPostedBy\": {
+            \"S\": \"fred@example.com\"
+        },
+        \"ForumName\": {
+            \"S\": \"Amazon DynamoDB\"
+        },
+        \"LastPostDateTime\": {
+            \"S\": \"201303201023\"
+        },
+        \"Tags\": {
+            \"SS\": [\"Update\",\"Multiple Items\",\"HelpMe\"]
+        },
+        \"Subject\": {
+            \"S\": \"How do I update multiple items?\"
+        },
+        \"Message\": {
+            \"S\": \"I want to update multiple items in a single API call. What's the best way to do that?\"
+        }
+    }
 }",
     input_tests(Response, Tests).
 
@@ -1261,21 +1300,65 @@ delete_item_output_tests(_) ->
     Tests = 
         [?_ddb_test(
             {"DeleteItem example response", "
-{\"Attributes\":
-    {\"friends\":{\"SS\":[\"Dooley\",\"Ben\",\"Daisy\"]},
-    \"status\":{\"S\":\"shopping\"},
-    \"time\":{\"N\":\"200\"},
-    \"user\":{\"S\":\"Mingus\"}
-    },
-\"ConsumedCapacityUnits\":1
+{
+    \"Attributes\": {
+        \"LastPostedBy\": {
+            \"S\": \"fred@example.com\"
+        },
+        \"ForumName\": {
+            \"S\": \"Amazon DynamoDB\"
+        },
+        \"LastPostDateTime\": {
+            \"S\": \"201303201023\"
+        },
+        \"Tags\": {
+            \"SS\": [\"Update\",\"Multiple Items\",\"HelpMe\"]
+        },
+        \"Subject\": {
+            \"S\": \"How do I update multiple items?\"
+        },
+        \"Message\": {
+            \"S\": \"I want to update multiple items in a single API call. What's the best way to do that?\"
+        }
+    }
 }",
-             {ok, [{<<"friends">>, [<<"Dooley">>, <<"Ben">>, <<"Daisy">>]},
-                   {<<"status">>, <<"shopping">>},
-                   {<<"time">>, 200},
-                   {<<"user">>, <<"Mingus">>}]}})
+             {ok, #ddb_delete_item{
+                     attributes = [{<<"LastPostedBy">>, <<"fred@example.com">>},
+                                   {<<"ForumName">>, <<"Amazon DynamoDB">>},
+                                   {<<"LastPostDateTime">>, <<"201303201023">>},
+                                   {<<"Tags">>, [<<"Update">>, <<"Multiple Items">>, <<"HelpMe">>]},
+                                   {<<"Subject">>, <<"How do I update multiple items?">>},
+                                   {<<"Message">>, <<"I want to update multiple items in a single API call. What's the best way to do that?">>}
+                                  ]}}}),
+         ?_ddb_test(
+            {"DeleteItem metrics response", "
+{
+    \"ConsumedCapacity\": {
+        \"CapacityUnits\": 1,
+        \"TableName\": \"Thread\"
+    },
+    \"ItemCollectionMetrics\": {
+        \"ItemCollectionKey\": {
+            \"ForumName\": {
+                \"S\": \"Amazon DynamoDB\"
+            }
+        },
+        \"SizeEstimateRangeGB\": [1, 2]
+    }
+}",
+             {ok, #ddb_delete_item{
+                     consumed_capacity =
+                         #ddb_consumed_capacity{
+                            table_name = <<"Thread">>,
+                            capacity_units = 1},
+                     item_collection_metrics =
+                         #ddb_item_collection_metrics{
+                            item_collection_key = <<"Amazon DynamoDB">>,
+                            size_estimate_range_gb = {1,2}}
+                     }}})
         ],
     
-    output_tests(?_f(erlcloud_ddb:delete_item(<<"table">>, <<"key">>)), Tests).
+    output_tests(?_f(erlcloud_ddb:delete_item(<<"table">>, {<<"k">>, <<"v">>}, [{out, record}])), Tests).
 
 %% DeleteTable test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteTable.html
