@@ -329,6 +329,14 @@ dynamize_return_consumed_capacity(none) ->
 dynamize_return_consumed_capacity(total) ->
     <<"TOTAL">>.
 
+-type return_item_collection_metrics() :: none | size.
+-type return_item_collection_metrics_opt() :: {return_item_collection_metrics, return_item_collection_metrics()}.
+-spec dynamize_return_item_collection_metrics(return_item_collection_metrics()) -> binary().
+dynamize_return_item_collection_metrics(none) ->
+    <<"NONE">>;
+dynamize_return_item_collection_metrics(size) ->
+    <<"SIZE">>.
+
 %%%------------------------------------------------------------------------------
 %%% Shared Undynamizers
 %%%------------------------------------------------------------------------------
@@ -392,10 +400,10 @@ undynamize_value_typed({<<"N">>, Value}) ->
 undynamize_value_typed({<<"B">>, Value}) ->
     {b, base64:decode(Value)}.
 
--spec undynamize_key(json_key()) -> key().
-undynamize_key([HashKey]) ->
+-spec undynamize_typed_key(json_key()) -> key().
+undynamize_typed_key([HashKey]) ->
     undynamize_attr_typed(HashKey);
-undynamize_key([HashKey, RangeKey]) ->
+undynamize_typed_key([HashKey, RangeKey]) ->
     {undynamize_attr_typed(HashKey), undynamize_attr_typed(RangeKey)}.
 
 -spec undynamize_key_schema_value(jsx:json_term()) -> key_schema().
@@ -549,6 +557,25 @@ undynamize_consumed_capacity(V) ->
 undynamize_consumed_capacity_list(V) ->
     [undynamize_record(consumed_capacity_record(), I) || I <- V].
 
+-spec item_collection_metric_record() -> record_desc().
+item_collection_metric_record() ->
+    {#ddb_item_collection_metric{},
+     [{<<"ItemCollectionKey">>, #ddb_item_collection_metric.item_collection_key,
+       fun([V]) ->
+               {_Name, Value} = undynamize_attr(V),
+               Value
+       end},
+      {<<"SizeEstimateRangeGB">>, #ddb_item_collection_metric.size_estimate_range_gb,
+       fun([L, H]) -> {L, H} end}]}.
+
+undynamize_item_collection_metric(V) ->
+    undynamize_record(item_collection_metric_record(), V).
+
+undynamize_item_collection_metrics(Table, V) ->
+    #ddb_item_collection_metrics{
+       table = Table,
+       entries = [undynamize_item_collection_metric(I) || I <- V]}.
+
 -spec provisioned_throughput_record() -> record_desc().
 provisioned_throughput_record() ->
     {#ddb_provisioned_throughput{},
@@ -599,7 +626,7 @@ dynamize_batch_get_item_request_items(Request) ->
 -spec batch_get_item_request_item_folder({binary(), term()}, batch_get_item_request_item()) 
                                         -> batch_get_item_request_item().
 batch_get_item_request_item_folder({<<"Keys">>, Keys}, {Table, _, Opts}) ->
-    {Table, [undynamize_key(K) || K <- Keys], Opts};
+    {Table, [undynamize_typed_key(K) || K <- Keys], Opts};
 batch_get_item_request_item_folder({<<"AttributesToGet">>, Value}, {Table, Keys, Opts}) ->
     {Table, Keys, [{attributes_to_get, Value} | Opts]};
 batch_get_item_request_item_folder({<<"ConsistentRead">>, Value}, {Table, Keys, Opts}) ->
@@ -683,16 +710,26 @@ batch_get_item(RequestItems, Opts, Config) ->
 %%% BatchWriteItem
 %%%------------------------------------------------------------------------------
 
+-type batch_write_item_opt() :: return_consumed_capacity_opt() |
+                                return_item_collection_metrics_opt() |
+                                out_opt().
+-type batch_write_item_opts() :: [batch_write_item_opt()].
+
+-spec batch_write_item_opts() -> opt_table().
+batch_write_item_opts() ->
+    [{return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1},
+     {return_item_collection_metrics, <<"ReturnItemCollectionMetrics">>, fun dynamize_return_item_collection_metrics/1}].
+
 -type batch_write_item_put() :: {put, in_item()}.
 -type batch_write_item_delete() :: {delete, key()}.
 -type batch_write_item_request() :: batch_write_item_put() | batch_write_item_delete().
 -type batch_write_item_request_item() :: {table_name(), [batch_write_item_request()]}.
 
--spec dynamize_batch_write_item_request(batch_write_item_request()) -> erlcloud_ddb1:batch_write_item_request().
+-spec dynamize_batch_write_item_request(batch_write_item_request()) -> jsx:json_term().
 dynamize_batch_write_item_request({put, Item}) ->
-    {put, dynamize_item(Item)};
+    [{<<"PutRequest">>, [{<<"Item">>, dynamize_item(Item)}]}];
 dynamize_batch_write_item_request({delete, Key}) ->
-    {delete, dynamize_key(Key)}.
+    [{<<"DeleteRequest">>, [{<<"Key">>, dynamize_key(Key)}]}].
 
 -spec dynamize_batch_write_item_request_item(batch_write_item_request_item()) 
                                           -> json_pair().
@@ -703,12 +740,6 @@ dynamize_batch_write_item_request_item({Table, Requests}) ->
 -spec dynamize_batch_write_item_request_items(batch_write_item_request_items()) -> [tuple()].
 dynamize_batch_write_item_request_items(Request) ->
     dynamize_maybe_list(fun dynamize_batch_write_item_request_item/1, Request).
-
--spec batch_write_item_response_record(table_name()) -> record_desc().
-batch_write_item_response_record(Table) ->
-    {#ddb_batch_write_item_response{table = Table},
-     [{<<"ConsumedCapacityUnits">>, #ddb_batch_write_item_response.consumed_capacity_units, fun id/1}
-     ]}.
 
 -spec undynamize_attr_typed(json_attr()) -> in_attr().
 undynamize_attr_typed({Name, [ValueJson]}) ->
@@ -723,7 +754,7 @@ undynamize_item_typed(Json) ->
 batch_write_item_request_folder([{<<"PutRequest">>, [{<<"Item">>, Item}]}], {Table, Requests}) ->
     {Table, [{put, undynamize_item_typed(Item)} | Requests]};
 batch_write_item_request_folder([{<<"DeleteRequest">>, [{<<"Key">>, Key}]}], {Table, Requests}) ->
-    {Table, [{delete, undynamize_key(Key)} | Requests]}.
+    {Table, [{delete, undynamize_typed_key(Key)} | Requests]}.
 
 -spec undynamize_batch_write_item_request_item(table_name(), jsx:json_term()) -> batch_write_item_request_item().
 undynamize_batch_write_item_request_item(Table, Json) ->
@@ -733,9 +764,10 @@ undynamize_batch_write_item_request_item(Table, Json) ->
 -spec batch_write_item_record() -> record_desc().
 batch_write_item_record() ->
     {#ddb_batch_write_item{},
-     [{<<"Responses">>, #ddb_batch_write_item.responses, 
+     [{<<"ConsumedCapacity">>, #ddb_batch_write_item.consumed_capacity, fun undynamize_consumed_capacity_list/1},
+      {<<"ItemCollectionMetrics">>, #ddb_batch_write_item.item_collection_metrics,
        fun(V) -> undynamize_object(fun({Table, Json}) ->
-                                           undynamize_record(batch_write_item_response_record(Table), Json)
+                                           undynamize_item_collection_metrics(Table, Json)
                                    end, V)
        end},
       {<<"UnprocessedItems">>, #ddb_batch_write_item.unprocessed_items,
@@ -751,7 +783,7 @@ batch_write_item_record() ->
 batch_write_item(RequestItems) ->
     batch_write_item(RequestItems, [], default_config()).
 
--spec batch_write_item([batch_write_item_request_item()], ddb_opts()) -> batch_write_item_return().
+-spec batch_write_item([batch_write_item_request_item()], batch_write_item_opts()) -> batch_write_item_return().
 batch_write_item(RequestItems, Opts) ->
     batch_write_item(RequestItems, Opts, default_config()).
 
@@ -775,10 +807,11 @@ batch_write_item(RequestItems, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec batch_write_item([batch_write_item_request_item()], ddb_opts(), aws_config()) -> batch_write_item_return().
+-spec batch_write_item([batch_write_item_request_item()], batch_write_item_opts(), aws_config()) -> 
+                              batch_write_item_return().
 batch_write_item(RequestItems, Opts, Config) ->
-    {[], DdbOpts} = opts([], Opts),
-    Return = erlcloud_ddb1:batch_write_item(dynamize_batch_write_item_request_items(RequestItems), Config),
+    {AwsOpts, DdbOpts} = opts(batch_write_item_opts(), Opts),
+    Return = erlcloud_ddb1:batch_write_item(dynamize_batch_write_item_request_items(RequestItems), AwsOpts, Config),
     case out(Return, fun(Json) -> undynamize_record(batch_write_item_record(), Json) end, DdbOpts) of
         {simple, #ddb_batch_write_item{unprocessed_items = [_|_]}} ->
             %% TODO resend unprocessed items automatically (or controlled by option). 
@@ -1183,7 +1216,7 @@ q_record() ->
     {#ddb_q{},
      [{<<"Items">>, #ddb_q.items, fun(V) -> [undynamize_item(I) || I <- V] end},
       {<<"Count">>, #ddb_q.count, fun id/1},
-      {<<"LastEvaluatedKey">>, #ddb_q.last_evaluated_key, fun undynamize_key/1},
+      {<<"LastEvaluatedKey">>, #ddb_q.last_evaluated_key, fun undynamize_typed_key/1},
       {<<"ConsumedCapacityUnits">>, #ddb_q.consumed_capacity_units, fun id/1}
      ]}.
 
@@ -1268,7 +1301,7 @@ scan_record() ->
      [{<<"Items">>, #ddb_scan.items, fun(V) -> [undynamize_item(I) || I <- V] end},
       {<<"Count">>, #ddb_scan.count, fun id/1},
       {<<"ScannedCount">>, #ddb_scan.scanned_count, fun id/1},
-      {<<"LastEvaluatedKey">>, #ddb_scan.last_evaluated_key, fun undynamize_key/1},
+      {<<"LastEvaluatedKey">>, #ddb_scan.last_evaluated_key, fun undynamize_typed_key/1},
       {<<"ConsumedCapacityUnits">>, #ddb_scan.consumed_capacity_units, fun id/1}
      ]}.
 
