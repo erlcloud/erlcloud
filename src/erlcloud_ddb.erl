@@ -1209,19 +1209,25 @@ list_tables(Opts, Config) ->
 
 -type put_item_opt() :: {expected, in_expected()} | 
                         {return_values, none | all_old} |
+                        return_consumed_capacity_opt() |
+                        return_item_collection_metrics_opt() |
                         out_opt().
 -type put_item_opts() :: [put_item_opt()].
 
 -spec put_item_opts() -> opt_table().
 put_item_opts() ->
     [{expected, <<"Expected">>, fun dynamize_expected/1},
-     {return_values, <<"ReturnValues">>, fun dynamize_return_value/1}].
+     {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
+     return_consumed_capacity_opt(),
+     return_item_collection_metrics_opt()].
 
 -spec put_item_record() -> record_desc().
 put_item_record() ->
     {#ddb_put_item{},
      [{<<"Attributes">>, #ddb_put_item.attributes, fun undynamize_item/1},
-      {<<"ConsumedCapacityUnits">>, #ddb_put_item.consumed_capacity_units, fun id/1}
+      {<<"ConsumedCapacity">>, #ddb_put_item.consumed_capacity, fun undynamize_consumed_capacity/1},
+      {<<"ItemCollectionMetrics">>, #ddb_put_item.item_collection_metrics, 
+       fun undynamize_item_collection_metrics/1}
      ]}.
 
 -type put_item_return() :: ddb_return(#ddb_put_item{}, out_item()).

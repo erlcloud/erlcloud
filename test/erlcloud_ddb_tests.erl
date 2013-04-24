@@ -44,9 +44,9 @@ operation_test_() ->
       fun get_item_input_tests/1,
       fun get_item_output_tests/1,
       fun list_tables_input_tests/1,
-      fun list_tables_output_tests/1
-      %% fun put_item_input_tests/1,
-      %% fun put_item_output_tests/1,
+      fun list_tables_output_tests/1,
+      fun put_item_input_tests/1,
+      fun put_item_output_tests/1
       %% fun q_input_tests/1,
       %% fun q_output_tests/1,
       %% fun scan_input_tests/1,
@@ -1767,48 +1767,72 @@ put_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"PutItem example request",
-             ?_f(erlcloud_ddb:put_item(<<"comp5">>, 
-                                       [{<<"time">>, 300}, 
-                                        {<<"feeling">>, <<"not surprised">>},
-                                        {<<"user">>, <<"Riley">>}],
-                                       [{return_values, all_old},
-                                        {expected, {<<"feeling">>, <<"surprised">>}}])), "
-{\"TableName\":\"comp5\",
-	\"Item\":
-		{\"time\":{\"N\":\"300\"},
-		 \"feeling\":{\"S\":\"not surprised\"},
-	  	 \"user\":{\"S\":\"Riley\"}
-		},
-	\"Expected\":
-		{\"feeling\":{\"Value\":{\"S\":\"surprised\"}}},
-	\"ReturnValues\":\"ALL_OLD\"
+             ?_f(erlcloud_ddb:put_item(<<"Thread">>, 
+                                       [{<<"LastPostedBy">>, <<"fred@example.com">>},
+                                        {<<"ForumName">>, <<"Amazon DynamoDB">>},
+                                        {<<"LastPostDateTime">>, <<"201303190422">>},
+                                        {<<"Tags">>, {ss, [<<"Update">>, <<"Multiple Items">>, <<"HelpMe">>]}},
+                                        {<<"Subject">>, <<"How do I update multiple items?">>},
+                                        {<<"Message">>, <<"I want to update multiple items in a single API call. What's the best way to do that?">>}],
+                                       [{expected, [{<<"ForumName">>, false}, {<<"Subject">>, false}]}])), "
+{
+    \"TableName\": \"Thread\",
+    \"Item\": {
+        \"LastPostDateTime\": {
+            \"S\": \"201303190422\"
+        },
+        \"Tags\": {
+            \"SS\": [\"Update\",\"Multiple Items\",\"HelpMe\"]
+        },
+        \"ForumName\": {
+            \"S\": \"Amazon DynamoDB\"
+        },
+        \"Message\": {
+            \"S\": \"I want to update multiple items in a single API call. What's the best way to do that?\"
+        },
+        \"Subject\": {
+            \"S\": \"How do I update multiple items?\"
+        },
+        \"LastPostedBy\": {
+            \"S\": \"fred@example.com\"
+        }
+    },
+    \"Expected\": {
+        \"ForumName\": {
+            \"Exists\": false
+        },
+        \"Subject\": {
+            \"Exists\": false
+        }
+    }
 }"
             }),
          ?_ddb_test(
             {"PutItem float inputs",
-             ?_f(erlcloud_ddb:put_item(<<"comp5">>, 
-                                       [{<<"time">>, 300}, 
-                                        {<<"typed float">>, {n, 1.2}},
+             ?_f(erlcloud_ddb:put_item(<<"Thread">>, 
+                                       [{<<"typed float">>, {n, 1.2}},
                                         {<<"untyped float">>, 3.456},
                                         {<<"mixed set">>, {ns, [7.8, 9.0, 10]}}],
                                        [])), "
-{\"TableName\":\"comp5\",
-	\"Item\":
-		{\"time\":{\"N\":\"300\"},
-		 \"typed float\":{\"N\":\"1.2\"},
-		 \"untyped float\":{\"N\":\"3.456\"},
-		 \"mixed set\":{\"NS\":[\"7.8\", \"9.0\", \"10\"]}
-		}
+{
+    \"TableName\": \"Thread\",
+    \"Item\": {
+        \"typed float\": {
+            \"N\": \"1.2\"
+        },
+        \"untyped float\": {
+            \"N\": \"3.456\"
+        },
+        \"mixed set\": {
+            \"NS\": [\"7.8\", \"9.0\", \"10\"]
+        }
+    }
 }"
             })
         ],
 
     Response = "
-{\"Attributes\":
-	{\"feeling\":{\"S\":\"surprised\"},
-	\"time\":{\"N\":\"300\"},
-	\"user\":{\"S\":\"Riley\"}},
-\"ConsumedCapacityUnits\":1
+{
 }",
     input_tests(Response, Tests).
 
@@ -1816,18 +1840,65 @@ put_item_output_tests(_) ->
     Tests = 
         [?_ddb_test(
             {"PutItem example response", "
-{\"Attributes\":
-	{\"feeling\":{\"S\":\"surprised\"},
-	\"time\":{\"N\":\"300\"},
-	\"user\":{\"S\":\"Riley\"}},
-\"ConsumedCapacityUnits\":1
+{
 }",
-             {ok, [{<<"feeling">>, <<"surprised">>},
-                   {<<"time">>, 300},
-                   {<<"user">>, <<"Riley">>}]}})
+             {ok, #ddb_put_item{}}}),
+         ?_ddb_test(
+            {"PutItem complete response", "
+{
+    \"Attributes\": {
+        \"LastPostedBy\": {
+            \"S\": \"fred@example.com\"
+        },
+        \"ForumName\": {
+            \"S\": \"Amazon DynamoDB\"
+        },
+        \"LastPostDateTime\": {
+            \"S\": \"201303201023\"
+        },
+        \"Tags\": {
+            \"SS\": [\"Update\",\"Multiple Items\",\"HelpMe\"]
+        },
+        \"Subject\": {
+            \"S\": \"How do I update multiple items?\"
+        },
+        \"Message\": {
+            \"S\": \"I want to update multiple items in a single API call. What's the best way to do that?\"
+        }
+    },
+    \"ConsumedCapacity\": {
+        \"CapacityUnits\": 1,
+        \"TableName\": \"Thread\"
+    },
+    \"ItemCollectionMetrics\": {
+        \"ItemCollectionKey\": {
+            \"ForumName\": {
+                \"S\": \"Amazon DynamoDB\"
+            }
+        },
+        \"SizeEstimateRangeGB\": [1, 2]
+    }
+}",
+
+             {ok, #ddb_put_item{
+                     attributes = [{<<"LastPostedBy">>, <<"fred@example.com">>},
+                                   {<<"ForumName">>, <<"Amazon DynamoDB">>},
+                                   {<<"LastPostDateTime">>, <<"201303201023">>},
+                                   {<<"Tags">>, [<<"Update">>, <<"Multiple Items">>, <<"HelpMe">>]},
+                                   {<<"Subject">>, <<"How do I update multiple items?">>},
+                                   {<<"Message">>, <<"I want to update multiple items in a single API call. What's the best way to do that?">>}],
+                     consumed_capacity =
+                         #ddb_consumed_capacity{
+                            table_name = <<"Thread">>,
+                            capacity_units = 1},
+                     item_collection_metrics =
+                         #ddb_item_collection_metrics{
+                            item_collection_key = <<"Amazon DynamoDB">>,
+                            size_estimate_range_gb = {1,2}}
+                     }}})
         ],
     
-    output_tests(?_f(erlcloud_ddb:put_item(<<"table">>, [])), Tests).
+    output_tests(?_f(erlcloud_ddb:put_item(<<"table">>, [], [{out, record}])), Tests).
 
 %% Query test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Query.html
