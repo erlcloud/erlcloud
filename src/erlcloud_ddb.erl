@@ -95,7 +95,7 @@
          list_tables/0, list_tables/1, list_tables/2,
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
-         q/2, q/3, q/4,
+         q/1, q/2, q/3,
          scan/1, scan/2, scan/3,
          update_item/3, update_item/4, update_item/5,
          update_table/3, update_table/4, update_table/5
@@ -1273,55 +1273,75 @@ put_item(Table, Item, Opts, Config) ->
 %%% Queue
 %%%------------------------------------------------------------------------------
 
--type json_range_key_condition() :: jsx:json_term().
--type range_key_condition() :: {in_attr_value(), comparison_op()} | 
-                               {{in_attr_value(), in_attr_value()}, between}.
+-type condition() :: {attr_name(), in_attr_value(), comparison_op()} |
+                     {attr_name(), {in_attr_value(), in_attr_value()}, between} |
+                     {attr_name(), [in_attr_value()], in}.
+-type conditions() :: [condition()].
 
--spec dynamize_range_key_condition(range_key_condition()) -> json_range_key_condition().
-dynamize_range_key_condition({{Value1, Value2}, between}) ->
-    [{<<"AttributeValueList">>, [[dynamize_value(Value1)], [dynamize_value(Value2)]]},
-      dynamize_comparison(between)];
-dynamize_range_key_condition({Value, Comparison}) ->
-    [{<<"AttributeValueList">>, [[dynamize_value(Value)]]}, dynamize_comparison(Comparison)].
+-spec dynamize_condition(condition()) -> json_pair().
+dynamize_condition({Name, AttrValueList, in}) ->
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(A)] || A <- AttrValueList]},
+            dynamize_comparison(in)]};
+dynamize_condition({Name, {AttrValue1, AttrValue2}, between}) ->
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue1)], [dynamize_value(AttrValue2)]]},
+            dynamize_comparison(between)]};
+dynamize_condition({Name, AttrValue, Op}) ->
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]},
+            dynamize_comparison(Op)]}.
 
--type q_opt() :: {attributes_to_get, [binary()]} | 
-                 {limit, pos_integer()} |
+dynamize_conditions(V) ->
+    [dynamize_condition(I) || I <- V].
+
+-type select() :: all_attributes | all_projected_attributes | count | specific_attributes.
+dynamize_select(all_attributes)           -> <<"ALL_ATTRIBUTES">>;
+dynamize_select(all_projected_attributes) -> <<"ALL_PROJECTED_ATTRIBUTES">>;
+dynamize_select(count)                    -> <<"COUNT">>;
+dynamize_select(specific_attributes)      -> <<"SPECIFIC_ATTRIBUTES">>.
+
+
+-type q_opt() :: {attributes_to_get, [attr_name()]} | 
                  boolean_opt(consistent_read) | 
-                 boolean_opt(count) |
-                 {range_key_condition, range_key_condition()} |
-                 boolean_opt(scan_index_forward) |
                  {exclusive_start_key, key() | undefined} |
+                 {index_name, index_name()} |
+                 {key_conditions, conditions()} |
+                 {limit, pos_integer()} |
+                 return_consumed_capacity_opt() |
+                 boolean_opt(scan_index_forward) |
+                 {select, select()} |
                  out_opt().
 -type q_opts() :: [q_opt()].
 
 -spec q_opts() -> opt_table().
 q_opts() ->
     [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
-     {limit, <<"Limit">>, fun id/1},
      {consistent_read, <<"ConsistentRead">>, fun id/1},
-     {count, <<"Count">>, fun id/1},
-     {range_key_condition, <<"RangeKeyCondition">>, fun dynamize_range_key_condition/1},
+     {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
+     {index_name, <<"IndexName">>, fun id/1},
+     {key_conditions, <<"KeyConditions">>, fun dynamize_conditions/1},
+     {limit, <<"Limit">>, fun id/1},
+     return_consumed_capacity_opt(),
      {scan_index_forward, <<"ScanIndexForward">>, fun id/1},
-     {exclusive_start_key, <<"ExclusiveStartKey">>, fun(V) -> erlcloud_ddb1:key_value(dynamize_key(V)) end}].
+     {select, <<"Select">>, fun dynamize_select/1}
+    ].
 
 -spec q_record() -> record_desc().
 q_record() ->
     {#ddb_q{},
-     [{<<"Items">>, #ddb_q.items, fun(V) -> [undynamize_item(I) || I <- V] end},
+     [{<<"ConsumedCapacity">>, #ddb_q.consumed_capacity, fun undynamize_consumed_capacity/1},
       {<<"Count">>, #ddb_q.count, fun id/1},
-      {<<"LastEvaluatedKey">>, #ddb_q.last_evaluated_key, fun undynamize_typed_key/1},
-      {<<"ConsumedCapacityUnits">>, #ddb_q.consumed_capacity_units, fun id/1}
+      {<<"Items">>, #ddb_q.items, fun(V) -> [undynamize_item(I) || I <- V] end},
+      {<<"LastEvaluatedKey">>, #ddb_q.last_evaluated_key, fun undynamize_typed_key/1}
      ]}.
 
 -type q_return() :: ddb_return(#ddb_q{}, [out_item()]).
 
--spec q(table_name(), hash_key()) -> q_return().
-q(Table, HashKey) ->
-    q(Table, HashKey, [], default_config()).
+-spec q(table_name()) -> q_return().
+q(Table) ->
+    q(Table, [], default_config()).
 
--spec q(table_name(), hash_key(), q_opts()) -> q_return().
-q(Table, HashKey, Opts) ->
-    q(Table, HashKey, Opts, default_config()).
+-spec q(table_name(), q_opts()) -> q_return().
+q(Table, Opts) ->
+    q(Table, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -1341,10 +1361,10 @@ q(Table, HashKey, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec q(table_name(), hash_key(), q_opts(), aws_config()) -> q_return().
-q(Table, HashKey, Opts, Config) ->
+-spec q(table_name(), q_opts(), aws_config()) -> q_return().
+q(Table, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(q_opts(), Opts),
-    Return = erlcloud_ddb1:q(Table, dynamize_key(HashKey), AwsOpts, Config),
+    Return = erlcloud_ddb1:q(Table, AwsOpts, Config),
     out(Return, fun(Json) -> undynamize_record(q_record(), Json) end, DdbOpts, 
         #ddb_q.items, {ok, []}).
 
