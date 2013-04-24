@@ -42,9 +42,9 @@ operation_test_() ->
       fun describe_table_input_tests/1,
       fun describe_table_output_tests/1,
       fun get_item_input_tests/1,
-      fun get_item_output_tests/1
-      %% fun list_tables_input_tests/1,
-      %% fun list_tables_output_tests/1,
+      fun get_item_output_tests/1,
+      fun list_tables_input_tests/1,
+      fun list_tables_output_tests/1
       %% fun put_item_input_tests/1,
       %% fun put_item_output_tests/1,
       %% fun q_input_tests/1,
@@ -1725,8 +1725,11 @@ list_tables_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"ListTables example request",
-             ?_f(erlcloud_ddb:list_tables([{limit, 3}, {exclusive_start_table_name, <<"comp2">>}])), 
-             "{\"ExclusiveStartTableName\":\"comp2\",\"Limit\":3}"
+             ?_f(erlcloud_ddb:list_tables([{limit, 3}, {exclusive_start_table_name, <<"Forum">>}])), "
+{
+    \"ExclusiveStartTableName\": \"Forum\",
+    \"Limit\": 3
+}"
             }),
          ?_ddb_test(
             {"ListTables empty request",
@@ -1736,17 +1739,24 @@ list_tables_input_tests(_) ->
 
         ],
 
-    Response = "{\"LastEvaluatedTableName\":\"comp5\",\"TableNames\":[\"comp3\",\"comp4\",\"comp5\"]}",
+    Response = "
+{
+    \"LastEvaluatedTableName\": \"Thread\",
+    \"TableNames\": [\"Forum\",\"Reply\",\"Thread\"]
+}",
     input_tests(Response, Tests).
 
 list_tables_output_tests(_) ->
     Tests = 
         [?_ddb_test(
-            {"ListTables example response",
-             "{\"LastEvaluatedTableName\":\"comp5\",\"TableNames\":[\"comp3\",\"comp4\",\"comp5\"]}",
+            {"ListTables example response", "
+{
+    \"LastEvaluatedTableName\": \"Thread\",
+    \"TableNames\": [\"Forum\",\"Reply\",\"Thread\"]
+}",
              {ok, #ddb_list_tables
-              {last_evaluated_table_name = <<"comp5">>,
-               table_names = [<<"comp3">>, <<"comp4">>, <<"comp5">>]}}})
+              {last_evaluated_table_name = <<"Thread">>,
+               table_names = [<<"Forum">>, <<"Reply">>, <<"Thread">>]}}})
         ],
     
     output_tests(?_f(erlcloud_ddb:list_tables([{out, record}])), Tests).
