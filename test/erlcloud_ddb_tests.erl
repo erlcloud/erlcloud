@@ -48,9 +48,9 @@ operation_test_() ->
       fun put_item_input_tests/1,
       fun put_item_output_tests/1,
       fun q_input_tests/1,
-      fun q_output_tests/1
-      %% fun scan_input_tests/1,
-      %% fun scan_output_tests/1,
+      fun q_output_tests/1,
+      fun scan_input_tests/1,
+      fun scan_output_tests/1
       %% fun update_item_input_tests/1,
       %% fun update_item_output_tests/1,
       %% fun update_table_input_tests/1,
@@ -2109,49 +2109,117 @@ scan_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"Scan example 1 request",
-             ?_f(erlcloud_ddb:scan(<<"1-hash-rangetable">>)), 
-             "{\"TableName\":\"1-hash-rangetable\"}"
-            }),
-         ?_ddb_test(
-            {"Scan example 2 request",
-             ?_f(erlcloud_ddb:scan(<<"comp5">>, [{scan_filter, [{<<"time">>, 400, gt}]}])), "
-{\"TableName\":\"comp5\",
-	\"ScanFilter\":
-		{\"time\":
-			{\"AttributeValueList\":[{\"N\":\"400\"}],
-			\"ComparisonOperator\":\"GT\"}
-	}
+             ?_f(erlcloud_ddb:scan(<<"Reply">>, [{return_consumed_capacity, total}])), "
+{
+    \"TableName\": \"Reply\",
+    \"ReturnConsumedCapacity\": \"TOTAL\"
 }"
             }),
          ?_ddb_test(
-            {"Scan example 3 request",
-             ?_f(erlcloud_ddb:scan(<<"comp5">>, [{exclusive_start_key, {<<"Fredy">>, 2000}},
-                                                 {scan_filter, [{<<"time">>, 400, gt}]},
-                                                 {limit, 2}])), "
-{\"TableName\":\"comp5\",
-	\"Limit\":2,
-	\"ScanFilter\":
-		{\"time\":
-			{\"AttributeValueList\":[{\"N\":\"400\"}],
-			\"ComparisonOperator\":\"GT\"}
-	},
-	\"ExclusiveStartKey\":
-		{\"HashKeyElement\":{\"S\":\"Fredy\"},\"RangeKeyElement\":{\"N\":\"2000\"}}
+            {"Scan example 2 request",
+             ?_f(erlcloud_ddb:scan(<<"Reply">>, 
+                                   [{scan_filter, [{<<"PostedBy">>, <<"joe@example.com">>, eq}]},
+                                    {return_consumed_capacity, total}])), "
+{
+    \"TableName\": \"Reply\",
+    \"ScanFilter\": {
+        \"PostedBy\": {
+            \"AttributeValueList\": [
+                {
+                    \"S\": \"joe@example.com\"
+                }
+            ],
+            \"ComparisonOperator\": \"EQ\"
+        }
+    },
+    \"ReturnConsumedCapacity\": \"TOTAL\"
+}"
+            }),
+         ?_ddb_test(
+            {"Scan exclusive start key",
+             ?_f(erlcloud_ddb:scan(<<"Reply">>, 
+                                   [{exclusive_start_key, {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                                           {<<"LastPostDateTime">>, {n, 20130102054211}}}}])), "
+{
+    \"TableName\": \"Reply\",
+    \"ExclusiveStartKey\": {
+        \"ForumName\": {
+            \"S\": \"Amazon DynamoDB\"
+        },
+        \"LastPostDateTime\": {
+            \"N\": \"20130102054211\"
+        }
+    }
 }"
             })
         ],
 
     Response = "
-{\"Count\":1,
-	\"Items\":[
-		{\"friends\":{\"SS\":[\"Jane\",\"James\",\"John\"]},
-		\"status\":{\"S\":\"exercising\"},
-		\"time\":{\"N\":\"2200\"},
-		\"user\":{\"S\":\"Roger\"}}
-	],
-	\"LastEvaluatedKey\":{\"HashKeyElement\":{\"S\":\"Riley\"},\"RangeKeyElement\":{\"N\":\"250\"}},
-\"ConsumedCapacityUnits\":0.5,
-\"ScannedCount\":2
+{
+    \"ConsumedCapacity\": {
+        \"CapacityUnits\": 0.5,
+        \"TableName\": \"Reply\"
+    },
+    \"Count\": 4,
+    \"Items\": [
+        {
+            \"PostedBy\": {
+                \"S\": \"joe@example.com\"
+            },
+            \"ReplyDateTime\": {
+                \"S\": \"20130320115336\"
+            },
+            \"Id\": {
+                \"S\": \"Amazon DynamoDB#How do I update multiple items?\"
+            },
+            \"Message\": {
+                \"S\": \"Have you looked at the BatchWriteItem API?\"
+            }
+        },
+        {
+            \"PostedBy\": {
+                \"S\": \"fred@example.com\"
+            },
+            \"ReplyDateTime\": {
+                \"S\": \"20130320115342\"
+            },
+            \"Id\": {
+                \"S\": \"Amazon DynamoDB#How do I update multiple items?\"
+            },
+            \"Message\": {
+                \"S\": \"No, I didn't know about that.  Where can I find more information?\"
+            }
+        },
+        {
+            \"PostedBy\": {
+                \"S\": \"joe@example.com\"
+            },
+            \"ReplyDateTime\": {
+                \"S\": \"20130320115347\"
+            },
+            \"Id\": {
+                \"S\": \"Amazon DynamoDB#How do I update multiple items?\"
+            },
+            \"Message\": {
+                \"S\": \"BatchWriteItem is documented in the Amazon DynamoDB API Reference.\"
+            }
+        },
+        {
+            \"PostedBy\": {
+                \"S\": \"fred@example.com\"
+            },
+            \"ReplyDateTime\": {
+                \"S\": \"20130320115352\"
+            },
+            \"Id\": {
+                \"S\": \"Amazon DynamoDB#How do I update multiple items?\"
+            },
+            \"Message\": {
+                \"S\": \"OK, I'll take a look at that.  Thanks!\"
+            }
+        }
+    ],
+    \"ScannedCount\": 4
 }",
     input_tests(Response, Tests).
 
@@ -2159,100 +2227,206 @@ scan_output_tests(_) ->
     Tests = 
         [?_ddb_test(
             {"Scan example 1 response", "
-{\"Count\":4,\"Items\":[{
-	\"date\":{\"S\":\"1980\"},
-	\"fans\":{\"SS\":[\"Dave\",\"Aaron\"]},
-	\"name\":{\"S\":\"Airplane\"},
-	\"rating\":{\"S\":\"***\"}
-	},{
-	\"date\":{\"S\":\"1999\"},
-	\"fans\":{\"SS\":[\"Ziggy\",\"Laura\",\"Dean\"]},
-	\"name\":{\"S\":\"Matrix\"},
-	\"rating\":{\"S\":\"*****\"}
-	},{
-	\"date\":{\"S\":\"1976\"},
-	\"fans\":{\"SS\":[\"Riley\"]},
-	\"name\":{\"S\":\"The Shaggy D.A.\"},
-	\"rating\":{\"S\":\"**\"}
-	},{
-	\"date\":{\"S\":\"1989\"},
-	\"fans\":{\"SS\":[\"Alexis\",\"Keneau\"]},
-	\"name\":{\"S\":\"Bill & Ted's Excellent Adventure\"},
-	\"rating\":{\"S\":\"****\"}
-	}],
-    \"ConsumedCapacityUnits\":0.5,
-	\"ScannedCount\":4
+{
+    \"ConsumedCapacity\": {
+        \"CapacityUnits\": 0.5,
+        \"TableName\": \"Reply\"
+    },
+    \"Count\": 4,
+    \"Items\": [
+        {
+            \"PostedBy\": {
+                \"S\": \"joe@example.com\"
+            },
+            \"ReplyDateTime\": {
+                \"S\": \"20130320115336\"
+            },
+            \"Id\": {
+                \"S\": \"Amazon DynamoDB#How do I update multiple items?\"
+            },
+            \"Message\": {
+                \"S\": \"Have you looked at the BatchWriteItem API?\"
+            }
+        },
+        {
+            \"PostedBy\": {
+                \"S\": \"fred@example.com\"
+            },
+            \"ReplyDateTime\": {
+                \"S\": \"20130320115342\"
+            },
+            \"Id\": {
+                \"S\": \"Amazon DynamoDB#How do I update multiple items?\"
+            },
+            \"Message\": {
+                \"S\": \"No, I didn't know about that.  Where can I find more information?\"
+            }
+        },
+        {
+            \"PostedBy\": {
+                \"S\": \"joe@example.com\"
+            },
+            \"ReplyDateTime\": {
+                \"S\": \"20130320115347\"
+            },
+            \"Id\": {
+                \"S\": \"Amazon DynamoDB#How do I update multiple items?\"
+            },
+            \"Message\": {
+                \"S\": \"BatchWriteItem is documented in the Amazon DynamoDB API Reference.\"
+            }
+        },
+        {
+            \"PostedBy\": {
+                \"S\": \"fred@example.com\"
+            },
+            \"ReplyDateTime\": {
+                \"S\": \"20130320115352\"
+            },
+            \"Id\": {
+                \"S\": \"Amazon DynamoDB#How do I update multiple items?\"
+            },
+            \"Message\": {
+                \"S\": \"OK, I'll take a look at that.  Thanks!\"
+            }
+        }
+    ],
+    \"ScannedCount\": 4
 }",
              {ok, #ddb_scan
               {count = 4,
-               items = [[{<<"date">>, <<"1980">>},
-                         {<<"fans">>, [<<"Dave">>, <<"Aaron">>]},
-                         {<<"name">>, <<"Airplane">>},
-                         {<<"rating">>, <<"***">>}],
-                        [{<<"date">>, <<"1999">>},
-                         {<<"fans">>, [<<"Ziggy">>, <<"Laura">>, <<"Dean">>]},
-                         {<<"name">>, <<"Matrix">>},
-                         {<<"rating">>, <<"*****">>}],
-                        [{<<"date">>, <<"1976">>},
-                         {<<"fans">>, [<<"Riley">>]},
-                         {<<"name">>, <<"The Shaggy D.A.">>},
-                         {<<"rating">>, <<"**">>}],
-                        [{<<"date">>, <<"1989">>},
-                         {<<"fans">>, [<<"Alexis">>, <<"Keneau">>]},
-                         {<<"name">>, <<"Bill & Ted's Excellent Adventure">>},
-                         {<<"rating">>, <<"****">>}]],
+               items = [[{<<"PostedBy">>, <<"joe@example.com">>},
+                         {<<"ReplyDateTime">>, <<"20130320115336">>},
+                         {<<"Id">>, <<"Amazon DynamoDB#How do I update multiple items?">>},
+                         {<<"Message">>, <<"Have you looked at the BatchWriteItem API?">>}],
+                        [{<<"PostedBy">>, <<"fred@example.com">>},
+                         {<<"ReplyDateTime">>, <<"20130320115342">>},
+                         {<<"Id">>, <<"Amazon DynamoDB#How do I update multiple items?">>},
+                         {<<"Message">>, <<"No, I didn't know about that.  Where can I find more information?">>}],
+                        [{<<"PostedBy">>, <<"joe@example.com">>},
+                         {<<"ReplyDateTime">>, <<"20130320115347">>},
+                         {<<"Id">>, <<"Amazon DynamoDB#How do I update multiple items?">>},
+                         {<<"Message">>, <<"BatchWriteItem is documented in the Amazon DynamoDB API Reference.">>}],
+                        [{<<"PostedBy">>, <<"fred@example.com">>},
+                         {<<"ReplyDateTime">>, <<"20130320115352">>},
+                         {<<"Id">>, <<"Amazon DynamoDB#How do I update multiple items?">>},
+                         {<<"Message">>, <<"OK, I'll take a look at that.  Thanks!">>}]],
                scanned_count = 4,
-               consumed_capacity_units = 0.5}}}),
+               consumed_capacity = #ddb_consumed_capacity{table_name = <<"Reply">>,
+                                                          capacity_units = 0.5}}}}),
          ?_ddb_test(
             {"Scan example 2 response", "
-{\"Count\":2,
-	\"Items\":[
-		{\"friends\":{\"SS\":[\"Dave\",\"Ziggy\",\"Barrie\"]},
-		\"status\":{\"S\":\"chatting\"},
-		\"time\":{\"N\":\"2000\"},
-		\"user\":{\"S\":\"Casey\"}},
-		{\"friends\":{\"SS\":[\"Dave\",\"Ziggy\",\"Barrie\"]},
-		\"status\":{\"S\":\"chatting\"},
-		\"time\":{\"N\":\"2000\"},
-		\"user\":{\"S\":\"Fredy\"}
-		}],
-\"ConsumedCapacityUnits\":0.5,
-\"ScannedCount\":4
+{
+    \"ConsumedCapacity\": {
+        \"CapacityUnits\": 0.5,
+        \"TableName\": \"Reply\"
+    },
+    \"Count\": 2,
+    \"Items\": [
+        {
+            \"PostedBy\": {
+                \"S\": \"joe@example.com\"
+            },
+            \"ReplyDateTime\": {
+                \"S\": \"20130320115336\"
+            },
+            \"Id\": {
+                \"S\": \"Amazon DynamoDB#How do I update multiple items?\"
+            },
+            \"Message\": {
+                \"S\": \"Have you looked at the BatchWriteItem API?\"
+            }
+        },
+        {
+            \"PostedBy\": {
+                \"S\": \"joe@example.com\"
+            },
+            \"ReplyDateTime\": {
+                \"S\": \"20130320115347\"
+            },
+            \"Id\": {
+                \"S\": \"Amazon DynamoDB#How do I update multiple items?\"
+            },
+            \"Message\": {
+                \"S\": \"BatchWriteItem is documented in the Amazon DynamoDB API Reference.\"
+            }
+        }
+    ],
+    \"ScannedCount\": 4
 }",
              {ok, #ddb_scan
               {count = 2,
-               items = [[{<<"friends">>, [<<"Dave">>, <<"Ziggy">>, <<"Barrie">>]},
-                         {<<"status">>, <<"chatting">>},
-                         {<<"time">>, 2000},
-                         {<<"user">>, <<"Casey">>}],
-                        [{<<"friends">>, [<<"Dave">>, <<"Ziggy">>, <<"Barrie">>]},
-                         {<<"status">>, <<"chatting">>},
-                         {<<"time">>, 2000},
-                         {<<"user">>, <<"Fredy">>}]],
+               items = [[{<<"PostedBy">>, <<"joe@example.com">>},
+                         {<<"ReplyDateTime">>, <<"20130320115336">>},
+                         {<<"Id">>, <<"Amazon DynamoDB#How do I update multiple items?">>},
+                         {<<"Message">>, <<"Have you looked at the BatchWriteItem API?">>}],
+                        [{<<"PostedBy">>, <<"joe@example.com">>},
+                         {<<"ReplyDateTime">>, <<"20130320115347">>},
+                         {<<"Id">>, <<"Amazon DynamoDB#How do I update multiple items?">>},
+                         {<<"Message">>, <<"BatchWriteItem is documented in the Amazon DynamoDB API Reference.">>}]
+],
                scanned_count = 4,
-               consumed_capacity_units = 0.5}}}),
+               consumed_capacity = #ddb_consumed_capacity{table_name = <<"Reply">>,
+                                                          capacity_units = 0.5}}}}),
          ?_ddb_test(
-            {"Scan example 3 response", "
-{\"Count\":1,
-	\"Items\":[
-		{\"friends\":{\"SS\":[\"Jane\",\"James\",\"John\"]},
-		\"status\":{\"S\":\"exercising\"},
-		\"time\":{\"N\":\"2200\"},
-		\"user\":{\"S\":\"Roger\"}}
-	],
-	\"LastEvaluatedKey\":{\"HashKeyElement\":{\"S\":\"Riley\"},\"RangeKeyElement\":{\"N\":\"250\"}},
-\"ConsumedCapacityUnits\":0.5,
-\"ScannedCount\":2
+            {"Scan last evaluated key", "
+
+{
+    \"Count\":2,
+    \"Items\": [
+        {
+            \"PostedBy\": {
+                \"S\": \"joe@example.com\"
+            },
+            \"ReplyDateTime\": {
+                \"S\": \"20130320115336\"
+            },
+            \"Id\": {
+                \"S\": \"Amazon DynamoDB#How do I update multiple items?\"
+            },
+            \"Message\": {
+                \"S\": \"Have you looked at the BatchWriteItem API?\"
+            }
+        },
+        {
+            \"PostedBy\": {
+                \"S\": \"joe@example.com\"
+            },
+            \"ReplyDateTime\": {
+                \"S\": \"20130320115347\"
+            },
+            \"Id\": {
+                \"S\": \"Amazon DynamoDB#How do I update multiple items?\"
+            },
+            \"Message\": {
+                \"S\": \"BatchWriteItem is documented in the Amazon DynamoDB API Reference.\"
+            }
+        }
+    ],
+    \"LastEvaluatedKey\": {
+        \"ForumName\": {
+            \"S\": \"Amazon DynamoDB\"
+        },
+        \"LastPostDateTime\": {
+            \"N\": \"20130102054211\"
+        }
+    },
+    \"ScannedCount\":4
 }",
              {ok, #ddb_scan
-              {count = 1,
-               items = [[{<<"friends">>, [<<"Jane">>, <<"James">>, <<"John">>]},
-                         {<<"status">>, <<"exercising">>},
-                         {<<"time">>, 2200},
-                         {<<"user">>, <<"Roger">>}]],
-               last_evaluated_key = {{s, <<"Riley">>}, {n, 250}},
-               scanned_count = 2,
-               consumed_capacity_units = 0.5}}})
+              {count = 2,
+               items = [[{<<"PostedBy">>, <<"joe@example.com">>},
+                         {<<"ReplyDateTime">>, <<"20130320115336">>},
+                         {<<"Id">>, <<"Amazon DynamoDB#How do I update multiple items?">>},
+                         {<<"Message">>, <<"Have you looked at the BatchWriteItem API?">>}],
+                        [{<<"PostedBy">>, <<"joe@example.com">>},
+                         {<<"ReplyDateTime">>, <<"20130320115347">>},
+                         {<<"Id">>, <<"Amazon DynamoDB#How do I update multiple items?">>},
+                         {<<"Message">>, <<"BatchWriteItem is documented in the Amazon DynamoDB API Reference.">>}]
+],
+               last_evaluated_key = {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                     {<<"LastPostDateTime">>, {n, 20130102054211}}},
+               scanned_count = 4}}})
         ],
     
     output_tests(?_f(erlcloud_ddb:scan(<<"name">>, [{out, record}])), Tests).

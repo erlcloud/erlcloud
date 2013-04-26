@@ -1372,50 +1372,33 @@ q(Table, Opts, Config) ->
 %%% Scan
 %%%------------------------------------------------------------------------------
 
--type scan_filter_item() :: {attr_name(), [in_attr_value()], in} |
-                            {attr_name(), {in_attr_value(), in_attr_value()}, between} |
-                            {attr_name(), in_attr_value(), comparison_op()}.
--type scan_filter() :: maybe_list(scan_filter_item()).
-
--spec dynamize_scan_filter_item(scan_filter_item()) -> json_pair().
-dynamize_scan_filter_item({Name, AttrValueList, in}) ->
-    {Name, [{<<"AttributeValueList">>, [[dynamize_value(A)] || A <- AttrValueList]},
-            dynamize_comparison(in)]};
-dynamize_scan_filter_item({Name, {AttrValue1, AttrValue2}, between}) ->
-    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue1)], [dynamize_value(AttrValue2)]]},
-            dynamize_comparison(between)]};
-dynamize_scan_filter_item({Name, AttrValue, Op}) ->
-    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]},
-            dynamize_comparison(Op)]}.
-
--spec dynamize_scan_filter(scan_filter()) -> [json_pair()].
-dynamize_scan_filter(Filter) ->
-    dynamize_maybe_list(fun dynamize_scan_filter_item/1, Filter).
-
 -type scan_opt() :: {attributes_to_get, [binary()]} | 
+                    {exclusive_start_key, key() | undefined} |
                     {limit, pos_integer()} |
-                    boolean_opt(count) |
-                    {scan_filter, scan_filter()} |
-                    {exclusive_start_key, key()} |
+                    return_consumed_capacity_opt() |
+                    {scan_filter, conditions()} |
+                    {select, select()} |
                     out_opt().
 -type scan_opts() :: [scan_opt()].
 
 -spec scan_opts() -> opt_table().
 scan_opts() ->
     [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
+     {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
      {limit, <<"Limit">>, fun id/1},
-     {count, <<"Count">>, fun id/1},
-     {scan_filter, <<"ScanFilter">>, fun dynamize_scan_filter/1},
-     {exclusive_start_key, <<"ExclusiveStartKey">>, fun(V) -> erlcloud_ddb1:key_value(dynamize_key(V)) end}].
+     return_consumed_capacity_opt(),
+     {scan_filter, <<"ScanFilter">>, fun dynamize_conditions/1},
+     {select, <<"Select">>, fun dynamize_select/1}
+    ].
 
 -spec scan_record() -> record_desc().
 scan_record() ->
     {#ddb_scan{},
-     [{<<"Items">>, #ddb_scan.items, fun(V) -> [undynamize_item(I) || I <- V] end},
+     [{<<"ConsumedCapacity">>, #ddb_scan.consumed_capacity, fun undynamize_consumed_capacity/1},
       {<<"Count">>, #ddb_scan.count, fun id/1},
-      {<<"ScannedCount">>, #ddb_scan.scanned_count, fun id/1},
+      {<<"Items">>, #ddb_scan.items, fun(V) -> [undynamize_item(I) || I <- V] end},
       {<<"LastEvaluatedKey">>, #ddb_scan.last_evaluated_key, fun undynamize_typed_key/1},
-      {<<"ConsumedCapacityUnits">>, #ddb_scan.consumed_capacity_units, fun id/1}
+      {<<"ScannedCount">>, #ddb_scan.scanned_count, fun id/1}
      ]}.
 
 -type scan_return() :: ddb_return(#ddb_scan{}, [out_item()]).
