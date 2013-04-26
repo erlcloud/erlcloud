@@ -95,7 +95,7 @@
          list_tables/0, list_tables/1, list_tables/2,
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
-         q/1, q/2, q/3,
+         q/2, q/3, q/4,
          scan/1, scan/2, scan/3,
          update_item/3, update_item/4, update_item/5,
          update_table/3, update_table/4, update_table/5
@@ -1335,13 +1335,13 @@ q_record() ->
 
 -type q_return() :: ddb_return(#ddb_q{}, [out_item()]).
 
--spec q(table_name()) -> q_return().
-q(Table) ->
-    q(Table, [], default_config()).
+-spec q(table_name(), conditions()) -> q_return().
+q(Table, Conditions) ->
+    q(Table, Conditions, [], default_config()).
 
--spec q(table_name(), q_opts()) -> q_return().
-q(Table, Opts) ->
-    q(Table, Opts, default_config()).
+-spec q(table_name(), conditions(), q_opts()) -> q_return().
+q(Table, Conditions, Opts) ->
+    q(Table, Conditions, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -1361,10 +1361,10 @@ q(Table, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec q(table_name(), q_opts(), aws_config()) -> q_return().
-q(Table, Opts, Config) ->
+-spec q(table_name(), conditions(), q_opts(), aws_config()) -> q_return().
+q(Table, Conditions, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(q_opts(), Opts),
-    Return = erlcloud_ddb1:q(Table, AwsOpts, Config),
+    Return = erlcloud_ddb1:q(Table, [{<<"KeyConditions">>, dynamize_conditions(Conditions)}] ++ AwsOpts, Config),
     out(Return, fun(Json) -> undynamize_record(q_record(), Json) end, DdbOpts, 
         #ddb_q.items, {ok, []}).
 

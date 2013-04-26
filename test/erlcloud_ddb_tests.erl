@@ -1907,13 +1907,12 @@ q_input_tests(_) ->
         [?_ddb_test(
             {"Query example 1 request",
              ?_f(erlcloud_ddb:q(<<"Thread">>,
+                                [{<<"LastPostDateTime">>, {{s, <<"20130101">>}, {s, <<"20130115">>}}, between},
+                                 {<<"ForumName">>, {s, <<"Amazon DynamoDB">>}, eq}],
                                 [{index_name, <<"LastPostIndex">>},
                                  {select, all_attributes},
                                  {limit, 3},
-                                 {consistent_read, true},
-                                 {key_conditions, 
-                                  [{<<"LastPostDateTime">>, {{s, <<"20130101">>}, {s, <<"20130115">>}}, between},
-                                   {<<"ForumName">>, {s, <<"Amazon DynamoDB">>}, eq}]}])), "
+                                 {consistent_read, true}])), "
 {
     \"TableName\": \"Thread\",
     \"IndexName\": \"LastPostIndex\",
@@ -1946,9 +1945,9 @@ q_input_tests(_) ->
          ?_ddb_test(
             {"Query example 2 request",
              ?_f(erlcloud_ddb:q(<<"Thread">>,
+                                [{<<"ForumName">>, <<"Amazon DynamoDB">>, eq}],
                                 [{select, count},
-                                 {consistent_read, true},
-                                 {key_conditions, [{<<"ForumName">>, <<"Amazon DynamoDB">>, eq}]}])), "
+                                 {consistent_read, true}])), "
 {
     \"TableName\": \"Thread\",
     \"Select\": \"COUNT\",
@@ -1968,10 +1967,10 @@ q_input_tests(_) ->
          ?_ddb_test(
             {"Query exclusive start key",
              ?_f(erlcloud_ddb:q(<<"Thread">>,
+                                [{<<"ForumName">>, <<"Amazon DynamoDB">>, eq}],
                                 [{select, count},
                                  {exclusive_start_key, {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
-                                                        {<<"LastPostDateTime">>, {s, <<"20130102054211">>}}}},
-                                 {key_conditions, [{<<"ForumName">>, <<"Amazon DynamoDB">>, eq}]}])), "
+                                                        {<<"LastPostDateTime">>, {s, <<"20130102054211">>}}}}])), "
 {
     \"TableName\": \"Thread\",
     \"Select\": \"COUNT\",
@@ -2101,7 +2100,7 @@ q_output_tests(_) ->
                          }}})
         ],
     
-    output_tests(?_f(erlcloud_ddb:q(<<"table">>, [{out, record}])), Tests).
+    output_tests(?_f(erlcloud_ddb:q(<<"table">>, [{<<"k">>, <<"v">>, eq}], [{out, record}])), Tests).
 
 %% Scan test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Scan.html
