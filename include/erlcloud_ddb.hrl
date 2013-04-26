@@ -106,7 +106,8 @@
 
 -record(ddb_update_item,
         {attributes :: erlcloud_ddb:out_item(),
-         consumed_capacity_units :: number()
+         consumed_capacity :: #ddb_consumed_capacity{},
+         item_collection_metrics :: #ddb_item_collection_metrics{}
         }).
 
 -record(ddb_update_table,
