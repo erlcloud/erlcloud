@@ -258,8 +258,10 @@ update_item(Table, Key, Updates, Opts) ->
 -spec update_item(table_name(), key(), updates(), opts(), aws_config()) -> json_return().
 update_item(Table, Key, Updates, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
-            {<<"Key">>, Key},
-            {<<"AttributeUpdates">>, Updates}]
+            {<<"Key">>, Key}] 
+        ++ if Updates =:= [] -> [];
+              true -> [{<<"AttributeUpdates">>, Updates}]
+           end
         ++ Opts,
     request(Config, "UpdateItem", Json).
 

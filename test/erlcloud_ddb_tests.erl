@@ -2498,8 +2498,25 @@ update_item_input_tests(_) ->
     },
     \"ReturnValues\" : \"NONE\"
 }"
+            }),
+         ?_ddb_test(
+            {"UpdateItem no attribute updates",
+             ?_f(erlcloud_ddb:update_item(<<"Thread">>,
+                                          {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                           {<<"Subject">>, {s, <<"A question about updates">>}}},
+                                          [])), "
+{
+    \"TableName\": \"Thread\",
+    \"Key\": {
+        \"ForumName\": {
+            \"S\": \"Amazon DynamoDB\"
+        },
+        \"Subject\": {
+            \"S\": \"A question about updates\"
+        }
+    }
+}"
             })
-
         ],
 
     Response = "
