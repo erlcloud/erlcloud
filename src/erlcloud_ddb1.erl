@@ -56,7 +56,7 @@
         ]).
 
 %% Helpers
--export([key_value/1, backoff/1, retry/2]).
+-export([backoff/1, retry/2]).
 
 -export_type([key/0, key_schema_value/0, key_schema/0, json_return/0,
               batch_write_item_request/0, attempt/0, retry_fun/0]).
@@ -77,26 +77,6 @@
 -type opts() :: jsx:json_term().
 -type updates() :: jsx:json_term().
 -type json_return() :: {ok, jsx:json_term()} | {error, term()}.
-
--spec key_value(key()) -> jsx:json_term().
-key_value({{HK, HV} = HashKey, {RK, RV} = RangeKey}) when
-      is_binary(HK), is_binary(HV), is_binary(RK), is_binary(RV) ->
-    [{<<"HashKeyElement">>, [HashKey]}, {<<"RangeKeyElement">>, [RangeKey]}];
-key_value({HK, HV} = HashKey) when
-      is_binary(HK), is_binary(HV) ->      
-    [{<<"HashKeyElement">>, [HashKey]}].
-    
--spec key_json(key()) -> {binary(), jsx:json_term()}.
-key_json(Key) ->
-    {<<"Key">>, key_value(Key)}.
-
--spec item_json(item()) -> {binary(), item()}.
-item_json(Item) ->
-    {<<"Item">>, Item}.
-
--spec updates_json(updates()) -> {binary(), updates()}.
-updates_json(Updates) ->
-    {<<"AttributeUpdates">>, Updates}.
 
 
 -type batch_get_item_request_item() :: {table_name(), [key(),...], opts()} | {table_name(), [key(),...]}.
@@ -232,7 +212,7 @@ put_item(Table, Item, Opts) ->
 -spec put_item(table_name(), item(), opts(), aws_config()) -> json_return().
 put_item(Table, Item, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
-            item_json(Item)] 
+            {<<"Item">>, Item}]
         ++ Opts,
     request(Config, "PutItem", Json).
 
@@ -278,8 +258,8 @@ update_item(Table, Key, Updates, Opts) ->
 -spec update_item(table_name(), key(), updates(), opts(), aws_config()) -> json_return().
 update_item(Table, Key, Updates, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
-            key_json(Key),
-            updates_json(Updates)] 
+            {<<"Key">>, Key},
+            {<<"AttributeUpdates">>, Updates}]
         ++ Opts,
     request(Config, "UpdateItem", Json).
 

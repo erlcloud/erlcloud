@@ -1463,6 +1463,8 @@ dynamize_updates(Updates) ->
     dynamize_maybe_list(fun dynamize_update/1, Updates).
 
 -type update_item_opt() :: {expected, in_expected()} | 
+                           return_consumed_capacity_opt() |
+                           return_item_collection_metrics_opt() |
                            {return_values, return_value()} |
                            out_opt().
 -type update_item_opts() :: [update_item_opt()].
@@ -1470,13 +1472,17 @@ dynamize_updates(Updates) ->
 -spec update_item_opts() -> opt_table().
 update_item_opts() ->
     [{expected, <<"Expected">>, fun dynamize_expected/1},
+     return_consumed_capacity_opt(),
+     return_item_collection_metrics_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1}].
 
 -spec update_item_record() -> record_desc().
 update_item_record() ->
     {#ddb_update_item{},
      [{<<"Attributes">>, #ddb_update_item.attributes, fun undynamize_item/1},
-      {<<"ConsumedCapacityUnits">>, #ddb_update_item.consumed_capacity_units, fun id/1}
+      {<<"ConsumedCapacity">>, #ddb_update_item.consumed_capacity, fun undynamize_consumed_capacity/1},
+      {<<"ItemCollectionMetrics">>, #ddb_update_item.item_collection_metrics, 
+       fun undynamize_item_collection_metrics/1}
      ]}.
 
 -type update_item_return() :: ddb_return(#ddb_update_item{}, out_item()).

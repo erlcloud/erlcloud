@@ -50,9 +50,9 @@ operation_test_() ->
       fun q_input_tests/1,
       fun q_output_tests/1,
       fun scan_input_tests/1,
-      fun scan_output_tests/1
-      %% fun update_item_input_tests/1,
-      %% fun update_item_output_tests/1,
+      fun scan_output_tests/1,
+      fun update_item_input_tests/1,
+      fun update_item_output_tests/1
       %% fun update_table_input_tests/1,
       %% fun update_table_output_tests/1
      ]}.
@@ -2437,49 +2437,73 @@ update_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"UpdateItem example request",
-             ?_f(erlcloud_ddb:update_item(<<"comp5">>, {"Julie", 1307654350},
-                                          [{<<"status">>, <<"online">>, put}],
-                                          [{return_values, all_new},
-                                           {expected, {<<"status">>, "offline"}}])), "
-{\"TableName\":\"comp5\",
-    \"Key\":
-        {\"HashKeyElement\":{\"S\":\"Julie\"},\"RangeKeyElement\":{\"N\":\"1307654350\"}},
-    \"AttributeUpdates\":
-        {\"status\":{\"Value\":{\"S\":\"online\"},
-        \"Action\":\"PUT\"}},
-    \"Expected\":{\"status\":{\"Value\":{\"S\":\"offline\"}}},
-    \"ReturnValues\":\"ALL_NEW\"
+             ?_f(erlcloud_ddb:update_item(<<"Thread">>, 
+                                          {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                           {<<"Subject">>, {s, <<"How do I update multiple items?">>}}},
+                                          [{<<"LastPostedBy">>, {s, <<"alice@example.com">>}, put}],
+                                          [{expected, {<<"LastPostedBy">>, {s, <<"fred@example.com">>}}},
+                                           {return_values, all_new}])), "
+{
+    \"TableName\": \"Thread\",
+    \"Key\": {
+        \"ForumName\": {
+            \"S\": \"Amazon DynamoDB\"
+        },
+        \"Subject\": {
+            \"S\": \"How do I update multiple items?\"
+        }
+    },
+    \"AttributeUpdates\": {
+        \"LastPostedBy\": {
+            \"Value\": {
+                \"S\": \"alice@example.com\"
+            },
+            \"Action\": \"PUT\"
+        }
+    },
+    \"Expected\": {
+        \"LastPostedBy\": {
+            \"Value\": {
+                \"S\": \"fred@example.com\"
+            }
+        }
+    },
+    \"ReturnValues\": \"ALL_NEW\"
 }"
             }),
          ?_ddb_test(
-            {"UpdateItem different update types",
-             ?_f(erlcloud_ddb:update_item(<<"comp5">>, {"Julie", 1307654350},
-                                          [{<<"number">>, 5, add},
-                                           {<<"numberset">>, {ns, [3]}, add},
-                                           {<<"todelete">>, delete},
-                                           {<<"toremove">>, {ss, [<<"bye">>]}, delete},
-                                           {<<"defaultput">>, <<"online">>}])), "
-{\"TableName\":\"comp5\",
-    \"Key\":
-        {\"HashKeyElement\":{\"S\":\"Julie\"},\"RangeKeyElement\":{\"N\":\"1307654350\"}},
-    \"AttributeUpdates\":
-        {\"number\":{\"Value\":{\"N\":\"5\"}, \"Action\":\"ADD\"},
-         \"numberset\":{\"Value\":{\"NS\":[\"3\"]}, \"Action\":\"ADD\"},
-         \"todelete\":{\"Action\":\"DELETE\"},
-         \"toremove\":{\"Value\":{\"SS\":[\"bye\"]}, \"Action\":\"DELETE\"},
-         \"defaultput\":{\"Value\":{\"S\":\"online\"}}}
+            {"UpdateItem example request 2",
+             ?_f(erlcloud_ddb:update_item(<<"Thread">>,
+                                          {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                           {<<"Subject">>, {s, <<"A question about updates">>}}},
+                                          [{<<"Replies">>, {n, 1}, add}],
+                                          [{return_values, none}])), "
+{
+    \"TableName\": \"Thread\",
+    \"Key\": {
+        \"ForumName\": {
+            \"S\": \"Amazon DynamoDB\"
+        },
+        \"Subject\": {
+            \"S\": \"A question about updates\"
+        }
+    },
+    \"AttributeUpdates\": {
+        \"Replies\": {
+            \"Action\": \"ADD\",
+            \"Value\": {
+                \"N\": \"1\"
+            }
+        }
+    },
+    \"ReturnValues\" : \"NONE\"
 }"
             })
 
         ],
 
     Response = "
-{\"Attributes\":
-    {\"friends\":{\"SS\":[\"Lynda, Aaron\"]},
-    \"status\":{\"S\":\"online\"},
-    \"time\":{\"N\":\"1307654350\"},
-    \"user\":{\"S\":\"Julie\"}},
-\"ConsumedCapacityUnits\":1
+{
 }",
     input_tests(Response, Tests).
 
@@ -2487,20 +2511,46 @@ update_item_output_tests(_) ->
     Tests = 
         [?_ddb_test(
             {"UpdateItem example response", "
-{\"Attributes\":
-    {\"friends\":{\"SS\":[\"Lynda\", \"Aaron\"]},
-    \"status\":{\"S\":\"online\"},
-    \"time\":{\"N\":\"1307654350\"},
-    \"user\":{\"S\":\"Julie\"}},
-\"ConsumedCapacityUnits\":1
+{
+    \"Attributes\": {
+        \"LastPostedBy\": {
+            \"S\": \"alice@example.com\"
+        },
+        \"ForumName\": {
+            \"S\": \"Amazon DynamoDB\"
+        },
+        \"LastPostDateTime\": {
+            \"S\": \"20130320010350\"
+        },
+        \"Tags\": {
+            \"SS\": [\"Update\",\"Multiple Items\",\"HelpMe\"]
+        },
+        \"Subject\": {
+            \"S\": \"Maximum number of items?\"
+        },
+        \"Views\": {
+            \"N\": \"5\"
+        },
+        \"Message\": {
+            \"S\": \"I want to put 10 million data items to an Amazon DynamoDB table.  Is there an upper limit?\"
+        }
+    }
 }",
-             {ok, [{<<"friends">>, [<<"Lynda">>, <<"Aaron">>]},
-                   {<<"status">>, <<"online">>},
-                   {<<"time">>, 1307654350},
-                   {<<"user">>, <<"Julie">>}]}})
+             {ok, [{<<"LastPostedBy">>, <<"alice@example.com">>},
+                   {<<"ForumName">>, <<"Amazon DynamoDB">>},
+                   {<<"LastPostDateTime">>, <<"20130320010350">>},
+                   {<<"Tags">>, [<<"Update">>,<<"Multiple Items">>,<<"HelpMe">>]},
+                   {<<"Subject">>, <<"Maximum number of items?">>},
+                   {<<"Views">>, 5},
+                   {<<"Message">>, <<"I want to put 10 million data items to an Amazon DynamoDB table.  Is there an upper limit?">>}]}}),
+         ?_ddb_test(
+            {"UpdateItem example response 2", "
+{
+}",
+             {ok, []}})
         ],
     
-    output_tests(?_f(erlcloud_ddb:update_item(<<"table">>, <<"key">>, [])), Tests).
+    output_tests(?_f(erlcloud_ddb:update_item(<<"table">>, {<<"k">>, <<"v">>}, [])), Tests).
 
 %% UpdateTable test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateTable.html
