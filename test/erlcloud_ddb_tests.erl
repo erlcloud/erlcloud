@@ -52,9 +52,9 @@ operation_test_() ->
       fun scan_input_tests/1,
       fun scan_output_tests/1,
       fun update_item_input_tests/1,
-      fun update_item_output_tests/1
-      %% fun update_table_input_tests/1,
-      %% fun update_table_output_tests/1
+      fun update_item_output_tests/1,
+      fun update_table_input_tests/1,
+      fun update_table_output_tests/1
      ]}.
 
 start() ->
@@ -2558,26 +2558,76 @@ update_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"UpdateTable example request",
-             ?_f(erlcloud_ddb:update_table(<<"comp1">>, 5, 15)), "
-{\"TableName\":\"comp1\",
-    \"ProvisionedThroughput\":{\"ReadCapacityUnits\":5,\"WriteCapacityUnits\":15}
+             ?_f(erlcloud_ddb:update_table(<<"Thread">>, 10, 10)), "
+{
+    \"TableName\": \"Thread\",
+    \"ProvisionedThroughput\": {
+        \"ReadCapacityUnits\": 10,
+        \"WriteCapacityUnits\": 10
+    }
 }"
             })
         ],
 
     Response = "
-{\"TableDescription\":
-    {\"CreationDateTime\":1.321657838135E9,
-    \"KeySchema\":
-        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
-        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
-    \"ProvisionedThroughput\":
-        {\"LastDecreaseDateTime\":1.321661704489E9,
-        \"LastIncreaseDateTime\":1.321663607695E9,
-        \"ReadCapacityUnits\":5,
-        \"WriteCapacityUnits\":10},
-    \"TableName\":\"comp1\",
-    \"TableStatus\":\"UPDATING\"}
+{          
+    \"TableDescription\": {
+        \"AttributeDefinitions\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"AttributeType\": \"S\"
+            },
+            {
+                \"AttributeName\": \"LastPostDateTime\",
+                \"AttributeType\": \"S\"
+            },
+            {
+                \"AttributeName\": \"Subject\",
+                \"AttributeType\": \"S\"
+            }
+        ],
+        \"CreationDateTime\": 1.363801528686E9,
+        \"ItemCount\": 0,
+        \"KeySchema\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"KeyType\": \"HASH\"
+            },
+            {
+                \"AttributeName\": \"Subject\",
+                \"KeyType\": \"RANGE\"
+            }
+        ],
+        \"LocalSecondaryIndexes\": [
+            {
+                \"IndexName\": \"LastPostIndex\",
+                \"IndexSizeBytes\": 0,
+                \"ItemCount\": 0,
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"ForumName\",
+                        \"KeyType\": \"HASH\"
+                    },
+                    {
+                        \"AttributeName\": \"LastPostDateTime\",
+                        \"KeyType\": \"RANGE\"
+                    }
+                ],
+                \"Projection\": {
+                    \"ProjectionType\": \"KEYS_ONLY\"
+                }
+            }
+        ],
+        \"ProvisionedThroughput\": {
+            \"LastIncreaseDateTime\": 1.363801701282E9,
+            \"NumberOfDecreasesToday\": 0,
+            \"ReadCapacityUnits\": 5,
+            \"WriteCapacityUnits\": 5
+        },
+        \"TableName\": \"Thread\",
+        \"TableSizeBytes\": 0,
+        \"TableStatus\": \"UPDATING\"
+    }
 }",
     input_tests(Response, Tests).
 
@@ -2585,29 +2635,89 @@ update_table_output_tests(_) ->
     Tests = 
         [?_ddb_test(
             {"UpdateTable example response", "
-{\"TableDescription\":
-    {\"CreationDateTime\":1.321657838135E9,
-    \"KeySchema\":
-        {\"HashKeyElement\":{\"AttributeName\":\"user\",\"AttributeType\":\"S\"},
-        \"RangeKeyElement\":{\"AttributeName\":\"time\",\"AttributeType\":\"N\"}},
-    \"ProvisionedThroughput\":
-        {\"LastDecreaseDateTime\":1.321661704489E9,
-        \"LastIncreaseDateTime\":1.321663607695E9,
-        \"ReadCapacityUnits\":5,
-        \"WriteCapacityUnits\":10},
-    \"TableName\":\"comp1\",
-    \"TableStatus\":\"UPDATING\"}
+{          
+    \"TableDescription\": {
+        \"AttributeDefinitions\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"AttributeType\": \"S\"
+            },
+            {
+                \"AttributeName\": \"LastPostDateTime\",
+                \"AttributeType\": \"S\"
+            },
+            {
+                \"AttributeName\": \"Subject\",
+                \"AttributeType\": \"S\"
+            }
+        ],
+        \"CreationDateTime\": 1.363801528686E9,
+        \"ItemCount\": 0,
+        \"KeySchema\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"KeyType\": \"HASH\"
+            },
+            {
+                \"AttributeName\": \"Subject\",
+                \"KeyType\": \"RANGE\"
+            }
+        ],
+        \"LocalSecondaryIndexes\": [
+            {
+                \"IndexName\": \"LastPostIndex\",
+                \"IndexSizeBytes\": 0,
+                \"ItemCount\": 0,
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"ForumName\",
+                        \"KeyType\": \"HASH\"
+                    },
+                    {
+                        \"AttributeName\": \"LastPostDateTime\",
+                        \"KeyType\": \"RANGE\"
+                    }
+                ],
+                \"Projection\": {
+                    \"ProjectionType\": \"KEYS_ONLY\"
+                }
+            }
+        ],
+        \"ProvisionedThroughput\": {
+            \"LastIncreaseDateTime\": 1.363801701282E9,
+            \"NumberOfDecreasesToday\": 0,
+            \"ReadCapacityUnits\": 5,
+            \"WriteCapacityUnits\": 5
+        },
+        \"TableName\": \"Thread\",
+        \"TableSizeBytes\": 0,
+        \"TableStatus\": \"UPDATING\"
+    }
 }",
              {ok, #ddb_table_description
-              {creation_date_time = 1321657838.135,
-               key_schema = {{<<"user">>, s}, {<<"time">>, n}},
-               provisioned_throughput = #ddb_provisioned_throughput_description{
-                                           read_capacity_units = 5,
-                                           write_capacity_units = 10,
-                                           last_decrease_date_time = 1321661704.489,
-                                           last_increase_date_time = 1321663607.695},
-               table_name = <<"comp1">>,
-               table_status = <<"UPDATING">>}}})
+              {attribute_definitions = [{<<"ForumName">>, s},
+                                        {<<"LastPostDateTime">>, s},
+                                        {<<"Subject">>, s}],
+               creation_date_time = 1363801528.686,
+               item_count = 0,
+               key_schema = {<<"ForumName">>, <<"Subject">>},
+               local_secondary_indexes =
+                   [#ddb_local_secondary_index_description{
+                       index_name = <<"LastPostIndex">>,
+                       index_size_bytes = 0,
+                       item_count = 0,
+                       key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
+                       projection = keys_only}],
+               provisioned_throughput = 
+                   #ddb_provisioned_throughput_description{
+                      last_decrease_date_time = undefined,
+                      last_increase_date_time = 1363801701.282,
+                      number_of_decreases_today = 0,
+                      read_capacity_units = 5,
+                      write_capacity_units = 5},
+               table_name = <<"Thread">>,
+               table_size_bytes = 0,
+               table_status = updating}}})
         ],
     
     output_tests(?_f(erlcloud_ddb:update_table(<<"name">>, 5, 15)), Tests).
