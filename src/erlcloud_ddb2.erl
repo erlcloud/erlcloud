@@ -1384,7 +1384,7 @@ put_item(Table, Item, Opts, Config) ->
                      {attr_name(), {in_attr_value(), in_attr_value()}, between} |
                      {attr_name(), [in_attr_value()], in} |
                      {attr_name(), in_attr_value()}.
--type conditions() :: [condition()].
+-type conditions() :: maybe_list(condition()).
 
 -spec dynamize_condition(condition()) -> json_pair().
 dynamize_condition({Name, AttrValue}) ->
@@ -1401,8 +1401,10 @@ dynamize_condition({Name, AttrValue, Op}) ->
     {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]},
             dynamize_comparison(Op)]}.
 
-dynamize_conditions(V) ->
-    [dynamize_condition(I) || I <- V].
+dynamize_conditions(V) when is_list(V) ->
+    [dynamize_condition(I) || I <- V];
+dynamize_conditions(I) ->
+    [dynamize_condition(I)].
 
 -type select() :: all_attributes | all_projected_attributes | count | specific_attributes.
 dynamize_select(all_attributes)           -> <<"ALL_ATTRIBUTES">>;
