@@ -247,8 +247,8 @@ batch_get_item_input_tests(_) ->
                       {<<"Name">>, {s, <<"Amazon Redshift">>}}],
                      [{attributes_to_get, [<<"Name">>, <<"Threads">>, <<"Messages">>, <<"Views">>]}]},
                     {<<"Thread">>, 
-                     [{{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
-                       {<<"Subject">>, {s, <<"Concurrent reads">>}}}],
+                     [[{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
+                       {<<"Subject">>, {s, <<"Concurrent reads">>}}]],
                      [{attributes_to_get, [<<"Tags">>, <<"Message">>]}]}],
                    [{return_consumed_capacity, total}])), "
 {
@@ -495,13 +495,13 @@ batch_get_item_output_tests(_) ->
               {responses = [], 
                unprocessed_keys = 
                    [{<<"Forum">>, 
-                     [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
-                      {<<"Name">>, {s, <<"Amazon RDS">>}}, 
-                      {<<"Name">>, {s, <<"Amazon Redshift">>}}],
+                     [[{<<"Name">>, {s, <<"Amazon DynamoDB">>}}],
+                      [{<<"Name">>, {s, <<"Amazon RDS">>}}], 
+                      [{<<"Name">>, {s, <<"Amazon Redshift">>}}]],
                      [{attributes_to_get, [<<"Name">>, <<"Threads">>, <<"Messages">>, <<"Views">>]}]},
                     {<<"Thread">>, 
-                     [{{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
-                       {<<"Subject">>, {s, <<"Concurrent reads">>}}}],
+                     [[{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
+                       {<<"Subject">>, {s, <<"Concurrent reads">>}}]],
                      [{attributes_to_get, [<<"Tags">>, <<"Message">>]}]}]}}})
         ],
     
@@ -715,7 +715,7 @@ batch_write_item_output_tests(_) ->
                unprocessed_items =
                    [{<<"Forum">>, [{put, [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
                                           {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
-                                   {delete, {<<"Name">>, {s, <<"Amazon RDS">>}}}
+                                   {delete, [{<<"Name">>, {s, <<"Amazon RDS">>}}]}
                                   ]}]}}}),
          ?_ddb_test(
             {"BatchWriteItem item collection metrics", "
@@ -1230,8 +1230,8 @@ delete_item_input_tests(_) ->
         [?_ddb_test(
             {"DeleteItem example request",
              ?_f(erlcloud_ddb:delete_item(<<"Thread">>, 
-                                          {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
-                                           {<<"Subject">>, {s, <<"How do I update multiple items?">>}}},
+                                          [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                           {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
                                           [{return_values, all_old},
                                            {expected, {<<"Replies">>, false}}])), "
 {
@@ -1606,8 +1606,8 @@ get_item_input_tests(_) ->
         [?_ddb_test(
             {"GetItem example request, with fully specified keys",
              ?_f(erlcloud_ddb:get_item(<<"Thread">>,
-                                       {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
-                                        {<<"Subject">>, {s, <<"How do I update multiple items?">>}}},
+                                       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
+                                        {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
                                        [{attributes_to_get, [<<"LastPostDateTime">>, <<"Message">>, <<"Tags">>]},
                                         consistent_read,
                                         {return_consumed_capacity, total},
@@ -1618,8 +1618,8 @@ get_item_input_tests(_) ->
          ?_ddb_test(
             {"GetItem example request, with inferred key types",
              ?_f(erlcloud_ddb:get_item(<<"Thread">>, 
-                                       {{<<"ForumName">>, "Amazon DynamoDB"},
-                                        {<<"Subject">>, <<"How do I update multiple items?">>}},
+                                       [{<<"ForumName">>, "Amazon DynamoDB"},
+                                        {<<"Subject">>, <<"How do I update multiple items?">>}],
                                        [{attributes_to_get, [<<"LastPostDateTime">>, <<"Message">>, <<"Tags">>]},
                                         {consistent_read, true},
                                         {return_consumed_capacity, total}]
@@ -1969,14 +1969,20 @@ q_input_tests(_) ->
              ?_f(erlcloud_ddb:q(<<"Thread">>,
                                 [{<<"ForumName">>, <<"Amazon DynamoDB">>, eq}],
                                 [{select, count},
-                                 {exclusive_start_key, {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
-                                                        {<<"LastPostDateTime">>, {s, <<"20130102054211">>}}}}])), "
+                                 {index_name, <<"LastPostIndex">>},
+                                 {exclusive_start_key, [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                                        {<<"Subject">>, {s, <<"Exclusive key can have 3 parts">>}},
+                                                        {<<"LastPostDateTime">>, {s, <<"20130102054211">>}}]}])), "
 {
     \"TableName\": \"Thread\",
+    \"IndexName\": \"LastPostIndex\",
     \"Select\": \"COUNT\",
     \"ExclusiveStartKey\": {
         \"ForumName\": {
             \"S\": \"Amazon DynamoDB\"
+        },
+        \"Subject\": {
+            \"S\": \"Exclusive key can have 3 parts\"
         },
         \"LastPostDateTime\": {
             \"S\": \"20130102054211\"
@@ -2088,6 +2094,9 @@ q_output_tests(_) ->
         \"ForumName\": {
             \"S\": \"Amazon DynamoDB\"
         },
+        \"Subject\": {
+            \"S\": \"Exclusive key can have 3 parts\"
+        },
         \"LastPostDateTime\": {
             \"S\": \"20130102054211\"
         }
@@ -2095,8 +2104,8 @@ q_output_tests(_) ->
 }",
              {ok, #ddb_q{count = 17,
                          last_evaluated_key = 
-                             {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
-                              {<<"LastPostDateTime">>, {s, <<"20130102054211">>}}}
+                             [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                              {<<"Subject">>, {s, <<"Exclusive key can have 3 parts">>}},                                                        {<<"LastPostDateTime">>, {s, <<"20130102054211">>}}]
                          }}})
         ],
     
@@ -2137,8 +2146,8 @@ scan_input_tests(_) ->
          ?_ddb_test(
             {"Scan exclusive start key",
              ?_f(erlcloud_ddb:scan(<<"Reply">>, 
-                                   [{exclusive_start_key, {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
-                                                           {<<"LastPostDateTime">>, {n, 20130102054211}}}}])), "
+                                   [{exclusive_start_key, [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                                           {<<"LastPostDateTime">>, {n, 20130102054211}}]}])), "
 {
     \"TableName\": \"Reply\",
     \"ExclusiveStartKey\": {
@@ -2423,8 +2432,8 @@ scan_output_tests(_) ->
                          {<<"Id">>, <<"Amazon DynamoDB#How do I update multiple items?">>},
                          {<<"Message">>, <<"BatchWriteItem is documented in the Amazon DynamoDB API Reference.">>}]
 ],
-               last_evaluated_key = {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
-                                     {<<"LastPostDateTime">>, {n, 20130102054211}}},
+               last_evaluated_key = [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                     {<<"LastPostDateTime">>, {n, 20130102054211}}],
                scanned_count = 4}}})
         ],
     
@@ -2437,8 +2446,8 @@ update_item_input_tests(_) ->
         [?_ddb_test(
             {"UpdateItem example request",
              ?_f(erlcloud_ddb:update_item(<<"Thread">>, 
-                                          {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
-                                           {<<"Subject">>, {s, <<"How do I update multiple items?">>}}},
+                                          [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                           {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
                                           [{<<"LastPostedBy">>, {s, <<"alice@example.com">>}, put}],
                                           [{expected, {<<"LastPostedBy">>, {s, <<"fred@example.com">>}}},
                                            {return_values, all_new}])), "
@@ -2473,8 +2482,8 @@ update_item_input_tests(_) ->
          ?_ddb_test(
             {"UpdateItem example request 2",
              ?_f(erlcloud_ddb:update_item(<<"Thread">>,
-                                          {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
-                                           {<<"Subject">>, {s, <<"A question about updates">>}}},
+                                          [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                           {<<"Subject">>, {s, <<"A question about updates">>}}],
                                           [{<<"Replies">>, {n, 1}, add}],
                                           [{return_values, none}])), "
 {
@@ -2501,8 +2510,8 @@ update_item_input_tests(_) ->
          ?_ddb_test(
             {"UpdateItem no attribute updates",
              ?_f(erlcloud_ddb:update_item(<<"Thread">>,
-                                          {{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
-                                           {<<"Subject">>, {s, <<"A question about updates">>}}},
+                                          [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                           {<<"Subject">>, {s, <<"A question about updates">>}}],
                                           [])), "
 {
     \"TableName\": \"Thread\",

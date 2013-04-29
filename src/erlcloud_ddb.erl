@@ -101,10 +101,7 @@
          update_table/3, update_table/4, update_table/5
         ]).
 
--export_type([table_name/0, hash_key/0, hash_range_key/0, attr_name/0, in_attr/0, out_item/0, key_schema/0,
-              ddb_opts/0,
-              batch_get_item_request_item/0,
-              batch_write_item_request_item/0
+-export_type([
              ]).
 
 %%%------------------------------------------------------------------------------
@@ -162,10 +159,7 @@ default_config() -> erlcloud_aws:default_config().
 -type json_expected() :: [{attr_name(), [json_attr_value()] | [{binary(), boolean()}]}].
 -type json_key() :: [json_attr(),...].
 
--type hash_key() :: in_attr().
--type range_key() :: in_attr().
--type hash_range_key() :: {hash_key(), range_key()}.
--type key() :: hash_key() | hash_range_key().
+-type key() :: maybe_list(in_attr()).
 -type attr_defs() :: maybe_list({attr_name(), attr_type()}).
 -type key_schema() :: attr_name() | {attr_name(), attr_name()}.
 
@@ -244,10 +238,10 @@ dynamize_attr(Attr) ->
     error({erlcloud_ddb, {invalid_attr, Attr}}).
 
 -spec dynamize_key(key()) -> jsx:json_term().
-dynamize_key({HashKey, RangeKey}) when is_tuple(HashKey) ->
-    [dynamize_attr(HashKey), dynamize_attr(RangeKey)];
-dynamize_key(HashKey) ->
-    [dynamize_attr(HashKey)].
+dynamize_key(Key) when is_list(Key) ->
+    [dynamize_attr(I) || I <- Key];
+dynamize_key(Attr) ->
+    [dynamize_attr(Attr)].
 
 -spec dynamize_attr_defs(attr_defs()) -> jsx:json_term().
 dynamize_attr_defs({Name, Type}) ->
@@ -407,10 +401,8 @@ undynamize_value_typed({<<"B">>, Value}) ->
     {b, base64:decode(Value)}.
 
 -spec undynamize_typed_key(json_key()) -> key().
-undynamize_typed_key([HashKey]) ->
-    undynamize_attr_typed(HashKey);
-undynamize_typed_key([HashKey, RangeKey]) ->
-    {undynamize_attr_typed(HashKey), undynamize_attr_typed(RangeKey)}.
+undynamize_typed_key(Key) ->
+    [undynamize_attr_typed(I) || I <- Key].
 
 -spec undynamize_attr_defs([json_item()]) -> attr_defs().
 undynamize_attr_defs(V) ->

@@ -93,14 +93,14 @@
         {consumed_capacity :: #ddb_consumed_capacity{},
          count :: non_neg_integer(),
          items :: [erlcloud_ddb:out_item()],
-         last_evaluated_key :: erlcloud_ddb:hash_range_key()
+         last_evaluated_key :: erlcloud_ddb:key()
         }).
 
 -record(ddb_scan, 
         {consumed_capacity :: #ddb_consumed_capacity{},
          count :: non_neg_integer(),
          items :: [erlcloud_ddb:out_item()],
-         last_evaluated_key :: erlcloud_ddb:hash_range_key(),
+         last_evaluated_key :: erlcloud_ddb:key(),
          scanned_count :: non_neg_integer()
         }).
 
