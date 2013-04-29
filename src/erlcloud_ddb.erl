@@ -63,7 +63,7 @@
 %% to handle conditional check failures, match `{error,
 %% {<<"ConditionalCheckFailedException">>, _}}'.
 %%
-%% `erlcloud_ddb2' provides a higher level API that implements common
+%% `erlcloud_ddb_impl' provides a higher level API that implements common
 %% operations that may require multiple DynamoDB API calls.
 %%
 %% `erlcloud_ddb1' provides a lower level API that takes JSON terms as
