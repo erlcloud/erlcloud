@@ -1908,7 +1908,7 @@ q_input_tests(_) ->
             {"Query example 1 request",
              ?_f(erlcloud_ddb:q(<<"Thread">>,
                                 [{<<"LastPostDateTime">>, {{s, <<"20130101">>}, {s, <<"20130115">>}}, between},
-                                 {<<"ForumName">>, {s, <<"Amazon DynamoDB">>}, eq}],
+                                 {<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}],
                                 [{index_name, <<"LastPostIndex">>},
                                  {select, all_attributes},
                                  {limit, 3},
