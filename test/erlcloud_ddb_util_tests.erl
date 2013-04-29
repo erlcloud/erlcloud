@@ -4,7 +4,7 @@
 -include("erlcloud.hrl").
 -include("erlcloud_ddb.hrl").
 
-%% Unit tests for erlcloud_ddb2.
+%% Unit tests for erlcloud_ddb_util.
 %% These tests work by using meck to mock httpc.
 %%
 %% Input tests verify that different function args produce the desired JSON request.
@@ -22,12 +22,12 @@
 %%% Test entry points
 %%%===================================================================
 
-%% operation_test_() ->
-%%     {foreach,
-%%      fun start/0,
-%%      fun stop/1,
-%%      [fun delete_hash_key_tests/1
-%%      ]}.
+operation_test_() ->
+    {foreach,
+     fun start/0,
+     fun stop/1,
+     [fun delete_hash_key_tests/1
+     ]}.
 
 start() ->
     meck:new(httpc, [unstick]),
@@ -93,7 +93,7 @@ delete_hash_key_tests(_) ->
     Tests =
         [?_ddb_test(
             {"delete_hash_key simple",
-             ?_f(erlcloud_ddb2:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
+             ?_f(erlcloud_ddb_util:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
              [{"
 {\"TableName\":\"tn\",
  \"HashKeyValue\":{\"S\":\"hk\"},
@@ -120,7 +120,7 @@ delete_hash_key_tests(_) ->
              ok}),
          ?_ddb_test(
             {"delete_hash_key no items",
-             ?_f(erlcloud_ddb2:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
+             ?_f(erlcloud_ddb_util:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
              [{"
 {\"TableName\":\"tn\",
  \"HashKeyValue\":{\"S\":\"hk\"},
@@ -136,7 +136,7 @@ delete_hash_key_tests(_) ->
              ok}),
          ?_ddb_test(
             {"delete_hash_key incomplete query",
-             ?_f(erlcloud_ddb2:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
+             ?_f(erlcloud_ddb_util:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
              [{"
 {\"TableName\":\"tn\",
  \"HashKeyValue\":{\"S\":\"hk\"},
@@ -184,7 +184,7 @@ delete_hash_key_tests(_) ->
              ok}),
          ?_ddb_test(
             {"delete_hash_key incomplete batch delete",
-             ?_f(erlcloud_ddb2:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
+             ?_f(erlcloud_ddb_util:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
              [{"
 {\"TableName\":\"tn\",
  \"HashKeyValue\":{\"S\":\"hk\"},
