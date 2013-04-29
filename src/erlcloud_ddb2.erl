@@ -97,8 +97,87 @@
          update_table/3, update_table/4, update_table/5
         ]).
 
--export_type([
-             ]).
+-export_type(
+   [attr_defs/0,
+    attr_name/0,
+    attr_type/0,
+    batch_get_item_opt/0,
+    batch_get_item_opts/0,
+    batch_get_item_request_item/0,
+    batch_get_item_return/0,
+    batch_write_item_delete/0,
+    batch_write_item_opt/0,
+    batch_write_item_opts/0,
+    batch_write_item_put/0,
+    batch_write_item_request/0,
+    batch_write_item_request_item/0,
+    batch_write_item_return/0,
+    boolean_opt/1,
+    comparison_op/0,
+    condition/0,
+    conditions/0,
+    create_table_opt/0,
+    create_table_opts/0,
+    create_table_return/0,
+    ddb_opts/0,
+    ddb_return/2,
+    delete_item_opt/0,
+    delete_item_opts/0,
+    delete_item_return/0,
+    delete_table_return/0,
+    describe_table_return/0,
+    get_item_opt/0,
+    get_item_opts/0,
+    in_attr/0,
+    in_attr_data/0,
+    in_attr_data_scalar/0,
+    in_attr_data_set/0,
+    in_attr_typed_value/0,
+    in_attr_value/0,
+    in_expected/0,
+    in_expected_item/0,
+    in_item/0,
+    in_update/0,
+    in_updates/0,
+    index_name/0,
+    item_return/0,
+    key/0,
+    key_schema/0,
+    list_tables_opt/0,
+    list_tables_opts/0,
+    list_tables_return/0,
+    local_secondary_index_def/0,
+    maybe_list/1,
+    ok_return/1,
+    out_attr/0,
+    out_attr_value/0,
+    out_item/0,
+    out_opt/0,
+    out_type/0,
+    projection/0,
+    put_item_opt/0,
+    put_item_opts/0,
+    put_item_return/0,
+    q_opt/0,
+    q_opts/0,
+    q_return/0,
+    range_key_name/0,
+    return_consumed_capacity/0,
+    return_consumed_capacity_opt/0,
+    return_item_collection_metrics/0,
+    return_item_collection_metrics_opt/0,
+    return_value/0,
+    scan_opt/0,
+    scan_opts/0,
+    scan_return/0,
+    select/0,
+    table_name/0,
+    update_action/0,
+    update_item_opt/0,
+    update_item_opts/0,
+    update_item_return/0,
+    update_table_return/0
+   ]).
 
 %%%------------------------------------------------------------------------------
 %%% Library initialization.
@@ -652,10 +731,11 @@ table_description_record() ->
 batch_get_item_opts() ->
     [return_consumed_capacity_opt()].
 
--type batch_get_item_request_item() :: {table_name(), [key(),...], get_item_opts()} | {table_name(), [key(),...]}.
+-type batch_get_item_request_item() :: {table_name(), [key(),...], get_item_opts()} | 
+                                       {table_name(), [key(),...]}.
 
 -spec dynamize_batch_get_item_request_item(batch_get_item_request_item()) 
-                                          -> {binary(), jsx:json_term(), jsx:json_term()}.
+                                          -> {binary(), jsx:json_term()}.
 dynamize_batch_get_item_request_item({Table, Keys}) ->
     dynamize_batch_get_item_request_item({Table, Keys, []});
 dynamize_batch_get_item_request_item({Table, Keys, Opts}) ->
