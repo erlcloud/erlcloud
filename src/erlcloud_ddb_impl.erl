@@ -156,7 +156,7 @@ client_error(Status, StatusLine, Body) ->
 headers(Config, Operation, Body) ->
     Date = httpd_util:rfc1123_date(erlang:localtime()),
     Headers = [{"x-amz-date", Date},
-               {"x-amz-target", "DynamoDB_20120810." ++ Operation}]
+               {"x-amz-target", Operation}]
         ++ case Config#aws_config.security_token of
                undefined -> [];
                SecurityToken -> [{"x-amz-security-token", SecurityToken}]
