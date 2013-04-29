@@ -48,11 +48,11 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts) ->
 %%
 %% Delete all items with the specified table. Table must be a
 %% hash-and-range primary key table. Opts is currently ignored and is
-%% provided for future enhancements. This method is untransacted.
+%% provided for future enhancements. This method is not transacted.
 %%
 %% ===Example===
 %%
-%% '
+%% `
 %% ok = erlcloud_ddb2:delete_hash_key(<<"table_name">>, <<"hash_key_value">>, <<"range_key_name">>, [])
 %% '
 %%
