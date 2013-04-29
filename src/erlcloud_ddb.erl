@@ -1267,10 +1267,15 @@ put_item(Table, Item, Opts, Config) ->
 
 -type condition() :: {attr_name(), in_attr_value(), comparison_op()} |
                      {attr_name(), {in_attr_value(), in_attr_value()}, between} |
-                     {attr_name(), [in_attr_value()], in}.
+                     {attr_name(), [in_attr_value()], in} |
+                     {attr_name(), in_attr_value()}.
 -type conditions() :: [condition()].
 
 -spec dynamize_condition(condition()) -> json_pair().
+dynamize_condition({Name, AttrValue}) ->
+    %% Default to eq
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]}, 
+            dynamize_comparison(eq)]};
 dynamize_condition({Name, AttrValueList, in}) ->
     {Name, [{<<"AttributeValueList">>, [[dynamize_value(A)] || A <- AttrValueList]},
             dynamize_comparison(in)]};
