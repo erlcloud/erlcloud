@@ -15,7 +15,7 @@
 -module(erlcloud_ddb_util).
 
 -include("erlcloud.hrl").
--include("erlcloud_ddb.hrl").
+-include("erlcloud_ddb2.hrl").
 -include("erlcloud_aws.hrl").
 
 %%% DynamoDB Layer2 API
@@ -24,10 +24,10 @@
 
 -define(BATCH_WRITE_LIMIT, 25).
 
--type table_name() :: erlcloud_ddb:table_name().
--type attr_name() :: erlcloud_ddb:attr_name().
--type ddb_opts() :: erlcloud_ddb:ddb_opts().
--type hash_key() :: erlcloud_ddb:hash_key().
+-type table_name() :: erlcloud_ddb2:table_name().
+-type attr_name() :: erlcloud_ddb2:attr_name().
+-type ddb_opts() :: erlcloud_ddb2:ddb_opts().
+-type hash_key() :: erlcloud_ddb2:in_attr().
 
 default_config() -> erlcloud_aws:default_config().
 
@@ -61,25 +61,25 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts) ->
 
 -spec delete_hash_key(table_name(), hash_key(), attr_name(), ddb_opts(), aws_config()) -> ok | {error, term()}.
 delete_hash_key(Table, HashKey, RangeKeyName, Opts, Config) ->
-    case erlcloud_ddb:q(Table, HashKey,
-                        [{consistent_read, true},
-                         {limit, ?BATCH_WRITE_LIMIT},
-                         {attributes_to_get, [RangeKeyName]},
-                         {out, record}], 
-                        Config) of
+    case erlcloud_ddb2:q(Table, HashKey,
+                         [{consistent_read, true},
+                          {limit, ?BATCH_WRITE_LIMIT},
+                          {attributes_to_get, [RangeKeyName]},
+                          {out, record}], 
+                         Config) of
         {error, Reason} ->
             {error, Reason};
-        {ok, #ddb_q{count = 0}} ->
+        {ok, #ddb2_q{count = 0}} ->
             ok;
         {ok, QResult} ->
-            case erlcloud_ddb:batch_write_item(
-                   [{Table, [{delete, {HashKey, RangeKey}} || [{_, RangeKey}] <- QResult#ddb_q.items]}],
+            case erlcloud_ddb2:batch_write_item(
+                   [{Table, [{delete, [HashKey, RangeKey]} || [RangeKey] <- QResult#ddb2_q.items]}],
                    [{out, record}], Config) of
                 {error, Reason} ->
                     {error, Reason};
                 {ok, BatchResult} ->
-                    if QResult#ddb_q.last_evaluated_key == undefined andalso
-                       BatchResult#ddb_batch_write_item.unprocessed_items == undefined ->
+                    if QResult#ddb2_q.last_evaluated_key == undefined andalso
+                       BatchResult#ddb2_batch_write_item.unprocessed_items == undefined ->
                             %% No more work to do
                             ok;
                        true ->
