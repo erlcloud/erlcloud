@@ -87,7 +87,7 @@
 %%% DynamoDB API
 -export([batch_get_item/1, batch_get_item/2, batch_get_item/3,
          batch_write_item/1, batch_write_item/2, batch_write_item/3,
-         create_table/5, create_table/6, create_table/7,
+         create_table/4, create_table/5, create_table/6,
          delete_item/2, delete_item/3, delete_item/4,
          delete_table/1, delete_table/2, delete_table/3,
          describe_table/1, describe_table/2, describe_table/3,
@@ -101,7 +101,10 @@
          update_table/3, update_table/4, update_table/5
         ]).
 
--export_type([
+-export_type([table_name/0, hash_key/0, hash_range_key/0, attr_name/0, in_attr/0, out_item/0, key_schema/0,
+              ddb_opts/0,
+              batch_get_item_request_item/0,
+              batch_write_item_request_item/0
              ]).
 
 %%%------------------------------------------------------------------------------
@@ -159,9 +162,12 @@ default_config() -> erlcloud_aws:default_config().
 -type json_expected() :: [{attr_name(), [json_attr_value()] | [{binary(), boolean()}]}].
 -type json_key() :: [json_attr(),...].
 
--type key() :: maybe_list(in_attr()).
--type attr_defs() :: maybe_list({attr_name(), attr_type()}).
--type key_schema() :: attr_name() | {attr_name(), attr_name()}.
+-type hash_key() :: in_attr_value().
+-type range_key() :: in_attr_value().
+-type hash_range_key() :: {hash_key(), range_key()}.
+-type key() :: hash_key() | hash_range_key().
+-type key_schema_value() :: {attr_name(), attr_type()}.
+-type key_schema() :: key_schema_value() | {key_schema_value(), key_schema_value()}.
 
 -type return_value() :: none | all_old | updated_old | all_new | updated_new.
 
@@ -230,34 +236,26 @@ dynamize_value(Value) ->
     error({erlcloud_ddb, {invalid_attr_value, Value}}).
 
 -spec dynamize_attr(in_attr()) -> json_attr().
-dynamize_attr({Name, Value}) when is_binary(Name) ->
-    {Name, [dynamize_value(Value)]};
-dynamize_attr({Name, _}) ->
-    error({erlcloud_ddb, {invalid_attr_name, Name}});
-dynamize_attr(Attr) ->
-    error({erlcloud_ddb, {invalid_attr, Attr}}).
+dynamize_attr({Name, Value}) ->
+    {Name, [dynamize_value(Value)]}.
 
--spec dynamize_key(key()) -> jsx:json_term().
-dynamize_key(Key) when is_list(Key) ->
-    [dynamize_attr(I) || I <- Key];
-dynamize_key(Attr) ->
-    [dynamize_attr(Attr)].
+-spec dynamize_key(key()) -> erlcloud_ddb1:key().
+dynamize_key({HashType, _} = HashKey) when is_atom(HashType) ->
+    dynamize_value(HashKey);
+dynamize_key({HashKey, RangeKey}) ->
+    {dynamize_value(HashKey), dynamize_value(RangeKey)};
+dynamize_key(HashKey) ->
+    dynamize_value(HashKey).
 
--spec dynamize_attr_defs(attr_defs()) -> jsx:json_term().
-dynamize_attr_defs({Name, Type}) ->
-    [[{<<"AttributeName">>, Name},
-      {<<"AttributeType">>, dynamize_type(Type)}]];
-dynamize_attr_defs(AttrDefs) ->
-    [[{<<"AttributeName">>, Name},
-      {<<"AttributeType">>, dynamize_type(Type)}]
-     || {Name, Type} <- AttrDefs].
+-spec dynamize_key_schema_value(key_schema_value()) -> erlcloud_ddb1:key_schema_value().
+dynamize_key_schema_value({Name, Type}) ->
+    {Name, dynamize_type(Type)}.
 
--spec dynamize_key_schema(key_schema()) -> jsx:json_term().
-dynamize_key_schema({HashKey, RangeKey}) ->
-    [[{<<"AttributeName">>, HashKey}, {<<"KeyType">>, <<"HASH">>}],
-     [{<<"AttributeName">>, RangeKey}, {<<"KeyType">>, <<"RANGE">>}]];
+-spec dynamize_key_schema(key_schema()) -> erlcloud_ddb1:key_schema().
+dynamize_key_schema({{_, _} = HashKey, {_, _} = RangeKey}) ->
+    {dynamize_key_schema_value(HashKey), dynamize_key_schema_value(RangeKey)};
 dynamize_key_schema(HashKey) ->
-    [[{<<"AttributeName">>, HashKey}, {<<"KeyType">>, <<"HASH">>}]].
+    dynamize_key_schema_value(HashKey).
 
 -spec dynamize_maybe_list(fun((A) -> B), maybe_list(A)) -> [B].
 dynamize_maybe_list(DynamizeItem, List) when is_list(List) ->
@@ -321,22 +319,6 @@ dynamize_comparison(in) ->
 dynamize_comparison(between) ->
     {<<"ComparisonOperator">>, <<"BETWEEN">>}.
 
--type return_consumed_capacity() :: none | total.
--type return_consumed_capacity_opt() :: {return_consumed_capacity, return_consumed_capacity()}.
--spec dynamize_return_consumed_capacity(return_consumed_capacity()) -> binary().
-dynamize_return_consumed_capacity(none) ->
-    <<"NONE">>;
-dynamize_return_consumed_capacity(total) ->
-    <<"TOTAL">>.
-
--type return_item_collection_metrics() :: none | size.
--type return_item_collection_metrics_opt() :: {return_item_collection_metrics, return_item_collection_metrics()}.
--spec dynamize_return_item_collection_metrics(return_item_collection_metrics()) -> binary().
-dynamize_return_item_collection_metrics(none) ->
-    <<"NONE">>;
-dynamize_return_item_collection_metrics(size) ->
-    <<"SIZE">>.
-
 %%%------------------------------------------------------------------------------
 %%% Shared Undynamizers
 %%%------------------------------------------------------------------------------
@@ -388,10 +370,6 @@ undynamize_object(PairFun, List) ->
 undynamize_item(Json) ->
     undynamize_object(fun undynamize_attr/1, Json).
 
--spec undynamize_items([json_item()]) -> [out_item()].
-undynamize_items(Items) ->
-    [undynamize_item(I) || I <- Items].
-
 -spec undynamize_value_typed(json_attr_value()) -> in_attr_typed_value().
 undynamize_value_typed({<<"S">>, Value}) ->
     {s, Value};
@@ -400,36 +378,22 @@ undynamize_value_typed({<<"N">>, Value}) ->
 undynamize_value_typed({<<"B">>, Value}) ->
     {b, base64:decode(Value)}.
 
--spec undynamize_typed_key(json_key()) -> key().
-undynamize_typed_key(Key) ->
-    [undynamize_attr_typed(I) || I <- Key].
+-spec undynamize_key(json_key()) -> key().
+undynamize_key([{<<"HashKeyElement">>, [HashKey]}]) ->
+    undynamize_value_typed(HashKey);
+undynamize_key([{<<"HashKeyElement">>, [HashKey]}, {<<"RangeKeyElement">>, [RangeKey]}]) ->
+    {undynamize_value_typed(HashKey), undynamize_value_typed(RangeKey)}.
 
--spec undynamize_attr_defs([json_item()]) -> attr_defs().
-undynamize_attr_defs(V) ->
-    [{proplists:get_value(<<"AttributeName">>, I),
-      undynamize_type(proplists:get_value(<<"AttributeType">>, I))}
-     || I <- V].
-    
-key_name(Key) ->
-    proplists:get_value(<<"AttributeName">>, Key).
-    
--spec undynamize_key_schema([json_item()]) -> key_schema().
-undynamize_key_schema([HashKey]) ->
-    key_name(HashKey);
-undynamize_key_schema([Key1, Key2]) ->
-    case proplists:get_value(<<"KeyType">>, Key1) of
-        <<"HASH">> ->
-            {key_name(Key1), key_name(Key2)};
-        <<"RANGE">> ->
-            {key_name(Key2), key_name(Key1)}
-    end.
+-spec undynamize_key_schema_value(jsx:json_term()) -> key_schema().
+undynamize_key_schema_value([{<<"AttributeName">>, Name}, {<<"AttributeType">>, Type}]) ->
+    {Name, undynamize_type(Type)}.
 
--spec undynamize_table_status(binary()) -> table_status().
-undynamize_table_status(<<"CREATING">>) -> creating;
-undynamize_table_status(<<"UPDATING">>) -> updating;
-undynamize_table_status(<<"DELETING">>) -> deleting;
-undynamize_table_status(<<"ACTIVE">>)   -> active.
-    
+-spec undynamize_key_schema(jsx:json_term()) -> key_schema().
+undynamize_key_schema([{<<"HashKeyElement">>, HashKey}]) ->
+    undynamize_key_schema_value(HashKey);
+undynamize_key_schema([{<<"HashKeyElement">>, HashKey}, {<<"RangeKeyElement">>, RangeKey}]) ->
+    {undynamize_key_schema_value(HashKey), undynamize_key_schema_value(RangeKey)}.
+
 -type field_table() :: [{binary(), pos_integer(), fun((jsx:json_term()) -> term())}].
 
 -spec undynamize_folder(field_table(), json_pair(), tuple()) -> tuple().
@@ -477,8 +441,7 @@ verify_ddb_opt(out, Value) ->
 verify_ddb_opt(Name, Value) ->
     error({erlcloud_ddb, {invalid_opt, {Name, Value}}}).
 
--type opt_table_entry() :: {atom(), binary(), fun((_) -> jsx:json_term())}.
--type opt_table() :: [opt_table_entry()].
+-type opt_table() :: [{atom(), binary(), fun((_) -> jsx:json_term())}].
 -spec opt_folder(opt_table(), property(), opts()) -> opts().
 opt_folder(_, {_, undefined}, Opts) ->
     %% ignore options set to undefined
@@ -490,36 +453,25 @@ opt_folder(Table, {Name, Value}, {AwsOpts, DdbOpts}) ->
         false ->
             verify_ddb_opt(Name, Value),
             {AwsOpts, [{Name, Value} | DdbOpts]}
-    end.
+    end;
+opt_folder(Table, Name, Opts) ->
+    opt_folder(Table, {Name, true}, Opts).
 
 -spec opts(opt_table(), proplist()) -> opts().
 opts(Table, Opts) when is_list(Opts) ->
-    %% remove duplicate options
-    Opts1 = lists:ukeysort(1, proplists:unfold(Opts)),
-    lists:foldl(fun(Opt, A) -> opt_folder(Table, Opt, A) end, {[], []}, Opts1);
+    lists:foldl(fun(Opt, A) -> opt_folder(Table, Opt, A) end, {[], []}, Opts);
 opts(_, _) ->
     error({erlcloud_ddb, opts_not_list}).
 
--spec return_consumed_capacity_opt() -> opt_table_entry().
-return_consumed_capacity_opt() ->
-    {return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1}.
-
--spec return_item_collection_metrics_opt() -> opt_table_entry().
-return_item_collection_metrics_opt() ->
-    {return_item_collection_metrics, <<"ReturnItemCollectionMetrics">>, 
-     fun dynamize_return_item_collection_metrics/1}.
-
 -type get_item_opt() :: {attributes_to_get, [binary()]} | 
                         boolean_opt(consistent_read) |
-                        return_consumed_capacity_opt() |
                         out_opt().
 -type get_item_opts() :: [get_item_opt()].
 
 -spec get_item_opts() -> opt_table().
 get_item_opts() ->
     [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
-     {consistent_read, <<"ConsistentRead">>, fun id/1},
-     return_consumed_capacity_opt()].
+     {consistent_read, <<"ConsistentRead">>, fun id/1}].
 
 %%%------------------------------------------------------------------------------
 %%% Output
@@ -569,92 +521,29 @@ out(Result, Undynamize, Opts, Index, Default) ->
 %%% Shared Records
 %%%------------------------------------------------------------------------------
 
--spec consumed_capacity_record() -> record_desc().
-consumed_capacity_record() ->
-    {#ddb_consumed_capacity{},
-     [{<<"CapacityUnits">>, #ddb_consumed_capacity.capacity_units, fun id/1},
-      {<<"TableName">>, #ddb_consumed_capacity.table_name, fun id/1}]}.
-
-undynamize_consumed_capacity(V) ->
-    undynamize_record(consumed_capacity_record(), V).
-
-undynamize_consumed_capacity_list(V) ->
-    [undynamize_record(consumed_capacity_record(), I) || I <- V].
-
--spec item_collection_metrics_record() -> record_desc().
-item_collection_metrics_record() ->
-    {#ddb_item_collection_metrics{},
-     [{<<"ItemCollectionKey">>, #ddb_item_collection_metrics.item_collection_key,
-       fun([V]) ->
-               {_Name, Value} = undynamize_attr(V),
-               Value
-       end},
-      {<<"SizeEstimateRangeGB">>, #ddb_item_collection_metrics.size_estimate_range_gb,
-       fun([L, H]) -> {L, H} end}]}.
-
-undynamize_item_collection_metrics(V) ->
-    undynamize_record(item_collection_metrics_record(), V).
-
-undynamize_item_collection_metric_list(Table, V) ->
-    {Table, [undynamize_item_collection_metrics(I) || I <- V]}.
-
-undynamize_projection(V) ->
-    case proplists:get_value(<<"ProjectionType">>, V) of
-        <<"KEYS_ONLY">> ->
-            keys_only;
-        <<"ALL">> ->
-            all;
-        <<"INCLUDE">> ->
-            {include, proplists:get_value(<<"NonKeyAttributes">>, V)}
-    end.
-    
--spec local_secondary_index_description_record() -> record_desc().
-local_secondary_index_description_record() ->
-    {#ddb_local_secondary_index_description{},
-     [{<<"IndexName">>, #ddb_local_secondary_index_description.index_name, fun id/1},
-      {<<"IndexSizeBytes">>, #ddb_local_secondary_index_description.index_size_bytes, fun id/1},
-      {<<"ItemCount">>, #ddb_local_secondary_index_description.item_count, fun id/1},
-      {<<"KeySchema">>, #ddb_local_secondary_index_description.key_schema, fun undynamize_key_schema/1},
-      {<<"Projection">>, #ddb_local_secondary_index_description.projection, fun undynamize_projection/1}
-     ]}.
-
--spec provisioned_throughput_description_record() -> record_desc().
-provisioned_throughput_description_record() ->
-    {#ddb_provisioned_throughput_description{},
-     [{<<"LastDecreaseDateTime">>, #ddb_provisioned_throughput_description.last_decrease_date_time, fun id/1},
-      {<<"LastIncreaseDateTime">>, #ddb_provisioned_throughput_description.last_increase_date_time, fun id/1},
-      {<<"NumberOfDecreasesToday">>, #ddb_provisioned_throughput_description.number_of_decreases_today, fun id/1},
-      {<<"ReadCapacityUnits">>, #ddb_provisioned_throughput_description.read_capacity_units, fun id/1},
-      {<<"WriteCapacityUnits">>, #ddb_provisioned_throughput_description.write_capacity_units, fun id/1}
+-spec provisioned_throughput_record() -> record_desc().
+provisioned_throughput_record() ->
+    {#ddb_provisioned_throughput{},
+     [{<<"ReadCapacityUnits">>, #ddb_provisioned_throughput.read_capacity_units, fun id/1},
+      {<<"WriteCapacityUnits">>, #ddb_provisioned_throughput.write_capacity_units, fun id/1},
+      {<<"LastDecreaseDateTime">>, #ddb_provisioned_throughput.last_decrease_date_time, fun id/1},
+      {<<"LastIncreaseDateTime">>, #ddb_provisioned_throughput.last_increase_date_time, fun id/1}
      ]}.
 
 -spec table_description_record() -> record_desc().
 table_description_record() ->
     {#ddb_table_description{},
-     [{<<"AttributeDefinitions">>, #ddb_table_description.attribute_definitions, fun undynamize_attr_defs/1},
-      {<<"CreationDateTime">>, #ddb_table_description.creation_date_time, fun id/1},
-      {<<"ItemCount">>, #ddb_table_description.item_count, fun id/1},
-      {<<"KeySchema">>, #ddb_table_description.key_schema, fun undynamize_key_schema/1},
-      {<<"LocalSecondaryIndexes">>, #ddb_table_description.local_secondary_indexes,
-       fun(V) -> [undynamize_record(local_secondary_index_description_record(), I) || I <- V] end},
+     [{<<"CreationDateTime">>, #ddb_table_description.creation_date_time, fun id/1},
+      {<<"KeySchema">>, #ddb_table_description.key_schema, fun(V) -> undynamize_key_schema(V) end},
       {<<"ProvisionedThroughput">>, #ddb_table_description.provisioned_throughput,
-       fun(V) -> undynamize_record(provisioned_throughput_description_record(), V) end},
+       fun(V) -> undynamize_record(provisioned_throughput_record(), V) end},
       {<<"TableName">>, #ddb_table_description.table_name, fun id/1},
-      {<<"TableSizeBytes">>, #ddb_table_description.table_size_bytes, fun id/1},
-      {<<"TableStatus">>, #ddb_table_description.table_status, fun undynamize_table_status/1}
+      {<<"TableStatus">>, #ddb_table_description.table_status, fun id/1}
      ]}.
 
 %%%------------------------------------------------------------------------------
 %%% BatchGetItem
 %%%------------------------------------------------------------------------------
-
--type batch_get_item_opt() :: return_consumed_capacity_opt() |
-                              out_opt().
--type batch_get_item_opts() :: [batch_get_item_opt()].
-
--spec batch_get_item_opts() -> opt_table().
-batch_get_item_opts() ->
-    [return_consumed_capacity_opt()].
 
 -type batch_get_item_request_item() :: {table_name(), [key(),...], get_item_opts()} | {table_name(), [key(),...]}.
 
@@ -664,17 +553,24 @@ dynamize_batch_get_item_request_item({Table, Keys}) ->
     dynamize_batch_get_item_request_item({Table, Keys, []});
 dynamize_batch_get_item_request_item({Table, Keys, Opts}) ->
     {AwsOpts, []} = opts(get_item_opts(), Opts),
-    {Table, [{<<"Keys">>, [dynamize_key(K) || K <- Keys]}] ++ AwsOpts}.
+    {Table, [dynamize_key(K) || K <- Keys], AwsOpts}.
 
 -type batch_get_item_request_items() :: maybe_list(batch_get_item_request_item()).
 -spec dynamize_batch_get_item_request_items(batch_get_item_request_items()) -> [tuple()].
 dynamize_batch_get_item_request_items(Request) ->
     dynamize_maybe_list(fun dynamize_batch_get_item_request_item/1, Request).
 
+-spec batch_get_item_response_record(table_name()) -> record_desc().
+batch_get_item_response_record(Table) ->
+    {#ddb_batch_get_item_response{table = Table},
+     [{<<"Items">>, #ddb_batch_get_item_response.items, fun(V) -> [undynamize_item(I) || I <- V] end},
+      {<<"ConsumedCapacityUnits">>, #ddb_batch_get_item_response.consumed_capacity_units, fun id/1}
+     ]}.
+
 -spec batch_get_item_request_item_folder({binary(), term()}, batch_get_item_request_item()) 
                                         -> batch_get_item_request_item().
 batch_get_item_request_item_folder({<<"Keys">>, Keys}, {Table, _, Opts}) ->
-    {Table, [undynamize_typed_key(K) || K <- Keys], Opts};
+    {Table, [undynamize_key(K) || K <- Keys], Opts};
 batch_get_item_request_item_folder({<<"AttributesToGet">>, Value}, {Table, Keys, Opts}) ->
     {Table, Keys, [{attributes_to_get, Value} | Opts]};
 batch_get_item_request_item_folder({<<"ConsistentRead">>, Value}, {Table, Keys, Opts}) ->
@@ -684,19 +580,14 @@ batch_get_item_request_item_folder({<<"ConsistentRead">>, Value}, {Table, Keys, 
 undynamize_batch_get_item_request_item(Table, Json) ->
     lists:foldl(fun batch_get_item_request_item_folder/2, {Table, [], []}, Json).
 
-undynamize_batch_get_item_response({Table, Json}) ->
-    #ddb_batch_get_item_response{
-       table = Table,
-       items = undynamize_items(Json)}.
-
-undynamize_batch_get_item_responses(Response) ->
-    undynamize_object(fun undynamize_batch_get_item_response/1, Response).
-
 -spec batch_get_item_record() -> record_desc().    
 batch_get_item_record() ->
     {#ddb_batch_get_item{},
-     [{<<"ConsumedCapacity">>, #ddb_batch_get_item.consumed_capacity, fun undynamize_consumed_capacity_list/1},
-      {<<"Responses">>, #ddb_batch_get_item.responses, fun undynamize_batch_get_item_responses/1},
+     [{<<"Responses">>, #ddb_batch_get_item.responses, 
+       fun(V) -> undynamize_object(fun({Table, Json}) ->
+                                           undynamize_record(batch_get_item_response_record(Table), Json)
+                                   end, V)
+       end},
       {<<"UnprocessedKeys">>, #ddb_batch_get_item.unprocessed_keys,
        fun(V) -> undynamize_object(fun({Table, Json}) ->
                                            undynamize_batch_get_item_request_item(Table, Json)
@@ -710,7 +601,7 @@ batch_get_item_record() ->
 batch_get_item(RequestItems) ->
     batch_get_item(RequestItems, [], default_config()).
 
--spec batch_get_item([batch_get_item_request_item()], batch_get_item_opts()) -> batch_get_item_return().
+-spec batch_get_item([batch_get_item_request_item()], ddb_opts()) -> batch_get_item_return().
 batch_get_item(RequestItems, Opts) ->
     batch_get_item(RequestItems, Opts, default_config()).
 
@@ -737,11 +628,10 @@ batch_get_item(RequestItems, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec batch_get_item([batch_get_item_request_item()], batch_get_item_opts(), aws_config()) -> 
-                            batch_get_item_return().
+-spec batch_get_item([batch_get_item_request_item()], ddb_opts(), aws_config()) -> batch_get_item_return().
 batch_get_item(RequestItems, Opts, Config) ->
-    {AwsOpts, DdbOpts} = opts(batch_get_item_opts(), Opts),
-    Return = erlcloud_ddb1:batch_get_item(dynamize_batch_get_item_request_items(RequestItems), AwsOpts, Config),
+    {[], DdbOpts} = opts([], Opts),
+    Return = erlcloud_ddb1:batch_get_item(dynamize_batch_get_item_request_items(RequestItems), Config),
     case out(Return, fun(Json) -> undynamize_record(batch_get_item_record(), Json) end, DdbOpts) of
         {simple, #ddb_batch_get_item{unprocessed_keys = [_|_]}} ->
             %% TODO resend unprocessed keys automatically (or controlled by option). 
@@ -758,26 +648,16 @@ batch_get_item(RequestItems, Opts, Config) ->
 %%% BatchWriteItem
 %%%------------------------------------------------------------------------------
 
--type batch_write_item_opt() :: return_consumed_capacity_opt() |
-                                return_item_collection_metrics_opt() |
-                                out_opt().
--type batch_write_item_opts() :: [batch_write_item_opt()].
-
--spec batch_write_item_opts() -> opt_table().
-batch_write_item_opts() ->
-    [return_consumed_capacity_opt(),
-     return_item_collection_metrics_opt()].
-
 -type batch_write_item_put() :: {put, in_item()}.
 -type batch_write_item_delete() :: {delete, key()}.
 -type batch_write_item_request() :: batch_write_item_put() | batch_write_item_delete().
 -type batch_write_item_request_item() :: {table_name(), [batch_write_item_request()]}.
 
--spec dynamize_batch_write_item_request(batch_write_item_request()) -> jsx:json_term().
+-spec dynamize_batch_write_item_request(batch_write_item_request()) -> erlcloud_ddb1:batch_write_item_request().
 dynamize_batch_write_item_request({put, Item}) ->
-    [{<<"PutRequest">>, [{<<"Item">>, dynamize_item(Item)}]}];
+    {put, dynamize_item(Item)};
 dynamize_batch_write_item_request({delete, Key}) ->
-    [{<<"DeleteRequest">>, [{<<"Key">>, dynamize_key(Key)}]}].
+    {delete, dynamize_key(Key)}.
 
 -spec dynamize_batch_write_item_request_item(batch_write_item_request_item()) 
                                           -> json_pair().
@@ -788,6 +668,12 @@ dynamize_batch_write_item_request_item({Table, Requests}) ->
 -spec dynamize_batch_write_item_request_items(batch_write_item_request_items()) -> [tuple()].
 dynamize_batch_write_item_request_items(Request) ->
     dynamize_maybe_list(fun dynamize_batch_write_item_request_item/1, Request).
+
+-spec batch_write_item_response_record(table_name()) -> record_desc().
+batch_write_item_response_record(Table) ->
+    {#ddb_batch_write_item_response{table = Table},
+     [{<<"ConsumedCapacityUnits">>, #ddb_batch_write_item_response.consumed_capacity_units, fun id/1}
+     ]}.
 
 -spec undynamize_attr_typed(json_attr()) -> in_attr().
 undynamize_attr_typed({Name, [ValueJson]}) ->
@@ -802,7 +688,7 @@ undynamize_item_typed(Json) ->
 batch_write_item_request_folder([{<<"PutRequest">>, [{<<"Item">>, Item}]}], {Table, Requests}) ->
     {Table, [{put, undynamize_item_typed(Item)} | Requests]};
 batch_write_item_request_folder([{<<"DeleteRequest">>, [{<<"Key">>, Key}]}], {Table, Requests}) ->
-    {Table, [{delete, undynamize_typed_key(Key)} | Requests]}.
+    {Table, [{delete, undynamize_key(Key)} | Requests]}.
 
 -spec undynamize_batch_write_item_request_item(table_name(), jsx:json_term()) -> batch_write_item_request_item().
 undynamize_batch_write_item_request_item(Table, Json) ->
@@ -812,10 +698,9 @@ undynamize_batch_write_item_request_item(Table, Json) ->
 -spec batch_write_item_record() -> record_desc().
 batch_write_item_record() ->
     {#ddb_batch_write_item{},
-     [{<<"ConsumedCapacity">>, #ddb_batch_write_item.consumed_capacity, fun undynamize_consumed_capacity_list/1},
-      {<<"ItemCollectionMetrics">>, #ddb_batch_write_item.item_collection_metrics,
+     [{<<"Responses">>, #ddb_batch_write_item.responses, 
        fun(V) -> undynamize_object(fun({Table, Json}) ->
-                                           undynamize_item_collection_metric_list(Table, Json)
+                                           undynamize_record(batch_write_item_response_record(Table), Json)
                                    end, V)
        end},
       {<<"UnprocessedItems">>, #ddb_batch_write_item.unprocessed_items,
@@ -831,7 +716,7 @@ batch_write_item_record() ->
 batch_write_item(RequestItems) ->
     batch_write_item(RequestItems, [], default_config()).
 
--spec batch_write_item([batch_write_item_request_item()], batch_write_item_opts()) -> batch_write_item_return().
+-spec batch_write_item([batch_write_item_request_item()], ddb_opts()) -> batch_write_item_return().
 batch_write_item(RequestItems, Opts) ->
     batch_write_item(RequestItems, Opts, default_config()).
 
@@ -855,11 +740,10 @@ batch_write_item(RequestItems, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec batch_write_item([batch_write_item_request_item()], batch_write_item_opts(), aws_config()) -> 
-                              batch_write_item_return().
+-spec batch_write_item([batch_write_item_request_item()], ddb_opts(), aws_config()) -> batch_write_item_return().
 batch_write_item(RequestItems, Opts, Config) ->
-    {AwsOpts, DdbOpts} = opts(batch_write_item_opts(), Opts),
-    Return = erlcloud_ddb1:batch_write_item(dynamize_batch_write_item_request_items(RequestItems), AwsOpts, Config),
+    {[], DdbOpts} = opts([], Opts),
+    Return = erlcloud_ddb1:batch_write_item(dynamize_batch_write_item_request_items(RequestItems), Config),
     case out(Return, fun(Json) -> undynamize_record(batch_write_item_record(), Json) end, DdbOpts) of
         {simple, #ddb_batch_write_item{unprocessed_items = [_|_]}} ->
             %% TODO resend unprocessed items automatically (or controlled by option). 
@@ -874,40 +758,6 @@ batch_write_item(RequestItems, Opts, Config) ->
 %%% CreateTable
 %%%------------------------------------------------------------------------------
 
--type index_name() :: binary().
--type range_key_name() :: attr_name().
--type projection() :: keys_only |
-                      {include, [attr_name()]} |
-                      all.
--type local_secondary_index_def() :: {index_name(), range_key_name(), projection()}.
-
-dynamize_projection(keys_only) ->
-    [{<<"ProjectionType">>, <<"KEYS_ONLY">>}];
-dynamize_projection(all) ->
-    [{<<"ProjectionType">>, <<"ALL">>}];
-dynamize_projection({include, AttrNames}) ->
-    [{<<"ProjectionType">>, <<"INCLUDE">>},
-     {<<"NonKeyAttributes">>, AttrNames}].
-
-dynamize_local_secondary_index(HashKey, {IndexName, RangeKey, Projection}) ->
-    [{<<"IndexName">>, IndexName},
-     {<<"KeySchema">>, [[{<<"AttributeName">>, HashKey},
-                         {<<"KeyType">>, <<"HASH">>}],
-                        [{<<"AttributeName">>, RangeKey},
-                         {<<"KeyType">>, <<"RANGE">>}]]},
-     {<<"Projection">>, dynamize_projection(Projection)}].
-
-dynamize_local_secondary_indexes({HashKey, _RangeKey}, Value) ->
-    [dynamize_local_secondary_index(HashKey, I) || I <- Value].
-
--type create_table_opt() :: {local_secondary_indexes, [local_secondary_index_def()]}.
--type create_table_opts() :: [create_table_opt()].
-
--spec create_table_opts(key_schema()) -> opt_table().
-create_table_opts(KeySchema) ->
-    [{local_secondary_indexes, <<"LocalSecondaryIndexes">>, 
-      fun(V) -> dynamize_local_secondary_indexes(KeySchema, V) end}].
-
 -spec create_table_record() -> record_desc().
 create_table_record() ->
     {#ddb_create_table{},
@@ -917,16 +767,14 @@ create_table_record() ->
 
 -type create_table_return() :: ddb_return(#ddb_create_table{}, #ddb_table_description{}).
 
--spec create_table(table_name(), attr_defs(), key_schema(), non_neg_integer(), non_neg_integer()) 
-                  -> create_table_return().
-create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits) ->
-    create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, [], default_config()).
+-spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer()) -> create_table_return().
+create_table(Table, KeySchema, ReadUnits, WriteUnits) ->
+    create_table(Table, KeySchema, ReadUnits, WriteUnits, [], default_config()).
 
--spec create_table(table_name(), attr_defs(), key_schema(), non_neg_integer(), non_neg_integer(), 
-                   create_table_opts())
+-spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), ddb_opts())
                   -> create_table_return().
-create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
-    create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, default_config()).
+create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts) ->
+    create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -944,13 +792,11 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec create_table(table_name(), attr_defs(), key_schema(), non_neg_integer(), non_neg_integer(), 
-                   create_table_opts(), aws_config()) 
+-spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), ddb_opts(), aws_config()) 
                   -> create_table_return().
-create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
-    {AwsOpts, DdbOpts} = opts(create_table_opts(KeySchema), Opts),
-    Return = erlcloud_ddb1:create_table(Table, dynamize_attr_defs(AttrDefs), dynamize_key_schema(KeySchema), 
-                                        ReadUnits, WriteUnits, AwsOpts, Config),
+create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
+    {[], DdbOpts} = opts([], Opts),
+    Return = erlcloud_ddb1:create_table(Table, dynamize_key_schema(KeySchema), ReadUnits, WriteUnits, Config),
     out(Return, fun(Json) -> undynamize_record(create_table_record(), Json) end, DdbOpts, 
         #ddb_create_table.table_description).
 
@@ -960,25 +806,19 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
 
 -type delete_item_opt() :: {expected, in_expected()} | 
                            {return_values, none | all_old} |
-                           return_consumed_capacity_opt() |
-                           return_item_collection_metrics_opt() |
                            out_opt().
 -type delete_item_opts() :: [delete_item_opt()].
 
 -spec delete_item_opts() -> opt_table().
 delete_item_opts() ->
     [{expected, <<"Expected">>, fun dynamize_expected/1},
-     {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
-     return_consumed_capacity_opt(),
-     return_item_collection_metrics_opt()].
+     {return_values, <<"ReturnValues">>, fun dynamize_return_value/1}].
 
 -spec delete_item_record() -> record_desc().
 delete_item_record() ->
     {#ddb_delete_item{},
      [{<<"Attributes">>, #ddb_delete_item.attributes, fun undynamize_item/1},
-      {<<"ConsumedCapacity">>, #ddb_delete_item.consumed_capacity, fun undynamize_consumed_capacity/1},
-      {<<"ItemCollectionMetrics">>, #ddb_delete_item.item_collection_metrics, 
-       fun undynamize_item_collection_metrics/1}
+      {<<"ConsumedCapacityUnits">>, #ddb_delete_item.consumed_capacity_units, fun id/1}
      ]}.
 
 -type delete_item_return() :: ddb_return(#ddb_delete_item{}, out_item()).
@@ -1062,13 +902,26 @@ delete_table(Table, Opts, Config) ->
 %%% DescribeTable
 %%%------------------------------------------------------------------------------
 
+-spec table_record() -> record_desc().
+table_record() ->
+    {#ddb_table{},
+     [{<<"CreationDateTime">>, #ddb_table.creation_date_time, fun id/1},
+      {<<"ItemCount">>, #ddb_table.item_count, fun id/1},
+      {<<"KeySchema">>, #ddb_table.key_schema, fun(V) -> undynamize_key_schema(V) end},
+      {<<"ProvisionedThroughput">>, #ddb_table.provisioned_throughput,
+       fun(V) -> undynamize_record(provisioned_throughput_record(), V) end},
+      {<<"TableName">>, #ddb_table.table_name, fun id/1},
+      {<<"TableSizeBytes">>, #ddb_table.table_size_bytes, fun id/1},
+      {<<"TableStatus">>, #ddb_table.table_status, fun id/1}
+     ]}.
+
 -spec describe_table_record() -> record_desc().
 describe_table_record() ->
     {#ddb_describe_table{},
-     [{<<"Table">>, #ddb_describe_table.table, fun(V) -> undynamize_record(table_description_record(), V) end}
+     [{<<"Table">>, #ddb_describe_table.table, fun(V) -> undynamize_record(table_record(), V) end}
      ]}. 
 
--type describe_table_return() :: ddb_return(#ddb_describe_table{}, #ddb_table_description{}).
+-type describe_table_return() :: ddb_return(#ddb_describe_table{}, #ddb_table{}).
 
 -spec describe_table(table_name()) -> describe_table_return().
 describe_table(Table) ->
@@ -1107,7 +960,7 @@ describe_table(Table, Opts, Config) ->
 get_item_record() ->
     {#ddb_get_item{},
      [{<<"Item">>, #ddb_get_item.item, fun undynamize_item/1},
-      {<<"ConsumedCapacity">>, #ddb_get_item.consumed_capacity, fun undynamize_consumed_capacity/1}
+      {<<"ConsumedCapacityUnits">>, #ddb_get_item.consumed_capacity_units, fun id/1}
      ]}.
 
 -spec get_item(table_name(), key()) -> item_return().
@@ -1201,25 +1054,19 @@ list_tables(Opts, Config) ->
 
 -type put_item_opt() :: {expected, in_expected()} | 
                         {return_values, none | all_old} |
-                        return_consumed_capacity_opt() |
-                        return_item_collection_metrics_opt() |
                         out_opt().
 -type put_item_opts() :: [put_item_opt()].
 
 -spec put_item_opts() -> opt_table().
 put_item_opts() ->
     [{expected, <<"Expected">>, fun dynamize_expected/1},
-     {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
-     return_consumed_capacity_opt(),
-     return_item_collection_metrics_opt()].
+     {return_values, <<"ReturnValues">>, fun dynamize_return_value/1}].
 
 -spec put_item_record() -> record_desc().
 put_item_record() ->
     {#ddb_put_item{},
      [{<<"Attributes">>, #ddb_put_item.attributes, fun undynamize_item/1},
-      {<<"ConsumedCapacity">>, #ddb_put_item.consumed_capacity, fun undynamize_consumed_capacity/1},
-      {<<"ItemCollectionMetrics">>, #ddb_put_item.item_collection_metrics, 
-       fun undynamize_item_collection_metrics/1}
+      {<<"ConsumedCapacityUnits">>, #ddb_put_item.consumed_capacity_units, fun id/1}
      ]}.
 
 -type put_item_return() :: ddb_return(#ddb_put_item{}, out_item()).
@@ -1265,80 +1112,55 @@ put_item(Table, Item, Opts, Config) ->
 %%% Queue
 %%%------------------------------------------------------------------------------
 
--type condition() :: {attr_name(), in_attr_value(), comparison_op()} |
-                     {attr_name(), {in_attr_value(), in_attr_value()}, between} |
-                     {attr_name(), [in_attr_value()], in} |
-                     {attr_name(), in_attr_value()}.
--type conditions() :: [condition()].
+-type json_range_key_condition() :: jsx:json_term().
+-type range_key_condition() :: {in_attr_value(), comparison_op()} | 
+                               {{in_attr_value(), in_attr_value()}, between}.
 
--spec dynamize_condition(condition()) -> json_pair().
-dynamize_condition({Name, AttrValue}) ->
-    %% Default to eq
-    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]}, 
-            dynamize_comparison(eq)]};
-dynamize_condition({Name, AttrValueList, in}) ->
-    {Name, [{<<"AttributeValueList">>, [[dynamize_value(A)] || A <- AttrValueList]},
-            dynamize_comparison(in)]};
-dynamize_condition({Name, {AttrValue1, AttrValue2}, between}) ->
-    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue1)], [dynamize_value(AttrValue2)]]},
-            dynamize_comparison(between)]};
-dynamize_condition({Name, AttrValue, Op}) ->
-    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]},
-            dynamize_comparison(Op)]}.
+-spec dynamize_range_key_condition(range_key_condition()) -> json_range_key_condition().
+dynamize_range_key_condition({{Value1, Value2}, between}) ->
+    [{<<"AttributeValueList">>, [[dynamize_value(Value1)], [dynamize_value(Value2)]]},
+      dynamize_comparison(between)];
+dynamize_range_key_condition({Value, Comparison}) ->
+    [{<<"AttributeValueList">>, [[dynamize_value(Value)]]}, dynamize_comparison(Comparison)].
 
-dynamize_conditions(V) ->
-    [dynamize_condition(I) || I <- V].
-
--type select() :: all_attributes | all_projected_attributes | count | specific_attributes.
-dynamize_select(all_attributes)           -> <<"ALL_ATTRIBUTES">>;
-dynamize_select(all_projected_attributes) -> <<"ALL_PROJECTED_ATTRIBUTES">>;
-dynamize_select(count)                    -> <<"COUNT">>;
-dynamize_select(specific_attributes)      -> <<"SPECIFIC_ATTRIBUTES">>.
-
-
--type q_opt() :: {attributes_to_get, [attr_name()]} | 
-                 boolean_opt(consistent_read) | 
-                 {exclusive_start_key, key() | undefined} |
-                 {index_name, index_name()} |
-                 {key_conditions, conditions()} |
+-type q_opt() :: {attributes_to_get, [binary()]} | 
                  {limit, pos_integer()} |
-                 return_consumed_capacity_opt() |
+                 boolean_opt(consistent_read) | 
+                 boolean_opt(count) |
+                 {range_key_condition, range_key_condition()} |
                  boolean_opt(scan_index_forward) |
-                 {select, select()} |
+                 {exclusive_start_key, key() | undefined} |
                  out_opt().
 -type q_opts() :: [q_opt()].
 
 -spec q_opts() -> opt_table().
 q_opts() ->
     [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
-     {consistent_read, <<"ConsistentRead">>, fun id/1},
-     {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
-     {index_name, <<"IndexName">>, fun id/1},
-     {key_conditions, <<"KeyConditions">>, fun dynamize_conditions/1},
      {limit, <<"Limit">>, fun id/1},
-     return_consumed_capacity_opt(),
+     {consistent_read, <<"ConsistentRead">>, fun id/1},
+     {count, <<"Count">>, fun id/1},
+     {range_key_condition, <<"RangeKeyCondition">>, fun dynamize_range_key_condition/1},
      {scan_index_forward, <<"ScanIndexForward">>, fun id/1},
-     {select, <<"Select">>, fun dynamize_select/1}
-    ].
+     {exclusive_start_key, <<"ExclusiveStartKey">>, fun(V) -> erlcloud_ddb1:key_value(dynamize_key(V)) end}].
 
 -spec q_record() -> record_desc().
 q_record() ->
     {#ddb_q{},
-     [{<<"ConsumedCapacity">>, #ddb_q.consumed_capacity, fun undynamize_consumed_capacity/1},
+     [{<<"Items">>, #ddb_q.items, fun(V) -> [undynamize_item(I) || I <- V] end},
       {<<"Count">>, #ddb_q.count, fun id/1},
-      {<<"Items">>, #ddb_q.items, fun(V) -> [undynamize_item(I) || I <- V] end},
-      {<<"LastEvaluatedKey">>, #ddb_q.last_evaluated_key, fun undynamize_typed_key/1}
+      {<<"LastEvaluatedKey">>, #ddb_q.last_evaluated_key, fun undynamize_key/1},
+      {<<"ConsumedCapacityUnits">>, #ddb_q.consumed_capacity_units, fun id/1}
      ]}.
 
 -type q_return() :: ddb_return(#ddb_q{}, [out_item()]).
 
--spec q(table_name(), conditions()) -> q_return().
-q(Table, Conditions) ->
-    q(Table, Conditions, [], default_config()).
+-spec q(table_name(), hash_key()) -> q_return().
+q(Table, HashKey) ->
+    q(Table, HashKey, [], default_config()).
 
--spec q(table_name(), conditions(), q_opts()) -> q_return().
-q(Table, Conditions, Opts) ->
-    q(Table, Conditions, Opts, default_config()).
+-spec q(table_name(), hash_key(), q_opts()) -> q_return().
+q(Table, HashKey, Opts) ->
+    q(Table, HashKey, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -1358,10 +1180,10 @@ q(Table, Conditions, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec q(table_name(), conditions(), q_opts(), aws_config()) -> q_return().
-q(Table, Conditions, Opts, Config) ->
+-spec q(table_name(), hash_key(), q_opts(), aws_config()) -> q_return().
+q(Table, HashKey, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(q_opts(), Opts),
-    Return = erlcloud_ddb1:q(Table, [{<<"KeyConditions">>, dynamize_conditions(Conditions)}] ++ AwsOpts, Config),
+    Return = erlcloud_ddb1:q(Table, dynamize_key(HashKey), AwsOpts, Config),
     out(Return, fun(Json) -> undynamize_record(q_record(), Json) end, DdbOpts, 
         #ddb_q.items, {ok, []}).
 
@@ -1369,33 +1191,50 @@ q(Table, Conditions, Opts, Config) ->
 %%% Scan
 %%%------------------------------------------------------------------------------
 
+-type scan_filter_item() :: {attr_name(), [in_attr_value()], in} |
+                            {attr_name(), {in_attr_value(), in_attr_value()}, between} |
+                            {attr_name(), in_attr_value(), comparison_op()}.
+-type scan_filter() :: maybe_list(scan_filter_item()).
+
+-spec dynamize_scan_filter_item(scan_filter_item()) -> json_pair().
+dynamize_scan_filter_item({Name, AttrValueList, in}) ->
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(A)] || A <- AttrValueList]},
+            dynamize_comparison(in)]};
+dynamize_scan_filter_item({Name, {AttrValue1, AttrValue2}, between}) ->
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue1)], [dynamize_value(AttrValue2)]]},
+            dynamize_comparison(between)]};
+dynamize_scan_filter_item({Name, AttrValue, Op}) ->
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]},
+            dynamize_comparison(Op)]}.
+
+-spec dynamize_scan_filter(scan_filter()) -> [json_pair()].
+dynamize_scan_filter(Filter) ->
+    dynamize_maybe_list(fun dynamize_scan_filter_item/1, Filter).
+
 -type scan_opt() :: {attributes_to_get, [binary()]} | 
-                    {exclusive_start_key, key() | undefined} |
                     {limit, pos_integer()} |
-                    return_consumed_capacity_opt() |
-                    {scan_filter, conditions()} |
-                    {select, select()} |
+                    boolean_opt(count) |
+                    {scan_filter, scan_filter()} |
+                    {exclusive_start_key, key()} |
                     out_opt().
 -type scan_opts() :: [scan_opt()].
 
 -spec scan_opts() -> opt_table().
 scan_opts() ->
     [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
-     {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
      {limit, <<"Limit">>, fun id/1},
-     return_consumed_capacity_opt(),
-     {scan_filter, <<"ScanFilter">>, fun dynamize_conditions/1},
-     {select, <<"Select">>, fun dynamize_select/1}
-    ].
+     {count, <<"Count">>, fun id/1},
+     {scan_filter, <<"ScanFilter">>, fun dynamize_scan_filter/1},
+     {exclusive_start_key, <<"ExclusiveStartKey">>, fun(V) -> erlcloud_ddb1:key_value(dynamize_key(V)) end}].
 
 -spec scan_record() -> record_desc().
 scan_record() ->
     {#ddb_scan{},
-     [{<<"ConsumedCapacity">>, #ddb_scan.consumed_capacity, fun undynamize_consumed_capacity/1},
+     [{<<"Items">>, #ddb_scan.items, fun(V) -> [undynamize_item(I) || I <- V] end},
       {<<"Count">>, #ddb_scan.count, fun id/1},
-      {<<"Items">>, #ddb_scan.items, fun(V) -> [undynamize_item(I) || I <- V] end},
-      {<<"LastEvaluatedKey">>, #ddb_scan.last_evaluated_key, fun undynamize_typed_key/1},
-      {<<"ScannedCount">>, #ddb_scan.scanned_count, fun id/1}
+      {<<"ScannedCount">>, #ddb_scan.scanned_count, fun id/1},
+      {<<"LastEvaluatedKey">>, #ddb_scan.last_evaluated_key, fun undynamize_key/1},
+      {<<"ConsumedCapacityUnits">>, #ddb_scan.consumed_capacity_units, fun id/1}
      ]}.
 
 -type scan_return() :: ddb_return(#ddb_scan{}, [out_item()]).
@@ -1460,8 +1299,6 @@ dynamize_updates(Updates) ->
     dynamize_maybe_list(fun dynamize_update/1, Updates).
 
 -type update_item_opt() :: {expected, in_expected()} | 
-                           return_consumed_capacity_opt() |
-                           return_item_collection_metrics_opt() |
                            {return_values, return_value()} |
                            out_opt().
 -type update_item_opts() :: [update_item_opt()].
@@ -1469,17 +1306,13 @@ dynamize_updates(Updates) ->
 -spec update_item_opts() -> opt_table().
 update_item_opts() ->
     [{expected, <<"Expected">>, fun dynamize_expected/1},
-     return_consumed_capacity_opt(),
-     return_item_collection_metrics_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1}].
 
 -spec update_item_record() -> record_desc().
 update_item_record() ->
     {#ddb_update_item{},
      [{<<"Attributes">>, #ddb_update_item.attributes, fun undynamize_item/1},
-      {<<"ConsumedCapacity">>, #ddb_update_item.consumed_capacity, fun undynamize_consumed_capacity/1},
-      {<<"ItemCollectionMetrics">>, #ddb_update_item.item_collection_metrics, 
-       fun undynamize_item_collection_metrics/1}
+      {<<"ConsumedCapacityUnits">>, #ddb_update_item.consumed_capacity_units, fun id/1}
      ]}.
 
 -type update_item_return() :: ddb_return(#ddb_update_item{}, out_item()).
