@@ -646,9 +646,9 @@ out(Result, Undynamize, Opts, Index, Default) ->
 
 -spec consumed_capacity_record() -> record_desc().
 consumed_capacity_record() ->
-    {#ddb_consumed_capacity{},
-     [{<<"CapacityUnits">>, #ddb_consumed_capacity.capacity_units, fun id/1},
-      {<<"TableName">>, #ddb_consumed_capacity.table_name, fun id/1}]}.
+    {#ddb2_consumed_capacity{},
+     [{<<"CapacityUnits">>, #ddb2_consumed_capacity.capacity_units, fun id/1},
+      {<<"TableName">>, #ddb2_consumed_capacity.table_name, fun id/1}]}.
 
 undynamize_consumed_capacity(V) ->
     undynamize_record(consumed_capacity_record(), V).
@@ -658,13 +658,13 @@ undynamize_consumed_capacity_list(V) ->
 
 -spec item_collection_metrics_record() -> record_desc().
 item_collection_metrics_record() ->
-    {#ddb_item_collection_metrics{},
-     [{<<"ItemCollectionKey">>, #ddb_item_collection_metrics.item_collection_key,
+    {#ddb2_item_collection_metrics{},
+     [{<<"ItemCollectionKey">>, #ddb2_item_collection_metrics.item_collection_key,
        fun([V]) ->
                {_Name, Value} = undynamize_attr(V),
                Value
        end},
-      {<<"SizeEstimateRangeGB">>, #ddb_item_collection_metrics.size_estimate_range_gb,
+      {<<"SizeEstimateRangeGB">>, #ddb2_item_collection_metrics.size_estimate_range_gb,
        fun([L, H]) -> {L, H} end}]}.
 
 undynamize_item_collection_metrics(V) ->
@@ -685,38 +685,38 @@ undynamize_projection(V) ->
     
 -spec local_secondary_index_description_record() -> record_desc().
 local_secondary_index_description_record() ->
-    {#ddb_local_secondary_index_description{},
-     [{<<"IndexName">>, #ddb_local_secondary_index_description.index_name, fun id/1},
-      {<<"IndexSizeBytes">>, #ddb_local_secondary_index_description.index_size_bytes, fun id/1},
-      {<<"ItemCount">>, #ddb_local_secondary_index_description.item_count, fun id/1},
-      {<<"KeySchema">>, #ddb_local_secondary_index_description.key_schema, fun undynamize_key_schema/1},
-      {<<"Projection">>, #ddb_local_secondary_index_description.projection, fun undynamize_projection/1}
+    {#ddb2_local_secondary_index_description{},
+     [{<<"IndexName">>, #ddb2_local_secondary_index_description.index_name, fun id/1},
+      {<<"IndexSizeBytes">>, #ddb2_local_secondary_index_description.index_size_bytes, fun id/1},
+      {<<"ItemCount">>, #ddb2_local_secondary_index_description.item_count, fun id/1},
+      {<<"KeySchema">>, #ddb2_local_secondary_index_description.key_schema, fun undynamize_key_schema/1},
+      {<<"Projection">>, #ddb2_local_secondary_index_description.projection, fun undynamize_projection/1}
      ]}.
 
 -spec provisioned_throughput_description_record() -> record_desc().
 provisioned_throughput_description_record() ->
-    {#ddb_provisioned_throughput_description{},
-     [{<<"LastDecreaseDateTime">>, #ddb_provisioned_throughput_description.last_decrease_date_time, fun id/1},
-      {<<"LastIncreaseDateTime">>, #ddb_provisioned_throughput_description.last_increase_date_time, fun id/1},
-      {<<"NumberOfDecreasesToday">>, #ddb_provisioned_throughput_description.number_of_decreases_today, fun id/1},
-      {<<"ReadCapacityUnits">>, #ddb_provisioned_throughput_description.read_capacity_units, fun id/1},
-      {<<"WriteCapacityUnits">>, #ddb_provisioned_throughput_description.write_capacity_units, fun id/1}
+    {#ddb2_provisioned_throughput_description{},
+     [{<<"LastDecreaseDateTime">>, #ddb2_provisioned_throughput_description.last_decrease_date_time, fun id/1},
+      {<<"LastIncreaseDateTime">>, #ddb2_provisioned_throughput_description.last_increase_date_time, fun id/1},
+      {<<"NumberOfDecreasesToday">>, #ddb2_provisioned_throughput_description.number_of_decreases_today, fun id/1},
+      {<<"ReadCapacityUnits">>, #ddb2_provisioned_throughput_description.read_capacity_units, fun id/1},
+      {<<"WriteCapacityUnits">>, #ddb2_provisioned_throughput_description.write_capacity_units, fun id/1}
      ]}.
 
 -spec table_description_record() -> record_desc().
 table_description_record() ->
-    {#ddb_table_description{},
-     [{<<"AttributeDefinitions">>, #ddb_table_description.attribute_definitions, fun undynamize_attr_defs/1},
-      {<<"CreationDateTime">>, #ddb_table_description.creation_date_time, fun id/1},
-      {<<"ItemCount">>, #ddb_table_description.item_count, fun id/1},
-      {<<"KeySchema">>, #ddb_table_description.key_schema, fun undynamize_key_schema/1},
-      {<<"LocalSecondaryIndexes">>, #ddb_table_description.local_secondary_indexes,
+    {#ddb2_table_description{},
+     [{<<"AttributeDefinitions">>, #ddb2_table_description.attribute_definitions, fun undynamize_attr_defs/1},
+      {<<"CreationDateTime">>, #ddb2_table_description.creation_date_time, fun id/1},
+      {<<"ItemCount">>, #ddb2_table_description.item_count, fun id/1},
+      {<<"KeySchema">>, #ddb2_table_description.key_schema, fun undynamize_key_schema/1},
+      {<<"LocalSecondaryIndexes">>, #ddb2_table_description.local_secondary_indexes,
        fun(V) -> [undynamize_record(local_secondary_index_description_record(), I) || I <- V] end},
-      {<<"ProvisionedThroughput">>, #ddb_table_description.provisioned_throughput,
+      {<<"ProvisionedThroughput">>, #ddb2_table_description.provisioned_throughput,
        fun(V) -> undynamize_record(provisioned_throughput_description_record(), V) end},
-      {<<"TableName">>, #ddb_table_description.table_name, fun id/1},
-      {<<"TableSizeBytes">>, #ddb_table_description.table_size_bytes, fun id/1},
-      {<<"TableStatus">>, #ddb_table_description.table_status, fun undynamize_table_status/1}
+      {<<"TableName">>, #ddb2_table_description.table_name, fun id/1},
+      {<<"TableSizeBytes">>, #ddb2_table_description.table_size_bytes, fun id/1},
+      {<<"TableStatus">>, #ddb2_table_description.table_status, fun undynamize_table_status/1}
      ]}.
 
 %%%------------------------------------------------------------------------------
@@ -761,7 +761,7 @@ undynamize_batch_get_item_request_item(Table, Json) ->
     lists:foldl(fun batch_get_item_request_item_folder/2, {Table, [], []}, Json).
 
 undynamize_batch_get_item_response({Table, Json}) ->
-    #ddb_batch_get_item_response{
+    #ddb2_batch_get_item_response{
        table = Table,
        items = undynamize_items(Json)}.
 
@@ -770,17 +770,17 @@ undynamize_batch_get_item_responses(Response) ->
 
 -spec batch_get_item_record() -> record_desc().    
 batch_get_item_record() ->
-    {#ddb_batch_get_item{},
-     [{<<"ConsumedCapacity">>, #ddb_batch_get_item.consumed_capacity, fun undynamize_consumed_capacity_list/1},
-      {<<"Responses">>, #ddb_batch_get_item.responses, fun undynamize_batch_get_item_responses/1},
-      {<<"UnprocessedKeys">>, #ddb_batch_get_item.unprocessed_keys,
+    {#ddb2_batch_get_item{},
+     [{<<"ConsumedCapacity">>, #ddb2_batch_get_item.consumed_capacity, fun undynamize_consumed_capacity_list/1},
+      {<<"Responses">>, #ddb2_batch_get_item.responses, fun undynamize_batch_get_item_responses/1},
+      {<<"UnprocessedKeys">>, #ddb2_batch_get_item.unprocessed_keys,
        fun(V) -> undynamize_object(fun({Table, Json}) ->
                                            undynamize_batch_get_item_request_item(Table, Json)
                                    end, V)
        end}
      ]}.
 
--type batch_get_item_return() :: ddb_return(#ddb_batch_get_item{}, [erlcloud_ddb:out_item()]).
+-type batch_get_item_return() :: ddb_return(#ddb2_batch_get_item{}, [erlcloud_ddb:out_item()]).
 
 -spec batch_get_item([batch_get_item_request_item()]) -> batch_get_item_return().
 batch_get_item(RequestItems) ->
@@ -823,13 +823,13 @@ batch_get_item(RequestItems, Opts, Config) ->
                [{<<"RequestItems">>, dynamize_batch_get_item_request_items(RequestItems)}]
                 ++ AwsOpts),
     case out(Return, fun(Json) -> undynamize_record(batch_get_item_record(), Json) end, DdbOpts) of
-        {simple, #ddb_batch_get_item{unprocessed_keys = [_|_]}} ->
+        {simple, #ddb2_batch_get_item{unprocessed_keys = [_|_]}} ->
             %% TODO resend unprocessed keys automatically (or controlled by option). 
             %% For now return an error - you can handle manually if you don't use simple.
             {error, unprocessed};
-        {simple, #ddb_batch_get_item{unprocessed_keys = [], responses = Responses}} ->
+        {simple, #ddb2_batch_get_item{unprocessed_keys = [], responses = Responses}} ->
             %% Simple return for batch_get_item is all items from all tables in a single list
-            {ok, lists:flatmap(fun(#ddb_batch_get_item_response{items = I}) -> I end, Responses)};
+            {ok, lists:flatmap(fun(#ddb2_batch_get_item_response{items = I}) -> I end, Responses)};
         {ok, _} = Out -> Out;
         {error, _} = Out -> Out
     end.
@@ -891,21 +891,21 @@ undynamize_batch_write_item_request_item(Table, Json) ->
 
 -spec batch_write_item_record() -> record_desc().
 batch_write_item_record() ->
-    {#ddb_batch_write_item{},
-     [{<<"ConsumedCapacity">>, #ddb_batch_write_item.consumed_capacity, fun undynamize_consumed_capacity_list/1},
-      {<<"ItemCollectionMetrics">>, #ddb_batch_write_item.item_collection_metrics,
+    {#ddb2_batch_write_item{},
+     [{<<"ConsumedCapacity">>, #ddb2_batch_write_item.consumed_capacity, fun undynamize_consumed_capacity_list/1},
+      {<<"ItemCollectionMetrics">>, #ddb2_batch_write_item.item_collection_metrics,
        fun(V) -> undynamize_object(fun({Table, Json}) ->
                                            undynamize_item_collection_metric_list(Table, Json)
                                    end, V)
        end},
-      {<<"UnprocessedItems">>, #ddb_batch_write_item.unprocessed_items,
+      {<<"UnprocessedItems">>, #ddb2_batch_write_item.unprocessed_items,
        fun(V) -> undynamize_object(fun({Table, Json}) ->
                                            undynamize_batch_write_item_request_item(Table, Json)
                                    end, V)
        end}
      ]}.
 
--type batch_write_item_return() :: ddb_return(#ddb_batch_write_item{}, #ddb_batch_write_item{}).
+-type batch_write_item_return() :: ddb_return(#ddb2_batch_write_item{}, #ddb2_batch_write_item{}).
 
 -spec batch_write_item([batch_write_item_request_item()]) -> batch_write_item_return().
 batch_write_item(RequestItems) ->
@@ -945,7 +945,7 @@ batch_write_item(RequestItems, Opts, Config) ->
                [{<<"RequestItems">>, dynamize_batch_write_item_request_items(RequestItems)}]
                ++ AwsOpts),
     case out(Return, fun(Json) -> undynamize_record(batch_write_item_record(), Json) end, DdbOpts) of
-        {simple, #ddb_batch_write_item{unprocessed_items = [_|_]}} ->
+        {simple, #ddb2_batch_write_item{unprocessed_items = [_|_]}} ->
             %% TODO resend unprocessed items automatically (or controlled by option). 
             %% For now return an error - you can handle manually if you don't use simple.
             {error, unprocessed};
@@ -994,12 +994,12 @@ create_table_opts(KeySchema) ->
 
 -spec create_table_record() -> record_desc().
 create_table_record() ->
-    {#ddb_create_table{},
-     [{<<"TableDescription">>, #ddb_create_table.table_description, 
+    {#ddb2_create_table{},
+     [{<<"TableDescription">>, #ddb2_create_table.table_description, 
        fun(V) -> undynamize_record(table_description_record(), V) end}
      ]}. 
 
--type create_table_return() :: ddb_return(#ddb_create_table{}, #ddb_table_description{}).
+-type create_table_return() :: ddb_return(#ddb2_create_table{}, #ddb2_table_description{}).
 
 -spec create_table(table_name(), attr_defs(), key_schema(), non_neg_integer(), non_neg_integer()) 
                   -> create_table_return().
@@ -1043,7 +1043,7 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
                                                {<<"WriteCapacityUnits">>, WriteUnits}]}]
                ++ AwsOpts),
     out(Return, fun(Json) -> undynamize_record(create_table_record(), Json) end, DdbOpts, 
-        #ddb_create_table.table_description).
+        #ddb2_create_table.table_description).
 
 %%%------------------------------------------------------------------------------
 %%% DeleteItem
@@ -1065,14 +1065,14 @@ delete_item_opts() ->
 
 -spec delete_item_record() -> record_desc().
 delete_item_record() ->
-    {#ddb_delete_item{},
-     [{<<"Attributes">>, #ddb_delete_item.attributes, fun undynamize_item/1},
-      {<<"ConsumedCapacity">>, #ddb_delete_item.consumed_capacity, fun undynamize_consumed_capacity/1},
-      {<<"ItemCollectionMetrics">>, #ddb_delete_item.item_collection_metrics, 
+    {#ddb2_delete_item{},
+     [{<<"Attributes">>, #ddb2_delete_item.attributes, fun undynamize_item/1},
+      {<<"ConsumedCapacity">>, #ddb2_delete_item.consumed_capacity, fun undynamize_consumed_capacity/1},
+      {<<"ItemCollectionMetrics">>, #ddb2_delete_item.item_collection_metrics, 
        fun undynamize_item_collection_metrics/1}
      ]}.
 
--type delete_item_return() :: ddb_return(#ddb_delete_item{}, out_item()).
+-type delete_item_return() :: ddb_return(#ddb2_delete_item{}, out_item()).
 
 -spec delete_item(table_name(), key()) -> delete_item_return().
 delete_item(Table, Key) ->
@@ -1110,7 +1110,7 @@ delete_item(Table, Key, Opts, Config) ->
                 {<<"Key">>, dynamize_key(Key)}]
                ++ AwsOpts),
     out(Return, fun(Json) -> undynamize_record(delete_item_record(), Json) end, DdbOpts, 
-        #ddb_delete_item.attributes, {ok, []}).
+        #ddb2_delete_item.attributes, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% DeleteTable
@@ -1118,12 +1118,12 @@ delete_item(Table, Key, Opts, Config) ->
 
 -spec delete_table_record() -> record_desc().
 delete_table_record() ->
-    {#ddb_delete_table{},
-     [{<<"TableDescription">>, #ddb_create_table.table_description, 
+    {#ddb2_delete_table{},
+     [{<<"TableDescription">>, #ddb2_create_table.table_description, 
        fun(V) -> undynamize_record(table_description_record(), V) end}
      ]}. 
 
--type delete_table_return() :: ddb_return(#ddb_delete_table{}, #ddb_table_description{}).
+-type delete_table_return() :: ddb_return(#ddb2_delete_table{}, #ddb2_table_description{}).
 
 -spec delete_table(table_name()) -> delete_table_return().
 delete_table(Table) ->
@@ -1155,7 +1155,7 @@ delete_table(Table, Opts, Config) ->
                "DynamoDB_20120810.DeleteTable",
                [{<<"TableName">>, Table}]),
     out(Return, fun(Json) -> undynamize_record(delete_table_record(), Json) end, DdbOpts, 
-        #ddb_delete_table.table_description).
+        #ddb2_delete_table.table_description).
 
 %%%------------------------------------------------------------------------------
 %%% DescribeTable
@@ -1163,11 +1163,11 @@ delete_table(Table, Opts, Config) ->
 
 -spec describe_table_record() -> record_desc().
 describe_table_record() ->
-    {#ddb_describe_table{},
-     [{<<"Table">>, #ddb_describe_table.table, fun(V) -> undynamize_record(table_description_record(), V) end}
+    {#ddb2_describe_table{},
+     [{<<"Table">>, #ddb2_describe_table.table, fun(V) -> undynamize_record(table_description_record(), V) end}
      ]}. 
 
--type describe_table_return() :: ddb_return(#ddb_describe_table{}, #ddb_table_description{}).
+-type describe_table_return() :: ddb_return(#ddb2_describe_table{}, #ddb2_table_description{}).
 
 -spec describe_table(table_name()) -> describe_table_return().
 describe_table(Table) ->
@@ -1199,7 +1199,7 @@ describe_table(Table, Opts, Config) ->
                "DynamoDB_20120810.DescribeTable",
                [{<<"TableName">>, Table}]),
     out(Return, fun(Json) -> undynamize_record(describe_table_record(), Json) end, DdbOpts, 
-        #ddb_describe_table.table).
+        #ddb2_describe_table.table).
 
 %%%------------------------------------------------------------------------------
 %%% GetItem
@@ -1207,9 +1207,9 @@ describe_table(Table, Opts, Config) ->
 
 -spec get_item_record() -> record_desc().
 get_item_record() ->
-    {#ddb_get_item{},
-     [{<<"Item">>, #ddb_get_item.item, fun undynamize_item/1},
-      {<<"ConsumedCapacity">>, #ddb_get_item.consumed_capacity, fun undynamize_consumed_capacity/1}
+    {#ddb2_get_item{},
+     [{<<"Item">>, #ddb2_get_item.item, fun undynamize_item/1},
+      {<<"ConsumedCapacity">>, #ddb2_get_item.consumed_capacity, fun undynamize_consumed_capacity/1}
      ]}.
 
 -spec get_item(table_name(), key()) -> item_return().
@@ -1248,7 +1248,7 @@ get_item(Table, Key, Opts, Config) ->
                 {<<"Key">>, dynamize_key(Key)}]
                ++ AwsOpts),
     out(Return, fun(Json) -> undynamize_record(get_item_record(), Json) end, DdbOpts, 
-        #ddb_get_item.item, {ok, []}).
+        #ddb2_get_item.item, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% ListTables
@@ -1266,12 +1266,12 @@ list_tables_opts() ->
 
 -spec list_tables_record() -> record_desc().
 list_tables_record() ->
-    {#ddb_list_tables{},
-     [{<<"TableNames">>, #ddb_list_tables.table_names, fun id/1},
-      {<<"LastEvaluatedTableName">>, #ddb_list_tables.last_evaluated_table_name, fun id/1}
+    {#ddb2_list_tables{},
+     [{<<"TableNames">>, #ddb2_list_tables.table_names, fun id/1},
+      {<<"LastEvaluatedTableName">>, #ddb2_list_tables.last_evaluated_table_name, fun id/1}
      ]}.
 
--type list_tables_return() :: ddb_return(#ddb_list_tables{}, [table_name()]).
+-type list_tables_return() :: ddb_return(#ddb2_list_tables{}, [table_name()]).
 
 -spec list_tables() -> list_tables_return().
 list_tables() ->
@@ -1303,7 +1303,7 @@ list_tables(Opts, Config) ->
                "DynamoDB_20120810.ListTables",
                AwsOpts),
     out(Return, fun(Json) -> undynamize_record(list_tables_record(), Json) end, DdbOpts, 
-        #ddb_list_tables.table_names, {ok, []}).
+        #ddb2_list_tables.table_names, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% PutItem
@@ -1325,14 +1325,14 @@ put_item_opts() ->
 
 -spec put_item_record() -> record_desc().
 put_item_record() ->
-    {#ddb_put_item{},
-     [{<<"Attributes">>, #ddb_put_item.attributes, fun undynamize_item/1},
-      {<<"ConsumedCapacity">>, #ddb_put_item.consumed_capacity, fun undynamize_consumed_capacity/1},
-      {<<"ItemCollectionMetrics">>, #ddb_put_item.item_collection_metrics, 
+    {#ddb2_put_item{},
+     [{<<"Attributes">>, #ddb2_put_item.attributes, fun undynamize_item/1},
+      {<<"ConsumedCapacity">>, #ddb2_put_item.consumed_capacity, fun undynamize_consumed_capacity/1},
+      {<<"ItemCollectionMetrics">>, #ddb2_put_item.item_collection_metrics, 
        fun undynamize_item_collection_metrics/1}
      ]}.
 
--type put_item_return() :: ddb_return(#ddb_put_item{}, out_item()).
+-type put_item_return() :: ddb_return(#ddb2_put_item{}, out_item()).
 
 -spec put_item(table_name(), in_item()) -> put_item_return().
 put_item(Table, Item) ->
@@ -1374,7 +1374,7 @@ put_item(Table, Item, Opts, Config) ->
                 {<<"Item">>, dynamize_item(Item)}]
                ++ AwsOpts),
     out(Return, fun(Json) -> undynamize_record(put_item_record(), Json) end, DdbOpts, 
-        #ddb_put_item.attributes, {ok, []}).
+        #ddb2_put_item.attributes, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% Queue
@@ -1438,14 +1438,14 @@ q_opts() ->
 
 -spec q_record() -> record_desc().
 q_record() ->
-    {#ddb_q{},
-     [{<<"ConsumedCapacity">>, #ddb_q.consumed_capacity, fun undynamize_consumed_capacity/1},
-      {<<"Count">>, #ddb_q.count, fun id/1},
-      {<<"Items">>, #ddb_q.items, fun(V) -> [undynamize_item(I) || I <- V] end},
-      {<<"LastEvaluatedKey">>, #ddb_q.last_evaluated_key, fun undynamize_typed_key/1}
+    {#ddb2_q{},
+     [{<<"ConsumedCapacity">>, #ddb2_q.consumed_capacity, fun undynamize_consumed_capacity/1},
+      {<<"Count">>, #ddb2_q.count, fun id/1},
+      {<<"Items">>, #ddb2_q.items, fun(V) -> [undynamize_item(I) || I <- V] end},
+      {<<"LastEvaluatedKey">>, #ddb2_q.last_evaluated_key, fun undynamize_typed_key/1}
      ]}.
 
--type q_return() :: ddb_return(#ddb_q{}, [out_item()]).
+-type q_return() :: ddb_return(#ddb2_q{}, [out_item()]).
 
 -spec q(table_name(), conditions()) -> q_return().
 q(Table, Conditions) ->
@@ -1483,7 +1483,7 @@ q(Table, Conditions, Opts, Config) ->
                 {<<"KeyConditions">>, dynamize_conditions(Conditions)}]
                ++ AwsOpts),
     out(Return, fun(Json) -> undynamize_record(q_record(), Json) end, DdbOpts, 
-        #ddb_q.items, {ok, []}).
+        #ddb2_q.items, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% Scan
@@ -1510,15 +1510,15 @@ scan_opts() ->
 
 -spec scan_record() -> record_desc().
 scan_record() ->
-    {#ddb_scan{},
-     [{<<"ConsumedCapacity">>, #ddb_scan.consumed_capacity, fun undynamize_consumed_capacity/1},
-      {<<"Count">>, #ddb_scan.count, fun id/1},
-      {<<"Items">>, #ddb_scan.items, fun(V) -> [undynamize_item(I) || I <- V] end},
-      {<<"LastEvaluatedKey">>, #ddb_scan.last_evaluated_key, fun undynamize_typed_key/1},
-      {<<"ScannedCount">>, #ddb_scan.scanned_count, fun id/1}
+    {#ddb2_scan{},
+     [{<<"ConsumedCapacity">>, #ddb2_scan.consumed_capacity, fun undynamize_consumed_capacity/1},
+      {<<"Count">>, #ddb2_scan.count, fun id/1},
+      {<<"Items">>, #ddb2_scan.items, fun(V) -> [undynamize_item(I) || I <- V] end},
+      {<<"LastEvaluatedKey">>, #ddb2_scan.last_evaluated_key, fun undynamize_typed_key/1},
+      {<<"ScannedCount">>, #ddb2_scan.scanned_count, fun id/1}
      ]}.
 
--type scan_return() :: ddb_return(#ddb_scan{}, [out_item()]).
+-type scan_return() :: ddb_return(#ddb2_scan{}, [out_item()]).
 
 -spec scan(table_name()) -> scan_return().
 scan(Table) ->
@@ -1551,7 +1551,7 @@ scan(Table, Opts, Config) ->
                [{<<"TableName">>, Table}]
                ++ AwsOpts),
     out(Return, fun(Json) -> undynamize_record(scan_record(), Json) end, DdbOpts, 
-        #ddb_scan.items, {ok, []}).
+        #ddb2_scan.items, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateItem
@@ -1599,14 +1599,14 @@ update_item_opts() ->
 
 -spec update_item_record() -> record_desc().
 update_item_record() ->
-    {#ddb_update_item{},
-     [{<<"Attributes">>, #ddb_update_item.attributes, fun undynamize_item/1},
-      {<<"ConsumedCapacity">>, #ddb_update_item.consumed_capacity, fun undynamize_consumed_capacity/1},
-      {<<"ItemCollectionMetrics">>, #ddb_update_item.item_collection_metrics, 
+    {#ddb2_update_item{},
+     [{<<"Attributes">>, #ddb2_update_item.attributes, fun undynamize_item/1},
+      {<<"ConsumedCapacity">>, #ddb2_update_item.consumed_capacity, fun undynamize_consumed_capacity/1},
+      {<<"ItemCollectionMetrics">>, #ddb2_update_item.item_collection_metrics, 
        fun undynamize_item_collection_metrics/1}
      ]}.
 
--type update_item_return() :: ddb_return(#ddb_update_item{}, out_item()).
+-type update_item_return() :: ddb_return(#ddb2_update_item{}, out_item()).
 
 -spec update_item(table_name(), key(), in_updates()) -> update_item_return().
 update_item(Table, Key, Updates) ->
@@ -1649,7 +1649,7 @@ update_item(Table, Key, Updates, Opts, Config) ->
                   end
                ++ AwsOpts),
     out(Return, fun(Json) -> undynamize_record(update_item_record(), Json) end, DdbOpts, 
-        #ddb_update_item.attributes, {ok, []}).
+        #ddb2_update_item.attributes, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateTable
@@ -1657,12 +1657,12 @@ update_item(Table, Key, Updates, Opts, Config) ->
 
 -spec update_table_record() -> record_desc().
 update_table_record() ->
-    {#ddb_update_table{},
-     [{<<"TableDescription">>, #ddb_create_table.table_description, 
+    {#ddb2_update_table{},
+     [{<<"TableDescription">>, #ddb2_create_table.table_description, 
        fun(V) -> undynamize_record(table_description_record(), V) end}
      ]}. 
 
--type update_table_return() :: ddb_return(#ddb_update_table{}, #ddb_table_description{}).
+-type update_table_return() :: ddb_return(#ddb2_update_table{}, #ddb2_table_description{}).
 
 -spec update_table(table_name(), non_neg_integer(), non_neg_integer()) -> update_table_return().
 update_table(Table, ReadUnits, WriteUnits) ->
@@ -1697,4 +1697,4 @@ update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
                 {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
                                                {<<"WriteCapacityUnits">>, WriteUnits}]}]),
     out(Return, fun(Json) -> undynamize_record(update_table_record(), Json) end, DdbOpts, 
-        #ddb_update_table.table_description).
+        #ddb2_update_table.table_description).
