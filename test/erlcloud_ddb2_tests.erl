@@ -433,12 +433,12 @@ batch_get_item_output_tests(_) ->
         }
     ]
 }",
-             {ok, #ddb_batch_get_item
+             {ok, #ddb2_batch_get_item
               {consumed_capacity = 
-                   [#ddb_consumed_capacity{table_name = <<"Forum">>, capacity_units = 3},
-                    #ddb_consumed_capacity{table_name = <<"Thread">>, capacity_units = 1}],
+                   [#ddb2_consumed_capacity{table_name = <<"Forum">>, capacity_units = 3},
+                    #ddb2_consumed_capacity{table_name = <<"Thread">>, capacity_units = 1}],
                responses = 
-                   [#ddb_batch_get_item_response
+                   [#ddb2_batch_get_item_response
                     {table = <<"Forum">>,
                      items = [[{<<"Name">>, <<"Amazon DynamoDB">>},
                                {<<"Threads">>, 5},
@@ -452,7 +452,7 @@ batch_get_item_output_tests(_) ->
                                {<<"Threads">>, 12},
                                {<<"Messages">>, 55},
                                {<<"Views">>, 47}]]},
-                    #ddb_batch_get_item_response
+                    #ddb2_batch_get_item_response
                     {table = <<"Thread">>,
                      items = [[{<<"Tags">>, [<<"Reads">>, <<"MultipleUsers">>]},
                                {<<"Message">>, <<"How many users can read a single data item at a time? Are there any limits?">>}]]}],
@@ -491,7 +491,7 @@ batch_get_item_output_tests(_) ->
         }
     }
 }",
-             {ok, #ddb_batch_get_item
+             {ok, #ddb2_batch_get_item
               {responses = [], 
                unprocessed_keys = 
                    [{<<"Forum">>, 
@@ -674,8 +674,8 @@ batch_write_item_output_tests(_) ->
         }
     ]
 }",
-             {ok, #ddb_batch_write_item
-              {consumed_capacity = [#ddb_consumed_capacity{table_name = <<"Forum">>, capacity_units = 3}],
+             {ok, #ddb2_batch_write_item
+              {consumed_capacity = [#ddb2_consumed_capacity{table_name = <<"Forum">>, capacity_units = 3}],
                item_collection_metrics = undefined,
                unprocessed_items = [{<<"Forum">>, 
                                      [{put, [{<<"Name">>, {s, <<"Amazon ElastiCache">>}},
@@ -709,7 +709,7 @@ batch_write_item_output_tests(_) ->
         ]
     }
 }",
-             {ok, #ddb_batch_write_item
+             {ok, #ddb2_batch_write_item
               {consumed_capacity = undefined, 
                item_collection_metrics = undefined,
                unprocessed_items =
@@ -760,19 +760,19 @@ batch_write_item_output_tests(_) ->
         ]
     }
 }",
-             {ok, #ddb_batch_write_item
+             {ok, #ddb2_batch_write_item
               {consumed_capacity = undefined, 
                item_collection_metrics = 
                    [{<<"Table1">>,
-                     [#ddb_item_collection_metrics
+                     [#ddb2_item_collection_metrics
                       {item_collection_key = <<"value1">>,
                        size_estimate_range_gb = {2, 4}},
-                      #ddb_item_collection_metrics
+                      #ddb2_item_collection_metrics
                       {item_collection_key = <<"value2">>,
                        size_estimate_range_gb = {0.1, 0.2}}
                      ]},
                     {<<"Table2">>,
-                     [#ddb_item_collection_metrics
+                     [#ddb2_item_collection_metrics
                       {item_collection_key = 3,
                        size_estimate_range_gb = {1.2, 1.4}}
                      ]}],
@@ -1066,7 +1066,7 @@ create_table_output_tests(_) ->
         \"TableStatus\": \"CREATING\"
     }
 }",
-             {ok, #ddb_table_description
+             {ok, #ddb2_table_description
               {attribute_definitions = [{<<"ForumName">>, s},
                                         {<<"LastPostDateTime">>, s},
                                         {<<"Subject">>, s}],
@@ -1074,14 +1074,14 @@ create_table_output_tests(_) ->
                item_count = 0,
                key_schema = {<<"ForumName">>, <<"Subject">>},
                local_secondary_indexes =
-                   [#ddb_local_secondary_index_description{
+                   [#ddb2_local_secondary_index_description{
                        index_name = <<"LastPostIndex">>,
                        index_size_bytes = 0,
                        item_count = 0,
                        key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
                        projection = keys_only}],
                provisioned_throughput = 
-                   #ddb_provisioned_throughput_description{
+                   #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
                       last_increase_date_time = undefined,
                       number_of_decreases_today = 0,
@@ -1151,7 +1151,7 @@ create_table_output_tests(_) ->
         \"TableStatus\": \"CREATING\"
     }
 }",
-             {ok, #ddb_table_description
+             {ok, #ddb2_table_description
               {attribute_definitions = [{<<"ForumName">>, s},
                                         {<<"LastPostDateTime">>, s},
                                         {<<"Subject">>, s}],
@@ -1159,14 +1159,14 @@ create_table_output_tests(_) ->
                item_count = 0,
                key_schema = {<<"ForumName">>, <<"Subject">>},
                local_secondary_indexes =
-                   [#ddb_local_secondary_index_description{
+                   [#ddb2_local_secondary_index_description{
                        index_name = <<"LastPostIndex">>,
                        index_size_bytes = 0,
                        item_count = 0,
                        key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
                        projection = {include, [<<"Author">>, <<"Body">>]}}],
                provisioned_throughput = 
-                   #ddb_provisioned_throughput_description{
+                   #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
                       last_increase_date_time = undefined,
                       number_of_decreases_today = 0,
@@ -1203,14 +1203,14 @@ create_table_output_tests(_) ->
         \"TableStatus\": \"CREATING\"
     }
 }",
-             {ok, #ddb_table_description
+             {ok, #ddb2_table_description
               {attribute_definitions = [{<<"ForumName">>, s}],
                creation_date_time = 1363728080.07,
                item_count = 0,
                key_schema = <<"ForumName">>,
                local_secondary_indexes = undefined,
                provisioned_throughput = 
-                   #ddb_provisioned_throughput_description{
+                   #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
                       last_increase_date_time = undefined,
                       number_of_decreases_today = 0,
@@ -1322,7 +1322,7 @@ delete_item_output_tests(_) ->
         }
     }
 }",
-             {ok, #ddb_delete_item{
+             {ok, #ddb2_delete_item{
                      attributes = [{<<"LastPostedBy">>, <<"fred@example.com">>},
                                    {<<"ForumName">>, <<"Amazon DynamoDB">>},
                                    {<<"LastPostDateTime">>, <<"201303201023">>},
@@ -1346,13 +1346,13 @@ delete_item_output_tests(_) ->
         \"SizeEstimateRangeGB\": [1, 2]
     }
 }",
-             {ok, #ddb_delete_item{
+             {ok, #ddb2_delete_item{
                      consumed_capacity =
-                         #ddb_consumed_capacity{
+                         #ddb2_consumed_capacity{
                             table_name = <<"Thread">>,
                             capacity_units = 1},
                      item_collection_metrics =
-                         #ddb_item_collection_metrics{
+                         #ddb2_item_collection_metrics{
                             item_collection_key = <<"Amazon DynamoDB">>,
                             size_estimate_range_gb = {1,2}}
                      }}})
@@ -1406,9 +1406,9 @@ delete_table_output_tests(_) ->
         \"TableStatus\": \"DELETING\"
     }
 }",
-             {ok, #ddb_table_description
+             {ok, #ddb2_table_description
               {item_count = 0,
-               provisioned_throughput = #ddb_provisioned_throughput_description{
+               provisioned_throughput = #ddb2_provisioned_throughput_description{
                                            read_capacity_units = 5,
                                            write_capacity_units = 5,
                                            number_of_decreases_today = 0},
@@ -1555,7 +1555,7 @@ describe_table_output_tests(_) ->
         \"TableStatus\": \"ACTIVE\"
     }
 }",
-             {ok, #ddb_table_description
+             {ok, #ddb2_table_description
               {attribute_definitions = [{<<"ForumName">>, s},
                                         {<<"LastPostDateTime">>, s},
                                         {<<"Subject">>, s}],
@@ -1563,14 +1563,14 @@ describe_table_output_tests(_) ->
                item_count = 0,
                key_schema = {<<"ForumName">>, <<"Subject">>},
                local_secondary_indexes =
-                   [#ddb_local_secondary_index_description{
+                   [#ddb2_local_secondary_index_description{
                        index_name = <<"LastPostIndex">>,
                        index_size_bytes = 0,
                        item_count = 0,
                        key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
                        projection = keys_only}],
                provisioned_throughput = 
-                   #ddb_provisioned_throughput_description{
+                   #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
                       last_increase_date_time = undefined,
                       number_of_decreases_today = 0,
@@ -1675,11 +1675,11 @@ get_item_output_tests(_) ->
         }
     }
 }",
-             {ok, #ddb_get_item{
+             {ok, #ddb2_get_item{
                      item = [{<<"Tags">>, [<<"Update">>, <<"Multiple Items">>, <<"HelpMe">>]},
                              {<<"LastPostDateTime">>, <<"201303190436">>},
                              {<<"Message">>, <<"I want to update multiple items in a single API call. What's the best way to do that?">>}],
-                    consumed_capacity = #ddb_consumed_capacity{
+                    consumed_capacity = #ddb2_consumed_capacity{
                                           capacity_units = 1,
                                           table_name = <<"Thread">>}}}}),
          ?_ddb_test(
@@ -1696,7 +1696,7 @@ get_item_output_tests(_) ->
 	 \"empty\":{\"S\":\"\"}
 	}
 }",
-             {ok, #ddb_get_item{
+             {ok, #ddb2_get_item{
                      item = [{<<"ss">>, [<<"Lynda">>, <<"Aaron">>]},
                              {<<"ns">>, [12,13.0,14.1]},
                              {<<"bs">>, [<<5,182>>]},
@@ -1710,11 +1710,11 @@ get_item_output_tests(_) ->
          ?_ddb_test(
             {"GetItem item not found", 
              "{}",
-             {ok, #ddb_get_item{item = undefined}}}),
+             {ok, #ddb2_get_item{item = undefined}}}),
          ?_ddb_test(
             {"GetItem no attributes returned", 
              "{\"Item\":{}}",
-             {ok, #ddb_get_item{item = []}}})
+             {ok, #ddb2_get_item{item = []}}})
         ],
     
     output_tests(?_f(erlcloud_ddb2:get_item(<<"table">>, {<<"k">>, <<"v">>}, [{out, record}])), Tests).
@@ -1754,7 +1754,7 @@ list_tables_output_tests(_) ->
     \"LastEvaluatedTableName\": \"Thread\",
     \"TableNames\": [\"Forum\",\"Reply\",\"Thread\"]
 }",
-             {ok, #ddb_list_tables
+             {ok, #ddb2_list_tables
               {last_evaluated_table_name = <<"Thread">>,
                table_names = [<<"Forum">>, <<"Reply">>, <<"Thread">>]}}})
         ],
@@ -1842,7 +1842,7 @@ put_item_output_tests(_) ->
             {"PutItem example response", "
 {
 }",
-             {ok, #ddb_put_item{}}}),
+             {ok, #ddb2_put_item{}}}),
          ?_ddb_test(
             {"PutItem complete response", "
 {
@@ -1880,7 +1880,7 @@ put_item_output_tests(_) ->
     }
 }",
 
-             {ok, #ddb_put_item{
+             {ok, #ddb2_put_item{
                      attributes = [{<<"LastPostedBy">>, <<"fred@example.com">>},
                                    {<<"ForumName">>, <<"Amazon DynamoDB">>},
                                    {<<"LastPostDateTime">>, <<"201303201023">>},
@@ -1888,11 +1888,11 @@ put_item_output_tests(_) ->
                                    {<<"Subject">>, <<"How do I update multiple items?">>},
                                    {<<"Message">>, <<"I want to update multiple items in a single API call. What's the best way to do that?">>}],
                      consumed_capacity =
-                         #ddb_consumed_capacity{
+                         #ddb2_consumed_capacity{
                             table_name = <<"Thread">>,
                             capacity_units = 1},
                      item_collection_metrics =
-                         #ddb_item_collection_metrics{
+                         #ddb2_item_collection_metrics{
                             item_collection_key = <<"Amazon DynamoDB">>,
                             size_estimate_range_gb = {1,2}}
                      }}})
@@ -2063,7 +2063,7 @@ q_output_tests(_) ->
         \"TableName\": \"Thread\"
     }
 }",
-             {ok, #ddb_q{count = 3,
+             {ok, #ddb2_q{count = 3,
                          items = [[{<<"LastPostedBy">>, <<"fred@example.com">>},
                                    {<<"ForumName">>, <<"Amazon DynamoDB">>},
                                    {<<"LastPostDateTime">>, <<"20130102054211">>},
@@ -2077,7 +2077,7 @@ q_output_tests(_) ->
                                    {<<"LastPostDateTime">>, <<"20130108094417">>},
                                    {<<"Tags">>, [<<"AppDesign">>, <<"HelpMe">>]}]],
                          consumed_capacity =
-                             #ddb_consumed_capacity{
+                             #ddb2_consumed_capacity{
                                 capacity_units = 2,
                                 table_name = <<"Thread">>}}}}),
          ?_ddb_test(
@@ -2085,7 +2085,7 @@ q_output_tests(_) ->
 {
     \"Count\":17
 }",
-             {ok, #ddb_q{count = 17}}}),
+             {ok, #ddb2_q{count = 17}}}),
          ?_ddb_test(
             {"Query last evaluated key", "
 {
@@ -2102,7 +2102,7 @@ q_output_tests(_) ->
         }
     }
 }",
-             {ok, #ddb_q{count = 17,
+             {ok, #ddb2_q{count = 17,
                          last_evaluated_key = 
                              [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                               {<<"Subject">>, {s, <<"Exclusive key can have 3 parts">>}},                                                        {<<"LastPostDateTime">>, {s, <<"20130102054211">>}}]
@@ -2301,7 +2301,7 @@ scan_output_tests(_) ->
     ],
     \"ScannedCount\": 4
 }",
-             {ok, #ddb_scan
+             {ok, #ddb2_scan
               {count = 4,
                items = [[{<<"PostedBy">>, <<"joe@example.com">>},
                          {<<"ReplyDateTime">>, <<"20130320115336">>},
@@ -2320,7 +2320,7 @@ scan_output_tests(_) ->
                          {<<"Id">>, <<"Amazon DynamoDB#How do I update multiple items?">>},
                          {<<"Message">>, <<"OK, I'll take a look at that.  Thanks!">>}]],
                scanned_count = 4,
-               consumed_capacity = #ddb_consumed_capacity{table_name = <<"Reply">>,
+               consumed_capacity = #ddb2_consumed_capacity{table_name = <<"Reply">>,
                                                           capacity_units = 0.5}}}}),
          ?_ddb_test(
             {"Scan example 2 response", "
@@ -2362,7 +2362,7 @@ scan_output_tests(_) ->
     ],
     \"ScannedCount\": 4
 }",
-             {ok, #ddb_scan
+             {ok, #ddb2_scan
               {count = 2,
                items = [[{<<"PostedBy">>, <<"joe@example.com">>},
                          {<<"ReplyDateTime">>, <<"20130320115336">>},
@@ -2374,7 +2374,7 @@ scan_output_tests(_) ->
                          {<<"Message">>, <<"BatchWriteItem is documented in the Amazon DynamoDB API Reference.">>}]
 ],
                scanned_count = 4,
-               consumed_capacity = #ddb_consumed_capacity{table_name = <<"Reply">>,
+               consumed_capacity = #ddb2_consumed_capacity{table_name = <<"Reply">>,
                                                           capacity_units = 0.5}}}}),
          ?_ddb_test(
             {"Scan last evaluated key", "
@@ -2421,7 +2421,7 @@ scan_output_tests(_) ->
     },
     \"ScannedCount\":4
 }",
-             {ok, #ddb_scan
+             {ok, #ddb2_scan
               {count = 2,
                items = [[{<<"PostedBy">>, <<"joe@example.com">>},
                          {<<"ReplyDateTime">>, <<"20130320115336">>},
@@ -2719,7 +2719,7 @@ update_table_output_tests(_) ->
         \"TableStatus\": \"UPDATING\"
     }
 }",
-             {ok, #ddb_table_description
+             {ok, #ddb2_table_description
               {attribute_definitions = [{<<"ForumName">>, s},
                                         {<<"LastPostDateTime">>, s},
                                         {<<"Subject">>, s}],
@@ -2727,14 +2727,14 @@ update_table_output_tests(_) ->
                item_count = 0,
                key_schema = {<<"ForumName">>, <<"Subject">>},
                local_secondary_indexes =
-                   [#ddb_local_secondary_index_description{
+                   [#ddb2_local_secondary_index_description{
                        index_name = <<"LastPostIndex">>,
                        index_size_bytes = 0,
                        item_count = 0,
                        key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
                        projection = keys_only}],
                provisioned_throughput = 
-                   #ddb_provisioned_throughput_description{
+                   #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
                       last_increase_date_time = 1363801701.282,
                       number_of_decreases_today = 0,
