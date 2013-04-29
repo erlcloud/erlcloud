@@ -1945,7 +1945,7 @@ q_input_tests(_) ->
          ?_ddb_test(
             {"Query example 2 request",
              ?_f(erlcloud_ddb2:q(<<"Thread">>,
-                                [{<<"ForumName">>, <<"Amazon DynamoDB">>, eq}],
+                                {<<"ForumName">>, <<"Amazon DynamoDB">>, eq},
                                 [{select, count},
                                  {consistent_read, true}])), "
 {
