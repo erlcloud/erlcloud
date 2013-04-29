@@ -49,7 +49,7 @@ stop(_) ->
 -spec multi_call_expect([http_call(),...]) -> fun().
 multi_call_expect([{Expected, Response} | TCalls]) ->
     fun(post, {_Url, _Headers, _ContentType, Body}, _HTTPOpts, _Opts) -> 
-            erlcloud_ddb_tests:validate_body(Body, Expected),
+            erlcloud_ddb2_tests:validate_body(Body, Expected),
             case TCalls of
                 [] ->
                     %% No more calls expected
@@ -93,10 +93,16 @@ delete_hash_key_tests(_) ->
     Tests =
         [?_ddb_test(
             {"delete_hash_key simple",
-             ?_f(erlcloud_ddb_util:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
+             ?_f(erlcloud_ddb_util:delete_hash_key(<<"tn">>, {<<"hkn">>, <<"hkv">>}, <<"rkn">>, [])),
              [{"
 {\"TableName\":\"tn\",
- \"HashKeyValue\":{\"S\":\"hk\"},
+ \"KeyConditions\": {
+  \"hkn\": {
+   \"AttributeValueList\": [
+    { \"S\": \"hkv\"} ],
+   \"ComparisonOperator\": \"EQ\"
+  }
+ },
  \"AttributesToGet\":[\"rkn\"],
  \"Limit\":25,
  \"ConsistentRead\":true
@@ -104,14 +110,13 @@ delete_hash_key_tests(_) ->
 {\"Count\":2,
  \"Items\":[
   {\"rkn\":{\"N\":\"1\"}},
-  {\"rkn\":{\"N\":\"2\"}}],
- \"ConsumedCapacityUnits\":1
+  {\"rkn\":{\"N\":\"2\"}}]
 }"
               }, {"
 {\"RequestItems\":{
   \"tn\":[
-   {\"DeleteRequest\":{\"Key\":{\"HashKeyElement\":{\"S\":\"hk\"}, \"RangeKeyElement\":{\"N\":\"1\"}}}},
-   {\"DeleteRequest\":{\"Key\":{\"HashKeyElement\":{\"S\":\"hk\"}, \"RangeKeyElement\":{\"N\":\"2\"}}}}]
+   {\"DeleteRequest\":{\"Key\":{\"hkn\":{\"S\":\"hkv\"}, \"rkn\":{\"N\":\"1\"}}}},
+   {\"DeleteRequest\":{\"Key\":{\"hkn\":{\"S\":\"hkv\"}, \"rkn\":{\"N\":\"2\"}}}}]
  }}", "
 {\"Responses\":{
   \"tn\":{\"ConsumedCapacityUnits\":2.0}
@@ -120,10 +125,16 @@ delete_hash_key_tests(_) ->
              ok}),
          ?_ddb_test(
             {"delete_hash_key no items",
-             ?_f(erlcloud_ddb_util:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
+             ?_f(erlcloud_ddb_util:delete_hash_key(<<"tn">>, {<<"hkn">>, <<"hkv">>}, <<"rkn">>, [])),
              [{"
 {\"TableName\":\"tn\",
- \"HashKeyValue\":{\"S\":\"hk\"},
+ \"KeyConditions\": {
+  \"hkn\": {
+   \"AttributeValueList\": [
+    { \"S\": \"hkv\"} ],
+   \"ComparisonOperator\": \"EQ\"
+  }
+ },
  \"AttributesToGet\":[\"rkn\"],
  \"Limit\":25,
  \"ConsistentRead\":true
@@ -136,10 +147,16 @@ delete_hash_key_tests(_) ->
              ok}),
          ?_ddb_test(
             {"delete_hash_key incomplete query",
-             ?_f(erlcloud_ddb_util:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
+             ?_f(erlcloud_ddb_util:delete_hash_key(<<"tn">>, {<<"hkn">>, <<"hkv">>}, <<"rkn">>, [])),
              [{"
 {\"TableName\":\"tn\",
- \"HashKeyValue\":{\"S\":\"hk\"},
+ \"KeyConditions\": {
+  \"hkn\": {
+   \"AttributeValueList\": [
+    { \"S\": \"hkv\"} ],
+   \"ComparisonOperator\": \"EQ\"
+  }
+ },
  \"AttributesToGet\":[\"rkn\"],
  \"Limit\":25,
  \"ConsistentRead\":true
@@ -148,21 +165,27 @@ delete_hash_key_tests(_) ->
  \"Items\":[
   {\"rkn\":{\"N\":\"1\"}},
   {\"rkn\":{\"N\":\"2\"}}],
- \"LastEvaluatedKey\":{\"HashKeyElement\":{\"S\":\"hk\"},\"RangeKeyElement\":{\"N\":\"2\"}},
+ \"LastEvaluatedKey\":{\"hkn\":{\"S\":\"hkv\"},\"rkn\":{\"N\":\"2\"}},
  \"ConsumedCapacityUnits\":1
 }"
               }, {"
 {\"RequestItems\":{
   \"tn\":[
-   {\"DeleteRequest\":{\"Key\":{\"HashKeyElement\":{\"S\":\"hk\"}, \"RangeKeyElement\":{\"N\":\"1\"}}}},
-   {\"DeleteRequest\":{\"Key\":{\"HashKeyElement\":{\"S\":\"hk\"}, \"RangeKeyElement\":{\"N\":\"2\"}}}}]
+   {\"DeleteRequest\":{\"Key\":{\"hkn\":{\"S\":\"hkv\"}, \"rkn\":{\"N\":\"1\"}}}},
+   {\"DeleteRequest\":{\"Key\":{\"hkn\":{\"S\":\"hkv\"}, \"rkn\":{\"N\":\"2\"}}}}]
  }}", "
 {\"Responses\":{
   \"tn\":{\"ConsumedCapacityUnits\":2.0}
  }}"
                  }, {"
 {\"TableName\":\"tn\",
- \"HashKeyValue\":{\"S\":\"hk\"},
+ \"KeyConditions\": {
+  \"hkn\": {
+   \"AttributeValueList\": [
+    { \"S\": \"hkv\"} ],
+   \"ComparisonOperator\": \"EQ\"
+  }
+ },
  \"AttributesToGet\":[\"rkn\"],
  \"Limit\":25,
  \"ConsistentRead\":true
@@ -175,7 +198,7 @@ delete_hash_key_tests(_) ->
               }, {"
 {\"RequestItems\":{
   \"tn\":[
-   {\"DeleteRequest\":{\"Key\":{\"HashKeyElement\":{\"S\":\"hk\"}, \"RangeKeyElement\":{\"N\":\"3\"}}}}]
+   {\"DeleteRequest\":{\"Key\":{\"hkn\":{\"S\":\"hkv\"}, \"rkn\":{\"N\":\"3\"}}}}]
  }}", "
 {\"Responses\":{
   \"tn\":{\"ConsumedCapacityUnits\":1.0}
@@ -184,10 +207,16 @@ delete_hash_key_tests(_) ->
              ok}),
          ?_ddb_test(
             {"delete_hash_key incomplete batch delete",
-             ?_f(erlcloud_ddb_util:delete_hash_key(<<"tn">>, <<"hk">>, <<"rkn">>, [])),
+             ?_f(erlcloud_ddb_util:delete_hash_key(<<"tn">>, {<<"hkn">>, <<"hkv">>}, <<"rkn">>, [])),
              [{"
 {\"TableName\":\"tn\",
- \"HashKeyValue\":{\"S\":\"hk\"},
+ \"KeyConditions\": {
+  \"hkn\": {
+   \"AttributeValueList\": [
+    { \"S\": \"hkv\"} ],
+   \"ComparisonOperator\": \"EQ\"
+  }
+ },
  \"AttributesToGet\":[\"rkn\"],
  \"Limit\":25,
  \"ConsistentRead\":true
@@ -201,17 +230,23 @@ delete_hash_key_tests(_) ->
               }, {"
 {\"RequestItems\":{
   \"tn\":[
-   {\"DeleteRequest\":{\"Key\":{\"HashKeyElement\":{\"S\":\"hk\"}, \"RangeKeyElement\":{\"N\":\"1\"}}}},
-   {\"DeleteRequest\":{\"Key\":{\"HashKeyElement\":{\"S\":\"hk\"}, \"RangeKeyElement\":{\"N\":\"2\"}}}}]
+   {\"DeleteRequest\":{\"Key\":{\"hkn\":{\"S\":\"hkv\"}, \"rkn\":{\"N\":\"1\"}}}},
+   {\"DeleteRequest\":{\"Key\":{\"hkn\":{\"S\":\"hkv\"}, \"rkn\":{\"N\":\"2\"}}}}]
  }}", "
 {\"Responses\":{
   \"tn\":{\"ConsumedCapacityUnits\":1.0}},
  \"UnprocessedItems\":{
-  \"tn\":[{\"DeleteRequest\":{\"Key\":{\"HashKeyElement\":{\"S\":\"hk\"}, \"RangeKeyElement\":{\"N\":\"2\"}}}}]
+  \"tn\":[{\"DeleteRequest\":{\"Key\":{\"hkn\":{\"S\":\"hkv\"}, \"rkn\":{\"N\":\"2\"}}}}]
  }}"
                  }, {"
 {\"TableName\":\"tn\",
- \"HashKeyValue\":{\"S\":\"hk\"},
+ \"KeyConditions\": {
+  \"hkn\": {
+   \"AttributeValueList\": [
+    { \"S\": \"hkv\"} ],
+   \"ComparisonOperator\": \"EQ\"
+  }
+ },
  \"AttributesToGet\":[\"rkn\"],
  \"Limit\":25,
  \"ConsistentRead\":true
@@ -224,7 +259,7 @@ delete_hash_key_tests(_) ->
               }, {"
 {\"RequestItems\":{
   \"tn\":[
-   {\"DeleteRequest\":{\"Key\":{\"HashKeyElement\":{\"S\":\"hk\"}, \"RangeKeyElement\":{\"N\":\"2\"}}}}]
+   {\"DeleteRequest\":{\"Key\":{\"hkn\":{\"S\":\"hkv\"}, \"rkn\":{\"N\":\"2\"}}}}]
  }}", "
 {\"Responses\":{
   \"tn\":{\"ConsumedCapacityUnits\":1.0}
