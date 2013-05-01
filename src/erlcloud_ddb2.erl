@@ -128,6 +128,7 @@
     describe_table_return/0,
     get_item_opt/0,
     get_item_opts/0,
+    get_item_return/0,
     in_attr/0,
     in_attr_data/0,
     in_attr_data_scalar/0,
@@ -140,7 +141,6 @@
     in_update/0,
     in_updates/0,
     index_name/0,
-    item_return/0,
     key/0,
     key_schema/0,
     list_tables_opt/0,
@@ -600,7 +600,6 @@ get_item_opts() ->
 %%% Output
 %%%------------------------------------------------------------------------------
 -type ddb_return(Record, Simple) :: {ok, jsx:json_term() | Record | Simple} | {error, term()}.
--type item_return() :: ok_return(out_item()).
 -type undynamize_fun() :: fun((jsx:json_term()) -> tuple()).
 
 -spec out(erlcloud_ddb_impl:json_return(), undynamize_fun(), ddb_opts()) 
@@ -1212,11 +1211,13 @@ get_item_record() ->
       {<<"ConsumedCapacity">>, #ddb2_get_item.consumed_capacity, fun undynamize_consumed_capacity/1}
      ]}.
 
--spec get_item(table_name(), key()) -> item_return().
+-type get_item_return() :: ddb_return(#ddb2_get_item{}, out_item()).
+
+-spec get_item(table_name(), key()) -> get_item_return().
 get_item(Table, Key) ->
     get_item(Table, Key, [], default_config()).
 
--spec get_item(table_name(), key(), get_item_opts()) -> item_return().
+-spec get_item(table_name(), key(), get_item_opts()) -> get_item_return().
 get_item(Table, Key, Opts) ->
     get_item(Table, Key, Opts, default_config()).
 
@@ -1238,7 +1239,7 @@ get_item(Table, Key, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec get_item(table_name(), key(), get_item_opts(), aws_config()) -> item_return().
+-spec get_item(table_name(), key(), get_item_opts(), aws_config()) -> get_item_return().
 get_item(Table, Key, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(get_item_opts(), Opts),
     Return = erlcloud_ddb_impl:request(
