@@ -4,11 +4,11 @@
 %% @doc
 %% Helpers for using DynamoDB from Erlang.
 %%
-%% This is a layer2 API (in the style of boto) that augments the
-%% operations in erlcloud_ddb. The functions in this file do not map
-%% directly to DynamoDB operations. Instead they will perform multiple
-%% operations in order to implement functionality that isn't available
-%% directly using the DynamoDB API.
+%% This is a higher layer API that augments the operations supported
+%% by erlcloud_ddb2. The functions in this file do not map directly to
+%% DynamoDB operations. Instead they will perform multiple operations
+%% in order to implement functionality that isn't available directly
+%% using the DynamoDB API.
 %%
 %% @end
 
@@ -53,7 +53,7 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts) ->
 %% ===Example===
 %%
 %% `
-%% ok = erlcloud_ddb2:delete_hash_key(<<"table_name">>, <<"hash_key_value">>, <<"range_key_name">>, [])
+%% ok = erlcloud_ddb_util:delete_hash_key(<<"tn">>, {<<"hash-key-name">>, <<"hash-key-value">>}, <<"range-key-name">>, [])),
 %% '
 %%
 %% @end
