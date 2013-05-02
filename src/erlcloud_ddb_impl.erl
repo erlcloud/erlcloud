@@ -26,10 +26,9 @@
 
 %% @author Ransom Richardson <ransom@ransomr.net>
 %% @doc
-%% An low level Erlang interface to Amazon's DynamoDB.
 %%
-%% This API is lower level than the one in `erlcloud_ddb'. It takes JSON terms as
-%% defined by `jsx'.
+%% Implementation of requests to DynamoDB. This code is shared accross
+%% all API versions.
 %%
 %% @end
 

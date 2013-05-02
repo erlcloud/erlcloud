@@ -6,7 +6,7 @@
 %%
 %% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/operationlist.html]
 %%
-%% Currently the entire 20111205 API is implemented.
+%% erlcloud_ddb2 implements the entire 20120810 API.
 %%
 %% Method names match DynamoDB operations converted to
 %% lower_case_with_underscores. The one exception is query, which is
@@ -796,19 +796,22 @@ batch_get_item(RequestItems, Opts) ->
 %%
 %% ===Example===
 %%
-%% Get attributes "user" and "friends" from items with keys "Julie"
-%% and "Mingus" in table "comp2" and attributes "user" and "status"
-%% from three items in table "comp1".
+%% Get 5 items total from 2 tables.
 %%
 %% `
-%% {ok, Items} = erlcloud_ddb:batch_get_item(
-%%                    [{<<"comp2">>, [<<"Julie">>, 
-%%                                    <<"Mingus">>], 
-%%                      [{attributes_to_get, [<<"user">>, <<"friends">>]}]},
-%%                     {<<"comp1">>, [{<<"Casey">>, 1319509152},
-%%                                    {<<"Dave">>, 1319509155},
-%%                                    {<<"Riley">>, 1319509158}],
-%%                      [{attributes_to_get, [<<"user">>, <<"status">>]}]}])
+%% {ok, Record} =
+%%     erlcloud_ddb2:batch_get_item(
+%%       [{<<"Forum">>, 
+%%         [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
+%%          {<<"Name">>, {s, <<"Amazon RDS">>}}, 
+%%          {<<"Name">>, {s, <<"Amazon Redshift">>}}],
+%%         [{attributes_to_get, [<<"Name">>, <<"Threads">>, <<"Messages">>, <<"Views">>]}]},
+%%        {<<"Thread">>, 
+%%         [[{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
+%%           {<<"Subject">>, {s, <<"Concurrent reads">>}}]],
+%%         [{attributes_to_get, [<<"Tags">>, <<"Message">>]}]}],
+%%       [{return_consumed_capacity, total},
+%%        {out, record}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -921,16 +924,23 @@ batch_write_item(RequestItems, Opts) ->
 %%
 %% ===Example===
 %%
-%% Put and delete an item in the "Reply" table and put an item in the "Thread" table.
+%% Put 4 items in the "Forum" table.
 %%
 %% `
-%% {ok, _} = erlcloud_ddb:batch_write_item(
-%%                    [{<<"Reply">>, [{put, [{<<"ReplyDateTime">>, <<"2012-04-03T11:04:47.034Z">>},
-%%                                           {<<"Id">>, <<"Amazon DynamoDB#DynamoDB Thread 5">>}]},
-%%                                    {delete, {<<"Amazon DynamoDB#DynamoDB Thread 4">>,
-%%                                              <<"oops - accidental row">>}}]},
-%%                     {<<"Thread">>, [{put, [{<<"ForumName">>, <<"Amazon DynamoDB">>},
-%%                                            {<<"Subject">>, <<"DynamoDB Thread 5">>}]}]}])
+%% {ok, Record} =
+%%     erlcloud_ddb2:batch_write_item(
+%%       [{<<"Forum">>, 
+%%         [{put, [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
+%%                 {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+%%          {put, [{<<"Name">>, {s, <<"Amazon RDS">>}},
+%%                 {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+%%          {put, [{<<"Name">>, {s, <<"Amazon Redshift">>}},
+%%                 {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+%%          {put, [{<<"Name">>, {s, <<"Amazon ElastiCache">>}},
+%%                 {<<"Category">>, {s, <<"Amazon Web Services">>}}]}
+%%         ]}],
+%%       [{return_consumed_capacity, total},
+%%        {out, record}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1018,12 +1028,21 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
 %%
 %% ===Example===
 %%
-%% Create "comp-table" with "user" as a string hash key and "time" as
-%% a number range key and provisioned throughput of 5 read units and
-%% 10 write units.
+%% Create a table with hash key "ForumName" and range key "Subject"
+%% with a local secondary index on "LastPostDateTime.
 %%
 %% `
-%% {ok, _} = erlcloud_ddb:create_table(<<"comp-table">>, {{<<"user">>, s}, {<<"time">>, n}}, 5, 10)
+%% {ok, Description} =
+%%     erlcloud_ddb2:create_table(
+%%       <<"Thread">>,
+%%       [{<<"ForumName">>, s},
+%%        {<<"Subject">>, s},
+%%        {<<"LastPostDateTime">>, s}],
+%%       {<<"ForumName">>, <<"Subject">>},
+%%       5, 
+%%       5,
+%%       [{local_secondary_indexes,
+%%         [{<<"LastPostIndex">>, <<"LastPostDateTime">>, keys_only}]}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1088,14 +1107,17 @@ delete_item(Table, Key, Opts) ->
 %%
 %% ===Example===
 %%
-%% Delete item with hash key "Mingus" and range key 200 from
-%% "comp-table" if the "status" field is "shopping". Return all old
-%% values.
+%% Delete an item from the "Thread" table if it doesn't have a
+%% "Replies" attribute.
 %%
 %% `
-%% {ok, OldValues} = erlcloud_ddb:delete_item(<<"comp-table">>, {"Mingus", 200},
-%%                                           [{return_values, all_old},
-%%                                            {expected, {<<"status">>, "shopping"}}])
+%% {ok, Item} = 
+%%     erlcloud_ddb2:delete_item(
+%%       <<"Thread">>, 
+%%       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+%%        {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
+%%       [{return_values, all_old},
+%%        {expected, {<<"Replies">>, false}}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1139,10 +1161,11 @@ delete_table(Table, Opts) ->
 %%
 %% ===Example===
 %%
-%% Delete "Table1".
+%% Delete "Reply" table.
 %%
 %% `
-%% {ok, _} = erlcloud_ddb:delete_table(<<"Table1">>)
+%% {ok, Description} =
+%%     erlcloud_ddb2:delete_table(<<"Reply">>),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1183,10 +1206,11 @@ describe_table(Table, Opts) ->
 %%
 %% ===Example===
 %%
-%% Describe "Table1".
+%% Describe "Thread" table.
 %%
 %% `
-%% {ok, Table} = erlcloud_ddb:describe_table(<<"Table1">>)
+%% {ok, Description} =
+%%     erlcloud_ddb2:describe_table(<<"Thread">>),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1228,14 +1252,17 @@ get_item(Table, Key, Opts) ->
 %%
 %% ===Example===
 %%
-%% Get attributes "status" and "friends" from the item with hash key
-%% "Julie" and range key 1307654345 in the table "comptable" using a
-%% consistent read.
+%% Get selected attributes from an item in the "Thread" table.
 %%
 %% `
-%% {ok, Item} = erlcloud_ddb:get_item(<<"comptable">>, {"Julie", 1307654345}, 
-%%                                        [consistent_read, 
-%%                                         {attributes_to_get, [<<"status">>, <<"friends">>]}])
+%% {ok, Item} = 
+%%     erlcloud_ddb2:get_item(
+%%       <<"Thread">>,
+%%       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
+%%        {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
+%%       [{attributes_to_get, [<<"LastPostDateTime">>, <<"Message">>, <<"Tags">>]},
+%%        consistent_read,
+%%        {return_consumed_capacity, total}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1289,10 +1316,13 @@ list_tables(Opts) ->
 %%
 %% ===Example===
 %%
-%% Get the next 3 table names after "comp2".
+%% Get the next 3 table names after "Forum".
 %%
 %% `
-%% {ok, TableNames} = erlcloud_ddb:list_tables([{limit, 3}, {exclusive_start_table_name, <<"comp2">>}])
+%% {ok, Tables} = 
+%%     erlcloud_ddb2:list_tables(
+%%       [{limit, 3}, 
+%%        {exclusive_start_table_name, <<"Forum">>}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1350,18 +1380,20 @@ put_item(Table, Item, Opts) ->
 %%
 %% ===Example===
 %%
-%% Put item with attributes "time" of 300, "feeling" of "not
-%% surprised" and "user" of "Riley" into table "comp5", but only if an
-%% item with the same key exists and has field "feeling" set to
-%% "surprised". Return all the old attributes.
+%% Put an item in the "Thread" table if it does not already exist.
 %%
 %% `
-%% {ok, OldItem} = erlcloud_ddb:put_item(<<"comp5">>, 
-%%                                        [{<<"time">>, 300}, 
-%%                                         {<<"feeling">>, <<"not surprised">>},
-%%                                         {<<"user">>, <<"Riley">>}],
-%%                                        [{return_values, all_old},
-%%                                         {expected, {<<"feeling">>, <<"surprised">>}}])
+%% {ok, []} = 
+%%     erlcloud_ddb2:put_item(
+%%       <<"Thread">>, 
+%%       [{<<"LastPostedBy">>, <<"fred@example.com">>},
+%%        {<<"ForumName">>, <<"Amazon DynamoDB">>},
+%%        {<<"LastPostDateTime">>, <<"201303190422">>},
+%%        {<<"Tags">>, {ss, [<<"Update">>, <<"Multiple Items">>, <<"HelpMe">>]}},
+%%        {<<"Subject">>, <<"How do I update multiple items?">>},
+%%        {<<"Message">>, 
+%%         <<"I want to update multiple items in a single API call. What is the best way to do that?">>}],
+%%       [{expected, [{<<"ForumName">>, false}, {<<"Subject">>, false}]}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1463,16 +1495,25 @@ q(Table, Conditions, Opts) ->
 %% DynamoDB API:
 %% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Query.html]
 %%
+%% KeyConditions are treated as a required parameter, which appears to
+%% be the case despite what the documentation says.
+%%
 %% ===Example===
 %%
-%% Get up to 2 items with hash key "John" and with range keys coming
-%% before "The Matrix" from table "1-hash-rangetable".
+%% Get up to 3 itesm from the "Thread" table with "ForumName" of
+%% "Amazon DynamoDB" and "LastPostDateTime" between specified
+%% value. Use the "LastPostIndex".
 %%
 %% `
-%% {ok, Items} = erlcloud_ddb:q(<<"1-hash-rangetable">>, <<"John">>,
-%%                                 [{exclusive_start_key, {{s, <<"John">>}, {s, <<"The Matrix">>}}},
-%%                                  {scan_index_forward, false},
-%%                                  {limit, 2}])
+%% {ok, Items} =
+%%     erlcloud_ddb2:q(
+%%       <<"Thread">>,
+%%       [{<<"LastPostDateTime">>, {{s, <<"20130101">>}, {s, <<"20130115">>}}, between},
+%%        {<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}],
+%%       [{index_name, <<"LastPostIndex">>},
+%%        {select, all_attributes},
+%%        {limit, 3},
+%%        {consistent_read, true}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1538,10 +1579,14 @@ scan(Table, Opts) ->
 %%
 %% ===Example===
 %%
-%% Return all items from table "comp5" with "time" greater than 400.
+%% Return all items in the "Reply" table.
 %%
 %% `
-%% {ok, Items} = erlcloud_ddb:scan(<<"comp5">>, [{scan_filter, [{<<"time">>, 400, gt}]}])
+%% {ok, Record} = 
+%%     erlcloud_ddb2:scan(
+%%       <<"Reply">>, 
+%%       [{return_consumed_capacity, total}, 
+%%        {out, record}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1624,17 +1669,24 @@ update_item(Table, Key, Updates, Opts) ->
 %% DynamoDB API:
 %% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateItem.html]
 %%
+%% AttributeUpdates is treated as a required parameter because callers
+%% will almost always provide it. If no updates are desired, You can
+%% pass [] for that argument.
+%%
 %% ===Example===
 %%
-%% Update item with hash key "Julie" and range key 1307654350 in table
-%% "comp5" by changing the status from "offline" to "online" and
-%% return the new item.
+%% Update specific item in the "Thread" table by setting "LastPostBy"
+%% if it has the expected previous value.
 %%
 %% `
-%% {ok, NewItem} = erlcloud_ddb:update_item(<<"comp5">>, {"Julie", 1307654350},
-%%                                           [{<<"status">>, <<"online">>, put}],
-%%                                           [{return_values, all_new},
-%%                                            {expected, {<<"status">>, "offline"}}])
+%% {ok, Item} = 
+%%     erlcloud_ddb2:update_item(
+%%       <<"Thread">>, 
+%%       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+%%        {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
+%%       [{<<"LastPostedBy">>, {s, <<"alice@example.com">>}, put}],
+%%       [{expected, {<<"LastPostedBy">>, {s, <<"fred@example.com">>}}},
+%%        {return_values, all_new}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1682,10 +1734,10 @@ update_table(Table, ReadUnits, WriteUnits, Opts) ->
 %%
 %% ===Example===
 %%
-%% Update table "comp1" to have provisioned capacity of 5 read units and 15 write units.
+%% Update table "Thread" to have 10 units of read and write capacity.
 %%
 %% `
-%% {ok, _} = erlcloud_ddb:update_table(<<"comp1">>, 5, 15)
+%% erlcloud_ddb2:update_table(<<"Thread">>, 10, 10)
 %% '
 %% @end
 %%------------------------------------------------------------------------------

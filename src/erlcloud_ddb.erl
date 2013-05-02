@@ -4,9 +4,10 @@
 %% @doc
 %% An Erlang interface to Amazon's DynamoDB.
 %%
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/operationlist.html]
+%% [http://aws.amazon.com/archives/Amazon-DynamoDB/8498019230173117]
 %%
-%% Currently the entire 20111205 API is implemented.
+%% erlcloUd_ddb implements the entire 20111205 API. erlcloud_ddb2
+%% implements a newer version.
 %%
 %% Method names match DynamoDB operations converted to
 %% lower_case_with_underscores. The one exception is query, which is
@@ -63,12 +64,11 @@
 %% to handle conditional check failures, match `{error,
 %% {<<"ConditionalCheckFailedException">>, _}}'.
 %%
-%% `erlcloud_ddb_impl' provides a higher level API that implements common
+%% `erlcloud_ddb_util' provides a higher level API that implements common
 %% operations that may require multiple DynamoDB API calls.
 %%
 %% `erlcloud_ddb1' provides a lower level API that takes JSON terms as
-%% defined by `jsx'. It may be useful to pass options that are not yet
-%% supported by this module.
+%% defined by `jsx'.
 %%
 %% See the unit tests for additional usage examples beyond what are
 %% provided for each function.
@@ -672,8 +672,6 @@ batch_get_item(RequestItems, Opts) ->
 
 %%------------------------------------------------------------------------------
 %% @doc 
-%% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchGetItems.html]
 %%
 %% ===Example===
 %%
@@ -787,8 +785,6 @@ batch_write_item(RequestItems, Opts) ->
 
 %%------------------------------------------------------------------------------
 %% @doc 
-%% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchWriteItem.html]
 %%
 %% ===Example===
 %%
@@ -843,8 +839,6 @@ create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts) ->
 
 %%------------------------------------------------------------------------------
 %% @doc 
-%% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_CreateTable.html]
 %%
 %% ===Example===
 %%
@@ -898,8 +892,6 @@ delete_item(Table, Key, Opts) ->
 
 %%------------------------------------------------------------------------------
 %% @doc 
-%% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteItem.html]
 %%
 %% ===Example===
 %%
@@ -944,8 +936,6 @@ delete_table(Table, Opts) ->
 
 %%------------------------------------------------------------------------------
 %% @doc 
-%% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteTable.html]
 %%
 %% ===Example===
 %%
@@ -998,8 +988,6 @@ describe_table(Table, Opts) ->
 
 %%------------------------------------------------------------------------------
 %% @doc 
-%% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DescribeTables.html]
 %%
 %% ===Example===
 %%
@@ -1038,8 +1026,6 @@ get_item(Table, Key, Opts) ->
 
 %%------------------------------------------------------------------------------
 %% @doc 
-%% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_GetItem.html]
 %%
 %% ===Example===
 %%
@@ -1094,8 +1080,6 @@ list_tables(Opts) ->
 
 %%------------------------------------------------------------------------------
 %% @doc 
-%% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_ListTables.html]
 %%
 %% ===Example===
 %%
@@ -1146,8 +1130,6 @@ put_item(Table, Item, Opts) ->
 
 %%------------------------------------------------------------------------------
 %% @doc 
-%% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_PutItem.html]
 %%
 %% ===Example===
 %%
@@ -1229,8 +1211,6 @@ q(Table, HashKey, Opts) ->
 
 %%------------------------------------------------------------------------------
 %% @doc 
-%% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Query.html]
 %%
 %% ===Example===
 %%
@@ -1314,8 +1294,6 @@ scan(Table, Opts) ->
 
 %%------------------------------------------------------------------------------
 %% @doc 
-%% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Scan.html]
 %%
 %% ===Example===
 %%
@@ -1392,8 +1370,6 @@ update_item(Table, Key, Updates, Opts) ->
 
 %%------------------------------------------------------------------------------
 %% @doc 
-%% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateItem.html]
 %%
 %% ===Example===
 %%
@@ -1440,8 +1416,6 @@ update_table(Table, ReadUnits, WriteUnits, Opts) ->
 
 %%------------------------------------------------------------------------------
 %% @doc 
-%% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateTable.html]
 %%
 %% ===Example===
 %%
