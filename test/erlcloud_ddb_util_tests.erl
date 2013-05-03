@@ -27,6 +27,7 @@ operation_test_() ->
      fun start/0,
      fun stop/1,
      [fun delete_hash_key_tests/1,
+      fun get_all_tests/1,
       fun q_all_tests/1
      ]}.
 
@@ -269,6 +270,108 @@ delete_hash_key_tests(_) ->
              ok})],
     multi_call_tests(Tests).
 
+%% Currently don't have tests for the parallel get (more than 100 items).
+%% Hard to write because of non-deterministic order
+get_all_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"get_all one item",
+             ?_f(erlcloud_ddb_util:get_all(<<"tn">>, [{<<"hkn">>, <<"hkv">>}])),
+             [{"
+{
+    \"RequestItems\": {
+        \"tn\": {
+            \"Keys\": [
+                {
+                    \"hkn\":{\"S\":\"hkv\"}
+                }
+            ]
+        }
+    }
+}"
+               , "
+{
+    \"Responses\": {
+        \"tn\": [
+            {
+                \"hkn\":{
+                    \"S\":\"hkv\"
+                }
+            }
+        ]
+    }
+}"
+               }],
+             {ok, [[{<<"hkn">>, <<"hkv">>}]]}}),
+         ?_ddb_test(
+            {"get_all unprocessed",
+             ?_f(erlcloud_ddb_util:get_all(<<"tn">>, [{<<"hkn">>, <<"hk1">>}, {<<"hkn">>, <<"hk2">>}])),
+             [{"
+{
+    \"RequestItems\": {
+        \"tn\": {
+            \"Keys\": [
+                {
+                    \"hkn\":{\"S\":\"hk1\"}
+                },
+                {
+                    \"hkn\":{\"S\":\"hk2\"}
+                }
+            ]
+        }
+    }
+}"
+               , "
+{
+    \"Responses\": {
+        \"tn\": [
+            {
+                \"hkn\":{
+                    \"S\":\"hk1\"
+                }
+            }
+        ]
+    },
+    \"UnprocessedKeys\": {
+        \"tn\": {
+            \"Keys\": [
+                {
+                    \"hkn\":{\"S\":\"hk2\"}
+                }
+            ]
+        }
+    }
+}"
+               }, {"
+{
+    \"RequestItems\": {
+        \"tn\": {
+            \"Keys\": [
+                {
+                    \"hkn\":{\"S\":\"hk2\"}
+                }
+            ]
+        }
+    }
+}"
+               , "
+{
+    \"Responses\": {
+        \"tn\": [
+            {
+                \"hkn\":{
+                    \"S\":\"hk2\"
+                }
+            }
+        ]
+    }
+}"
+                  }],
+             {ok, [[{<<"hkn">>, <<"hk2">>}],
+                   [{<<"hkn">>, <<"hk1">>}]
+                  ]}})
+         ],
+    multi_call_tests(Tests).
 
 q_all_tests(_) ->
     Tests =

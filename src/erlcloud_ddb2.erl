@@ -813,6 +813,9 @@ batch_get_item(RequestItems, Opts) ->
 %%       [{return_consumed_capacity, total},
 %%        {out, record}]),
 %% '
+%%
+%% See also erlcloud_ddb_util:get_all which provides retry and parallel batching.
+%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec batch_get_item([batch_get_item_request_item()], batch_get_item_opts(), aws_config()) -> 
@@ -826,8 +829,7 @@ batch_get_item(RequestItems, Opts, Config) ->
                 ++ AwsOpts),
     case out(Return, fun(Json) -> undynamize_record(batch_get_item_record(), Json) end, DdbOpts) of
         {simple, #ddb2_batch_get_item{unprocessed_keys = [_|_]}} ->
-            %% TODO resend unprocessed keys automatically (or controlled by option). 
-            %% For now return an error - you can handle manually if you don't use simple.
+            %% Return an error on unprocessed results.
             {error, unprocessed};
         {simple, #ddb2_batch_get_item{unprocessed_keys = [], responses = Responses}} ->
             %% Simple return for batch_get_item is all items from all tables in a single list
