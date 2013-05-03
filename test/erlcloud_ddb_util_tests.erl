@@ -26,7 +26,8 @@ operation_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
-     [fun delete_hash_key_tests/1
+     [fun delete_hash_key_tests/1,
+      fun q_all_tests/1
      ]}.
 
 start() ->
@@ -266,4 +267,131 @@ delete_hash_key_tests(_) ->
  }}"
                  }],
              ok})],
+    multi_call_tests(Tests).
+
+
+q_all_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"q_all one item",
+             ?_f(erlcloud_ddb_util:q_all(<<"tn">>, {<<"hkn">>, <<"hkv">>})),
+             [{"
+{
+    \"TableName\": \"tn\",
+    \"KeyConditions\": {
+        \"hkn\": {
+            \"AttributeValueList\": [
+                {
+                    \"S\": \"hkv\"
+                }
+            ],
+            \"ComparisonOperator\": \"EQ\"
+        }
+    }
+}"
+               , "
+{
+    \"Count\": 1,
+    \"Items\": [
+        {
+            \"hkn\": {
+                \"S\": \"hkv\"
+            },
+            \"rkn\": {
+                \"S\": \"rkv\"
+            }
+        }
+    ]
+}"
+               }],
+             {ok, [[{<<"hkn">>, <<"hkv">>}, {<<"rkn">>, <<"rkv">>}]]}}),
+         ?_ddb_test(
+            {"q_all two batches",
+             ?_f(erlcloud_ddb_util:q_all(<<"tn">>, {<<"hkn">>, <<"hkv">>})),
+             [{"
+{
+    \"TableName\": \"tn\",
+    \"KeyConditions\": {
+        \"hkn\": {
+            \"AttributeValueList\": [
+                {
+                    \"S\": \"hkv\"
+                }
+            ],
+            \"ComparisonOperator\": \"EQ\"
+        }
+    }
+}"
+               , "
+{
+    \"Count\": 2,
+    \"Items\": [
+        {
+            \"hkn\": {
+                \"S\": \"hkv\"
+            },
+            \"rkn\": {
+                \"S\": \"rk1\"
+            }
+        },
+        {
+            \"hkn\": {
+                \"S\": \"hkv\"
+            },
+            \"rkn\": {
+                \"S\": \"rk2\"
+            }
+        }
+    ],
+    \"LastEvaluatedKey\": {
+        \"hkn\": {
+            \"S\": \"hkv\"
+        },
+        \"rkn\": {
+            \"S\": \"rk2\"
+        }
+    }
+}"}, 
+              {"
+{
+    \"TableName\": \"tn\",
+    \"KeyConditions\": {
+        \"hkn\": {
+            \"AttributeValueList\": [
+                {
+                    \"S\": \"hkv\"
+                }
+            ],
+            \"ComparisonOperator\": \"EQ\"
+        }
+    },
+    \"ExclusiveStartKey\": {
+        \"hkn\": {
+            \"S\": \"hkv\"
+        },
+        \"rkn\": {
+            \"S\": \"rk2\"
+        }
+    }
+}"
+               , "
+{
+    \"Count\": 1,
+    \"Items\": [
+        {
+            \"hkn\": {
+                \"S\": \"hkv\"
+            },
+            \"rkn\": {
+                \"S\": \"rk3\"
+            }
+        }
+    ]
+}"
+              }],
+             {ok, [[{<<"hkn">>, <<"hkv">>}, {<<"rkn">>, <<"rk1">>}],
+                   [{<<"hkn">>, <<"hkv">>}, {<<"rkn">>, <<"rk2">>}],
+                   [{<<"hkn">>, <<"hkv">>}, {<<"rkn">>, <<"rk3">>}]
+                  ]}})
+         ],
     multi_call_tests(Tests).
