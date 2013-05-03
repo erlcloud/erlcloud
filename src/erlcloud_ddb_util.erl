@@ -20,19 +20,25 @@
 
 %%% DynamoDB Higher Layer API
 -export([delete_hash_key/3, delete_hash_key/4, delete_hash_key/5,
+         get_all/2, get_all/3, get_all/4,
          q_all/2, q_all/3, q_all/4
         ]).
 
 -define(BATCH_WRITE_LIMIT, 25).
+-define(BATCH_GET_LIMIT, 100).
 
 -type attr_name() :: erlcloud_ddb2:attr_name().
+-type batch_get_item_request_item() :: erlcloud_ddb2:batch_get_item_request_item().
 -type conditions() :: erlcloud_ddb2:conditions().
 -type ddb_opts() :: erlcloud_ddb2:ddb_opts().
+-type get_item_opts() :: erlcloud_ddb2:get_item_opts().
 -type key() :: erlcloud_ddb2:key().
 -type hash_key() :: erlcloud_ddb2:in_attr().
 -type out_item() :: erlcloud_ddb2:out_item().
 -type q_opts() :: erlcloud_ddb2:q_opts().
 -type table_name() :: erlcloud_ddb2:table_name().
+
+-type items_return() :: {ok, [out_item()]} | {error, term()}.
 
 default_config() -> erlcloud_aws:default_config().
 
@@ -95,16 +101,79 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts, Config) ->
     end.
 
 %%%------------------------------------------------------------------------------
+%%% get_all
+%%%------------------------------------------------------------------------------
+
+-spec get_all(table_name(), [key()]) -> items_return().
+get_all(Table, Keys) ->
+    get_all(Table, Keys, [], default_config()).
+
+-spec get_all(table_name(), [key()], get_item_opts()) -> items_return().
+get_all(Table, Keys, Opts) ->
+    get_all(Table, Keys, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc 
+%%
+%% Perform one or more BatchGetItem operations to get all matching
+%% items. Operations are performed in parallel. Order may not be preserved.
+%% Getting from only one table is supported.
+%%
+%% ===Example===
+%%
+%% `
+%% {ok, Items} =
+%%     erlcloud_ddb_util:get_all(
+%%       <<"Forum">>, 
+%%       [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
+%%        {<<"Name">>, {s, <<"Amazon RDS">>}}, 
+%%        {<<"Name">>, {s, <<"Amazon Redshift">>}}],
+%%       [{attributes_to_get, [<<"Name">>, <<"Threads">>, <<"Messages">>, <<"Views">>]}]),
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec get_all(table_name(), [key()], get_item_opts(), aws_config()) -> items_return().
+get_all(Table, Keys, Opts, Config) when length(Keys) =< ?BATCH_GET_LIMIT ->
+    batch_get_retry([{Table, Keys, Opts}], Config, []);
+get_all(Table, Keys, Opts, Config) ->
+    BatchList = chop(?BATCH_GET_LIMIT, Keys),
+    Results = pmap_unordered(
+                fun(Batch) ->
+                        %% try/catch to prevent hang forever if there is an exception
+                        try
+                            batch_get_retry([{Table, Batch, Opts}], Config, [])
+                        catch
+                            Type:Ex ->
+                                {error, {Type, Ex}}
+                        end
+                end,
+                BatchList),
+    lists:foldl(fun parfold/2, [], Results).
+
+-spec batch_get_retry([batch_get_item_request_item()], aws_config(), [out_item()]) -> items_return().
+batch_get_retry(RequestItems, Config, Acc) ->
+    case erlcloud_ddb2:batch_get_item(RequestItems, [{out, record}], Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, #ddb2_batch_get_item{unprocessed_keys = undefined, 
+                                  responses = [#ddb2_batch_get_item_response{items = Items}]}} ->
+            {ok, Items ++ Acc};
+        {ok, #ddb2_batch_get_item{unprocessed_keys = Unprocessed, 
+                                  responses = [#ddb2_batch_get_item_response{items = Items}]}} ->
+            batch_get_retry(Unprocessed, Config, Items ++ Acc)
+    end.
+
+%%%------------------------------------------------------------------------------
 %%% q_all
 %%%------------------------------------------------------------------------------
 
--type q_all_return() :: {ok, [out_item()]} | {error, term()}.
-
--spec q_all(table_name(), conditions()) -> q_all_return().
+-spec q_all(table_name(), conditions()) -> items_return().
 q_all(Table, Conditions) ->
     q_all(Table, Conditions, [], default_config()).
 
--spec q_all(table_name(), conditions(), q_opts()) -> q_all_return().
+-spec q_all(table_name(), conditions(), q_opts()) -> items_return().
 q_all(Table, Conditions, Opts) ->
     q_all(Table, Conditions, Opts, default_config()).
 
@@ -129,12 +198,12 @@ q_all(Table, Conditions, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec q_all(table_name(), conditions(), q_opts(), aws_config()) -> q_all_return().
+-spec q_all(table_name(), conditions(), q_opts(), aws_config()) -> items_return().
 q_all(Table, Conditions, Opts, Config) ->
     q_all(Table, Conditions, Opts, Config, [], undefined).
 
 -spec q_all(table_name(), conditions(), q_opts(), aws_config(), [out_item()], key() | undefined) 
-           -> q_all_return().
+           -> items_return().
 q_all(Table, Conditions, Opts, Config, Acc, StartKey) ->
     case erlcloud_ddb2:q(Table, Conditions, 
                          [{exclusive_start_key, StartKey}, {out, record} | Opts], 
@@ -142,13 +211,53 @@ q_all(Table, Conditions, Opts, Config, Acc, StartKey) ->
         {error, Reason} ->
             {error, Reason};
         {ok, #ddb2_q{last_evaluated_key = undefined, items = Items}} ->
-            %% Reverse and flatten the result. Can't use lists:flatten
-            %% because we only want to flatten one level.
-            Result = lists:foldl(
-                       fun(Batch, A) -> Batch ++ A end,
-                       [],
-                       [Items | Acc]),
-            {ok, Result};
+            {ok, flatreverse([Items | Acc])};
         {ok, #ddb2_q{last_evaluated_key = LastKey, items = Items}} ->
             q_all(Table, Conditions, Opts, Config, [Items | Acc], LastKey)
     end.
+
+%%%------------------------------------------------------------------------------
+%%% Internal Functions
+%%%------------------------------------------------------------------------------
+
+%% Reverses a list of lists and flattens one level
+flatreverse(List) ->
+    lists:foldl(fun(I, A) -> I ++ A end, [], List).
+
+%% fold a set of results from parallel operations producing lists
+parfold(_, {error, Reason}) ->
+    {error, Reason};
+parfold({error, Reason}, _) ->
+    {error, Reason};
+parfold({ok, I}, {ok, A}) ->
+    {ok, I ++ A}.
+
+%% parallel map implementation. See Armstrong's Programming Erlang and
+%% http://bc.tech.coop/blog/070601.html
+pmap_unordered(F, L) ->
+    Parent = self(),
+    Ref = make_ref(),
+    Pids = [spawn(fun() -> Parent ! {Ref, F(X)} end) || X <- L],
+    [receive {Ref, Result} -> Result end || _ <- Pids].
+
+%% creates a list of list each of which has N or fewer elements
+chop(N, List) ->
+    chop(N, List, []).
+
+chop(_, [], Acc) ->
+    lists:reverse(Acc);
+chop(N, List, Acc) ->
+    {H, T} = safe_split(N, List),
+    chop(N, T, [H | Acc]).
+
+%% lists:split throws if N is larger than the list, safe_split doesn't
+safe_split(N, List) ->
+    safe_split(N, List, []).
+
+safe_split(0, List, Acc) ->
+    {lists:reverse(Acc), List};
+safe_split(_, [], Acc) ->
+    {lists:reverse(Acc), []};
+safe_split(N, [H|T], Acc) ->
+    safe_split(N - 1, T, [H | Acc]).
+
