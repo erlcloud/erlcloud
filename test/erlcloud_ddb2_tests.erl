@@ -2159,6 +2159,17 @@ scan_input_tests(_) ->
         }
     }
 }"
+            }),
+         ?_ddb_test(
+            {"Parallel Scan",
+             ?_f(erlcloud_ddb2:scan(<<"Reply">>,
+                                    [{segment, 1},
+                                     {total_segments, 2}])), "
+{
+    \"TableName\": \"Reply\",
+    \"Segment\": 1,
+    \"TotalSegments\": 2
+}"
             })
         ],
 
