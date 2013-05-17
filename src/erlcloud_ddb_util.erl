@@ -90,7 +90,7 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts, Config) ->
                     {error, Reason};
                 {ok, BatchResult} ->
                     if QResult#ddb2_q.last_evaluated_key == undefined andalso
-                       BatchResult#ddb2_batch_write_item.unprocessed_items == undefined ->
+                       BatchResult#ddb2_batch_write_item.unprocessed_items == [] ->
                             %% No more work to do
                             ok;
                        true ->
@@ -150,14 +150,14 @@ get_all(Table, Keys, Opts, Config) ->
                         end
                 end,
                 BatchList),
-    lists:foldl(fun parfold/2, [], Results).
+    lists:foldl(fun parfold/2, {ok, []}, Results).
 
 -spec batch_get_retry([batch_get_item_request_item()], aws_config(), [out_item()]) -> items_return().
 batch_get_retry(RequestItems, Config, Acc) ->
     case erlcloud_ddb2:batch_get_item(RequestItems, [{out, record}], Config) of
         {error, Reason} ->
             {error, Reason};
-        {ok, #ddb2_batch_get_item{unprocessed_keys = undefined, 
+        {ok, #ddb2_batch_get_item{unprocessed_keys = [], 
                                   responses = [#ddb2_batch_get_item_response{items = Items}]}} ->
             {ok, Items ++ Acc};
         {ok, #ddb2_batch_get_item{unprocessed_keys = Unprocessed, 
