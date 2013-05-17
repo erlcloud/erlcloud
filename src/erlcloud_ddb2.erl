@@ -1538,7 +1538,9 @@ q(Table, Conditions, Opts, Config) ->
                     {limit, pos_integer()} |
                     return_consumed_capacity_opt() |
                     {scan_filter, conditions()} |
+                    {segment, non_neg_integer()} |
                     {select, select()} |
+                    {total_segments, pos_integer()} |
                     out_opt().
 -type scan_opts() :: [scan_opt()].
 
@@ -1549,7 +1551,9 @@ scan_opts() ->
      {limit, <<"Limit">>, fun id/1},
      return_consumed_capacity_opt(),
      {scan_filter, <<"ScanFilter">>, fun dynamize_conditions/1},
-     {select, <<"Select">>, fun dynamize_select/1}
+     {segment, <<"Segment">>, fun id/1},
+     {select, <<"Select">>, fun dynamize_select/1},
+     {total_segments, <<"TotalSegments">>, fun id/1}
     ].
 
 -spec scan_record() -> record_desc().
