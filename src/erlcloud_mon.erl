@@ -35,7 +35,7 @@
 
 %%------------------------------------------------------------------------------
 %% @doc CloudWatch API - ListMetrics
-%% @see [ http://docs.amazonwebservices.com/AmazonCloudWatch/latest/APIReference/index.html?API_ListMetrics.html ]
+%% [http://docs.amazonwebservices.com/AmazonCloudWatch/latest/APIReference/index.html?API_ListMetrics.html]
 %%
 %% USAGE:
 %%
@@ -98,8 +98,8 @@ extract_dimension(Node) ->
 
 %%------------------------------------------------------------------------------
 %% @doc CloudWatch API - PutMetricData
-%% @see [ http://docs.amazonwebservices.com/AmazonCloudWatch/latest/APIReference/index.html?API_PutMetricData.html ]
-%%
+%% [http://docs.amazonwebservices.com/AmazonCloudWatch/latest/APIReference/index.html?API_PutMetricData.html]
+%% `
 %% &MetricData.member.1.MetricName=buffers
 %% &MetricData.member.1.Unit=Bytes
 %% &MetricData.member.1.Value=231434333
@@ -114,7 +114,7 @@ extract_dimension(Node) ->
 %% &MetricData.member.2.Dimensions.member.1.Value=i-aaba32d4
 %% &MetricData.member.2.Dimensions.member.2.Name=InstanceType
 %% &MetricData.member.2.Dimensions.member.2.Value=m1.small
-%%
+%% '
 %% @end
 %%------------------------------------------------------------------------------
 -spec put_metric_data(
@@ -188,7 +188,7 @@ params_stat(Prefix, StatisticValues) ->
 
 %%------------------------------------------------------------------------------
 %% @doc CloudWatch API - PutMetricData
-%% @see [ http://docs.amazonwebservices.com/AmazonCloudWatch/latest/APIReference/index.html?API_PutMetricData.html ]
+%% [http://docs.amazonwebservices.com/AmazonCloudWatch/latest/APIReference/index.html?API_PutMetricData.html]
 %% @end
 %%------------------------------------------------------------------------------
 -spec put_metric_data(
@@ -215,7 +215,7 @@ put_metric_data(Namespace, MetricName, Value, Unit, Timestamp) ->
 
 %%------------------------------------------------------------------------------
 %% @doc CloudWatch API - GetMetricStatistics
-%% @see [ http://docs.amazonwebservices.com/AmazonCloudWatch/latest/APIReference/index.html?API_GetMetricStatistics.html ]
+%% [http://docs.amazonwebservices.com/AmazonCloudWatch/latest/APIReference/index.html?API_GetMetricStatistics.html]
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_metric_statistics(
