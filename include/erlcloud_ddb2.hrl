@@ -42,7 +42,7 @@
 -record(ddb2_batch_get_item,
         {consumed_capacity :: [#ddb2_consumed_capacity{}],
          responses :: [#ddb2_batch_get_item_response{}],
-         unprocessed_keys :: [erlcloud_ddb2:batch_get_item_request_item()]
+         unprocessed_keys = [] :: [erlcloud_ddb2:batch_get_item_request_item()]
         }).
 
 -record(ddb2_batch_write_item_response,
@@ -52,7 +52,7 @@
 -record(ddb2_batch_write_item,
         {consumed_capacity :: [#ddb2_consumed_capacity{}],
          item_collection_metrics :: [{erlcloud_ddb2:table_name(), [#ddb2_item_collection_metrics{}]}],
-         unprocessed_items :: [erlcloud_ddb2:batch_write_item_request_item()]
+         unprocessed_items = [] :: [erlcloud_ddb2:batch_write_item_request_item()]
         }).
 
 -record(ddb2_create_table,

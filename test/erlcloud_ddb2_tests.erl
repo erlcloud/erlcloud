@@ -776,7 +776,7 @@ batch_write_item_output_tests(_) ->
                       {item_collection_key = 3,
                        size_estimate_range_gb = {1.2, 1.4}}
                      ]}],
-               unprocessed_items = undefined}}})
+               unprocessed_items = []}}})
         ],
     
     output_tests(?_f(erlcloud_ddb2:batch_write_item([], [{out, record}])), Tests).
