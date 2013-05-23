@@ -23,7 +23,9 @@
 	 start_multipart/2, start_multipart/5,
 	 upload_part/5, upload_part/7,
 	 complete_multipart/4, complete_multipart/6,
-	 abort_multipart/3, abort_multipart/6]).
+	 abort_multipart/3, abort_multipart/6,
+	 list_multipart_uploads/1, list_multipart_uploads/2
+	]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -632,7 +634,7 @@ start_multipart(BucketName, Key, Options, HTTPHeaders, Config)
                {MKey, MValue} <- proplists:get_value(meta, Options, [])],
     POSTData = <<>>,
     case s3_xml_request2(Config, post, BucketName, [$/|Key], "uploads", [],
-		     POSTData, RequestHeaders) of
+			 POSTData, RequestHeaders) of
 	{ok, Doc} ->	
 	    Attributes = [{uploadId, "UploadId", text}],
 	    {ok, erlcloud_xml:decode(Attributes, Doc)};
@@ -658,7 +660,7 @@ upload_part(BucketName, Key, UploadId, PartNumber, Value, HTTPHeaders, Config)
 							     {"partNumber", integer_to_list(PartNumber)}],
 		     POSTData, HTTPHeaders) of
 	{ok, {Headers, _Body}} ->
-	    [{etag, proplists:get_value("etag", Headers)}];
+	    {ok, [{etag, proplists:get_value("etag", Headers)}]};
 	Error -> 
 	    Error
     end.
@@ -679,6 +681,7 @@ complete_multipart(BucketName, Key, UploadId, ETags, HTTPHeaders, Config)
     case s3_request2(Config, post, BucketName, [$/|Key], [], [{"uploadId", UploadId}],
 		     POSTData, HTTPHeaders) of
 	{ok, {Headers, _Body}} ->
+	    io:format("got ~p~n", [Headers, _Body]),
 	    [{etag, proplists:get_value("etag", Headers)}];
 	Error -> 
 	    Error
@@ -694,15 +697,44 @@ abort_multipart(BucketName, Key, UploadId, Options, HTTPHeaders, Config)
   when is_list(BucketName), is_list(Key), is_list(UploadId), is_list(Options),
        is_list(HTTPHeaders), is_record(Config, aws_config) ->
 
-    RequestHeaders = [{"x-amz-acl", encode_acl(proplists:get_value(acl, Options))} | HTTPHeaders],
-
     case s3_request2(Config, delete, BucketName, [$/|Key], [], [{"uploadId", UploadId}],
-		     <<>>, RequestHeaders) of
+		     <<>>, HTTPHeaders) of
 	{ok, _} ->
 	    ok;
 	Error -> 
 	    Error
     end.
+
+list_multipart_uploads(BucketName) ->
+    list_multipart_uploads(BucketName, [], [], default_config()).
+
+list_multipart_uploads(BucketName, Options) ->
+    list_multipart_uploads(BucketName, Options, [], default_config()).
+
+list_multipart_uploads(BucketName, Options, HTTPHeaders, Config) ->
+   
+    Params = [
+	      {"uploads", ""},
+	      {"delimiter", proplists:get_value(delimiter, Options)},
+              {"prefix", proplists:get_value(prefix, Options)},
+              {"max-uploads", proplists:get_value(max_uploads, Options)},
+              {"key-marker", proplists:get_value(key_marker, Options)},
+              {"upload-id-marker", proplists:get_value(upload_id_marker, Options)}
+	     ],
+
+    case s3_xml_request2(Config, get, BucketName, "/", "", Params, <<>>, HTTPHeaders) of
+	{ok, Xml} ->
+	    Uploads = [erlcloud_xml:decode([{key, "Key", text},
+					    {uploadId, "UploadId", text}], Node) || Node <- xmerl_xpath:string("/ListMultipartUploadsResult/Upload", Xml)],
+
+	    CommonPrefixes = [erlcloud_xml:get_text("Prefix", Node) || Node <- xmerl_xpath:string("/ListMultipartUploadsResult/CommonPrefixes", Xml)],
+
+	    {ok, [{uploads, Uploads},
+		  {common_prefixes, CommonPrefixes}]};
+	Error -> 
+	    Error
+    end.
+    
 
 -spec set_bucket_attribute(string(), atom(), term()) -> ok.
 
@@ -871,6 +903,7 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
                                     true -> [$&, erlcloud_http:make_query_string(Params)]
                                 end
                                ]),
+
     Response = case Method of
                    get -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
                    delete -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
@@ -882,6 +915,12 @@ make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
                    Host, Resource, Subresource, Params) ->
     CanonizedAmzHeaders =
         [[Name, $:, Value, $\n] || {Name, Value} <- lists:sort(AmzHeaders)],
+
+    SubResourcesToInclude = ["acl", "lifecycle", "location", "logging", "notification", "partNumber", "policy", "requestPayment", "torrent", "uploadId", "uploads", "versionId", "versioning", "versions", "website"],
+    FilteredParams = [{Name, Value} || {Name, Value} <- Params,
+				       lists:member(Name, SubResourcesToInclude)],
+
+    ParamsQueryString = erlcloud_http:make_query_string(lists:keysort(1, FilteredParams)),
     StringToSign = [string:to_upper(atom_to_list(Method)), $\n,
                     ContentMD5, $\n,
                     ContentType, $\n,
@@ -891,9 +930,9 @@ make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
                     Resource, 
 		    case Subresource of "" -> ""; _ -> [$?, Subresource] end,
 		    if
-			Params =:= [] -> "";
-			Subresource =:= "" -> [$?, erlcloud_http:make_query_string(lists:keysort(1, Params))];
-			true -> [$&, erlcloud_http:make_query_string(Params)]
+			ParamsQueryString =:= "" -> "";
+			Subresource =:= "" -> [$?, ParamsQueryString];
+			true -> [$&, ParamsQueryString]
 		    end
                    ],
     Signature = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, StringToSign)),
