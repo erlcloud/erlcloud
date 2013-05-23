@@ -670,7 +670,7 @@ complete_multipart(BucketName, Key, UploadId, ETags)
   when is_list(BucketName), is_list(Key), is_list(UploadId), is_list(ETags) ->
     complete_multipart(BucketName, Key, UploadId, ETags, [], default_config()).
 
--spec complete_multipart(string(), string(), string(), [{integer(), string()}], [{string(), string()}], aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec complete_multipart(string(), string(), string(), [{integer(), string()}], [{string(), string()}], aws_config()) -> ok | {error, any()}.
 complete_multipart(BucketName, Key, UploadId, ETags, HTTPHeaders, Config)
   when is_list(BucketName), is_list(Key), is_list(UploadId), is_list(ETags), is_list(HTTPHeaders), is_record(Config, aws_config) ->
     POSTData = list_to_binary(xmerl:export_simple([{'CompleteMultipartUpload', 
@@ -680,9 +680,8 @@ complete_multipart(BucketName, Key, UploadId, ETags, HTTPHeaders, Config)
 
     case s3_request2(Config, post, BucketName, [$/|Key], [], [{"uploadId", UploadId}],
 		     POSTData, HTTPHeaders) of
-	{ok, {Headers, _Body}} ->
-	    io:format("got ~p~n", [Headers, _Body]),
-	    [{etag, proplists:get_value("etag", Headers)}];
+	{ok, {_Headers, _Body}} ->
+	    ok;
 	Error -> 
 	    Error
     end.
@@ -705,13 +704,22 @@ abort_multipart(BucketName, Key, UploadId, Options, HTTPHeaders, Config)
 	    Error
     end.
 
-list_multipart_uploads(BucketName) ->
+-spec list_multipart_uploads(string()) -> {ok, proplist()} | {error, any()}.
+list_multipart_uploads(BucketName)
+  when is_list(BucketName) ->
+
     list_multipart_uploads(BucketName, [], [], default_config()).
 
-list_multipart_uploads(BucketName, Options) ->
+-spec list_multipart_uploads(string(), proplist()) -> {ok, proplist()} | {error, any()}.
+list_multipart_uploads(BucketName, Options)
+  when is_list(BucketName), is_list(Options) ->
+
     list_multipart_uploads(BucketName, Options, [], default_config()).
 
-list_multipart_uploads(BucketName, Options, HTTPHeaders, Config) ->
+-spec list_multipart_uploads(string(), proplist(), [{string(), string()}], aws_config()) -> {ok, proplist()} | {error, any()}.
+list_multipart_uploads(BucketName, Options, HTTPHeaders, Config)
+  when is_list(BucketName), is_list(Options),
+       is_list(HTTPHeaders), is_record(Config, aws_config) ->
    
     Params = [
 	      {"uploads", ""},
