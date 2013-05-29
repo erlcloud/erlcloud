@@ -31,6 +31,7 @@
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
 -define(API_VERSION, "2009-04-15").
+-define(SDB_TIMEOUT, 10000).
 
 -spec(new/2 :: (string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey) ->
@@ -254,10 +255,45 @@ extract_item(Item) ->
     ].
 
 sdb_request(Config, Action, Params) ->
+    case sdb_request_with_retry(Config, Action, Params, 1, ?SDB_TIMEOUT, erlang:now()) of
+        {ok, Result} ->
+            Result;
+        {error, Error} ->
+            erlang:error({aws_error, Error})
+    end.
+
+sdb_request_with_retry(Config, Action, Params, Try, Timeout, StartTime) ->
+    case sdb_request_safe(Config, Action, Params) of
+        {ok, Doc, Metadata} ->
+            {ok, {Doc, Metadata}};
+        {error, {http_error, 503, _StatusLine, _Body}} ->
+            %% Convert from microseconds to milliseconds
+            Waited = timer:now_diff(erlang:now(), StartTime) / 1000.0,
+            case Waited of
+                _TooLong when Waited > Timeout ->
+                    {error, retry_timeout};
+                _ ->
+                    Wait = math:pow(2, Try) * 200.0,
+                    %% Not exactly random since we're relying on the
+                    %% calling process to hold our PRNG state.
+                    FuzzWait = random:uniform(round(Wait)),
+                    timer:sleep(FuzzWait),
+                    sdb_request_with_retry(Config, Action, Params,
+                                           Try + 1, Timeout, StartTime)
+            end;
+        {error, _} = Error ->
+            Error
+    end.
+
+sdb_request_safe(Config, Action, Params) ->
     QParams = [{"Action", Action}, {"Version", ?API_VERSION}|Params],
-    Doc = erlcloud_aws:aws_request_xml(post, Config#aws_config.sdb_host,
-                                       "/", QParams, Config),
-    {Doc, [{box_usage, erlcloud_xml:get_float("/*/ResponseMetadata/BoxUsage", Doc)}]}.
+    case erlcloud_aws:aws_request_xml2(post, Config#aws_config.sdb_host,
+                                       "/", QParams, Config) of
+        {ok, Doc} ->
+            {ok, Doc, [{box_usage, erlcloud_xml:get_float("/*/ResponseMetadata/BoxUsage", Doc)}]};
+        {error, Error} ->
+            {error, Error}
+    end.
 
 sdb_simple_request(Config, Action, Params) ->
     {_Doc, Result} = sdb_request(Config, Action, Params),
