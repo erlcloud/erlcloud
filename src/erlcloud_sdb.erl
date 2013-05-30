@@ -24,7 +24,8 @@
          delete_attributes/4, delete_attributes/5,
          get_attributes/2, get_attributes/3, get_attributes/4, get_attributes/5,
          put_attributes/3, put_attributes/4, put_attributes/5,
-         select/1, select/2, select/3, select/4
+         select/1, select/2, select/3, select/4,
+         select_all/1, select_all/2, select_all/3
         ]).
 
 %% Export all functions for unit tests
@@ -219,6 +220,9 @@ put_attributes(DomainName, ItemName, Attributes, Conditionals, Config)
               attributes_list(Attributes)] ++ conditionals_list(Conditionals),
     sdb_simple_request(Config, "PutAttributes", Params).
 
+%% These functions will return the first page of results along with
+%% a token to retrieve the next page, if any.
+
 -spec select/1 :: (string()) -> proplist().
 select(SelectExpression) -> select(SelectExpression, none).
 
@@ -244,21 +248,56 @@ select(SelectExpression, NextToken, ConsistentRead, Config)
   when is_list(SelectExpression),
        is_list(NextToken) orelse NextToken =:= none,
        is_boolean(ConsistentRead) ->
-    select_all(SelectExpression, NextToken, ConsistentRead, Config, [], []).
+    {Items, NewNextToken, Metadata} = sdb_select_request(SelectExpression,
+                                                         NextToken,
+                                                         ConsistentRead,
+                                                         Config),
+    Metadata2 = case NewNextToken of
+                    done -> Metadata;
+                    Token -> [{next_token, Token}|Metadata]
+                end,
+    [{items, Items}|Metadata2].
+
+%% These functions will make multiple requests until all
+%% pages of results have been consumed.
+
+-spec select_all/1 :: (string()) -> proplist().
+select_all(SelectExpression) ->
+    select_all(SelectExpression, false).
+
+-spec select_all/2 :: (string(), boolean()) -> proplist().
+select_all(SelectExpression, ConsistentRead)
+    when is_boolean(ConsistentRead) ->
+    select_all(SelectExpression, ConsistentRead, default_config());
+select_all(SelectExpression, Config) ->
+    select_all(SelectExpression, false, Config).
+
+-spec select_all/3 :: (string(), boolean(), aws_config()) -> proplist().
+select_all(SelectExpression, ConsistentRead, Config)
+  when is_list(SelectExpression),
+       is_boolean(ConsistentRead) ->
+    select_all(SelectExpression, none, ConsistentRead, Config, [], []).
 
 -spec select_all/6 :: (string(), string() | none | done, boolean(),
                        aws_config(), proplist(), proplist()) -> proplist().
 select_all(_, done, _, _, Items, Metadata) ->
     [{items, Items}|Metadata];
 select_all(SelectExpression, NextToken, ConsistentRead, Config, Items, Metadata) ->
-    {Doc, NewMetadata} = sdb_request(Config, "Select",
-                                     [{"SelectExpression", SelectExpression},
-                                      {"NextToken", NextToken},
-                                      {"ConsistentRead", ConsistentRead}]),
-    NewNextToken = extract_token(Doc),
-    NewItems = extract_items(xmerl_xpath:string("/SelectResponse/SelectResult/Item", Doc)),
+    {NewItems, NewNextToken, NewMetadata} = sdb_select_request(SelectExpression,
+                                                               NextToken,
+                                                               ConsistentRead,
+                                                               Config),
     select_all(SelectExpression, NewNextToken, ConsistentRead,
                Config, Items ++ NewItems, Metadata ++ NewMetadata).
+
+sdb_select_request(SelectExpression, NextToken, ConsistentRead, Config) ->
+    {Doc, Metadata} = sdb_request(Config, "Select",
+                                  [{"SelectExpression", SelectExpression},
+                                   {"NextToken", NextToken},
+                                   {"ConsistentRead", ConsistentRead}]),
+    NewNextToken = extract_token(Doc),
+    Items = extract_items(xmerl_xpath:string("/SelectResponse/SelectResult/Item", Doc)),
+    {Items, NewNextToken, Metadata}.
 
 extract_token(Doc) ->
     case xmerl_xpath:string("/SelectResponse/SelectResult/NextToken", Doc) of
