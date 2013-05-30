@@ -27,6 +27,11 @@
          select/1, select/2, select/3, select/4
         ]).
 
+%% Export all functions for unit tests
+-ifdef(TEST).
+-compile(export_all).
+-endif.
+
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
@@ -239,11 +244,29 @@ select(SelectExpression, NextToken, ConsistentRead, Config)
   when is_list(SelectExpression),
        is_list(NextToken) orelse NextToken =:= none,
        is_boolean(ConsistentRead) ->
-    {Doc, Result} = sdb_request(Config, "Select",
-                                [{"SelectExpression", SelectExpression}, {"NextToken", NextToken},
-                                 {"ConsistentRead", ConsistentRead}]),
-    [{items, extract_items(xmerl_xpath:string("/SelectResponse/SelectResult/Item", Doc))}|
-     Result].
+    select_all(SelectExpression, NextToken, ConsistentRead, Config, [], []).
+
+-spec select_all/6 :: (string(), string() | none | done, boolean(),
+                       aws_config(), proplist(), proplist()) -> proplist().
+select_all(_, done, _, _, Items, Metadata) ->
+    [{items, Items}|Metadata];
+select_all(SelectExpression, NextToken, ConsistentRead, Config, Items, Metadata) ->
+    {Doc, NewMetadata} = sdb_request(Config, "Select",
+                                     [{"SelectExpression", SelectExpression},
+                                      {"NextToken", NextToken},
+                                      {"ConsistentRead", ConsistentRead}]),
+    NewNextToken = extract_token(Doc),
+    NewItems = extract_items(xmerl_xpath:string("/SelectResponse/SelectResult/Item", Doc)),
+    select_all(SelectExpression, NewNextToken, ConsistentRead,
+               Config, Items ++ NewItems, Metadata ++ NewMetadata).
+
+extract_token(Doc) ->
+    case xmerl_xpath:string("/SelectResponse/SelectResult/NextToken", Doc) of
+        [] ->
+            done;
+        [Token] ->
+            erlcloud_xml:get_text(Token)
+    end.
 
 extract_items(Items) ->
     [extract_item(Item) || Item <- Items].
@@ -256,8 +279,8 @@ extract_item(Item) ->
 
 sdb_request(Config, Action, Params) ->
     case sdb_request_with_retry(Config, Action, Params, 1, ?SDB_TIMEOUT, erlang:now()) of
-        {ok, Result} ->
-            Result;
+        {ok, {Doc, Metadata}} ->
+            {Doc, Metadata};
         {error, Error} ->
             erlang:error({aws_error, Error})
     end.
