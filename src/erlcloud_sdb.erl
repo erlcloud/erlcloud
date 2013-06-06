@@ -12,23 +12,23 @@
 
 %% SDB API Functions
 -export([
-    %% Domains
-    create_domain/1, create_domain/2,
-    delete_domain/1, delete_domain/2,
-    domain_metadata/1, domain_metadata/2,
-    list_domains/0, list_domains/1, list_domains/2, list_domains/3,
-    
-    %% Items
-    batch_put_attributes/2, batch_put_attributes/3,
-    delete_attributes/2, delete_attributes/3,
-    delete_attributes/4, delete_attributes/5,
-    get_attributes/2, get_attributes/3, get_attributes/4, get_attributes/5,
-    put_attributes/3, put_attributes/4, put_attributes/5,
-    select/1, select/2, select/3, select/4
-]).
+         %% Domains
+         create_domain/1, create_domain/2,
+         delete_domain/1, delete_domain/2,
+         domain_metadata/1, domain_metadata/2,
+         list_domains/0, list_domains/1, list_domains/2, list_domains/3,
 
--include("erlcloud.hrl").
--include("erlcloud_aws.hrl").
+         %% Items
+         batch_put_attributes/2, batch_put_attributes/3,
+         delete_attributes/2, delete_attributes/3,
+         delete_attributes/4, delete_attributes/5,
+         get_attributes/2, get_attributes/3, get_attributes/4, get_attributes/5,
+         put_attributes/3, put_attributes/4, put_attributes/5,
+         select/1, select/2, select/3, select/4
+        ]).
+
+-include_lib("erlcloud/include/erlcloud.hrl").
+-include_lib("erlcloud/include/erlcloud_aws.hrl").
 
 -define(API_VERSION, "2009-04-15").
 
@@ -83,14 +83,14 @@ domain_metadata(Name, Config)
     {Doc, Result} = sdb_request(Config, "DomainMetadata", [{"DomainName", Name}]),
     MR = hd(xmerl_xpath:string("/DomainMetadataResponse/DomainMetadataResult", Doc)),
     Metadata = erlcloud_xml:decode([
-        {item_count, "ItemCount", integer},
-        {item_names_size_bytes, "ItemNamesSizeBytes", integer},
-        {attribute_name_count, "AttributeNameCount", integer},
-        {attribute_names_size_bytes, "AttributeNamesSizeBytes", integer},
-        {attribute_value_count, "AttributeValueCount", integer},
-        {attribute_values_size_bytes, "AttributeValuesSizeBytes", integer},
-        {timestamp, "Timestamp", integer}
-    ], MR),
+                                    {item_count, "ItemCount", integer},
+                                    {item_names_size_bytes, "ItemNamesSizeBytes", integer},
+                                    {attribute_name_count, "AttributeNameCount", integer},
+                                    {attribute_names_size_bytes, "AttributeNamesSizeBytes", integer},
+                                    {attribute_value_count, "AttributeValueCount", integer},
+                                    {attribute_values_size_bytes, "AttributeValuesSizeBytes", integer},
+                                    {timestamp, "Timestamp", integer}
+                                   ], MR),
     [{domain_metadata, Metadata}|Result].
 
 -spec batch_put_attributes/2 :: (string(), [{string(), sdb_attributes()}]) -> proplist().
@@ -102,7 +102,7 @@ batch_put_attributes(DomainName, Items, Config)
   when is_list(DomainName), is_list(Items) ->
     ItemParams = [[{"ItemName", Name}|attributes_list(Attrs)] || {Name, Attrs} <- Items],
     sdb_simple_request(Config, "BatchPutAttributes",
-        [{"DomainName", DomainName}|erlcloud_aws:param_list(ItemParams, "Item")]).
+                       [{"DomainName", DomainName}|erlcloud_aws:param_list(ItemParams, "Item")]).
 
 -spec delete_attributes/2 :: (string(), string()) -> proplist().
 delete_attributes(DomainName, ItemName) ->
@@ -155,9 +155,9 @@ get_attributes(DomainName, ItemName, AttributeNames, ConsistentRead) ->
 -spec get_attributes/5 :: (string(), string(), [string()], boolean(), aws_config()) -> proplist().
 get_attributes(DomainName, ItemName, AttributeNames, ConsistentRead, Config) ->
     {Doc, Result} = sdb_request(Config, "GetAttributes",
-        [{"DomainName", DomainName}, {"ItemName", ItemName},
-         {"ConsistentRead", ConsistentRead}|
-         erlcloud_aws:param_list(AttributeNames, "AttributeName")]),
+                                [{"DomainName", DomainName}, {"ItemName", ItemName},
+                                 {"ConsistentRead", ConsistentRead}|
+                                 erlcloud_aws:param_list(AttributeNames, "AttributeName")]),
     [{attributes,
       extract_attributes(xmerl_xpath:string("/GetAttributesResponse/GetAttributesResult/Attribute", Doc))}|
      Result].
@@ -191,7 +191,7 @@ list_domains(FirstToken, MaxDomains, Config)
   when is_list(FirstToken),
        is_integer(MaxDomains) orelse MaxDomains =:= none ->
     {Doc, Result} = sdb_request(Config, "ListDomains",
-        [{"MaxNumberOfDomains", MaxDomains}, {"FirstToken", FirstToken}]),
+                                [{"MaxNumberOfDomains", MaxDomains}, {"FirstToken", FirstToken}]),
     [{domains, erlcloud_xml:get_list("/ListDomainsResponse/ListDomainsResult/DomainName", Doc)}|Result].
 
 -spec put_attributes/3 :: (string(), string(), sdb_attributes()) -> proplist().
@@ -239,8 +239,8 @@ select(SelectExpression, NextToken, ConsistentRead, Config)
        is_list(NextToken) orelse NextToken =:= none,
        is_boolean(ConsistentRead) ->
     {Doc, Result} = sdb_request(Config, "Select",
-        [{"SelectExpression", SelectExpression}, {"NextToken", NextToken},
-         {"ConsistentRead", ConsistentRead}]),
+                                [{"SelectExpression", SelectExpression}, {"NextToken", NextToken},
+                                 {"ConsistentRead", ConsistentRead}]),
     [{items, extract_items(xmerl_xpath:string("/SelectResponse/SelectResult/Item", Doc))}|
      Result].
 
@@ -249,15 +249,14 @@ extract_items(Items) ->
 
 extract_item(Item) ->
     [
-        {name, erlcloud_xml:get_text("Name", Item)},
-        {attributes, extract_attributes(xmerl_xpath:string("Attribute", Item))}
+     {name, erlcloud_xml:get_text("Name", Item)},
+     {attributes, extract_attributes(xmerl_xpath:string("Attribute", Item))}
     ].
 
 sdb_request(Config, Action, Params) ->
     QParams = [{"Action", Action}, {"Version", ?API_VERSION}|Params],
     Doc = erlcloud_aws:aws_request_xml(post, Config#aws_config.sdb_host,
-        "/", QParams, Config#aws_config.access_key_id,
-        Config#aws_config.secret_access_key),
+                                       "/", QParams, Config),
     {Doc, [{box_usage, erlcloud_xml:get_float("/*/ResponseMetadata/BoxUsage", Doc)}]}.
 
 sdb_simple_request(Config, Action, Params) ->
@@ -266,29 +265,29 @@ sdb_simple_request(Config, Action, Params) ->
 
 delete_attributes_list(Attrs) ->
     erlcloud_aws:param_list(
-        [case Attr of
-             {Name, Value} -> [{"Name", Name}, {"Value", Value}];
-             Name when is_list(Name) -> [{"Name", Name}]
-         end || Attr <- Attrs],
-        "Attribute").
+      [case Attr of
+           {Name, Value} -> [{"Name", Name}, {"Value", Value}];
+           Name when is_list(Name) -> [{"Name", Name}]
+       end || Attr <- Attrs],
+      "Attribute").
 
 attributes_list(Attrs) ->
     erlcloud_aws:param_list(
-        [[{"Name", Name}|
-          case Value of
-              {replace, V} -> [{"Value", V}, {"Replace", true}];
-              V -> [{"Value", V}]
-          end] ||
-         {Name, Value} <- Attrs],
-        "Attribute").
+      [[{"Name", Name}|
+        case Value of
+            {replace, V} -> [{"Value", V}, {"Replace", true}];
+            V -> [{"Value", V}]
+        end] ||
+          {Name, Value} <- Attrs],
+      "Attribute").
 
 conditionals_list(Conditionals) ->
     erlcloud_aws:param_list(
-        [[{"Name", Name},
-          case Value of
-              exists -> {"Exists", "true"};
-              not_exists -> {"Exists", "false"};
-              V -> {"Value", V}
-          end] ||
-         {Name, Value} <- Conditionals],
-        "Expected").
+      [[{"Name", Name},
+        case Value of
+            exists -> {"Exists", "true"};
+            not_exists -> {"Exists", "false"};
+            V -> {"Value", V}
+        end] ||
+          {Name, Value} <- Conditionals],
+      "Expected").

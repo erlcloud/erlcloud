@@ -15,12 +15,12 @@
 
          configure_health_check/2, configure_health_check/3]).
 
--include("erlcloud.hrl").
--include("erlcloud_aws.hrl").
+-include_lib("erlcloud/include/erlcloud.hrl").
+-include_lib("erlcloud/include/erlcloud_aws.hrl").
 
 -define(API_VERSION, "2009-05-15").
 
--import(erlcloud_xml, [get_text/1, get_text/2, get_integer/2]).
+-import(erlcloud_xml, [get_text/2]).
 
 -spec(new/2 :: (string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey) ->
@@ -127,8 +127,8 @@ describe_load_balancers(Names) ->
     describe_load_balancers(Names, default_config()).
 describe_load_balancers(Names, Config) ->
     elb_request(Config,
-                       "DescribeLoadBalancers",
-                       [erlcloud_aws:param_list(Names, "LoadBalancerNames.member")]).
+                "DescribeLoadBalancers",
+                [erlcloud_aws:param_list(Names, "LoadBalancerNames.member")]).
 
 
 
@@ -136,10 +136,8 @@ describe_load_balancers(Names, Config) ->
 elb_request(Config, Action, Params) ->
     QParams = [{"Action", Action}, {"Version", ?API_VERSION} | Params],
     erlcloud_aws:aws_request_xml(get, Config#aws_config.elb_host,
-                                 "/", QParams, Config#aws_config.access_key_id,
-                                 Config#aws_config.secret_access_key).
+                                 "/", QParams, Config).
 
 elb_simple_request(Config, Action, Params) ->
     _Doc = elb_request(Config, Action, Params),
     ok.
-

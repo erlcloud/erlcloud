@@ -3,3 +3,8 @@
 _build
 ebin/*.beam
 ebin/*.app
+.eunit/
+rebar
+*.sublime-*
+deps/
+doc/
