@@ -501,7 +501,8 @@ extract_version(Node) ->
                   {etag, "ETag", text},
                   {size, "Size", integer},
                   {owner, "Owner", fun extract_user/1},
-                  {storage_class, "StorageClass", text}],
+                  {storage_class, "StorageClass", text},
+                  {last_modified, "LastModified", time}],
     erlcloud_xml:decode(Attributes, Node).
 
 extract_delete_markers(Nodes) ->
