@@ -1555,21 +1555,25 @@ extract_subnet(Node) ->
      {availability_zone, get_text("availabilityZone", Node)},
      {cidr_block, get_text("cidrBlock", Node)}].
 
--spec(describe_volumes/0 :: () -> proplist()).
+-spec(describe_volumes/0 :: () -> {ok, proplist()} | {error, any()}).
 describe_volumes() -> describe_volumes([]).
 
--spec(describe_volumes/1 :: ([string()] | aws_config()) -> proplist()).
+-spec(describe_volumes/1 :: ([string()] | aws_config()) -> {ok, proplist()} | {error, any()}).
 describe_volumes(Config)
   when is_record(Config, aws_config) ->
     describe_volumes([], Config);
 describe_volumes(VolumeIDs) ->
     describe_volumes(VolumeIDs, default_config()).
 
--spec(describe_volumes/2 :: ([string()], aws_config()) -> proplist()).
+-spec(describe_volumes/2 :: ([string()], aws_config()) -> {ok, proplist()} | {error, any()}).
 describe_volumes(VolumeIDs, Config)
   when is_list(VolumeIDs) ->
-    Doc = ec2_query(Config, "DescribeVolumes", erlcloud_aws:param_list(VolumeIDs, "VolumeId")),
-    [extract_volume(Item) || Item <- xmerl_xpath:string("/DescribeVolumesResponse/volumeSet/item", Doc)].
+    case ec2_query2(Config, "DescribeVolumes", erlcloud_aws:param_list(VolumeIDs, "VolumeId")) of
+        {ok, Doc} ->
+            {ok, [extract_volume(Item) || Item <- xmerl_xpath:string("/DescribeVolumesResponse/volumeSet/item", Doc)]};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 extract_volume(Node) ->
     [{volume_id, get_text("volumeId", Node)},
@@ -2133,6 +2137,9 @@ ec2_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml(post, Config#aws_config.ec2_host,
                                  "/", QParams, Config).
+
+ec2_query2(Config, Action, Params) ->
+    ec2_query2(Config, Action, Params, ?API_VERSION).
 
 ec2_query2(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
