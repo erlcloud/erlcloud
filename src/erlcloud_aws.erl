@@ -92,15 +92,18 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
         _ -> URL = [UProtocol, Host, $:, port_to_str(Port), Path]
     end,
     
+    %% Note: httpc MUST be used with {timeout, timeout()} option
+    %%       Many timeout related failures is observed at prod env
+    %%       when library is used in 24/7 manner
     Response =
         case Method of
             get ->
                 Req = lists:flatten([URL, $?, Query]),
-                httpc:request(Req);
+                httpc:request(get, {Req, []}, [{timeout, Config#aws_config.timeout}], []);
             _ ->
                 httpc:request(Method,
                               {lists:flatten(URL), [], "application/x-www-form-urlencoded; charset=utf-8",
-                               list_to_binary(Query)}, [], [])
+                               list_to_binary(Query)}, [{timeout, Config#aws_config.timeout}], [])
         end,
     
     http_body(Response).
