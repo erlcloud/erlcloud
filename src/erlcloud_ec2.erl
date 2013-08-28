@@ -594,21 +594,21 @@ create_snapshot(VolumeID, Description) ->
 -spec(create_snapshot/3 :: (string(), string(), aws_config()) -> proplist()).
 create_snapshot(VolumeID, Description, Config)
   when is_list(VolumeID), is_list(Description) ->
-    Doc = ec2_query(Config, "CreateSnapshot",
-                    [
-                     {"VolumeId", VolumeID},
-                     {"Description", Description}
-                    ]),
-    [
-     {snapshot_id, get_text("/CreateSnapshotResponse/snapshotId", Doc)},
-     {volume_id, get_text("/CreateSnapshotResponse/volumeId", Doc)},
-     {volume_size, get_integer("/CreateSnapshotResponse/volumeSize", Doc)},
-     {status, get_text("/CreateSnapshotResponse/status", Doc)},
-     {start_time, erlcloud_xml:get_time("/CreateSnapshotResponse/attachTime", Doc)},
-     {progress, get_text("/CreateSnapshotResponse/progress", Doc)},
-     {owner_id, get_text("/CreateSnapshotResponse/ownerId", Doc)},
-     {description, get_text("/CreateSnapshotResponse/description", Doc)}
-    ].
+    case ec2_query2(Config, "CreateSnapshot", [{"VolumeId", VolumeID}, {"Description", Description}]) of
+        {ok, Doc} -> 
+            {ok, [
+                 {snapshot_id, get_text("/CreateSnapshotResponse/snapshotId", Doc)},
+                 {volume_id, get_text("/CreateSnapshotResponse/volumeId", Doc)},
+                 {volume_size, get_integer("/CreateSnapshotResponse/volumeSize", Doc)},
+                 {status, get_text("/CreateSnapshotResponse/status", Doc)},
+                 {start_time, erlcloud_xml:get_time("/CreateSnapshotResponse/attachTime", Doc)},
+                 {progress, get_text("/CreateSnapshotResponse/progress", Doc)},
+                 {owner_id, get_text("/CreateSnapshotResponse/ownerId", Doc)},
+                 {description, get_text("/CreateSnapshotResponse/description", Doc)}
+            ]};
+        {error, _} = Error ->
+            Error
+    end.
 
 -spec(create_spot_datafeed_subscription/1 :: (string()) -> proplist()).
 create_spot_datafeed_subscription(Bucket) ->
