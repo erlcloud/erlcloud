@@ -1040,9 +1040,13 @@ describe_instances(InstanceIDs) ->
 -spec(describe_instances/2 :: ([string()], aws_config()) -> proplist()).
 describe_instances(InstanceIDs, Config)
   when is_list(InstanceIDs) ->
-    Doc = ec2_query(Config, "DescribeInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId")),
-    Reservations = xmerl_xpath:string("/DescribeInstancesResponse/reservationSet/item", Doc),
-    [extract_reservation(Item) || Item <- Reservations].
+    case ec2_query2(Config, "DescribeInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId")) of
+        {ok, Doc} ->
+            Reservations = xmerl_xpath:string("/DescribeInstancesResponse/reservationSet/item", Doc),
+            {ok, [extract_reservation(Item) || Item <- Reservations]};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 extract_reservation(Node) ->
     [{reservation_id, get_text("reservationId", Node)},
