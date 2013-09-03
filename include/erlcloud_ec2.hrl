@@ -25,7 +25,8 @@
           monitoring_enabled=false::boolean(),
           subnet_id::string(),
           disable_api_termination=false::boolean(),
-          instance_initiated_shutdown_behavior::ec2_shutdown_behavior()
+          instance_initiated_shutdown_behavior::ec2_shutdown_behavior(),
+          ebs_optimized = false :: boolean()
          }).
 -record(ec2_image_spec, {
           image_location::string(),
