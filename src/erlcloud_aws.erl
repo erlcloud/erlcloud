@@ -1,10 +1,12 @@
 -module(erlcloud_aws).
+
 -export([aws_request/5, aws_request/6, aws_request/7, aws_request/8,
          aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
          aws_request2/7,
          aws_request_xml2/5, aws_request_xml2/7,
          param_list/2, default_config/0, update_config/1, format_timestamp/1,
-         http_headers_body/1]).
+         http_headers_body/1,
+         sign_v4/5]).
 
 -include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -233,3 +235,75 @@ http_headers_body({ok, {{_HTTPVer, Status, StatusLine}, _Headers, Body}}) ->
     {error, {http_error, Status, StatusLine, Body}};
 http_headers_body({error, Reason}) ->
     {error, {socket_error, Reason}}.
+
+%% http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
+%% TODO additional parameters - currently only supports what is needed for DynamoDB
+-spec sign_v4(aws_config(), headers(), binary(), string(), string()) -> headers().
+sign_v4(Config, Headers, Payload, Region, Service) ->
+    Date = iso_8601_basic_time(),
+    Headers2 = [{"x-amz-date", Date} | Headers],
+    {Request, SignedHeaders} = canonical_request("POST", "/", "", Headers2, Payload),
+    CredentialScope = credential_scope(Date, Region, Service),
+    ToSign = to_sign(Date, CredentialScope, Request),
+    SigningKey = signing_key(Config, Date, Region, Service),
+    Signature = base16(crypto:hmac(sha256, SigningKey, ToSign)),
+    Authorization = authorization(Config, CredentialScope, SignedHeaders, Signature),
+    [{"Authorization", lists:flatten(Authorization)} | Headers2].
+    
+iso_8601_basic_time() ->
+    {{Year,Month,Day},{Hour,Min,Sec}} = calendar:now_to_universal_time(os:timestamp()),
+    lists:flatten(io_lib:format(
+                    "~4.10.0B~2.10.0B~2.10.0BT~2.10.0B~2.10.0B~2.10.0BZ",
+                    [Year, Month, Day, Hour, Min, Sec])).
+
+canonical_request(Method, CanonicalURI, CanonicalQueryString, Headers, Payload) ->
+    {CanonicalHeaders, SignedHeaders} = canonical_headers(Headers),
+    {[Method, $\n,
+      CanonicalURI, $\n,
+      CanonicalQueryString, $\n,
+      CanonicalHeaders, $\n,
+      SignedHeaders, $\n,
+      hash_encode(Payload)],
+     SignedHeaders}.
+
+canonical_headers(Headers) ->
+    Normalized = [{string:to_lower(Name), trimall(Value)} || {Name, Value} <- Headers],
+    Sorted = lists:keysort(1, Normalized),
+    Canonical = [[Name, $:, Value, $\n] || {Name, Value} <- Sorted],
+    Signed = string:join([Name || {Name, _} <- Sorted], ";"),
+    {Canonical, Signed}.
+
+trimall(Value) ->
+    %% TODO - remove excess internal whitespace in header values
+    re:replace(Value, "(^\\s+)|(\\s+$)", "", [global]).
+
+hash_encode(Data) ->
+    Hash = crypto:hash(sha256, Data),
+    base16(Hash).
+
+base16(Data) ->
+    string:to_lower(integer_to_list(binary:decode_unsigned(Data), 16)).
+
+credential_scope(Date, Region, Service) ->
+    DateOnly = string:left(Date, 8),
+    [DateOnly, $/, Region, $/, Service, "/aws4_request"].
+    
+to_sign(Date, CredentialScope, Request) ->
+    ["AWS4-HMAC-SHA256\n",
+     Date, $\n,
+     CredentialScope, $\n,
+     hash_encode(Request)].
+    
+signing_key(Config, Date, Region, Service) ->
+    %% TODO cache the signing key so we don't have to recompute for every request
+    DateOnly = string:left(Date, 8),
+    KDate = crypto:hmac(sha256, "AWS4" ++ Config#aws_config.secret_access_key, DateOnly),
+    KRegion = crypto:hmac(sha256, KDate, Region),
+    KService = crypto:hmac(sha256, KRegion, Service),
+    crypto:hmac(sha256, KService, "aws4_request").
+    
+authorization(Config, CredentialScope, SignedHeaders, Signature) ->
+    ["AWS4-HMAC-SHA256"
+     " Credential=", Config#aws_config.access_key_id, $/, CredentialScope, $,,
+     " SignedHeaders=", SignedHeaders, $,,
+     " Signature=", Signature].
