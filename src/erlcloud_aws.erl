@@ -241,7 +241,11 @@ http_headers_body({error, Reason}) ->
 -spec sign_v4(aws_config(), headers(), binary(), string(), string()) -> headers().
 sign_v4(Config, Headers, Payload, Region, Service) ->
     Date = iso_8601_basic_time(),
-    Headers2 = [{"x-amz-date", Date} | Headers],
+    Headers1 = [{"x-amz-date", Date} | Headers],
+    Headers2 = case Config#aws_config.security_token of
+                   undefined -> Headers1;
+                   Token -> [{"x-amz-security-token", Token} | Headers1]
+               end,
     {Request, SignedHeaders} = canonical_request("POST", "/", "", Headers2, Payload),
     CredentialScope = credential_scope(Date, Region, Service),
     ToSign = to_sign(Date, CredentialScope, Request),
