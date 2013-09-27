@@ -154,11 +154,7 @@ client_error(Status, StatusLine, Body) ->
 -spec headers(aws_config(), string(), binary()) -> headers().
 headers(Config, Operation, Body) ->
     Headers = [{"host", Config#aws_config.ddb_host},
-               {"x-amz-target", Operation}]
-        ++ case Config#aws_config.security_token of
-               undefined -> [];
-               SecurityToken -> [{"x-amz-security-token", SecurityToken}]
-           end,
+               {"x-amz-target", Operation}],
     Region = 
         case string:tokens(Config#aws_config.ddb_host, ".") of
             [_, Value, _, _] ->
