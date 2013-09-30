@@ -153,32 +153,16 @@ client_error(Status, StatusLine, Body) ->
 
 -spec headers(aws_config(), string(), binary()) -> headers().
 headers(Config, Operation, Body) ->
-    Date = httpd_util:rfc1123_date(erlang:localtime()),
-    Headers = [{"x-amz-date", Date},
-               {"x-amz-target", Operation}]
-        ++ case Config#aws_config.security_token of
-               undefined -> [];
-               SecurityToken -> [{"x-amz-security-token", SecurityToken}]
-           end,
-    Authorization = authorization(Config, Headers, Body),
-    [{"x-amzn-authorization", Authorization} | Headers].
-
-%% TODO switch to AWS4 authorization
-authorization(Config, Headers, Body) ->
-    Signature = signature(Config, Headers, Body),
-    lists:flatten(io_lib:format("AWS3 AWSAccessKeyId=~s,Algorithm=HmacSHA1,Signature=~s", 
-                                [Config#aws_config.access_key_id, Signature])).
-
-signature(Config, Headers, Body) ->
-    StringToSign = lists:flatten(["POST", $\n, "/", $\n, $\n, canonical(Config, Headers), $\n, Body]),
-    BytesToSign = crypto:sha(StringToSign),
-    base64:encode_to_string(binary_to_list(crypto:sha_mac(Config#aws_config.secret_access_key, BytesToSign))).
-
-canonical(Config, Headers) ->
-    Headers1 = lists:map(fun({K, V}) -> {string:to_lower(K), V} end, Headers),
-    Amz = lists:filter(fun({K, _V}) -> lists:prefix("x-amz-", K) end, Headers1),
-    Headers2 = [{"host", Config#aws_config.ddb_host} | lists:sort(Amz)],
-    [[K, $:, V, $\n] || {K, V} <- Headers2].
+    Headers = [{"host", Config#aws_config.ddb_host},
+               {"x-amz-target", Operation}],
+    Region = 
+        case string:tokens(Config#aws_config.ddb_host, ".") of
+            [_, Value, _, _] ->
+                Value;
+            _ ->
+                "us-east-1"
+        end,
+    erlcloud_aws:sign_v4(Config, Headers, Body, Region, "dynamodb").
 
 url(#aws_config{ddb_scheme = Scheme, ddb_host = Host} = Config) ->
     lists:flatten([Scheme, Host, port_spec(Config)]).

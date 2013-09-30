@@ -1631,7 +1631,7 @@ dynamize_update({Name, delete}) ->
     {Name, [dynamize_action(delete)]};
 dynamize_update({Name, Value}) ->
     %% Uses the default action of put
-    {Name, [{<<"Value">>, [dynamize_value(Value)]}]}.
+    dynamize_update({Name, Value, put}).
 
 -spec dynamize_updates(in_updates()) -> [json_update()].
 dynamize_updates(Updates) ->
