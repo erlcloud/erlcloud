@@ -7,9 +7,16 @@
          create_platform_endpoint/2, create_platform_endpoint/3,
          create_platform_endpoint/4, create_platform_endpoint/5,
          create_platform_endpoint/6,
+         delete_endpoint/1, delete_endpoint/2, delete_endpoint/3,
+         list_endpoints_by_platform_application/1,
+         list_endpoints_by_platform_application/2,
+         list_endpoints_by_platform_application/3,
+         list_endpoints_by_platform_application/4,
          publish_to_topic/2, publish_to_topic/3, publish_to_topic/4,
          publish_to_topic/5, publish_to_target/2, publish_to_target/3,
-         publish_to_target/4, publish_to_target/5, publish/5
+         publish_to_target/4, publish_to_target/5, publish/5,
+         list_platform_applications/0, list_platform_applications/1,
+         list_platform_applications/2, list_platform_applications/3
          ]).
 
 -include("erlcloud.hrl").
@@ -19,6 +26,8 @@
 -type sns_endpoint_attribute() :: custom_user_data
                                 | enabled
                                 | token.
+
+-type sns_endpoint() :: [{arn|sns_endpoint_attribute(), string()}].
 
 -type sns_permission() :: all
                         | add_permission
@@ -50,7 +59,14 @@
 
 -type sns_message() :: string() | jsx:json_term().
 
--export_type([sns_acl/0, sns_endpoint_attribute/0]).
+-type sns_application_attribute() :: event_endpoint_created
+                                   | event_endpoint_deleted
+                                   | event_endpoint_updated
+                                   | event_delivery_failure.
+-type sns_application() :: [{arn|sns_application_attribute(), string()}].
+
+-export_type([sns_acl/0, sns_endpoint_attribute/0,
+              sns_message/0, sns_application/0, sns_endpoint/0]).
 
 -spec add_permission/3 :: (string(), string(), sns_acl()) -> ok.
 -spec add_permission/4 :: (string(), string(), sns_acl(), aws_config()) -> ok.
@@ -95,10 +111,79 @@ create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attribut
              | encode_attributes(Attributes)
              ]),
     erlcloud_xml:get_text(
-        "/CreatePlatformEndpointResponse/CreatePlatformEndpointResult/EndpointArn", Doc).
+        "CreatePlatformEndpointResult/EndpointArn", Doc).
 
 create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, AccessKeyID, SecretAccessKey) ->
     create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, new_config(AccessKeyID, SecretAccessKey)).
+
+
+
+-spec delete_endpoint/1 :: (string()) -> ok.
+-spec delete_endpoint/2 :: (string(), aws_config()) -> ok.
+-spec delete_endpoint/3 :: (string(), string(), string()) -> ok.
+
+delete_endpoint(EndpointArn) ->
+    delete_endpoint(EndpointArn, default_config()).
+delete_endpoint(EndpointArn, Config) ->
+    sns_simple_request(Config, "DeleteEndpoint", [{"EndpointArn", EndpointArn}]).
+delete_endpoint(EndpointArn, AccessKeyID, SecretAccessKey) ->
+    delete_endpoint(EndpointArn, new_config(AccessKeyID, SecretAccessKey)).
+
+
+
+-spec list_endpoints_by_platform_application/1 :: (string()) -> [sns_endpoint()].
+-spec list_endpoints_by_platform_application/2 :: (string(), undefined|string()) -> [sns_endpoint()].
+-spec list_endpoints_by_platform_application/3 :: (string(), undefined|string(), aws_config()) -> [sns_endpoint()].
+-spec list_endpoints_by_platform_application/4 :: (string(), undefined|string(), string(), string()) -> [sns_endpoint()].
+
+list_endpoints_by_platform_application(PlatformApplicationArn) ->
+    list_endpoints_by_platform_application(PlatformApplicationArn, undefined).
+list_endpoints_by_platform_application(PlatformApplicationArn, NextToken) ->
+    list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, default_config()).
+list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, Config) ->
+    Params =
+        case NextToken of
+            undefined -> [{"PlatformApplicationArn", PlatformApplicationArn}];
+            NextToken -> [{"PlatformApplicationArn", PlatformApplicationArn}, {"NextToken", NextToken}]
+        end,
+    Doc = sns_xml_request(Config, "ListEndpointsByPlatformApplication", Params),
+    Decoded =
+        erlcloud_xml:decode(
+            [{endpoints, "ListEndpointsByPlatformApplicationResult/Endpoints/member",
+                fun extract_endpoint/1
+             }],
+            Doc),
+    to_endpoints(proplists:get_value(endpoints, Decoded, [])).
+list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, AccessKeyID, SecretAccessKey) ->
+    list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, new_config(AccessKeyID, SecretAccessKey)).
+
+
+
+-spec list_platform_applications/0 :: () -> [sns_application()].
+-spec list_platform_applications/1 :: (undefined|string()) -> [sns_application()].
+-spec list_platform_applications/2 :: (undefined|string(), aws_config()) -> [sns_application()].
+-spec list_platform_applications/3 :: (undefined|string(), string(), string()) -> [sns_application()].
+
+list_platform_applications() ->
+    list_platform_applications(undefined).
+list_platform_applications(NextToken) ->
+    list_platform_applications(NextToken, default_config()).
+list_platform_applications(NextToken, Config) ->
+    Params =
+        case NextToken of
+            undefined -> [];
+            NextToken -> [{"NextToken", NextToken}]
+        end,
+    Doc = sns_xml_request(Config, "ListPlatformApplications", Params),
+    Decoded =
+        erlcloud_xml:decode(
+            [{applications, "ListPlatformApplicationsResult/PlatformApplications/member",
+                fun extract_application/1
+             }],
+            Doc),
+    to_applications(proplists:get_value(applications, Decoded, [])).
+list_platform_applications(NextToken, AccessKeyID, SecretAccessKey) ->
+    list_platform_applications(NextToken, new_config(AccessKeyID, SecretAccessKey)).
 
 
 
@@ -153,7 +238,9 @@ publish(Type, RecipientArn, Message, Subject, Config) ->
             Config, "Publish",
             RecipientParam ++ MessageParams ++ SubjectParam),
     erlcloud_xml:get_text(
-        "/PublishResponse/PublishResult/MessageId", Doc).
+        "PublishResult/MessageId", Doc).
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PRIVATE
@@ -230,3 +317,50 @@ sns_request(Config, Action, Params) ->
         post, "http", Config#aws_config.sns_host, undefined, "/",
         [{"Action", Action}, {"Version", ?API_VERSION} | Params],
         Config).
+
+extract_endpoint(Nodes) ->
+    [erlcloud_xml:decode(
+        [{arn, "EndpointArn", text},
+         {attributes, "Attributes/entry", fun extract_attribute/1}
+        ], Node) || Node <- Nodes].
+
+extract_attribute(Nodes) ->
+    [erlcloud_xml:decode(
+        [{key, "key", text},
+         {value, "value", text}
+         ], Node) || Node <- Nodes].
+
+to_endpoints(DecodedEndpoints) ->
+    [to_endpoint(DecodedEndpoint) || DecodedEndpoint <- DecodedEndpoints].
+
+to_endpoint(DecodedEndpoint) ->
+    Attributes =
+        [{case proplists:get_value(key, Attr) of
+            "Enabled" -> enabled;
+            "CustomUserData" -> custom_user_data;
+            "Token" -> token
+          end, proplists:get_value(value, Attr)}
+          || Attr <- proplists:get_value(attributes, DecodedEndpoint, [])],
+    [{arn, proplists:get_value(arn, DecodedEndpoint, undefined)}
+    | Attributes].
+
+extract_application(Nodes) -> io:format("~p~n", [Nodes]),
+    [erlcloud_xml:decode(
+        [{arn, "PlatformApplicationArn", text},
+         {attributes, "Attributes/entry", fun extract_attribute/1}
+        ], Node) || Node <- Nodes].
+
+to_applications(DecodedApplications) ->
+    [to_application(DecodedApplication) || DecodedApplication <- DecodedApplications].
+
+to_application(DecodedApplication) ->
+    Attributes =
+        [{case proplists:get_value(key, Attr) of
+            "EventEndpointCreated" -> event_endpoint_created;
+            "EventEndpointDeleted" -> event_endpoint_deleted;
+            "EventEndpointUpdated" -> event_endpoint_updated;
+            "EVentDeliveryFailure" -> event_delivery_failure
+          end, proplists:get_value(value, Attr)}
+          || Attr <- proplists:get_value(attributes, DecodedApplication, [])],
+    [{arn, proplists:get_value(arn, DecodedApplication, undefined)}
+    | Attributes].
