@@ -326,7 +326,7 @@ sns_request(Config, Action, Params) ->
             post, "http", Config#aws_config.sns_host, undefined, "/",
             [{"Action", Action}, {"Version", ?API_VERSION} | Params],
             Config) of
-        ok -> ok;
+        {ok, _Response} -> ok;
         {error, {http_error, 400, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(Body)),
             ErrCode = erlcloud_xml:get_text("Error/Code", XML),
