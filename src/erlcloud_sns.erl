@@ -316,7 +316,7 @@ sns_xml_request(Config, Action, Params) ->
             XML = element(1, xmerl_scan:string(Body)),
             ErrCode = erlcloud_xml:get_text("Error/Code", XML),
             ErrMsg = erlcloud_xml:get_text("Error/Message", XML),
-            erlang:error({s3_error, ErrCode, ErrMsg});
+            erlang:error({sns_error, ErrCode, ErrMsg});
         {error, Reason} ->
             erlang:error({sns_error, Reason})
     end.
@@ -331,7 +331,7 @@ sns_request(Config, Action, Params) ->
             XML = element(1, xmerl_scan:string(Body)),
             ErrCode = erlcloud_xml:get_text("Error/Code", XML),
             ErrMsg = erlcloud_xml:get_text("Error/Message", XML),
-            erlang:error({s3_error, ErrCode, ErrMsg});
+            erlang:error({sns_error, ErrCode, ErrMsg});
         {error, Reason} ->
             erlang:error({sns_error, Reason})
     end.
