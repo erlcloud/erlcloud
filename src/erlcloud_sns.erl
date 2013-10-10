@@ -27,7 +27,7 @@
                                 | enabled
                                 | token.
 
--type sns_endpoint() :: [{arn|sns_endpoint_attribute(), string()}].
+-type sns_endpoint() :: [{arn, string()} | {attributes, [{arn|sns_endpoint_attribute(), string()}]}].
 
 -type sns_permission() :: all
                         | add_permission
@@ -63,7 +63,7 @@
                                    | event_endpoint_deleted
                                    | event_endpoint_updated
                                    | event_delivery_failure.
--type sns_application() :: [{arn|sns_application_attribute(), string()}].
+-type sns_application() :: [{arn, string()} | {attributes, [{arn|sns_application_attribute(), string()}]}].
 
 -export_type([sns_acl/0, sns_endpoint_attribute/0,
               sns_message/0, sns_application/0, sns_endpoint/0]).
@@ -153,7 +153,7 @@ list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, Config
                 fun extract_endpoint/1
              }],
             Doc),
-    to_endpoints(proplists:get_value(endpoints, Decoded, [])).
+    proplists:get_value(endpoints, Decoded, []).
 list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, AccessKeyID, SecretAccessKey) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, new_config(AccessKeyID, SecretAccessKey)).
 
@@ -181,7 +181,7 @@ list_platform_applications(NextToken, Config) ->
                 fun extract_application/1
              }],
             Doc),
-    to_applications(proplists:get_value(applications, Decoded, [])).
+    proplists:get_value(applications, Decoded, []).
 list_platform_applications(NextToken, AccessKeyID, SecretAccessKey) ->
     list_platform_applications(NextToken, new_config(AccessKeyID, SecretAccessKey)).
 
@@ -307,16 +307,35 @@ sns_simple_request(Config, Action, Params) ->
     ok.
 
 sns_xml_request(Config, Action, Params) ->
-    erlcloud_aws:aws_request_xml(
-        post, "http", Config#aws_config.sns_host, undefined, "/",
-        [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-        Config).
+    case erlcloud_aws:aws_request_xml2(
+            post, "http", Config#aws_config.sns_host, undefined, "/",
+            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
+            Config) of
+        {ok, XML} -> XML;
+        {error, {http_error, 400, _BadRequest, Body}} ->
+            XML = element(1, xmerl_scan:string(Body)),
+            ErrCode = erlcloud_xml:get_text("Error/Code", XML),
+            ErrMsg = erlcloud_xml:get_text("Error/Message", XML),
+            erlang:error({s3_error, ErrCode, ErrMsg});
+        {error, Reason} ->
+            erlang:error({sns_error, Reason})
+    end.
 
 sns_request(Config, Action, Params) ->
-    erlcloud_aws:aws_request(
-        post, "http", Config#aws_config.sns_host, undefined, "/",
-        [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-        Config).
+    case erlcloud_aws:aws_request2(
+            post, "http", Config#aws_config.sns_host, undefined, "/",
+            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
+            Config) of
+        ok -> ok;
+        {error, {http_error, 400, _BadRequest, Body}} ->
+            XML = element(1, xmerl_scan:string(Body)),
+            ErrCode = erlcloud_xml:get_text("Error/Code", XML),
+            ErrMsg = erlcloud_xml:get_text("Error/Message", XML),
+            erlang:error({s3_error, ErrCode, ErrMsg});
+        {error, Reason} ->
+            erlang:error({sns_error, Reason})
+    end.
+
 
 extract_endpoint(Nodes) ->
     [erlcloud_xml:decode(
@@ -324,43 +343,22 @@ extract_endpoint(Nodes) ->
          {attributes, "Attributes/entry", fun extract_attribute/1}
         ], Node) || Node <- Nodes].
 
-extract_attribute(Nodes) ->
-    [erlcloud_xml:decode(
-        [{key, "key", text},
-         {value, "value", text}
-         ], Node) || Node <- Nodes].
-
-to_endpoints(DecodedEndpoints) ->
-    [to_endpoint(DecodedEndpoint) || DecodedEndpoint <- DecodedEndpoints].
-
-to_endpoint(DecodedEndpoint) ->
-    Attributes =
-        [{case proplists:get_value(key, Attr) of
-            "Enabled" -> enabled;
-            "CustomUserData" -> custom_user_data;
-            "Token" -> token
-          end, proplists:get_value(value, Attr)}
-          || Attr <- proplists:get_value(attributes, DecodedEndpoint, [])],
-    [{arn, proplists:get_value(arn, DecodedEndpoint, undefined)}
-    | Attributes].
-
-extract_application(Nodes) -> io:format("~p~n", [Nodes]),
+extract_application(Nodes) ->
     [erlcloud_xml:decode(
         [{arn, "PlatformApplicationArn", text},
          {attributes, "Attributes/entry", fun extract_attribute/1}
         ], Node) || Node <- Nodes].
 
-to_applications(DecodedApplications) ->
-    [to_application(DecodedApplication) || DecodedApplication <- DecodedApplications].
+extract_attribute(Nodes) ->
+    [{parse_key(erlcloud_xml:get_text("key", Node)),
+      erlcloud_xml:get_text("value", Node)}
+     || Node <- Nodes].
 
-to_application(DecodedApplication) ->
-    Attributes =
-        [{case proplists:get_value(key, Attr) of
-            "EventEndpointCreated" -> event_endpoint_created;
-            "EventEndpointDeleted" -> event_endpoint_deleted;
-            "EventEndpointUpdated" -> event_endpoint_updated;
-            "EVentDeliveryFailure" -> event_delivery_failure
-          end, proplists:get_value(value, Attr)}
-          || Attr <- proplists:get_value(attributes, DecodedApplication, [])],
-    [{arn, proplists:get_value(arn, DecodedApplication, undefined)}
-    | Attributes].
+parse_key("Enabled") -> enabled;
+parse_key("CustomUserData") -> custom_user_data;
+parse_key("Token") -> token;
+parse_key("EventEndpointCreated") -> event_endpoint_created;
+parse_key("EventEndpointDeleted") -> event_endpoint_deleted;
+parse_key("EventEndpointUpdated") -> event_endpoint_updated;
+parse_key("EVentDeliveryFailure") -> event_delivery_failure;
+parse_key(OtherKey) -> list_to_atom(string:to_lower(OtherKey)).
