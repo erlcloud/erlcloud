@@ -198,8 +198,10 @@ list_domains(FirstToken, MaxDomains, Config)
   when is_list(FirstToken),
        is_integer(MaxDomains) orelse MaxDomains =:= none ->
     {Doc, Result} = sdb_request(Config, "ListDomains",
-                                [{"MaxNumberOfDomains", MaxDomains}, {"FirstToken", FirstToken}]),
-    [{domains, erlcloud_xml:get_list("/ListDomainsResponse/ListDomainsResult/DomainName", Doc)}|Result].
+                                [{"MaxNumberOfDomains", MaxDomains}, {"NextToken", FirstToken}]),
+
+    [{domains, erlcloud_xml:get_list("/ListDomainsResponse/ListDomainsResult/DomainName", Doc)},
+     {next_token, erlcloud_xml:get_text("/ListDomainsResponse/ListDomainsResult/NextToken", Doc)}|Result].
 
 -spec put_attributes/3 :: (string(), string(), sdb_attributes()) -> proplist().
 put_attributes(DomainName, ItemName, Attributes) ->
