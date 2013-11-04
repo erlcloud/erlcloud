@@ -582,7 +582,7 @@ sign_get(Expire_time, BucketName, Key, Config)
     Datetime = (Mega * 1000000) + Sec,
     Expires = integer_to_list(Expire_time + Datetime),
     To_sign = lists:flatten(["GET\n\n\n", Expires, "\n/", BucketName, "/", Key]),
-    Sig = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, To_sign)),
+    Sig = base64:encode(crypto:hmac(sha, Config#aws_config.secret_access_key, To_sign)),
     {Sig, Expires}.
 
 -spec make_link(integer(), string(), string()) -> {integer(), string(), string()}.
@@ -736,7 +736,7 @@ s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) 
 s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
     {ContentMD5, ContentType, Body} =
         case POSTData of
-            {PD, CT} -> {base64:encode(crypto:md5(PD)), CT, PD}; PD -> {"", "", PD}
+            {PD, CT} -> {base64:encode(crypto:hash(md5, PD)), CT, PD}; PD -> {"", "", PD}
         end,
     Headers = case Config#aws_config.security_token of
                   undefined -> Headers0;
@@ -784,7 +784,7 @@ make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
                     case Host of "" -> ""; _ -> [$/, Host] end,
                     Resource, case Subresource of "" -> ""; _ -> [$?, Subresource] end
                    ],
-    Signature = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, StringToSign)),
+    Signature = base64:encode(crypto:hmac(sha, Config#aws_config.secret_access_key, StringToSign)),
     ["AWS ", Config#aws_config.access_key_id, $:, Signature].
 
 default_config() -> erlcloud_aws:default_config().
