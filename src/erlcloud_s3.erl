@@ -19,11 +19,13 @@
          put_object/3, put_object/4, put_object/5, put_object/6,
          set_object_acl/3, set_object_acl/4,
          make_link/3, make_link/4,
-         make_get_url/3, make_get_url/4]).
+         make_get_url/3, make_get_url/4,
+		 make_post_url_fields/3, make_post_http_request/3]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
+
 
 -spec new(string(), string()) -> aws_config().
 
@@ -613,6 +615,51 @@ make_get_url(Expire_time, BucketName, Key, Config) ->
      "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id),
      "&Signature=", erlcloud_http:url_encode(Sig),
      "&Expires=", Expires].
+
+
+make_post_url_fields(Bucketname, Key, Policy) ->
+	Config = default_config(),
+	EncodedPolicy = binary_to_list(base64:encode(Policy)),
+	PolicySig = binary_to_list(base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, EncodedPolicy))),
+	Url = lists:flatten([Config#aws_config.s3_scheme, Bucketname, ".", Config#aws_config.s3_host, port_spec(Config), "/"]),
+	Fields = [
+		{key, Key}, 
+		{'AWSAccessKeyId', Config#aws_config.access_key_id}, 
+		{policy, EncodedPolicy}, 
+		{signature, PolicySig}	
+	],
+	{Url, Fields}.
+	
+make_post_http_request(Url, Fields, Data) ->
+	Boundary = "-------erlcloud_s3---AG121712-----",
+	Body = format_multipart_formdata(Boundary, Fields, Data),
+	{Url, [{"Content-Length"}, integer_to_list(length(Body))], "multipart/form-data; boundary=" ++ Boundary, Body }.
+
+%%
+%% credit to http://lethain.com/formatting-multipart-formdata-in-erlang/ for the original code here
+%%
+format_multipart_formdata(Boundary, Fields, Data) when is_binary(Data) ->
+	format_multipart_formdata(Boundary, Fields, binary_to_list(Data), "application/octet-stream");
+format_multipart_formdata(Boundary, Fields, Data) when is_list(Data) ->
+	format_multipart_formdata(Boundary, Fields, Data, "text/plain").
+	
+format_multipart_formdata(Boundary, Fields, Data, Type) ->
+    FieldParts = lists:map(fun({FieldName, FieldContent}) ->
+                                   [lists:concat(["--", Boundary]),
+                                    lists:concat(["Content-Disposition: form-data; name=\"",atom_to_list(FieldName),"\""]),
+                                    "",
+                                    FieldContent]
+                           end, Fields),
+    FieldParts2 = lists:append(FieldParts),
+    FileParts =  [[lists:concat(["--", Boundary]),
+                  lists:concat(["Content-Disposition: form-data; name=\"file\""]),
+                  lists:concat(["Content-Type: ", Type]),
+                  "",
+                  Data]],
+    FileParts2 = lists:append(FileParts),
+    EndingParts = [lists:concat(["--", Boundary, "--"]), ""],
+    Parts = lists:append([FieldParts2, FileParts2, EndingParts]),
+    string:join(Parts, "\r\n").
 
 -spec set_bucket_attribute(string(), atom(), term()) -> ok.
 
