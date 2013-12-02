@@ -12,7 +12,7 @@
          copy_object/4, copy_object/5, copy_object/6,
          delete_object/2, delete_object/3,
          delete_object_version/3, delete_object_version/4,
-         get_object/2, get_object/3,
+         get_object/2, get_object/3, get_object/4,
          get_object_acl/2, get_object_acl/3, get_object_acl/4,
          get_object_torrent/2, get_object_torrent/3,
          get_object_metadata/2, get_object_metadata/3, get_object_metadata/4,
