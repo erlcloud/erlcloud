@@ -80,7 +80,7 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
     QueryToSign = erlcloud_http:make_query_string(QParams),
     RequestToSign = [string:to_upper(atom_to_list(Method)), $\n,
                      string:to_lower(Host), $\n, Path, $\n, QueryToSign],
-    Signature = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, RequestToSign)),
+    Signature = base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, RequestToSign)),
     
     Query = [QueryToSign, "&Signature=", erlcloud_http:url_encode(Signature)],
     
@@ -253,7 +253,7 @@ sign_v4(Config, Headers, Payload, Region, Service) ->
     CredentialScope = credential_scope(Date, Region, Service),
     ToSign = to_sign(Date, CredentialScope, Request),
     SigningKey = signing_key(Config, Date, Region, Service),
-    Signature = base16(crypto:hmac(sha256, SigningKey, ToSign)),
+    Signature = base16(erlcloud_util:sha256_mac( SigningKey, ToSign)),
     Authorization = authorization(Config, CredentialScope, SignedHeaders, Signature),
     [{"Authorization", lists:flatten(Authorization)} | Headers2].
     
@@ -285,7 +285,7 @@ trimall(Value) ->
     re:replace(Value, "(^\\s+)|(\\s+$)", "", [global]).
 
 hash_encode(Data) ->
-    Hash = crypto:hash(sha256, Data),
+    Hash = erlcloud_util:sha256( Data),
     base16(Hash).
 
 base16(Data) ->
@@ -304,10 +304,10 @@ to_sign(Date, CredentialScope, Request) ->
 signing_key(Config, Date, Region, Service) ->
     %% TODO cache the signing key so we don't have to recompute for every request
     DateOnly = string:left(Date, 8),
-    KDate = crypto:hmac(sha256, "AWS4" ++ Config#aws_config.secret_access_key, DateOnly),
-    KRegion = crypto:hmac(sha256, KDate, Region),
-    KService = crypto:hmac(sha256, KRegion, Service),
-    crypto:hmac(sha256, KService, "aws4_request").
+    KDate = erlcloud_util:sha256_mac( "AWS4" ++ Config#aws_config.secret_access_key, DateOnly),
+    KRegion = erlcloud_util:sha256_mac( KDate, Region),
+    KService = erlcloud_util:sha256_mac( KRegion, Service),
+    erlcloud_util:sha256_mac( KService, "aws4_request").
     
 authorization(Config, CredentialScope, SignedHeaders, Signature) ->
     ["AWS4-HMAC-SHA256"
