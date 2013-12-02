@@ -19,11 +19,18 @@
          put_object/3, put_object/4, put_object/5, put_object/6,
          set_object_acl/3, set_object_acl/4,
          make_link/3, make_link/4,
-         make_get_url/3, make_get_url/4]).
+         make_get_url/3, make_get_url/4,
+	 start_multipart/2, start_multipart/5,
+	 upload_part/5, upload_part/7,
+	 complete_multipart/4, complete_multipart/6,
+	 abort_multipart/3, abort_multipart/6,
+	 list_multipart_uploads/1, list_multipart_uploads/2
+	]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
+
 
 -spec new(string(), string()) -> aws_config().
 
@@ -614,6 +621,130 @@ make_get_url(Expire_time, BucketName, Key, Config) ->
      "&Signature=", erlcloud_http:url_encode(Sig),
      "&Expires=", Expires].
 
+-spec start_multipart(string(), string()) -> {ok, proplist()} | {error, any()}.
+start_multipart(BucketName, Key) 
+    when is_list(BucketName), is_list(Key) ->
+    start_multipart(BucketName, Key, [], [], default_config()).
+
+-spec start_multipart(string(), string(), proplist(), [{string(), string()}], aws_config()) -> {ok, proplist()} | {error, any()}.
+start_multipart(BucketName, Key, Options, HTTPHeaders, Config)
+  when is_list(BucketName), is_list(Key), is_list(Options), is_list(HTTPHeaders), is_record(Config, aws_config) ->
+
+    RequestHeaders = [{"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}|HTTPHeaders]
+        ++ [{"x-amz-meta-" ++ string:to_lower(MKey), MValue} ||
+               {MKey, MValue} <- proplists:get_value(meta, Options, [])],
+    POSTData = <<>>,
+    case s3_xml_request2(Config, post, BucketName, [$/|Key], "uploads", [],
+			 POSTData, RequestHeaders) of
+	{ok, Doc} ->	
+	    Attributes = [{uploadId, "UploadId", text}],
+	    {ok, erlcloud_xml:decode(Attributes, Doc)};
+
+	Error ->
+	    Error
+    end.
+
+-spec upload_part(string(), string(), string(), integer(), iolist()) -> {ok, proplist()} | {error, any()}.
+upload_part(BucketName, Key, UploadId, PartNumber, Value) ->
+    upload_part(BucketName, Key, UploadId, PartNumber, Value, [], default_config()).
+
+-spec upload_part(string(), string(), string(), integer(), iolist(), [{string(), string()}], aws_config()) -> {ok, proplist()} | {error, any()}.
+upload_part(BucketName, Key, UploadId, PartNumber, Value, HTTPHeaders, Config)
+  when is_list(BucketName), is_list(Key), is_list(UploadId), is_integer(PartNumber), 
+       is_list(Value) orelse is_binary(Value),
+       is_list(HTTPHeaders), is_record(Config, aws_config) ->
+
+    ContentType = proplists:get_value("content-type", HTTPHeaders, "application/octet_stream"),
+    POSTData = {iolist_to_binary(Value), ContentType},
+
+    case s3_request2(Config, put, BucketName, [$/|Key], [], [{"uploadId", UploadId},
+							     {"partNumber", integer_to_list(PartNumber)}],
+		     POSTData, HTTPHeaders) of
+	{ok, {Headers, _Body}} ->
+	    {ok, [{etag, proplists:get_value("etag", Headers)}]};
+	Error -> 
+	    Error
+    end.
+
+-spec complete_multipart(string(), string(), string(), [{integer(), string()}]) -> {ok, proplist()} | {error, any()}.
+complete_multipart(BucketName, Key, UploadId, ETags)
+  when is_list(BucketName), is_list(Key), is_list(UploadId), is_list(ETags) ->
+    complete_multipart(BucketName, Key, UploadId, ETags, [], default_config()).
+
+-spec complete_multipart(string(), string(), string(), [{integer(), string()}], [{string(), string()}], aws_config()) -> ok | {error, any()}.
+complete_multipart(BucketName, Key, UploadId, ETags, HTTPHeaders, Config)
+  when is_list(BucketName), is_list(Key), is_list(UploadId), is_list(ETags), is_list(HTTPHeaders), is_record(Config, aws_config) ->
+    POSTData = list_to_binary(xmerl:export_simple([{'CompleteMultipartUpload', 
+						    [{'Part', 
+						      [{'PartNumber', [integer_to_list(Num)]}, 
+						       {'ETag', [ETag]}] } || {Num, ETag} <- ETags]}], xmerl_xml)),
+
+    case s3_request2(Config, post, BucketName, [$/|Key], [], [{"uploadId", UploadId}],
+		     POSTData, HTTPHeaders) of
+	{ok, {_Headers, _Body}} ->
+	    ok;
+	Error -> 
+	    Error
+    end.
+
+-spec abort_multipart(string(), string(), string()) -> ok | {error, any()}.
+abort_multipart(BucketName, Key, UploadId)
+  when is_list(BucketName), is_list(Key), is_list(UploadId) ->
+    abort_multipart(BucketName, Key, UploadId, [], [], default_config()).
+
+-spec abort_multipart(string(), string(), string(), proplist(), [{string(), string()}], aws_config()) -> ok | {error, any()}.
+abort_multipart(BucketName, Key, UploadId, Options, HTTPHeaders, Config)
+  when is_list(BucketName), is_list(Key), is_list(UploadId), is_list(Options),
+       is_list(HTTPHeaders), is_record(Config, aws_config) ->
+
+    case s3_request2(Config, delete, BucketName, [$/|Key], [], [{"uploadId", UploadId}],
+		     <<>>, HTTPHeaders) of
+	{ok, _} ->
+	    ok;
+	Error -> 
+	    Error
+    end.
+
+-spec list_multipart_uploads(string()) -> {ok, proplist()} | {error, any()}.
+list_multipart_uploads(BucketName)
+  when is_list(BucketName) ->
+
+    list_multipart_uploads(BucketName, [], [], default_config()).
+
+-spec list_multipart_uploads(string(), proplist()) -> {ok, proplist()} | {error, any()}.
+list_multipart_uploads(BucketName, Options)
+  when is_list(BucketName), is_list(Options) ->
+
+    list_multipart_uploads(BucketName, Options, [], default_config()).
+
+-spec list_multipart_uploads(string(), proplist(), [{string(), string()}], aws_config()) -> {ok, proplist()} | {error, any()}.
+list_multipart_uploads(BucketName, Options, HTTPHeaders, Config)
+  when is_list(BucketName), is_list(Options),
+       is_list(HTTPHeaders), is_record(Config, aws_config) ->
+   
+    Params = [
+	      {"uploads", ""},
+	      {"delimiter", proplists:get_value(delimiter, Options)},
+              {"prefix", proplists:get_value(prefix, Options)},
+              {"max-uploads", proplists:get_value(max_uploads, Options)},
+              {"key-marker", proplists:get_value(key_marker, Options)},
+              {"upload-id-marker", proplists:get_value(upload_id_marker, Options)}
+	     ],
+
+    case s3_xml_request2(Config, get, BucketName, "/", "", Params, <<>>, HTTPHeaders) of
+	{ok, Xml} ->
+	    Uploads = [erlcloud_xml:decode([{key, "Key", text},
+					    {uploadId, "UploadId", text}], Node) || Node <- xmerl_xpath:string("/ListMultipartUploadsResult/Upload", Xml)],
+
+	    CommonPrefixes = [erlcloud_xml:get_text("Prefix", Node) || Node <- xmerl_xpath:string("/ListMultipartUploadsResult/CommonPrefixes", Xml)],
+
+	    {ok, [{uploads, Uploads},
+		  {common_prefixes, CommonPrefixes}]};
+	Error -> 
+	    Error
+    end.
+    
+
 -spec set_bucket_attribute(string(), atom(), term()) -> ok.
 
 set_bucket_attribute(BucketName, AttributeName, Value) ->
@@ -733,6 +864,22 @@ s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) 
             {error, Reason}
     end.
 
+s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
+    case s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
+	{ok, {_Headers, Body}} ->
+	    XML = element(1,xmerl_scan:string(Body)),
+	    case XML of
+		#xmlElement{name='Error'} ->
+		    ErrCode = erlcloud_xml:get_text("/Error/Code", XML),
+		    ErrMsg = erlcloud_xml:get_text("/Error/Message", XML),
+		    {error, {s3_error, ErrCode, ErrMsg}};
+		_ ->
+		    {ok, XML}
+	    end;
+	Error ->
+	    Error
+    end.
+
 s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
     {ContentMD5, ContentType, Body} =
         case POSTData of
@@ -747,7 +894,7 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
     Date = httpd_util:rfc1123_date(erlang:localtime()),
     EscapedPath = erlcloud_http:url_encode_loose(Path),
     Authorization = make_authorization(Config, Method, ContentMD5, ContentType,
-                                       Date, AmzHeaders, Host, EscapedPath, Subresource),
+                                       Date, AmzHeaders, Host, EscapedPath, Subresource, Params),
     RequestHeaders = [{"date", Date}, {"authorization", Authorization}|FHeaders] ++
         case ContentMD5 of
             "" -> [];
@@ -765,6 +912,7 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
                                     true -> [$&, erlcloud_http:make_query_string(Params)]
                                 end
                                ]),
+
     Response = case Method of
                    get -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
                    delete -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
@@ -773,16 +921,28 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
     erlcloud_aws:http_headers_body(Response).
 
 make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
-                   Host, Resource, Subresource) ->
+                   Host, Resource, Subresource, Params) ->
     CanonizedAmzHeaders =
         [[Name, $:, Value, $\n] || {Name, Value} <- lists:sort(AmzHeaders)],
+
+    SubResourcesToInclude = ["acl", "lifecycle", "location", "logging", "notification", "partNumber", "policy", "requestPayment", "torrent", "uploadId", "uploads", "versionId", "versioning", "versions", "website"],
+    FilteredParams = [{Name, Value} || {Name, Value} <- Params,
+				       lists:member(Name, SubResourcesToInclude)],
+
+    ParamsQueryString = erlcloud_http:make_query_string(lists:keysort(1, FilteredParams)),
     StringToSign = [string:to_upper(atom_to_list(Method)), $\n,
                     ContentMD5, $\n,
                     ContentType, $\n,
                     Date, $\n,
                     CanonizedAmzHeaders,
                     case Host of "" -> ""; _ -> [$/, Host] end,
-                    Resource, case Subresource of "" -> ""; _ -> [$?, Subresource] end
+                    Resource, 
+		    case Subresource of "" -> ""; _ -> [$?, Subresource] end,
+		    if
+			ParamsQueryString =:= "" -> "";
+			Subresource =:= "" -> [$?, ParamsQueryString];
+			true -> [$&, ParamsQueryString]
+		    end
                    ],
     Signature = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, StringToSign)),
     ["AWS ", Config#aws_config.access_key_id, $:, Signature].
