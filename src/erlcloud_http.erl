@@ -3,9 +3,9 @@
 
 make_query_string(Params) ->
     string:join([case Value of
-		     [] -> [Key];
-		     _ -> [Key, "=", url_encode(value_to_string(Value))]
-		 end
+                     [] -> [Key];
+                     _ -> [Key, "=", url_encode(value_to_string(Value))]
+                 end
                  || {Key, Value} <- Params, Value =/= none, Value =/= undefined], "&").
 
 value_to_string(Integer) when is_integer(Integer) -> integer_to_list(Integer);
