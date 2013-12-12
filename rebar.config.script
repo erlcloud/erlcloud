@@ -1,4 +1,4 @@
-case erlang:system_info(otp_release) =< "R15B01" of
+case erlang:system_info(otp_release) < "R16A" of
     true  ->
         HashDefine = [{d,old_hash}],
         case lists:keysearch(erl_opts, 1, CONFIG) of
