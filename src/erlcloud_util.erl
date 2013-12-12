@@ -15,7 +15,7 @@ md5(V) ->
 -else.
 sha_mac(K, S) ->
     crypto:sha_mac(K, S).
-sha256(K, S) ->
+sha256_mac(K, S) ->
     crypto:sha256(K, S).
 
 sha256(V) ->
