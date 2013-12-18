@@ -19,6 +19,7 @@
           user_data::binary(),
           instance_type::string(),
           availability_zone::string(),
+          placement_group::string(),
           kernel_id::string(),
           ramdisk_id::string(),
           block_device_mapping=[]::[ec2_block_device_mapping()],

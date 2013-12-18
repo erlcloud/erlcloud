@@ -2209,6 +2209,7 @@ request_spot_instances(Request, Config) ->
               {"LaunchSpecification.Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
               {"LaunchSpecification.SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
               {"LaunchSpecification.Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone},
+              {"LaunchSpecification.Placement.GroupName", InstanceSpec#ec2_instance_spec.placement_group},
               {"LaunchSpecification.EbsOptimized", InstanceSpec#ec2_instance_spec.ebs_optimized}
              ],
     GParams = erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, "LaunchSpecification.SecurityGroup"),
@@ -2303,6 +2304,7 @@ run_instances(InstanceSpec, Config)
               {"Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
               {"SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
               {"Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone},
+              {"Placement.GroupName", InstanceSpec#ec2_instance_spec.placement_group},
               {"DisableApiTermination", InstanceSpec#ec2_instance_spec.disable_api_termination},
               {"InstanceInitiatedShutdownBehavior", InstanceSpec#ec2_instance_spec.instance_initiated_shutdown_behavior},
               {"SecurityGroupId", InstanceSpec#ec2_instance_spec.group_set},
