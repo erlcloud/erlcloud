@@ -149,7 +149,8 @@
 -import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
 
 -define(API_VERSION, "2009-11-30").
--define(NEW_API_VERSION, "2012-10-01").
+%-define(NEW_API_VERSION, "2012-10-01").
+-define(NEW_API_VERSION, "2013-10-15").
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 -include_lib("erlcloud/include/erlcloud_ec2.hrl").
@@ -2207,17 +2208,23 @@ request_spot_instances(Request, Config) ->
               {"LaunchSpecification.KernelId", InstanceSpec#ec2_instance_spec.kernel_id},
               {"LaunchSpecification.RamdiskId", InstanceSpec#ec2_instance_spec.ramdisk_id},
               {"LaunchSpecification.Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
-              {"LaunchSpecification.SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
               {"LaunchSpecification.Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone},
-              {"LaunchSpecification.Placement.GroupName", InstanceSpec#ec2_instance_spec.placement_group},
               {"LaunchSpecification.EbsOptimized", InstanceSpec#ec2_instance_spec.ebs_optimized}
              ],
-    GParams = erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, "LaunchSpecification.SecurityGroup"),
+    NetParams = case InstanceSpec#ec2_instance_spec.net_if of
+        [] ->
+            [
+                {"LaunchSpecification.SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
+                {"LaunchSpecification.Placement.GroupName", InstanceSpec#ec2_instance_spec.placement_group}
+            ] ++ erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, "LaunchSpecification.SecurityGroup");
+        List      ->
+            net_if_params(List, "LaunchSpecification.NetworkInterface")
+    end,         
     BDParams = [
                 {"LaunchSpecification." ++ Key, Value} ||
                    {Key, Value} <- block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping)],
 
-    case ec2_query2(Config, "RequestSpotInstances", Params ++ BDParams ++ GParams, ?NEW_API_VERSION) of
+    case ec2_query2(Config, "RequestSpotInstances", Params ++ BDParams ++ NetParams, ?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [extract_spot_instance_request(Item) ||
                     Item <- xmerl_xpath:string("/RequestSpotInstancesResponse/spotInstanceRequestSet/item", Doc)]};
@@ -2302,21 +2309,47 @@ run_instances(InstanceSpec, Config)
               {"KernelId", InstanceSpec#ec2_instance_spec.kernel_id},
               {"RamdiskId", InstanceSpec#ec2_instance_spec.ramdisk_id},
               {"Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
-              {"SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
               {"Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone},
-              {"Placement.GroupName", InstanceSpec#ec2_instance_spec.placement_group},
               {"DisableApiTermination", InstanceSpec#ec2_instance_spec.disable_api_termination},
               {"InstanceInitiatedShutdownBehavior", InstanceSpec#ec2_instance_spec.instance_initiated_shutdown_behavior},
-              {"SecurityGroupId", InstanceSpec#ec2_instance_spec.group_set},
               {"EbsOptimized", InstanceSpec#ec2_instance_spec.ebs_optimized}
              ],
-    BDParams = block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping),
-    case ec2_query2(Config, "RunInstances", Params ++ BDParams, ?NEW_API_VERSION) of
+    NetParams = case InstanceSpec#ec2_instance_spec.net_if of
+        [] ->
+            [
+                {"SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
+                {"Placement.GroupName", InstanceSpec#ec2_instance_spec.placement_group},
+                {"SecurityGroupId", InstanceSpec#ec2_instance_spec.group_set} 
+            ];
+        List      ->
+            net_if_params(List, "NetworkInterface")
+    end,         
+    BDParams  = block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping),
+    case ec2_query2(Config, "RunInstances", Params ++ NetParams ++ BDParams, ?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, extract_reservation(hd(xmerl_xpath:string("/RunInstancesResponse", Doc)))};
         {error, _} = Error ->
             Error
     end.
+
+net_if_params(#ec2_net_if{private_ip=undefined}=X) ->
+    [
+        {"DeviceIndex", X#ec2_net_if.device_index},
+        {"SubnetId",    X#ec2_net_if.subnet_id},
+        {"AssociatePublicIpAddress", X#ec2_net_if.associate_public_ip}
+    ];
+net_if_params(#ec2_net_if{}=X) ->
+    [
+        {"DeviceIndex", X#ec2_net_if.device_index},
+        {"SubnetId",    X#ec2_net_if.subnet_id},
+        {"AssociatePublicIpAddress", X#ec2_net_if.associate_public_ip},
+        {"PrivateIpAddress", hd(X#ec2_net_if.private_ip)}
+    ] ++ erlcloud_aws:param_list(
+        [ [{"PrivateIpAddress", IP}] || IP <- tl(X#ec2_net_if.private_ip)], "PrivateIpAddresses"
+    ).
+net_if_params(List, Prefix) ->
+    erlcloud_aws:param_list([net_if_params(X) || X <- List], Prefix).
+
 
 %%
 %%
