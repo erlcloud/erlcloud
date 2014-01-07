@@ -2337,7 +2337,7 @@ net_if_params(#ec2_net_if{private_ip=undefined}=X) ->
         {"DeviceIndex", X#ec2_net_if.device_index},
         {"SubnetId",    X#ec2_net_if.subnet_id},
         {"AssociatePublicIpAddress", X#ec2_net_if.associate_public_ip}
-    ];
+    ] ++ erlcloud_aws:param_list(X#ec2_net_if.security_group, "SecurityGroupId");
 net_if_params(#ec2_net_if{}=X) ->
     [
         {"DeviceIndex", X#ec2_net_if.device_index},
@@ -2346,10 +2346,9 @@ net_if_params(#ec2_net_if{}=X) ->
         {"PrivateIpAddress", hd(X#ec2_net_if.private_ip)}
     ] ++ erlcloud_aws:param_list(
         [ [{"PrivateIpAddress", IP}] || IP <- tl(X#ec2_net_if.private_ip)], "PrivateIpAddresses"
-    ).
+    ) ++ erlcloud_aws:param_list(X#ec2_net_if.security_group, "SecurityGroupId").
 net_if_params(List, Prefix) ->
     erlcloud_aws:param_list([net_if_params(X) || X <- List], Prefix).
-
 
 %%
 %%
