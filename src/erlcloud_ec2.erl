@@ -2209,13 +2209,13 @@ request_spot_instances(Request, Config) ->
               {"LaunchSpecification.RamdiskId", InstanceSpec#ec2_instance_spec.ramdisk_id},
               {"LaunchSpecification.Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
               {"LaunchSpecification.Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone},
+              {"LaunchSpecification.Placement.GroupName", InstanceSpec#ec2_instance_spec.placement_group},
               {"LaunchSpecification.EbsOptimized", InstanceSpec#ec2_instance_spec.ebs_optimized}
              ],
     NetParams = case InstanceSpec#ec2_instance_spec.net_if of
         [] ->
             [
-                {"LaunchSpecification.SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
-                {"LaunchSpecification.Placement.GroupName", InstanceSpec#ec2_instance_spec.placement_group}
+                {"LaunchSpecification.SubnetId", InstanceSpec#ec2_instance_spec.subnet_id}
             ] ++ erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, "LaunchSpecification.SecurityGroup");
         List      ->
             net_if_params(List, "LaunchSpecification.NetworkInterface")
@@ -2310,6 +2310,7 @@ run_instances(InstanceSpec, Config)
               {"RamdiskId", InstanceSpec#ec2_instance_spec.ramdisk_id},
               {"Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
               {"Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone},
+              {"Placement.GroupName", InstanceSpec#ec2_instance_spec.placement_group},
               {"DisableApiTermination", InstanceSpec#ec2_instance_spec.disable_api_termination},
               {"InstanceInitiatedShutdownBehavior", InstanceSpec#ec2_instance_spec.instance_initiated_shutdown_behavior},
               {"EbsOptimized", InstanceSpec#ec2_instance_spec.ebs_optimized}
@@ -2318,7 +2319,6 @@ run_instances(InstanceSpec, Config)
         [] ->
             [
                 {"SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
-                {"Placement.GroupName", InstanceSpec#ec2_instance_spec.placement_group},
                 {"SecurityGroupId", InstanceSpec#ec2_instance_spec.group_set} 
             ];
         List      ->
