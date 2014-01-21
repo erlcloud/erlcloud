@@ -3,7 +3,7 @@
 
 {application, erlcloud,
  [{description, "Erlang cloud computing library"},
-  {vsn, "0.4.1"},
+  {vsn, git},
   {registered, []},
   {applications, [stdlib,
                   kernel,
