@@ -10,6 +10,15 @@
          }).
 -type(ec2_block_device_mapping() :: #ec2_block_device_mapping{}).
 
+%% Network interface (used by launch specification)
+-record(ec2_net_if, {
+          device_index   :: string(),
+          subnet_id      :: string(),
+          security_group :: [string()],
+          private_ip     :: [string()],
+          associate_public_ip :: boolean()
+}).
+
 -record(ec2_instance_spec, {
           image_id::string(),
           min_count=1::pos_integer(),
@@ -27,6 +36,7 @@
           subnet_id::string(),
           disable_api_termination=false::boolean(),
           instance_initiated_shutdown_behavior::ec2_shutdown_behavior(),
+          net_if=[] :: [#ec2_net_if{}], 
           ebs_optimized = false :: boolean()
          }).
 -record(ec2_image_spec, {
@@ -93,3 +103,5 @@
           key :: string(),
           value :: string()
          }).
+
+
