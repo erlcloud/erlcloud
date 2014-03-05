@@ -5,7 +5,8 @@
 %%% Library initialization.
 -export([configure/2, configure/3, configure/4,  new/2, new/3]).
 
--export([list_streams/0, list_streams/1
+-export([list_streams/0, list_streams/1,
+         describe_stream/1, describe_stream/2
         ]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
@@ -75,3 +76,14 @@ list_streams(Config) when is_record(Config, aws_config) ->
    Json = [],
    erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.ListStreams", Json).
 
+
+-spec describe_stream/1 :: (string()) -> proplist().
+
+describe_stream(StreamName) ->
+   describe_stream(StreamName, default_config()).
+
+-spec describe_stream/2 :: (string(), aws_config()) -> proplist().
+
+describe_stream(StreamName, Config) when is_record(Config, aws_config) ->
+   Json = [{<<"StreamName">>, StreamName}],
+   erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.DescribeStream", Json).
