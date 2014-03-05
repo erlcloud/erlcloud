@@ -82,8 +82,12 @@ list_streams(Config) when is_record(Config, aws_config) ->
 describe_stream(StreamName) ->
    describe_stream(StreamName, default_config()).
 
--spec describe_stream/2 :: (string(), aws_config()) -> proplist().
+-spec describe_stream/2 :: (string(), 1..100 | none | aws_config()) -> proplist().
 
 describe_stream(StreamName, Config) when is_record(Config, aws_config) ->
    Json = [{<<"StreamName">>, StreamName}],
-   erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.DescribeStream", Json).
+   erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.DescribeStream", Json);
+describe_stream(StreamName, Limit) when is_integer(Limit) ->
+   Json = [{<<"StreamName">>, StreamName}, {<<"Limit">>, Limit}],
+   erlcloud_kinesis_impl:request(default_config(), "Kinesis_20131202.DescribeStream", Json).
+
