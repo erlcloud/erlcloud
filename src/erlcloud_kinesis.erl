@@ -6,7 +6,7 @@
 -export([configure/2, configure/3, configure/4,  new/2, new/3]).
 
 -export([list_streams/0, list_streams/1,
-         describe_stream/1, describe_stream/2
+         describe_stream/1, describe_stream/2, describe_stream/3, describe_stream/4
         ]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
@@ -82,12 +82,26 @@ list_streams(Config) when is_record(Config, aws_config) ->
 describe_stream(StreamName) ->
    describe_stream(StreamName, default_config()).
 
--spec describe_stream/2 :: (string(), 1..100 | none | aws_config()) -> proplist().
+-spec describe_stream/2 :: (string(), 1..100 | aws_config()) -> proplist().
 
 describe_stream(StreamName, Config) when is_record(Config, aws_config) ->
    Json = [{<<"StreamName">>, StreamName}],
    erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.DescribeStream", Json);
-describe_stream(StreamName, Limit) when is_integer(Limit) ->
+describe_stream(StreamName, Limit) when is_integer(Limit), Limit > 0, Limit =< 100 ->
    Json = [{<<"StreamName">>, StreamName}, {<<"Limit">>, Limit}],
    erlcloud_kinesis_impl:request(default_config(), "Kinesis_20131202.DescribeStream", Json).
 
+-spec describe_stream/3 :: (string(), 1..100, string() | aws_config()) -> proplist().
+
+describe_stream(StreamName, Limit, Config) when is_record(Config, aws_config) ->
+   Json = [{<<"StreamName">>, StreamName}, {<<"Limit">>, Limit}],
+   erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.DescribeStream", Json);
+describe_stream(StreamName, Limit, ExcludeShard) when is_integer(Limit), Limit > 0, Limit =< 100 ->
+   Json = [{<<"StreamName">>, StreamName}, {<<"Limit">>, Limit}, {<<"ExclusiveStartShardId">>, ExcludeShard}],
+   erlcloud_kinesis_impl:request(default_config(), "Kinesis_20131202.DescribeStream", Json).
+
+-spec describe_stream/4 :: (string(), 1..100, string(), aws_config()) -> proplist().
+
+describe_stream(StreamName, Limit, ExcludeShard, Config) when is_record(Config, aws_config), is_integer(Limit), Limit > 0, Limit =< 100 ->
+   Json = [{<<"StreamName">>, StreamName}, {<<"Limit">>, Limit}, {<<"ExclusiveStartShardId">>, ExcludeShard}],
+   erlcloud_kinesis_impl:request(default_config(), "Kinesis_20131202.DescribeStream", Json).
