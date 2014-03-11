@@ -9,7 +9,7 @@
          delete_stream/1, delete_stream/2,
          list_streams/0, list_streams/1, list_streams/2, list_streams/3,
          describe_stream/1, describe_stream/2, describe_stream/3, describe_stream/4,
-         get_shard_terator/3, get_shard_terator/4, get_shard_terator/5,
+         get_shard_iterator/3, get_shard_iterator/4, get_shard_iterator/5,
          get_records/1, get_records/2, get_records/3,
          put_record/3, put_record/4, put_record/5, put_record/6,
          merge_shards/3, merge_shards/4,
@@ -251,7 +251,7 @@ describe_stream(StreamName, Limit, ExcludeShard, Config) when is_record(Config, 
 %% This operation returns a shard iterator in ShardIterator. The shard iterator specifies the position in the shard from which you want to start reading data records sequentially.
 %%
 %% `
-%% erlcloud_kinesis:get_shard_terator(<<"test">>, <<"shardId-000000000001">>, <<"TRIM_HORIZON">>).
+%% erlcloud_kinesis:get_shard_iterator(<<"test">>, <<"shardId-000000000001">>, <<"TRIM_HORIZON">>).
 %%   {ok,[{<<"ShardIterator">>,
 %%    <<"AAAAAAAAAAFHJejL6/AjDShV3pIXsxYZT7Xj2G6EHxokHqT2D1stIOVYUEyprlUGWUepKqUDaR0+hB6qTlKvZa+fsBRqgHi4"...>>}]}
 %% '
@@ -259,24 +259,24 @@ describe_stream(StreamName, Limit, ExcludeShard, Config) when is_record(Config, 
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_shard_terator/3 :: (string(), string(), string()) -> proplist().
+-spec get_shard_iterator/3 :: (string(), string(), string()) -> proplist().
 
-get_shard_terator(StreamName, ShardId, ShardIteratorType) ->
+get_shard_iterator(StreamName, ShardId, ShardIteratorType) ->
   Json = [{<<"StreamName">>, StreamName}, {<<"ShardId">>, ShardId}, {<<"ShardIteratorType">>, ShardIteratorType}],
   erlcloud_kinesis_impl:request(default_config(), "Kinesis_20131202.GetShardIterator", Json).
 
--spec get_shard_terator/4 :: (string(), string(), string(), string() | aws_config()) -> proplist().
+-spec get_shard_iterator/4 :: (string(), string(), string(), string() | aws_config()) -> proplist().
 
-get_shard_terator(StreamName, ShardId, ShardIteratorType, Config) when is_record(Config, aws_config) ->
+get_shard_iterator(StreamName, ShardId, ShardIteratorType, Config) when is_record(Config, aws_config) ->
   Json = [{<<"StreamName">>, StreamName}, {<<"ShardId">>, ShardId}, {<<"ShardIteratorType">>, ShardIteratorType}],
   erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.GetShardIterator", Json);
-get_shard_terator(StreamName, ShardId, ShardIteratorType, StartingSequenceNumber) ->
+get_shard_iterator(StreamName, ShardId, ShardIteratorType, StartingSequenceNumber) ->
   Json = [{<<"StreamName">>, StreamName}, {<<"ShardId">>, ShardId}, {<<"ShardIteratorType">>, ShardIteratorType}, {<<"StartingSequenceNumber">>, StartingSequenceNumber}],
   erlcloud_kinesis_impl:request(default_config(), "Kinesis_20131202.GetShardIterator", Json).
 
--spec get_shard_terator/5 :: (string(), string(), string(), string(), aws_config()) -> proplist().
+-spec get_shard_iterator/5 :: (string(), string(), string(), string(), aws_config()) -> proplist().
 
-get_shard_terator(StreamName, ShardId, ShardIteratorType, StartingSequenceNumber, Config) when is_record(Config, aws_config) ->
+get_shard_iterator(StreamName, ShardId, ShardIteratorType, StartingSequenceNumber, Config) when is_record(Config, aws_config) ->
   Json = [{<<"StreamName">>, StreamName}, {<<"ShardId">>, ShardId}, {<<"ShardIteratorType">>, ShardIteratorType}, {<<"StartingSequenceNumber">>, StartingSequenceNumber}],
   erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.GetShardIterator", Json).
 
