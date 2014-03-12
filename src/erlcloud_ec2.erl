@@ -1555,7 +1555,7 @@ describe_security_groups(GroupNames) ->
 -spec(describe_security_groups/2 :: ([string()], aws_config()) -> [proplist()]).
 describe_security_groups(GroupNames, Config)
   when is_list(GroupNames) ->
-    case ec2_query2(Config, "DescribeSecurityGroups", erlcloud_aws:param_list(GroupNames, "GroupName")) of
+    case ec2_query2(Config, "DescribeSecurityGroups", erlcloud_aws:param_list(GroupNames, "GroupName"), ?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [extract_security_group(Node) ||
                 Node <- xmerl_xpath:string("/DescribeSecurityGroupsResponse/securityGroupInfo/item", Doc)]};
@@ -1583,6 +1583,7 @@ describe_security_groups_filtered(Filter, Config)->
 extract_security_group(Node) ->
     [
      {owner_id, get_text("ownerId", Node)},
+     {group_id, get_text("groupId", Node)},
      {group_name, get_text("groupName", Node)},
      {group_description, get_text("groupDescription", Node)},
      {vpc_id, get_text("vpcId", Node)},
