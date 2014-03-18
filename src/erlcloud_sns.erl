@@ -1,4 +1,5 @@
-%%% @doc Amazon SNS
+%%% @doc Amazon SNS.
+%%%      Events are parsed according to http://docs.aws.amazon.com/sns/latest/dg/SendMessageToHttp.html
 %%% @todo add all the missing functions for the different actions
 -module(erlcloud_sns).
 -author('elbrujohalcon@inaka.net').
@@ -16,12 +17,20 @@
          publish_to_topic/5, publish_to_target/2, publish_to_target/3,
          publish_to_target/4, publish_to_target/5, publish/5,
          list_platform_applications/0, list_platform_applications/1,
-         list_platform_applications/2, list_platform_applications/3
+         list_platform_applications/2, list_platform_applications/3,
+         confirm_subscription/1, confirm_subscription/2, confirm_subscription/3,
+         confirm_subscription2/2, confirm_subscription2/3, confirm_subscription2/4
          ]).
+-export([parse_event/1, get_event_type/1, parse_event_message/1]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 -define(API_VERSION, "2010-03-31").
+
+-opaque sns_event() :: jsx:json_term().
+-opaque sns_notification() :: sns_message().
+-type sns_event_type() :: subscription_confirmation | notification.
+-export_type([sns_event/0, sns_event_type/0, sns_notification/0]).
 
 -type sns_endpoint_attribute() :: custom_user_data
                                 | enabled
@@ -115,6 +124,41 @@ create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attribut
 
 create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, AccessKeyID, SecretAccessKey) ->
     create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, new_config(AccessKeyID, SecretAccessKey)).
+
+
+
+-spec confirm_subscription/1 :: (sns_event()) -> string().
+-spec confirm_subscription/2 :: (sns_event(), aws_config()) -> string().
+-spec confirm_subscription/3 :: (sns_event(), string(), string()) -> string().
+
+confirm_subscription(SnsEvent) ->
+    confirm_subscription(SnsEvent, default_config()).
+confirm_subscription(SnsEvent, Config) ->
+    Token = binary_to_list(proplists:get_value(<<"Token">>, SnsEvent, <<>>)),
+    TopicArn = binary_to_list(proplists:get_value(<<"TopicArn">>, SnsEvent, <<>>)),
+    confirm_subscription2(Token, TopicArn, Config).
+confirm_subscription(SnsEvent, AccessKeyID, SecretAccessKey) ->
+    confirm_subscription(SnsEvent, new_config(AccessKeyID, SecretAccessKey)).
+
+
+
+-spec confirm_subscription2/2 :: (string(), string()) -> string().
+-spec confirm_subscription2/3 :: (string(), string(), aws_config()) -> string().
+-spec confirm_subscription2/4 :: (string(), string(), string(), string()) -> string().
+
+confirm_subscription2(Token, TopicArn) ->
+    confirm_subscription2(Token, TopicArn, default_config()).
+confirm_subscription2(Token, TopicArn, Config) ->
+    Doc =
+        sns_xml_request(
+            Config, "ConfirmSubscription",
+            [{"Token",    Token},
+             {"TopicArn", TopicArn}
+             ]),
+    erlcloud_xml:get_text(
+        "ConfirmSubscriptionResult/SubscriptionArn", Doc).
+confirm_subscription2(Token, TopicArn, AccessKeyID, SecretAccessKey) ->
+    confirm_subscription2(Token, TopicArn, new_config(AccessKeyID, SecretAccessKey)).
 
 
 
@@ -241,6 +285,25 @@ publish(Type, RecipientArn, Message, Subject, Config) ->
         "PublishResult/MessageId", Doc).
 
 
+
+-spec parse_event(iodata()) -> sns_event().
+-spec get_event_type(sns_event()) -> sns_event_type().
+-spec parse_event_message(sns_event()) -> sns_notification() | binary().
+parse_event(EventSource) ->
+    jsx:decode(EventSource).
+
+get_event_type(Event) ->
+    case proplists:get_value(<<"Type">>, Event) of
+        <<"SubscriptionConfirmation">> -> subscription_confirmation;
+        <<"Notification">> -> notification
+    end.
+
+parse_event_message(Event) ->
+    Message = proplists:get_value(<<"Message">>, Event, <<>>),
+    case get_event_type(Event) of
+        subscription_confirmation -> Message;
+        notification -> jsx:decode(Message)
+    end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PRIVATE
