@@ -21,7 +21,8 @@
          confirm_subscription/1, confirm_subscription/2, confirm_subscription/3,
          confirm_subscription2/2, confirm_subscription2/3, confirm_subscription2/4
          ]).
--export([parse_event/1, get_event_type/1, parse_event_message/1]).
+-export([parse_event/1, get_event_type/1, parse_event_message/1,
+         get_notification_attribute/2]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -286,9 +287,9 @@ publish(Type, RecipientArn, Message, Subject, Config) ->
 
 
 
--spec parse_event(iodata()) -> sns_event().
--spec get_event_type(sns_event()) -> sns_event_type().
--spec parse_event_message(sns_event()) -> sns_notification() | binary().
+-spec parse_event/1 :: (iodata()) -> sns_event().
+-spec get_event_type/1 :: (sns_event()) -> sns_event_type().
+-spec parse_event_message/1 :: (sns_event()) -> sns_notification() | binary().
 parse_event(EventSource) ->
     jsx:decode(EventSource).
 
@@ -304,6 +305,17 @@ parse_event_message(Event) ->
         subscription_confirmation -> Message;
         notification -> jsx:decode(Message)
     end.
+
+-spec get_notification_attribute/2 :: (binary(), sns_notification()) -> sns_application_attribute() | binary().
+get_notification_attribute(<<"EventType">>, Notification) ->
+    case proplists:get_value(<<"EventType">>, Notification) of
+        <<"EndpointCreated">> -> event_endpoint_created;
+        <<"EndpointDeleted">> -> event_endpoint_deleted;
+        <<"EndpointUpdated">> -> event_endpoint_updated;
+        <<"DeliveryFailure">> -> event_delivery_failure
+    end;
+get_notification_attribute(Attribute, Notification) ->
+    proplists:get_value(Attribute, Notification).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PRIVATE
