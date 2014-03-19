@@ -1,4 +1,4 @@
--module(erlcloud_ec2).
+
 
 -include_lib("xmerl/include/xmerl.hrl").
 
@@ -1223,7 +1223,7 @@ describe_instances(InstanceIDs) ->
 -spec(describe_instances/2 :: ([string()], aws_config()) -> proplist()).
 describe_instances(InstanceIDs, Config)
   when is_list(InstanceIDs) ->
-    case ec2_query2(Config, "DescribeInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId")) of
+    case ec2_query2(Config, "DescribeInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId"), ?NEW_API_VERSION) of
         {ok, Doc} ->
             Reservations = xmerl_xpath:string("/DescribeInstancesResponse/reservationSet/item", Doc),
             {ok, [extract_reservation(Item) || Item <- Reservations]};
@@ -1234,12 +1234,12 @@ describe_instances(InstanceIDs, Config)
 extract_reservation(Node) ->
     [{reservation_id, get_text("reservationId", Node)},
      {owner_id, get_text("ownerId", Node)},
-     {group_set, get_list("groupSet/item/groupId", Node)},
      {instances_set, [extract_instance(Item) || Item <- xmerl_xpath:string("instancesSet/item", Node)]}
     ].
 
 extract_instance(Node) ->
     [{instance_id, get_text("instanceId", Node)},
+     {group_set, [extract_group(Item) || Item <- xmerl_xpath:string("groupSet/item", Node)]},
      {image_id, get_text("imageId", Node)},
      {instance_state, [
                        {code, list_to_integer(get_text("instanceState/code", Node, "0"))},
@@ -1269,6 +1269,11 @@ extract_instance(Node) ->
      {instance_lifecycle, get_text("instanceLifecycle", Node, none)},
      {spot_instance_request_id, get_text("spotInstanceRequestId", Node, none)}
     ].
+
+extract_group(Node) ->
+     [{group_id, get_text("groupId", Node)},
+      {group_name, get_text("groupName", Node)}
+     ].
 
 extract_block_device_mapping_status(Node) ->
     [
