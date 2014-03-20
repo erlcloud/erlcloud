@@ -90,7 +90,7 @@ validate_params(Body, Expected) ->
 %% Validates the query body and responds with the provided response.
 -spec input_expect(string(), [expected_param()]) -> fun().
 input_expect(Response, Expected) ->
-    fun(post, {_Url, [] = _Headers, _ContentType, Body}, [], []) -> 
+    fun(post, {_Url, [] = _Headers, _ContentType, Body}, _, []) -> 
             validate_params(Body, Expected),
             {ok, {{0, 200, 0}, 0, Response}} 
     end.
@@ -124,7 +124,7 @@ input_tests(Response, Tests) ->
 %% returns the mock of the httpc function output tests expect to be called.
 -spec output_expect(string()) -> fun().
 output_expect(Response) ->
-    fun(post, {_Url, [] = _Headers, _ContentType, _Body}, [], []) -> 
+    fun(post, {_Url, [] = _Headers, _ContentType, _Body}, _, []) -> 
             {ok, {{0, 200, 0}, 0, Response}} 
     end.
 

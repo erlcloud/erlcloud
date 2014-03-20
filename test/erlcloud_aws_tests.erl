@@ -11,7 +11,7 @@ request_test_() ->
 
 start() ->
     meck:new(httpc, [unstick]),
-    meck:expect(httpc, request, fun(_) -> {ok, {{0, 200, 0}, 0, ok}} end),
+    meck:expect(httpc, request, fun(_,_,_,_) -> {ok, {{0, 200, 0}, 0, ok}} end),
     ok.
 
 stop(_) ->
@@ -36,7 +36,7 @@ request_prot_host_port_int_test(_) ->
 % Internal functions
 % ==================
 
-get_url_from_history([{_, {httpc, request, [Url]}, _}]) ->
+get_url_from_history([{_, {httpc, request, [_, {Url, _}, _, _]}, _}]) ->
     Url.
 
 test_url(ExpScheme, ExpHost, ExpPort, ExpPath, Url) ->
