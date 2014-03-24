@@ -111,14 +111,14 @@ delete_hash_key_tests(_) ->
 }", "
 {\"Count\":2,
  \"Items\":[
-  {\"rkn\":{\"N\":\"1\"}},
-  {\"rkn\":{\"N\":\"2\"}}]
+  {\"rkn\":{\"B\":\"AQ==\"}},
+  {\"rkn\":{\"B\":\"Ag==\"}}]
 }"
               }, {"
 {\"RequestItems\":{
   \"tn\":[
-   {\"DeleteRequest\":{\"Key\":{\"hkn\":{\"S\":\"hkv\"}, \"rkn\":{\"N\":\"1\"}}}},
-   {\"DeleteRequest\":{\"Key\":{\"hkn\":{\"S\":\"hkv\"}, \"rkn\":{\"N\":\"2\"}}}}]
+   {\"DeleteRequest\":{\"Key\":{\"hkn\":{\"S\":\"hkv\"}, \"rkn\":{\"B\":\"AQ==\"}}}},
+   {\"DeleteRequest\":{\"Key\":{\"hkn\":{\"S\":\"hkv\"}, \"rkn\":{\"B\":\"Ag==\"}}}}]
  }}", "
 {\"Responses\":{
   \"tn\":{\"ConsumedCapacityUnits\":2.0}
