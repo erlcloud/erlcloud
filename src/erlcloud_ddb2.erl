@@ -681,6 +681,19 @@ undynamize_projection(V) ->
         <<"INCLUDE">> ->
             {include, proplists:get_value(<<"NonKeyAttributes">>, V)}
     end.
+
+-spec global_secondary_index_description_record() -> record_desc().
+global_secondary_index_description_record() ->
+    {#ddb2_global_secondary_index_description{},
+     [{<<"IndexName">>, #ddb2_global_secondary_index_description.index_name, fun id/1},
+      {<<"IndexSizeBytes">>, #ddb2_global_secondary_index_description.index_size_bytes, fun id/1},
+      {<<"IndexStatus">>, #ddb2_global_secondary_index_description.index_status, fun id/1},
+      {<<"ItemCount">>, #ddb2_global_secondary_index_description.item_count, fun id/1},
+      {<<"KeySchema">>, #ddb2_global_secondary_index_description.key_schema, fun undynamize_key_schema/1},
+      {<<"Projection">>, #ddb2_global_secondary_index_description.projection, fun undynamize_projection/1},
+      {<<"ProvisionedThroughput">>, #ddb2_global_secondary_index_description.provisioned_throughput,
+       fun(V) -> undynamize_record(provisioned_throughput_description_record(), V) end}
+     ]}.
     
 -spec local_secondary_index_description_record() -> record_desc().
 local_secondary_index_description_record() ->
@@ -707,6 +720,8 @@ table_description_record() ->
     {#ddb2_table_description{},
      [{<<"AttributeDefinitions">>, #ddb2_table_description.attribute_definitions, fun undynamize_attr_defs/1},
       {<<"CreationDateTime">>, #ddb2_table_description.creation_date_time, fun id/1},
+      {<<"GlobalSecondaryIndexes">>, #ddb2_table_description.global_secondary_indexes,
+       fun(V) -> [undynamize_record(global_secondary_index_description_record(), I) || I <- V] end},
       {<<"ItemCount">>, #ddb2_table_description.item_count, fun id/1},
       {<<"KeySchema">>, #ddb2_table_description.key_schema, fun undynamize_key_schema/1},
       {<<"LocalSecondaryIndexes">>, #ddb2_table_description.local_secondary_indexes,
@@ -971,10 +986,16 @@ batch_write_item(RequestItems, Opts, Config) ->
 
 -type index_name() :: binary().
 -type range_key_name() :: attr_name().
+-type hash_key_name() :: attr_name().
+-type read_units() :: pos_integer().
+-type write_units() :: pos_integer().
 -type projection() :: keys_only |
                       {include, [attr_name()]} |
                       all.
 -type local_secondary_index_def() :: {index_name(), range_key_name(), projection()}.
+
+-type global_secondary_index_def() :: {index_name(), {hash_key_name(), 
+    range_key_name()}, projection(), read_units(), write_units()}.
 
 dynamize_projection(keys_only) ->
     [{<<"ProjectionType">>, <<"KEYS_ONLY">>}];
@@ -983,6 +1004,21 @@ dynamize_projection(all) ->
 dynamize_projection({include, AttrNames}) ->
     [{<<"ProjectionType">>, <<"INCLUDE">>},
      {<<"NonKeyAttributes">>, AttrNames}].
+
+dynamize_global_secondary_index({IndexName, {HashKey, RangeKey}, Projection, ReadUnits, WriteUnits}) ->
+    [{<<"IndexName">>, IndexName},
+     {<<"KeySchema">>, [[{<<"AttributeName">>, HashKey},
+                         {<<"KeyType">>, <<"HASH">>}],
+                        [{<<"AttributeName">>, RangeKey},
+                         {<<"KeyType">>, <<"RANGE">>}]]},
+     {<<"Projection">>, dynamize_projection(Projection)},
+     {<<"ProvisionedThroughput">>, [
+         {<<"ReadCapacityUnits">>, ReadUnits},
+         {<<"WriteCapacityUnits">>, WriteUnits}
+     ]}].
+
+dynamize_global_secondary_indexes(Value) ->
+    [dynamize_global_secondary_index(I) || I <- Value].
 
 dynamize_local_secondary_index(HashKey, {IndexName, RangeKey, Projection}) ->
     [{<<"IndexName">>, IndexName},
@@ -995,13 +1031,16 @@ dynamize_local_secondary_index(HashKey, {IndexName, RangeKey, Projection}) ->
 dynamize_local_secondary_indexes({HashKey, _RangeKey}, Value) ->
     [dynamize_local_secondary_index(HashKey, I) || I <- Value].
 
--type create_table_opt() :: {local_secondary_indexes, [local_secondary_index_def()]}.
+-type create_table_opt() :: {local_secondary_indexes, [local_secondary_index_def()]} 
+    | {global_secondary_indexes, [global_secondary_index_def()]}.
 -type create_table_opts() :: [create_table_opt()].
 
 -spec create_table_opts(key_schema()) -> opt_table().
 create_table_opts(KeySchema) ->
     [{local_secondary_indexes, <<"LocalSecondaryIndexes">>, 
-      fun(V) -> dynamize_local_secondary_indexes(KeySchema, V) end}].
+      fun(V) -> dynamize_local_secondary_indexes(KeySchema, V) end},
+     {global_secondary_indexes, <<"GlobalSecondaryIndexes">>,
+      fun(V) -> dynamize_global_secondary_indexes(V) end}].
 
 -spec create_table_record() -> record_desc().
 create_table_record() ->
