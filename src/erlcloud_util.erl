@@ -7,7 +7,9 @@ sha_mac(K, S) ->
         crypto:hmac(sha, K, S)
     catch
         _:_ ->
-            crypto:sha_mac(K, S)
+            R0 = crypto:hmac_init(sha, K),
+            R1 = crypto:hmac_update(R0, S),
+            crypto:hmac_final(R1)
     end.
         
 sha256_mac(K, S) ->
@@ -15,7 +17,9 @@ sha256_mac(K, S) ->
         crypto:hmac(sha256, K, S)
     catch
         _:_ ->
-            crypto:sha256(K, S)
+            R0 = crypto:hmac_init(sha256, K),
+            R1 = crypto:hmac_update(R0, S),
+            crypto:hmac_final(R1)
     end.
 
 sha256(V) ->
