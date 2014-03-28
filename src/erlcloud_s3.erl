@@ -7,6 +7,7 @@
          get_bucket_attribute/2, get_bucket_attribute/3,
          list_buckets/0, list_buckets/1,
          set_bucket_attribute/3, set_bucket_attribute/4,
+         put_bucket_policy/2, put_bucket_policy/3,
          list_objects/1, list_objects/2, list_objects/3,
          list_object_versions/1, list_object_versions/2, list_object_versions/3,
          copy_object/4, copy_object/5, copy_object/6,
@@ -235,6 +236,16 @@ list_buckets(Config) ->
     Doc = s3_xml_request(Config, get, "", "/", "", [], <<>>, []),
     Buckets = [extract_bucket(Node) || Node <- xmerl_xpath:string("/*/Buckets/Bucket", Doc)],
     [{buckets, Buckets}].
+
+-spec put_bucket_policy(string(), binary()) -> ok.
+put_bucket_policy(BucketName, Policy) ->
+    put_bucket_policy(BucketName, Policy, default_config()).
+
+-spec put_bucket_policy(string(), binary(), aws_config()) -> ok.
+put_bucket_policy(BucketName, Policy, Config) 
+  when is_list(BucketName), is_binary(Policy), is_record(Config, aws_config) ->
+    s3_simple_request(Config, put, BucketName, "/", "policy", [], Policy, []).
+
 
 -spec list_objects(string()) -> proplist().
 
