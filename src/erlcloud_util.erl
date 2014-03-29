@@ -11,7 +11,7 @@ sha_mac(K, S) ->
 sha256_mac(K, S) ->
 	case erlang:function_exported(crypto, hmac, 3) of
 		true  -> crypto:hmac(sha256, K, S);
-		false -> crypto:sha256(K, S)
+		false -> crypto:hmac_final(crypto:hmac_update(crypto:hmac_init(sha256, K), S))
 	end.
 
 sha256(V) ->
