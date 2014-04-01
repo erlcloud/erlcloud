@@ -76,7 +76,7 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts, Config) ->
                          [{consistent_read, true},
                           {limit, ?BATCH_WRITE_LIMIT},
                           {attributes_to_get, [RangeKeyName]},
-                          {out, record}], 
+                          {out, typed_record}], 
                          Config) of
         {error, Reason} ->
             {error, Reason};
