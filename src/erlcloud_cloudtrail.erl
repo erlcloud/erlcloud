@@ -12,7 +12,7 @@
     get_trail_status/1, get_trail_status/2,
     start_logging/1, start_logging/2,
     stop_logging/1, stop_logging/2,
-    update_trail/6,
+    update_trail/4, update_trail/5, update_trail/6,
     ct_request/3
 ]).
 
@@ -119,7 +119,24 @@ stop_logging(Trail, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}],
     ct_request("StopLogging", Json, Config).
 
-% TODO: Provide helper functions. Perhaps also support proplist.
+-spec(update_trail/4 :: (string(), string(), boolean(), aws_config()) -> proplist()).
+update_trail(Trail,S3BucketName, SnsTopicName, Config) ->
+    Json = [{<<"Name">>, list_to_binary(Trail)}, 
+            {<<"S3BucketName">>, list_to_binary(S3BucketName)},
+            {<<"SnsTopicName">>, list_to_binary(SnsTopicName)}
+           ],
+    ct_request("UpdateTrail", Json, Config).
+
+-spec(update_trail/5 :: (string(), string(), string(), boolean(), aws_config()) -> proplist()).
+update_trail(Trail, S3BucketName, SnsTopicName, IncludeGlobalServiceEvents, Config) ->
+    Json = [{<<"Name">>, list_to_binary(Trail)}, 
+            {<<"S3BucketName">>, list_to_binary(S3BucketName)},
+            {<<"SnsTopicName">>, list_to_binary(SnsTopicName)},
+            {<<"IncludeGlobalServiceEvents">>, list_to_binary(atom_to_list(IncludeGlobalServiceEvents))}
+           ],
+    ct_request("UpdateTrail", Json, Config).
+
+
 -spec(update_trail/6 :: (string(), string(), string(), string(), boolean(), aws_config()) -> proplist()).
 update_trail(Trail, S3BucketName, S3KeyPrefix, SnsTopicName, IncludeGlobalServiceEvents, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}, 
@@ -153,7 +170,7 @@ request_impl(Method, Protocol, Host, Port, Path, Operation, Params, Body, #aws_c
         {ok, {RespHeader, RespBody}} ->
             %% {ok, {{_, 200, _}, _, RespBody}} ->
             %% TODO check crc
-            %%%% io:format("-------Response:~nHeader:~p~nBody:~p~n", [RespHeader, RespBody]),
+            %% io:format("-------Response:~nHeader:~p~nBody:~p~n", [RespHeader, RespBody]),
             case Config#aws_config.raw_result of
                 true -> {ok, RespBody};
                 _ -> {ok, jsx:decode(RespBody)}
