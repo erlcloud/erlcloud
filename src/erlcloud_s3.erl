@@ -31,6 +31,7 @@
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
+
 -spec new(string(), string()) -> aws_config().
 
 new(AccessKeyID, SecretAccessKey) ->
@@ -911,11 +912,12 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
                                     true -> [$&, erlcloud_http:make_query_string(Params)]
                                 end
                                ]),
+
     Response = case Method of
-                   get -> httpc:request(Method, {RequestURI, RequestHeaders}, [{timeout, ?DEFAULT_TIMEOUT}], []);
-                   head -> httpc:request(Method, {RequestURI, RequestHeaders}, [{timeout, ?DEFAULT_TIMEOUT}], []);
+                   get -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
+                   head -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
                    delete -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
-                   _ -> httpc:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, [{timeout, ?DEFAULT_TIMEOUT}], [])
+                   _ -> httpc:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, [], [])
                end,
     erlcloud_aws:http_headers_body(Response).
 
