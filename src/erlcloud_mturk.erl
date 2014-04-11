@@ -1599,7 +1599,7 @@ mturk_xml_request(Config, Operation, Params) ->
 mturk_request(Config, Operation, Params) ->
     Timestamp = erlcloud_aws:format_timestamp(erlang:universaltime()),
     StringToSign = [?API_SERVICE, Operation, Timestamp],
-    Signature = base64:encode(crypto:sha_mac(Config#aws_config.secret_access_key, StringToSign)),
+    Signature = base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, StringToSign)),
 
     QParams = [{"Operation", Operation}, {"Version", ?API_VERSION},
                {"Service", ?API_SERVICE}, {"Timestamp", Timestamp},

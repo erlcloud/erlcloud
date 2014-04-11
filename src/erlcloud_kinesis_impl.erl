@@ -32,7 +32,7 @@
 %%
 %% @end
 
--module(erlcloud_ddb_impl).
+-module(erlcloud_kinesis_impl).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -98,8 +98,8 @@ retry(Attempt, _) ->
 request_and_retry(_, _, _, {error, Reason}) ->
     {error, Reason};
 request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
-    RetryFun = Config#aws_config.ddb_retry,
-    case httpc:request(post, {url(Config), Headers, "application/x-amz-json-1.0", Body},
+    RetryFun = Config#aws_config.kinesis_retry,
+    case httpc:request(post, {url(Config), Headers, "application/x-amz-json-1.1", Body},
                        [{timeout, 1000}],
                        [{body_format, binary}]) of
 
@@ -153,22 +153,22 @@ client_error(Status, StatusLine, Body) ->
 
 -spec headers(aws_config(), string(), binary()) -> headers().
 headers(Config, Operation, Body) ->
-    Headers = [{"host", Config#aws_config.ddb_host},
+    Headers = [{"host", Config#aws_config.kinesis_host},
                {"x-amz-target", Operation}],
     Region =
-        case string:tokens(Config#aws_config.ddb_host, ".") of
+        case string:tokens(Config#aws_config.kinesis_host, ".") of
             [_, Value, _, _] ->
                 Value;
             _ ->
                 "us-east-1"
         end,
-    erlcloud_aws:sign_v4(Config, Headers, Body, Region, "dynamodb").
+    erlcloud_aws:sign_v4(Config, Headers, Body, Region, "kinesis").
 
-url(#aws_config{ddb_scheme = Scheme, ddb_host = Host} = Config) ->
+url(#aws_config{kinesis_scheme = Scheme, kinesis_host = Host} = Config) ->
     lists:flatten([Scheme, Host, port_spec(Config)]).
 
-port_spec(#aws_config{ddb_port=80}) ->
+port_spec(#aws_config{kinesis_port=80}) ->
     "";
-port_spec(#aws_config{ddb_port=Port}) ->
+port_spec(#aws_config{kinesis_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
 
