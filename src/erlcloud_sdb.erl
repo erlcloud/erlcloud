@@ -193,12 +193,26 @@ list_domains(FirstToken, Config) when is_record(Config, aws_config) ->
 list_domains(FirstToken, MaxDomains) ->
     list_domains(FirstToken, MaxDomains, default_config()).
 
+maybe_add_maxdomains(none, Params) ->
+    Params;
+maybe_add_maxdomains(MaxDomains, Params) ->
+    [{"MaxNumberOfDomains", MaxDomains} | Params].
+
+maybe_add_nexttoken([], Params) ->
+    Params;
+maybe_add_nexttoken(Token, Params) ->
+    [{"NextToken", Token} | Params].
+
 -spec list_domains/3 :: (string(), 1..100 | none, aws_config()) -> proplist().
 list_domains(FirstToken, MaxDomains, Config)
   when is_list(FirstToken),
        is_integer(MaxDomains) orelse MaxDomains =:= none ->
-    {Doc, Result} = sdb_request(Config, "ListDomains",
-                                [{"MaxNumberOfDomains", MaxDomains}, {"NextToken", FirstToken}]),
+
+    Params = 
+    maybe_add_nexttoken(FirstToken, 
+    maybe_add_maxdomains(MaxDomains, [])),
+
+    {Doc, Result} = sdb_request(Config, "ListDomains", Params),
 
     [{domains, erlcloud_xml:get_list("/ListDomainsResponse/ListDomainsResult/DomainName", Doc)},
      {next_token, erlcloud_xml:get_text("/ListDomainsResponse/ListDomainsResult/NextToken", Doc)}|Result].
