@@ -27,7 +27,6 @@
 %%
 %% API
 %%
-% TODO: Fix to return ok instead of a tuple
 -spec(create_trail/3 :: (string(), string(), aws_config()) -> proplist()).
 create_trail(Trail, S3BucketName, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}, 
@@ -147,8 +146,6 @@ update_trail(Trail, S3BucketName, S3KeyPrefix, SnsTopicName, IncludeGlobalServic
            ],
     ct_request("UpdateTrail", Json, Config).
 
-%% TODO: Move protocol specific stuff to a separate module.
-
 % Json parameter must be a list of binary key/value tuples.
 ct_request(Operation, [], Config = #aws_config{cloudtrail_host = Host, cloudtrail_port = Port}) ->
     request_impl(post, undefined, Host, Port, "/", Operation, [], <<"{}">>, Config);
@@ -158,25 +155,22 @@ ct_request(Operation, Body, Config = #aws_config{cloudtrail_host = Host, cloudtr
 .
  
 request_impl(Method, Protocol, Host, Port, Path, Operation, Params, Body, #aws_config{} = Config) ->
-    %% TOD: Make api prefix a part of aws_config
+    %% TODO: Make api prefix a part of aws_config
     Api_Operation = lists:flatten(?CLOUD_TRAIL_API_PREFIX, Operation),
     Headers = headers(Config, Api_Operation, Params, Body, ?SERVICE_NAME),
-    %%%% io:format("------ Request URL: ~p~nHeaders: ~p~nBody ~p~n", [url(Config), Headers, Body]),
     % ({ok, {{_HTTPVer, OKStatus, _StatusLine}, Headers, Body}})
     case erlcloud_aws:http_headers_body(
             httpc:request(Method, {url(Config), Headers, "application/x-amz-json-1.1", Body},
                             [{timeout, 1000}],
                             [{body_format, binary}])) of
-        {ok, {RespHeader, RespBody}} ->
+        {ok, {_RespHeader, RespBody}} ->
             %% {ok, {{_, 200, _}, _, RespBody}} ->
-            %% TODO check crc
-            %% io:format("-------Response:~nHeader:~p~nBody:~p~n", [RespHeader, RespBody]),
             case Config#aws_config.raw_result of
                 true -> {ok, RespBody};
                 _ -> {ok, jsx:decode(RespBody)}
             end;
-        {error, {http_error, Status, StatusLine, RespBody}} ->
-            io:format("-------Call Failed Response:~nStatus:~p~nStatusLine:~p~nBody:~p~n", [Status, StatusLine, RespBody]);
+        {error, {http_error, Status, _StatusLine, RespBody}} ->
+            {error, Status, RespBody};
         {error, Reason} ->
             {error, Reason}
     end.
