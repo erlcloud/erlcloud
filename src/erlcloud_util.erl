@@ -6,7 +6,7 @@ sha_mac(K, S) ->
     try
         crypto:hmac(sha, K, S)
     catch
-        _:_ ->
+        error:undef ->
             R0 = crypto:hmac_init(sha, K),
             R1 = crypto:hmac_update(R0, S),
             crypto:hmac_final(R1)
@@ -16,7 +16,7 @@ sha256_mac(K, S) ->
     try
         crypto:hmac(sha256, K, S)
     catch
-        _:_ ->
+        error:undef ->
             R0 = crypto:hmac_init(sha256, K),
             R1 = crypto:hmac_update(R0, S),
             crypto:hmac_final(R1)
