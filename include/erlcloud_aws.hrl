@@ -22,7 +22,7 @@
           kinesis_port=80::non_neg_integer(),
           kinesis_retry=fun erlcloud_kinesis_impl:retry/2::erlcloud_kinesis_impl:retry_fun(),
           cloudtrail_scheme="https://"::string(),
-          cloudtrail_host="cloudtrail.us-east-1.amazonaws.com"::string(),
+          cloudtrail_host="cloudtrail.amazonaws.com"::string(),
           cloudtrail_port=80::non_neg_integer(),
           access_key_id::string()|undefined|false,
           secret_access_key::string()|undefined|false,
