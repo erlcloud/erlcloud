@@ -1615,6 +1615,8 @@ extract_security_group(Node) ->
      {vpc_id, get_text("vpcId", Node)},
      {ip_permissions,
       [extract_ip_permissions(Item) || Item <- xmerl_xpath:string("ipPermissions/item", Node)]},
+     {ip_permissions_egress,
+      [extract_ip_permissions(Item) || Item <- xmerl_xpath:string("ipPermissionsEgress/item", Node)]},
      {tag_set, 
       [extract_tag_item(Item)
        || Item <- xmerl_xpath:string("tagSet/item", Node)]}
@@ -1626,9 +1628,17 @@ extract_ip_permissions(Node) ->
      {from_port, get_integer("fromPort", Node)},
      {to_port, get_integer("toPort", Node)},
      {users, get_list("groups/item/userId", Node)},
+     {groups,
+      [extract_user_id_group_pair(Item) || Item <- xmerl_xpath:string("groups/item", Node)]},
      {ip_ranges, get_list("ipRanges/item/cidrIp", Node)}
     ].
 
+extract_user_id_group_pair(Node) ->
+    [
+      {user_id, get_text("userId", Node)},
+      {group_id, get_text("groupId", Node)},
+      {group_name, get_text("groupName", Node)}
+    ].
 %%
 %%
 -spec(describe_snapshot_attribute/2 :: (string(), atom()) -> proplist()).
