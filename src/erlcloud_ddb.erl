@@ -297,8 +297,10 @@ dynamize_value(Value) when is_list(Value) ->
     dynamize_value({s, Value});
 dynamize_value(Value) when is_number(Value) ->
     dynamize_value({n, Value});
+dynamize_value(Value) when is_atom(Value) ->
+  dynamize_value({s, atom_to_binary(Value, utf8)});
 dynamize_value(Value) ->
-    error({erlcloud_ddb, {invalid_attr_value, Value}}).
+  dynamize_value({s, Value}).
 
 -spec dynamize_attr(in_attr()) -> json_attr().
 dynamize_attr({Name, Value}) ->
