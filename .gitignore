@@ -8,6 +8,3 @@ rebar
 *.sublime-*
 deps/
 doc/
-.gitignore
-.idea
-*.iml
