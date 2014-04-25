@@ -279,6 +279,8 @@ dynamize_value({s, Value}) when is_binary(Value) ->
     {<<"S">>, Value};
 dynamize_value({s, Value}) when is_list(Value) ->
     {<<"S">>, list_to_binary(Value)};
+dynamize_value({s, Value}) when is_atom(Value) ->
+    {<<"S">>, atom_to_binary(Value, utf8)};
 dynamize_value({n, Value}) when is_number(Value) ->
     {<<"N">>, dynamize_number(Value)};
 dynamize_value({b, Value}) when is_binary(Value) orelse is_list(Value) ->
