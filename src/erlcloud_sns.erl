@@ -13,6 +13,9 @@
          list_endpoints_by_platform_application/2,
          list_endpoints_by_platform_application/3,
          list_endpoints_by_platform_application/4,
+         get_endpoint_attributes/1,
+         get_endpoint_attributes/2,
+         get_endpoint_attributes/3,
          publish_to_topic/2, publish_to_topic/3, publish_to_topic/4,
          publish_to_topic/5, publish_to_target/2, publish_to_target/3,
          publish_to_target/4, publish_to_target/5, publish/5,
@@ -173,6 +176,27 @@ delete_endpoint(EndpointArn, Config) ->
     sns_simple_request(Config, "DeleteEndpoint", [{"EndpointArn", EndpointArn}]).
 delete_endpoint(EndpointArn, AccessKeyID, SecretAccessKey) ->
     delete_endpoint(EndpointArn, new_config(AccessKeyID, SecretAccessKey)).
+
+
+
+-spec get_endpoint_attributes/1 :: (string()) -> sns_endpoint().
+-spec get_endpoint_attributes/2 :: (string(), aws_config()) -> sns_endpoint().
+-spec get_endpoint_attributes/3 :: (string(), string(), string()) -> sns_endpoint().
+
+get_endpoint_attributes(EndpointArn) ->
+    get_endpoint_attributes(EndpointArn, default_config()).
+get_endpoint_attributes(EndpointArn, Config) ->
+    Params = [{"EndpointArn", EndpointArn}],
+    Doc = sns_xml_request(Config, "GetEndpointAttributes", Params),
+    Decoded =
+        erlcloud_xml:decode(
+            [{attributes, "GetEndpointAttributesResult/Attributes/entry",
+                fun extract_attribute/1
+             }],
+            Doc),
+    [{arn, EndpointArn} | Decoded].
+get_endpoint_attributes(EndpointArn, AccessKeyID, SecretAccessKey) ->
+    get_endpoint_attributes(EndpointArn, new_config(AccessKeyID, SecretAccessKey)).
 
 
 
