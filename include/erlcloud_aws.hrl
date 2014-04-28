@@ -14,7 +14,7 @@
           ddb_scheme="https://"::string(),
           ddb_host="dynamodb.us-east-1.amazonaws.com"::string(),
           ddb_port=80::non_neg_integer(),
-          ddb_retry=fun erlcloud_ddb_impl:retry/2::erlcloud_ddb_impl:retry_fun(),
+          ddb_retry=fun erlcloud_ddb_impl:retry/1::erlcloud_ddb_impl:retry_fun(),
           kinesis_scheme="https://"::string(),
           kinesis_host="kinesis.us-east-1.amazonaws.com"::string(),
           kinesis_port=80::non_neg_integer(),
