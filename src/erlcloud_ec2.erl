@@ -563,7 +563,17 @@ extract_acl_entry_item(Node) ->
      {protocol, get_text("protocol", Node)},
      {rule_action, get_text("ruleAction", Node)},
      {egress, get_text("egress", Node)},
-     {cidr_block, get_text("cidrBlock", Node)}].
+     {cidr_block, get_text("cidrBlock", Node)},
+     {port_range, extract_port_range(xmerl_xpath:string("portRange", Node))}
+    ].
+
+extract_port_range([]) ->
+    [];
+
+extract_port_range([Node]) ->
+    [{from, get_text("from", Node)},
+     {to, get_text("to", Node)}
+].
 
 %%
 %%
