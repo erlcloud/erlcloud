@@ -74,6 +74,10 @@
          monitor_instances/1, monitor_instances/2,
          unmonitor_instances/1, unmonitor_instances/2,
 
+         %% Network Interfaces
+         describe_network_interfaces/0, describe_network_interfaces/1, 
+         describe_network_interfaces/2,
+
          %% Reserved Instances
          describe_reserved_instances/0, describe_reserved_instances/1,
          describe_reserved_instances/2,
@@ -1290,7 +1294,8 @@ extract_instance(Node) ->
                             ]},
      {tag_set, 
       [extract_tag_item(Item)
-       || Item <- xmerl_xpath:string("tagSet/item", Node)]}
+       || Item <- xmerl_xpath:string("tagSet/item", Node)]},
+     {network_interface_set, [extract_network_interface(Item) || Item <- xmerl_xpath:string("networkInterfaceSet/item", Node)]}
     ].
 
 extract_group(Node) ->
@@ -1444,6 +1449,73 @@ describe_regions(RegionNames, Config)
         {error, _} = Error ->
             Error
     end.
+
+%
+% Network Interfaces API
+%
+-spec(describe_network_interfaces/0 :: () -> proplist()).
+describe_network_interfaces() ->
+    describe_network_interfaces([]).
+
+-spec(describe_network_interfaces/1 :: ([string()] | aws_config()) -> proplist()).
+describe_network_interfaces(Config)
+    when is_record(Config, aws_config) ->
+      describe_network_interfaces([], Config);
+describe_network_interfaces(NetworkInterfacesIds) ->
+    describe_network_interfaces(NetworkInterfacesIds, default_config()).
+
+-spec(describe_network_interfaces/2 :: ([string()], aws_config()) -> proplist()).
+describe_network_interfaces(NetworkInterfacesIds, Config)
+    when is_list(NetworkInterfacesIds), is_record(Config, aws_config) ->
+       case ec2_query2(Config, "DescribeNetworkInterfaces", 
+                      erlcloud_aws:param_list(NetworkInterfacesIds, "NetworkInterfaceId"), ?NEW_API_VERSION) of
+          {ok, Doc} ->
+              NetworkInterfaces = xmerl_xpath:string("/DescribeNetworkInterfacesResponse/networkInterfaceSet/item", Doc),
+              {ok, [extract_network_interface(Item) || Item <- NetworkInterfaces]};
+          {error, _} = Error ->
+              Error
+       end.
+
+-spec(extract_network_interface/1 :: (Node::list()) -> proplist()).
+extract_network_interface(Node) ->
+    [
+     {network_interface_id, get_text("networkInterfaceId", Node)},
+     {subnet_id, get_text("subnetId", Node)},
+     {vpc_id, get_text("vpcId", Node)},
+     {availability_zone, get_text("availabilityZone", Node)},
+     {description, get_text("description", Node)},
+     {owner_id, get_text("ownerId", Node)},
+     {requester_managed, get_bool("requesterManaged", Node)},
+     {status, get_text("status", Node)},
+     {mac_address, get_text("macAddress", Node)},
+     {private_ip_address, get_text("privateIpAddress", Node)},
+     {source_dest_check, get_bool("sourceDestCheck", Node)},
+     {groups_set, [extract_group(Item) || Item <- xmerl_xpath:string("groupSet/item", Node)]},
+     %% {attachment, extract_attachment(xmerl_xpath:string("attachment", Node))},
+     {attachment, extract_attachment(Node)},
+     {tag_set, [extract_tag_item(Item) || Item <- xmerl_xpath:string("tagSet/item", Node)]},
+     {private_ip_addresses_set, 
+            [extract_private_ip_address(Item) || Item <- xmerl_xpath:string("privateIpAddressesSet/item", Node)]}
+    ].
+
+-spec(extract_attachment/1 :: (Node::list()) -> proplist()).
+extract_attachment(Node) ->
+    [
+     {attachment_id, get_text("attachment/attachmentId", Node)},
+     {instance_id, get_text("attachment/instanceId", Node)},
+     {instance_owner_id, get_text("attachment/instanceOwnerId", Node)},
+     {device_index, get_text("attachment/deviceIndex", Node)},
+     {status, get_text("attachment/status", Node)},
+     {attach_time, erlcloud_xml:get_time("attachment/attachTime", Node)},
+     {delete_on_termination, get_bool("attachment/deleteOnTermination", Node)}
+    ].
+
+-spec(extract_private_ip_address/1 :: (Node::list()) -> proplist()).
+extract_private_ip_address(Node) ->
+    [
+     {private_ip_address, get_text("privateIpAddress", Node)},
+     {primary, get_bool("primary", Node)}
+    ]. 
 
 %%
 %%
