@@ -77,6 +77,7 @@
          %% Network Interfaces
          describe_network_interfaces/0, describe_network_interfaces/1, 
          describe_network_interfaces/2,
+         describe_network_interfaces_filtered/3,
 
          %% Reserved Instances
          describe_reserved_instances/0, describe_reserved_instances/1,
@@ -1453,22 +1454,34 @@ describe_regions(RegionNames, Config)
 %
 % Network Interfaces API
 %
--spec(describe_network_interfaces/0 :: () -> proplist()).
+-spec(describe_network_interfaces/0 :: () -> [proplist()]).
 describe_network_interfaces() ->
-    describe_network_interfaces([]).
+    describe_network_interfaces(none).
 
--spec(describe_network_interfaces/1 :: ([string()] | aws_config()) -> proplist()).
+-spec(describe_network_interfaces/1 :: (list() | aws_config()) -> [proplist()]).
 describe_network_interfaces(Config)
     when is_record(Config, aws_config) ->
       describe_network_interfaces([], Config);
 describe_network_interfaces(NetworkInterfacesIds) ->
     describe_network_interfaces(NetworkInterfacesIds, default_config()).
 
--spec(describe_network_interfaces/2 :: ([string()], aws_config()) -> proplist()).
+-spec(describe_network_interfaces/2 :: (list(), aws_config()) -> [proplist()]).
+%%
+%%
+%% Example: describe_network_interfaces(["eni-1c111111", "eni-222e2222"], Config).
 describe_network_interfaces(NetworkInterfacesIds, Config)
-    when is_list(NetworkInterfacesIds), is_record(Config, aws_config) ->
-       case ec2_query2(Config, "DescribeNetworkInterfaces", 
-                      erlcloud_aws:param_list(NetworkInterfacesIds, "NetworkInterfaceId"), ?NEW_API_VERSION) of
+    when is_record(Config, aws_config) ->
+        describe_network_interfaces_filtered(NetworkInterfacesIds, none, Config).
+
+-spec(describe_network_interfaces_filtered/3 :: (list(), filter_list() | node, aws_config()) -> [proplist()]).
+%%
+%% Example: describe_network_interfaces_filtered([], [{"subnet-id", ["subnet-e11e11e1"]}], Config)
+%%
+describe_network_interfaces_filtered(NetworkInterfacesIds, Filter, Config) 
+    when is_record(Config, aws_config) ->
+       Params = lists:append(erlcloud_aws:param_list(NetworkInterfacesIds, "NetworkInterfaceId") ,
+                              list_to_ec2_filter(Filter)),
+       case ec2_query2(Config, "DescribeNetworkInterfaces", Params, ?NEW_API_VERSION) of
           {ok, Doc} ->
               NetworkInterfaces = xmerl_xpath:string("/DescribeNetworkInterfacesResponse/networkInterfaceSet/item", Doc),
               {ok, [extract_network_interface(Item) || Item <- NetworkInterfaces]};
