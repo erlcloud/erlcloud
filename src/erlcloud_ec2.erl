@@ -1504,8 +1504,8 @@ extract_network_interface(Node) ->
      {private_ip_address, get_text("privateIpAddress", Node)},
      {source_dest_check, get_bool("sourceDestCheck", Node)},
      {groups_set, [extract_group(Item) || Item <- xmerl_xpath:string("groupSet/item", Node)]},
-     %% {attachment, extract_attachment(xmerl_xpath:string("attachment", Node))},
      {attachment, extract_attachment(Node)},
+     {association, extract_association(Node)},
      {tag_set, [extract_tag_item(Item) || Item <- xmerl_xpath:string("tagSet/item", Node)]},
      {private_ip_addresses_set, 
             [extract_private_ip_address(Item) || Item <- xmerl_xpath:string("privateIpAddressesSet/item", Node)]}
@@ -1529,6 +1529,16 @@ extract_private_ip_address(Node) ->
      {private_ip_address, get_text("privateIpAddress", Node)},
      {primary, get_bool("primary", Node)}
     ]. 
+
+-spec(extract_association/1 :: (Node::list()) -> proplist()).
+extract_association(Node) ->
+    [
+     {public_ip, get_text("association/publicIp", Node)},
+     {public_dns_name, get_text("association/publicDnsName", Node)},
+     {ip_owner_id, get_text("association/ipOwnerId", Node)},
+     {allocation_id, get_text("association/allocationId", Node)},
+     {association_id, get_text("association/associationId", Node)}
+    ].
 
 %%
 %%
