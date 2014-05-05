@@ -80,15 +80,15 @@ describe_trails(Config) when is_record(Config, aws_config) ->
 %% It appears that CloudTrail API doesn't honor TrailNameList parameter.
 %% TODO: Open a ticket with AWS.
 describe_trails(Trails) ->
-    Json = [{<<"TrailNameList">>, Trails}],
-    describe_trails(Json, default_config()).
+    describe_trails(Trails, default_config()).
 
 -spec(describe_trails/2 :: ([string()], aws_config()) -> proplist()).
 describe_trails([], Config) ->
     ct_request("DescribeTrails", [], Config);
 
 describe_trails(Trails, Config) ->
-    Json = [{<<"TrailNameList">>, jsx:encode(list_to_binary(Trails))}],
+    %% Json = [{<<"TrailNameList">>, jsx:encode(list_to_binary([Trails]))}],
+    Json = [{<<"TrailNameList">>, [list_to_binary(T) || T <- Trails]}],
     ct_request("DescribeTrails", Json, Config).
 
 -spec(get_trail_status/1 :: ([string()] ) -> proplist()).
@@ -154,7 +154,7 @@ ct_request(Operation, Body, Config = #aws_config{cloudtrail_host = Host, cloudtr
     request_impl(post, undefined, Host, Port, "/", Operation, [], jsx:encode(Body), Config)
 .
  
-request_impl(Method, Protocol, Host, Port, Path, Operation, Params, Body, #aws_config{} = Config) ->
+request_impl(Method, _Protocol, _Host, _Port, _Path, Operation, Params, Body, #aws_config{} = Config) ->
     %% TODO: Make api prefix a part of aws_config
     Api_Operation = lists:flatten(?CLOUD_TRAIL_API_PREFIX, Operation),
     Headers = headers(Config, Api_Operation, Params, Body, ?SERVICE_NAME),
@@ -176,7 +176,7 @@ request_impl(Method, Protocol, Host, Port, Path, Operation, Params, Body, #aws_c
     end.
 
 -spec headers(aws_config(), string(), proplist(), binary(), string()) -> headers().
-headers(Config, Operation, Params, Body, Service) ->
+headers(Config, Operation, _Params, Body, Service) ->
     Headers = [{"content-type", "application/x-amz-json-1.1"},
                {"host", Config#aws_config.cloudtrail_host},
                {"x-amz-target", Operation}
