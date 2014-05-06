@@ -46,17 +46,17 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 
 %%
 %%
--spec(create_topic/1 :: (string() | aws_config()) -> proplist()).
+-spec(create_topic/1 :: (string() | aws_config()) -> {ok, Arn::string()} | {error, Reason::term()}).
 create_topic(TopicName) ->
     create_topic(TopicName, default_config()).
 
--spec(create_topic/2 :: (string(), aws_config()) -> proplist()).
+-spec(create_topic/2 :: (string(), aws_config()) -> {ok, Arn::string()} | {error, Reason::term()}).
 create_topic(TopicName, Config) 
     when is_record(Config, aws_config) ->
         case sns_query(Config, "CreateTopic", [{"Name", TopicName}]) of
             {ok, Doc} ->
-                Items = xmerl_xpath:string("/CreateTopicResponse/CreateTopicResult", Doc),
-                [Topic] = [[{arn, get_text("TopicArn", Item)}] || Item <- Items],
+                Node = hd(xmerl_xpath:string("/CreateTopicResponse/CreateTopicResult", Doc)),
+                Topic = get_text("TopicArn", Node),
                 {ok, Topic};
             {error, _} = Error ->
                 Error
@@ -131,11 +131,11 @@ set_topic_attributes(AttributeName, AttributeValue, TopicArn, Config)
 %% Returns:
 %%  on success: {ok, [{arn, SubscriptionArn}]}
 
--spec(subscribe/3 :: (string(), sns_subscribe_protocol_type(), string()) -> proplist()).
+-spec(subscribe/3 :: (string(), sns_subscribe_protocol_type(), string()) -> {ok, Arn::string()} | {error, Reason::term()}).
 subscribe(Endpoint, Protocol, TopicArn) ->
     subscribe(Endpoint, Protocol, TopicArn, default_config()).
 
--spec(subscribe/4 :: (string(), sns_subscribe_protocol_type(), string(), aws_config()) -> proplist()).
+-spec(subscribe/4 :: (string(), sns_subscribe_protocol_type(), string(), aws_config()) -> {ok, Arn::string()} | {error, Reason::term()}).
 subscribe(Endpoint, Protocol, TopicArn, Config)
     when is_record(Config, aws_config) ->
          case sns_query(Config, "Subscribe", [
@@ -143,8 +143,8 @@ subscribe(Endpoint, Protocol, TopicArn, Config)
                 {"Protocol", atom_to_list(Protocol)},
                 {"TopicArn", TopicArn}]) of
             {ok, Doc} ->
-                Items = xmerl_xpath:string("/SubscribeResponse/SubscribeResult", Doc),
-                [Topic] = [[{arn, get_text("SubscriptionArn", Item)}] || Item <- Items],
+                Node= hd(xmerl_xpath:string("/SubscribeResponse/SubscribeResult", Doc)),
+                Topic = get_text("SubscriptionArn", Node),
                 {ok, Topic};
             {error, _} = Error ->
                 Error
