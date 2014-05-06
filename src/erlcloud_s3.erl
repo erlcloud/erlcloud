@@ -7,6 +7,7 @@
          get_bucket_attribute/2, get_bucket_attribute/3,
          list_buckets/0, list_buckets/1,
          set_bucket_attribute/3, set_bucket_attribute/4,
+         get_bucket_policy/1, get_bucket_policy/2,
          put_bucket_policy/2, put_bucket_policy/3,
          list_objects/1, list_objects/2, list_objects/3,
          list_object_versions/1, list_object_versions/2, list_object_versions/3,
@@ -236,6 +237,36 @@ list_buckets(Config) ->
     Doc = s3_xml_request(Config, get, "", "/", "", [], <<>>, []),
     Buckets = [extract_bucket(Node) || Node <- xmerl_xpath:string("/*/Buckets/Bucket", Doc)],
     [{buckets, Buckets}].
+
+%
+% @doc Get S3 bucket policy JSON object
+% API Document: http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGETacl.html
+%
+-spec(get_bucket_policy/1 :: (BucketName::string()) -> ok | {error, Reason::term()}).
+get_bucket_policy(BucketName) ->
+    get_bucket_policy(BucketName, default_config()).
+
+%
+% Example request: erlcloud_s3:get_bucket_policy("bucket1234", Config).
+% Example success repsonse: {ok, "{\"Version\":\"2012-10-17\",\"Statement\": ..........}
+% Example error response: {error,{http_error,404,"Not Found", 
+%                               "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n
+%                               <Error>
+%                                   <Code>NoSuchBucket</Code>
+%                                   <Message>The specified bucket does not exist</Message>
+%                                   <BucketName>bucket1234</BucketName>
+%                                   <RequestId>DC1EA9456B266EF5</RequestId>
+%                                   <HostId>DRtkAB80cAeom+4ffSGU3PFCxS7QvtiW+wxLnPF0dM2nxoaRqQk1SK/z62ZJVHAD</HostId>
+%                               </Error>"}}
+-spec(get_bucket_policy/2 :: (BucketName::string(), Config::aws_config()) -> {ok, Policy::string()} | {error, Reason::term()}).
+get_bucket_policy(BucketName, Config)
+    when is_record(Config, aws_config) ->
+        case s3_request2(Config, get, BucketName, "/", "policy", [], <<>>, []) of
+            {ok, {_Headers, Body}} ->
+                {ok, Body};
+            Error ->
+                Error
+        end.
 
 -spec put_bucket_policy(string(), binary()) -> ok.
 put_bucket_policy(BucketName, Policy) ->
@@ -612,7 +643,7 @@ make_link(Expire_time, BucketName, Key) ->
 
 make_link(Expire_time, BucketName, Key, Config) ->
     {Sig, Expires} = sign_get(Expire_time, BucketName, erlcloud_http:url_encode_loose(Key), Config),
-    Host = lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config)]),
+    Host = lists:flatten(["http://", BucketName, ".", Config#aws_config.s3_host, port_spec(Config)]),
     URI = lists:flatten(["/", Key, "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), "&Signature=", erlcloud_http:url_encode(Sig), "&Expires=", Expires]),
     {list_to_integer(Expires),
      binary_to_list(erlang:iolist_to_binary(Host)),
