@@ -7,6 +7,8 @@
 -include_lib("erlcloud/include/erlcloud_sns.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
+-export([configure/2, configure/3, new/2, new/3]).
+
 %% SNS API Functions
 -export([
     %% Users
@@ -19,6 +21,28 @@
 -import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
 
 -define(API_VERSION, "2010-03-31").
+
+-spec(new/2 :: (string(), string()) -> aws_config()).
+new(AccessKeyID, SecretAccessKey) ->
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey}.
+
+-spec(new/3 :: (string(), string(), string()) -> aws_config()).
+new(AccessKeyID, SecretAccessKey, Host) ->
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey,
+                ec2_host=Host}.
+
+-spec(configure/2 :: (string(), string()) -> ok).
+configure(AccessKeyID, SecretAccessKey) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey)),
+    ok.
+
+-spec(configure/3 :: (string(), string(), string()) -> ok).
+configure(AccessKeyID, SecretAccessKey, Host) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
+    ok.
+
 
 %%
 %%
@@ -54,8 +78,8 @@ set_topic_attributes(AttributeName, AttributeValue, TopicArn) ->
 -spec(set_topic_attributes/4 :: (sns_topic_attribute_name(), string(), string(), aws_config()) -> proplist()).
 set_topic_attributes(AttributeName, AttributeValue, TopicArn, Config)
     when is_record(Config, aws_config) ->
-        sns_query(Config, "SetTopicAttributes", [
-            {"AttributeName", atom_to_list(AttributeName)},
+        sns_simple_query(Config, "SetTopicAttributes", [
+            {"AttributeName", AttributeName},
             {"AttributeValue", AttributeValue},
             {"TopicArn", TopicArn}]).
 
