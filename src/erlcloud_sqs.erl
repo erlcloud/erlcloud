@@ -355,8 +355,9 @@ set_queue_attributes(QueueName, Attributes) ->
 -spec set_queue_attributes/3 :: (string(), [{visibility_timeout, integer()} | {policy, string()}], aws_config()) -> ok.
 set_queue_attributes(QueueName, Attributes, Config)
   when is_list(QueueName), is_list(Attributes) ->
-    Params = [[{"Name", encode_attribute_name(Name)}, {"Value", Value}] ||
-                 {Name, Value} <- Attributes],
+    Params = lists:flatten(erlcloud_aws:param_list([encode_attribute_name(Name) || {Name, _} <- Attributes], "Attribute.Name"),
+                          erlcloud_aws:param_list([Value || {_, Value} <- Attributes], "Attribute.Value")),
+
     sqs_simple_request(Config, QueueName, "SetQueueAttributes", Params).
 
 default_config() -> erlcloud_aws:default_config().
