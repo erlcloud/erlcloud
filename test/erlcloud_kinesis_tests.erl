@@ -61,17 +61,21 @@ stop(_) ->
 
 -type expected_body() :: string().
 
-sort_object([{_, _} | _] = V) ->
+sort_json([{_, _} | _] = Json) ->
     %% Value is an object
-    lists:keysort(1, V);
-sort_object(V) ->
+    SortedChildren = [{K, sort_json(V)} || {K,V} <- Json],
+    lists:keysort(1, SortedChildren);
+sort_json([_|_] = Json) ->
+    %% Value is an array
+    [sort_json(I) || I <- Json];
+sort_json(V) ->
     V.
 
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(Body, Expected) ->
-    Want = jsx:decode(list_to_binary(Expected), [{post_decode, fun sort_object/1}]),
-    Actual = jsx:decode(Body, [{post_decode, fun sort_object/1}]),
+    Want = sort_json(jsx:decode(list_to_binary(Expected))),
+    Actual = sort_json(jsx:decode(Body)),
     case Want =:= Actual of
         true -> ok;
         false ->
@@ -159,14 +163,14 @@ create_stream_input_tests(_) ->
             })
         ],
 
-    Response = "",
+    Response = "{}",
     input_tests(Response, Tests).
 
 create_stream_output_tests(_) ->
     Tests =
         [?_kinesis_test(
-            {"CreateStream example response", "",
-             {ok, jsx:decode(<<"">>)}})
+            {"CreateStream example response", "{}",
+             {ok, jsx:decode(<<"{}">>)}})
         ],
 
     output_tests(?_f(erlcloud_kinesis:create_stream(<<"streamName">>, 2)), Tests).
@@ -184,14 +188,14 @@ delete_stream_input_tests(_) ->
             })
         ],
 
-    Response = "",
+    Response = "{}",
     input_tests(Response, Tests).
 
 delete_stream_output_tests(_) ->
     Tests =
         [?_kinesis_test(
-            {"DeleteStream example response", "",
-             {ok, jsx:decode(<<"">>)}})
+            {"DeleteStream example response", "{}",
+             {ok, jsx:decode(<<"{}">>)}})
         ],
 
     output_tests(?_f(erlcloud_kinesis:delete_stream(<<"streamName">>)), Tests).
@@ -272,6 +276,7 @@ describe_stream_input_tests(_) ->
     \"StreamARN\": \"arn:aws:kinesis:us-east-1:821148768124:stream/test\",
     \"StreamName\": \"test\",
     \"StreamStatus\": \"ACTIVE\"
+}
 }",
     input_tests(Response, Tests).
 
@@ -503,14 +508,14 @@ merge_shards_input_tests(_) ->
             })
         ],
 
-    Response = "",
+    Response = "{}",
     input_tests(Response, Tests).
 
 merge_shards_output_tests(_) ->
     Tests =
         [?_kinesis_test(
-            {"MergeShards example response", "",
-             {ok, jsx:decode(<<"">>)}})
+            {"MergeShards example response", "{}",
+             {ok, jsx:decode(<<"{}">>)}})
         ],
 
     output_tests(?_f(erlcloud_kinesis:merge_shards(<<"test">>, <<"shardId-000000000001">>, <<"shardId-000000000003">>)), Tests).
@@ -530,14 +535,14 @@ split_shards_input_tests(_) ->
             })
         ],
 
-    Response = "",
+    Response = "{}",
     input_tests(Response, Tests).
 
 split_shards_output_tests(_) ->
     Tests =
         [?_kinesis_test(
-            {"SplitShard example response", "",
-             {ok, jsx:decode(<<"">>)}})
+            {"SplitShard example response", "{}",
+             {ok, jsx:decode(<<"{}">>)}})
         ],
 
     output_tests(?_f(erlcloud_kinesis:split_shards(<<"test">>, <<"shardId-000000000000">>, <<"10">>)), Tests).
