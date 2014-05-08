@@ -4,6 +4,7 @@
          aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
          aws_request2/7,
          aws_request_xml2/5, aws_request_xml2/7,
+         aws_request_form/8,
          param_list/2, default_config/0, update_config/1, format_timestamp/1,
          http_headers_body/1,
          sign_v4/5]).
@@ -84,6 +85,9 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
     
     Query = [QueryToSign, "&Signature=", erlcloud_http:url_encode(Signature)],
     
+    aws_request_form(Method, Protocol, Host, Port, Path, Query, [], Config).
+
+aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
     case Protocol of
         undefined -> UProtocol = "https://";
         _ -> UProtocol = [Protocol, "://"]
@@ -100,12 +104,13 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
     Response =
         case Method of
             get ->
-                Req = lists:flatten([URL, $?, Query]),
-                httpc:request(get, {Req, []}, [{timeout, Config#aws_config.timeout}], []);
+                Req = lists:flatten([URL, $?, Form]),
+                httpc:request(get, {Req, Headers}, [{timeout, Config#aws_config.timeout}], []);
             _ ->
                 httpc:request(Method,
-                              {lists:flatten(URL), [], "application/x-www-form-urlencoded; charset=utf-8",
-                               list_to_binary(Query)}, [{timeout, Config#aws_config.timeout}], [])
+                              {lists:flatten(URL), Headers, 
+                               "application/x-www-form-urlencoded; charset=utf-8",
+                               list_to_binary(Form)}, [{timeout, Config#aws_config.timeout}], [])
         end,
     
     http_body(Response).
