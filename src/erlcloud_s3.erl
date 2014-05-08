@@ -18,7 +18,7 @@
          get_object_metadata/2, get_object_metadata/3, get_object_metadata/4,
          put_object/3, put_object/4, put_object/5, put_object/6,
          set_object_acl/3, set_object_acl/4,
-         make_link/3, make_link/4,
+         make_link/3, get_object_url/2, make_link/4,
          make_get_url/3, make_get_url/4,
          start_multipart/2, start_multipart/5,
          upload_part/5, upload_part/7,
@@ -439,6 +439,7 @@ get_object_metadata(BucketName, Key, Options, Config) ->
                       Version   -> ["versionId=", Version]
                   end,
     {Headers, _Body} = s3_request(Config, head, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders),
+
     [{last_modified, proplists:get_value("last-modified", Headers)},
      {etag, proplists:get_value("etag", Headers)},
      {content_length, proplists:get_value("content-length", Headers)},
@@ -607,6 +608,12 @@ make_link(Expire_time, BucketName, Key, Config) ->
      binary_to_list(erlang:iolist_to_binary(Host)),
      binary_to_list(erlang:iolist_to_binary(URI))}.
 
+-spec get_object_url(string(), string()) -> string().
+
+ get_object_url(BucketName, Key) -> 
+  Config = default_config(),
+  lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]).
+   
 -spec make_get_url(integer(), string(), string()) -> iolist().
 
 make_get_url(Expire_time, BucketName, Key) ->
