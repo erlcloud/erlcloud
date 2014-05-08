@@ -18,7 +18,7 @@
          get_object_metadata/2, get_object_metadata/3, get_object_metadata/4,
          put_object/3, put_object/4, put_object/5, put_object/6,
          set_object_acl/3, set_object_acl/4,
-         make_link/3, get_object_url/2, make_link/4,
+         make_link/3, get_object_url/2, get_object_url/3, make_link/4,
          make_get_url/3, make_get_url/4,
          start_multipart/2, start_multipart/5,
          upload_part/5, upload_part/7,
@@ -612,6 +612,11 @@ make_link(Expire_time, BucketName, Key, Config) ->
 
  get_object_url(BucketName, Key) -> 
   Config = default_config(),
+  lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]).
+
+-spec get_object_url(string(), string(), aws_config()) -> string().
+
+ get_object_url(BucketName, Key, Config) -> 
   lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]).
    
 -spec make_get_url(integer(), string(), string()) -> iolist().
