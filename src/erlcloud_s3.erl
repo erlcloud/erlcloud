@@ -610,9 +610,7 @@ make_link(Expire_time, BucketName, Key, Config) ->
 
 -spec get_object_url(string(), string()) -> string().
 
- get_object_url(BucketName, Key) -> 
-  Config = default_config(),
-  lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]).
+ get_object_url(BucketName, Key) -> get_object_url(BucketName, Key, default_config()).
 
 -spec get_object_url(string(), string(), aws_config()) -> string().
 
