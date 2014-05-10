@@ -68,14 +68,15 @@ aws_request2(Method, Protocol, Host, Port, Path, Params, Config) ->
 
 aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     Timestamp = format_timestamp(erlang:universaltime()),
-    QParams = lists:sort([{"Timestamp", Timestamp},
+    QParams = lists:sort(lists:flatten(
+                         [{"Timestamp", Timestamp},
                           {"SignatureVersion", "2"},
                           {"SignatureMethod", "HmacSHA1"},
                           {"AWSAccessKeyId", Config#aws_config.access_key_id}|Params] ++
                              case Config#aws_config.security_token of
                                  undefined -> [];
                                  Token -> [{"SecurityToken", Token}]
-                             end),
+                             end)),
     
     QueryToSign = erlcloud_http:make_query_string(QParams),
     RequestToSign = [string:to_upper(atom_to_list(Method)), $\n,
