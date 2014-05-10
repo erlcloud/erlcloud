@@ -24,7 +24,8 @@
          upload_part/5, upload_part/7,
          complete_multipart/4, complete_multipart/6,
          abort_multipart/3, abort_multipart/6,
-         list_multipart_uploads/1, list_multipart_uploads/2
+         list_multipart_uploads/1, list_multipart_uploads/2,
+         get_object_url/2, get_object_url/3
         ]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
@@ -439,6 +440,7 @@ get_object_metadata(BucketName, Key, Options, Config) ->
                       Version   -> ["versionId=", Version]
                   end,
     {Headers, _Body} = s3_request(Config, head, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders),
+
     [{last_modified, proplists:get_value("last-modified", Headers)},
      {etag, proplists:get_value("etag", Headers)},
      {content_length, proplists:get_value("content-length", Headers)},
@@ -607,6 +609,16 @@ make_link(Expire_time, BucketName, Key, Config) ->
      binary_to_list(erlang:iolist_to_binary(Host)),
      binary_to_list(erlang:iolist_to_binary(URI))}.
 
+-spec get_object_url(string(), string()) -> string().
+
+ get_object_url(BucketName, Key) -> 
+  get_object_url(BucketName, Key, default_config()).
+
+-spec get_object_url(string(), string(), aws_config()) -> string().
+
+ get_object_url(BucketName, Key, Config) -> 
+  lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]).
+   
 -spec make_get_url(integer(), string(), string()) -> iolist().
 
 make_get_url(Expire_time, BucketName, Key) ->
