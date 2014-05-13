@@ -71,17 +71,21 @@ stop(_) ->
 
 -type expected_body() :: string().
 
-sort_object([{_, _} | _] = V) ->
+sort_json([{_, _} | _] = Json) ->
     %% Value is an object
-    lists:keysort(1, V);
-sort_object(V) ->
+    SortedChildren = [{K, sort_json(V)} || {K,V} <- Json],
+    lists:keysort(1, SortedChildren);
+sort_json([_|_] = Json) ->
+    %% Value is an array
+    [sort_json(I) || I <- Json];
+sort_json(V) ->
     V.
 
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(Body, Expected) ->
-    Want = jsx:decode(list_to_binary(Expected), [{post_decode, fun sort_object/1}]), 
-    Actual = jsx:decode(Body, [{post_decode, fun sort_object/1}]),
+    Want = sort_json(jsx:decode(list_to_binary(Expected))),
+    Actual = sort_json(jsx:decode(Body)),
     case Want =:= Actual of
         true -> ok;
         false ->
