@@ -28,6 +28,6 @@
           secret_access_key::string()|undefined|false,
           security_token=undefined::string()|undefined,
           timeout=10000::timeout(),
-          raw_result::boolean|false
+          cloudtrail_raw_result=false::boolean()
          }).
 -type(aws_config() :: #aws_config{}).
