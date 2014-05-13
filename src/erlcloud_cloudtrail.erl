@@ -24,17 +24,19 @@
 
 -type headers() :: [{string(), string()}].
 
+-type ct_return() :: {ok, proplist()} | {error, term()}.
+
 %%
 %% API
 %%
--spec(create_trail/3 :: (string(), string(), aws_config()) -> proplist()).
+-spec(create_trail/3 :: (string(), string(), aws_config()) -> ct_return()).
 create_trail(Trail, S3BucketName, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}, 
             {<<"S3BucketName">>, list_to_binary(S3BucketName)}
            ],
     ct_request("CreateTrail", Json, Config).
 
--spec(create_trail/4 :: (string(), string(), string(), aws_config()) -> proplist()).
+-spec(create_trail/4 :: (string(), string(), string(), aws_config()) -> ct_return()).
 create_trail(Trail, S3BucketName, SnsTopicName,  Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}, 
             {<<"S3BucketName">>, list_to_binary(S3BucketName)},
@@ -42,7 +44,7 @@ create_trail(Trail, S3BucketName, SnsTopicName,  Config) ->
            ],
     ct_request("CreateTrail", Json, Config).
 
--spec(create_trail/5 :: (string(), string(), string(), boolean(), aws_config()) -> proplist()).
+-spec(create_trail/5 :: (string(), string(), string(), boolean(), aws_config()) -> ct_return()).
 create_trail(Trail, S3BucketName, SnsTopicName, IncludeGlobalServiceEvents, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}, 
             {<<"S3BucketName">>, list_to_binary(S3BucketName)},
@@ -51,7 +53,7 @@ create_trail(Trail, S3BucketName, SnsTopicName, IncludeGlobalServiceEvents, Conf
            ],
     ct_request("CreateTrail", Json, Config).
 
--spec(create_trail/6 :: (string(), string(), string(), string(), boolean(), aws_config()) -> proplist()).
+-spec(create_trail/6 :: (string(), string(), string(), string(), boolean(), aws_config()) -> ct_return()).
 create_trail(Trail, S3BucketName, S3KeyPrefix, SnsTopicName, IncludeGlobalServiceEvents, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}, 
             {<<"S3BucketName">>, list_to_binary(S3BucketName)},
@@ -61,19 +63,19 @@ create_trail(Trail, S3BucketName, S3KeyPrefix, SnsTopicName, IncludeGlobalServic
            ],
     ct_request("CreateTrail", Json, Config).
 
--spec(delete_trail/1 :: ([string()] ) -> proplist()).
+-spec(delete_trail/1 :: ([string()] ) -> ct_return()).
 delete_trail(Trail) ->
     delete_trail(Trail, default_config()).
 
--spec(delete_trail/2 :: ([string()], aws_config()) -> proplist()).
+-spec(delete_trail/2 :: ([string()], aws_config()) -> ct_return()).
 delete_trail(Trail, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}],
     ct_request("DeleteTrail", Json, Config).
 
--spec(describe_trails/0 :: () -> proplist()).
+-spec(describe_trails/0 :: () -> ct_return()).
 describe_trails() -> describe_trails([]).
 
--spec(describe_trails/1 :: ([string()] | aws_config()) -> proplist()).
+-spec(describe_trails/1 :: ([string()] | aws_config()) -> ct_return()).
 describe_trails(Config) when is_record(Config, aws_config) ->
     describe_trails([], Config);
 
@@ -82,7 +84,7 @@ describe_trails(Config) when is_record(Config, aws_config) ->
 describe_trails(Trails) ->
     describe_trails(Trails, default_config()).
 
--spec(describe_trails/2 :: ([string()], aws_config()) -> proplist()).
+-spec(describe_trails/2 :: ([string()], aws_config()) -> ct_return()).
 describe_trails([], Config) ->
     ct_request("DescribeTrails", [], Config);
 
@@ -91,42 +93,42 @@ describe_trails(Trails, Config) ->
     Json = [{<<"TrailNameList">>, [list_to_binary(T) || T <- Trails]}],
     ct_request("DescribeTrails", Json, Config).
 
--spec(get_trail_status/1 :: ([string()] ) -> proplist()).
+-spec(get_trail_status/1 :: ([string()] ) -> ct_return()).
 get_trail_status(Trail) ->
     get_trail_status(Trail, default_config()).
 
--spec(get_trail_status/2 :: ([string()], aws_config()) -> proplist()).
+-spec(get_trail_status/2 :: ([string()], aws_config()) -> ct_return()).
 get_trail_status(Trail, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}],
     ct_request("GetTrailStatus", Json, Config).
 
--spec(start_logging/1 :: ([string()] ) -> proplist()).
+-spec(start_logging/1 :: ([string()] ) -> ct_return()).
 start_logging(Trail) ->
     start_logging(Trail, default_config()).
 
--spec(start_logging/2 :: ([string()], aws_config()) -> proplist()).
+-spec(start_logging/2 :: ([string()], aws_config()) -> ct_return()).
 start_logging(Trail, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}],
     ct_request("StartLogging", Json, Config).
 
--spec(stop_logging/1 :: ([string()] ) -> proplist()).
+-spec(stop_logging/1 :: ([string()] ) -> ct_return()).
 stop_logging(Trail) ->
     stop_logging(Trail, default_config()).
 
--spec(stop_logging/2 :: ([string()], aws_config()) -> proplist()).
+-spec(stop_logging/2 :: ([string()], aws_config()) -> ct_return()).
 stop_logging(Trail, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}],
     ct_request("StopLogging", Json, Config).
 
--spec(update_trail/4 :: (string(), string(), boolean(), aws_config()) -> proplist()).
-update_trail(Trail,S3BucketName, SnsTopicName, Config) ->
+-spec(update_trail/4 :: (string(), string(), string(), aws_config()) -> ct_return()).
+update_trail(Trail, S3BucketName, SnsTopicName, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}, 
             {<<"S3BucketName">>, list_to_binary(S3BucketName)},
             {<<"SnsTopicName">>, list_to_binary(SnsTopicName)}
            ],
     ct_request("UpdateTrail", Json, Config).
 
--spec(update_trail/5 :: (string(), string(), string(), boolean(), aws_config()) -> proplist()).
+-spec(update_trail/5 :: (string(), string(), string(), boolean(), aws_config()) -> ct_return()).
 update_trail(Trail, S3BucketName, SnsTopicName, IncludeGlobalServiceEvents, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}, 
             {<<"S3BucketName">>, list_to_binary(S3BucketName)},
@@ -136,7 +138,7 @@ update_trail(Trail, S3BucketName, SnsTopicName, IncludeGlobalServiceEvents, Conf
     ct_request("UpdateTrail", Json, Config).
 
 
--spec(update_trail/6 :: (string(), string(), string(), string(), boolean(), aws_config()) -> proplist()).
+-spec(update_trail/6 :: (string(), string(), string(), string(), boolean(), aws_config()) -> ct_return()).
 update_trail(Trail, S3BucketName, S3KeyPrefix, SnsTopicName, IncludeGlobalServiceEvents, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}, 
             {<<"S3BucketName">>, list_to_binary(S3BucketName)},
@@ -165,12 +167,10 @@ request_impl(Method, _Protocol, _Host, _Port, _Path, Operation, Params, Body, #a
                             [{body_format, binary}])) of
         {ok, {_RespHeader, RespBody}} ->
             %% {ok, {{_, 200, _}, _, RespBody}} ->
-            case Config#aws_config.raw_result of
+            case Config#aws_config.cloudtrail_raw_result of
                 true -> {ok, RespBody};
                 _ -> {ok, jsx:decode(RespBody)}
             end;
-        {error, {http_error, Status, _StatusLine, RespBody}} ->
-            {error, Status, RespBody};
         {error, Reason} ->
             {error, Reason}
     end.

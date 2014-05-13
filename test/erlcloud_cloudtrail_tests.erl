@@ -55,17 +55,21 @@ stop(_) ->
 
 -type expected_body() :: string().
 
-sort_object([{_, _} | _] = V) ->
+sort_json([{_, _} | _] = Json) ->
     %% Value is an object
-    lists:keysort(1, V);
-sort_object(V) ->
+    SortedChildren = [{K, sort_json(V)} || {K,V} <- Json],
+    lists:keysort(1, SortedChildren);
+sort_json([_|_] = Json) ->
+    %% Value is an array
+    [sort_json(I) || I <- Json];
+sort_json(V) ->
     V.
 
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(Body, Expected) ->
-    Want = jsx:decode(list_to_binary(Expected), [{post_decode, fun sort_object/1}]),
-    Actual = jsx:decode(Body, [{post_decode, fun sort_object/1}]),
+    Want = sort_json(jsx:decode(list_to_binary(Expected))),
+    Actual = sort_json(jsx:decode(Body)),
     case Want =:= Actual of
         true -> ok;
         false ->
@@ -128,7 +132,7 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
               AwsConfig = #aws_config{
                     access_key_id=string:copies("A", 20),
                     secret_access_key=string:copies("a", 40),
-                    raw_result = false
+                    cloudtrail_raw_result = false
               },
               put(aws_config, AwsConfig),
 
@@ -167,7 +171,7 @@ create_trail_input_tests(_) ->
             })
         ],
 
-    Response = "",
+    Response = "{}",
 
     input_tests(Response, Tests).
 
@@ -200,12 +204,12 @@ delete_trail_input_tests(_) ->
 }"
             })
         ],
-    Response = "",
+    Response = "{}",
 
     input_tests(Response, Tests).
 
 delete_trail_output_tests(_) ->
-    Response = <<>>,
+    Response = <<"{}">>,
     Tests = 
         [?_cloudtrail_test(
             {"DeleteTrail example response", Response,
@@ -226,12 +230,12 @@ start_logging_input_tests(_) ->
 }"
             })
         ],
-    Response = "",
+    Response = "{}",
 
     input_tests(Response, Tests).
 
 start_logging_output_tests(_) ->
-    Response = <<>>,
+    Response = <<"{}">>,
     Tests = 
         [?_cloudtrail_test(
             {"StartLogging example response", Response,
@@ -252,12 +256,12 @@ stop_logging_input_tests(_) ->
 }"
             })
         ],
-    Response = "",
+    Response = "{}",
 
     input_tests(Response, Tests).
 
 stop_logging_output_tests(_) ->
-    Response = <<>>,
+    Response = <<"{}">>,
     Tests = 
         [?_cloudtrail_test(
             {"StopLogging example response", Response,
@@ -278,7 +282,7 @@ describe_trails_input_tests(_) ->
 }"
             })
         ],
-    Response = "",
+    Response = "{}",
 
     input_tests(Response, Tests).
 
@@ -313,7 +317,7 @@ get_trail_status_input_tests(_) ->
 }"
             })
         ],
-    Response = "",
+    Response = "{}",
 
     input_tests(Response, Tests).
 
@@ -352,7 +356,7 @@ update_trail_input_tests(_) ->
             })
         ],
 
-    Response = "",
+    Response = "{}",
 
     input_tests(Response, Tests).
 
