@@ -200,10 +200,10 @@ get_endpoint_attributes(EndpointArn, AccessKeyID, SecretAccessKey) ->
 
 
 
--spec list_endpoints_by_platform_application/1 :: (string()) -> [{endpoints, [sns_endpoint()]}].
--spec list_endpoints_by_platform_application/2 :: (string(), undefined|string()) -> [{endpoints, [sns_endpoint()]}].
--spec list_endpoints_by_platform_application/3 :: (string(), undefined|string(), aws_config()) -> [{endpoints, [sns_endpoint()]}].
--spec list_endpoints_by_platform_application/4 :: (string(), undefined|string(), string(), string()) -> [{endpoints, [sns_endpoint()]}].
+-spec list_endpoints_by_platform_application/1 :: (string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
+-spec list_endpoints_by_platform_application/2 :: (string(), undefined|string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
+-spec list_endpoints_by_platform_application/3 :: (string(), undefined|string(), aws_config()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
+-spec list_endpoints_by_platform_application/4 :: (string(), undefined|string(), string(), string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
 
 list_endpoints_by_platform_application(PlatformApplicationArn) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, undefined).
