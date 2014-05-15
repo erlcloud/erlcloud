@@ -69,14 +69,15 @@ aws_request2(Method, Protocol, Host, Port, Path, Params, Config) ->
 
 aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     Timestamp = format_timestamp(erlang:universaltime()),
-    QParams = lists:sort([{"Timestamp", Timestamp},
-                          {"SignatureVersion", "2"},
-                          {"SignatureMethod", "HmacSHA1"},
-                          {"AWSAccessKeyId", Config#aws_config.access_key_id}|Params] ++
-                             case Config#aws_config.security_token of
-                                 undefined -> [];
-                                 Token -> [{"SecurityToken", Token}]
-                             end),
+    QParams = lists:sort(
+                [{"Timestamp", Timestamp},
+                 {"SignatureVersion", "2"},
+                 {"SignatureMethod", "HmacSHA1"},
+                 {"AWSAccessKeyId", Config#aws_config.access_key_id}|Params] ++
+                    case Config#aws_config.security_token of
+                        undefined -> [];
+                        Token -> [{"SecurityToken", Token}]
+                    end),
     
     QueryToSign = erlcloud_http:make_query_string(QParams),
     RequestToSign = [string:to_upper(atom_to_list(Method)), $\n,
@@ -223,7 +224,8 @@ port_to_str(Port) when is_integer(Port) ->
 port_to_str(Port) when is_list(Port) ->
     Port.
 
--spec http_body({ok, tuple()} | {error, term()}) -> {ok, string()} | {error, tuple()}.
+-spec http_body({ok, tuple()} | {error, term()}) 
+               -> {ok, string() | binary()} | {error, tuple()}.
 %% Extract the body and do error handling on the return of a httpc:request call.
 http_body(Return) ->
     case http_headers_body(Return) of
@@ -234,7 +236,8 @@ http_body(Return) ->
     end.
 
 -type headers() :: [{string(), string()}].
--spec http_headers_body({ok, tuple()} | {error, term()}) -> {ok, {headers(), string()}} | {error, tuple()}.
+-spec http_headers_body({ok, tuple()} | {error, term()}) 
+                       -> {ok, {headers(), string() | binary()}} | {error, tuple()}.
 %% Extract the headers and body and do error handling on the return of a httpc:request call.
 http_headers_body({ok, {{_HTTPVer, OKStatus, _StatusLine}, Headers, Body}}) 
   when OKStatus >= 200, OKStatus =< 299 ->
