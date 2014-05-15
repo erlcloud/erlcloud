@@ -200,10 +200,10 @@ get_endpoint_attributes(EndpointArn, AccessKeyID, SecretAccessKey) ->
 
 
 
--spec list_endpoints_by_platform_application/1 :: (string()) -> [sns_endpoint()].
--spec list_endpoints_by_platform_application/2 :: (string(), undefined|string()) -> [sns_endpoint()].
--spec list_endpoints_by_platform_application/3 :: (string(), undefined|string(), aws_config()) -> [sns_endpoint()].
--spec list_endpoints_by_platform_application/4 :: (string(), undefined|string(), string(), string()) -> [sns_endpoint()].
+-spec list_endpoints_by_platform_application/1 :: (string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
+-spec list_endpoints_by_platform_application/2 :: (string(), undefined|string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
+-spec list_endpoints_by_platform_application/3 :: (string(), undefined|string(), aws_config()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
+-spec list_endpoints_by_platform_application/4 :: (string(), undefined|string(), string(), string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
 
 list_endpoints_by_platform_application(PlatformApplicationArn) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, undefined).
@@ -220,9 +220,10 @@ list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, Config
         erlcloud_xml:decode(
             [{endpoints, "ListEndpointsByPlatformApplicationResult/Endpoints/member",
                 fun extract_endpoint/1
-             }],
+             },
+             {next_token, "ListEndpointsByPlatformApplicationResult/NextToken", text}],
             Doc),
-    proplists:get_value(endpoints, Decoded, []).
+    Decoded.
 list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, AccessKeyID, SecretAccessKey) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, new_config(AccessKeyID, SecretAccessKey)).
 
