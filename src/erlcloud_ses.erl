@@ -61,6 +61,41 @@ send_email(Destination, Body, Subject, Source, #aws_config{} = Config) ->
 send_email(Destination, Body, Subject, Source, Opts) ->
     send_email(Destination, Body, Subject, Source, Opts, default_config()).
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% SES API:
+%% [http://docs.aws.amazon.com/ses/2010-12-01/APIReference/API_SendEmail.html]
+%%
+%% ===Example===
+%%
+%% Simple email send.
+%%
+%% `
+%% {ok, _} =
+%%     erlcloud_ses:send_email(<<"a@to.com">>, <<"Email Body">>, <<"Subject">>,
+%%                             <<"b@from.com">>, []),
+%% '
+%%
+%% All supported inputs.
+%%
+%% `
+%%  {ok, _} =
+%% erlcloud_ses:send_email([{bcc_addresses, [<<"a@bcc.com">>, "b@bcc.com"]},
+%%                          {cc_addresses, [<<"c@cc.com">>]},
+%%                          {to_addresses, ["d@to.com"]}],
+%%                         [{html, [{charset, "html charset"},
+%%                                  {data, "html data"}]},
+%%                          {text, [{charset, "text charset"},
+%%                                  {data, "text data"}]}],
+%%                         [{charset, "subject charset"},
+%%                          {data, "subject data"}],
+%%                         "e@from.com",
+%%                         [{reply_to_addresses, [<<"f@reply.com">>, "g@reply.com"]},
+%%                          {return_path, "return path"}]),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+
 send_email(Destination, Body, Subject, Source, Opts, Config) ->
     Params1 = encode_destination(Destination, []),
     Params2 = encode_body(Body, Params1),
