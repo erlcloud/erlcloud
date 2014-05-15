@@ -10,7 +10,10 @@ CHECK_FILES=\
 	ebin/erlcloud_ddb2.beam \
 	ebin/erlcloud_ddb_impl.beam \
 	ebin/erlcloud_ddb_util.beam \
-	ebin/erlcloud_aws.beam
+	ebin/erlcloud_aws.beam \
+    ebin/erlcloud_sts.beam \
+	ebin/erlcloud_cloudtrail.beam \
+	ebin/erlcloud_sns.beam
 
 # Checks on the eunit files can help find bad specs and other issues,
 # however there are some expected errors in some of the exception
