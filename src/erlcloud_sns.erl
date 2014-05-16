@@ -374,8 +374,8 @@ get_notification_attribute(Attribute, Notification) ->
 
 
 
--spec(set_topic_attributes/3 :: (sns_topic_attribute_name(), string(), string()) -> proplist()).
--spec(set_topic_attributes/4 :: (sns_topic_attribute_name(), string(), string(), aws_config()) -> proplist()).
+-spec(set_topic_attributes/3 :: (sns_topic_attribute_name(), string(), string()) -> ok).
+-spec(set_topic_attributes/4 :: (sns_topic_attribute_name(), string(), string(), aws_config()) -> ok).
 
 set_topic_attributes(AttributeName, AttributeValue, TopicArn) ->
     set_topic_attributes(AttributeName, AttributeValue, TopicArn, default_config()).
@@ -388,8 +388,8 @@ set_topic_attributes(AttributeName, AttributeValue, TopicArn, Config)
             {"TopicArn", TopicArn}]).
 
 
--spec(subscribe/3 :: (string(), sns_subscribe_protocol_type(), string()) -> {ok, Arn::string()} | {error, Reason::term()}).
--spec(subscribe/4 :: (string(), sns_subscribe_protocol_type(), string(), aws_config()) -> {ok, Arn::string()} | {error, Reason::term()}).
+-spec(subscribe/3 :: (string(), sns_subscribe_protocol_type(), string()) -> Arn::string()).
+-spec(subscribe/4 :: (string(), sns_subscribe_protocol_type(), string(), aws_config()) -> Arn::string()).
 
 subscribe(Endpoint, Protocol, TopicArn) ->
     subscribe(Endpoint, Protocol, TopicArn, default_config()).
