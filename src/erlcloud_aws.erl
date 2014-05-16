@@ -101,11 +101,13 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
         case Method of
             get ->
                 Req = lists:flatten([URL, $?, Query]),
-                httpc:request(get, {Req, []}, [{timeout, Config#aws_config.timeout}], []);
+                erlcloud_httpc:request(
+                  Req, get, [], <<>>, Config#aws_config.timeout, Config);
             _ ->
-                httpc:request(Method,
-                              {lists:flatten(URL), [], "application/x-www-form-urlencoded; charset=utf-8",
-                               list_to_binary(Query)}, [{timeout, Config#aws_config.timeout}], [])
+                erlcloud_httpc:request(
+                  lists:flatten(URL), Method, 
+                  [<<"content-type">>, <<"application/x-www-form-urlencoded; charset=utf-8">>],
+                  list_to_binary(Query), Config#aws_config.timeout, Config)
         end,
     
     http_body(Response).
@@ -157,7 +159,7 @@ update_config(#aws_config{access_key_id = KeyId} = Config)
     {ok, Config};
 update_config(#aws_config{} = Config) ->
     %% AccessKey is not set. Try to read from role metadata.
-    case get_metadata_credentials() of
+    case get_metadata_credentials(Config) of
         {error, Reason} ->
             {error, Reason};
         {ok, Credentials} ->
@@ -167,37 +169,43 @@ update_config(#aws_config{} = Config) ->
                    security_token = Credentials#metadata_credentials.security_token}}
     end.
 
--spec get_metadata_credentials() -> {ok, #metadata_credentials{}} | {error, term()}.
-get_metadata_credentials() ->
+-spec get_metadata_credentials(aws_config()) -> {ok, #metadata_credentials{}} | {error, term()}.
+get_metadata_credentials(Config) ->
     %% See if we have cached credentials
     case application:get_env(erlcloud, metadata_credentials) of
         {ok, #metadata_credentials{expiration_gregorian_seconds = Expiration} = Credentials} ->
             Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
             %% Get new credentials if these will expire in less than 5 minutes
             case Expiration - Now < 300 of
-                true -> get_credentials_from_metadata();
+                true -> get_credentials_from_metadata(Config);
                 false -> {ok, Credentials}
             end;
         undefined ->
-            get_credentials_from_metadata()
+            get_credentials_from_metadata(Config)
     end.
 
 timestamp_to_gregorian_seconds(Timestamp) ->
     {ok, [Yr, Mo, Da, H, M, S], []} = io_lib:fread("~d-~d-~dT~d:~d:~dZ", binary_to_list(Timestamp)),
     calendar:datetime_to_gregorian_seconds({{Yr, Mo, Da}, {H, M, S}}).
     
--spec get_credentials_from_metadata() -> {ok, #metadata_credentials{}} | {error, term()}.
-get_credentials_from_metadata() ->
+-spec get_credentials_from_metadata(aws_config()) 
+                                   -> {ok, #metadata_credentials{}} | {error, term()}.
+get_credentials_from_metadata(Config) ->
     %% TODO this function should retry on errors getting credentials
     %% First get the list of roles
-    case http_body(httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/")) of
+    case http_body(
+           erlcloud_httpc:request(
+             "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
+             get, [], <<>>, Config#aws_config.timeout, Config)) of
         {error, Reason} ->
             {error, Reason};
         {ok, Body} ->
             %% Always use the first role
             Role = string:sub_word(Body, 1, $\n),
-            case http_body(httpc:request(
-                             "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ Role)) of
+            case http_body(
+                   erlcloud_httpc:request(
+                     "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ Role,
+                     get, [], <<>>, Config#aws_config.timeout, Config)) of
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
@@ -231,10 +239,10 @@ http_body(Return) ->
 -type headers() :: [{string(), string()}].
 -spec http_headers_body({ok, tuple()} | {error, term()}) -> {ok, {headers(), string()}} | {error, tuple()}.
 %% Extract the headers and body and do error handling on the return of a httpc:request call.
-http_headers_body({ok, {{_HTTPVer, OKStatus, _StatusLine}, Headers, Body}}) 
+http_headers_body({ok, {{OKStatus, _StatusLine}, Headers, Body}}) 
   when OKStatus >= 200, OKStatus =< 299 ->
     {ok, {Headers, Body}};
-http_headers_body({ok, {{_HTTPVer, Status, StatusLine}, _Headers, Body}}) ->
+http_headers_body({ok, {{Status, StatusLine}, _Headers, Body}}) ->
     {error, {http_error, Status, StatusLine, Body}};
 http_headers_body({error, Reason}) ->
     {error, {socket_error, Reason}}.
