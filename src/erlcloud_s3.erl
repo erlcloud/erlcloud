@@ -883,7 +883,8 @@ s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Heade
 s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
     {ContentMD5, ContentType, Body} =
         case POSTData of
-            {PD, CT} -> {base64:encode(erlcloud_util:md5(PD)), CT, PD}; PD -> {"", "", PD}
+            {PD, CT} -> {base64:encode(erlcloud_util:md5(PD)), CT, PD}; 
+            PD -> {"", "", PD}
         end,
     Headers = case Config#aws_config.security_token of
                   undefined -> Headers0;
@@ -914,10 +915,15 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
                                ]),
 
     Response = case Method of
-                   get -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
-                   head -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
-                   delete -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
-                   _ -> httpc:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, [], [])
+                   M when M =:= get orelse M =:= head orelse M =:= delete ->
+                       erlcloud_httpc:request(
+                         RequestURI, Method, RequestHeaders, <<>>, 
+                         Config#aws_config.timeout, Config);
+                   _ ->
+                       erlcloud_httpc:request(
+                         RequestURI, Method, 
+                         [{"content-type", ContentType} | RequestHeaders], Body,
+                         Config#aws_config.timeout, Config)
                end,
     erlcloud_aws:http_headers_body(Response).
 
