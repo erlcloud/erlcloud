@@ -198,8 +198,8 @@ delete_endpoint(EndpointArn, AccessKeyID, SecretAccessKey) ->
 
 
 
--spec(delete_topic/1 :: (string()) -> proplist()).
--spec(delete_topic/2 :: (string(), aws_config()) -> proplist()).
+-spec delete_topic/1 :: (string()) -> ok.
+-spec delete_topic/2 :: (string(), aws_config()) -> ok.
 
 delete_topic(TopicArn) ->
     delete_topic(TopicArn, default_config()).
