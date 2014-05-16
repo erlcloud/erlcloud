@@ -138,7 +138,7 @@ create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attribut
     create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, new_config(AccessKeyID, SecretAccessKey)).
 
 
--spec(create_topic/1 :: (string() | aws_config()) -> Arn::string()).
+-spec(create_topic/1 :: (string()) -> Arn::string()).
 -spec(create_topic/2 :: (string(), aws_config()) -> Arn::string()).
 
 create_topic(TopicName) ->
@@ -198,7 +198,7 @@ delete_endpoint(EndpointArn, AccessKeyID, SecretAccessKey) ->
 
 
 
--spec(delete_topic/1 :: (string() | aws_config()) -> proplist()).
+-spec(delete_topic/1 :: (string()) -> proplist()).
 -spec(delete_topic/2 :: (string(), aws_config()) -> proplist()).
 
 delete_topic(TopicArn) ->
