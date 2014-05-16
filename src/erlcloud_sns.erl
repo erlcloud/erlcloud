@@ -413,7 +413,7 @@ sns_xml_request(Config, Action, Params) ->
             Config) of
         {ok, XML} -> XML;
         {error, {http_error, 400, _BadRequest, Body}} ->
-            XML = element(1, xmerl_scan:string(Body)),
+            XML = element(1, xmerl_scan:string(binary_to_list(Body))),
             ErrCode = erlcloud_xml:get_text("Error/Code", XML),
             ErrMsg = erlcloud_xml:get_text("Error/Message", XML),
             erlang:error({sns_error, ErrCode, ErrMsg});
@@ -428,7 +428,7 @@ sns_request(Config, Action, Params) ->
             Config) of
         {ok, _Response} -> ok;
         {error, {http_error, 400, _BadRequest, Body}} ->
-            XML = element(1, xmerl_scan:string(Body)),
+            XML = element(1, xmerl_scan:string(binary_to_list(Body))),
             ErrCode = erlcloud_xml:get_text("Error/Code", XML),
             ErrMsg = erlcloud_xml:get_text("Error/Message", XML),
             erlang:error({sns_error, ErrCode, ErrMsg});

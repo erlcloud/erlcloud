@@ -264,7 +264,7 @@ get_bucket_policy(BucketName, Config)
     when is_record(Config, aws_config) ->
         case s3_request2(Config, get, BucketName, "/", "policy", [], <<>>, []) of
             {ok, {_Headers, Body}} ->
-                {ok, Body};
+                {ok, binary_to_list(Body)};
             Error ->
                 Error
         end.
@@ -426,7 +426,7 @@ get_object(BucketName, Key, Options, Config) ->
      {content_type, proplists:get_value("content-type", Headers)},
      {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
      {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
-     {content, list_to_binary(Body)}|
+     {content, Body}|
      extract_metadata(Headers)].
 
 -spec get_object_acl(string(), string()) -> proplist().
@@ -504,7 +504,7 @@ get_object_torrent(BucketName, Key, Config) ->
     {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], "torrent", [], <<>>, []),
     [{delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
      {version_id, proplists:get_value("x-amz-delete-marker", Headers, "false")},
-     {torrent, list_to_binary(Body)}].
+     {torrent, Body}].
 
 -spec list_object_versions(string()) -> proplist().
 
@@ -877,7 +877,7 @@ s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Hea
     case s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
         {_Headers, ""} -> ok;
         {_Headers, Body} ->
-            XML = element(1,xmerl_scan:string(Body)),
+            XML = element(1,xmerl_scan:string(binary_to_list(Body))),
             case XML of
                 #xmlElement{name='Error'} ->
                     ErrCode = erlcloud_xml:get_text("/Error/Code", XML),
@@ -890,7 +890,7 @@ s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Hea
 
 s3_xml_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     {_Headers, Body} = s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers),
-    XML = element(1,xmerl_scan:string(Body)),
+    XML = element(1,xmerl_scan:string(binary_to_list(Body))),
     case XML of
         #xmlElement{name='Error'} ->
             ErrCode = erlcloud_xml:get_text("/Error/Code", XML),
@@ -921,7 +921,7 @@ s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) 
 s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
         {ok, {_Headers, Body}} ->
-            XML = element(1,xmerl_scan:string(Body)),
+            XML = element(1,xmerl_scan:string(binary_to_list(Body))),
             case XML of
                 #xmlElement{name='Error'} ->
                     ErrCode = erlcloud_xml:get_text("/Error/Code", XML),

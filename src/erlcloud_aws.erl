@@ -21,23 +21,23 @@
 
 aws_request_xml(Method, Host, Path, Params, #aws_config{} = Config) ->
     Body = aws_request(Method, Host, Path, Params, Config),
-    element(1, xmerl_scan:string(Body)).
+    element(1, xmerl_scan:string(binary_to_list(Body))).
 aws_request_xml(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey),
-    element(1, xmerl_scan:string(Body)).
+    element(1, xmerl_scan:string(binary_to_list(Body))).
 aws_request_xml(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     Body = aws_request(Method, Protocol, Host, Port, Path, Params, Config),
-    element(1, xmerl_scan:string(Body)).
+    element(1, xmerl_scan:string(binary_to_list(Body))).
 aws_request_xml(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey),
-    element(1, xmerl_scan:string(Body)).
+    element(1, xmerl_scan:string(binary_to_list(Body))).
 
 aws_request_xml2(Method, Host, Path, Params, #aws_config{} = Config) ->
     aws_request_xml2(Method, undefined, Host, undefined, Path, Params, Config).
 aws_request_xml2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     case aws_request2(Method, Protocol, Host, Port, Path, Params, Config) of
         {ok, Body} ->
-            {ok, element(1, xmerl_scan:string(Body))};
+            {ok, element(1, xmerl_scan:string(binary_to_list(Body)))};
         {error, Reason} ->
             {error, Reason}
     end.
@@ -206,7 +206,7 @@ get_credentials_from_metadata(Config) ->
             {error, Reason};
         {ok, Body} ->
             %% Always use the first role
-            Role = string:sub_word(Body, 1, $\n),
+            [Role, _] = binary:split(Body, <<$\n>>),
             case http_body(
                    erlcloud_httpc:request(
                      "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ Role,
