@@ -7,6 +7,8 @@
          get_bucket_attribute/2, get_bucket_attribute/3,
          list_buckets/0, list_buckets/1,
          set_bucket_attribute/3, set_bucket_attribute/4,
+         get_bucket_policy/1, get_bucket_policy/2,
+         put_bucket_policy/2, put_bucket_policy/3,
          list_objects/1, list_objects/2, list_objects/3,
          list_object_versions/1, list_object_versions/2, list_object_versions/3,
          copy_object/4, copy_object/5, copy_object/6,
@@ -24,7 +26,8 @@
          upload_part/5, upload_part/7,
          complete_multipart/4, complete_multipart/6,
          abort_multipart/3, abort_multipart/6,
-         list_multipart_uploads/1, list_multipart_uploads/2
+         list_multipart_uploads/1, list_multipart_uploads/2,
+         get_object_url/2, get_object_url/3
         ]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
@@ -236,6 +239,46 @@ list_buckets(Config) ->
     Buckets = [extract_bucket(Node) || Node <- xmerl_xpath:string("/*/Buckets/Bucket", Doc)],
     [{buckets, Buckets}].
 
+%
+% @doc Get S3 bucket policy JSON object
+% API Document: http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGETacl.html
+%
+-spec(get_bucket_policy/1 :: (BucketName::string()) -> ok | {error, Reason::term()}).
+get_bucket_policy(BucketName) ->
+    get_bucket_policy(BucketName, default_config()).
+
+%
+% Example request: erlcloud_s3:get_bucket_policy("bucket1234", Config).
+% Example success repsonse: {ok, "{\"Version\":\"2012-10-17\",\"Statement\": ..........}
+% Example error response: {error,{http_error,404,"Not Found", 
+%                               "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n
+%                               <Error>
+%                                   <Code>NoSuchBucket</Code>
+%                                   <Message>The specified bucket does not exist</Message>
+%                                   <BucketName>bucket1234</BucketName>
+%                                   <RequestId>DC1EA9456B266EF5</RequestId>
+%                                   <HostId>DRtkAB80cAeom+4ffSGU3PFCxS7QvtiW+wxLnPF0dM2nxoaRqQk1SK/z62ZJVHAD</HostId>
+%                               </Error>"}}
+-spec(get_bucket_policy/2 :: (BucketName::string(), Config::aws_config()) -> {ok, Policy::string()} | {error, Reason::term()}).
+get_bucket_policy(BucketName, Config)
+    when is_record(Config, aws_config) ->
+        case s3_request2(Config, get, BucketName, "/", "policy", [], <<>>, []) of
+            {ok, {_Headers, Body}} ->
+                {ok, Body};
+            Error ->
+                Error
+        end.
+
+-spec put_bucket_policy(string(), binary()) -> ok.
+put_bucket_policy(BucketName, Policy) ->
+    put_bucket_policy(BucketName, Policy, default_config()).
+
+-spec put_bucket_policy(string(), binary(), aws_config()) -> ok.
+put_bucket_policy(BucketName, Policy, Config) 
+  when is_list(BucketName), is_binary(Policy), is_record(Config, aws_config) ->
+    s3_simple_request(Config, put, BucketName, "/", "policy", [], Policy, []).
+
+
 -spec list_objects(string()) -> proplist().
 
 list_objects(BucketName) ->
@@ -439,6 +482,7 @@ get_object_metadata(BucketName, Key, Options, Config) ->
                       Version   -> ["versionId=", Version]
                   end,
     {Headers, _Body} = s3_request(Config, head, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders),
+
     [{last_modified, proplists:get_value("last-modified", Headers)},
      {etag, proplists:get_value("etag", Headers)},
      {content_length, proplists:get_value("content-length", Headers)},
@@ -607,6 +651,16 @@ make_link(Expire_time, BucketName, Key, Config) ->
      binary_to_list(erlang:iolist_to_binary(Host)),
      binary_to_list(erlang:iolist_to_binary(URI))}.
 
+-spec get_object_url(string(), string()) -> string().
+
+ get_object_url(BucketName, Key) -> 
+  get_object_url(BucketName, Key, default_config()).
+
+-spec get_object_url(string(), string(), aws_config()) -> string().
+
+ get_object_url(BucketName, Key, Config) -> 
+  lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]).
+   
 -spec make_get_url(integer(), string(), string()) -> iolist().
 
 make_get_url(Expire_time, BucketName, Key) ->
