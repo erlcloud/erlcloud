@@ -7,9 +7,12 @@
           s3_port=80::non_neg_integer(),
           sdb_host="sdb.amazonaws.com"::string(),
           elb_host="elasticloadbalancing.amazonaws.com"::string(),
-          ses_host="email.us-east-1.amazonaws.com"::string(),
           sqs_host="queue.amazonaws.com"::string(),
+<<<<<<< HEAD
+          ses_host="email.us-east-1.amazonaws.com"::string(),
+=======
           sns_host="sns.amazonaws.com"::string(),
+>>>>>>> upstream/master
           mturk_host="mechanicalturk.amazonaws.com"::string(),
           mon_host="monitoring.amazonaws.com"::string(),
           mon_port=undefined::non_neg_integer()|undefined,
