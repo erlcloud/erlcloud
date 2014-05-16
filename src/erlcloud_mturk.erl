@@ -1617,7 +1617,7 @@ mturk_request(Config, Operation, Params) ->
 
     case Response of
         {ok, {{200, _StatusLine}, _Headers, Body}} ->
-            Body;
+            binary_to_list(Body);
         {ok, {{Status, _StatusLine}, _Headers, _Body}} ->
             erlang:error({aws_error, {http_error, Status, _StatusLine, _Body}});
         {error, Error} ->
