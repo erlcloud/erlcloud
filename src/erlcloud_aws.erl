@@ -206,15 +206,16 @@ get_credentials_from_metadata(Config) ->
             {error, Reason};
         {ok, Body} ->
             %% Always use the first role
-            [Role, _] = binary:split(Body, <<$\n>>),
+            [Role | _] = binary:split(Body, <<$\n>>),
             case http_body(
                    erlcloud_httpc:request(
-                     "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ Role,
+                     "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ 
+                         binary_to_list(Role),
                      get, [], <<>>, Config#aws_config.timeout, Config)) of
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
-                    Creds = jsx:decode(list_to_binary(Json)),
+                    Creds = jsx:decode(Json),
                     Record = #metadata_credentials
                         {access_key_id = binary_to_list(proplists:get_value(<<"AccessKeyId">>, Creds)),
                          secret_access_key = binary_to_list(proplists:get_value(<<"SecretAccessKey">>, Creds)),
