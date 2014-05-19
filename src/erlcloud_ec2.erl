@@ -74,6 +74,11 @@
          monitor_instances/1, monitor_instances/2,
          unmonitor_instances/1, unmonitor_instances/2,
 
+         %% Network Interfaces
+         describe_network_interfaces/0, describe_network_interfaces/1, 
+         describe_network_interfaces/2,
+         describe_network_interfaces_filtered/3,
+
          %% Reserved Instances
          describe_reserved_instances/0, describe_reserved_instances/1,
          describe_reserved_instances/2,
@@ -150,7 +155,8 @@
 
 -define(API_VERSION, "2009-11-30").
 %-define(NEW_API_VERSION, "2012-10-01").
--define(NEW_API_VERSION, "2013-10-15").
+% -define(NEW_API_VERSION, "2013-10-15").
+-define(NEW_API_VERSION, "2014-02-01").
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 -include_lib("erlcloud/include/erlcloud_ec2.hrl").
@@ -546,7 +552,11 @@ extract_acl_response(Node) ->
      {association_set, [ extract_acl_association_item(Item)
                          || Item <- xmerl_xpath:string("associationSet/item", Node)]},
      {entry_set, [ extract_acl_entry_item(Item)
-                   || Item <- xmerl_xpath:string("entrySet/item", Node)]}].
+                   || Item <- xmerl_xpath:string("entrySet/item", Node)]},
+     {tag_set, 
+      [extract_tag_item(Item)
+       || Item <- xmerl_xpath:string("tagSet/item", Node)]}
+].
 
 extract_acl_association_item(Node) ->
     [{network_acl_association_id, get_text("networkAclAssociationId", Node)},
@@ -558,7 +568,17 @@ extract_acl_entry_item(Node) ->
      {protocol, get_text("protocol", Node)},
      {rule_action, get_text("ruleAction", Node)},
      {egress, get_text("egress", Node)},
-     {cidr_block, get_text("cidrBlock", Node)}].
+     {cidr_block, get_text("cidrBlock", Node)},
+     {port_range, extract_port_range(xmerl_xpath:string("portRange", Node))}
+    ].
+
+extract_port_range([]) ->
+    [];
+
+extract_port_range([Node]) ->
+    [{from, get_text("from", Node)},
+     {to, get_text("to", Node)}
+].
 
 %%
 %%
@@ -1223,7 +1243,7 @@ describe_instances(InstanceIDs) ->
 -spec(describe_instances/2 :: ([string()], aws_config()) -> proplist()).
 describe_instances(InstanceIDs, Config)
   when is_list(InstanceIDs) ->
-    case ec2_query2(Config, "DescribeInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId")) of
+    case ec2_query2(Config, "DescribeInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId"), ?NEW_API_VERSION) of
         {ok, Doc} ->
             Reservations = xmerl_xpath:string("/DescribeInstancesResponse/reservationSet/item", Doc),
             {ok, [extract_reservation(Item) || Item <- Reservations]};
@@ -1234,12 +1254,13 @@ describe_instances(InstanceIDs, Config)
 extract_reservation(Node) ->
     [{reservation_id, get_text("reservationId", Node)},
      {owner_id, get_text("ownerId", Node)},
-     {group_set, get_list("groupSet/item/groupId", Node)},
+     %% {group_set, get_list("groupSet/item/groupId", Node)},
      {instances_set, [extract_instance(Item) || Item <- xmerl_xpath:string("instancesSet/item", Node)]}
     ].
 
 extract_instance(Node) ->
     [{instance_id, get_text("instanceId", Node)},
+     {group_set, [extract_group(Item) || Item <- xmerl_xpath:string("groupSet/item", Node)]},
      {image_id, get_text("imageId", Node)},
      {instance_state, [
                        {code, list_to_integer(get_text("instanceState/code", Node, "0"))},
@@ -1267,8 +1288,21 @@ extract_instance(Node) ->
      {root_device_name, get_text("rootDeviceName", Node)},
      {block_device_mapping, [extract_block_device_mapping_status(Item) || Item <- xmerl_xpath:string("blockDeviceMapping/item", Node)]},
      {instance_lifecycle, get_text("instanceLifecycle", Node, none)},
-     {spot_instance_request_id, get_text("spotInstanceRequestId", Node, none)}
+     {spot_instance_request_id, get_text("spotInstanceRequestId", Node, none)},
+     {iam_instance_profile, [
+                             {arn, get_text("iamInstanceProfile/arn", Node)},
+                             {id, get_text("iamInstanceProfile/id", Node)}
+                            ]},
+     {tag_set, 
+      [extract_tag_item(Item)
+       || Item <- xmerl_xpath:string("tagSet/item", Node)]},
+     {network_interface_set, [extract_network_interface(Item) || Item <- xmerl_xpath:string("networkInterfaceSet/item", Node)]}
     ].
+
+extract_group(Node) ->
+     [{group_id, get_text("groupId", Node)},
+      {group_name, get_text("groupName", Node)}
+     ].
 
 extract_block_device_mapping_status(Node) ->
     [
@@ -1333,7 +1367,11 @@ describe_internet_gateways(Filter, Config) ->
 extract_igw(Node) ->
     Items = xmerl_xpath:string("attachmentSet/item", Node),
     [ {internet_gateway_id, get_text("internetGatewayId", Node)},
-      {attachment_set, [ extract_igw_attachments(Item) || Item <- Items]} ].
+      {attachment_set, [ extract_igw_attachments(Item) || Item <- Items]},
+      {tag_set, 
+       [extract_tag_item(Item)
+        || Item <- xmerl_xpath:string("tagSet/item", Node)]}
+ ].
 
 extract_igw_attachments(Node) ->
     [ {vpc_id, get_text("vpcId", Node)},
@@ -1412,6 +1450,95 @@ describe_regions(RegionNames, Config)
         {error, _} = Error ->
             Error
     end.
+
+%
+% Network Interfaces API
+%
+-spec(describe_network_interfaces/0 :: () -> [proplist()]).
+describe_network_interfaces() ->
+    describe_network_interfaces(none).
+
+-spec(describe_network_interfaces/1 :: (list() | aws_config()) -> [proplist()]).
+describe_network_interfaces(Config)
+    when is_record(Config, aws_config) ->
+      describe_network_interfaces([], Config);
+describe_network_interfaces(NetworkInterfacesIds) ->
+    describe_network_interfaces(NetworkInterfacesIds, default_config()).
+
+-spec(describe_network_interfaces/2 :: (list(), aws_config()) -> [proplist()]).
+%%
+%%
+%% Example: describe_network_interfaces(["eni-1c111111", "eni-222e2222"], Config).
+describe_network_interfaces(NetworkInterfacesIds, Config)
+    when is_record(Config, aws_config) ->
+        describe_network_interfaces_filtered(NetworkInterfacesIds, none, Config).
+
+-spec(describe_network_interfaces_filtered/3 :: (list(), filter_list() | node, aws_config()) -> [proplist()]).
+%%
+%% Example: describe_network_interfaces_filtered([], [{"subnet-id", ["subnet-e11e11e1"]}], Config)
+%%
+describe_network_interfaces_filtered(NetworkInterfacesIds, Filter, Config) 
+    when is_record(Config, aws_config) ->
+       Params = lists:append(erlcloud_aws:param_list(NetworkInterfacesIds, "NetworkInterfaceId") ,
+                              list_to_ec2_filter(Filter)),
+       case ec2_query2(Config, "DescribeNetworkInterfaces", Params, ?NEW_API_VERSION) of
+          {ok, Doc} ->
+              NetworkInterfaces = xmerl_xpath:string("/DescribeNetworkInterfacesResponse/networkInterfaceSet/item", Doc),
+              {ok, [extract_network_interface(Item) || Item <- NetworkInterfaces]};
+          {error, _} = Error ->
+              Error
+       end.
+
+-spec(extract_network_interface/1 :: (Node::list()) -> proplist()).
+extract_network_interface(Node) ->
+    [
+     {network_interface_id, get_text("networkInterfaceId", Node)},
+     {subnet_id, get_text("subnetId", Node)},
+     {vpc_id, get_text("vpcId", Node)},
+     {availability_zone, get_text("availabilityZone", Node)},
+     {description, get_text("description", Node)},
+     {owner_id, get_text("ownerId", Node)},
+     {requester_managed, get_bool("requesterManaged", Node)},
+     {status, get_text("status", Node)},
+     {mac_address, get_text("macAddress", Node)},
+     {private_ip_address, get_text("privateIpAddress", Node)},
+     {source_dest_check, get_bool("sourceDestCheck", Node)},
+     {groups_set, [extract_group(Item) || Item <- xmerl_xpath:string("groupSet/item", Node)]},
+     {attachment, extract_attachment(Node)},
+     {association, extract_association(Node)},
+     {tag_set, [extract_tag_item(Item) || Item <- xmerl_xpath:string("tagSet/item", Node)]},
+     {private_ip_addresses_set, 
+            [extract_private_ip_address(Item) || Item <- xmerl_xpath:string("privateIpAddressesSet/item", Node)]}
+    ].
+
+-spec(extract_attachment/1 :: (Node::list()) -> proplist()).
+extract_attachment(Node) ->
+    [
+     {attachment_id, get_text("attachment/attachmentId", Node)},
+     {instance_id, get_text("attachment/instanceId", Node)},
+     {instance_owner_id, get_text("attachment/instanceOwnerId", Node)},
+     {device_index, get_text("attachment/deviceIndex", Node)},
+     {status, get_text("attachment/status", Node)},
+     {attach_time, erlcloud_xml:get_time("attachment/attachTime", Node)},
+     {delete_on_termination, get_bool("attachment/deleteOnTermination", Node)}
+    ].
+
+-spec(extract_private_ip_address/1 :: (Node::list()) -> proplist()).
+extract_private_ip_address(Node) ->
+    [
+     {private_ip_address, get_text("privateIpAddress", Node)},
+     {primary, get_bool("primary", Node)}
+    ]. 
+
+-spec(extract_association/1 :: (Node::list()) -> proplist()).
+extract_association(Node) ->
+    [
+     {public_ip, get_text("association/publicIp", Node)},
+     {public_dns_name, get_text("association/publicDnsName", Node)},
+     {ip_owner_id, get_text("association/ipOwnerId", Node)},
+     {allocation_id, get_text("association/allocationId", Node)},
+     {association_id, get_text("association/associationId", Node)}
+    ].
 
 %%
 %%
@@ -1521,7 +1648,10 @@ extract_route(Node) ->
                      Item <- xmerl_xpath:string("routeSet/item", Node)]},
      {association_set,
       [extract_route_assn(Item)
-       || Item <-xmerl_xpath:string("associationSet/item", Node)]}
+       || Item <-xmerl_xpath:string("associationSet/item", Node)]},
+     {tag_set, 
+      [extract_tag_item(Item)
+       || Item <- xmerl_xpath:string("tagSet/item", Node)]}
     ].
 
 extract_route_set(Node) ->
@@ -1535,8 +1665,9 @@ extract_route_set(Node) ->
 extract_route_assn(Node) ->
     [
      {route_table_association_id, get_text("routeTableAssociationId", Node)},
-     {route_table_id, get_text("route_table_id", Node)},
-     {main, get_text("main", Node)}
+     {route_table_id, get_text("routeTableId", Node)},
+     {main, get_text("main", Node)},
+     {subnet_id, get_text("subnetId", Node)}
     ].
 
 %%
@@ -1588,7 +1719,12 @@ extract_security_group(Node) ->
      {group_description, get_text("groupDescription", Node)},
      {vpc_id, get_text("vpcId", Node)},
      {ip_permissions,
-      [extract_ip_permissions(Item) || Item <- xmerl_xpath:string("ipPermissions/item", Node)]}
+      [extract_ip_permissions(Item) || Item <- xmerl_xpath:string("ipPermissions/item", Node)]},
+     {ip_permissions_egress,
+      [extract_ip_permissions(Item) || Item <- xmerl_xpath:string("ipPermissionsEgress/item", Node)]},
+     {tag_set, 
+      [extract_tag_item(Item)
+       || Item <- xmerl_xpath:string("tagSet/item", Node)]}
     ].
 
 extract_ip_permissions(Node) ->
@@ -1597,9 +1733,17 @@ extract_ip_permissions(Node) ->
      {from_port, get_integer("fromPort", Node)},
      {to_port, get_integer("toPort", Node)},
      {users, get_list("groups/item/userId", Node)},
+     {groups,
+      [extract_user_id_group_pair(Item) || Item <- xmerl_xpath:string("groups/item", Node)]},
      {ip_ranges, get_list("ipRanges/item/cidrIp", Node)}
     ].
 
+extract_user_id_group_pair(Node) ->
+    [
+      {user_id, get_text("userId", Node)},
+      {group_id, get_text("groupId", Node)},
+      {group_name, get_text("groupName", Node)}
+    ].
 %%
 %%
 -spec(describe_snapshot_attribute/2 :: (string(), atom()) -> proplist()).
@@ -1834,7 +1978,11 @@ extract_subnet(Node) ->
      {vpc_id, get_text("vpcId", Node)},
      {available_ip_address_count, get_text("availableIpAddressCount", Node)},
      {availability_zone, get_text("availabilityZone", Node)},
-     {cidr_block, get_text("cidrBlock", Node)}].
+     {cidr_block, get_text("cidrBlock", Node)},
+     {tag_set, 
+      [extract_tag_item(Item)
+       || Item <- xmerl_xpath:string("tagSet/item", Node)]}
+].
 
 %%
 %%
@@ -1892,7 +2040,7 @@ describe_vpcs(Filter) ->
 -spec(describe_vpcs/2 :: (filter_list() | none, aws_config()) -> proplist()).
 describe_vpcs(Filter, Config) ->
     Params = list_to_ec2_filter(Filter),
-    case ec2_query2(Config, "DescribeVpcs", Params) of
+    case ec2_query2(Config, "DescribeVpcs", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             Items = xmerl_xpath:string("/DescribeVpcsResponse/vpcSet/item", Doc),
             {ok, [ extract_vpc(Item) || Item <- Items ]};
@@ -1904,7 +2052,11 @@ extract_vpc(Node) ->
     [ {vpc_id, get_text("vpcId", Node)},
       {state, get_text("state", Node)},
       {cidr_block, get_text("cidrBlock", Node)},
-      {dhcp_options_id, get_text("dhcpOptionsId", Node)} ].
+      {dhcp_options_id, get_text("dhcpOptionsId", Node)},
+      {tag_set, 
+        [extract_tag_item(Item)
+         || Item <- xmerl_xpath:string("tagSet/item", Node)]}
+ ].
 
 %%
 %%
@@ -2451,6 +2603,12 @@ extract_tag(Node) ->
              resource_type = get_text("resourceType", Node),
              key = get_text("key", Node),
              value = get_text("value", Node)}.
+
+extract_tag_item(Node) ->
+    [
+     {key, get_text("key", Node)},
+     {value, get_text("value", Node)}
+    ].
 
 block_device_params(Mappings) ->
     erlcloud_aws:param_list(

@@ -4,6 +4,7 @@
          aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
          aws_request2/7,
          aws_request_xml2/5, aws_request_xml2/7,
+         aws_request_form/8,
          param_list/2, default_config/0, update_config/1, format_timestamp/1,
          http_headers_body/1,
          sign_v4/5]).
@@ -68,14 +69,15 @@ aws_request2(Method, Protocol, Host, Port, Path, Params, Config) ->
 
 aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     Timestamp = format_timestamp(erlang:universaltime()),
-    QParams = lists:sort([{"Timestamp", Timestamp},
-                          {"SignatureVersion", "2"},
-                          {"SignatureMethod", "HmacSHA1"},
-                          {"AWSAccessKeyId", Config#aws_config.access_key_id}|Params] ++
-                             case Config#aws_config.security_token of
-                                 undefined -> [];
-                                 Token -> [{"SecurityToken", Token}]
-                             end),
+    QParams = lists:sort(
+                [{"Timestamp", Timestamp},
+                 {"SignatureVersion", "2"},
+                 {"SignatureMethod", "HmacSHA1"},
+                 {"AWSAccessKeyId", Config#aws_config.access_key_id}|Params] ++
+                    case Config#aws_config.security_token of
+                        undefined -> [];
+                        Token -> [{"SecurityToken", Token}]
+                    end),
     
     QueryToSign = erlcloud_http:make_query_string(QParams),
     RequestToSign = [string:to_upper(atom_to_list(Method)), $\n,
@@ -84,6 +86,9 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
     
     Query = [QueryToSign, "&Signature=", erlcloud_http:url_encode(Signature)],
     
+    aws_request_form(Method, Protocol, Host, Port, Path, Query, [], Config).
+
+aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
     case Protocol of
         undefined -> UProtocol = "https://";
         _ -> UProtocol = [Protocol, "://"]
@@ -100,12 +105,13 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
     Response =
         case Method of
             get ->
-                Req = lists:flatten([URL, $?, Query]),
-                httpc:request(get, {Req, []}, [{timeout, Config#aws_config.timeout}], []);
+                Req = lists:flatten([URL, $?, Form]),
+                httpc:request(get, {Req, Headers}, [{timeout, Config#aws_config.timeout}], []);
             _ ->
                 httpc:request(Method,
-                              {lists:flatten(URL), [], "application/x-www-form-urlencoded; charset=utf-8",
-                               list_to_binary(Query)}, [{timeout, Config#aws_config.timeout}], [])
+                              {lists:flatten(URL), Headers, 
+                               "application/x-www-form-urlencoded; charset=utf-8",
+                               list_to_binary(Form)}, [{timeout, Config#aws_config.timeout}], [])
         end,
     
     http_body(Response).
@@ -218,7 +224,8 @@ port_to_str(Port) when is_integer(Port) ->
 port_to_str(Port) when is_list(Port) ->
     Port.
 
--spec http_body({ok, tuple()} | {error, term()}) -> {ok, string()} | {error, tuple()}.
+-spec http_body({ok, tuple()} | {error, term()}) 
+               -> {ok, string() | binary()} | {error, tuple()}.
 %% Extract the body and do error handling on the return of a httpc:request call.
 http_body(Return) ->
     case http_headers_body(Return) of
@@ -229,7 +236,8 @@ http_body(Return) ->
     end.
 
 -type headers() :: [{string(), string()}].
--spec http_headers_body({ok, tuple()} | {error, term()}) -> {ok, {headers(), string()}} | {error, tuple()}.
+-spec http_headers_body({ok, tuple()} | {error, term()}) 
+                       -> {ok, {headers(), string() | binary()}} | {error, tuple()}.
 %% Extract the headers and body and do error handling on the return of a httpc:request call.
 http_headers_body({ok, {{_HTTPVer, OKStatus, _StatusLine}, Headers, Body}}) 
   when OKStatus >= 200, OKStatus =< 299 ->
