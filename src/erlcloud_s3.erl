@@ -974,9 +974,14 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
                          RequestURI, Method, RequestHeaders, <<>>, 
                          Config#aws_config.timeout, Config);
                    _ ->
+                       Headers2 = case lists:keyfind("content-type", 1, RequestHeaders) of
+                                      false ->
+                                          [{"content-type", ContentType} | RequestHeaders];
+                                      _ ->
+                                          RequestHeaders
+                                  end,
                        erlcloud_httpc:request(
-                         RequestURI, Method, 
-                         [{"content-type", ContentType} | RequestHeaders], Body,
+                         RequestURI, Method, Headers2, Body,
                          Config#aws_config.timeout, Config)
                end,
     erlcloud_aws:http_headers_body(Response).
