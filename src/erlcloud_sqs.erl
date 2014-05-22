@@ -2,6 +2,8 @@
 
 -module(erlcloud_sqs).
 
+-export([configure/2, configure/3, new/2, new/3]).
+
 -export([
          add_permission/3, add_permission/4,
          change_message_visibility/3, change_message_visibility/4,
@@ -11,26 +13,52 @@
          get_queue_attributes/1, get_queue_attributes/2, get_queue_attributes/3,
          list_queues/0, list_queues/1, list_queues/2,
          receive_message/1, receive_message/2, receive_message/3, receive_message/4,
-         receive_message/5,
+         receive_message/5, receive_message/6,
          remove_permission/2, remove_permission/3,
-         send_message/2, send_message/3,
+         send_message/2, send_message/3, send_message/4,
          set_queue_attributes/2, set_queue_attributes/3
         ]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
--define(API_VERSION, "2009-02-01").
+-define(API_VERSION, "2012-11-05").
 
 -type(sqs_permission() :: all | send_message | receive_message | delete_message |
                           change_message_visibility | get_queue_attributes).
 -type(sqs_acl() :: [{string(), sqs_permission()}]).
 -type(sqs_msg_attribute_name() :: all | sender_id | sent_timestamp |
                                   approximate_receive_count |
-                                  approximate_first_receive_timestamp).
+                                  approximate_first_receive_timestamp |
+				  wait_time_seconds |
+				  receive_message_wait_time_seconds).
 -type(sqs_queue_attribute_name() :: all | approximate_number_of_messages |
                                     approximate_number_of_messages_not_visible | visibility_timeout |
                                     created_timestamp | last_modified_timestamp | policy).
+
+
+
+-spec(new/2 :: (string(), string()) -> aws_config()).
+new(AccessKeyID, SecretAccessKey) ->
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey}.
+
+-spec(new/3 :: (string(), string(), string()) -> aws_config()).
+new(AccessKeyID, SecretAccessKey, Host) ->
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey,
+                sqs_host=Host}.
+
+-spec(configure/2 :: (string(), string()) -> ok).
+configure(AccessKeyID, SecretAccessKey) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey)),
+    ok.
+
+-spec(configure/3 :: (string(), string(), string()) -> ok).
+configure(AccessKeyID, SecretAccessKey, Host) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
+    ok.
+
 
 -spec add_permission/3 :: (string(), string(), sqs_acl()) -> ok.
 add_permission(QueueName, Label, Permissions) ->
@@ -204,20 +232,39 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages, VisibilityTimeou
                     VisibilityTimeout, default_config()).
 
 -spec receive_message/5 :: (string(), [sqs_msg_attribute_name()] | all, 1..10,
-                            0..43200 | none, aws_config()) -> proplist().
-receive_message(QueueName, all, MaxNumberOfMessages, VisibilityTimeout, Config) ->
-    receive_message(QueueName, [all], MaxNumberOfMessages,
-                    VisibilityTimeout, Config);
+                            0..43200 | none, 0..20 | none | aws_config()) -> proplist().
 receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
                 VisibilityTimeout, Config)
+  when is_record(Config, aws_config) ->
+    receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
+                    VisibilityTimeout, none, Config);
+receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
+                VisibilityTimeout, WaitTimeSeconds) ->
+    receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
+                    VisibilityTimeout, WaitTimeSeconds, default_config()).
+
+-spec receive_message/6 :: (string(), [sqs_msg_attribute_name()] | all, 1..10,
+                            0..43200 | none, 0..20 | none, aws_config()) -> proplist().
+receive_message(QueueName, all, MaxNumberOfMessages, VisibilityTimeout,
+			   WaitTimeoutSeconds, Config) ->
+    receive_message(QueueName, [all], MaxNumberOfMessages,
+                    VisibilityTimeout, WaitTimeoutSeconds, Config);
+receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
+                VisibilityTimeout, WaitTimeSeconds, Config)
   when is_list(AttributeNames) orelse AttributeNames =:= all,
        MaxNumberOfMessages >= 1, MaxNumberOfMessages =< 10,
        (VisibilityTimeout >= 0 andalso VisibilityTimeout =< 43200) orelse
-       VisibilityTimeout =:= none ->
-    Doc = sqs_xml_request(Config, QueueName, "ReceiveMessage",
+       VisibilityTimeout =:= none,
+       (WaitTimeSeconds >= 0 andalso WaitTimeSeconds =< 20) orelse
+       WaitTimeSeconds =:= none ->
+    if (WaitTimeSeconds =/= none andalso WaitTimeSeconds >= 0) -> TotalTimeout = Config#aws_config.timeout + (WaitTimeSeconds * 1000) ;
+       true -> TotalTimeout = Config#aws_config.timeout
+    end,
+    Doc = sqs_xml_request(Config#aws_config{timeout=TotalTimeout}, QueueName, "ReceiveMessage",
                           [
                            {"MaxNumberOfMessages", MaxNumberOfMessages},
-                           {"VisibilityTimeout", VisibilityTimeout}|
+                           {"VisibilityTimeout", VisibilityTimeout},
+                           {"WaitTimeSeconds", WaitTimeSeconds}|
                            erlcloud_aws:param_list([encode_msg_attribute_name(N) || N <- AttributeNames], "AttributeName")
                           ]
                          ),
@@ -227,6 +274,7 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
       ],
       Doc
      ).
+
 
 encode_msg_attribute_name(all) -> "All";
 encode_msg_attribute_name(sender_id) -> "SenderId";
@@ -277,11 +325,21 @@ remove_permission(QueueName, Label, Config)
 send_message(QueueName, MessageBody) ->
     send_message(QueueName, MessageBody, default_config()).
 
--spec send_message/3 :: (string(), string(), aws_config()) -> proplist().
+-spec send_message/3 :: (string(), string(), 0..900 | none | aws_config()) -> proplist().
 send_message(QueueName, MessageBody, Config)
-  when is_list(QueueName), is_list(MessageBody) ->
+  when is_record(Config, aws_config) ->
+    send_message(QueueName, MessageBody, none, Config);
+send_message(QueueName, MessageBody, DelaySeconds) ->
+    send_message(QueueName, MessageBody, DelaySeconds, default_config()).
+
+-spec send_message/4 :: (string(), string(), 0..900, aws_config()) -> proplist().
+send_message(QueueName, MessageBody, DelaySeconds, Config)
+  when is_list(QueueName), is_list(MessageBody),
+       (DelaySeconds >= 0 andalso DelaySeconds =< 900) orelse
+       DelaySeconds =:= none ->
     Doc = sqs_xml_request(Config, QueueName, "SendMessage",
-                          [{"MessageBody", MessageBody}]),
+                          [{"MessageBody", MessageBody},
+			   {"DelaySeconds", DelaySeconds}]),
     erlcloud_xml:decode(
       [
        {message_id, "SendMessageResult/MessageId", text},
@@ -297,8 +355,9 @@ set_queue_attributes(QueueName, Attributes) ->
 -spec set_queue_attributes/3 :: (string(), [{visibility_timeout, integer()} | {policy, string()}], aws_config()) -> ok.
 set_queue_attributes(QueueName, Attributes, Config)
   when is_list(QueueName), is_list(Attributes) ->
-    Params = [[{"Name", encode_attribute_name(Name)}, {"Value", Value}] ||
-                 {Name, Value} <- Attributes],
+    Params = lists:flatten(erlcloud_aws:param_list([encode_attribute_name(Name) || {Name, _} <- Attributes], "Attribute.Name"),
+                          erlcloud_aws:param_list([Value || {_, Value} <- Attributes], "Attribute.Value")),
+
     sqs_simple_request(Config, QueueName, "SetQueueAttributes", Params).
 
 default_config() -> erlcloud_aws:default_config().
