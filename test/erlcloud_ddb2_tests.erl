@@ -43,6 +43,7 @@ operation_test_() ->
       fun describe_table_output_tests/1,
       fun get_item_input_tests/1,
       fun get_item_output_tests/1,
+      fun get_item_output_typed_tests/1,
       fun list_tables_input_tests/1,
       fun list_tables_output_tests/1,
       fun put_item_input_tests/1,
@@ -70,17 +71,21 @@ stop(_) ->
 
 -type expected_body() :: string().
 
-sort_object([{_, _} | _] = V) ->
+sort_json([{_, _} | _] = Json) ->
     %% Value is an object
-    lists:keysort(1, V);
-sort_object(V) ->
+    SortedChildren = [{K, sort_json(V)} || {K,V} <- Json],
+    lists:keysort(1, SortedChildren);
+sort_json([_|_] = Json) ->
+    %% Value is an array
+    [sort_json(I) || I <- Json];
+sort_json(V) ->
     V.
 
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(Body, Expected) ->
-    Want = jsx:decode(list_to_binary(Expected), [{post_decode, fun sort_object/1}]), 
-    Actual = jsx:decode(Body, [{post_decode, fun sort_object/1}]),
+    Want = sort_json(jsx:decode(list_to_binary(Expected))),
+    Actual = sort_json(jsx:decode(Body)),
     case Want =:= Actual of
         true -> ok;
         false ->
@@ -1718,6 +1723,38 @@ get_item_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb2:get_item(<<"table">>, {<<"k">>, <<"v">>}, [{out, record}])), Tests).
+
+get_item_output_typed_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"GetItem typed test all attribute types", "
+{\"Item\":
+	{\"ss\":{\"SS\":[\"Lynda\", \"Aaron\"]},
+	 \"ns\":{\"NS\":[\"12\",\"13.0\",\"14.1\"]},
+	 \"bs\":{\"BS\":[\"BbY=\"]},
+	 \"es\":{\"SS\":[]},
+	 \"s\":{\"S\":\"Lynda\"},
+	 \"n\":{\"N\":\"12\"},
+	 \"f\":{\"N\":\"12.34\"},
+	 \"b\":{\"B\":\"BbY=\"},
+	 \"empty\":{\"S\":\"\"}
+	}
+}",
+             {ok, #ddb2_get_item{
+                     item = [{<<"ss">>, {ss, [<<"Lynda">>, <<"Aaron">>]}},
+                             {<<"ns">>, {ns, [12,13.0,14.1]}},
+                             {<<"bs">>, {bs, [<<5,182>>]}},
+                             {<<"es">>, {ss,  []}},
+                             {<<"s">>, {s, <<"Lynda">>}},
+                             {<<"n">>, {n, 12}},
+                             {<<"f">>, {n, 12.34}},
+                             {<<"b">>, {b, <<5,182>>}},
+                             {<<"empty">>, {s, <<>>}}],
+                    consumed_capacity = undefined}}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb2:get_item(
+                       <<"table">>, {<<"k">>, <<"v">>}, [{out, typed_record}])), Tests).
 
 %% ListTables test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_ListTables.html
