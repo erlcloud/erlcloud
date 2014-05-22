@@ -711,17 +711,11 @@ undynamize_projection(V, _) ->
             {include, proplists:get_value(<<"NonKeyAttributes">>, V)}
     end.
 
-undynamize_index_status(V, _) ->
-    case V of
-        <<"CREATING">> -> 
-            creating;
-        <<"UPDATING">> -> 
-            updating;
-        <<"DELETING">> -> 
-            deleting;
-        <<"ACTIVE">> -> 
-            active
-    end.
+-spec undynamize_index_status(binary(), undynamize_opts()) -> index_status().
+undynamize_index_status(<<"CREATING">>, _) -> creating;
+undynamize_index_status(<<"UPDATING">>, _) -> updating;
+undynamize_index_status(<<"DELETING">>, _) -> deleting;
+undynamize_index_status(<<"ACTIVE">>, _)   -> active.
 
 -spec global_secondary_index_description_record() -> record_desc().
 global_secondary_index_description_record() ->
