@@ -711,12 +711,24 @@ undynamize_projection(V, _) ->
             {include, proplists:get_value(<<"NonKeyAttributes">>, V)}
     end.
 
+undynamize_index_status(V, _) ->
+    case V of
+        <<"CREATING">> -> 
+            creating;
+        <<"UPDATING">> -> 
+            updating;
+        <<"DELETING">> -> 
+            deleting;
+        <<"ACTIVE">> -> 
+            active
+    end.
+
 -spec global_secondary_index_description_record() -> record_desc().
 global_secondary_index_description_record() ->
     {#ddb2_global_secondary_index_description{},
      [{<<"IndexName">>, #ddb2_global_secondary_index_description.index_name, fun id/2},
       {<<"IndexSizeBytes">>, #ddb2_global_secondary_index_description.index_size_bytes, fun id/2},
-      {<<"IndexStatus">>, #ddb2_global_secondary_index_description.index_status, fun id/2},
+      {<<"IndexStatus">>, #ddb2_global_secondary_index_description.index_status, fun undynamize_index_status/2},
       {<<"ItemCount">>, #ddb2_global_secondary_index_description.item_count, fun id/2},
       {<<"KeySchema">>, #ddb2_global_secondary_index_description.key_schema, fun undynamize_key_schema/2},
       {<<"Projection">>, #ddb2_global_secondary_index_description.projection, fun undynamize_projection/2},
