@@ -1,3 +1,16 @@
+-record(ddb2_error,
+        {attempt :: pos_integer(),
+         error_type :: ddb | http | httpc,
+         should_retry :: boolean(),
+         reason :: term(),
+         request_headers :: [{string(), string()}],
+         request_body :: jsx:json_text(),
+         response_status :: pos_integer(),
+         response_status_line :: string(),
+         response_headers :: [{string(), string()}],
+         response_body :: binary()
+        }).
+
 -type date_time() :: number().
 -type table_status() :: creating | updating | deleting | active.
 
