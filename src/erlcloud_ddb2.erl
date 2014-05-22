@@ -150,6 +150,7 @@
     list_tables_opts/0,
     list_tables_return/0,
     local_secondary_index_def/0,
+    global_secondary_index_def/0,
     maybe_list/1,
     ok_return/1,
     out_attr/0,
@@ -1106,8 +1107,10 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
 %% ===Example===
 %%
 %% Create a table with hash key "ForumName" and range key "Subject"
-%% with a local secondary index on "LastPostDateTime.
-%%
+%% with a local secondary index on "LastPostDateTime"
+%% and a global secondary index on "Subject" as hash key and "LastPostDateTime"
+%% as range key, read and write capacity 10, projecting all fields 
+%% 
 %% `
 %% {ok, Description} =
 %%     erlcloud_ddb2:create_table(
@@ -1119,7 +1122,11 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
 %%       5, 
 %%       5,
 %%       [{local_secondary_indexes,
-%%         [{<<"LastPostIndex">>, <<"LastPostDateTime">>, keys_only}]}]),
+%%         [{<<"LastPostIndex">>, <<"LastPostDateTime">>, keys_only}]},
+%%        {global_secondary_indexes, [
+%%          {<<"SubjectTimeIndex">>, {<<"Subject">>, <<"LastPostDateTime">>}, all, 10, 10}
+%%        ]}
+%%       ]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
