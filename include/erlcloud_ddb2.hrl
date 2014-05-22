@@ -13,6 +13,7 @@
 
 -type date_time() :: number().
 -type table_status() :: creating | updating | deleting | active.
+-type index_status() :: creating | updating | deleting | active.
 
 -record(ddb2_provisioned_throughput_description,
         {last_decrease_date_time :: date_time(),
