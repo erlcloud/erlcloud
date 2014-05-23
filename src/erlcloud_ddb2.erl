@@ -1822,11 +1822,14 @@ dynamize_global_secondary_index_update(Opts) ->
         ]}        
     ]}] || {IndexName, ReadUnits, WriteUnits} <- Opts].
 
--type update_table_opt() :: 
-    {global_secondary_index_updates, global_secondary_index_updates()} | out_opt().
--spec update_table_opts() -> [update_table_opt()].
+-type update_table_opt() :: {global_secondary_index_updates, global_secondary_index_updates()} 
+                          | out_opt().
+-type update_table_opts() :: [update_table_opt()].
+
+-spec update_table_opts() -> opt_table().
 update_table_opts() ->
-    [{global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>, fun dynamize_global_secondary_index_update/1}].
+    [{global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>, 
+      fun dynamize_global_secondary_index_update/1}].
 
 -spec update_table_record() -> record_desc().
 update_table_record() ->
@@ -1839,7 +1842,8 @@ update_table_record() ->
 update_table(Table, ReadUnits, WriteUnits) ->
     update_table(Table, ReadUnits, WriteUnits, [], default_config()).
 
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), ddb_opts()) -> update_table_return().
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer(), update_table_opts()) 
+                  -> update_table_return().
 update_table(Table, ReadUnits, WriteUnits, Opts) ->
     update_table(Table, ReadUnits, WriteUnits, Opts, default_config()).
 
@@ -1857,7 +1861,8 @@ update_table(Table, ReadUnits, WriteUnits, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), ddb_opts(), aws_config()) 
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer(), update_table_opts(), 
+                   aws_config()) 
                   -> update_table_return().
 update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(update_table_opts(), Opts),
