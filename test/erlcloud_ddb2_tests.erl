@@ -801,7 +801,9 @@ create_table_input_tests(_) ->
                    5, 
                    5,
                    [{local_secondary_indexes,
-                     [{<<"LastPostIndex">>, <<"LastPostDateTime">>, keys_only}]}]
+                     [{<<"LastPostIndex">>, <<"LastPostDateTime">>, keys_only}]},
+                    {global_secondary_indexes,
+                     [{<<"SubjectIndex">>, {<<"Subject">>, <<"LastPostDateTime">>}, keys_only, 10, 5}]}]
                   )), "
 {
     \"AttributeDefinitions\": [
@@ -818,6 +820,28 @@ create_table_input_tests(_) ->
             \"AttributeType\": \"S\"
         }
     ],
+    \"GlobalSecondaryIndexes\": [
+        {
+            \"IndexName\": \"SubjectIndex\",
+            \"KeySchema\": [
+                {
+                    \"AttributeName\": \"Subject\",
+                    \"KeyType\": \"HASH\"
+                },
+                {
+                    \"AttributeName\": \"LastPostDateTime\",
+                    \"KeyType\": \"RANGE\"
+                }
+            ],
+            \"Projection\": {
+                \"ProjectionType\": \"KEYS_ONLY\"
+            },
+            \"ProvisionedThroughput\": {
+                \"ReadCapacityUnits\": 10,
+                \"WriteCapacityUnits\": 5
+            }
+        }
+    ],    
     \"TableName\": \"Thread\",
     \"KeySchema\": [
         {
@@ -854,7 +878,7 @@ create_table_input_tests(_) ->
 }"
             }),
          ?_ddb_test(
-            {"CreateTable with INCLUDE local secondary index",
+            {"CreateTable with INCLUDE local and global secondary index",
              ?_f(erlcloud_ddb2:create_table(
                    <<"Thread">>,
                    [{<<"ForumName">>, s},
@@ -864,7 +888,9 @@ create_table_input_tests(_) ->
                    5, 
                    5,
                    [{local_secondary_indexes,
-                     [{<<"LastPostIndex">>, <<"LastPostDateTime">>, {include, [<<"Author">>, <<"Body">>]}}]}]
+                     [{<<"LastPostIndex">>, <<"LastPostDateTime">>, {include, [<<"Author">>, <<"Body">>]}}]},
+                    {global_secondary_indexes,
+                     [{<<"SubjectIndex">>, {<<"Subject">>, <<"LastPostDateTime">>}, {include, [<<"Author">>]}, 10, 5}]}]  
                   )), "
 {
     \"AttributeDefinitions\": [
@@ -881,6 +907,31 @@ create_table_input_tests(_) ->
             \"AttributeType\": \"S\"
         }
     ],
+    \"GlobalSecondaryIndexes\": [
+        {
+            \"IndexName\": \"SubjectIndex\",
+            \"KeySchema\": [
+                {
+                    \"AttributeName\": \"Subject\",
+                    \"KeyType\": \"HASH\"
+                },
+                {
+                    \"AttributeName\": \"LastPostDateTime\",
+                    \"KeyType\": \"RANGE\"
+                }
+            ],
+            \"Projection\": {
+                \"NonKeyAttributes\": [
+                    \"Author\"
+                ],
+                \"ProjectionType\": \"INCLUDE\"
+            },
+            \"ProvisionedThroughput\": {
+                \"ReadCapacityUnits\": 10,
+                \"WriteCapacityUnits\": 5
+            }
+        }
+    ],  
     \"TableName\": \"Thread\",
     \"KeySchema\": [
         {
@@ -1030,6 +1081,34 @@ create_table_output_tests(_) ->
             }
         ],
         \"CreationDateTime\": 1.36372808007E9,
+        \"GlobalSecondaryIndexes\": [
+            {
+                \"IndexName\": \"SubjectIndex\",
+                \"IndexSizeBytes\": 2048,
+                \"IndexStatus\": \"CREATING\",
+                \"ItemCount\": 47,
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"Subject\",
+                        \"KeyType\": \"HASH\"
+                    },
+                    {
+                        \"AttributeName\": \"LastPostDateTime\",
+                        \"KeyType\": \"RANGE\"
+                    }
+                ],
+                \"Projection\": {
+                    \"ProjectionType\": \"KEYS_ONLY\"
+                },
+                \"ProvisionedThroughput\": {
+                    \"LastDecreaseDateTime\": 0,
+                    \"LastIncreaseDateTime\": 1,
+                    \"NumberOfDecreasesToday\": 2,
+                    \"ReadCapacityUnits\": 3,
+                    \"WriteCapacityUnits\": 4
+                }
+            }
+        ],
         \"ItemCount\": 0,
         \"KeySchema\": [
             {
@@ -1085,6 +1164,21 @@ create_table_output_tests(_) ->
                        item_count = 0,
                        key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
                        projection = keys_only}],
+               global_secondary_indexes = 
+                   [#ddb2_global_secondary_index_description{
+                       index_name = <<"SubjectIndex">>,
+                       index_size_bytes = 2048,
+                       index_status = creating,
+                       item_count = 47,
+                       key_schema = {<<"Subject">>, <<"LastPostDateTime">>},
+                       projection = keys_only,
+                       provisioned_throughput = #ddb2_provisioned_throughput_description{
+                          last_decrease_date_time = 0,
+                          last_increase_date_time = 1,
+                          number_of_decreases_today = 2,
+                          read_capacity_units = 3,
+                          write_capacity_units = 4}
+                    }],
                provisioned_throughput = 
                    #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
@@ -1113,6 +1207,37 @@ create_table_output_tests(_) ->
                 \"AttributeType\": \"S\"
             }
         ],
+        \"GlobalSecondaryIndexes\": [
+            {
+                \"IndexName\": \"SubjectIndex\",
+                \"IndexSizeBytes\": 2048,
+                \"IndexStatus\": \"CREATING\",
+                \"ItemCount\": 47,
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"Subject\",
+                        \"KeyType\": \"HASH\"
+                    },
+                    {
+                        \"AttributeName\": \"LastPostDateTime\",
+                        \"KeyType\": \"RANGE\"
+                    }
+                ],
+                \"Projection\": {
+                    \"NonKeyAttributes\" : [
+                        \"Author\"
+                    ],
+                    \"ProjectionType\": \"INCLUDE\"
+                },
+                \"ProvisionedThroughput\": {
+                    \"LastDecreaseDateTime\": 0,
+                    \"LastIncreaseDateTime\": 1,
+                    \"NumberOfDecreasesToday\": 2,
+                    \"ReadCapacityUnits\": 3,
+                    \"WriteCapacityUnits\": 4
+                }
+            }
+        ],        
         \"CreationDateTime\": 1.36372808007E9,
         \"ItemCount\": 0,
         \"KeySchema\": [
@@ -1170,6 +1295,21 @@ create_table_output_tests(_) ->
                        item_count = 0,
                        key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
                        projection = {include, [<<"Author">>, <<"Body">>]}}],
+               global_secondary_indexes = 
+                   [#ddb2_global_secondary_index_description{
+                       index_name = <<"SubjectIndex">>,
+                       index_size_bytes = 2048,
+                       index_status = creating,
+                       item_count = 47,
+                       key_schema = {<<"Subject">>, <<"LastPostDateTime">>},
+                       projection = {include, [<<"Author">>]},
+                       provisioned_throughput = #ddb2_provisioned_throughput_description{
+                          last_decrease_date_time = 0,
+                          last_increase_date_time = 1,
+                          number_of_decreases_today = 2,
+                          read_capacity_units = 3,
+                          write_capacity_units = 4}
+                    }],
                provisioned_throughput = 
                    #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
@@ -1518,6 +1658,37 @@ describe_table_output_tests(_) ->
                 \"AttributeType\": \"S\"
             }
         ],
+        \"GlobalSecondaryIndexes\": [
+            {
+                \"IndexName\": \"SubjectIndex\",
+                \"IndexSizeBytes\": 2048,
+                \"IndexStatus\": \"CREATING\",
+                \"ItemCount\": 47,
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"Subject\",
+                        \"KeyType\": \"HASH\"
+                    },
+                    {
+                        \"AttributeName\": \"LastPostDateTime\",
+                        \"KeyType\": \"RANGE\"
+                    }
+                ],
+                \"Projection\": {
+                    \"NonKeyAttributes\" : [
+                        \"Author\"
+                    ],
+                    \"ProjectionType\": \"INCLUDE\"
+                },
+                \"ProvisionedThroughput\": {
+                    \"LastDecreaseDateTime\": 0,
+                    \"LastIncreaseDateTime\": 1,
+                    \"NumberOfDecreasesToday\": 2,
+                    \"ReadCapacityUnits\": 3,
+                    \"WriteCapacityUnits\": 4
+                }
+            }
+        ],          
         \"CreationDateTime\": 1.363729002358E9,
         \"ItemCount\": 0,
         \"KeySchema\": [
@@ -1574,6 +1745,21 @@ describe_table_output_tests(_) ->
                        item_count = 0,
                        key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
                        projection = keys_only}],
+               global_secondary_indexes = 
+                   [#ddb2_global_secondary_index_description{
+                       index_name = <<"SubjectIndex">>,
+                       index_size_bytes = 2048,
+                       index_status = creating,
+                       item_count = 47,
+                       key_schema = {<<"Subject">>, <<"LastPostDateTime">>},
+                       projection = {include, [<<"Author">>]},
+                       provisioned_throughput = #ddb2_provisioned_throughput_description{
+                          last_decrease_date_time = 0,
+                          last_increase_date_time = 1,
+                          number_of_decreases_today = 2,
+                          read_capacity_units = 3,
+                          write_capacity_units = 4}
+                    }],                       
                provisioned_throughput = 
                    #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
@@ -2724,6 +2910,37 @@ update_table_output_tests(_) ->
                 \"AttributeType\": \"S\"
             }
         ],
+        \"GlobalSecondaryIndexes\": [
+            {
+                \"IndexName\": \"SubjectIndex\",
+                \"IndexSizeBytes\": 2048,
+                \"IndexStatus\": \"CREATING\",
+                \"ItemCount\": 47,
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"Subject\",
+                        \"KeyType\": \"HASH\"
+                    },
+                    {
+                        \"AttributeName\": \"LastPostDateTime\",
+                        \"KeyType\": \"RANGE\"
+                    }
+                ],
+                \"Projection\": {
+                    \"NonKeyAttributes\" : [
+                        \"Author\"
+                    ],
+                    \"ProjectionType\": \"INCLUDE\"
+                },
+                \"ProvisionedThroughput\": {
+                    \"LastDecreaseDateTime\": 0,
+                    \"LastIncreaseDateTime\": 1,
+                    \"NumberOfDecreasesToday\": 2,
+                    \"ReadCapacityUnits\": 3,
+                    \"WriteCapacityUnits\": 4
+                }
+            }
+        ],          
         \"CreationDateTime\": 1.363801528686E9,
         \"ItemCount\": 0,
         \"KeySchema\": [
@@ -2781,6 +2998,21 @@ update_table_output_tests(_) ->
                        item_count = 0,
                        key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
                        projection = keys_only}],
+               global_secondary_indexes = 
+                   [#ddb2_global_secondary_index_description{
+                       index_name = <<"SubjectIndex">>,
+                       index_size_bytes = 2048,
+                       index_status = creating,
+                       item_count = 47,
+                       key_schema = {<<"Subject">>, <<"LastPostDateTime">>},
+                       projection = {include, [<<"Author">>]},
+                       provisioned_throughput = #ddb2_provisioned_throughput_description{
+                          last_decrease_date_time = 0,
+                          last_increase_date_time = 1,
+                          number_of_decreases_today = 2,
+                          read_capacity_units = 3,
+                          write_capacity_units = 4}
+                    }],                        
                provisioned_throughput = 
                    #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
