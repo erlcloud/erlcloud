@@ -25,7 +25,7 @@
 -record(ddb2_global_secondary_index_description,
         {index_name :: erlcloud_ddb2:index_name(),
          index_size_bytes :: integer(),
-         index_status :: binary(),
+         index_status :: index_status(),
          item_count :: integer(),
          key_schema :: erlcloud_ddb2:key_schema(),
          projection :: erlcloud_ddb2:projection(),
