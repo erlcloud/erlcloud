@@ -2817,7 +2817,8 @@ update_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"UpdateTable example request",
-             ?_f(erlcloud_ddb2:update_table(<<"Thread">>, 10, 10, [{<<"SubjectIdx">>, 30, 40}, {<<"AnotherIdx">>, 50, 60}])), "
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>, 10, 10, 
+                                            [{global_secondary_index_updates, [{<<"SubjectIdx">>, 30, 40}, {<<"AnotherIdx">>, 50, 60}]}])), "
 {
     \"TableName\": \"Thread\",
     \"ProvisionedThroughput\": {

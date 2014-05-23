@@ -97,7 +97,7 @@
          q/2, q/3, q/4,
          scan/1, scan/2, scan/3,
          update_item/3, update_item/4, update_item/5,
-         update_table/3, update_table/4, update_table/5, update_table/6
+         update_table/3, update_table/4, update_table/5
         ]).
 
 -export_type(
@@ -1807,15 +1807,26 @@ update_item(Table, Key, Updates, Opts, Config) ->
 %%% UpdateTable
 %%%------------------------------------------------------------------------------
 
--spec dynamize_global_secondary_index_update(global_secondary_index_update()) -> jsx:json_term().
-dynamize_global_secondary_index_update({IndexName, ReadUnits, WriteUnits}) ->
-    [{<<"Update">>, [
+-type update_table_return() :: ddb_return(#ddb2_update_table{}, #ddb2_table_description{}).
+
+-type global_secondary_index_update() :: {index_name(), pos_integer(), pos_integer()}.
+-type global_secondary_index_updates() :: [global_secondary_index_update()].
+
+-spec dynamize_global_secondary_index_update(global_secondary_index_updates()) -> jsx:json_term().
+dynamize_global_secondary_index_update(Opts) ->
+    [[{<<"Update">>, [
         {<<"IndexName">>, IndexName},
         {<<"ProvisionedThroughput">>, [
             {<<"ReadCapacityUnits">>, ReadUnits},
             {<<"WriteCapacityUnits">>, WriteUnits}
         ]}        
-    ]}].
+    ]}] || {IndexName, ReadUnits, WriteUnits} <- Opts].
+
+-type update_table_opt() :: 
+    {global_secondary_index_updates, global_secondary_index_updates()} | out_opt().
+-spec update_table_opts() -> [update_table_opt()].
+update_table_opts() ->
+    [{global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>, fun dynamize_global_secondary_index_update/1}].
 
 -spec update_table_record() -> record_desc().
 update_table_record() ->
@@ -1824,24 +1835,13 @@ update_table_record() ->
        fun(V, Opts) -> undynamize_record(table_description_record(), V, Opts) end}
      ]}. 
 
--type update_table_return() :: ddb_return(#ddb2_update_table{}, #ddb2_table_description{}).
-
--type global_secondary_index_update() :: {index_name(), pos_integer(), pos_integer()}.
--type global_secondary_index_updates() :: [global_secondary_index_update()].
-
 -spec update_table(table_name(), non_neg_integer(), non_neg_integer()) -> update_table_return().
 update_table(Table, ReadUnits, WriteUnits) ->
-    update_table(Table, ReadUnits, WriteUnits, [], [], default_config()).
+    update_table(Table, ReadUnits, WriteUnits, [], default_config()).
 
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), 
-    global_secondary_index_updates()) -> update_table_return().
-update_table(Table, ReadUnits, WriteUnits, GSIUpdates) ->
-    update_table(Table, ReadUnits, WriteUnits, GSIUpdates, [], default_config()).
-
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), 
-    global_secondary_index_updates(), ddb_opts()) -> update_table_return().
-update_table(Table, ReadUnits, WriteUnits, GSIUpdates, Opts) ->
-    update_table(Table, ReadUnits, WriteUnits, GSIUpdates, Opts, default_config()).
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer(), ddb_opts()) -> update_table_return().
+update_table(Table, ReadUnits, WriteUnits, Opts) ->
+    update_table(Table, ReadUnits, WriteUnits, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -1851,29 +1851,22 @@ update_table(Table, ReadUnits, WriteUnits, GSIUpdates, Opts) ->
 %% ===Example===
 %%
 %% Update table "Thread" to have 10 units of read and write capacity.
-%%
+%% Update secondary index <<"SubjectIdx">> to have 10 units of read write capacity 
 %% `
-%% erlcloud_ddb2:update_table(<<"Thread">>, 10, 10)
+%% erlcloud_ddb2:update_table(<<"Thread">>, 10, 10, [{global_secondary_index_updates, [{<<"SubjectIdx">>, 10, 10}]}])
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), 
-    global_secondary_index_updates(), ddb_opts(), aws_config()) 
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer(), ddb_opts(), aws_config()) 
                   -> update_table_return().
-update_table(Table, ReadUnits, WriteUnits, GSIUpdates, Opts, Config) ->
-    {[], DdbOpts} = opts([], Opts),
-
+update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
+    {AwsOpts, DdbOpts} = opts(update_table_opts(), Opts),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.UpdateTable",
                [{<<"TableName">>, Table},
                 {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
-                                               {<<"WriteCapacityUnits">>, WriteUnits}]}] ++
-                    case GSIUpdates of
-                        [] -> [];
-                        _ -> [{<<"GlobalSecondaryIndexUpdates">>,
-                            [dynamize_global_secondary_index_update(X) || X <- GSIUpdates]}]
-                    end
-                    ),
+                                               {<<"WriteCapacityUnits">>, WriteUnits}]}]
+                ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_update_table.table_description).
