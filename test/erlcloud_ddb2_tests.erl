@@ -2817,13 +2817,33 @@ update_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"UpdateTable example request",
-             ?_f(erlcloud_ddb2:update_table(<<"Thread">>, 10, 10)), "
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>, 10, 10, [{<<"SubjectIdx">>, 30, 40}, {<<"AnotherIdx">>, 50, 60}])), "
 {
     \"TableName\": \"Thread\",
     \"ProvisionedThroughput\": {
         \"ReadCapacityUnits\": 10,
         \"WriteCapacityUnits\": 10
-    }
+    },
+    \"GlobalSecondaryIndexUpdates\": [
+        {
+            \"Update\": {
+                \"IndexName\": \"SubjectIdx\",
+                \"ProvisionedThroughput\": {
+                    \"ReadCapacityUnits\": 30,
+                    \"WriteCapacityUnits\": 40
+                }
+            }
+        },
+        {
+            \"Update\": {
+                \"IndexName\": \"AnotherIdx\",
+                \"ProvisionedThroughput\": {
+                    \"ReadCapacityUnits\": 50,
+                    \"WriteCapacityUnits\": 60
+                }
+            }
+        }
+    ]
 }"
             })
         ],
