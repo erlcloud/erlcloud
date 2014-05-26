@@ -12,7 +12,8 @@
                   ssl,
                   xmerl,
                   inets,
-                  jsx]},
+                  jsx,
+                  lhttpc]},
   {modules, []},
   {env, []}
  ]
