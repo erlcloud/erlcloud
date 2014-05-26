@@ -4,7 +4,7 @@
 -include("erlcloud.hrl").
 
 %% Unit tests for ses.
-%% These tests work by using meck to mock httpc.
+%% These tests work by using meck to mock erlcloud_httpc.
 
 %%%===================================================================
 %%% Test entry points
@@ -18,11 +18,11 @@ operation_test_() ->
      ]}.
 
 start() ->
-    meck:new(httpc, [unstick]),
+    meck:new(erlcloud_httpc),
     ok.
 
 stop(_) ->
-    meck:unload(httpc).
+    meck:unload(erlcloud_httpc).
 
 %%%===================================================================
 %%% Test helpers
@@ -40,13 +40,13 @@ validate_body(Body, Expected) ->
     end,
     ?assertEqual(Want, Body).
 
-%% returns the mock of the httpc function input tests expect to be called.
+%% returns the mock of the erlcloud_httpc function input tests expect to be called.
 %% Validates the request body and responds with the provided response.
 -spec input_expect(string(), expected_body()) -> fun().
 input_expect(Response, Expected) ->
-    fun(post, {_Url, _Headers, _ContentType, Body}, _HTTPOpts, _Opts) -> 
+    fun(_Url, post, _Headers, Body, _Timeout, _Config) -> 
             validate_body(Body, Expected),
-            {ok, {{0, 200, 0}, 0, list_to_binary(Response)}} 
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
     end.
 
 %%%===================================================================
@@ -58,7 +58,7 @@ sendemail_tests(_) ->
      fun() ->
              erlcloud_ddb2:configure(string:copies("A", 20), string:copies("a", 40)),
              Want = "Action=SendEmail&Version=2010-12-01&Source=b%40from.com&Message.Subject.Data=Subject&Message.Body.Text.Data=Email%20Body&Destination.ToAddresses.member.1=a%40to.com",
-             meck:expect(httpc, request, input_expect("response", Want)),
+             meck:expect(erlcloud_httpc, request, input_expect("response", Want)),
              {ok, <<"response">>} =
                  erlcloud_ses:send_email(<<"a@to.com">>, <<"Email Body">>, <<"Subject">>,
                                          <<"b@from.com">>, []),
@@ -67,7 +67,7 @@ sendemail_tests(_) ->
      fun() ->
              erlcloud_ddb2:configure(string:copies("A", 20), string:copies("a", 40)),
              Want = "Action=SendEmail&Version=2010-12-01&ReturnPath=return%20path&ReplyToAddresses.member.2=g%40reply.com&ReplyToAddresses.member.1=f%40reply.com&Source=e%40from.com&Message.Subject.Data=subject%20data&Message.Subject.Charset=subject%20charset&Message.Body.Text.Data=text%20data&Message.Body.Text.Charset=text%20charset&Message.Body.Html.Data=html%20data&Message.Body.Html.Charset=html%20charset&Destination.ToAddresses.member.1=d%40to.com&Destination.CcAddresses.member.1=c%40cc.com&Destination.BccAddresses.member.2=b%40bcc.com&Destination.BccAddresses.member.1=a%40bcc.com",
-             meck:expect(httpc, request, input_expect("response", Want)),
+             meck:expect(erlcloud_httpc, request, input_expect("response", Want)),
              {ok, <<"response">>} =
                  erlcloud_ses:send_email([{bcc_addresses, [<<"a@bcc.com">>, "b@bcc.com"]},
                                           {cc_addresses, [<<"c@cc.com">>]},
