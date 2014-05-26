@@ -109,6 +109,16 @@ backoff(1) -> ok;
 backoff(Attempt) ->
     timer:sleep(random:uniform((1 bsl (Attempt - 1)) * 100)).
 
+%% HTTPC timeout for a request
+timeout(1, _) ->
+    %% Shorter timeout on first request. This is to avoid long (5s) failover when first DDB
+    %% endpoint doesn't respond
+    1000;
+timeout(_, Config) ->
+    %% Longer timeout on subsequent requsets - results in less timeouts when system is
+    %% under heavy load
+    Config#aws_config.timeout.
+
 -type attempt() :: {attempt, pos_integer()} | {error, term()}.
 
 -type retry_fun_v1() :: fun((pos_integer(), term()) -> attempt()).
@@ -178,7 +188,7 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
     case erlcloud_httpc:request(
            url(Config), post,
            [{<<"content-type">>, <<"application/x-amz-json-1.0">>} | Headers],
-           Body, 1000, Config) of
+           Body, timeout(Attempt, Config), Config) of
 
         {ok, {{200, _}, _, RespBody}} ->
             %% TODO check crc
