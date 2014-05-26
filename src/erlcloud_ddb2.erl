@@ -132,6 +132,8 @@
     get_item_opt/0,
     get_item_opts/0,
     get_item_return/0,
+    global_secondary_index_update/0,
+    global_secondary_index_updates/0,
     in_attr/0,
     in_attr_data/0,
     in_attr_data_scalar/0,
@@ -150,6 +152,7 @@
     list_tables_opts/0,
     list_tables_return/0,
     local_secondary_index_def/0,
+    global_secondary_index_def/0,
     maybe_list/1,
     ok_return/1,
     out_attr/0,
@@ -709,6 +712,25 @@ undynamize_projection(V, _) ->
         <<"INCLUDE">> ->
             {include, proplists:get_value(<<"NonKeyAttributes">>, V)}
     end.
+
+-spec undynamize_index_status(binary(), undynamize_opts()) -> index_status().
+undynamize_index_status(<<"CREATING">>, _) -> creating;
+undynamize_index_status(<<"UPDATING">>, _) -> updating;
+undynamize_index_status(<<"DELETING">>, _) -> deleting;
+undynamize_index_status(<<"ACTIVE">>, _)   -> active.
+
+-spec global_secondary_index_description_record() -> record_desc().
+global_secondary_index_description_record() ->
+    {#ddb2_global_secondary_index_description{},
+     [{<<"IndexName">>, #ddb2_global_secondary_index_description.index_name, fun id/2},
+      {<<"IndexSizeBytes">>, #ddb2_global_secondary_index_description.index_size_bytes, fun id/2},
+      {<<"IndexStatus">>, #ddb2_global_secondary_index_description.index_status, fun undynamize_index_status/2},
+      {<<"ItemCount">>, #ddb2_global_secondary_index_description.item_count, fun id/2},
+      {<<"KeySchema">>, #ddb2_global_secondary_index_description.key_schema, fun undynamize_key_schema/2},
+      {<<"Projection">>, #ddb2_global_secondary_index_description.projection, fun undynamize_projection/2},
+      {<<"ProvisionedThroughput">>, #ddb2_global_secondary_index_description.provisioned_throughput,
+       fun(V, Opts) -> undynamize_record(provisioned_throughput_description_record(), V, Opts) end}
+     ]}.
     
 -spec local_secondary_index_description_record() -> record_desc().
 local_secondary_index_description_record() ->
@@ -735,6 +757,8 @@ table_description_record() ->
     {#ddb2_table_description{},
      [{<<"AttributeDefinitions">>, #ddb2_table_description.attribute_definitions, fun undynamize_attr_defs/2},
       {<<"CreationDateTime">>, #ddb2_table_description.creation_date_time, fun id/2},
+      {<<"GlobalSecondaryIndexes">>, #ddb2_table_description.global_secondary_indexes,
+       fun(V, Opts) -> [undynamize_record(global_secondary_index_description_record(), I, Opts) || I <- V] end},
       {<<"ItemCount">>, #ddb2_table_description.item_count, fun id/2},
       {<<"KeySchema">>, #ddb2_table_description.key_schema, fun undynamize_key_schema/2},
       {<<"LocalSecondaryIndexes">>, #ddb2_table_description.local_secondary_indexes,
@@ -1007,10 +1031,16 @@ batch_write_item(RequestItems, Opts, Config) ->
 
 -type index_name() :: binary().
 -type range_key_name() :: attr_name().
+-type hash_key_name() :: attr_name().
+-type read_units() :: pos_integer().
+-type write_units() :: pos_integer().
 -type projection() :: keys_only |
                       {include, [attr_name()]} |
                       all.
 -type local_secondary_index_def() :: {index_name(), range_key_name(), projection()}.
+
+-type global_secondary_index_def() :: {index_name(), {hash_key_name(), 
+    range_key_name()}, projection(), read_units(), write_units()}.
 
 dynamize_projection(keys_only) ->
     [{<<"ProjectionType">>, <<"KEYS_ONLY">>}];
@@ -1019,6 +1049,21 @@ dynamize_projection(all) ->
 dynamize_projection({include, AttrNames}) ->
     [{<<"ProjectionType">>, <<"INCLUDE">>},
      {<<"NonKeyAttributes">>, AttrNames}].
+
+dynamize_global_secondary_index({IndexName, {HashKey, RangeKey}, Projection, ReadUnits, WriteUnits}) ->
+    [{<<"IndexName">>, IndexName},
+     {<<"KeySchema">>, [[{<<"AttributeName">>, HashKey},
+                         {<<"KeyType">>, <<"HASH">>}],
+                        [{<<"AttributeName">>, RangeKey},
+                         {<<"KeyType">>, <<"RANGE">>}]]},
+     {<<"Projection">>, dynamize_projection(Projection)},
+     {<<"ProvisionedThroughput">>, [
+         {<<"ReadCapacityUnits">>, ReadUnits},
+         {<<"WriteCapacityUnits">>, WriteUnits}
+     ]}].
+
+dynamize_global_secondary_indexes(Value) ->
+    [dynamize_global_secondary_index(I) || I <- Value].
 
 dynamize_local_secondary_index(HashKey, {IndexName, RangeKey, Projection}) ->
     [{<<"IndexName">>, IndexName},
@@ -1031,13 +1076,16 @@ dynamize_local_secondary_index(HashKey, {IndexName, RangeKey, Projection}) ->
 dynamize_local_secondary_indexes({HashKey, _RangeKey}, Value) ->
     [dynamize_local_secondary_index(HashKey, I) || I <- Value].
 
--type create_table_opt() :: {local_secondary_indexes, [local_secondary_index_def()]}.
+-type create_table_opt() :: {local_secondary_indexes, [local_secondary_index_def()]} 
+    | {global_secondary_indexes, [global_secondary_index_def()]}.
 -type create_table_opts() :: [create_table_opt()].
 
 -spec create_table_opts(key_schema()) -> opt_table().
 create_table_opts(KeySchema) ->
     [{local_secondary_indexes, <<"LocalSecondaryIndexes">>, 
-      fun(V) -> dynamize_local_secondary_indexes(KeySchema, V) end}].
+      fun(V) -> dynamize_local_secondary_indexes(KeySchema, V) end},
+     {global_secondary_indexes, <<"GlobalSecondaryIndexes">>,
+      fun(V) -> dynamize_global_secondary_indexes(V) end}].
 
 -spec create_table_record() -> record_desc().
 create_table_record() ->
@@ -1067,8 +1115,10 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
 %% ===Example===
 %%
 %% Create a table with hash key "ForumName" and range key "Subject"
-%% with a local secondary index on "LastPostDateTime.
-%%
+%% with a local secondary index on "LastPostDateTime"
+%% and a global secondary index on "Subject" as hash key and "LastPostDateTime"
+%% as range key, read and write capacity 10, projecting all fields 
+%% 
 %% `
 %% {ok, Description} =
 %%     erlcloud_ddb2:create_table(
@@ -1080,7 +1130,11 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
 %%       5, 
 %%       5,
 %%       [{local_secondary_indexes,
-%%         [{<<"LastPostIndex">>, <<"LastPostDateTime">>, keys_only}]}]),
+%%         [{<<"LastPostIndex">>, <<"LastPostDateTime">>, keys_only}]},
+%%        {global_secondary_indexes, [
+%%          {<<"SubjectTimeIndex">>, {<<"Subject">>, <<"LastPostDateTime">>}, all, 10, 10}
+%%        ]}
+%%       ]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1753,6 +1807,30 @@ update_item(Table, Key, Updates, Opts, Config) ->
 %%% UpdateTable
 %%%------------------------------------------------------------------------------
 
+-type update_table_return() :: ddb_return(#ddb2_update_table{}, #ddb2_table_description{}).
+
+-type global_secondary_index_update() :: {index_name(), pos_integer(), pos_integer()}.
+-type global_secondary_index_updates() :: [global_secondary_index_update()].
+
+-spec dynamize_global_secondary_index_update(global_secondary_index_updates()) -> jsx:json_term().
+dynamize_global_secondary_index_update(Opts) ->
+    [[{<<"Update">>, [
+        {<<"IndexName">>, IndexName},
+        {<<"ProvisionedThroughput">>, [
+            {<<"ReadCapacityUnits">>, ReadUnits},
+            {<<"WriteCapacityUnits">>, WriteUnits}
+        ]}        
+    ]}] || {IndexName, ReadUnits, WriteUnits} <- Opts].
+
+-type update_table_opt() :: {global_secondary_index_updates, global_secondary_index_updates()} 
+                          | out_opt().
+-type update_table_opts() :: [update_table_opt()].
+
+-spec update_table_opts() -> opt_table().
+update_table_opts() ->
+    [{global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>, 
+      fun dynamize_global_secondary_index_update/1}].
+
 -spec update_table_record() -> record_desc().
 update_table_record() ->
     {#ddb2_update_table{},
@@ -1760,13 +1838,12 @@ update_table_record() ->
        fun(V, Opts) -> undynamize_record(table_description_record(), V, Opts) end}
      ]}. 
 
--type update_table_return() :: ddb_return(#ddb2_update_table{}, #ddb2_table_description{}).
-
 -spec update_table(table_name(), non_neg_integer(), non_neg_integer()) -> update_table_return().
 update_table(Table, ReadUnits, WriteUnits) ->
     update_table(Table, ReadUnits, WriteUnits, [], default_config()).
 
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), ddb_opts()) -> update_table_return().
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer(), update_table_opts()) 
+                  -> update_table_return().
 update_table(Table, ReadUnits, WriteUnits, Opts) ->
     update_table(Table, ReadUnits, WriteUnits, Opts, default_config()).
 
@@ -1778,21 +1855,23 @@ update_table(Table, ReadUnits, WriteUnits, Opts) ->
 %% ===Example===
 %%
 %% Update table "Thread" to have 10 units of read and write capacity.
-%%
+%% Update secondary index <<"SubjectIdx">> to have 10 units of read write capacity 
 %% `
-%% erlcloud_ddb2:update_table(<<"Thread">>, 10, 10)
+%% erlcloud_ddb2:update_table(<<"Thread">>, 10, 10, [{global_secondary_index_updates, [{<<"SubjectIdx">>, 10, 10}]}])
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), ddb_opts(), aws_config()) 
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer(), update_table_opts(), 
+                   aws_config()) 
                   -> update_table_return().
 update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
-    {[], DdbOpts} = opts([], Opts),
+    {AwsOpts, DdbOpts} = opts(update_table_opts(), Opts),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.UpdateTable",
                [{<<"TableName">>, Table},
                 {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
-                                               {<<"WriteCapacityUnits">>, WriteUnits}]}]),
+                                               {<<"WriteCapacityUnits">>, WriteUnits}]}]
+                ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_update_table.table_description).
