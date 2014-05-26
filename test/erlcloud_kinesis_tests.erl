@@ -5,7 +5,7 @@
 %%-include("erlcloud_kinesis.hrl").
 
 %% Unit tests for kinesis.
-%% These tests work by using meck to mock httpc. There are two classes of test: input and output.
+%% These tests work by using meck to mock erlcloud_httpc. There are two classes of test: input and output.
 %%
 %% Input tests verify that different function args produce the desired JSON request.
 %% An input test list provides a list of funs and the JSON that is expected to result.
@@ -49,11 +49,11 @@ operation_test_() ->
      ]}.
 
 start() ->
-    meck:new(httpc, [unstick]),
+    meck:new(erlcloud_httpc),
     ok.
 
 stop(_) ->
-    meck:unload(httpc).
+    meck:unload(erlcloud_httpc).
 
 %%%===================================================================
 %%% Input test helpers
@@ -83,13 +83,13 @@ validate_body(Body, Expected) ->
     end,
     ?assertEqual(Want, Actual).
 
-%% returns the mock of the httpc function input tests expect to be called.
+%% returns the mock of the erlcloud_httpc function input tests expect to be called.
 %% Validates the request body and responds with the provided response.
 -spec input_expect(string(), expected_body()) -> fun().
 input_expect(Response, Expected) ->
-    fun(post, {_Url, _Headers, _ContentType, Body}, _HTTPOpts, _Opts) ->
+    fun(_Url, post, _Headers, Body, _Timeout, _Config) ->
             validate_body(Body, Expected),
-            {ok, {{0, 200, 0}, 0, list_to_binary(Response)}}
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% input_test converts an input_test specifier into an eunit test generator
@@ -100,7 +100,7 @@ input_test(Response, {Line, {Description, Fun, Expected}}) when
     {Description,
      {Line,
       fun() ->
-              meck:expect(httpc, request, input_expect(Response, Expected)),
+              meck:expect(erlcloud_httpc, request, input_expect(Response, Expected)),
               erlcloud_kinesis:configure(string:copies("A", 20), string:copies("a", 40)),
               Fun()
       end}}.
@@ -116,11 +116,11 @@ input_tests(Response, Tests) ->
 %%% Output test helpers
 %%%===================================================================
 
-%% returns the mock of the httpc function output tests expect to be called.
+%% returns the mock of the erlcloud_httpc function output tests expect to be called.
 -spec output_expect(string()) -> fun().
 output_expect(Response) ->
-    fun(post, {_Url, _Headers, _ContentType, _Body}, _HTTPOpts, _Opts) ->
-            {ok, {{0, 200, 0}, 0, list_to_binary(Response)}}
+    fun(_Url, post, _Headers, _Body, _Timeout, _Config) ->
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% output_test converts an output_test specifier into an eunit test generator
@@ -130,7 +130,7 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
     {Description,
      {Line,
       fun() ->
-              meck:expect(httpc, request, output_expect(Response)),
+              meck:expect(erlcloud_httpc, request, output_expect(Response)),
               erlcloud_kinesis:configure(string:copies("A", 20), string:copies("a", 40)),
               Actual = Fun(),
               case Result =:= Actual of

@@ -21,23 +21,23 @@
 
 aws_request_xml(Method, Host, Path, Params, #aws_config{} = Config) ->
     Body = aws_request(Method, Host, Path, Params, Config),
-    element(1, xmerl_scan:string(Body)).
+    element(1, xmerl_scan:string(binary_to_list(Body))).
 aws_request_xml(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey),
-    element(1, xmerl_scan:string(Body)).
+    element(1, xmerl_scan:string(binary_to_list(Body))).
 aws_request_xml(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     Body = aws_request(Method, Protocol, Host, Port, Path, Params, Config),
-    element(1, xmerl_scan:string(Body)).
+    element(1, xmerl_scan:string(binary_to_list(Body))).
 aws_request_xml(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey),
-    element(1, xmerl_scan:string(Body)).
+    element(1, xmerl_scan:string(binary_to_list(Body))).
 
 aws_request_xml2(Method, Host, Path, Params, #aws_config{} = Config) ->
     aws_request_xml2(Method, undefined, Host, undefined, Path, Params, Config).
 aws_request_xml2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     case aws_request2(Method, Protocol, Host, Port, Path, Params, Config) of
         {ok, Body} ->
-            {ok, element(1, xmerl_scan:string(Body))};
+            {ok, element(1, xmerl_scan:string(binary_to_list(Body)))};
         {error, Reason} ->
             {error, Reason}
     end.
@@ -106,12 +106,13 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
         case Method of
             get ->
                 Req = lists:flatten([URL, $?, Form]),
-                httpc:request(get, {Req, Headers}, [{timeout, Config#aws_config.timeout}], []);
+                erlcloud_httpc:request(
+                  Req, get, Headers, <<>>, Config#aws_config.timeout, Config);
             _ ->
-                httpc:request(Method,
-                              {lists:flatten(URL), Headers, 
-                               "application/x-www-form-urlencoded; charset=utf-8",
-                               list_to_binary(Form)}, [{timeout, Config#aws_config.timeout}], [])
+                erlcloud_httpc:request(
+                  lists:flatten(URL), Method, 
+                  [{<<"content-type">>, <<"application/x-www-form-urlencoded; charset=utf-8">>} | Headers],
+                  list_to_binary(Form), Config#aws_config.timeout, Config)
         end,
     
     http_body(Response).
@@ -163,7 +164,7 @@ update_config(#aws_config{access_key_id = KeyId} = Config)
     {ok, Config};
 update_config(#aws_config{} = Config) ->
     %% AccessKey is not set. Try to read from role metadata.
-    case get_metadata_credentials() of
+    case get_metadata_credentials(Config) of
         {error, Reason} ->
             {error, Reason};
         {ok, Credentials} ->
@@ -173,41 +174,48 @@ update_config(#aws_config{} = Config) ->
                    security_token = Credentials#metadata_credentials.security_token}}
     end.
 
--spec get_metadata_credentials() -> {ok, #metadata_credentials{}} | {error, term()}.
-get_metadata_credentials() ->
+-spec get_metadata_credentials(aws_config()) -> {ok, #metadata_credentials{}} | {error, term()}.
+get_metadata_credentials(Config) ->
     %% See if we have cached credentials
     case application:get_env(erlcloud, metadata_credentials) of
         {ok, #metadata_credentials{expiration_gregorian_seconds = Expiration} = Credentials} ->
             Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
             %% Get new credentials if these will expire in less than 5 minutes
             case Expiration - Now < 300 of
-                true -> get_credentials_from_metadata();
+                true -> get_credentials_from_metadata(Config);
                 false -> {ok, Credentials}
             end;
         undefined ->
-            get_credentials_from_metadata()
+            get_credentials_from_metadata(Config)
     end.
 
 timestamp_to_gregorian_seconds(Timestamp) ->
     {ok, [Yr, Mo, Da, H, M, S], []} = io_lib:fread("~d-~d-~dT~d:~d:~dZ", binary_to_list(Timestamp)),
     calendar:datetime_to_gregorian_seconds({{Yr, Mo, Da}, {H, M, S}}).
     
--spec get_credentials_from_metadata() -> {ok, #metadata_credentials{}} | {error, term()}.
-get_credentials_from_metadata() ->
+-spec get_credentials_from_metadata(aws_config()) 
+                                   -> {ok, #metadata_credentials{}} | {error, term()}.
+get_credentials_from_metadata(Config) ->
     %% TODO this function should retry on errors getting credentials
     %% First get the list of roles
-    case http_body(httpc:request("http://169.254.169.254/latest/meta-data/iam/security-credentials/")) of
+    case http_body(
+           erlcloud_httpc:request(
+             "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
+             get, [], <<>>, Config#aws_config.timeout, Config)) of
         {error, Reason} ->
             {error, Reason};
         {ok, Body} ->
             %% Always use the first role
-            Role = string:sub_word(Body, 1, $\n),
-            case http_body(httpc:request(
-                             "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ Role)) of
+            [Role | _] = binary:split(Body, <<$\n>>),
+            case http_body(
+                   erlcloud_httpc:request(
+                     "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ 
+                         binary_to_list(Role),
+                     get, [], <<>>, Config#aws_config.timeout, Config)) of
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
-                    Creds = jsx:decode(list_to_binary(Json)),
+                    Creds = jsx:decode(Json),
                     Record = #metadata_credentials
                         {access_key_id = binary_to_list(proplists:get_value(<<"AccessKeyId">>, Creds)),
                          secret_access_key = binary_to_list(proplists:get_value(<<"SecretAccessKey">>, Creds)),
@@ -239,10 +247,10 @@ http_body(Return) ->
 -spec http_headers_body({ok, tuple()} | {error, term()}) 
                        -> {ok, {headers(), string() | binary()}} | {error, tuple()}.
 %% Extract the headers and body and do error handling on the return of a httpc:request call.
-http_headers_body({ok, {{_HTTPVer, OKStatus, _StatusLine}, Headers, Body}}) 
+http_headers_body({ok, {{OKStatus, _StatusLine}, Headers, Body}}) 
   when OKStatus >= 200, OKStatus =< 299 ->
     {ok, {Headers, Body}};
-http_headers_body({ok, {{_HTTPVer, Status, StatusLine}, _Headers, Body}}) ->
+http_headers_body({ok, {{Status, StatusLine}, _Headers, Body}}) ->
     {error, {http_error, Status, StatusLine, Body}};
 http_headers_body({error, Reason}) ->
     {error, {socket_error, Reason}}.
