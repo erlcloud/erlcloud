@@ -5,7 +5,8 @@
 -include_lib("../include/erlcloud_aws.hrl").
 
 %% Unit tests for cloudtrail.
-%% These tests work by using meck to mock httpc. There are two classes of test: input and output.
+%% These tests work by using meck to mock erlcloud_httpc. 
+%% There are two classes of test: input and output.
 %%
 %% Input tests verify that different function args produce the desired JSON request.
 %% An input test list provides a list of funs and the JSON that is expected to result.
@@ -13,7 +14,7 @@
 %% Output tests verify that the http response produces the correct return from the fun.
 %% An output test lists provides a list of response bodies and the expected return.
 
-%% The _ddb_test macro provides line number annotation to a test, similar to _test, but doesn't wrap in a fun
+%% The _cloudtrail_test macro provides line number annotation to a test, similar to _test, but doesn't wrap in a fun
 -define(_cloudtrail_test(T), {?LINE, T}).
 %% The _f macro is a terse way to wrap code in a fun. Similar to _test but doesn't annotate with a line number
 -define(_f(F), fun() -> F end).
@@ -43,11 +44,11 @@ operation_test_() ->
     ]}.
 
 start() ->
-    meck:new(httpc, [unstick]),
+    meck:new(erlcloud_httpc),
     ok.
 
 stop(_) ->
-    meck:unload(httpc).
+    meck:unload(erlcloud_httpc).
 
 %%%===================================================================
 %%% Input test helpers
@@ -81,9 +82,9 @@ validate_body(Body, Expected) ->
 %% Validates the request body and responds with the provided response.
 -spec input_expect(string(), expected_body()) -> fun().
 input_expect(Response, Expected) ->
-    fun(post, {_Url, _Headers, _ContentType, Body}, _HTTPOpts, _Opts) ->
+    fun(_Url, post, _Headers, Body, _Timeout, _Config) ->
             validate_body(Body, Expected),
-            {ok, {{0, 200, 0}, 0, list_to_binary(Response)}}
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% input_test converts an input_test specifier into an eunit test generator
@@ -94,7 +95,7 @@ input_test(Response, {Line, {Description, Fun, Expected}}) when
     {Description,
      {Line,
       fun() ->
-              meck:expect(httpc, request, input_expect(Response, Expected)),
+              meck:expect(erlcloud_httpc, request, input_expect(Response, Expected)),
               AwsConfig = #aws_config{
                     access_key_id=string:copies("A", 20),
                     secret_access_key=string:copies("a", 40)
@@ -117,8 +118,8 @@ input_tests(Response, Tests) ->
 %% returns the mock of the httpc function output tests expect to be called.
 -spec output_expect(string()) -> fun().
 output_expect(Response) ->
-    fun(post, {_Url, _Headers, _ContentType, _Body}, _HTTPOpts, _Opts) ->
-            {ok, {{0, 200, 0}, 0, Response}}
+    fun(_Url, post, _Headers, _Body, _Timeout, _Config) ->
+            {ok, {{200, "OK"}, [], Response}}
     end.
 
 %% output_test converts an output_test specifier into an eunit test generator
@@ -128,7 +129,7 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
     {Description,
      {Line,
       fun() ->
-              meck:expect(httpc, request, output_expect(Response)),
+              meck:expect(erlcloud_httpc, request, output_expect(Response)),
               AwsConfig = #aws_config{
                     access_key_id=string:copies("A", 20),
                     secret_access_key=string:copies("a", 40),
