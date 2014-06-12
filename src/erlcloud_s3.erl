@@ -250,7 +250,7 @@ get_bucket_policy(BucketName) ->
 %
 % Example request: erlcloud_s3:get_bucket_policy("bucket1234", Config).
 % Example success repsonse: {ok, "{\"Version\":\"2012-10-17\",\"Statement\": ..........}
-% Example error response: {error,{http_error,404,"Not Found", 
+% Example error response: {error,{http_error,404,"Not Found",
 %                               "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n
 %                               <Error>
 %                                   <Code>NoSuchBucket</Code>
@@ -274,7 +274,7 @@ put_bucket_policy(BucketName, Policy) ->
     put_bucket_policy(BucketName, Policy, default_config()).
 
 -spec put_bucket_policy(string(), binary(), aws_config()) -> ok.
-put_bucket_policy(BucketName, Policy, Config) 
+put_bucket_policy(BucketName, Policy, Config)
   when is_list(BucketName), is_binary(Policy), is_record(Config, aws_config) ->
     s3_simple_request(Config, put, BucketName, "/", "policy", [], Policy, []).
 
@@ -644,23 +644,24 @@ make_link(Expire_time, BucketName, Key) ->
 -spec make_link(integer(), string(), string(), aws_config()) -> {integer(), string(), string()}.
 
 make_link(Expire_time, BucketName, Key, Config) ->
-    {Sig, Expires} = sign_get(Expire_time, BucketName, erlcloud_http:url_encode_loose(Key), Config),
+    EncodedKey = erlcloud_http:url_encode_loose(Key),
+    {Sig, Expires} = sign_get(Expire_time, BucketName, EncodedKey, Config),
     Host = lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config)]),
-    URI = lists:flatten(["/", Key, "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), "&Signature=", erlcloud_http:url_encode(Sig), "&Expires=", Expires]),
+    URI = lists:flatten(["/", EncodedKey, "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), "&Signature=", erlcloud_http:url_encode(Sig), "&Expires=", Expires]),
     {list_to_integer(Expires),
      binary_to_list(erlang:iolist_to_binary(Host)),
      binary_to_list(erlang:iolist_to_binary(URI))}.
 
 -spec get_object_url(string(), string()) -> string().
 
- get_object_url(BucketName, Key) -> 
+ get_object_url(BucketName, Key) ->
   get_object_url(BucketName, Key, default_config()).
 
 -spec get_object_url(string(), string(), aws_config()) -> string().
 
- get_object_url(BucketName, Key, Config) -> 
+ get_object_url(BucketName, Key, Config) ->
   lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]).
-   
+
 -spec make_get_url(integer(), string(), string()) -> iolist().
 
 make_get_url(Expire_time, BucketName, Key) ->
@@ -937,7 +938,7 @@ s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Heade
 s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
     {ContentMD5, ContentType, Body} =
         case POSTData of
-            {PD, CT} -> {base64:encode(erlcloud_util:md5(PD)), CT, PD}; 
+            {PD, CT} -> {base64:encode(erlcloud_util:md5(PD)), CT, PD};
             PD -> {"", "", PD}
         end,
     Headers = case Config#aws_config.security_token of
@@ -971,7 +972,7 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
     Response = case Method of
                    M when M =:= get orelse M =:= head orelse M =:= delete ->
                        erlcloud_httpc:request(
-                         RequestURI, Method, RequestHeaders, <<>>, 
+                         RequestURI, Method, RequestHeaders, <<>>,
                          Config#aws_config.timeout, Config);
                    _ ->
                        Headers2 = case lists:keyfind("content-type", 1, RequestHeaders) of
