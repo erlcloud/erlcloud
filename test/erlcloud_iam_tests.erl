@@ -99,7 +99,7 @@ validate_params(Body, Expected) ->
 input_expect(Response, Expected) ->
     fun(_Url, post, _Headers, Body, _Timeout, _Config) -> 
             validate_params(Body, Expected),
-            {ok, {{200, "OK"}, [], Response}} 
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
     end.
 
 %% input_test converts an input_test specifier into an eunit test generator
@@ -132,7 +132,7 @@ input_tests(Response, Tests) ->
 -spec output_expect(string()) -> fun().
 output_expect(Response) ->
     fun(_Url, post, _Headers, _Body, _Timeout, _Config) -> 
-            {ok, {{200, "OK"}, [], Response}} 
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
     end.
 
 %% output_test converts an output_test specifier into an eunit test generator
