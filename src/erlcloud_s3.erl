@@ -862,8 +862,8 @@ s3_request(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) 
     case s3_request2(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) of
         {ok, Result} ->
             Result;
-        {error, Reason} ->
-            erlang:error({aws_error, Reason})
+        {error, Reason} -> 
+          {aws_error, Reason}
     end.
 
 %% s3_request2 returns {ok, Body} or {error, Reason} instead of throwing as s3_request does
