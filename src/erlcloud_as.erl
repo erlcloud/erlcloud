@@ -1,25 +1,22 @@
 -module(erlcloud_as).
 
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include_lib("erlcloud/include/erlcloud_as.hrl").
 
--export([describe_groups/0, describe_groups/1, describe_groups/2]).
+%% AWS Autoscaling functions
+-export([describe_groups/0, describe_groups/1, describe_groups/2,
+        set_desired_capacity/2, set_desired_capacity/3, set_desired_capacity/4]).
 
+-import(erlcloud_aws, [default_config/0]).
 -import(erlcloud_xml, [get_integer/2, get_text/1, get_text/2]).
 
 -define(API_VERSION, "2011-01-01").
 
--record(aws_autoscaling_group, {
-          group_name::string(),
-          availability_zones::list(string()),
-          tags::list(string()),
-          desired_capacity::integer(),
-          min_size::integer(),
-          max_size::integer()          
-         }).
-
 % xpath for group descriptions used in describe_groups functions:
 -define(DESCRIBE_GROUPS_PATH, 
         "/DescribeAutoScalingGroupsResponse/DescribeAutoScalingGroupsResult/AutoScalingGroups/member").
+% xpath for the request ID returned from a SetDesiredCapacity operation:
+-define(SET_SCALE_REQUEST_ID_PATH, "/SetDesiredCapacityResponse/ResponseMetadata/RequestId").
 
 %% --------------------------------------------------------------------
 %% @doc Calls describe_groups([], default_configuration())
@@ -66,9 +63,46 @@ extract_group(G) ->
        max_size=get_integer("MaxSize", G)}.
 extract_tags_from_group(G) ->
     [{get_text("Key", T), get_text("Value", T)} || T <- xmerl_xpath:string("Tags/member", G)].
-       
+
+
+%% --------------------------------------------------------------------
+%% @doc set_desired_capacity(GroupName, Capacity, false, default_config())
+%% @end
+%% --------------------------------------------------------------------
+-spec set_desired_capacity(string(), integer()) -> {ok, string()} | {error, term()}.
+set_desired_capacity(GroupName, Capacity) ->
+    set_desired_capacity(GroupName, Capacity, false, default_config()).
+
+%% --------------------------------------------------------------------
+%% @doc set_desired_capacity(GroupName, Capacity, false, Config)
+%% @end
+%% --------------------------------------------------------------------
+-spec set_desired_capacity(string(), integer(), aws_config()) -> {ok, string()} | {error, term()}.
+set_desired_capacity(GroupName, Capacity, Config) ->
+    set_desired_capacity(GroupName, Capacity, false, Config).
+
+%% --------------------------------------------------------------------
+%% @doc Change the desired capacity of the given autoscaling group,
+%% optionally ignoring cooldown periods (set false to basically force
+%% change).
+%% Requires permission for the autoscaling:SetDesiredCapacity action.
+%% @end
+%% --------------------------------------------------------------------
+-spec set_desired_capacity(string(), integer(), boolean(), aws_config()) -> {ok, string()} | {error, term()}.
+set_desired_capacity(GroupName, Capacity, HonorCooldown, Config) ->
+    Params = [{"AutoScalingGroupName", GroupName}, 
+              {"DesiredCapacity", Capacity}, 
+              {"HonorCooldown", HonorCooldown}],
+    case as_query(Config, "SetDesiredCapacity", Params, ?API_VERSION) of
+        {ok, Doc} ->
+            [RequestId] = xmerl_xpath:string(?SET_SCALE_REQUEST_ID_PATH, Doc),
+            get_text(RequestId);
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
 %% Based on erlcoud_ec2:ec2_query2()
-%% TODO:  spec is too general with terms I think:
+%% @TODO:  spec is too general with terms I think
 -spec as_query(aws_config(), string(), list({string(), string()}), string()) -> {ok, term()} | {error, term}.
 as_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
