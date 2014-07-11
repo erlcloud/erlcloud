@@ -7,9 +7,6 @@
 -export([describe_groups/0, describe_groups/1, describe_groups/2,
         set_desired_capacity/2, set_desired_capacity/3, set_desired_capacity/4]).
 
--import(erlcloud_aws, [default_config/0]).
--import(erlcloud_xml, [get_integer/2, get_text/1, get_text/2]).
-
 -define(API_VERSION, "2011-01-01").
 
 % xpath for group descriptions used in describe_groups functions:
@@ -55,14 +52,15 @@ describe_groups(GN, Config) ->
 
 extract_group(G) ->
     #aws_autoscaling_group{
-       group_name=get_text("AutoScalingGroupName", G),
-       tags=extract_tags_from_group(G),
-       availability_zones=[get_text(A) || A <- xmerl_xpath:string("AvailabilityZones/member", G)],
-       desired_capacity=get_integer("DesiredCapacity", G),
-       min_size=get_integer("MinSize", G),
-       max_size=get_integer("MaxSize", G)}.
+       group_name = erlcloud_xml:get_text("AutoScalingGroupName", G),
+       tags = extract_tags_from_group(G),
+       availability_zones = [erlcloud_xml:get_text(A) || A <- xmerl_xpath:string("AvailabilityZones/member", G)],
+       desired_capacity = erlcloud_xml:get_integer("DesiredCapacity", G),
+       min_size = erlcloud_xml:get_integer("MinSize", G),
+       max_size = erlcloud_xml:get_integer("MaxSize", G)}.
 extract_tags_from_group(G) ->
-    [{get_text("Key", T), get_text("Value", T)} || T <- xmerl_xpath:string("Tags/member", G)].
+    [{erlcloud_xml:get_text("Key", T), erlcloud_xml:get_text("Value", T)} || 
+        T <- xmerl_xpath:string("Tags/member", G)].
 
 
 %% --------------------------------------------------------------------
@@ -71,7 +69,7 @@ extract_tags_from_group(G) ->
 %% --------------------------------------------------------------------
 -spec set_desired_capacity(string(), integer()) -> {ok, string()} | {error, term()}.
 set_desired_capacity(GroupName, Capacity) ->
-    set_desired_capacity(GroupName, Capacity, false, default_config()).
+    set_desired_capacity(GroupName, Capacity, false, erlcloud_aws:default_config()).
 
 %% --------------------------------------------------------------------
 %% @doc set_desired_capacity(GroupName, Capacity, false, Config)
@@ -96,7 +94,7 @@ set_desired_capacity(GroupName, Capacity, HonorCooldown, Config) ->
     case as_query(Config, "SetDesiredCapacity", Params, ?API_VERSION) of
         {ok, Doc} ->
             [RequestId] = xmerl_xpath:string(?SET_SCALE_REQUEST_ID_PATH, Doc),
-            get_text(RequestId);
+            erlcloud_xml:get_text(RequestId);
         {error, Reason} ->
             {error, Reason}
     end.
