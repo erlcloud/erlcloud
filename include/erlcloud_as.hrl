@@ -1,6 +1,7 @@
 -record(aws_autoscaling_group, {
           group_name :: string(),
           availability_zones :: list(string()),
+          load_balancer_names :: list(string()),
           tags :: list(string()),
           desired_capacity :: integer(),
           min_size :: integer(),
