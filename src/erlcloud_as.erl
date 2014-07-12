@@ -89,7 +89,10 @@ extract_group(G) ->
     #aws_autoscaling_group{
        group_name = erlcloud_xml:get_text("AutoScalingGroupName", G),
        tags = extract_tags_from_group(G),
-       availability_zones = [erlcloud_xml:get_text(A) || A <- xmerl_xpath:string("AvailabilityZones/member", G)],
+       availability_zones = 
+           [erlcloud_xml:get_text(A) || A <- xmerl_xpath:string("AvailabilityZones/member", G)],
+       load_balancer_names = 
+           [erlcloud_xml:get_text(L) || L <- xmerl_xpath:string("LoadBalancerNames/member", G)],
        desired_capacity = erlcloud_xml:get_integer("DesiredCapacity", G),
        min_size = erlcloud_xml:get_integer("MinSize", G),
        max_size = erlcloud_xml:get_integer("MaxSize", G)}.
