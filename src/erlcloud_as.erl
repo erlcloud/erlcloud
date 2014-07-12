@@ -5,7 +5,10 @@
 
 %% AWS Autoscaling functions
 -export([describe_groups/0, describe_groups/1, describe_groups/2, describe_groups/4,
-        set_desired_capacity/2, set_desired_capacity/3, set_desired_capacity/4]).
+         set_desired_capacity/2, set_desired_capacity/3, set_desired_capacity/4,
+
+         describe_launch_configs/0, describe_launch_configs/1, describe_launch_configs/2, 
+         describe_launch_configs/4]).
 
 -define(API_VERSION, "2011-01-01").
 -define(DEFAULT_MAX_RECORDS, 20).
@@ -17,6 +20,10 @@
         "/DescribeAutoScalingGroupsResponse/DescribeAutoScalingGroupsResult/NextToken").
 % xpath for the request ID returned from a SetDesiredCapacity operation:
 -define(SET_SCALE_REQUEST_ID_PATH, "/SetDesiredCapacityResponse/ResponseMetadata/RequestId").
+-define(DESCRIBE_LAUNCH_CONFIG_PATH, 
+        "/DescribeLaunchConfigurationsResponse/DescribeLaunchConfigurationsResult/LaunchConfigurations/member").
+-define(LAUNCH_CONFIG_NEXT_TOKEN,
+        "/DescribeLaunchConfigurationsResponse/DescribeLaunchConfigurationsResult/NextToken").
 
 %% --------------------------------------------------------------------
 %% @doc Calls describe_groups([], default_configuration())
@@ -100,7 +107,6 @@ extract_tags_from_group(G) ->
     [{erlcloud_xml:get_text("Key", T), erlcloud_xml:get_text("Value", T)} || 
         T <- xmerl_xpath:string("Tags/member", G)].
 
-
 %% --------------------------------------------------------------------
 %% @doc set_desired_capacity(GroupName, Capacity, false, default_config())
 %% @end
@@ -136,6 +142,50 @@ set_desired_capacity(GroupName, Capacity, HonorCooldown, Config) ->
         {error, Reason} ->
             {error, Reason}
     end.
+
+describe_launch_configs() ->
+    describe_launch_configs([], erlcloud_aws:default_config()).
+
+describe_launch_configs(Config) when is_record(Config, aws_config) ->
+    describe_launch_configs([], Config);
+describe_launch_configs(GroupNames) ->
+    describe_launch_configs(GroupNames, erlcloud_aws:default_config()).
+
+describe_launch_configs(LN, Config) ->
+    describe_launch_configs(LN, ?DEFAULT_MAX_RECORDS, none, Config).
+
+%% --------------------------------------------------------------------
+%% @doc Get descriptions of the given launch configurations with a given
+%%      maximum number of results and optional paging offset.
+%% Pass an empty list of names to get all.
+%% @end
+%% --------------------------------------------------------------------
+describe_launch_configs(LN, MaxRecords, NextToken, Config) ->
+    describe_launch_configs(LN, [{"MaxRecords", MaxRecords}, {"NextToken", NextToken}], Config).
+
+-spec describe_launch_configs(list(string()), list({string(), term()}), aws_config()) -> 
+                                    {ok, list(aws_launch_config())} | 
+                                    {{paged, string()}, list(aws_launch_config)} | 
+                                    {error, term()}.                                     
+describe_launch_configs(LN, Params, Config) ->
+    MemberKeys = ["LaunchConfigurationNames.member." ++ integer_to_list(I) || I <- lists:seq(1, length(LN))],
+    MemberParams = [{K, V} || {K, V} <- lists:zip(MemberKeys, LN)],
+    case as_query(Config, "DescribeLaunchConfigurations", MemberParams ++ Params, ?API_VERSION) of
+        {ok, Doc} ->
+            Status = next_token(?LAUNCH_CONFIG_NEXT_TOKEN, Doc),
+            Configs = [extract_config(C) || C <- xmerl_xpath:string(?DESCRIBE_LAUNCH_CONFIG_PATH, Doc)],
+            {Status, Configs};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+extract_config(C) ->
+    #aws_launch_config{
+       name = erlcloud_xml:get_text("LaunchConfigurationName", C),
+       image_id = erlcloud_xml:get_text("ImageId", C),
+       tenancy = erlcloud_xml:get_text("PlacementTenancy", C),
+       instance_type = erlcloud_xml:get_text("InstanceType", C)
+      }.
 
 %% Based on erlcoud_ec2:ec2_query2()
 %% @TODO:  spec is too general with terms I think
