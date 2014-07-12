@@ -4,14 +4,17 @@
 -include_lib("erlcloud/include/erlcloud_as.hrl").
 
 %% AWS Autoscaling functions
--export([describe_groups/0, describe_groups/1, describe_groups/2,
+-export([describe_groups/0, describe_groups/1, describe_groups/2, describe_groups/4,
         set_desired_capacity/2, set_desired_capacity/3, set_desired_capacity/4]).
 
 -define(API_VERSION, "2011-01-01").
+-define(DEFAULT_MAX_RECORDS, 20).
 
 % xpath for group descriptions used in describe_groups functions:
 -define(DESCRIBE_GROUPS_PATH, 
         "/DescribeAutoScalingGroupsResponse/DescribeAutoScalingGroupsResult/AutoScalingGroups/member").
+-define(DESCRIBE_GROUPS_NEXT_TOKEN, 
+        "/DescribeAutoScalingGroupsResponse/DescribeAutoScalingGroupsResult/NextToken").
 % xpath for the request ID returned from a SetDesiredCapacity operation:
 -define(SET_SCALE_REQUEST_ID_PATH, "/SetDesiredCapacityResponse/ResponseMetadata/RequestId").
 
@@ -36,18 +39,50 @@ describe_groups(GroupNames) ->
 %% @doc Get descriptions of the given autoscaling groups.
 %%      The account calling this function needs permission for the
 %%      autoscaling:DescribeAutoScalingGroups action.
+%% 
+%% Returns {{paged, NextPageId}, Results} if there are more than
+%% the current maximum count of results, {ok, Results} if everything
+%% fits and {error, Reason} if there was a problem.
 %% @end
 %% --------------------------------------------------------------------
--spec describe_groups(list(string()), aws_config()) -> {ok, term()} | {error, term()}.
+-spec describe_groups(list(string()), aws_config()) -> 
+                             {ok, term()} | {{paged, string()}, term()} | {error, term()}.
 describe_groups(GN, Config) ->
+    describe_groups(GN, ?DEFAULT_MAX_RECORDS, none, Config).
+
+%% --------------------------------------------------------------------
+%% @doc Get descriptions of the given autoscaling groups with a given
+%%      maximum number of results and optional paging offset.
+%% @end
+%% --------------------------------------------------------------------
+-spec describe_groups(list(string()), integer(), string() | none, aws_config()) -> 
+                             {ok, term()} | {{paged, string()}, term()} | {error, term()}.
+describe_groups(GN, MaxRecords, NextToken, Config) ->
+    describe_groups(GN, [{"NextToken", NextToken}, {"MaxRecords", MaxRecords}], Config).
+
+-spec describe_groups(list(string()), list({string(), term()}), aws_config()) -> 
+                             {ok, term()} | {{paged, string()}, term()} | {error, term()}.
+describe_groups(GN, Params, Config) ->
     MemberKeys = ["AutoScalingGroupNames.member." ++ integer_to_list(I) || I <- lists:seq(1, length(GN))],
-    Params = [{K, V} || {K, V} <- lists:zip(MemberKeys, GN)],
-    case as_query(Config, "DescribeAutoScalingGroups", Params, ?API_VERSION) of
+    MemberParams = [{K, V} || {K, V} <- lists:zip(MemberKeys, GN)],
+    case as_query(Config, "DescribeAutoScalingGroups", MemberParams ++ Params, ?API_VERSION) of
         {ok, Doc} ->
-            Groups = xmerl_xpath:string(?DESCRIBE_GROUPS_PATH, Doc),
-            [extract_group(G) || G <- Groups];
+            Groups = xmerl_xpath:string(?DESCRIBE_GROUPS_PATH, Doc),            
+            {next_token(?DESCRIBE_GROUPS_NEXT_TOKEN, Doc), [extract_group(G) || G <- Groups]};
         {error, Reason} ->
             {error, Reason}
+    end.
+    
+
+%% retrieve NextToken from the XML at Path location.  Path is expected to lead to a 
+%% single occurrence and if it does not exist as such, this just returns ok.
+-spec next_token(string(), term()) -> ok | {paged, string()}.
+next_token(Path, XML) ->
+    case xmerl_xpath:string(Path, XML) of
+        [Next] ->
+            {paged, erlcloud_xml:get_text(Next)};
+        _ ->
+            ok
     end.
 
 extract_group(G) ->
