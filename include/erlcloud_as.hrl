@@ -16,3 +16,13 @@
           tenancy :: string()
          }).
 -type(aws_launch_config() :: #aws_launch_config{}).
+
+-record(aws_autoscaling_instance, {
+          instance_id :: string(),
+          launch_config_name :: string(),
+          group_name :: string(),
+          availability_zone :: string(),
+          health_status :: string(),
+          lifecycle_state :: string()
+         }).
+-type aws_autoscaling_instance() :: #aws_autoscaling_instance{}).
