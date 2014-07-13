@@ -20,10 +20,18 @@
         "/DescribeAutoScalingGroupsResponse/DescribeAutoScalingGroupsResult/NextToken").
 % xpath for the request ID returned from a SetDesiredCapacity operation:
 -define(SET_SCALE_REQUEST_ID_PATH, "/SetDesiredCapacityResponse/ResponseMetadata/RequestId").
+
+%% xpath for launch config functions:
 -define(DESCRIBE_LAUNCH_CONFIG_PATH, 
         "/DescribeLaunchConfigurationsResponse/DescribeLaunchConfigurationsResult/LaunchConfigurations/member").
 -define(LAUNCH_CONFIG_NEXT_TOKEN,
         "/DescribeLaunchConfigurationsResponse/DescribeLaunchConfigurationsResult/NextToken").
+
+%% xpath for autoscaling instance description:
+-define(DESCRIBE_INSTANCES,
+        "/DescribeAutoScalingInstancesResponse/DescribeAutoScalingInstancesResult/AutoScalingInstances/member").
+-define(DESCRIBE_INSTANCES_NEXT_TOKEN,
+        "/DescribeAutoScalingInstancesResponse/DescribeAutoScalingInstancesResult/NextToken").
 
 %% --------------------------------------------------------------------
 %% @doc Calls describe_groups([], default_configuration())
@@ -70,9 +78,8 @@ describe_groups(GN, MaxRecords, NextToken, Config) ->
 -spec describe_groups(list(string()), list({string(), term()}), aws_config()) -> 
                              {ok, term()} | {{paged, string()}, term()} | {error, term()}.
 describe_groups(GN, Params, Config) ->
-    MemberKeys = ["AutoScalingGroupNames.member." ++ integer_to_list(I) || I <- lists:seq(1, length(GN))],
-    MemberParams = [{K, V} || {K, V} <- lists:zip(MemberKeys, GN)],
-    case as_query(Config, "DescribeAutoScalingGroups", MemberParams ++ Params, ?API_VERSION) of
+    P = member_params("AutoScalingGroupNames.member.", GN) ++ Params,
+    case as_query(Config, "DescribeAutoScalingGroups", P, ?API_VERSION) of
         {ok, Doc} ->
             Groups = xmerl_xpath:string(?DESCRIBE_GROUPS_PATH, Doc),            
             {next_token(?DESCRIBE_GROUPS_NEXT_TOKEN, Doc), [extract_group(G) || G <- Groups]};
@@ -168,9 +175,8 @@ describe_launch_configs(LN, MaxRecords, NextToken, Config) ->
                                     {{paged, string()}, list(aws_launch_config)} | 
                                     {error, term()}.                                     
 describe_launch_configs(LN, Params, Config) ->
-    MemberKeys = ["LaunchConfigurationNames.member." ++ integer_to_list(I) || I <- lists:seq(1, length(LN))],
-    MemberParams = [{K, V} || {K, V} <- lists:zip(MemberKeys, LN)],
-    case as_query(Config, "DescribeLaunchConfigurations", MemberParams ++ Params, ?API_VERSION) of
+    P = member_params("LaunchConfigurationNames.member.", LN) ++ Params,
+    case as_query(Config, "DescribeLaunchConfigurations", P, ?API_VERSION) of
         {ok, Doc} ->
             Status = next_token(?LAUNCH_CONFIG_NEXT_TOKEN, Doc),
             Configs = [extract_config(C) || C <- xmerl_xpath:string(?DESCRIBE_LAUNCH_CONFIG_PATH, Doc)],
@@ -178,6 +184,16 @@ describe_launch_configs(LN, Params, Config) ->
         {error, Reason} ->
             {error, Reason}
     end.
+
+%% given a list of member identifiers, return a list of 
+%% {key with prefix, member identifier} for use in autoscaling calls.
+%% Example pair that could be returned in a list is 
+%% {"LaunchConfigurationNames.member.1", "my-launch-config}.
+-spec member_params(string(), list(string())) -> list({string(), string()}).
+member_params(Prefix, MemberIdentifiers) ->
+    MemberKeys = [Prefix ++ integer_to_list(I) || I <- lists:seq(1, length(MemberIdentifiers))],
+    [{K, V} || {K, V} <- lists:zip(MemberKeys, MemberIdentifiers)].
+    
 
 extract_config(C) ->
     #aws_launch_config{
