@@ -25,4 +25,4 @@
           health_status :: string(),
           lifecycle_state :: string()
          }).
--type aws_autoscaling_instance() :: #aws_autoscaling_instance{}).
+-type(aws_autoscaling_instance() :: #aws_autoscaling_instance{}).

@@ -8,7 +8,10 @@
          set_desired_capacity/2, set_desired_capacity/3, set_desired_capacity/4,
 
          describe_launch_configs/0, describe_launch_configs/1, describe_launch_configs/2, 
-         describe_launch_configs/4]).
+         describe_launch_configs/4,
+
+         describe_instances/0, describe_instances/1, describe_instances/2, 
+         describe_instances/4]).
 
 -define(API_VERSION, "2011-01-01").
 -define(DEFAULT_MAX_RECORDS, 20).
@@ -72,6 +75,8 @@ describe_groups(GN, Config) ->
 %% --------------------------------------------------------------------
 -spec describe_groups(list(string()), integer(), string() | none, aws_config()) -> 
                              {ok, term()} | {{paged, string()}, term()} | {error, term()}.
+describe_groups(GN, MaxRecords, none, Config) ->
+    describe_groups(GN, [{"MaxRecords", MaxRecords}], Config);
 describe_groups(GN, MaxRecords, NextToken, Config) ->
     describe_groups(GN, [{"NextToken", NextToken}, {"MaxRecords", MaxRecords}], Config).
 
@@ -167,6 +172,8 @@ describe_launch_configs(LN, Config) ->
 %% Pass an empty list of names to get all.
 %% @end
 %% --------------------------------------------------------------------
+describe_launch_configs(LN, MaxRecords, none, Config) ->
+    describe_launch_configs(LN, [{"MaxRecords", MaxRecords}], Config);
 describe_launch_configs(LN, MaxRecords, NextToken, Config) ->
     describe_launch_configs(LN, [{"MaxRecords", MaxRecords}, {"NextToken", NextToken}], Config).
 
@@ -184,6 +191,57 @@ describe_launch_configs(LN, Params, Config) ->
         {error, Reason} ->
             {error, Reason}
     end.
+
+
+%% --------------------------------------------------------------------
+%% @doc describe_instances([], default max results, no paging offset, default config).
+%% @end
+%% --------------------------------------------------------------------
+describe_instances() ->
+    describe_instances([], erlcloud_aws:default_config()).
+
+describe_instances(I, Config) ->
+    describe_instances(I, ?DEFAULT_MAX_RECORDS, none, Config).
+
+describe_instances(Config) when is_record(Config, aws_config) ->
+    describe_instances([], Config);
+describe_instances(GroupNames) ->
+    describe_instances(GroupNames, erlcloud_aws:default_config()).
+
+%% --------------------------------------------------------------------
+%% @doc Get more information on the given list of instances in your
+%% autoscaling groups or all if an empty list is passed in I.
+%% @end
+%% --------------------------------------------------------------------
+describe_instances(I, MaxRecords, none, Config) ->
+    describe_instances(I, [{"MaxRecords", MaxRecords}], Config);
+describe_instances(I, MaxRecords, NextToken, Config) ->
+    describe_instances(I, [{"MaxRecords", MaxRecords}, {"NextToken", NextToken}], Config).
+
+-spec describe_instances(list(string()), list({string(), string()}), aws_config()) -> 
+                                {ok, list(aws_launch_config())} | 
+                                {{paged, string()}, list(aws_launch_config)} | 
+                                {error, term()}.                       
+describe_instances(I, Params, Config) ->
+    P = member_params("InstanceIds.member.", I) ++ Params,
+    case as_query(Config, "DescribeAutoScalingInstances", P, ?API_VERSION) of
+        {ok, Doc} ->
+            Status = next_token(?DESCRIBE_INSTANCES_NEXT_TOKEN, Doc),
+            Instances = [extract_instance(ID) || ID <- xmerl_xpath:string(?DESCRIBE_INSTANCES, Doc)],
+            {Status, Instances};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+extract_instance(I) ->
+    #aws_autoscaling_instance{
+       instance_id = erlcloud_xml:get_text("InstanceId", I),
+       launch_config_name = erlcloud_xml:get_text("LaunchConfigurationName", I),
+       group_name = erlcloud_xml:get_text("AutoScalingGroupName", I),
+       availability_zone = erlcloud_xml:get_text("AvailabilityZone", I),
+       health_status = erlcloud_xml:get_text("HealthStatus", I),
+       lifecycle_state = erlcloud_xml:get_text("LifecycleState", I)
+      }.
 
 %% given a list of member identifiers, return a list of 
 %% {key with prefix, member identifier} for use in autoscaling calls.
