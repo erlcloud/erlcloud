@@ -1,3 +1,6 @@
+%% need this include for datetime() type:
+-include("erlcloud.hrl").
+
 -record(aws_autoscaling_group, {
           group_name :: string(),
           availability_zones :: list(string()),
@@ -26,3 +29,17 @@
           lifecycle_state :: string()
          }).
 -type(aws_autoscaling_instance() :: #aws_autoscaling_instance{}).
+
+-record(aws_autoscaling_activity, {
+          id :: string(),
+          group_name :: string(),
+          cause :: string(),
+          description :: string(),
+          details :: string(),
+          status_code :: string(),
+          status_msg :: string(),
+          start_time :: datetime(),
+          end_time :: datetime(),
+          progress :: integer()
+         }).
+-type(aws_autoscaling_activity() :: #aws_autoscaling_activity{}).

@@ -11,7 +11,8 @@
          describe_launch_configs/4,
 
          describe_instances/0, describe_instances/1, describe_instances/2, 
-         describe_instances/4]).
+         describe_instances/4,
+         terminate_instance/1, terminate_instance/2, terminate_instance/3]).
 
 -define(API_VERSION, "2011-01-01").
 -define(DEFAULT_MAX_RECORDS, 20).
@@ -35,6 +36,10 @@
         "/DescribeAutoScalingInstancesResponse/DescribeAutoScalingInstancesResult/AutoScalingInstances/member").
 -define(DESCRIBE_INSTANCES_NEXT_TOKEN,
         "/DescribeAutoScalingInstancesResponse/DescribeAutoScalingInstancesResult/NextToken").
+
+%% xpath for terminate instance:
+-define(TERMINATE_INSTANCE_ACTIVITY, 
+        "/TerminateInstanceInAutoScalingGroupResponse/TerminateInstanceInAutoScalingGroupResult/Activity").
 
 %% --------------------------------------------------------------------
 %% @doc Calls describe_groups([], default_configuration())
@@ -243,6 +248,45 @@ extract_instance(I) ->
        lifecycle_state = erlcloud_xml:get_text("LifecycleState", I)
       }.
 
+%% --------------------------------------------------------------------
+%% @doc Terminate the given instance using the default configuration
+%% without decrementing the desired capacity of the group.
+%% @end
+%% --------------------------------------------------------------------
+-spec terminate_instance(string()) -> aws_autoscaling_activity().
+terminate_instance(InstanceId) ->
+    terminate_instance(InstanceId, erlcloud_aws:default_config()).
+
+%% --------------------------------------------------------------------
+%% @doc Terminate the given instance.  The 2nd parameter can be:
+%% 'false' to not decrement the desired capacity of the group
+%% 'true' to decrement the desired capacity of the group
+%% Config a supplied AWS configuration.
+%% @end
+%% --------------------------------------------------------------------
+terminate_instance(InstanceId, false) ->
+    terminate_instance(InstanceId, false, erlcloud_aws:default_config());
+terminate_instance(InstanceId, true) ->
+    terminate_instance(InstanceId, true, erlcloud_aws:default_config());
+terminate_instance(InstanceId, Config) ->
+    terminate_instance(InstanceId, false, Config).
+
+terminate_instance(InstanceId, false, Config) ->
+    priv_terminate_instance([{"InstanceId", InstanceId}, {"ShouldDecrementDesiredCapacity", "false"}], Config);
+terminate_instance(InstanceId, true, Config) ->
+    priv_terminate_instance([{"InstanceId", InstanceId}, {"ShouldDecrementDesiredCapacity", "true"}], Config).
+
+priv_terminate_instance(Params, Config) ->
+    case as_query(Config, "TerminateInstanceInAutoScalingGroup", Params, ?API_VERSION) of
+        {ok, Doc} ->
+            [Activity] = [extract_as_activity(A) || A <- xmerl_xpath:string(?TERMINATE_INSTANCE_ACTIVITY, Doc)],
+            {ok, Activity};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+    
+
+
 %% given a list of member identifiers, return a list of 
 %% {key with prefix, member identifier} for use in autoscaling calls.
 %% Example pair that could be returned in a list is 
@@ -260,6 +304,23 @@ extract_config(C) ->
        tenancy = erlcloud_xml:get_text("PlacementTenancy", C),
        instance_type = erlcloud_xml:get_text("InstanceType", C)
       }.
+
+extract_as_activity(A) ->
+    #aws_autoscaling_activity{
+       id = get_text("ActivityId", A),
+       group_name = get_text("AutoScalingGroupName", A),
+       cause = get_text("Cause", A),
+       description = get_text("Description", A),
+       details = get_text("Details", A),
+       status_code = get_text("StatusCode", A),
+       status_msg = get_text("StatusMessage", A),
+       start_time = erlcloud_xml:get_time("StartTime", A),
+       end_time = erlcloud_xml:get_time("EndTime", A),
+       progress = erlcloud_xml:get_integer("Progress", A)
+      }.
+
+get_text(Label, Doc) ->
+    erlcloud_xml:get_text(Label, Doc).
 
 %% Based on erlcoud_ec2:ec2_query2()
 %% @TODO:  spec is too general with terms I think
