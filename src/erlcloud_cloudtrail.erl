@@ -162,11 +162,10 @@ request_impl(Method, _Protocol, _Host, _Port, _Path, Operation, Params, Body, #a
     Headers = headers(Config, Api_Operation, Params, Body, ?SERVICE_NAME),
     % ({ok, {{_HTTPVer, OKStatus, _StatusLine}, Headers, Body}})
     case erlcloud_aws:http_headers_body(
-           erlcloud_httpc:request(
-             url(Config), Method, 
-             [{<<"content-type">>, <<"application/x-amz-json-1.1">>} | Headers],
-             Body, 1000, Config)) of
-        {ok, {_RespHeader, RespBody}} ->
+                    httpc:request(Method, {url(Config), Headers, "application/x-amz-json-1.1", Body},
+                            [{timeout, 1000}],
+                            [{body_format, binary}])) of
+       {ok, {_RespHeader, RespBody}} ->
             case Config#aws_config.cloudtrail_raw_result of
                 true -> {ok, RespBody};
                 _ -> {ok, jsx:decode(RespBody)}
