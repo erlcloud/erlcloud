@@ -309,8 +309,13 @@ list_objects(BucketName, Options, Config)
                   {delimiter, "Delimiter", text},
                   {max_keys, "MaxKeys", integer},
                   {is_truncated, "IsTruncated", boolean},
+                  {common_prefixes, "CommonPrefixes", fun extract_prefixes/1},
                   {contents, "Contents", fun extract_contents/1}],
     erlcloud_xml:decode(Attributes, Doc).
+
+extract_prefixes(Nodes) ->
+    Attributes = [{prefix, "Prefix", text}],
+    [erlcloud_xml:decode(Attributes, Node) || Node <- Nodes].
 
 extract_contents(Nodes) ->
     Attributes = [{key, "Key", text},
