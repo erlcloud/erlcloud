@@ -161,10 +161,12 @@ request_impl(Method, _Protocol, _Host, _Port, _Path, Operation, Params, Body, #a
     Api_Operation = lists:flatten(?CLOUD_TRAIL_API_PREFIX, Operation),
     Headers = headers(Config, Api_Operation, Params, Body, ?SERVICE_NAME),
     % ({ok, {{_HTTPVer, OKStatus, _StatusLine}, Headers, Body}})
+    io:format("Request: URL: ~p, Headers: ~p, Body: ~p~n", [url(Config), Headers, Body]),
     case erlcloud_aws:http_headers_body(
-                    httpc:request(Method, {url(Config), Headers, "application/x-amz-json-1.1", Body},
-                            [{timeout, 1000}],
-                            [{body_format, binary}])) of
+                erlcloud_httpc:request(
+                     url(Config), Method, 
+                     [{<<"content-type">>, <<"application/x-amz-json-1.1">>} | Headers],
+                     Body, 1000, Config)) of
        {ok, {_RespHeader, RespBody}} ->
             case Config#aws_config.cloudtrail_raw_result of
                 true -> {ok, RespBody};
@@ -176,7 +178,7 @@ request_impl(Method, _Protocol, _Host, _Port, _Path, Operation, Params, Body, #a
 
 -spec headers(aws_config(), string(), proplist(), binary(), string()) -> headers().
 headers(Config, Operation, _Params, Body, Service) ->
-    Headers = [{"content-type", "application/x-amz-json-1.1"},
+    Headers = [
                {"host", Config#aws_config.cloudtrail_host},
                {"x-amz-target", Operation}
                ],
