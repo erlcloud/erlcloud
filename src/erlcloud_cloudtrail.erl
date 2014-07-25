@@ -161,7 +161,6 @@ request_impl(Method, _Protocol, _Host, _Port, _Path, Operation, Params, Body, #a
     Api_Operation = lists:flatten(?CLOUD_TRAIL_API_PREFIX, Operation),
     Headers = headers(Config, Api_Operation, Params, Body, ?SERVICE_NAME),
     % ({ok, {{_HTTPVer, OKStatus, _StatusLine}, Headers, Body}})
-    io:format("Request: URL: ~p, Headers: ~p, Body: ~p~n", [url(Config), Headers, Body]),
     case erlcloud_aws:http_headers_body(
                 erlcloud_httpc:request(
                      url(Config), Method, 
