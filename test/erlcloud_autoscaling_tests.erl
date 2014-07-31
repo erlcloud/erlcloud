@@ -225,6 +225,7 @@ describe_autoscaling_groups_output_tests(_) ->
             {desired_capacity,2},
             {placement_group,[]},
             {status,[]},
+            {subnets, []},
             {availability_zones,["us-east-1b","us-east-1a"]},
             {load_balancers,["my-test-asg-loadbalancer"]},
             {instances,[]},

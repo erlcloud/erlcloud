@@ -97,6 +97,7 @@ extract_autoscaling_group(Item) ->
         {desired_capacity, get_integer("DesiredCapacity", Item)},
         {placement_group, get_text("PlacementGroup", Item)},
         {status, get_text("Status", Item)},
+        {subnets, string:tokens(get_text("VPCZoneIdentifier", Item), ",")},
         {availability_zones, [get_text(Z) || Z <- xmerl_xpath:string("AvailabilityZones/member", Item)]},
         {load_balancers, [get_text(L) || L <- xmerl_xpath:string("LoadBalancerNames/member", Item)]},
         {instances, [extract_instance(I) || I <- xmerl_xpath:string("Instances/member", Item)]},
