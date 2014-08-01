@@ -934,7 +934,13 @@ s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Heade
             Error
     end.
 
-s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
+s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData0, Headers0) ->
+    POSTData = case proplists:get_value("content-type", Headers0) of
+                   undefined ->
+                       POSTData0;
+                   ContentType0 ->
+                       {POSTData0, ContentType0}
+               end,
     {ContentMD5, ContentType, Body} =
         case POSTData of
             {PD, CT} -> {base64:encode(erlcloud_util:md5(PD)), CT, PD}; 
