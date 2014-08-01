@@ -8,3 +8,4 @@ rebar
 *.sublime-*
 deps/
 doc/
+.edts
