@@ -602,8 +602,7 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
     RequestHeaders = [{"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}|HTTPHeaders]
         ++ [{"x-amz-meta-" ++ string:to_lower(MKey), MValue} ||
                {MKey, MValue} <- proplists:get_value(meta, Options, [])],
-    ContentType = proplists:get_value("content-type", HTTPHeaders, "application/octet_stream"),
-    POSTData = {iolist_to_binary(Value), ContentType},
+    POSTData = iolist_to_binary(Value),
     {Headers, _Body} = s3_request(Config, put, BucketName, [$/|Key], "", [],
                                   POSTData, RequestHeaders),
     [{version_id, proplists:get_value("x-amz-version-id", Headers, "null")}].
@@ -708,9 +707,7 @@ upload_part(BucketName, Key, UploadId, PartNumber, Value, HTTPHeaders, Config)
        is_list(Value) orelse is_binary(Value),
        is_list(HTTPHeaders), is_record(Config, aws_config) ->
 
-    ContentType = proplists:get_value("content-type", HTTPHeaders, "application/octet_stream"),
-    POSTData = {iolist_to_binary(Value), ContentType},
-
+    POSTData = iolist_to_binary(Value),
     case s3_request2(Config, put, BucketName, [$/|Key], [], [{"uploadId", UploadId},
                                                              {"partNumber", integer_to_list(PartNumber)}],
                      POSTData, HTTPHeaders) of
@@ -934,12 +931,14 @@ s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Heade
             Error
     end.
 
-s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
-    {ContentMD5, ContentType, Body} =
-        case POSTData of
-            {PD, CT} -> {base64:encode(erlcloud_util:md5(PD)), CT, PD}; 
-            PD -> {"", "", PD}
-        end,
+s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Headers0) ->
+    ContentType = proplists:get_value("content-type", Headers0, ""),
+    ContentMD5 = case Body of
+                     <<>> ->
+                         "";
+                     _ ->
+                         base64:encode(erlcloud_util:md5(Body))
+                 end,
     Headers = case Config#aws_config.security_token of
                   undefined -> Headers0;
                   Token when is_list(Token) -> [{"x-amz-security-token", Token} | Headers0]
