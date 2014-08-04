@@ -216,7 +216,8 @@ extract_listener(Item) ->
         {protocol, get_text("Listener/Protocol", Item)},
         {port, get_integer("Listener/LoadBalancerPort", Item)},
         {instance_protocol, get_text("Listener/InstanceProtocol", Item)},
-        {instance_port, get_integer("Listener/InstancePort", Item)}
+        {instance_port, get_integer("Listener/InstancePort", Item)},
+        {ssl_certificate_id, get_integer("Listener/SSLCertificateId", Item)}
     ].
 
 
