@@ -155,7 +155,7 @@ set_desired_capacity(GroupName, Capacity, HonorCooldown, Config) ->
     case as_query(Config, "SetDesiredCapacity", Params, ?API_VERSION) of
         {ok, Doc} ->
             [RequestId] = xmerl_xpath:string(?SET_SCALE_REQUEST_ID_PATH, Doc),
-            erlcloud_xml:get_text(RequestId);
+            {ok, erlcloud_xml:get_text(RequestId)};
         {error, Reason} ->
             {error, Reason}
     end.
