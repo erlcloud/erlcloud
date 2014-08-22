@@ -109,6 +109,15 @@ next_token(Path, XML) ->
             ok
     end.
 
+extract_instance(I) ->
+    #aws_autoscaling_instance{
+       instance_id = erlcloud_xml:get_text("InstanceId", I),
+       launch_config_name = erlcloud_xml:get_text("LaunchConfigurationName", I),
+       availability_zone = erlcloud_xml:get_text("AvailabilityZone", I),
+       health_status = erlcloud_xml:get_text("HealthStatus", I),
+       lifecycle_state = erlcloud_xml:get_text("LifecycleState", I)
+      }.
+
 extract_group(G) ->
     #aws_autoscaling_group{
        group_name = erlcloud_xml:get_text("AutoScalingGroupName", G),
@@ -117,6 +126,8 @@ extract_group(G) ->
            [erlcloud_xml:get_text(A) || A <- xmerl_xpath:string("AvailabilityZones/member", G)],
        load_balancer_names = 
            [erlcloud_xml:get_text(L) || L <- xmerl_xpath:string("LoadBalancerNames/member", G)],
+	   instances =
+		   [extract_instance(I) || I <- xmerl_xpath:string("Instances/member", G)],
        desired_capacity = erlcloud_xml:get_integer("DesiredCapacity", G),
        min_size = erlcloud_xml:get_integer("MinSize", G),
        max_size = erlcloud_xml:get_integer("MaxSize", G)}.
@@ -209,9 +220,7 @@ describe_instances(I, Config) ->
     describe_instances(I, ?DEFAULT_MAX_RECORDS, none, Config).
 
 describe_instances(Config) when is_record(Config, aws_config) ->
-    describe_instances([], Config);
-describe_instances(GroupNames) ->
-    describe_instances(GroupNames, erlcloud_aws:default_config()).
+    describe_instances([], Config).
 
 %% --------------------------------------------------------------------
 %% @doc Get more information on the given list of instances in your
@@ -232,14 +241,14 @@ describe_instances(I, Params, Config) ->
     case as_query(Config, "DescribeAutoScalingInstances", P, ?API_VERSION) of
         {ok, Doc} ->
             Status = next_token(?DESCRIBE_INSTANCES_NEXT_TOKEN, Doc),
-            Instances = [extract_instance(ID) || ID <- xmerl_xpath:string(?DESCRIBE_INSTANCES, Doc)],
+            Instances = [extract_instance_details(ID) || ID <- xmerl_xpath:string(?DESCRIBE_INSTANCES, Doc)],
             {Status, Instances};
         {error, Reason} ->
             {error, Reason}
     end.
 
-extract_instance(I) ->
-    #aws_autoscaling_instance{
+extract_instance_details(I) ->
+    #aws_autoscaling_instance_details{
        instance_id = erlcloud_xml:get_text("InstanceId", I),
        launch_config_name = erlcloud_xml:get_text("LaunchConfigurationName", I),
        group_name = erlcloud_xml:get_text("AutoScalingGroupName", I),
