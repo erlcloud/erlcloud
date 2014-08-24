@@ -528,7 +528,7 @@ extract_bucket(Node) ->
                          {creation_date, "CreationDate", time}],
                         Node).
 
--spec put_object(string(), string(), iolist()) -> proplist().
+-spec put_object(string(), string(), iolist() | binary()) -> proplist().
 
 put_object(BucketName, Key, Value) ->
     put_object(BucketName, Key, Value, []).
@@ -645,11 +645,11 @@ start_multipart(BucketName, Key, Options, HTTPHeaders, Config)
 	    Error
     end.
 
--spec upload_part(string(), string(), string(), integer(), iolist()) -> {ok, proplist()} | {error, any()}.
+-spec upload_part(string(), string(), string(), integer(), iolist() | binary()) -> {ok, proplist()} | {error, any()}.
 upload_part(BucketName, Key, UploadId, PartNumber, Value) ->
     upload_part(BucketName, Key, UploadId, PartNumber, Value, [], default_config()).
 
--spec upload_part(string(), string(), string(), integer(), iolist(), [{string(), string()}], aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec upload_part(string(), string(), string(), integer(), iolist() | binary(), [{string(), string()}], aws_config()) -> {ok, proplist()} | {error, any()}.
 upload_part(BucketName, Key, UploadId, PartNumber, Value, HTTPHeaders, Config)
   when is_list(BucketName), is_list(Key), is_list(UploadId), is_integer(PartNumber), 
        is_list(Value) orelse is_binary(Value),
