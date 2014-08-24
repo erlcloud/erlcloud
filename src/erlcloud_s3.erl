@@ -533,7 +533,7 @@ extract_bucket(Node) ->
 put_object(BucketName, Key, Value) ->
     put_object(BucketName, Key, Value, []).
 
--spec put_object(string(), string(), iolist(), proplist() | aws_config()) -> proplist().
+-spec put_object(string(), string(), iolist() | binary(), proplist() | aws_config()) -> proplist().
 
 put_object(BucketName, Key, Value, Config)
   when is_record(Config, aws_config) ->
@@ -542,7 +542,7 @@ put_object(BucketName, Key, Value, Config)
 put_object(BucketName, Key, Value, Options) ->
     put_object(BucketName, Key, Value, Options, default_config()).
 
--spec put_object(string(), string(), iolist(), proplist(), [{string(), string()}] | aws_config()) -> proplist().
+-spec put_object(string(), string(), iolist() | binary(), proplist(), [{string(), string()}] | aws_config()) -> proplist().
 
 put_object(BucketName, Key, Value, Options, Config)
   when is_record(Config, aws_config) ->
@@ -551,7 +551,7 @@ put_object(BucketName, Key, Value, Options, Config)
 put_object(BucketName, Key, Value, Options, HTTPHeaders) ->
     put_object(BucketName, Key, Value, Options, HTTPHeaders, default_config()).
 
--spec put_object(string(), string(), iolist(), proplist(), [{string(), string()}], aws_config()) -> proplist().
+-spec put_object(string(), string(), iolist() | binary(), proplist(), [{string(), string()}], aws_config()) -> proplist().
 
 put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
   when is_list(BucketName), is_list(Key), is_list(Value) orelse is_binary(Value),
