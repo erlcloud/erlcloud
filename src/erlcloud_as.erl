@@ -110,9 +110,13 @@ next_token(Path, XML) ->
     end.
 
 extract_instance(I) ->
-    #aws_autoscaling_group_instance{
+	extract_instance(I, erlcloud_xml:get_text("AutoScalingGroupName", I)).
+
+extract_instance(I, GroupName) ->
+    #aws_autoscaling_instance{
        instance_id = erlcloud_xml:get_text("InstanceId", I),
        launch_config_name = erlcloud_xml:get_text("LaunchConfigurationName", I),
+       group_name = GroupName,
        availability_zone = erlcloud_xml:get_text("AvailabilityZone", I),
        health_status = erlcloud_xml:get_text("HealthStatus", I),
        lifecycle_state = erlcloud_xml:get_text("LifecycleState", I)
@@ -127,7 +131,7 @@ extract_group(G) ->
        load_balancer_names = 
            [erlcloud_xml:get_text(L) || L <- xmerl_xpath:string("LoadBalancerNames/member", G)],
        instances =
-           [extract_instance(I) || I <- xmerl_xpath:string("Instances/member", G)],
+           [extract_instance(I, group_name) || I <- xmerl_xpath:string("Instances/member", G)],
        desired_capacity = erlcloud_xml:get_integer("DesiredCapacity", G),
        min_size = erlcloud_xml:get_integer("MinSize", G),
        max_size = erlcloud_xml:get_integer("MaxSize", G)}.
@@ -244,21 +248,11 @@ describe_instances(I, Params, Config) ->
     case as_query(Config, "DescribeAutoScalingInstances", P, ?API_VERSION) of
         {ok, Doc} ->
             Status = next_token(?DESCRIBE_INSTANCES_NEXT_TOKEN, Doc),
-            Instances = [extract_instance_details(ID) || ID <- xmerl_xpath:string(?DESCRIBE_INSTANCES, Doc)],
+            Instances = [extract_instance(ID) || ID <- xmerl_xpath:string(?DESCRIBE_INSTANCES, Doc)],
             {Status, Instances};
         {error, Reason} ->
             {error, Reason}
     end.
-
-extract_instance_details(I) ->
-    #aws_autoscaling_instance{
-       instance_id = erlcloud_xml:get_text("InstanceId", I),
-       launch_config_name = erlcloud_xml:get_text("LaunchConfigurationName", I),
-       group_name = erlcloud_xml:get_text("AutoScalingGroupName", I),
-       availability_zone = erlcloud_xml:get_text("AvailabilityZone", I),
-       health_status = erlcloud_xml:get_text("HealthStatus", I),
-       lifecycle_state = erlcloud_xml:get_text("LifecycleState", I)
-      }.
 
 %% --------------------------------------------------------------------
 %% @doc Terminate the given instance using the default configuration
