@@ -110,7 +110,7 @@ next_token(Path, XML) ->
     end.
 
 extract_instance(I) ->
-    #aws_autoscaling_instance{
+    #aws_autoscaling_group_instance{
        instance_id = erlcloud_xml:get_text("InstanceId", I),
        launch_config_name = erlcloud_xml:get_text("LaunchConfigurationName", I),
        availability_zone = erlcloud_xml:get_text("AvailabilityZone", I),
@@ -126,8 +126,8 @@ extract_group(G) ->
            [erlcloud_xml:get_text(A) || A <- xmerl_xpath:string("AvailabilityZones/member", G)],
        load_balancer_names = 
            [erlcloud_xml:get_text(L) || L <- xmerl_xpath:string("LoadBalancerNames/member", G)],
-	   instances =
-		   [extract_instance(I) || I <- xmerl_xpath:string("Instances/member", G)],
+       instances =
+           [extract_instance(I) || I <- xmerl_xpath:string("Instances/member", G)],
        desired_capacity = erlcloud_xml:get_integer("DesiredCapacity", G),
        min_size = erlcloud_xml:get_integer("MinSize", G),
        max_size = erlcloud_xml:get_integer("MaxSize", G)}.
@@ -220,7 +220,10 @@ describe_instances(I, Config) ->
     describe_instances(I, ?DEFAULT_MAX_RECORDS, none, Config).
 
 describe_instances(Config) when is_record(Config, aws_config) ->
-    describe_instances([], Config).
+    describe_instances([], Config);
+
+describe_instances(I) ->
+    describe_instances(I, erlcloud_aws:default_config()).
 
 %% --------------------------------------------------------------------
 %% @doc Get more information on the given list of instances in your
@@ -248,7 +251,7 @@ describe_instances(I, Params, Config) ->
     end.
 
 extract_instance_details(I) ->
-    #aws_autoscaling_instance_details{
+    #aws_autoscaling_instance{
        instance_id = erlcloud_xml:get_text("InstanceId", I),
        launch_config_name = erlcloud_xml:get_text("LaunchConfigurationName", I),
        group_name = erlcloud_xml:get_text("AutoScalingGroupName", I),
