@@ -107,6 +107,7 @@ expected_groups() ->
         group_name = "my-test-asg-lbs",
         availability_zones = ["us-east-1b", "us-east-1a"],
         load_balancer_names = ["my-test-asg-loadbalancer"],
+        instances = [],
         tags = [],
         desired_capacity = 2,
         min_size = 2,

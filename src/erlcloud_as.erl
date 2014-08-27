@@ -110,7 +110,7 @@ next_token(Path, XML) ->
     end.
 
 extract_instance(I) ->
-	extract_instance(I, erlcloud_xml:get_text("AutoScalingGroupName", I)).
+    extract_instance(I, erlcloud_xml:get_text("AutoScalingGroupName", I)).
 
 extract_instance(I, GroupName) ->
     #aws_autoscaling_instance{
