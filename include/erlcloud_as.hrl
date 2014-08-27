@@ -21,17 +21,6 @@
          }).
 -type(aws_launch_config() :: #aws_launch_config{}).
 
-%% maps to http://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_Instance.html
--record(aws_autoscaling_group_instance, {
-          instance_id :: string(),
-          launch_config_name :: string(),
-          availability_zone :: string(),
-          health_status :: string(),
-          lifecycle_state :: string()
-         }).
--type(aws_autoscaling_group_instance() :: #aws_autoscaling_group_instance{}).
-
-%% maps to http://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_AutoScalingInstanceDetails.html
 -record(aws_autoscaling_instance, {
           instance_id :: string(),
           launch_config_name :: string(),
