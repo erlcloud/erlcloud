@@ -282,8 +282,8 @@ new(AccessKeyID, SecretAccessKey, Host) ->
 
 -spec(configure/2 :: (string(), string()) -> ok).
 configure(AccessKeyID, SecretAccessKey) ->
-	put(aws_config, new(AccessKeyID, SecretAccessKey)),
-	ok.
+    put(aws_config, new(AccessKeyID, SecretAccessKey)),
+    ok.
 
 -spec(configure/3 :: (string(), string(), string()) -> ok).
 configure(AccessKeyID, SecretAccessKey, Host) ->
