@@ -58,7 +58,7 @@ request(Config, #aws_request{attempt = 0} = Request, ResultFun) ->
     request_and_retry(Config, ResultFun, {retry, Request}).
 
 request_and_retry(_, _, {error, Request}) ->
-    {error, Request};
+    Request;
 request_and_retry(Config, ResultFun, {retry, Request}) ->
     #aws_request{
        attempt = Attempt,
@@ -81,7 +81,7 @@ request_and_retry(Config, ResultFun, {retry, Request}) ->
             Request4 = ResultFun(Request3),
             case Request4#aws_request.response_type of
                 ok ->
-                    {ok, Request4};
+                    Request4;
                 error ->
                     request_and_retry(Config, ResultFun, RetryFun(Request4))
             end;
