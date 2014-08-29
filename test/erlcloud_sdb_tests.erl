@@ -55,13 +55,13 @@ single_result_response() ->
     single_result_response("item0").
 
 single_result_response(Name) ->
-    {ok, {{200, "OK"}, [], single_result_response_body(Name)}}.
+    {ok, {{200, "OK"}, [], list_to_binary(single_result_response_body(Name))}}.
 
 only_token_response() ->
-    {ok, {{200, "OK"}, [], only_token_response_body()}}.
+    {ok, {{200, "OK"}, [], list_to_binary(only_token_response_body())}}.
 
 single_result_and_token_response() ->
-    {ok, {{200, "OK"}, [], single_result_and_token_response_body()}}.
+    {ok, {{200, "OK"}, [], list_to_binary(single_result_and_token_response_body())}}.
 
 unavailable_response() ->
     {ok, {{503, "Unavailable"}, [], ""}}.
