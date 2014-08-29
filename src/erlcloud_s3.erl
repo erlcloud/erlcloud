@@ -973,11 +973,12 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
                                 end
                                ]),
 
-    Response = case Method of
+    Request = #aws_request{service = s3, uri = RequestURI, method = Method},
+    Request2 = case Method of
                    M when M =:= get orelse M =:= head orelse M =:= delete ->
-                       erlcloud_httpc:request(
-                         RequestURI, Method, RequestHeaders, <<>>,
-                         Config#aws_config.timeout, Config);
+                       Request#aws_request{
+                         request_headers = RequestHeaders,
+                         request_body = <<>>};
                    _ ->
                        Headers2 = case lists:keyfind("content-type", 1, RequestHeaders) of
                                       false ->
@@ -985,11 +986,22 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
                                       _ ->
                                           RequestHeaders
                                   end,
-                       erlcloud_httpc:request(
-                         RequestURI, Method, Headers2, Body,
-                         Config#aws_config.timeout, Config)
+                       Request#aws_request{
+                         request_headers = Headers2,
+                         request_body = Body}
                end,
-    erlcloud_aws:http_headers_body(Response).
+    Request3 = erlcloud_retry:request(Config, Request2, fun s3_result_fun/1),
+    erlcloud_aws:request_to_return(Request3).
+
+s3_result_fun(#aws_request{response_type = ok} = Request) ->
+    Request;
+s3_result_fun(#aws_request{response_type = error, 
+                           error_type = aws, 
+                           response_status = Status} = Request) when
+      Status >= 500 ->
+    Request#aws_request{should_retry = true};
+s3_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
+    Request#aws_request{should_retry = false}.
 
 make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
                    Host, Resource, Subresource, Params) ->
