@@ -90,11 +90,11 @@
               sns_message/0, sns_application/0, sns_endpoint/0]).
 
 -spec add_permission/3 :: (string(), string(), sns_acl()) -> ok.
--spec add_permission/4 :: (string(), string(), sns_acl(), aws_config()) -> ok.
 
 add_permission(TopicArn, Label, Permissions) ->
     add_permission(TopicArn, Label, Permissions, default_config()).
 
+-spec add_permission/4 :: (string(), string(), sns_acl(), aws_config()) -> ok.
 add_permission(TopicArn, Label, Permissions, Config)
   when is_list(TopicArn),
        is_list(Label), length(Label) =< 80,
@@ -108,20 +108,18 @@ add_permission(TopicArn, Label, Permissions, Config)
 
 
 -spec create_platform_endpoint/2 :: (string(), string()) -> string().
--spec create_platform_endpoint/3 :: (string(), string(), string()) -> string().
--spec create_platform_endpoint/4 :: (string(), string(), string(), [{sns_endpoint_attribute(), string()}]) -> string().
--spec create_platform_endpoint/5 :: (string(), string(), string(), [{sns_endpoint_attribute(), string()}], aws_config()) -> string().
--spec create_platform_endpoint/6 :: (string(), string(), string(), [{sns_endpoint_attribute(), string()}], string(), string()) -> string().
-
 create_platform_endpoint(PlatformApplicationArn, Token) ->
     create_platform_endpoint(PlatformApplicationArn, Token, "").
 
+-spec create_platform_endpoint/3 :: (string(), string(), string()) -> string().
 create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData) ->
     create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, []).
 
+-spec create_platform_endpoint/4 :: (string(), string(), string(), [{sns_endpoint_attribute(), string()}]) -> string().
 create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes) ->
     create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, default_config()).
 
+-spec create_platform_endpoint/5 :: (string(), string(), string(), [{sns_endpoint_attribute(), string()}], aws_config()) -> string().
 create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, Config) ->
     Doc =
         sns_xml_request(
@@ -134,16 +132,16 @@ create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attribut
     erlcloud_xml:get_text(
         "CreatePlatformEndpointResult/EndpointArn", Doc).
 
+-spec create_platform_endpoint/6 :: (string(), string(), string(), [{sns_endpoint_attribute(), string()}], string(), string()) -> string().
 create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, AccessKeyID, SecretAccessKey) ->
     create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, new_config(AccessKeyID, SecretAccessKey)).
 
 
 -spec(create_topic/1 :: (string()) -> Arn::string()).
--spec(create_topic/2 :: (string(), aws_config()) -> Arn::string()).
-
 create_topic(TopicName) ->
     create_topic(TopicName, default_config()).
 
+-spec(create_topic/2 :: (string(), aws_config()) -> Arn::string()).
 create_topic(TopicName, Config) 
     when is_record(Config, aws_config) ->
         Doc = sns_xml_request(Config, "CreateTopic", [{"Name", TopicName}]),
@@ -151,26 +149,26 @@ create_topic(TopicName, Config)
 
 
 -spec confirm_subscription/1 :: (sns_event()) -> string().
--spec confirm_subscription/2 :: (sns_event(), aws_config()) -> string().
--spec confirm_subscription/3 :: (sns_event(), string(), string()) -> string().
-
 confirm_subscription(SnsEvent) ->
     confirm_subscription(SnsEvent, default_config()).
+
+-spec confirm_subscription/2 :: (sns_event(), aws_config()) -> string().
 confirm_subscription(SnsEvent, Config) ->
     Token = binary_to_list(proplists:get_value(<<"Token">>, SnsEvent, <<>>)),
     TopicArn = binary_to_list(proplists:get_value(<<"TopicArn">>, SnsEvent, <<>>)),
     confirm_subscription2(Token, TopicArn, Config).
+
+-spec confirm_subscription/3 :: (sns_event(), string(), string()) -> string().
 confirm_subscription(SnsEvent, AccessKeyID, SecretAccessKey) ->
     confirm_subscription(SnsEvent, new_config(AccessKeyID, SecretAccessKey)).
 
 
 
 -spec confirm_subscription2/2 :: (string(), string()) -> string().
--spec confirm_subscription2/3 :: (string(), string(), aws_config()) -> string().
--spec confirm_subscription2/4 :: (string(), string(), string(), string()) -> string().
-
 confirm_subscription2(Token, TopicArn) ->
     confirm_subscription2(Token, TopicArn, default_config()).
+
+-spec confirm_subscription2/3 :: (string(), string(), aws_config()) -> string().
 confirm_subscription2(Token, TopicArn, Config) ->
     Doc =
         sns_xml_request(
@@ -180,30 +178,32 @@ confirm_subscription2(Token, TopicArn, Config) ->
              ]),
     erlcloud_xml:get_text(
         "ConfirmSubscriptionResult/SubscriptionArn", Doc).
+
+-spec confirm_subscription2/4 :: (string(), string(), string(), string()) -> string().
 confirm_subscription2(Token, TopicArn, AccessKeyID, SecretAccessKey) ->
     confirm_subscription2(Token, TopicArn, new_config(AccessKeyID, SecretAccessKey)).
 
 
 
 -spec delete_endpoint/1 :: (string()) -> ok.
--spec delete_endpoint/2 :: (string(), aws_config()) -> ok.
--spec delete_endpoint/3 :: (string(), string(), string()) -> ok.
-
 delete_endpoint(EndpointArn) ->
     delete_endpoint(EndpointArn, default_config()).
+
+-spec delete_endpoint/2 :: (string(), aws_config()) -> ok.
 delete_endpoint(EndpointArn, Config) ->
     sns_simple_request(Config, "DeleteEndpoint", [{"EndpointArn", EndpointArn}]).
+
+-spec delete_endpoint/3 :: (string(), string(), string()) -> ok.
 delete_endpoint(EndpointArn, AccessKeyID, SecretAccessKey) ->
     delete_endpoint(EndpointArn, new_config(AccessKeyID, SecretAccessKey)).
 
 
 
 -spec delete_topic/1 :: (string()) -> ok.
--spec delete_topic/2 :: (string(), aws_config()) -> ok.
-
 delete_topic(TopicArn) ->
     delete_topic(TopicArn, default_config()).
 
+-spec delete_topic/2 :: (string(), aws_config()) -> ok.
 delete_topic(TopicArn, Config) 
     when is_record(Config, aws_config) ->
         sns_simple_request(Config, "DeleteTopic", [{"TopicArn", TopicArn}]).
@@ -211,11 +211,10 @@ delete_topic(TopicArn, Config)
 
 
 -spec get_endpoint_attributes/1 :: (string()) -> sns_endpoint().
--spec get_endpoint_attributes/2 :: (string(), aws_config()) -> sns_endpoint().
--spec get_endpoint_attributes/3 :: (string(), string(), string()) -> sns_endpoint().
-
 get_endpoint_attributes(EndpointArn) ->
     get_endpoint_attributes(EndpointArn, default_config()).
+
+-spec get_endpoint_attributes/2 :: (string(), aws_config()) -> sns_endpoint().
 get_endpoint_attributes(EndpointArn, Config) ->
     Params = [{"EndpointArn", EndpointArn}],
     Doc = sns_xml_request(Config, "GetEndpointAttributes", Params),
@@ -226,20 +225,22 @@ get_endpoint_attributes(EndpointArn, Config) ->
              }],
             Doc),
     [{arn, EndpointArn} | Decoded].
+
+-spec get_endpoint_attributes/3 :: (string(), string(), string()) -> sns_endpoint().
 get_endpoint_attributes(EndpointArn, AccessKeyID, SecretAccessKey) ->
     get_endpoint_attributes(EndpointArn, new_config(AccessKeyID, SecretAccessKey)).
 
 
 
--spec list_endpoints_by_platform_application/1 :: (string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
--spec list_endpoints_by_platform_application/2 :: (string(), undefined|string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
--spec list_endpoints_by_platform_application/3 :: (string(), undefined|string(), aws_config()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
--spec list_endpoints_by_platform_application/4 :: (string(), undefined|string(), string(), string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
-
+-spec list_endpoints_by_platform_application/1 :: (string()) -> [sns_endpoint()].
 list_endpoints_by_platform_application(PlatformApplicationArn) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, undefined).
+
+-spec list_endpoints_by_platform_application/2 :: (string(), undefined|string()) -> [sns_endpoint()].
 list_endpoints_by_platform_application(PlatformApplicationArn, NextToken) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, default_config()).
+
+-spec list_endpoints_by_platform_application/3 :: (string(), undefined|string(), aws_config()) -> [sns_endpoint()].
 list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, Config) ->
     Params =
         case NextToken of
@@ -255,20 +256,22 @@ list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, Config
              {next_token, "ListEndpointsByPlatformApplicationResult/NextToken", text}],
             Doc),
     Decoded.
+
+-spec list_endpoints_by_platform_application/4 :: (string(), undefined|string(), string(), string()) -> [sns_endpoint()].
 list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, AccessKeyID, SecretAccessKey) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, new_config(AccessKeyID, SecretAccessKey)).
 
 
 
 -spec list_platform_applications/0 :: () -> [sns_application()].
--spec list_platform_applications/1 :: (undefined|string()) -> [sns_application()].
--spec list_platform_applications/2 :: (undefined|string(), aws_config()) -> [sns_application()].
--spec list_platform_applications/3 :: (undefined|string(), string(), string()) -> [sns_application()].
-
 list_platform_applications() ->
     list_platform_applications(undefined).
+
+-spec list_platform_applications/1 :: (undefined|string()) -> [sns_application()].
 list_platform_applications(NextToken) ->
     list_platform_applications(NextToken, default_config()).
+
+-spec list_platform_applications/2 :: (undefined|string(), aws_config()) -> [sns_application()].
 list_platform_applications(NextToken, Config) ->
     Params =
         case NextToken of
@@ -283,37 +286,46 @@ list_platform_applications(NextToken, Config) ->
              }],
             Doc),
     proplists:get_value(applications, Decoded, []).
+
+-spec list_platform_applications/3 :: (undefined|string(), string(), string()) -> [sns_application()].
 list_platform_applications(NextToken, AccessKeyID, SecretAccessKey) ->
     list_platform_applications(NextToken, new_config(AccessKeyID, SecretAccessKey)).
 
 
 
 -spec publish_to_topic/2 :: (string(), sns_message()) -> string().
--spec publish_to_topic/3 :: (string(), sns_message(), undefined|string()) -> string().
--spec publish_to_topic/4 :: (string(), sns_message(), undefined|string(), aws_config()) -> string().
--spec publish_to_topic/5 :: (string(), sns_message(), undefined|string(), string(), string()) -> string().
--spec publish_to_target/2 :: (string(), sns_message()) -> string().
--spec publish_to_target/3 :: (string(), sns_message(), undefined|string()) -> string().
--spec publish_to_target/4 :: (string(), sns_message(), undefined|string(), aws_config()) -> string().
--spec publish_to_target/5 :: (string(), sns_message(), undefined|string(), string(), string()) -> string().
--spec publish/5 :: (topic|target, string(), sns_message(), undefined|string(), aws_config()) -> string().
-
 publish_to_topic(TopicArn, Message) ->
     publish_to_topic(TopicArn, Message, undefined).
+
+-spec publish_to_topic/3 :: (string(), sns_message(), undefined|string()) -> string().
 publish_to_topic(TopicArn, Message, Subject) ->
     publish_to_topic(TopicArn, Message, Subject, default_config()).
+
+-spec publish_to_topic/4 :: (string(), sns_message(), undefined|string(), aws_config()) -> string().
 publish_to_topic(TopicArn, Message, Subject, Config) ->
     publish(topic, TopicArn, Message, Subject, Config).
+
+-spec publish_to_topic/5 :: (string(), sns_message(), undefined|string(), string(), string()) -> string().
 publish_to_topic(TopicArn, Message, Subject, AccessKeyID, SecretAccessKey) ->
     publish_to_topic(TopicArn, Message, Subject, new_config(AccessKeyID, SecretAccessKey)).
+
+-spec publish_to_target/2 :: (string(), sns_message()) -> string().
 publish_to_target(TargetArn, Message) ->
     publish_to_target(TargetArn, Message, undefined).
+
+-spec publish_to_target/3 :: (string(), sns_message(), undefined|string()) -> string().
 publish_to_target(TargetArn, Message, Subject) ->
     publish_to_target(TargetArn, Message, Subject, default_config()).
+
+-spec publish_to_target/4 :: (string(), sns_message(), undefined|string(), aws_config()) -> string().
 publish_to_target(TargetArn, Message, Subject, Config) ->
     publish(target, TargetArn, Message, Subject, Config).
+
+-spec publish_to_target/5 :: (string(), sns_message(), undefined|string(), string(), string()) -> string().
 publish_to_target(TargetArn, Message, Subject, AccessKeyID, SecretAccessKey) ->
     publish_to_target(TargetArn, Message, Subject, new_config(AccessKeyID, SecretAccessKey)).
+
+-spec publish/5 :: (topic|target, string(), sns_message(), undefined|string(), aws_config()) -> string().
 publish(Type, RecipientArn, Message, Subject, Config) ->
     RecipientParam =
         case Type of
@@ -344,17 +356,17 @@ publish(Type, RecipientArn, Message, Subject, Config) ->
 
 
 -spec parse_event/1 :: (iodata()) -> sns_event().
--spec get_event_type/1 :: (sns_event()) -> sns_event_type().
--spec parse_event_message/1 :: (sns_event()) -> sns_notification() | binary().
 parse_event(EventSource) ->
     jsx:decode(EventSource).
 
+-spec get_event_type/1 :: (sns_event()) -> sns_event_type().
 get_event_type(Event) ->
     case proplists:get_value(<<"Type">>, Event) of
         <<"SubscriptionConfirmation">> -> subscription_confirmation;
         <<"Notification">> -> notification
     end.
 
+-spec parse_event_message/1 :: (sns_event()) -> sns_notification() | binary().
 parse_event_message(Event) ->
     Message = proplists:get_value(<<"Message">>, Event, <<>>),
     case get_event_type(Event) of
@@ -376,11 +388,10 @@ get_notification_attribute(Attribute, Notification) ->
 
 
 -spec(set_topic_attributes/3 :: (sns_topic_attribute_name(), string(), string()) -> ok).
--spec(set_topic_attributes/4 :: (sns_topic_attribute_name(), string(), string(), aws_config()) -> ok).
-
 set_topic_attributes(AttributeName, AttributeValue, TopicArn) ->
     set_topic_attributes(AttributeName, AttributeValue, TopicArn, default_config()).
 
+-spec(set_topic_attributes/4 :: (sns_topic_attribute_name(), string(), string(), aws_config()) -> ok).
 set_topic_attributes(AttributeName, AttributeValue, TopicArn, Config)
     when is_record(Config, aws_config) ->
         sns_simple_request(Config, "SetTopicAttributes", [
@@ -390,11 +401,10 @@ set_topic_attributes(AttributeName, AttributeValue, TopicArn, Config)
 
 
 -spec(subscribe/3 :: (string(), sns_subscribe_protocol_type(), string()) -> Arn::string()).
--spec(subscribe/4 :: (string(), sns_subscribe_protocol_type(), string(), aws_config()) -> Arn::string()).
-
 subscribe(Endpoint, Protocol, TopicArn) ->
     subscribe(Endpoint, Protocol, TopicArn, default_config()).
 
+-spec(subscribe/4 :: (string(), sns_subscribe_protocol_type(), string(), aws_config()) -> Arn::string()).
 subscribe(Endpoint, Protocol, TopicArn, Config)
     when is_record(Config, aws_config) ->
          Doc = sns_xml_request(Config, "Subscribe", [
