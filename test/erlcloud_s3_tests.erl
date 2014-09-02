@@ -60,7 +60,17 @@ error_handling_default_retry() ->
                config(#aws_config{retry = fun erlcloud_retry:default_retry/1})),
     ?_assertEqual({ok, "TestBody"}, Result).
 
+error_handling_httpc_error() ->
+    Response1 = {error, timeout},
+    Response2 = {ok, {{200, "OK"}, [], <<"TestBody">>}},
+    meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2]),
+    Result = erlcloud_s3:get_bucket_policy(
+               "BucketName", 
+               config(#aws_config{retry = fun erlcloud_retry:default_retry/1})),
+    ?_assertEqual({ok, "TestBody"}, Result).
+
 error_handling_tests(_) ->
     [error_handling_no_retry(),
-     error_handling_default_retry()
+     error_handling_default_retry(),
+     error_handling_httpc_error()
     ].
