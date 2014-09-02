@@ -20,7 +20,7 @@
 %% Helpers
 -export([backoff/1, 
          no_retry/1,
-         default_retry/1
+         default_retry/1, default_retry/2
         ]).
 -export_type([should_retry/0, retry_fun/0]).
 
@@ -46,11 +46,16 @@ backoff(Attempt) ->
 -define(NUM_ATTEMPTS, 10).
 
 -spec default_retry(#aws_request{}) -> should_retry().
-default_retry(#aws_request{attempt = Attempt} = Request) when Attempt >= ?NUM_ATTEMPTS ->
+default_retry(Request) ->
+    default_retry(Request, ?NUM_ATTEMPTS).
+
+-spec default_retry(#aws_request{}, integer()) -> should_retry().
+default_retry(#aws_request{attempt = Attempt} = Request, MaxAttempts) 
+  when Attempt >= MaxAttempts ->
     {error, Request};
-default_retry(#aws_request{should_retry = false} = Request) ->
+default_retry(#aws_request{should_retry = false} = Request, _) ->
     {error, Request};
-default_retry(#aws_request{attempt = Attempt} = Request) ->
+default_retry(#aws_request{attempt = Attempt} = Request, _) ->
     backoff(Attempt),
     {retry, Request}.
 
