@@ -51,7 +51,7 @@
           request_body :: binary(),
 
           %% Read from response
-          attempt = 0 :: pos_integer(),
+          attempt = 0 :: integer(),
           response_type :: ok | error,
           error_type :: aws | httpc,
           httpc_error_reason :: term(),

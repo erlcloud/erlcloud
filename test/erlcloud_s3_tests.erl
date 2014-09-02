@@ -16,6 +16,7 @@ operation_test_() ->
      fun start/0,
      fun stop/1,
      [fun get_bucket_policy_tests/1,
+      fun put_object_tests/1,
       fun error_handling_tests/1
      ]}.
 
@@ -35,7 +36,11 @@ config(Config) ->
       secret_access_key = string:copies("a", 40)}.
 
 httpc_expect(Response) ->
-    fun(_Url, get, _Headers, _Body, _Timeout, _Config) -> 
+    httpc_expect(get, Response).
+    
+httpc_expect(Method, Response) ->
+    fun(_Url, Method2, _Headers, _Body, _Timeout, _Config) -> 
+            Method = Method2,
             Response
     end.
     
@@ -44,6 +49,12 @@ get_bucket_policy_tests(_) ->
     meck:expect(erlcloud_httpc, request, httpc_expect(Response)),
     Result = erlcloud_s3:get_bucket_policy("BucketName", config()),
     ?_assertEqual({ok, "TestBody"}, Result).
+
+put_object_tests(_) ->
+    Response = {ok, {{200, "OK"}, [{"x-amz-version-id", "version_id"}], <<>>}},
+    meck:expect(erlcloud_httpc, request, httpc_expect(put, Response)),
+    Result = erlcloud_s3:put_object("BucketName", "Key", "Data", config()),
+    ?_assertEqual([{version_id, "version_id"}], Result).
 
 error_handling_no_retry() ->
     Response = {ok, {{500, "Internal Server Error"}, [], <<"TestBody">>}},
