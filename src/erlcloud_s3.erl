@@ -915,10 +915,10 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
                                ]),
 	Opts = [{body_format, binary}],
     Response = case Method of
-                   get -> httpc:request(Method, {RequestURI, RequestHeaders}, Opts, []);
-                   head -> httpc:request(Method, {RequestURI, RequestHeaders}, Opts, []);
-                   delete -> httpc:request(Method, {RequestURI, RequestHeaders}, Opts, []);
-                   _ -> httpc:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, Opts, [])
+                   get -> httpc:request(Method, {RequestURI, RequestHeaders}, [], Opts);
+                   head -> httpc:request(Method, {RequestURI, RequestHeaders}, [], Opts);
+                   delete -> httpc:request(Method, {RequestURI, RequestHeaders}, [], Opts);
+                   _ -> httpc:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, [], Opts)
                end,
     erlcloud_aws:http_headers_body(Response).
 
