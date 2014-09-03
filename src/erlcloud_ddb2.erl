@@ -1855,7 +1855,7 @@ update_table(Table, ReadUnits, WriteUnits, Opts) ->
 %% ===Example===
 %%
 %% Update table "Thread" to have 10 units of read and write capacity.
-%% Update secondary index <<"SubjectIdx">> to have 10 units of read write capacity 
+%% Update secondary index `<<"SubjectIdx">>' to have 10 units of read write capacity
 %% `
 %% erlcloud_ddb2:update_table(<<"Thread">>, 10, 10, [{global_secondary_index_updates, [{<<"SubjectIdx">>, 10, 10}]}])
 %% '
