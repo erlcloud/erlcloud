@@ -5,6 +5,7 @@ ebin/*.beam
 ebin/*.app
 .eunit/
 rebar
+.rebar/
 *.sublime-*
 deps/
 doc/
