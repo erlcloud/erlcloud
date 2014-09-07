@@ -99,15 +99,16 @@ request_and_retry(_, _, _, {error, Reason}) ->
     {error, Reason};
 request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
     RetryFun = Config#aws_config.kinesis_retry,
-    case httpc:request(post, {url(Config), Headers, "application/x-amz-json-1.1", Body},
-                       [{timeout, 1000}],
-                       [{body_format, binary}]) of
+    case erlcloud_httpc:request(
+           url(Config), post,
+           [{<<"content-type">>, <<"application/x-amz-json-1.1">>} | Headers],
+           Body, 1000, Config) of
 
-        {ok, {{_, 200, _}, _, RespBody}} ->
+        {ok, {{200, _}, _, RespBody}} ->
             %% TODO check crc
             {ok, jsx:decode(RespBody)};
 
-        {ok, {{_, Status, StatusLine}, _, RespBody}} when Status >= 400 andalso Status < 500 ->
+        {ok, {{Status, StatusLine}, _, RespBody}} when Status >= 400 andalso Status < 500 ->
             case client_error(Status, StatusLine, RespBody) of
                 {retry, Reason} ->
                     request_and_retry(Config, Headers, Body, RetryFun(Attempt, Reason));
@@ -115,10 +116,10 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
                     {error, Reason}
             end;
 
-        {ok, {{_, Status, StatusLine}, _, RespBody}} when Status >= 500 ->
+        {ok, {{Status, StatusLine}, _, RespBody}} when Status >= 500 ->
             request_and_retry(Config, Headers, Body, RetryFun(Attempt, {http_error, Status, StatusLine, RespBody}));
 
-        {ok, {{_, Status, StatusLine}, _, RespBody}} ->
+        {ok, {{Status, StatusLine}, _, RespBody}} ->
             {error, {http_error, Status, StatusLine, RespBody}};
 
         {error, Reason} ->

@@ -1,13 +1,20 @@
+-record(ddb2_error,
+        {attempt :: pos_integer(),
+         error_type :: ddb | http | httpc,
+         should_retry :: boolean(),
+         reason :: term(),
+         request_headers :: [{string(), string()}],
+         request_body :: jsx:json_text(),
+         response_status :: pos_integer(),
+         response_status_line :: string(),
+         response_headers :: [{string(), string()}],
+         response_body :: binary()
+        }).
+
 -type date_time() :: number().
 -type table_status() :: creating | updating | deleting | active.
+-type index_status() :: creating | updating | deleting | active.
 
--record(ddb2_local_secondary_index_description,
-        {index_name :: erlcloud_ddb2:index_name(),
-         index_size_bytes :: integer(),
-         item_count :: integer(),
-         key_schema :: erlcloud_ddb2:key_schema(),
-         projection :: erlcloud_ddb2:projection()
-        }).
 -record(ddb2_provisioned_throughput_description,
         {last_decrease_date_time :: date_time(),
          last_increase_date_time :: date_time(),
@@ -15,12 +22,29 @@
          read_capacity_units :: pos_integer(),
          write_capacity_units :: pos_integer()
         }).
+-record(ddb2_global_secondary_index_description,
+        {index_name :: erlcloud_ddb2:index_name(),
+         index_size_bytes :: integer(),
+         index_status :: index_status(),
+         item_count :: integer(),
+         key_schema :: erlcloud_ddb2:key_schema(),
+         projection :: erlcloud_ddb2:projection(),
+         provisioned_throughput :: #ddb2_provisioned_throughput_description{}
+        }).
+-record(ddb2_local_secondary_index_description,
+        {index_name :: erlcloud_ddb2:index_name(),
+         index_size_bytes :: integer(),
+         item_count :: integer(),
+         key_schema :: erlcloud_ddb2:key_schema(),
+         projection :: erlcloud_ddb2:projection()
+        }).
 -record(ddb2_table_description,
         {attribute_definitions :: erlcloud_ddb2:attr_defs(),
          creation_date_time :: number(),
          item_count :: integer(),
          key_schema :: erlcloud_ddb2:key_schema(),
          local_secondary_indexes :: [#ddb2_local_secondary_index_description{}],
+         global_secondary_indexes :: [#ddb2_global_secondary_index_description{}],
          provisioned_throughput :: #ddb2_provisioned_throughput_description{},
          table_name :: binary(),
          table_size_bytes :: integer(),

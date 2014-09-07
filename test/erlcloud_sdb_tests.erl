@@ -7,16 +7,16 @@
 
 setup() ->
     erlcloud_sdb:configure("fake", "fake-secret"),
-    meck:new(httpc, [unstick]).
+    meck:new(erlcloud_httpc).
 
 cleanup(_) ->
-    meck:unload(httpc).
+    meck:unload(erlcloud_httpc).
 
 %% Helpers
 
 expect_chain([Response | Chain]) ->
-    meck:expect(httpc, request,
-                fun(_, _, _, _) ->
+    meck:expect(erlcloud_httpc, request,
+                fun(_, _, _, _, _, _) ->
                         expect_chain(Chain),
                         Response
                 end);
@@ -55,16 +55,16 @@ single_result_response() ->
     single_result_response("item0").
 
 single_result_response(Name) ->
-    {ok, {{0, 200, ""}, [], single_result_response_body(Name)}}.
+    {ok, {{200, "OK"}, [], list_to_binary(single_result_response_body(Name))}}.
 
 only_token_response() ->
-    {ok, {{0, 200, ""}, [], only_token_response_body()}}.
+    {ok, {{200, "OK"}, [], list_to_binary(only_token_response_body())}}.
 
 single_result_and_token_response() ->
-    {ok, {{0, 200, ""}, [], single_result_and_token_response_body()}}.
+    {ok, {{200, "OK"}, [], list_to_binary(single_result_and_token_response_body())}}.
 
 unavailable_response() ->
-    {ok, {{0, 503, "Unavailable"}, [], ""}}.
+    {ok, {{503, "Unavailable"}, [], ""}}.
 
 %% Tests - select
 select_test_() ->

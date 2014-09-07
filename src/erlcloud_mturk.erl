@@ -1608,15 +1608,18 @@ mturk_request(Config, Operation, Params) ->
 
     URL = ["https://", Config#aws_config.mturk_host, "/"],
 
-    Response = httpc:request(post,
-                             {lists:flatten(URL), [], "application/x-www-form-urlencoded",
-                              list_to_binary(erlcloud_http:make_query_string(QParams))}, [], []),
+    Response = erlcloud_httpc:request(
+                 lists:flatten(URL),
+                 post,
+                 [{<<"content-type">>, <<"application/x-www-form-urlencoded">>}],
+                 list_to_binary(erlcloud_http:make_query_string(QParams)),
+                 Config#aws_config.timeout, Config),
 
     case Response of
-        {ok, "200", _Headers, Body} ->
-            Body;
-        {ok, Status, Headers, Body} ->
-            erlang:error({aws_error, {http_error, Status, Headers, Body}});
+        {ok, {{200, _StatusLine}, _Headers, Body}} ->
+            binary_to_list(Body);
+        {ok, {{Status, _StatusLine}, _Headers, _Body}} ->
+            erlang:error({aws_error, {http_error, Status, _StatusLine, _Body}});
         {error, Error} ->
             erlang:error({aws_error, {socket_error, Error}})
     end.

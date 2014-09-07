@@ -7,6 +7,8 @@
          get_bucket_attribute/2, get_bucket_attribute/3,
          list_buckets/0, list_buckets/1,
          set_bucket_attribute/3, set_bucket_attribute/4,
+         get_bucket_policy/1, get_bucket_policy/2,
+         put_bucket_policy/2, put_bucket_policy/3,
          list_objects/1, list_objects/2, list_objects/3,
          list_object_versions/1, list_object_versions/2, list_object_versions/3,
          copy_object/4, copy_object/5, copy_object/6,
@@ -24,7 +26,8 @@
          upload_part/5, upload_part/7,
          complete_multipart/4, complete_multipart/6,
          abort_multipart/3, abort_multipart/6,
-         list_multipart_uploads/1, list_multipart_uploads/2
+         list_multipart_uploads/1, list_multipart_uploads/2,
+         get_object_url/2, get_object_url/3
         ]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
@@ -236,6 +239,46 @@ list_buckets(Config) ->
     Buckets = [extract_bucket(Node) || Node <- xmerl_xpath:string("/*/Buckets/Bucket", Doc)],
     [{buckets, Buckets}].
 
+%
+% @doc Get S3 bucket policy JSON object
+% API Document: http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGETacl.html
+%
+-spec(get_bucket_policy/1 :: (BucketName::string()) -> ok | {error, Reason::term()}).
+get_bucket_policy(BucketName) ->
+    get_bucket_policy(BucketName, default_config()).
+
+%
+% Example request: erlcloud_s3:get_bucket_policy("bucket1234", Config).
+% Example success repsonse: {ok, "{\"Version\":\"2012-10-17\",\"Statement\": ..........}
+% Example error response: {error,{http_error,404,"Not Found",
+%                               "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n
+%                               <Error>
+%                                   <Code>NoSuchBucket</Code>
+%                                   <Message>The specified bucket does not exist</Message>
+%                                   <BucketName>bucket1234</BucketName>
+%                                   <RequestId>DC1EA9456B266EF5</RequestId>
+%                                   <HostId>DRtkAB80cAeom+4ffSGU3PFCxS7QvtiW+wxLnPF0dM2nxoaRqQk1SK/z62ZJVHAD</HostId>
+%                               </Error>"}}
+-spec(get_bucket_policy/2 :: (BucketName::string(), Config::aws_config()) -> {ok, Policy::string()} | {error, Reason::term()}).
+get_bucket_policy(BucketName, Config)
+    when is_record(Config, aws_config) ->
+        case s3_request2(Config, get, BucketName, "/", "policy", [], <<>>, []) of
+            {ok, {_Headers, Body}} ->
+                {ok, binary_to_list(Body)};
+            Error ->
+                Error
+        end.
+
+-spec put_bucket_policy(string(), binary()) -> ok.
+put_bucket_policy(BucketName, Policy) ->
+    put_bucket_policy(BucketName, Policy, default_config()).
+
+-spec put_bucket_policy(string(), binary(), aws_config()) -> ok.
+put_bucket_policy(BucketName, Policy, Config)
+  when is_list(BucketName), is_binary(Policy), is_record(Config, aws_config) ->
+    s3_simple_request(Config, put, BucketName, "/", "policy", [], Policy, []).
+
+
 -spec list_objects(string()) -> proplist().
 
 list_objects(BucketName) ->
@@ -266,8 +309,13 @@ list_objects(BucketName, Options, Config)
                   {delimiter, "Delimiter", text},
                   {max_keys, "MaxKeys", integer},
                   {is_truncated, "IsTruncated", boolean},
+                  {common_prefixes, "CommonPrefixes", fun extract_prefixes/1},
                   {contents, "Contents", fun extract_contents/1}],
     erlcloud_xml:decode(Attributes, Doc).
+
+extract_prefixes(Nodes) ->
+    Attributes = [{prefix, "Prefix", text}],
+    [erlcloud_xml:decode(Attributes, Node) || Node <- Nodes].
 
 extract_contents(Nodes) ->
     Attributes = [{key, "Key", text},
@@ -383,7 +431,7 @@ get_object(BucketName, Key, Options, Config) ->
      {content_type, proplists:get_value("content-type", Headers)},
      {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
      {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
-     {content, list_to_binary(Body)}|
+     {content, Body}|
      extract_metadata(Headers)].
 
 -spec get_object_acl(string(), string()) -> proplist().
@@ -439,6 +487,7 @@ get_object_metadata(BucketName, Key, Options, Config) ->
                       Version   -> ["versionId=", Version]
                   end,
     {Headers, _Body} = s3_request(Config, head, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders),
+
     [{last_modified, proplists:get_value("last-modified", Headers)},
      {etag, proplists:get_value("etag", Headers)},
      {content_length, proplists:get_value("content-length", Headers)},
@@ -460,7 +509,7 @@ get_object_torrent(BucketName, Key, Config) ->
     {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], "torrent", [], <<>>, []),
     [{delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
      {version_id, proplists:get_value("x-amz-delete-marker", Headers, "false")},
-     {torrent, list_to_binary(Body)}].
+     {torrent, Body}].
 
 -spec list_object_versions(string()) -> proplist().
 
@@ -558,8 +607,7 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
     RequestHeaders = [{"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}|HTTPHeaders]
         ++ [{"x-amz-meta-" ++ string:to_lower(MKey), MValue} ||
                {MKey, MValue} <- proplists:get_value(meta, Options, [])],
-    ContentType = proplists:get_value("content-type", HTTPHeaders, "application/octet_stream"),
-    POSTData = {iolist_to_binary(Value), ContentType},
+    POSTData = iolist_to_binary(Value),
     {Headers, _Body} = s3_request(Config, put, BucketName, [$/|Key], "", [],
                                   POSTData, RequestHeaders),
     [{version_id, proplists:get_value("x-amz-version-id", Headers, "null")}].
@@ -600,12 +648,23 @@ make_link(Expire_time, BucketName, Key) ->
 -spec make_link(integer(), string(), string(), aws_config()) -> {integer(), string(), string()}.
 
 make_link(Expire_time, BucketName, Key, Config) ->
-    {Sig, Expires} = sign_get(Expire_time, BucketName, erlcloud_http:url_encode_loose(Key), Config),
+    EncodedKey = erlcloud_http:url_encode_loose(Key),
+    {Sig, Expires} = sign_get(Expire_time, BucketName, EncodedKey, Config),
     Host = lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config)]),
-    URI = lists:flatten(["/", Key, "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), "&Signature=", erlcloud_http:url_encode(Sig), "&Expires=", Expires]),
+    URI = lists:flatten(["/", EncodedKey, "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), "&Signature=", erlcloud_http:url_encode(Sig), "&Expires=", Expires]),
     {list_to_integer(Expires),
      binary_to_list(erlang:iolist_to_binary(Host)),
      binary_to_list(erlang:iolist_to_binary(URI))}.
+
+-spec get_object_url(string(), string()) -> string().
+
+ get_object_url(BucketName, Key) ->
+  get_object_url(BucketName, Key, default_config()).
+
+-spec get_object_url(string(), string(), aws_config()) -> string().
+
+ get_object_url(BucketName, Key, Config) ->
+  lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]).
 
 -spec make_get_url(integer(), string(), string()) -> iolist().
 
@@ -654,9 +713,7 @@ upload_part(BucketName, Key, UploadId, PartNumber, Value, HTTPHeaders, Config)
        is_list(Value) orelse is_binary(Value),
        is_list(HTTPHeaders), is_record(Config, aws_config) ->
 
-    ContentType = proplists:get_value("content-type", HTTPHeaders, "application/octet_stream"),
-    POSTData = {iolist_to_binary(Value), ContentType},
-
+    POSTData = iolist_to_binary(Value),
     case s3_request2(Config, put, BucketName, [$/|Key], [], [{"uploadId", UploadId},
                                                              {"partNumber", integer_to_list(PartNumber)}],
                      POSTData, HTTPHeaders) of
@@ -823,7 +880,7 @@ s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Hea
     case s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
         {_Headers, ""} -> ok;
         {_Headers, Body} ->
-            XML = element(1,xmerl_scan:string(Body)),
+            XML = element(1,xmerl_scan:string(binary_to_list(Body))),
             case XML of
                 #xmlElement{name='Error'} ->
                     ErrCode = erlcloud_xml:get_text("/Error/Code", XML),
@@ -836,7 +893,7 @@ s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Hea
 
 s3_xml_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     {_Headers, Body} = s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers),
-    XML = element(1,xmerl_scan:string(Body)),
+    XML = element(1,xmerl_scan:string(binary_to_list(Body))),
     case XML of
         #xmlElement{name='Error'} ->
             ErrCode = erlcloud_xml:get_text("/Error/Code", XML),
@@ -867,7 +924,7 @@ s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) 
 s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
         {ok, {_Headers, Body}} ->
-            XML = element(1,xmerl_scan:string(Body)),
+            XML = element(1,xmerl_scan:string(binary_to_list(Body))),
             case XML of
                 #xmlElement{name='Error'} ->
                     ErrCode = erlcloud_xml:get_text("/Error/Code", XML),
@@ -880,11 +937,14 @@ s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Heade
             Error
     end.
 
-s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
-    {ContentMD5, ContentType, Body} =
-        case POSTData of
-            {PD, CT} -> {base64:encode(erlcloud_util:md5(PD)), CT, PD}; PD -> {"", "", PD}
-        end,
+s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Headers0) ->
+    ContentType = proplists:get_value("content-type", Headers0, ""),
+    ContentMD5 = case Body of
+                     <<>> ->
+                         "";
+                     _ ->
+                         base64:encode(erlcloud_util:md5(Body))
+                 end,
     Headers = case Config#aws_config.security_token of
                   undefined -> Headers0;
                   Token when is_list(Token) -> [{"x-amz-security-token", Token} | Headers0]
@@ -914,10 +974,20 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
                                ]),
 
     Response = case Method of
-                   get -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
-                   head -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
-                   delete -> httpc:request(Method, {RequestURI, RequestHeaders}, [], []);
-                   _ -> httpc:request(Method, {RequestURI, RequestHeaders, ContentType, Body}, [], [])
+                   M when M =:= get orelse M =:= head orelse M =:= delete ->
+                       erlcloud_httpc:request(
+                         RequestURI, Method, RequestHeaders, <<>>,
+                         Config#aws_config.timeout, Config);
+                   _ ->
+                       Headers2 = case lists:keyfind("content-type", 1, RequestHeaders) of
+                                      false ->
+                                          [{"content-type", ContentType} | RequestHeaders];
+                                      _ ->
+                                          RequestHeaders
+                                  end,
+                       erlcloud_httpc:request(
+                         RequestURI, Method, Headers2, Body,
+                         Config#aws_config.timeout, Config)
                end,
     erlcloud_aws:http_headers_body(Response).
 
