@@ -990,7 +990,14 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
                          RequestURI, Method, Headers2, Body,
                          Config#aws_config.timeout, Config)
                end,
-    erlcloud_aws:http_headers_body(Response).
+    http_headers_body(Response).
+
+http_headers_body(Response) ->
+    case erlcloud_aws:http_headers_body(Response) of
+        {ok, {Headers, Body}} ->
+            {ok, {[ {string:to_lower(H), V} || {H, V} <- Headers ], Body}};
+        Other -> Other
+    end.
 
 make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
                    Host, Resource, Subresource, Params) ->
