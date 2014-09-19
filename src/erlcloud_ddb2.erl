@@ -1543,7 +1543,6 @@ dynamize_select(specific_attributes)      -> <<"SPECIFIC_ATTRIBUTES">>.
                  boolean_opt(consistent_read) | 
                  {exclusive_start_key, key() | undefined} |
                  {index_name, index_name()} |
-                 {key_conditions, conditions()} |
                  {limit, pos_integer()} |
                  return_consumed_capacity_opt() |
                  boolean_opt(scan_index_forward) |
@@ -1557,7 +1556,6 @@ q_opts() ->
      {consistent_read, <<"ConsistentRead">>, fun id/1},
      {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
      {index_name, <<"IndexName">>, fun id/1},
-     {key_conditions, <<"KeyConditions">>, fun dynamize_conditions/1},
      {limit, <<"Limit">>, fun id/1},
      return_consumed_capacity_opt(),
      {scan_index_forward, <<"ScanIndexForward">>, fun id/1},
@@ -1576,12 +1574,12 @@ q_record() ->
 -type q_return() :: ddb_return(#ddb2_q{}, [out_item()]).
 
 -spec q(table_name(), conditions()) -> q_return().
-q(Table, Conditions) ->
-    q(Table, Conditions, [], default_config()).
+q(Table, KeyConditions) ->
+    q(Table, KeyConditions, [], default_config()).
 
 -spec q(table_name(), conditions(), q_opts()) -> q_return().
-q(Table, Conditions, Opts) ->
-    q(Table, Conditions, Opts, default_config()).
+q(Table, KeyConditions, Opts) ->
+    q(Table, KeyConditions, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -1611,13 +1609,13 @@ q(Table, Conditions, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec q(table_name(), conditions(), q_opts(), aws_config()) -> q_return().
-q(Table, Conditions, Opts, Config) ->
+q(Table, KeyConditions, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(q_opts(), Opts),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.Query",
                [{<<"TableName">>, Table},
-                {<<"KeyConditions">>, dynamize_conditions(Conditions)}]
+                {<<"KeyConditions">>, dynamize_conditions(KeyConditions)}]
                ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(q_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_q.items, {ok, []}).
