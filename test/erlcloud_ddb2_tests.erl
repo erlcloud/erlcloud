@@ -1378,7 +1378,7 @@ delete_item_input_tests(_) ->
                                           [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                            {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
                                           [{return_values, all_old},
-                                           {expected, {<<"Replies">>, false}}])), "
+                                           {expected, {<<"Replies">>, null}}])), "
 {
     \"TableName\": \"Thread\",
     \"Key\": {
@@ -1391,7 +1391,7 @@ delete_item_input_tests(_) ->
     },
     \"Expected\": {
         \"Replies\": {
-            \"Exists\": false
+            \"ComparisonOperator\": \"NULL\"
         }
     },
     \"ReturnValues\": \"ALL_OLD\"
@@ -1997,7 +1997,7 @@ put_item_input_tests(_) ->
                                         {<<"Tags">>, {ss, [<<"Update">>, <<"Multiple Items">>, <<"HelpMe">>]}},
                                         {<<"Subject">>, <<"How do I update multiple items?">>},
                                         {<<"Message">>, <<"I want to update multiple items in a single API call. What's the best way to do that?">>}],
-                                       [{expected, [{<<"ForumName">>, false}, {<<"Subject">>, false}]}])), "
+                                       [{expected, [{<<"ForumName">>, null}, {<<"Subject">>, null}]}])), "
 {
     \"TableName\": \"Thread\",
     \"Item\": {
@@ -2022,10 +2022,10 @@ put_item_input_tests(_) ->
     },
     \"Expected\": {
         \"ForumName\": {
-            \"Exists\": false
+            \"ComparisonOperator\": \"NULL\"
         },
         \"Subject\": {
-            \"Exists\": false
+            \"ComparisonOperator\": \"NULL\"
         }
     }
 }"
@@ -2705,9 +2705,8 @@ update_item_input_tests(_) ->
     },
     \"Expected\": {
         \"LastPostedBy\": {
-            \"Value\": {
-                \"S\": \"fred@example.com\"
-            }
+            \"ComparisonOperator\": \"EQ\",
+            \"AttributeValueList\": [ { \"S\": \"fred@example.com\" } ]
         }
     },
     \"ReturnValues\": \"ALL_NEW\"
