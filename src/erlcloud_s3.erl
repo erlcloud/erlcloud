@@ -630,7 +630,7 @@ set_object_acl(BucketName, Key, ACL, Config)
     XMLText = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
     s3_simple_request(Config, put, BucketName, [$/|Key], "acl", [], XMLText, []).
 
--spec sign_get(integer(), string(), string(), aws_config()) -> {string(), string()}.
+-spec sign_get(integer(), string(), string(), aws_config()) -> {binary(), string()}.
 sign_get(Expire_time, BucketName, Key, Config)
   when is_integer(Expire_time), is_list(BucketName), is_list(Key) ->
     {Mega, Sec, _Micro} = os:timestamp(),
@@ -878,7 +878,7 @@ encode_grant(Grant) ->
 
 s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
-        {_Headers, ""} -> ok;
+        {_Headers, <<>>} -> ok;
         {_Headers, Body} ->
             XML = element(1,xmerl_scan:string(binary_to_list(Body))),
             case XML of
@@ -973,11 +973,12 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
                                 end
                                ]),
 
-    Response = case Method of
+    Request = #aws_request{service = s3, uri = RequestURI, method = Method},
+    Request2 = case Method of
                    M when M =:= get orelse M =:= head orelse M =:= delete ->
-                       erlcloud_httpc:request(
-                         RequestURI, Method, RequestHeaders, <<>>,
-                         Config#aws_config.timeout, Config);
+                       Request#aws_request{
+                         request_headers = RequestHeaders,
+                         request_body = <<>>};
                    _ ->
                        Headers2 = case lists:keyfind("content-type", 1, RequestHeaders) of
                                       false ->
@@ -985,11 +986,22 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
                                       _ ->
                                           RequestHeaders
                                   end,
-                       erlcloud_httpc:request(
-                         RequestURI, Method, Headers2, Body,
-                         Config#aws_config.timeout, Config)
+                       Request#aws_request{
+                         request_headers = Headers2,
+                         request_body = Body}
                end,
-    erlcloud_aws:http_headers_body(Response).
+    Request3 = erlcloud_retry:request(Config, Request2, fun s3_result_fun/1),
+    erlcloud_aws:request_to_return(Request3).
+
+s3_result_fun(#aws_request{response_type = ok} = Request) ->
+    Request;
+s3_result_fun(#aws_request{response_type = error, 
+                           error_type = aws, 
+                           response_status = Status} = Request) when
+      Status >= 500 ->
+    Request#aws_request{should_retry = true};
+s3_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
+    Request#aws_request{should_retry = false}.
 
 make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
                    Host, Resource, Subresource, Params) ->

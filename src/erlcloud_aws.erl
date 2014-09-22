@@ -7,6 +7,7 @@
          aws_request_form/8,
          param_list/2, default_config/0, update_config/1, format_timestamp/1,
          http_headers_body/1,
+         request_to_return/1,
          sign_v4/5]).
 
 -include("erlcloud.hrl").
@@ -254,6 +255,22 @@ http_headers_body({ok, {{Status, StatusLine}, _Headers, Body}}) ->
     {error, {http_error, Status, StatusLine, Body}};
 http_headers_body({error, Reason}) ->
     {error, {socket_error, Reason}}.
+
+%% Convert an aws_request record to return value as returned by http_headers_body
+request_to_return(#aws_request{response_type = ok, 
+                               response_headers = Headers, 
+                               response_body = Body}) ->
+    {ok, {Headers, Body}};
+request_to_return(#aws_request{response_type = error,
+                               error_type = httpc, 
+                               httpc_error_reason = Reason}) ->
+    {error, {socket_error, Reason}};
+request_to_return(#aws_request{response_type = error,
+                               error_type = aws,
+                               response_status = Status,
+                               response_status_line = StatusLine,
+                               response_body = Body}) ->
+    {error, {http_error, Status, StatusLine, Body}}.
 
 %% http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
 %% TODO additional parameters - currently only supports what is needed for DynamoDB
