@@ -104,6 +104,7 @@
    [attr_defs/0,
     attr_name/0,
     attr_type/0,
+    attributes_to_get_opt/0,
     batch_get_item_opt/0,
     batch_get_item_opts/0,
     batch_get_item_request_item/0,
@@ -118,7 +119,10 @@
     boolean_opt/1,
     comparison_op/0,
     condition/0,
+    conditional_op/0,
+    conditional_op_opt/0,
     conditions/0,
+    consistent_read_opt/0,
     create_table_opt/0,
     create_table_opts/0,
     create_table_return/0,
@@ -129,6 +133,7 @@
     delete_item_return/0,
     delete_table_return/0,
     describe_table_return/0,
+    expected_opt/0,
     get_item_opt/0,
     get_item_opts/0,
     get_item_return/0,
@@ -227,7 +232,7 @@ default_config() -> erlcloud_aws:default_config().
 -type in_attr_typed_value() :: {attr_type(), in_attr_data()}.
 -type in_attr_value() :: in_attr_data() | in_attr_typed_value().
 -type in_attr() :: {attr_name(), in_attr_value()}.
--type in_expected_item() :: {attr_name(), false | in_attr_value()}.
+-type in_expected_item() :: {attr_name(), false} | condition().
 -type in_expected() :: maybe_list(in_expected_item()).
 -type in_item() :: [in_attr()].
 
@@ -237,7 +242,7 @@ default_config() -> erlcloud_aws:default_config().
 -type json_attr_value() :: {json_attr_type(), json_attr_data()}.
 -type json_attr() :: {attr_name(), [json_attr_value()]}.
 -type json_item() :: [json_attr()].
--type json_expected() :: [{attr_name(), [json_attr_value()] | [{binary(), boolean()}]}].
+-type json_expected() :: [json_pair()].
 -type json_key() :: [json_attr(),...].
 
 -type key() :: maybe_list(in_attr()).
@@ -350,11 +355,19 @@ dynamize_maybe_list(DynamizeItem, List) when is_list(List) ->
 dynamize_maybe_list(DynamizeItem, Item) ->
     [DynamizeItem(Item)].
 
--spec dynamize_expected_item(in_expected()) -> json_pair().
+-type conditional_op() :: 'and' | 'or'.
+-type conditional_op_opt() :: {conditional_op, conditional_op()}.
+-spec dynamize_conditional_op(conditional_op()) -> binary().
+dynamize_conditional_op('and') ->
+    <<"AND">>;
+dynamize_conditional_op('or') ->
+    <<"OR">>.
+
+-spec dynamize_expected_item(in_expected_item()) -> json_pair().
 dynamize_expected_item({Name, false}) ->
     {Name, [{<<"Exists">>, false}]};
-dynamize_expected_item({Name, Value}) ->
-    {Name, [{<<"Value">>, [dynamize_value(Value)]}]}.
+dynamize_expected_item(Condition) ->
+    dynamize_condition(Condition).
 
 -spec dynamize_expected(in_expected()) -> json_expected().
 dynamize_expected(Expected) ->
@@ -406,13 +419,15 @@ dynamize_comparison(in) ->
 dynamize_comparison(between) ->
     {<<"ComparisonOperator">>, <<"BETWEEN">>}.
 
--type return_consumed_capacity() :: none | total.
+-type return_consumed_capacity() :: none | total | indexes.
 -type return_consumed_capacity_opt() :: {return_consumed_capacity, return_consumed_capacity()}.
 -spec dynamize_return_consumed_capacity(return_consumed_capacity()) -> binary().
 dynamize_return_consumed_capacity(none) ->
     <<"NONE">>;
 dynamize_return_consumed_capacity(total) ->
-    <<"TOTAL">>.
+    <<"TOTAL">>;
+dynamize_return_consumed_capacity(indexes) ->
+	<<"INDEXES">>.
 
 -type return_item_collection_metrics() :: none | size.
 -type return_item_collection_metrics_opt() :: {return_item_collection_metrics, return_item_collection_metrics()}.
@@ -604,6 +619,28 @@ opts(Table, Opts) when is_list(Opts) ->
 opts(_, _) ->
     error({erlcloud_ddb, opts_not_list}).
 
+-type attributes_to_get_opt() :: {attributes_to_get, [attr_name()]}.
+
+-spec attributes_to_get_opt() -> opt_table_entry().
+attributes_to_get_opt() ->
+    {attributes_to_get, <<"AttributesToGet">>, fun id/1}.
+
+-type consistent_read_opt() :: boolean_opt(consistent_read).
+
+-spec consistent_read_opt() -> opt_table_entry().
+consistent_read_opt() ->
+    {consistent_read, <<"ConsistentRead">>, fun id/1}.
+
+-spec conditional_op_opt() -> opt_table_entry().
+conditional_op_opt() ->
+    {conditional_op, <<"ConditionalOperator">>, fun dynamize_conditional_op/1}.
+
+-type expected_opt() :: {expected, in_expected()}.
+
+-spec expected_opt() -> opt_table_entry().
+expected_opt() ->
+    {expected, <<"Expected">>, fun dynamize_expected/1}.
+
 -spec return_consumed_capacity_opt() -> opt_table_entry().
 return_consumed_capacity_opt() ->
     {return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1}.
@@ -613,16 +650,16 @@ return_item_collection_metrics_opt() ->
     {return_item_collection_metrics, <<"ReturnItemCollectionMetrics">>, 
      fun dynamize_return_item_collection_metrics/1}.
 
--type get_item_opt() :: {attributes_to_get, [binary()]} | 
-                        boolean_opt(consistent_read) |
+-type get_item_opt() :: attributes_to_get_opt() | 
+                        consistent_read_opt() |
                         return_consumed_capacity_opt() |
                         out_opt().
 -type get_item_opts() :: [get_item_opt()].
 
 -spec get_item_opts() -> opt_table().
 get_item_opts() ->
-    [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
-     {consistent_read, <<"ConsistentRead">>, fun id/1},
+    [attributes_to_get_opt(),
+     consistent_read_opt(),
      return_consumed_capacity_opt()].
 
 %%%------------------------------------------------------------------------------
@@ -834,11 +871,11 @@ batch_get_item_record() ->
 
 -type batch_get_item_return() :: ddb_return(#ddb2_batch_get_item{}, [erlcloud_ddb:out_item()]).
 
--spec batch_get_item([batch_get_item_request_item()]) -> batch_get_item_return().
+-spec batch_get_item(batch_get_item_request_items()) -> batch_get_item_return().
 batch_get_item(RequestItems) ->
     batch_get_item(RequestItems, [], default_config()).
 
--spec batch_get_item([batch_get_item_request_item()], batch_get_item_opts()) -> batch_get_item_return().
+-spec batch_get_item(batch_get_item_request_items(), batch_get_item_opts()) -> batch_get_item_return().
 batch_get_item(RequestItems, Opts) ->
     batch_get_item(RequestItems, Opts, default_config()).
 
@@ -871,7 +908,7 @@ batch_get_item(RequestItems, Opts) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec batch_get_item([batch_get_item_request_item()], batch_get_item_opts(), aws_config()) -> 
+-spec batch_get_item(batch_get_item_request_items(), batch_get_item_opts(), aws_config()) -> 
                             batch_get_item_return().
 batch_get_item(RequestItems, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(batch_get_item_opts(), Opts),
@@ -969,11 +1006,11 @@ batch_write_item_record() ->
 
 -type batch_write_item_return() :: ddb_return(#ddb2_batch_write_item{}, #ddb2_batch_write_item{}).
 
--spec batch_write_item([batch_write_item_request_item()]) -> batch_write_item_return().
+-spec batch_write_item(batch_write_item_request_items()) -> batch_write_item_return().
 batch_write_item(RequestItems) ->
     batch_write_item(RequestItems, [], default_config()).
 
--spec batch_write_item([batch_write_item_request_item()], batch_write_item_opts()) -> batch_write_item_return().
+-spec batch_write_item(batch_write_item_request_items(), batch_write_item_opts()) -> batch_write_item_return().
 batch_write_item(RequestItems, Opts) ->
     batch_write_item(RequestItems, Opts, default_config()).
 
@@ -1004,7 +1041,7 @@ batch_write_item(RequestItems, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec batch_write_item([batch_write_item_request_item()], batch_write_item_opts(), aws_config()) -> 
+-spec batch_write_item(batch_write_item_request_items(), batch_write_item_opts(), aws_config()) -> 
                               batch_write_item_return().
 batch_write_item(RequestItems, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(batch_write_item_opts(), Opts),
@@ -1159,7 +1196,8 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
 %%% DeleteItem
 %%%------------------------------------------------------------------------------
 
--type delete_item_opt() :: {expected, in_expected()} | 
+-type delete_item_opt() :: conditional_op_opt() |
+                           expected_opt() | 
                            {return_values, none | all_old} |
                            return_consumed_capacity_opt() |
                            return_item_collection_metrics_opt() |
@@ -1168,7 +1206,8 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
 
 -spec delete_item_opts() -> opt_table().
 delete_item_opts() ->
-    [{expected, <<"Expected">>, fun dynamize_expected/1},
+    [conditional_op_opt(),
+     expected_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
      return_consumed_capacity_opt(),
      return_item_collection_metrics_opt()].
@@ -1433,7 +1472,8 @@ list_tables(Opts, Config) ->
 %%% PutItem
 %%%------------------------------------------------------------------------------
 
--type put_item_opt() :: {expected, in_expected()} | 
+-type put_item_opt() :: conditional_op_opt() |
+                        expected_opt() | 
                         {return_values, none | all_old} |
                         return_consumed_capacity_opt() |
                         return_item_collection_metrics_opt() |
@@ -1442,7 +1482,8 @@ list_tables(Opts, Config) ->
 
 -spec put_item_opts() -> opt_table().
 put_item_opts() ->
-    [{expected, <<"Expected">>, fun dynamize_expected/1},
+    [conditional_op_opt(),
+     expected_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
      return_consumed_capacity_opt(),
      return_item_collection_metrics_opt()].
@@ -1506,13 +1547,18 @@ put_item(Table, Item, Opts, Config) ->
 %%% Queue
 %%%------------------------------------------------------------------------------
 
--type condition() :: {attr_name(), in_attr_value(), comparison_op()} |
+-type condition() :: {attr_name(), not_null | null} |
+                     {attr_name(), in_attr_value()} |
+                     {attr_name(), in_attr_value(), comparison_op()} |
                      {attr_name(), {in_attr_value(), in_attr_value()}, between} |
-                     {attr_name(), [in_attr_value()], in} |
-                     {attr_name(), in_attr_value()}.
+                     {attr_name(), [in_attr_value()], in}.
 -type conditions() :: maybe_list(condition()).
 
 -spec dynamize_condition(condition()) -> json_pair().
+dynamize_condition({Name, not_null}) ->
+    {Name, [dynamize_comparison(not_null)]};
+dynamize_condition({Name, null}) ->
+    {Name, [dynamize_comparison(null)]};
 dynamize_condition({Name, AttrValue}) ->
     %% Default to eq
     {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]}, 
@@ -1539,12 +1585,13 @@ dynamize_select(count)                    -> <<"COUNT">>;
 dynamize_select(specific_attributes)      -> <<"SPECIFIC_ATTRIBUTES">>.
 
 
--type q_opt() :: {attributes_to_get, [attr_name()]} | 
-                 boolean_opt(consistent_read) | 
+-type q_opt() :: attributes_to_get_opt() | 
+                 conditional_op_opt() |
+                 consistent_read_opt() | 
                  {exclusive_start_key, key() | undefined} |
                  {index_name, index_name()} |
-                 {key_conditions, conditions()} |
                  {limit, pos_integer()} |
+                 {query_filter, conditions()} |
                  return_consumed_capacity_opt() |
                  boolean_opt(scan_index_forward) |
                  {select, select()} |
@@ -1553,12 +1600,13 @@ dynamize_select(specific_attributes)      -> <<"SPECIFIC_ATTRIBUTES">>.
 
 -spec q_opts() -> opt_table().
 q_opts() ->
-    [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
-     {consistent_read, <<"ConsistentRead">>, fun id/1},
+    [attributes_to_get_opt(),
+     conditional_op_opt(),
+     consistent_read_opt(),
      {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
      {index_name, <<"IndexName">>, fun id/1},
-     {key_conditions, <<"KeyConditions">>, fun dynamize_conditions/1},
      {limit, <<"Limit">>, fun id/1},
+     {query_filter, <<"QueryFilter">>, fun dynamize_conditions/1},
      return_consumed_capacity_opt(),
      {scan_index_forward, <<"ScanIndexForward">>, fun id/1},
      {select, <<"Select">>, fun dynamize_select/1}
@@ -1576,12 +1624,12 @@ q_record() ->
 -type q_return() :: ddb_return(#ddb2_q{}, [out_item()]).
 
 -spec q(table_name(), conditions()) -> q_return().
-q(Table, Conditions) ->
-    q(Table, Conditions, [], default_config()).
+q(Table, KeyConditions) ->
+    q(Table, KeyConditions, [], default_config()).
 
 -spec q(table_name(), conditions(), q_opts()) -> q_return().
-q(Table, Conditions, Opts) ->
-    q(Table, Conditions, Opts, default_config()).
+q(Table, KeyConditions, Opts) ->
+    q(Table, KeyConditions, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -1611,13 +1659,13 @@ q(Table, Conditions, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec q(table_name(), conditions(), q_opts(), aws_config()) -> q_return().
-q(Table, Conditions, Opts, Config) ->
+q(Table, KeyConditions, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(q_opts(), Opts),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.Query",
                [{<<"TableName">>, Table},
-                {<<"KeyConditions">>, dynamize_conditions(Conditions)}]
+                {<<"KeyConditions">>, dynamize_conditions(KeyConditions)}]
                ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(q_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_q.items, {ok, []}).
@@ -1626,7 +1674,8 @@ q(Table, Conditions, Opts, Config) ->
 %%% Scan
 %%%------------------------------------------------------------------------------
 
--type scan_opt() :: {attributes_to_get, [binary()]} | 
+-type scan_opt() :: attributes_to_get_opt() | 
+                    conditional_op_opt() |
                     {exclusive_start_key, key() | undefined} |
                     {limit, pos_integer()} |
                     return_consumed_capacity_opt() |
@@ -1639,7 +1688,8 @@ q(Table, Conditions, Opts, Config) ->
 
 -spec scan_opts() -> opt_table().
 scan_opts() ->
-    [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
+    [attributes_to_get_opt(),
+     conditional_op_opt(),
      {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
      {limit, <<"Limit">>, fun id/1},
      return_consumed_capacity_opt(),
@@ -1728,7 +1778,8 @@ dynamize_update({Name, Value}) ->
 dynamize_updates(Updates) ->
     dynamize_maybe_list(fun dynamize_update/1, Updates).
 
--type update_item_opt() :: {expected, in_expected()} | 
+-type update_item_opt() :: conditional_op_opt() |
+                           expected_opt() | 
                            return_consumed_capacity_opt() |
                            return_item_collection_metrics_opt() |
                            {return_values, return_value()} |
@@ -1737,7 +1788,8 @@ dynamize_updates(Updates) ->
 
 -spec update_item_opts() -> opt_table().
 update_item_opts() ->
-    [{expected, <<"Expected">>, fun dynamize_expected/1},
+    [conditional_op_opt(),
+     expected_opt(),
      return_consumed_capacity_opt(),
      return_item_collection_metrics_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1}].
