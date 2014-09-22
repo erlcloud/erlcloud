@@ -104,6 +104,7 @@
    [attr_defs/0,
     attr_name/0,
     attr_type/0,
+    attributes_to_get_opt/0,
     batch_get_item_opt/0,
     batch_get_item_opts/0,
     batch_get_item_request_item/0,
@@ -119,6 +120,7 @@
     comparison_op/0,
     condition/0,
     conditions/0,
+    consistent_read_opt/0,
     create_table_opt/0,
     create_table_opts/0,
     create_table_return/0,
@@ -604,6 +606,18 @@ opts(Table, Opts) when is_list(Opts) ->
 opts(_, _) ->
     error({erlcloud_ddb, opts_not_list}).
 
+-type attributes_to_get_opt() :: {attributes_to_get, [attr_name()]}.
+
+-spec attributes_to_get_opt() -> opt_table_entry().
+attributes_to_get_opt() ->
+    {attributes_to_get, <<"AttributesToGet">>, fun id/1}.
+
+-type consistent_read_opt() :: boolean_opt(consistent_read).
+
+-spec consistent_read_opt() -> opt_table_entry().
+consistent_read_opt() ->
+    {consistent_read, <<"ConsistentRead">>, fun id/1}.
+
 -spec return_consumed_capacity_opt() -> opt_table_entry().
 return_consumed_capacity_opt() ->
     {return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1}.
@@ -613,16 +627,16 @@ return_item_collection_metrics_opt() ->
     {return_item_collection_metrics, <<"ReturnItemCollectionMetrics">>, 
      fun dynamize_return_item_collection_metrics/1}.
 
--type get_item_opt() :: {attributes_to_get, [binary()]} | 
-                        boolean_opt(consistent_read) |
+-type get_item_opt() :: attributes_to_get_opt() | 
+                        consistent_read_opt() |
                         return_consumed_capacity_opt() |
                         out_opt().
 -type get_item_opts() :: [get_item_opt()].
 
 -spec get_item_opts() -> opt_table().
 get_item_opts() ->
-    [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
-     {consistent_read, <<"ConsistentRead">>, fun id/1},
+    [attributes_to_get_opt(),
+     consistent_read_opt(),
      return_consumed_capacity_opt()].
 
 %%%------------------------------------------------------------------------------
@@ -1539,8 +1553,8 @@ dynamize_select(count)                    -> <<"COUNT">>;
 dynamize_select(specific_attributes)      -> <<"SPECIFIC_ATTRIBUTES">>.
 
 
--type q_opt() :: {attributes_to_get, [attr_name()]} | 
-                 boolean_opt(consistent_read) | 
+-type q_opt() :: attributes_to_get_opt() | 
+                 consistent_read_opt() | 
                  {exclusive_start_key, key() | undefined} |
                  {index_name, index_name()} |
                  {limit, pos_integer()} |
@@ -1552,8 +1566,8 @@ dynamize_select(specific_attributes)      -> <<"SPECIFIC_ATTRIBUTES">>.
 
 -spec q_opts() -> opt_table().
 q_opts() ->
-    [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
-     {consistent_read, <<"ConsistentRead">>, fun id/1},
+    [attributes_to_get_opt(),
+     consistent_read_opt(),
      {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
      {index_name, <<"IndexName">>, fun id/1},
      {limit, <<"Limit">>, fun id/1},
@@ -1624,7 +1638,7 @@ q(Table, KeyConditions, Opts, Config) ->
 %%% Scan
 %%%------------------------------------------------------------------------------
 
--type scan_opt() :: {attributes_to_get, [binary()]} | 
+-type scan_opt() :: attributes_to_get_opt() | 
                     {exclusive_start_key, key() | undefined} |
                     {limit, pos_integer()} |
                     return_consumed_capacity_opt() |
@@ -1637,7 +1651,7 @@ q(Table, KeyConditions, Opts, Config) ->
 
 -spec scan_opts() -> opt_table().
 scan_opts() ->
-    [{attributes_to_get, <<"AttributesToGet">>, fun id/1},
+    [attributes_to_get_opt(),
      {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
      {limit, <<"Limit">>, fun id/1},
      return_consumed_capacity_opt(),
