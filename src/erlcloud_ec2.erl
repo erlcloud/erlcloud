@@ -2480,9 +2480,8 @@ run_instances(InstanceSpec, Config)
     NetParams = case InstanceSpec#ec2_instance_spec.net_if of
         [] ->
             [
-                {"SubnetId", InstanceSpec#ec2_instance_spec.subnet_id},
-                {"SecurityGroupId", InstanceSpec#ec2_instance_spec.group_set} 
-            ];
+                {"SubnetId", InstanceSpec#ec2_instance_spec.subnet_id} 
+            ] ++ erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, "SecurityGroupId");
         List      ->
             net_if_params(List, "NetworkInterface")
     end,         
