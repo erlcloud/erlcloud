@@ -20,7 +20,7 @@ stop(_) ->
 
 sns_publish_defaults_to_http(_) ->
     Config = erlcloud_aws:default_config(),
-    catch(erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config)),
+    erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
     ?_assertMatch({post, "http", "sns.amazonaws.com", _, _, _, Config},
                   get_values_from_history(meck:history(erlcloud_aws))).
 
