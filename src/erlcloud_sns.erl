@@ -8,7 +8,7 @@
          create_platform_endpoint/2, create_platform_endpoint/3,
          create_platform_endpoint/4, create_platform_endpoint/5,
          create_platform_endpoint/6,
-         create_topic/1, create_topic/2, 
+         create_topic/1, create_topic/2,
          delete_endpoint/1, delete_endpoint/2, delete_endpoint/3,
          delete_topic/1, delete_topic/2,
          list_endpoints_by_platform_application/1,
@@ -144,7 +144,7 @@ create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attribut
 create_topic(TopicName) ->
     create_topic(TopicName, default_config()).
 
-create_topic(TopicName, Config) 
+create_topic(TopicName, Config)
     when is_record(Config, aws_config) ->
         Doc = sns_xml_request(Config, "CreateTopic", [{"Name", TopicName}]),
         erlcloud_xml:get_text("/CreateTopicResponse/CreateTopicResult/TopicArn", Doc).
@@ -204,7 +204,7 @@ delete_endpoint(EndpointArn, AccessKeyID, SecretAccessKey) ->
 delete_topic(TopicArn) ->
     delete_topic(TopicArn, default_config()).
 
-delete_topic(TopicArn, Config) 
+delete_topic(TopicArn, Config)
     when is_record(Config, aws_config) ->
         sns_simple_request(Config, "DeleteTopic", [{"TopicArn", TopicArn}]).
 
@@ -470,9 +470,10 @@ sns_simple_request(Config, Action, Params) ->
 
 sns_xml_request(Config, Action, Params) ->
     case erlcloud_aws:aws_request_xml2(
-            post, "http", Config#aws_config.sns_host, undefined, "/",
-            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-            Config) of
+           post, Config#aws_config.sns_protocol, Config#aws_config.sns_host,
+           undefined, "/",
+           [{"Action", Action}, {"Version", ?API_VERSION} | Params],
+           Config) of
         {ok, XML} -> XML;
         {error, {http_error, 400, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(binary_to_list(Body))),
@@ -485,9 +486,10 @@ sns_xml_request(Config, Action, Params) ->
 
 sns_request(Config, Action, Params) ->
     case erlcloud_aws:aws_request2(
-            post, "http", Config#aws_config.sns_host, undefined, "/",
-            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-            Config) of
+           post, Config#aws_config.sns_protocol, Config#aws_config.sns_host,
+           undefined, "/",
+           [{"Action", Action}, {"Version", ?API_VERSION} | Params],
+           Config) of
         {ok, _Response} -> ok;
         {error, {http_error, 400, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(binary_to_list(Body))),
