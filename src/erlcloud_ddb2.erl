@@ -1248,7 +1248,7 @@ delete_item(Table, Key, Opts) ->
 %%       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
 %%        {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
 %%       [{return_values, all_old},
-%%        {expected, {<<"Replies">>, false}}]),
+%%        {expected, {<<"Replies">>, null}}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1527,7 +1527,7 @@ put_item(Table, Item, Opts) ->
 %%        {<<"Subject">>, <<"How do I update multiple items?">>},
 %%        {<<"Message">>, 
 %%         <<"I want to update multiple items in a single API call. What is the best way to do that?">>}],
-%%       [{expected, [{<<"ForumName">>, false}, {<<"Subject">>, false}]}]),
+%%       [{expected, [{<<"ForumName">>, null}, {<<"Subject">>, null}]}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1551,7 +1551,7 @@ put_item(Table, Item, Opts, Config) ->
                      {attr_name(), in_attr_value()} |
                      {attr_name(), in_attr_value(), comparison_op()} |
                      {attr_name(), {in_attr_value(), in_attr_value()}, between} |
-                     {attr_name(), [in_attr_value()], in}.
+                     {attr_name(), [in_attr_value(),...], in}.
 -type conditions() :: maybe_list(condition()).
 
 -spec dynamize_condition(condition()) -> json_pair().
