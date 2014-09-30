@@ -247,7 +247,7 @@ default_config() -> erlcloud_aws:default_config().
 
 -type key() :: maybe_list(in_attr()).
 -type attr_defs() :: maybe_list({attr_name(), attr_type()}).
--type key_schema() :: attr_name() | {attr_name(), attr_name()}.
+-type key_schema() :: hash_key_name() | {hash_key_name(), range_key_name()}.
 
 -type return_value() :: none | all_old | updated_old | all_new | updated_new.
 
@@ -1076,8 +1076,8 @@ batch_write_item(RequestItems, Opts, Config) ->
                       all.
 -type local_secondary_index_def() :: {index_name(), range_key_name(), projection()}.
 
--type global_secondary_index_def() :: {index_name(), {hash_key_name(), 
-    range_key_name()}, projection(), read_units(), write_units()}.
+-type global_secondary_index_def() :: {index_name(), key_schema(), projection(),
+    read_units(), write_units()}.
 
 dynamize_projection(keys_only) ->
     [{<<"ProjectionType">>, <<"KEYS_ONLY">>}];
@@ -1087,12 +1087,9 @@ dynamize_projection({include, AttrNames}) ->
     [{<<"ProjectionType">>, <<"INCLUDE">>},
      {<<"NonKeyAttributes">>, AttrNames}].
 
-dynamize_global_secondary_index({IndexName, {HashKey, RangeKey}, Projection, ReadUnits, WriteUnits}) ->
+dynamize_global_secondary_index({IndexName, KeySchema, Projection, ReadUnits, WriteUnits}) ->
     [{<<"IndexName">>, IndexName},
-     {<<"KeySchema">>, [[{<<"AttributeName">>, HashKey},
-                         {<<"KeyType">>, <<"HASH">>}],
-                        [{<<"AttributeName">>, RangeKey},
-                         {<<"KeyType">>, <<"RANGE">>}]]},
+     {<<"KeySchema">>, dynamize_key_schema(KeySchema)},
      {<<"Projection">>, dynamize_projection(Projection)},
      {<<"ProvisionedThroughput">>, [
          {<<"ReadCapacityUnits">>, ReadUnits},
@@ -1248,7 +1245,7 @@ delete_item(Table, Key, Opts) ->
 %%       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
 %%        {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
 %%       [{return_values, all_old},
-%%        {expected, {<<"Replies">>, false}}]),
+%%        {expected, {<<"Replies">>, null}}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1527,7 +1524,7 @@ put_item(Table, Item, Opts) ->
 %%        {<<"Subject">>, <<"How do I update multiple items?">>},
 %%        {<<"Message">>, 
 %%         <<"I want to update multiple items in a single API call. What is the best way to do that?">>}],
-%%       [{expected, [{<<"ForumName">>, false}, {<<"Subject">>, false}]}]),
+%%       [{expected, [{<<"ForumName">>, null}, {<<"Subject">>, null}]}]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
@@ -1551,7 +1548,7 @@ put_item(Table, Item, Opts, Config) ->
                      {attr_name(), in_attr_value()} |
                      {attr_name(), in_attr_value(), comparison_op()} |
                      {attr_name(), {in_attr_value(), in_attr_value()}, between} |
-                     {attr_name(), [in_attr_value()], in}.
+                     {attr_name(), [in_attr_value(),...], in}.
 -type conditions() :: maybe_list(condition()).
 
 -spec dynamize_condition(condition()) -> json_pair().
