@@ -15,9 +15,6 @@ sns_publish_test_() ->
      ]}.
 
 start() ->
-    %% meck:new(erlcloud_aws, [passthrough]),
-    %% meck:expect(erlcloud_aws, aws_request_xml2,
-    %%             fun(_,_,_,_,_,_,_) -> mock_response() end).
     meck:new(erlcloud_httpc),
     meck:expect(erlcloud_httpc, request,
                  fun(_,_,_,_,_,_) -> mock_httpc_response() end).
