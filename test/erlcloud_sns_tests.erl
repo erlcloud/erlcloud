@@ -2,12 +2,15 @@
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
-request_test_() ->
+sns_publish_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
-     [fun sns_publish_defaults_to_http/1,
-      fun sns_publish_supports_https/1
+     [fun defaults_to_http/1,
+      fun supports_explicit_http/1,
+      fun supports_https/1,
+      fun doesnt_support_gopher/1,
+      fun doesnt_accept_non_strings/1
      ]}.
 
 start() ->
@@ -18,17 +21,33 @@ start() ->
 stop(_) ->
     meck:unload(erlcloud_aws).
 
-sns_publish_defaults_to_http(_) ->
+defaults_to_http(_) ->
     Config = erlcloud_aws:default_config(),
     erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
-    ?_assertMatch({post, "http", "sns.amazonaws.com", _, _, _, Config},
+    ?_assertMatch({_, "http", _, _, _, _, Config},
                   get_values_from_history(meck:history(erlcloud_aws))).
 
-sns_publish_supports_https(_) ->
-    Config = (erlcloud_aws:default_config())#aws_config{sns_protocol="https"},
+supports_explicit_http(_) ->
+    Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="http://"},
     erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
-    ?_assertMatch({post, "https", "sns.amazonaws.com", _, _, _, Config},
+    ?_assertMatch({_, "http", _, _, _, _, Config},
                   get_values_from_history(meck:history(erlcloud_aws))).
+
+supports_https(_) ->
+    Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="https://"},
+    erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
+    ?_assertMatch({_, "https", _, _, _, _, Config},
+                  get_values_from_history(meck:history(erlcloud_aws))).
+
+doesnt_support_gopher(_) ->
+    Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="gopher://"},
+    ?_assertError({sns_error, {unsupported_scheme,"gopher://"}},
+                  erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config)).
+
+doesnt_accept_non_strings(_) ->
+    Config = (erlcloud_aws:default_config())#aws_config{sns_scheme=https},
+    ?_assertError({sns_error, badarg},
+                  erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config)).
 
 
 % ==================
