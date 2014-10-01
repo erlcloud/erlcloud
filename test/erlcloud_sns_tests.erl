@@ -15,36 +15,35 @@ sns_publish_test_() ->
      ]}.
 
 start() ->
-    meck:new(erlcloud_aws, [passthrough]),
-    meck:expect(erlcloud_aws, aws_request_xml2,
-                fun(_,_,_,_,_,_,_) -> mock_response() end).
+    %% meck:new(erlcloud_aws, [passthrough]),
+    %% meck:expect(erlcloud_aws, aws_request_xml2,
+    %%             fun(_,_,_,_,_,_,_) -> mock_response() end).
+    meck:new(erlcloud_httpc),
+    meck:expect(erlcloud_httpc, request,
+                 fun(_,_,_,_,_,_) -> mock_httpc_response() end).
 
 stop(_) ->
-    meck:unload(erlcloud_aws).
+    meck:unload(erlcloud_httpc).
 
 defaults_to_http(_) ->
     Config = erlcloud_aws:default_config(),
     erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
-    ?_assertMatch({_, "http", _, _, _, _, Config},
-                  get_values_from_history(meck:history(erlcloud_aws))).
+    ?_assertMatch({"http://sns.amazonaws.com/", _, _, _, _, Config}, request_params()).
 
 supports_explicit_http(_) ->
     Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="http://"},
     erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
-    ?_assertMatch({_, "http", _, _, _, _, Config},
-                  get_values_from_history(meck:history(erlcloud_aws))).
+    ?_assertMatch({"http://sns.amazonaws.com/", _, _, _, _, Config}, request_params()).
 
 supports_https(_) ->
     Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="https://"},
     erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
-    ?_assertMatch({_, "https", _, _, _, _, Config},
-                  get_values_from_history(meck:history(erlcloud_aws))).
+    ?_assertMatch({"https://sns.amazonaws.com/", _, _, _, _, Config}, request_params()).
 
 is_case_insensitive(_) ->
-    Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="HTTPS://"},
+    Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="HTTP://"},
     erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
-    ?_assertMatch({_, "https", _, _, _, _, Config},
-                  get_values_from_history(meck:history(erlcloud_aws))).
+    ?_assertMatch({"http://sns.amazonaws.com/", _, _, _, _, Config}, request_params()).
 
 doesnt_support_gopher(_) ->
     Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="gopher://"},
@@ -62,16 +61,21 @@ doesnt_accept_non_strings(_) ->
 % ==================
 
 get_values_from_history(Plist) ->
-    [Call1] = [ Params || {_, {erlcloud_aws, aws_request_xml2, Params}, _} <- Plist ],
+    [Call1] = [ Params || {_, {erlcloud_httpc, request, Params}, _} <- Plist ],
     list_to_tuple(Call1).
 
-mock_response() ->
-   R = <<"<PublishResponse xmlns='http://sns.amazonaws.com/doc/2010-03-31/'>
+request_params() ->
+    get_values_from_history(meck:history(erlcloud_httpc)).
+
+mock_httpc_response() ->
+    {ok, {{200, "ok"}, [], response_body()}}.
+
+response_body() ->
+    <<"<PublishResponse xmlns='http://sns.amazonaws.com/doc/2010-03-31/'>
   <PublishResult>
     <MessageId>94f20ce6-13c5-43a0-9a9e-ca52d816e90b</MessageId>
   </PublishResult>
   <ResponseMetadata>
     <RequestId>f187a3c1-376f-11df-8963-01868b7c937a</RequestId>
   </ResponseMetadata>
-</PublishResponse>">>,
-    {ok, element(1, xmerl_scan:string(binary_to_list(R)))}.
+</PublishResponse>">>.
