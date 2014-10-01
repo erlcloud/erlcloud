@@ -9,6 +9,7 @@ sns_publish_test_() ->
      [fun defaults_to_http/1,
       fun supports_explicit_http/1,
       fun supports_https/1,
+      fun is_case_insensitive/1,
       fun doesnt_support_gopher/1,
       fun doesnt_accept_non_strings/1
      ]}.
@@ -39,6 +40,12 @@ supports_https(_) ->
     ?_assertMatch({_, "https", _, _, _, _, Config},
                   get_values_from_history(meck:history(erlcloud_aws))).
 
+is_case_insensitive(_) ->
+    Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="HTTPS://"},
+    erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
+    ?_assertMatch({_, "https", _, _, _, _, Config},
+                  get_values_from_history(meck:history(erlcloud_aws))).
+
 doesnt_support_gopher(_) ->
     Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="gopher://"},
     ?_assertError({sns_error, {unsupported_scheme,"gopher://"}},
@@ -57,7 +64,6 @@ doesnt_accept_non_strings(_) ->
 get_values_from_history(Plist) ->
     [Call1] = [ Params || {_, {erlcloud_aws, aws_request_xml2, Params}, _} <- Plist ],
     list_to_tuple(Call1).
-
 
 mock_response() ->
    R = <<"<PublishResponse xmlns='http://sns.amazonaws.com/doc/2010-03-31/'>
