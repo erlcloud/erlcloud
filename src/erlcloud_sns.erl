@@ -470,8 +470,8 @@ sns_simple_request(Config, Action, Params) ->
 
 sns_xml_request(Config, Action, Params) ->
     case erlcloud_aws:aws_request_xml2(
-           post, Config#aws_config.sns_protocol, Config#aws_config.sns_host,
-           undefined, "/",
+           post, scheme_to_protocol(Config#aws_config.sns_scheme),
+           Config#aws_config.sns_host, undefined, "/",
            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
            Config) of
         {ok, XML} -> XML;
@@ -486,8 +486,8 @@ sns_xml_request(Config, Action, Params) ->
 
 sns_request(Config, Action, Params) ->
     case erlcloud_aws:aws_request2(
-           post, Config#aws_config.sns_protocol, Config#aws_config.sns_host,
-           undefined, "/",
+           post, scheme_to_protocol(Config#aws_config.sns_scheme),
+           Config#aws_config.sns_host, undefined, "/",
            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
            Config) of
         {ok, _Response} -> ok;
@@ -526,3 +526,11 @@ parse_key("EventEndpointDeleted") -> event_endpoint_deleted;
 parse_key("EventEndpointUpdated") -> event_endpoint_updated;
 parse_key("EVentDeliveryFailure") -> event_delivery_failure;
 parse_key(OtherKey) -> list_to_atom(string:to_lower(OtherKey)).
+
+scheme_to_protocol(S) when is_list(S) -> s2p(string:to_lower(S));
+scheme_to_protocol(_)                 -> erlang:error({sns_error, badarg}).
+
+s2p("http://")  -> "http";
+s2p("https://") -> "https";
+s2p(X)          -> erlang:error({sns_error, {unsupported_scheme, X}}).
+
