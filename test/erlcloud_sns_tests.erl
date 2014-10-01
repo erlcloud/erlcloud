@@ -41,9 +41,9 @@ supports_https(_) ->
     ?_assertMatch({"https://sns.amazonaws.com/", _, _, _, _, Config}, request_params()).
 
 is_case_insensitive(_) ->
-    Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="HTTP://"},
+    Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="HTTPS://"},
     erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
-    ?_assertMatch({"http://sns.amazonaws.com/", _, _, _, _, Config}, request_params()).
+    ?_assertMatch({"https://sns.amazonaws.com/", _, _, _, _, Config}, request_params()).
 
 doesnt_support_gopher(_) ->
     Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="gopher://"},
