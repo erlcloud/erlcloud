@@ -10,6 +10,7 @@
           elb_host="elasticloadbalancing.amazonaws.com"::string(),
           ses_host="email.us-east-1.amazonaws.com"::string(),
           sqs_host="queue.amazonaws.com"::string(),
+          sns_scheme="http://"::string(),
           sns_host="sns.amazonaws.com"::string(),
           mturk_host="mechanicalturk.amazonaws.com"::string(),
           mon_host="monitoring.amazonaws.com"::string(),
