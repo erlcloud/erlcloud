@@ -90,14 +90,14 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
     aws_request_form(Method, Protocol, Host, Port, Path, Query, [], Config).
 
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
-    case Protocol of
-        undefined -> UProtocol = "https://";
-        _ -> UProtocol = [Protocol, "://"]
+    UProtocol = case Protocol of
+        undefined -> "https://";
+        _ -> [Protocol, "://"]
     end,
     
-    case Port of
-        undefined -> URL = [UProtocol, Host, Path];
-        _ -> URL = [UProtocol, Host, $:, port_to_str(Port), Path]
+    URL = case Port of
+        undefined -> [UProtocol, Host, Path];
+        _ -> [UProtocol, Host, $:, port_to_str(Port), Path]
     end,
     
     %% Note: httpc MUST be used with {timeout, timeout()} option

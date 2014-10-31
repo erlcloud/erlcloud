@@ -263,8 +263,8 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
        VisibilityTimeout =:= none,
        (WaitTimeSeconds >= 0 andalso WaitTimeSeconds =< 20) orelse
        WaitTimeSeconds =:= none ->
-    if (WaitTimeSeconds =/= none andalso WaitTimeSeconds >= 0) -> TotalTimeout = Config#aws_config.timeout + (WaitTimeSeconds * 1000) ;
-       true -> TotalTimeout = Config#aws_config.timeout
+    TotalTimeout = if (WaitTimeSeconds =/= none andalso WaitTimeSeconds >= 0) -> Config#aws_config.timeout + (WaitTimeSeconds * 1000) ;
+       true -> Config#aws_config.timeout
     end,
     Doc = sqs_xml_request(Config#aws_config{timeout=TotalTimeout}, QueueName, "ReceiveMessage",
                           [
