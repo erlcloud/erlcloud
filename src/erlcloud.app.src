@@ -13,7 +13,8 @@
                   xmerl,
                   inets,
                   jsx,
-                  lhttpc]},
+                  hackney]},
+  {included_applications, [idna]},
   {modules, []},
   {env, []}
  ]
