@@ -6,17 +6,15 @@
 %% future cusomizability.
 %%
 %% @end
-
 -module(erlcloud_httpc).
-
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 -export([request/6]).
 
 request(URL, Method, Hdrs, Body, Timeout, Config) ->
-    Pool =  proplists:get_value(hackney_pool, Config, default),
-
     Options = [{recv_timeout, Timeout},
                {connect_timeout, Timeout},
-               {pool, Pool}],
+               {pool, Config#aws_config.hackney_pool}],
 
     case hackney:request(Method, URL, Hdrs, Body, Options) of
         {ok, Status, RespHeaders, Ref} ->
