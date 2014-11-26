@@ -16,9 +16,8 @@ request(URL, Method, Hdrs, Body, Timeout, Config) ->
                {connect_timeout, Timeout},
                {pool, Config#aws_config.hackney_pool}],
 
-    case hackney:request(Method, URL, Hdrs, Body, Options) of
-        {ok, Status, RespHeaders, Ref} ->
-            {ok, RespBody} = hackney:body(Ref),
+    case hackney_pooler:request(Method, URL, Hdrs, Body, Options) of
+        {ok, Status, RespHeaders, RespBody} ->
             {ok, {{Status, <<>>}, RespHeaders, RespBody}};
         {ok, Status, RespHeaders} ->
             {ok, {{Status, <<>>}, RespHeaders, <<>>}};
