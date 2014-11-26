@@ -33,6 +33,7 @@ export AWS_SECRET_ACCESS_KEY=<Your AWS Secret Access Key>
 ```
 To compile and run erlcloud
 ```
+make
 make run
 ```
 
