@@ -11,12 +11,14 @@
 -include("erlcloud_aws.hrl").
 -export([request/6]).
 
+-define(POOL_NAME, erlcloud_pool).
+
 request(URL, Method, Hdrs, Body, Timeout, Config) ->
     Options = [{recv_timeout, Timeout},
                {connect_timeout, Timeout},
                {pool, Config#aws_config.hackney_pool}],
 
-    case hackney_pooler:request(Method, URL, Hdrs, Body, Options) of
+    case hackney_pooler:request(?POOL_NAME, Method, URL, Hdrs, Body, Options) of
         {ok, Status, RespHeaders, RespBody} ->
             {ok, {{Status, <<>>}, RespHeaders, RespBody}};
         {ok, Status, RespHeaders} ->
