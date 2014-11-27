@@ -214,7 +214,7 @@ delete_objects_batch(Bucket, KeyList) ->
 
     Payload = Compose_xml(KeyList),
     Len = integer_to_list(string:len(Payload)),
-    Config = erlcloud_s3:default_config(),
+    Config = default_config(),
     Host = Bucket ++ "." ++ Config#aws_config.s3_host,
     ContentMD5 = base64:encode(erlcloud_util:md5(Payload)),
     
