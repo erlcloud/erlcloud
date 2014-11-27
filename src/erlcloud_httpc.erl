@@ -15,8 +15,7 @@
 
 request(URL, Method, Hdrs, Body, Timeout, Config) ->
     Options = [{recv_timeout, Timeout},
-               {connect_timeout, Timeout},
-               {pool, Config#aws_config.hackney_pool}],
+               {connect_timeout, Timeout}],
 
     case hackney_pooler:request(?POOL_NAME, Method, URL, Hdrs, Body, Options) of
         {ok, Status, RespHeaders, RespBody} ->
