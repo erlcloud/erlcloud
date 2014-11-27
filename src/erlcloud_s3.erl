@@ -12,6 +12,7 @@
          list_objects/1, list_objects/2, list_objects/3,
          list_object_versions/1, list_object_versions/2, list_object_versions/3,
          copy_object/4, copy_object/5, copy_object/6,
+         delete_objects_batch/2,
          delete_object/2, delete_object/3,
          delete_object_version/3, delete_object_version/4,
          get_object/2, get_object/3, get_object/4,
@@ -194,6 +195,41 @@ delete_bucket(BucketName, Config)
   when is_list(BucketName) ->
     s3_simple_request(Config, delete, BucketName, "/", "", [], <<>>, []).
 
+-spec delete_objects_batch(string(), list()) -> no_return().
+
+delete_objects_batch(Bucket, KeyList) ->
+    Compose_xml = fun(KList) ->
+        Data = lists:map(fun(Item) ->
+                lists:concat(["<Object><Key>", Item, "</Key></Object>"]) end, 
+                    KList),
+        unicode:characters_to_list(
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Delete>" ++ Data ++ "</Delete>", 
+                    utf8)
+        end,
+    
+    Url = fun(#aws_config{s3_scheme = Scheme, s3_host = Host} = Config, BucketName) ->
+        lists:flatten([Scheme, BucketName, ".", Host, port_spec(Config), "/?delete"])
+        end,
+
+
+    Payload = Compose_xml(KeyList),
+    Len = integer_to_list(string:len(Payload)),
+    Config = erlcloud_s3:default_config(),
+    Host = Bucket ++ "." ++ Config#aws_config.s3_host,
+    ContentMD5 = base64:encode(erlcloud_util:md5(Payload)),
+    
+    Headers = [{"host", Host},
+               {"content-md5", binary_to_list(ContentMD5)},
+               {"content-length", Len}],
+    Region = "not-used",
+    Service = "s3",
+    erlcloud_aws:sign_v4(Config, Headers, Payload, Region, Service),
+    
+    Result = erlcloud_httpc:request(
+        Url(Config, Bucket), "POST", Headers, Payload, 1000, Config),
+    io:format("~n~p~n~n", [Result]),
+    erlcloud_aws:http_headers_body(Result).
+    
 -spec delete_object(string(), string()) -> proplist().
 
 delete_object(BucketName, Key) ->
