@@ -3,7 +3,7 @@
 
 {application, erlcloud,
  [{description, "Erlang cloud computing library"},
-  {vsn, "0.9.1"},
+  {vsn, "0.9.2"},
   {registered, []},
   {applications, [stdlib,
                   kernel,
@@ -13,8 +13,9 @@
                   xmerl,
                   inets,
                   jsx,
-                  lhttpc]},
+                  hackney_pooler]},
+  {included_applications, [idna]},
   {modules, []},
-  {env, []}
+  {env, [{pool_size, 500}]}
  ]
 }.

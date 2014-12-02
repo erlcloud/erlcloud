@@ -6,10 +6,22 @@
 %% future cusomizability.
 %%
 %% @end
-
 -module(erlcloud_httpc).
-
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 -export([request/6]).
 
-request(URL, Method, Hdrs, Body, Timeout, _Config) ->
-    lhttpc:request(URL, Method, Hdrs, Body, Timeout, []).
+-define(POOL_NAME, erlcloud_pool).
+
+request(URL, Method, Hdrs, Body, Timeout, Config) ->
+    Options = [{recv_timeout, Timeout},
+               {connect_timeout, Timeout}],
+
+    case hackney_pooler:request(?POOL_NAME, Method, URL, Hdrs, Body, Options) of
+        {ok, Status, RespHeaders, RespBody} ->
+            {ok, {{Status, <<>>}, RespHeaders, RespBody}};
+        {ok, Status, RespHeaders} ->
+            {ok, {{Status, <<>>}, RespHeaders, <<>>}};
+        Error ->
+            Error
+    end.
