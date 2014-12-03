@@ -13,6 +13,7 @@
 -export([
     %% Users
     get_user/0, get_user/1, get_user/2, 
+    list_access_keys/0, list_access_keys/1, list_access_keys/2,
     list_users/0, list_users/1, list_users/2,
     list_groups_for_user/1, list_groups_for_user/2,
     list_user_policies/1, list_user_policies/2,
@@ -79,6 +80,30 @@ get_user_impl(UserNameParam, Config)
             Items = xmerl_xpath:string("/GetUserResponse/GetUserResult/User", Doc),
             [User] = [extract_user_item(Item) || Item <- Items],
             {ok, User};
+        {error, _} = Error ->
+            Error
+    end.
+
+-spec(list_access_keys/0 :: () -> proplist()).
+list_access_keys() ->
+    list_access_keys([]).
+
+-spec(list_access_keys/1 :: ([string()] | aws_config()) -> proplist()).
+list_access_keys(Config) when is_record(Config, aws_config) ->
+    list_access_keys([], Config);
+list_access_keys(UserName) ->
+    list_access_keys(UserName, default_config()).
+
+-spec(list_access_keys/2 :: ([string()], aws_config()) -> proplist()).
+list_access_keys(UserName, Config) when is_list(UserName) ->
+    Params = case UserName of
+                 [] -> [];
+                 UserName -> [{"UserName", UserName}]
+             end,
+    case iam_query(Config, "ListAccessKeys", Params) of
+        {ok, Doc} ->
+            Items = xmerl_xpath:string("/ListAccessKeysResponse/ListAccessKeysResult/AccessKeyMetadata/member", Doc),
+            {ok, [extract_access_key_item(Item) || Item <- Items]};
         {error, _} = Error ->
             Error
     end.
@@ -346,6 +371,13 @@ iam_query(Config, Action, Params, ApiVersion) ->
                                   "/", QParams, Config).
 
 default_config() -> erlcloud_aws:default_config().
+
+extract_access_key_item(Item) ->
+    [{user_name, get_text("UserName", Item)},
+     {access_key_id, get_text("AccessKeyId", Item)},
+     {create_date, erlcloud_xml:get_time("CreateDate", Item)},
+     {status, get_text("Status", Item)}
+    ].
 
 extract_user_item(Item) ->
     [{path, get_text("Path", Item)},
