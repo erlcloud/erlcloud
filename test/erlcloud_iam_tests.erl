@@ -26,7 +26,9 @@ iam_api_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
-     [fun list_users_input_tests/1,
+     [fun list_access_keys_input_tests/1,
+      fun list_access_keys_output_tests/1,
+      fun list_users_input_tests/1,
       fun list_users_output_tests/1,
       fun list_groups_input_tests/1,
       fun list_groups_output_tests/1,
@@ -155,6 +157,63 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
 output_tests(Fun, Tests) ->
     [output_test(Fun, Test) || Test <- Tests].
 
+list_access_keys_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning all users in an account.",
+             ?_f(erlcloud_iam:list_access_keys("test")),
+             [
+              {"Action", "ListAccessKeys"},
+              {"UserName", "test"}
+              ]})
+        ],
+
+   Response = "
+<ListAccessKeysResponse>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</ListAccessKeysResponse>",
+    input_tests(Response, Tests).
+
+list_access_keys_output_tests(_) ->
+    Tests = [?_iam_test(
+                {"This lists all access keys for a user",
+                 "<ListAccessKeysResponse>
+                     <ListAccessKeysResult>
+                        <UserName>Bob</UserName>
+                        <AccessKeyMetadata>
+                           <member>
+                              <UserName>Bob</UserName>
+                              <AccessKeyId>AKIAIOSFODNN7EXAMPLE</AccessKeyId>
+                              <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+                              <Status>Active</Status>
+                           </member>
+                           <member>
+                              <UserName>Bob</UserName>
+                              <AccessKeyId>AKIAI44QH8DHBEXAMPLE</AccessKeyId>
+                              <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+                              <Status>Inactive</Status>
+                           </member>
+                        </AccessKeyMetadata>
+                        <IsTruncated>false</IsTruncated>
+                     </ListAccessKeysResult>
+                     <ResponseMetadata>
+                        <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                     </ResponseMetadata>
+                    </ListAccessKeysResponse>",
+                 {ok, [
+                       [{user_name, "Bob"},
+                        {access_key_id, "AKIAIOSFODNN7EXAMPLE"},
+                        {create_date, {{2012,5,8},{23,34,1}}},
+                        {status, "Active"}],
+                       [{user_name, "Bob"},
+                        {access_key_id, "AKIAI44QH8DHBEXAMPLE"},
+                        {create_date, {{2012,5,8},{23,34,1}}},
+                        {status, "Inactive"}]
+                      ]}})
+            ],
+    output_tests(?_f(erlcloud_iam:list_access_keys("test")), Tests). 
 
 %% ListUsers test based on the API examples:
 %% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListUsers.html
