@@ -26,6 +26,7 @@
     list_role_policies/1, list_role_policies/2,
     get_role_policy/2, get_role_policy/3,
     list_instance_profiles/1, list_instance_profiles/2,
+    get_account_summary/0, get_account_summary/1,
     get_account_password_policy/0, get_account_password_policy/1
 ]).
 
@@ -337,6 +338,20 @@ list_instance_profiles(PathPrefix, Config)
 %
 % Account APIs
 %
+-spec(get_account_summary/0 :: () -> proplist()).
+get_account_summary() ->
+    get_account_summary(default_config()).
+
+-spec(get_account_summary/1 :: (aws_config()) -> proplist()).
+get_account_summary(Config) when is_record(Config, aws_config) ->
+    case iam_query(Config, "GetAccountSummary", []) of
+        {ok, Doc} ->
+            Items = xmerl_xpath:string("/GetAccountSummaryResponse/GetAccountSummaryResult/SummaryMap", Doc),
+            {ok, [extract_account_summary(Item) || Item <- Items]};
+        {error, _} = Error ->
+            Error
+    end.
+
 -spec(get_account_password_policy/0 :: () -> proplist()).
 get_account_password_policy() ->
     get_account_password_policy(default_config()).
@@ -371,6 +386,39 @@ iam_query(Config, Action, Params, ApiVersion) ->
                                   "/", QParams, Config).
 
 default_config() -> erlcloud_aws:default_config().
+
+extract_account_summary(Item) ->
+    Entries = xmerl_xs:select("/SummaryMap/entry", Item),
+    Extract = [{"AccessKeysPerUserQuota", access_keys_per_user_quota, get_integer},
+               {"AccountMFAEnabled", account_mfa_enabled, get_bool},
+               {"AssumeRolePolicySizeQuota", assume_role_policy_size_quota, get_integer},
+               {"GroupPolicySizeQuota", group_policy_size_quota, get_integer},
+               {"Groups", groups, get_integer},
+               {"GroupsPerUserQuota", groups_per_user_quota, get_integer},
+               {"GroupsQuota", groups_quota, get_integer},
+               {"InstanceProfiles", instance_profiles, get_integer},
+               {"InstanceProfilesQuota", instance_profiles_quota, get_integer},
+               {"MFADevices", mfa_devices, get_integer},
+               {"MFADevicesInUse", mfa_devices_in_use, get_integer},
+               {"RolePolicySizeQuota", role_policy_size_quota, get_integer},
+               {"Roles", roles, get_integer},
+               {"RolesQuota", roles_quota, get_integer},
+               {"ServerCertificates", server_certificates, get_integer},
+               {"ServerCertificatesQuota", server_certificates_quota, get_integer},
+               {"SigningCertificatesPerUserQuota", signing_certificates_per_user_quota, get_integer},
+               {"UserPolicySizeQuota", user_policy_size_quota, get_integer},
+               {"Users", users, get_integer},
+               {"UsersQuota", users_quota, get_integer}],
+    lists:foldl(
+      fun(E, As) ->
+              Key = get_text("key", E),
+              case lists:keyfind(Key, 1, Extract) of
+                  false ->
+                      As;
+                  {Key, PKey, ValueFun} ->
+                      [{PKey, apply(erlcloud_xml, ValueFun, ["value", E])}|As]
+              end
+      end, [], Entries).
 
 extract_access_key_item(Item) ->
     [{user_name, get_text("UserName", Item)},

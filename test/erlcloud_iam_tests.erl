@@ -26,7 +26,9 @@ iam_api_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
-     [fun list_access_keys_input_tests/1,
+     [fun get_account_summary_input_tests/1,
+      fun get_account_summary_output_tests/1,
+      fun list_access_keys_input_tests/1,
       fun list_access_keys_output_tests/1,
       fun list_users_input_tests/1,
       fun list_users_output_tests/1,
@@ -157,6 +159,110 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
 output_tests(Fun, Tests) ->
     [output_test(Fun, Test) || Test <- Tests].
 
+get_account_summary_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning account summary.",
+             ?_f(erlcloud_iam:get_account_summary()),
+             [
+              {"Action", "GetAccountSummary"}
+              ]})
+        ],
+
+   Response = "
+<GetAccountSummaryResponse>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</GetAccountSummaryResponse>",
+    input_tests(Response, Tests).
+
+get_account_summary_output_tests(_) ->
+    Tests = [?_iam_test(
+                {"This returns the account summary",
+                 "<GetAccountSummaryResponse>
+                    <GetAccountSummaryResult>
+                      <SummaryMap>
+                        <entry>
+                          <key>Groups</key>
+                          <value>31</value>
+                        </entry>
+                        <entry>
+                          <key>GroupsQuota</key>
+                          <value>50</value>
+                        </entry>
+                        <entry>
+                          <key>UsersQuota</key>
+                          <value>150</value>
+                        </entry>
+                        <entry>
+                          <key>Users</key>
+                          <value>35</value>
+                        </entry>
+                        <entry>
+                          <key>GroupPolicySizeQuota</key>
+                          <value>10240</value>
+                        </entry>
+                        <entry>
+                          <key>AccessKeysPerUserQuota</key>
+                          <value>2</value>
+                        </entry>
+                        <entry>
+                          <key>GroupsPerUserQuota</key>
+                          <value>10</value>
+                        </entry>
+                        <entry>
+                          <key>UserPolicySizeQuota</key>
+                          <value>10240</value>
+                        </entry>
+                        <entry>
+                          <key>SigningCertificatesPerUserQuota</key>
+                          <value>2</value>
+                        </entry>
+                        <entry>
+                          <key>ServerCertificates</key>
+                          <value>0</value>
+                        </entry>
+                        <entry>
+                          <key>ServerCertificatesQuota</key>
+                          <value>10</value>
+                        </entry>
+                        <entry>
+                          <key>AccountMFAEnabled</key>
+                          <value>0</value>
+                        </entry>
+                        <entry>
+                          <key>MFADevicesInUse</key>
+                          <value>10</value>
+                        </entry>
+                        <entry>
+                          <key>MFADevices</key>
+                          <value>20</value>
+                        </entry>
+                      </SummaryMap>
+                    </GetAccountSummaryResult>
+                    <ResponseMetadata>
+                      <RequestId>f1e38443-f1ad-11df-b1ef-a9265EXAMPLE</RequestId>
+                    </ResponseMetadata>
+                    </GetAccountSummaryResponse>",
+                 {ok,[[{mfa_devices,20},
+                       {mfa_devices_in_use,10},
+                       {account_mfa_enabled,false},
+                       {server_certificates_quota,10},
+                       {server_certificates,0},
+                       {signing_certificates_per_user_quota,2},
+                       {user_policy_size_quota,10240},
+                       {groups_per_user_quota,10},
+                       {access_keys_per_user_quota,2},
+                       {group_policy_size_quota,10240},
+                       {users,35},
+                       {users_quota,150},
+                       {groups_quota,50},
+                       {groups,31}]
+                     ]}})
+            ],
+    output_tests(?_f(erlcloud_iam:get_account_summary()), Tests).
+    
 list_access_keys_input_tests(_) ->
     Tests = 
         [?_iam_test(
