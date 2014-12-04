@@ -956,7 +956,7 @@ list_role_policies_output_tests(_) ->
              <IsTruncated>false</IsTruncated>
              <InstanceProfiles>
                <member>
-                 <Id>AIPACIFN4OZXG7EXAMPLE</Id>
+                 <InstanceProfileId>AIPACIFN4OZXG7EXAMPLE</InstanceProfileId>
                  <Roles/>
                  <InstanceProfileName>Database</InstanceProfileName>
                  <Path>/application_abc/component_xyz/</Path>
@@ -964,7 +964,7 @@ list_role_policies_output_tests(_) ->
                  <CreateDate>2012-05-09T16:27:03Z</CreateDate>
                </member>
                <member>
-                 <Id>AIPACZLSXM2EYYEXAMPLE</Id>
+                 <InstanceProfileId>AIPACZLSXM2EYYEXAMPLE</InstanceProfileId>
                  <Roles/>
                  <InstanceProfileName>Webserver</InstanceProfileName>
                  <Path>/application_abc/component_xyz/</Path>
@@ -995,13 +995,13 @@ list_instance_profiles_output_tests(_) ->
     Tests = [?_iam_test(
              {"This returns the instance profiles",
               ?LIST_INSTANCE_PROFILES_RESP,
-              {ok,[[{instance_profile_id,[]},
+              {ok,[[{instance_profile_id,"AIPACIFN4OZXG7EXAMPLE"},
                     {roles,[]},
                     {instance_profile_name,"Database"},
                     {path,"/application_abc/component_xyz/"},
                     {arn,"arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Database"},
                     {create_date,{{2012,5,9},{16,27,3}}}],
-                   [{instance_profile_id,[]},
+                   [{instance_profile_id,"AIPACZLSXM2EYYEXAMPLE"},
                     {roles,[]},
                     {instance_profile_name,"Webserver"},
                     {path,"/application_abc/component_xyz/"},
