@@ -36,6 +36,8 @@ iam_api_test_() ->
       fun get_group_policy_output_tests/1,
       fun get_login_profile_input_tests/1,
       fun get_login_profile_output_tests/1,
+      fun get_role_policy_input_tests/1,
+      fun get_role_policy_output_tests/1,
       fun list_access_keys_input_tests/1,
       fun list_access_keys_output_tests/1,
       fun list_users_input_tests/1,
@@ -437,6 +439,43 @@ get_login_profile_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:get_login_profile("Bob")), Tests).
+
+-define(GET_ROLE_POLICY_RESP,
+        "<GetRolePolicyResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+          <GetRolePolicyResult>
+            <PolicyName>S3AccessPolicy</PolicyName>
+            <RoleName>S3Access</RoleName>
+            <PolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:*\"],\"Resource\":[\"*\"]}]}</PolicyDocument>
+          </GetRolePolicyResult>
+          <ResponseMetadata>
+            <RequestId>7e7cd8bc-99ef-11e1-a4c3-27EXAMPLE804</RequestId>
+          </ResponseMetadata>
+         </GetRolePolicyResponse>").
+
+get_role_policy_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning role policy.",
+             ?_f(erlcloud_iam:get_role_policy("S3Access", "S3AccessPolicy")),
+             [
+              {"Action", "GetRolePolicy"},
+              {"PolicyName", "S3AccessPolicy"},
+              {"RoleName", "S3Access"}
+              ]})
+        ],
+
+    input_tests(?GET_ROLE_POLICY_RESP, Tests).
+
+get_role_policy_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the role policy",
+              ?GET_ROLE_POLICY_RESP,
+              {ok,[[{policy_name,"S3AccessPolicy"},
+                    {role_name,"S3Access"},
+                    {policy_document,"{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:*\"],\"Resource\":[\"*\"]}]}"}]]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:get_role_policy("S3Access", "S3AccessPolicy")), Tests).
     
 list_access_keys_input_tests(_) ->
     Tests = 
