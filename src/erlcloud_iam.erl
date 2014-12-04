@@ -25,7 +25,7 @@
     list_roles/0, list_roles/1, list_roles/2,
     list_role_policies/1, list_role_policies/2,
     get_role_policy/2, get_role_policy/3,
-    list_instance_profiles/1, list_instance_profiles/2,
+    list_instance_profiles/0, list_instance_profiles/1, list_instance_profiles/2,
     get_account_summary/0, get_account_summary/1,
     get_account_password_policy/0, get_account_password_policy/1
 ]).
@@ -308,6 +308,10 @@ get_role_policy(RoleName, PolicyName, Config)
 %
 % InstanceProfile
 %
+-spec(list_instance_profiles/0 :: () -> proplist()).
+list_instance_profiles() ->
+    list_instance_profiles(default_config()).
+
 -spec(list_instance_profiles/1 :: (string() | aws_config()) -> proplist()).
 list_instance_profiles(Config) 
   when is_record(Config, aws_config) ->

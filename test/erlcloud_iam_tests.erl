@@ -55,7 +55,9 @@ iam_api_test_() ->
       fun list_group_policies_input_tests/1,
       fun list_group_policies_output_tests/1,
       fun list_role_policies_input_tests/1,
-      fun list_role_policies_output_tests/1
+      fun list_role_policies_output_tests/1,
+      fun list_instance_profiles_input_tests/1,
+      fun list_instance_profiles_output_tests/1
     ]}.
 
 start() ->
@@ -945,3 +947,66 @@ list_role_policies_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:list_role_policies("S3Access")), Tests).
+
+
+
+-define(LIST_INSTANCE_PROFILES_RESP,
+        "<ListInstanceProfilesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+           <ListInstanceProfilesResult>
+             <IsTruncated>false</IsTruncated>
+             <InstanceProfiles>
+               <member>
+                 <Id>AIPACIFN4OZXG7EXAMPLE</Id>
+                 <Roles/>
+                 <InstanceProfileName>Database</InstanceProfileName>
+                 <Path>/application_abc/component_xyz/</Path>
+                 <Arn>arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Database</Arn>
+                 <CreateDate>2012-05-09T16:27:03Z</CreateDate>
+               </member>
+               <member>
+                 <Id>AIPACZLSXM2EYYEXAMPLE</Id>
+                 <Roles/>
+                 <InstanceProfileName>Webserver</InstanceProfileName>
+                 <Path>/application_abc/component_xyz/</Path>
+                 <Arn>arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Webserver</Arn>
+                 <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+               </member>
+             </InstanceProfiles>
+           </ListInstanceProfilesResult>
+           <ResponseMetadata>
+             <RequestId>fd74fa8d-99f3-11e1-a4c3-27EXAMPLE804</RequestId>
+           </ResponseMetadata>
+         </ListInstanceProfilesResponse>").
+
+list_instance_profiles_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning instance profiles.",
+             ?_f(erlcloud_iam:list_instance_profiles()),
+             [
+              {"Action", "ListInstanceProfiles"},
+              {"PathPrefix", "%2F"}
+              ]})
+        ],
+
+    input_tests(?LIST_INSTANCE_PROFILES_RESP, Tests).
+
+list_instance_profiles_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the instance profiles",
+              ?LIST_INSTANCE_PROFILES_RESP,
+              {ok,[[{instance_profile_id,[]},
+                    {roles,[]},
+                    {instance_profile_name,"Database"},
+                    {path,"/application_abc/component_xyz/"},
+                    {arn,"arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Database"},
+                    {create_date,{{2012,5,9},{16,27,3}}}],
+                   [{instance_profile_id,[]},
+                    {roles,[]},
+                    {instance_profile_name,"Webserver"},
+                    {path,"/application_abc/component_xyz/"},
+                    {arn,"arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Webserver"},
+                    {create_date,{{2012,5,9},{16,27,11}}}]]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:list_instance_profiles()), Tests).
