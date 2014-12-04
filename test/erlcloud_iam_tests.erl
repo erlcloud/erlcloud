@@ -51,7 +51,9 @@ iam_api_test_() ->
       fun list_groups_for_user_input_tests/1,
       fun list_groups_for_user_output_tests/1,
       fun list_user_policies_input_tests/1,
-      fun list_user_policies_output_tests/1
+      fun list_user_policies_output_tests/1,
+      fun list_group_policies_input_tests/1,
+      fun list_group_policies_output_tests/1
     ]}.
 
 start() ->
@@ -867,3 +869,41 @@ list_user_policies_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:list_user_policies("Bob")), Tests).
+
+-define(LIST_GROUP_POLICIES_RESP,
+        "<ListGroupPoliciesResponse>
+           <ListGroupPoliciesResult>
+             <PolicyNames>
+               <member>AdminRoot</member>
+               <member>KeyPolicy</member>
+             </PolicyNames>
+             <IsTruncated>false</IsTruncated>
+           </ListGroupPoliciesResult>
+         <ResponseMetadata>
+           <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+         </ResponseMetadata>
+       </ListGroupPoliciesResponse>").
+
+list_group_policies_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning policies for a group.",
+             ?_f(erlcloud_iam:list_group_policies("Admins")),
+             [
+              {"Action", "ListGroupPolicies"},
+              {"GroupName", "Admins"}
+              ]})
+        ],
+
+    input_tests(?LIST_GROUP_POLICIES_RESP, Tests).
+
+list_group_policies_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the policies for a group",
+              ?LIST_GROUP_POLICIES_RESP,
+              {ok,[[{policy_name,"AdminRoot"}],
+                   [{policy_name,"KeyPolicy"}]]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:list_group_policies("Admins")), Tests).
+
