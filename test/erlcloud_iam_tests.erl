@@ -30,6 +30,8 @@ iam_api_test_() ->
       fun get_account_summary_output_tests/1,
       fun get_account_password_policy_input_tests/1,
       fun get_account_password_policy_output_tests/1,
+      fun get_user_input_tests/1,
+      fun get_user_output_tests/1,
       fun list_access_keys_input_tests/1,
       fun list_access_keys_output_tests/1,
       fun list_users_input_tests/1,
@@ -313,6 +315,49 @@ get_account_password_policy_output_tests(_) ->
                        {allow_pwd_change,true}]]}})
             ],
     output_tests(?_f(erlcloud_iam:get_account_password_policy()), Tests).
+
+-define(GET_USER_RESP,
+        "<GetUserResponse>
+           <GetUserResult>
+             <User>
+               <UserId>AIDACKCEVSQ6C2EXAMPLE</UserId>
+               <Path>/division_abc/subdivision_xyz/</Path>
+               <UserName>Bob</UserName>
+               <Arn>arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/Bob</Arn>
+               <CreateDate>2013-10-02T17:01:44Z</CreateDate>
+               <PasswordLastUsed>2014-10-10T14:37:51Z</PasswordLastUsed>
+             </User>
+           </GetUserResult>
+           <ResponseMetadata>
+             <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+           </ResponseMetadata>
+         </GetUserResponse>").
+
+get_user_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning User.",
+             ?_f(erlcloud_iam:get_user()),
+             [
+              {"Action", "GetUser"}
+              ]})
+        ],
+
+    input_tests(?GET_USER_RESP, Tests).
+
+get_user_output_tests(_) ->
+    Tests = [?_iam_test(
+                {"This returns the User",
+                 ?GET_USER_RESP,
+                 {ok,[{path,"/division_abc/subdivision_xyz/"},
+                      {user_name,"Bob"},
+                      {user_id,"AIDACKCEVSQ6C2EXAMPLE"},
+                      {arn,"arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/Bob"},
+                      {create_date,{{2013,10,2},{17,1,44}}},
+                      {password_last_used,{{2014,10,10},{14,37,51}}}]}
+                })
+            ],
+    output_tests(?_f(erlcloud_iam:get_user()), Tests).
     
 list_access_keys_input_tests(_) ->
     Tests = 
@@ -397,41 +442,44 @@ list_users_output_tests(_) ->
     Tests = [?_iam_test(
                 {"This lists all users in your account",
                  "<ListUsersResponse>
-                       <ListUsersResult>
-                          <Users>
-                             <member>
-                                <Path>/division_abc/</Path>
-                                <UserName>Andrew</UserName>
-                                <UserId>AID2MAB8DPLSRHEXAMPLE</UserId>
-                                <Arn>arn:aws:iam::123456789012:user/division_abc/Andrew</Arn>
-                                <CreateDate>2012-05-08T23:34:01Z</CreateDate>
-                             </member>
-                             <member>
-                                <Path>/division_abc/</Path>
-                                <UserName>Jackie</UserName>
-                                <UserId>AIDIODR4TAW7CSEXAMPLE</UserId>
-                                <Arn>arn:aws:iam::123456789012:user/division_abc/Jackie</Arn>
-                                <CreateDate>2012-05-08T23:34:01Z</CreateDate>
-                             </member>
-                          </Users>
-                          <IsTruncated>false</IsTruncated>
-                       </ListUsersResult>
-                       <ResponseMetadata>
-                          <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
-                       </ResponseMetadata>
+                     <ListUsersResult>
+                        <Users>
+                           <member>
+                              <UserId>AID2MAB8DPLSRHEXAMPLE</UserId>
+                              <Path>/division_abc/subdivision_xyz/engineering/</Path>
+                              <UserName>Andrew</UserName>
+                              <Arn>arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/engineering/Andrew</Arn>
+                              <CreateDate>2012-09-05T19:38:48Z</CreateDate>
+                              <PasswordLastUsed>2014-09-08T21:47:36Z</PasswordLastUsed>
+                           </member>
+                           <member>
+                              <UserId>AIDIODR4TAW7CSEXAMPLE</UserId>
+                              <Path>/division_abc/subdivision_xyz/engineering/</Path>
+                              <UserName>Jackie</UserName>
+                              <Arn>arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/engineering/Jackie</Arn>
+                              <CreateDate>2014-04-09T15:43:45Z</CreateDate>
+                              <PasswordLastUsed>2014-09-24T16:18:07Z</PasswordLastUsed>
+                           </member>
+                        </Users>
+                        <IsTruncated>false</IsTruncated>
+                     </ListUsersResult>
+                     <ResponseMetadata>
+                        <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                     </ResponseMetadata>
                     </ListUsersResponse>",
-                    {ok, [
-                            [{path, "/division_abc/"},
-                             {user_name, "Andrew"},
-                             {user_id, "AID2MAB8DPLSRHEXAMPLE"},
-                             {arn, "arn:aws:iam::123456789012:user/division_abc/Andrew"},
-                             {create_date, {{2012,5,8},{23,34,1}}}],
-                             [{path, "/division_abc/"},
-                             {user_name, "Jackie"},
-                             {user_id, "AIDIODR4TAW7CSEXAMPLE"},
-                             {arn, "arn:aws:iam::123456789012:user/division_abc/Jackie"},
-                             {create_date, {{2012,5,8},{23,34,1}}}]
-                         ]}})
+                 {ok,[[{path,"/division_abc/subdivision_xyz/engineering/"},
+                       {user_name,"Andrew"},
+                       {user_id,"AID2MAB8DPLSRHEXAMPLE"},
+                       {arn,"arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/engineering/Andrew"},
+                       {create_date,{{2012,9,5},{19,38,48}}},
+                       {password_last_used,{{2014,9,8},{21,47,36}}}],
+                      [{path,"/division_abc/subdivision_xyz/engineering/"},
+                       {user_name,"Jackie"},
+                       {user_id,"AIDIODR4TAW7CSEXAMPLE"},
+                       {arn,"arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/engineering/Jackie"},
+                       {create_date,{{2014,4,9},{15,43,45}}},
+                       {password_last_used,{{2014,9,24},{16,18,7}}}]]}
+                })
                 ],
     output_tests(?_f(erlcloud_iam:list_users("test")), Tests). 
 

@@ -432,7 +432,8 @@ extract_user_item(Item) ->
      {user_name, get_text("UserName", Item)},
      {user_id, get_text("UserId", Item)},
      {arn, get_text("Arn", Item)},
-     {create_date, erlcloud_xml:get_time("CreateDate", Item)}
+     {create_date, erlcloud_xml:get_time("CreateDate", Item)},
+     {password_last_used, erlcloud_xml:get_time("PasswordLastUsed", Item)}
     ].
 
 extract_group_item(Item) ->
