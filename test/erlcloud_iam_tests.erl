@@ -28,6 +28,8 @@ iam_api_test_() ->
      fun stop/1,
      [fun get_account_summary_input_tests/1,
       fun get_account_summary_output_tests/1,
+      fun get_account_password_policy_input_tests/1,
+      fun get_account_password_policy_output_tests/1,
       fun list_access_keys_input_tests/1,
       fun list_access_keys_output_tests/1,
       fun list_users_input_tests/1,
@@ -262,6 +264,55 @@ get_account_summary_output_tests(_) ->
                      ]}})
             ],
     output_tests(?_f(erlcloud_iam:get_account_summary()), Tests).
+
+get_account_password_policy_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning account password policy.",
+             ?_f(erlcloud_iam:get_account_password_policy()),
+             [
+              {"Action", "GetAccountPasswordPolicy"}
+              ]})
+        ],
+
+   Response = "
+<GetAccountPasswordPolicyResponse>
+   <ResponseMetadata>
+      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+   </ResponseMetadata>
+</GetAccountPasswordPolicyResponse>",
+    input_tests(Response, Tests).
+
+get_account_password_policy_output_tests(_) ->
+    Tests = [?_iam_test(
+                {"This returns the account password policy",
+                 "<GetAccountPasswordPolicyResponse>
+                    <GetAccountPasswordPolicyResult>
+                      <PasswordPolicy>
+                        <AllowUsersToChangePassword>true</AllowUsersToChangePassword>
+                        <RequireUppercaseCharacters>true</RequireUppercaseCharacters>
+                        <RequireSymbols>true</RequireSymbols>
+                        <ExpirePasswords>false</ExpirePasswords>
+                        <PasswordReusePrevention>12</PasswordReusePrevention>
+                        <RequireLowercaseCharacters>true</RequireLowercaseCharacters>
+                        <MaxPasswordAge>90</MaxPasswordAge>
+                        <HardExpiry>false</HardExpiry>
+                        <RequireNumbers>true</RequireNumbers>
+                        <MinimumPasswordLength>12</MinimumPasswordLength>
+                      </PasswordPolicy>
+                    </GetAccountPasswordPolicyResult>
+                    <ResponseMetadata>
+                      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                    </ResponseMetadata>
+                    </GetAccountPasswordPolicyResponse>",
+                 {ok,[[{min_pwd_length,"12"},
+                       {require_upper_case,true},
+                       {require_lower_case,true},
+                       {require_numbers,true},
+                       {require_symbols,true},
+                       {allow_pwd_change,true}]]}})
+            ],
+    output_tests(?_f(erlcloud_iam:get_account_password_policy()), Tests).
     
 list_access_keys_input_tests(_) ->
     Tests = 

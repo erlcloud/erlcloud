@@ -359,7 +359,7 @@ get_account_password_policy() ->
 -spec(get_account_password_policy/1 :: (aws_config()) -> proplist()).
 get_account_password_policy(Config)
   when is_record(Config, aws_config) ->
-    case iam_query(Config, "GetRolePolicy", []) of
+    case iam_query(Config, "GetAccountPasswordPolicy", []) of
         {ok, Doc} ->
             Items = xmerl_xpath:string("/GetAccountPasswordPolicyResponse/GetAccountPasswordPolicyResult/PasswordPolicy", Doc),
             {ok, [[
