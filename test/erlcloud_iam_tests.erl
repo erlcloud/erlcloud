@@ -34,6 +34,8 @@ iam_api_test_() ->
       fun get_user_output_tests/1,
       fun get_group_policy_input_tests/1,
       fun get_group_policy_output_tests/1,
+      fun get_login_profile_input_tests/1,
+      fun get_login_profile_output_tests/1,
       fun list_access_keys_input_tests/1,
       fun list_access_keys_output_tests/1,
       fun list_users_input_tests/1,
@@ -399,6 +401,42 @@ get_group_policy_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:get_group_policy("Admins", "AdminRoot")), Tests).
+
+-define(GET_LOGIN_PROFILE_RESP,
+        "<GetLoginProfileResponse>
+           <GetLoginProfileResult>
+             <LoginProfile>
+               <UserName>Bob</UserName>
+               <CreateDate>2011-09-19T23:00:56Z</CreateDate>
+             </LoginProfile>
+           </GetLoginProfileResult>
+           <ResponseMetadata>
+             <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+          </ResponseMetadata>
+         </GetLoginProfileResponse>").
+
+get_login_profile_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning login profile.",
+             ?_f(erlcloud_iam:get_login_profile("Bob")),
+             [
+              {"Action", "GetLoginProfile"},
+              {"UserName", "Bob"}
+              ]})
+        ],
+
+    input_tests(?GET_LOGIN_PROFILE_RESP, Tests).
+
+get_login_profile_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the login profile",
+              ?GET_LOGIN_PROFILE_RESP,
+              {ok,[[{user_name,"Bob"},
+                    {create_date,{{2011,9,19},{23,0,56}}}]]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:get_login_profile("Bob")), Tests).
     
 list_access_keys_input_tests(_) ->
     Tests = 
