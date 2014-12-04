@@ -47,7 +47,9 @@ iam_api_test_() ->
       fun list_groups_input_tests/1,
       fun list_groups_output_tests/1,
       fun list_roles_input_tests/1,
-      fun list_roles_output_tests/1
+      fun list_roles_output_tests/1,
+      fun list_groups_for_user_input_tests/1,
+      fun list_groups_for_user_output_tests/1
     ]}.
 
 start() ->
@@ -783,4 +785,46 @@ list_roles_output_tests(_) ->
                 ],
     output_tests(?_f(erlcloud_iam:list_roles("test")), Tests). 
 
+-define(LIST_GROUPS_FOR_USER_RESP,
+        "<ListGroupsForUserResponse>
+           <ListGroupsForUserResult>
+             <Groups>
+               <member>
+                 <Path>/</Path>
+                 <GroupName>Admins</GroupName>
+                 <GroupId>AGPACKCEVSQ6C2EXAMPLE</GroupId>
+                 <Arn>arn:aws:iam::123456789012:group/Admins</Arn>
+               </member>
+             </Groups>
+           <IsTruncated>false</IsTruncated>
+         </ListGroupsForUserResult>
+         <ResponseMetadata>
+           <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+         </ResponseMetadata>
+       </ListGroupsForUserResponse>").
 
+list_groups_for_user_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning groups for a user.",
+             ?_f(erlcloud_iam:list_groups_for_user("Bob")),
+             [
+              {"Action", "ListGroupsForUser"},
+              {"UserName", "Bob"}
+              ]})
+        ],
+
+    input_tests(?LIST_GROUPS_FOR_USER_RESP, Tests).
+
+list_groups_for_user_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the groups for a user",
+              ?LIST_GROUPS_FOR_USER_RESP,
+              {ok,[[{path,"/"},
+                    {group_name,"Admins"},
+                    {group_id,"AGPACKCEVSQ6C2EXAMPLE"},
+                    {arn,"arn:aws:iam::123456789012:group/Admins"},
+                    {create_date,undefined}]]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:list_groups_for_user("Bob")), Tests).
