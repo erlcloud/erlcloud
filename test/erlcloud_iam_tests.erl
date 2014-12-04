@@ -53,7 +53,9 @@ iam_api_test_() ->
       fun list_user_policies_input_tests/1,
       fun list_user_policies_output_tests/1,
       fun list_group_policies_input_tests/1,
-      fun list_group_policies_output_tests/1
+      fun list_group_policies_output_tests/1,
+      fun list_role_policies_input_tests/1,
+      fun list_role_policies_output_tests/1
     ]}.
 
 start() ->
@@ -907,3 +909,39 @@ list_group_policies_output_tests(_) ->
             ],
     output_tests(?_f(erlcloud_iam:list_group_policies("Admins")), Tests).
 
+-define(LIST_ROLE_POLICIES_RESP,
+        "<ListRolePoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+           <ListRolePoliciesResult>
+             <PolicyNames>
+               <member>CloudwatchPutMetricPolicy</member>
+               <member>S3AccessPolicy</member>
+             </PolicyNames>
+             <IsTruncated>false</IsTruncated>
+           </ListRolePoliciesResult>
+           <ResponseMetadata>
+             <RequestId>8c7e1816-99f0-11e1-a4c3-27EXAMPLE804</RequestId>
+           </ResponseMetadata>
+         </ListRolePoliciesResponse>").
+
+list_role_policies_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning policies for a role.",
+             ?_f(erlcloud_iam:list_role_policies("S3Access")),
+             [
+              {"Action", "ListRolePolicies"},
+              {"RoleName", "S3Access"}
+              ]})
+        ],
+
+    input_tests(?LIST_ROLE_POLICIES_RESP, Tests).
+
+list_role_policies_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the policies for a role",
+              ?LIST_ROLE_POLICIES_RESP,
+              {ok,[[{policy_name,"CloudwatchPutMetricPolicy"}],
+                   [{policy_name,"S3AccessPolicy"}]]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:list_role_policies("S3Access")), Tests).
