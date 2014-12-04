@@ -38,6 +38,8 @@ iam_api_test_() ->
       fun get_login_profile_output_tests/1,
       fun get_role_policy_input_tests/1,
       fun get_role_policy_output_tests/1,
+      fun get_user_policy_input_tests/1,
+      fun get_user_policy_output_tests/1,
       fun list_access_keys_input_tests/1,
       fun list_access_keys_output_tests/1,
       fun list_users_input_tests/1,
@@ -476,6 +478,43 @@ get_role_policy_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:get_role_policy("S3Access", "S3AccessPolicy")), Tests).
+
+-define(GET_USER_POLICY_RESP,
+        "<GetUserPolicyResponse>
+           <GetUserPolicyResult>
+             <UserName>Bob</UserName>
+             <PolicyName>AllAccessPolicy</PolicyName>
+             <PolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}]}</PolicyDocument>
+           </GetUserPolicyResult>
+           <ResponseMetadata>
+             <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+           </ResponseMetadata>
+         </GetUserPolicyResponse>").
+
+get_user_policy_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning user policy.",
+             ?_f(erlcloud_iam:get_user_policy("Bob", "AllAccessPolicy")),
+             [
+              {"Action", "GetUserPolicy"},
+              {"UserName", "Bob"},
+              {"PolicyName", "AllAccessPolicy"}
+              ]})
+        ],
+
+    input_tests(?GET_USER_POLICY_RESP, Tests).
+
+get_user_policy_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the user policy",
+              ?GET_USER_POLICY_RESP,
+              {ok,[[{policy_name,"AllAccessPolicy"},
+                    {user_name,"Bob"},
+                    {policy_document,"{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}]}"}]]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:get_user_policy("Bob", "AllAccessPolicy")), Tests).
     
 list_access_keys_input_tests(_) ->
     Tests = 
