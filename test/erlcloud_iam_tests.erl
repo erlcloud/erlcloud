@@ -49,7 +49,9 @@ iam_api_test_() ->
       fun list_roles_input_tests/1,
       fun list_roles_output_tests/1,
       fun list_groups_for_user_input_tests/1,
-      fun list_groups_for_user_output_tests/1
+      fun list_groups_for_user_output_tests/1,
+      fun list_user_policies_input_tests/1,
+      fun list_user_policies_output_tests/1
     ]}.
 
 start() ->
@@ -828,3 +830,40 @@ list_groups_for_user_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:list_groups_for_user("Bob")), Tests).
+
+-define(LIST_USER_POLICIES_RESP,
+        "<ListUserPoliciesResponse>
+           <ListUserPoliciesResult>
+             <PolicyNames>
+               <member>AllAccessPolicy</member>
+               <member>KeyPolicy</member>
+             </PolicyNames>
+             <IsTruncated>false</IsTruncated>
+           </ListUserPoliciesResult>
+           <ResponseMetadata>
+             <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+           </ResponseMetadata>
+         </ListUserPoliciesResponse>").
+
+list_user_policies_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning policies for a user.",
+             ?_f(erlcloud_iam:list_user_policies("Bob")),
+             [
+              {"Action", "ListUserPolicies"},
+              {"UserName", "Bob"}
+              ]})
+        ],
+
+    input_tests(?LIST_USER_POLICIES_RESP, Tests).
+
+list_user_policies_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the policies for a user",
+              ?LIST_USER_POLICIES_RESP,
+              {ok,[[{policy_name,"AllAccessPolicy"}],
+                   [{policy_name,"KeyPolicy"}]]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:list_user_policies("Bob")), Tests).
