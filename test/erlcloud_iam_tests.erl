@@ -32,6 +32,8 @@ iam_api_test_() ->
       fun get_account_password_policy_output_tests/1,
       fun get_user_input_tests/1,
       fun get_user_output_tests/1,
+      fun get_group_policy_input_tests/1,
+      fun get_group_policy_output_tests/1,
       fun list_access_keys_input_tests/1,
       fun list_access_keys_output_tests/1,
       fun list_users_input_tests/1,
@@ -358,6 +360,45 @@ get_user_output_tests(_) ->
                 })
             ],
     output_tests(?_f(erlcloud_iam:get_user()), Tests).
+
+-define(GET_GROUP_POLICY_RESP,
+        "<GetGroupPolicyResponse>
+           <GetGroupPolicyResult>
+             <GroupName>Admins</GroupName>
+             <PolicyName>AdminRoot</PolicyName>
+             <PolicyDocument>
+               {\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}]}
+             </PolicyDocument>
+           </GetGroupPolicyResult>
+           <ResponseMetadata>
+             <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+           </ResponseMetadata>
+         </GetGroupPolicyResponse>").
+
+get_group_policy_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning group policy.",
+             ?_f(erlcloud_iam:get_group_policy("Admins", "AdminRoot")),
+             [
+              {"Action", "GetGroupPolicy"},
+              {"GroupName", "Admins"},
+              {"PolicyName", "AdminRoot"}
+              ]})
+        ],
+
+    input_tests(?GET_GROUP_POLICY_RESP, Tests).
+
+get_group_policy_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the group policy",
+              ?GET_GROUP_POLICY_RESP,
+              {ok,[[{policy_name,"AdminRoot"},
+                    {group_name,"Admins"},
+                    {policy_document,"\n               {\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}]}\n             "}]]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:get_group_policy("Admins", "AdminRoot")), Tests).
     
 list_access_keys_input_tests(_) ->
     Tests = 

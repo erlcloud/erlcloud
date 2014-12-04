@@ -239,8 +239,7 @@ get_group_policy(GroupName, PolicyName, Config)
      case iam_query(Config, "GetGroupPolicy", [{"GroupName", GroupName}, {"PolicyName", PolicyName}]) of
         {ok, Doc} ->
             Items = xmerl_xpath:string("/GetGroupPolicyResponse/GetGroupPolicyResult", Doc),
-            {ok, [[
-                   {policy_name, get_text("PolicyName", Item)},
+            {ok, [[{policy_name, get_text("PolicyName", Item)},
                    {group_name, get_text("GroupName", Item)},
                    {policy_document, get_text("PolicyDocument", Item)}] || Item <- Items]};
         {error, _} = Error ->
