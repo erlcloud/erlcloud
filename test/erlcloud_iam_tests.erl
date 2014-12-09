@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("erlcloud.hrl").
 -include_lib("../include/erlcloud_aws.hrl").
+-compile([export_all]).
 
 %% Unit tests for iam.
 %% These tests work by using meck to mock erlcloud_httpc. There are two classes of test: input and output.
@@ -26,7 +27,9 @@ iam_api_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
-     [fun get_account_summary_input_tests/1,
+     [fun get_account_authorization_details_input_tests/1,
+      fun get_account_authorization_details_output_tests/1,
+      fun get_account_summary_input_tests/1,
       fun get_account_summary_output_tests/1,
       fun get_account_password_policy_input_tests/1,
       fun get_account_password_policy_output_tests/1,
@@ -285,6 +288,27 @@ get_account_summary_output_tests(_) ->
             ],
     output_tests(?_f(erlcloud_iam:get_account_summary()), Tests).
 
+-define(GET_ACCOUNT_PASSWORD_POLICY_RESP,
+        "<GetAccountPasswordPolicyResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+            <GetAccountPasswordPolicyResult>
+              <PasswordPolicy>
+                <AllowUsersToChangePassword>true</AllowUsersToChangePassword>
+                <RequireUppercaseCharacters>true</RequireUppercaseCharacters>
+                <RequireSymbols>true</RequireSymbols>
+                <ExpirePasswords>false</ExpirePasswords>
+                <PasswordReusePrevention>12</PasswordReusePrevention>
+                <RequireLowercaseCharacters>true</RequireLowercaseCharacters>
+                <MaxPasswordAge>90</MaxPasswordAge>
+                <HardExpiry>false</HardExpiry>
+                <RequireNumbers>true</RequireNumbers>
+                <MinimumPasswordLength>12</MinimumPasswordLength>
+              </PasswordPolicy>
+            </GetAccountPasswordPolicyResult>
+            <ResponseMetadata>
+              <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+            </ResponseMetadata>
+            </GetAccountPasswordPolicyResponse>").
+
 get_account_password_policy_input_tests(_) ->
     Tests = 
         [?_iam_test(
@@ -295,42 +319,23 @@ get_account_password_policy_input_tests(_) ->
               ]})
         ],
 
-   Response = "
-<GetAccountPasswordPolicyResponse>
-   <ResponseMetadata>
-      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
-   </ResponseMetadata>
-</GetAccountPasswordPolicyResponse>",
-    input_tests(Response, Tests).
+    input_tests(?GET_ACCOUNT_PASSWORD_POLICY_RESP, Tests).
 
 get_account_password_policy_output_tests(_) ->
     Tests = [?_iam_test(
-                {"This returns the account password policy",
-                 "<GetAccountPasswordPolicyResponse>
-                    <GetAccountPasswordPolicyResult>
-                      <PasswordPolicy>
-                        <AllowUsersToChangePassword>true</AllowUsersToChangePassword>
-                        <RequireUppercaseCharacters>true</RequireUppercaseCharacters>
-                        <RequireSymbols>true</RequireSymbols>
-                        <ExpirePasswords>false</ExpirePasswords>
-                        <PasswordReusePrevention>12</PasswordReusePrevention>
-                        <RequireLowercaseCharacters>true</RequireLowercaseCharacters>
-                        <MaxPasswordAge>90</MaxPasswordAge>
-                        <HardExpiry>false</HardExpiry>
-                        <RequireNumbers>true</RequireNumbers>
-                        <MinimumPasswordLength>12</MinimumPasswordLength>
-                      </PasswordPolicy>
-                    </GetAccountPasswordPolicyResult>
-                    <ResponseMetadata>
-                      <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
-                    </ResponseMetadata>
-                    </GetAccountPasswordPolicyResponse>",
-                 {ok,[[{min_pwd_length,"12"},
-                       {require_upper_case,true},
-                       {require_lower_case,true},
-                       {require_numbers,true},
-                       {require_symbols,true},
-                       {allow_pwd_change,true}]]}})
+             {"This returns the account password policy",
+              ?GET_ACCOUNT_PASSWORD_POLICY_RESP,
+              {ok,[[{allow_users_to_change_password,true},
+                    {expire_passwords,false},
+                    {hard_expiry,false},
+                    {max_password_age,90},
+                    {minimum_password_length,12},
+                    {password_reuse_prevention,12},
+                    {require_lowercase_characters,true},
+                    {require_numbers,true},
+                    {require_symbols,true},
+                    {require_uppercase_characters,true}]]}
+             })
             ],
     output_tests(?_f(erlcloud_iam:get_account_password_policy()), Tests).
 
@@ -706,25 +711,24 @@ list_groups_output_tests(_) ->
                           <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
                        </ResponseMetadata>
                     </ListGroupsResponse>",
-                    {ok, [
-                            [{path, "/division_abc/"},
-                             {group_name, "Admins"},
-                             {group_id, "AGPACKCEVSQ6C2EXAMPLE"},
-                             {arn, "arn:aws:iam::123456789012:group/Admins"},
-                             {create_date, {{2012,5,8},{23,34,1}}}],
-                             [{path, "/division_abc/subdivision_xyz/"},
-                             {group_name, "Test"},
-                             {group_id, "AGP2MAB8DPLSRHEXAMPLE"},
-                             {arn, "arn:aws:iam::123456789012:group/division_abc/subdivision_xyz/Test"},
-                             {create_date, {{2012,5,8},{23,34,1}}}],
-                             [{path, "/division_abc/subdivision_xyz/product_1234/"},
-                             {group_name, "Managers"},
-                             {group_id, "AGPIODR4TAW7CSEXAMPLE"},
-                             {arn, "arn:aws:iam::123456789012:group/division_abc/subdivision_xyz/product_1234/Managers"},
-                             {create_date, {{2012,5,8},{23,34,1}}}]
-                         ]}})
+                 {ok,[[{arn,"arn:aws:iam::123456789012:group/Admins"},
+                       {create_date,{{2012,5,8},{23,34,1}}},
+                       {group_id,"AGPACKCEVSQ6C2EXAMPLE"},
+                       {group_name,"Admins"},
+                       {path,"/division_abc/"}],
+                      [{arn,"arn:aws:iam::123456789012:group/division_abc/subdivision_xyz/Test"},
+                       {create_date,{{2012,5,8},{23,34,1}}},
+                       {group_id,"AGP2MAB8DPLSRHEXAMPLE"},
+                       {group_name,"Test"},
+                       {path,"/division_abc/subdivision_xyz/"}],
+                      [{arn,"arn:aws:iam::123456789012:group/division_abc/subdivision_xyz/product_1234/Managers"},
+                       {create_date,{{2012,5,8},{23,34,1}}},
+                       {group_id,"AGPIODR4TAW7CSEXAMPLE"},
+                       {group_name,"Managers"},
+                       {path,"/division_abc/subdivision_xyz/product_1234/"}]
+                      ]}})
                 ],
-    output_tests(?_f(erlcloud_iam:list_groups("test")), Tests). 
+    output_tests(?_f(erlcloud_iam:list_groups("test")), Tests).
 
 %% ListRoles test based on the API examples:
 %% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListRoles.html
@@ -828,11 +832,11 @@ list_groups_for_user_output_tests(_) ->
     Tests = [?_iam_test(
              {"This returns the groups for a user",
               ?LIST_GROUPS_FOR_USER_RESP,
-              {ok,[[{path,"/"},
-                    {group_name,"Admins"},
+              {ok,[[{arn,"arn:aws:iam::123456789012:group/Admins"},
+                    {create_date,undefined},
                     {group_id,"AGPACKCEVSQ6C2EXAMPLE"},
-                    {arn,"arn:aws:iam::123456789012:group/Admins"},
-                    {create_date,undefined}]]}
+                    {group_name,"Admins"},
+                    {path,"/"}]]}
              })
             ],
     output_tests(?_f(erlcloud_iam:list_groups_for_user("Bob")), Tests).
@@ -1010,3 +1014,261 @@ list_instance_profiles_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:list_instance_profiles()), Tests).
+
+-define(GET_ACCOUNT_AUTHORIZATION_DETAILS_RESP,
+        "<GetAccountAuthorizationDetailsResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+          <GetAccountAuthorizationDetailsResult>
+            <IsTruncated>false</IsTruncated>
+            <UserDetailList>
+              <member>
+                <GroupList>
+                  <member>Admins</member>
+                </GroupList>
+                <UserId>AIDACKCEVSQ6C2EXAMPLE</UserId>
+                <Path>/</Path>
+                <UserName>Alice</UserName>
+                <Arn>arn:aws:iam::123456789012:user/Alice</Arn>
+                <CreateDate>2013-10-14T18:32:24Z</CreateDate>
+              </member>
+              <member>
+                <GroupList>
+                  <member>Admins</member>
+                </GroupList>
+                <UserPolicyList>
+                  <member>
+                    <PolicyName>DenyBillingPolicy</PolicyName>
+                    <PolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Deny\",\"Action\":\"aws-portal:*\",\"Resource\":\"*\"}}</PolicyDocument>
+                  </member>
+                </UserPolicyList>
+                <UserId>AIDACKCEVSQ6C3EXAMPLE</UserId>
+                <Path>/</Path>
+                <UserName>Bob</UserName>
+                <Arn>arn:aws:iam::123456789012:user/Bob</Arn>
+                <CreateDate>2013-10-14T18:32:25Z</CreateDate>
+              </member>
+              <member>
+                <GroupList>
+                  <member>Dev</member>
+                </GroupList>
+                <UserId>AIDACKCEVSQ6C4EXAMPLE</UserId>
+                <Path>/</Path>
+                <UserName>Charlie</UserName>
+                <Arn>arn:aws:iam::123456789012:user/Charlie</Arn>
+                <CreateDate>2013-10-14T18:33:56Z</CreateDate>
+              </member>
+              <member>
+                <GroupList>
+                  <member>Dev</member>
+                </GroupList>
+                <UserId>AIDACKCEVSQ6C5EXAMPLE</UserId>
+                <Path>/</Path>
+                <UserName>Danielle</UserName>
+                <Arn>arn:aws:iam::123456789012:user/Danielle</Arn>
+                <CreateDate>2013-10-14T18:33:56Z</CreateDate>
+              </member>
+              <member>
+                <GroupList>
+                  <member>Finance</member>
+                  <member>Admins</member>
+                </GroupList>
+                <UserId>AIDACKCEVSQ6C6EXAMPLE</UserId>
+                <Path>/</Path>
+                <UserName>Elaine</UserName>
+                <Arn>arn:aws:iam::123456789012:user/Elaine</Arn>
+                <CreateDate>2013-10-14T18:57:48Z</CreateDate>
+              </member>
+            </UserDetailList>
+            <GroupDetailList>
+              <member>
+                <GroupId>AIDACKCEVSQ6C7EXAMPLE</GroupId>
+                <GroupName>Admins</GroupName>
+                <Path>/</Path>
+                <Arn>arn:aws:iam::123456789012:group/Admins</Arn>
+                <CreateDate>2013-10-14T18:32:24Z</CreateDate>
+                <GroupPolicyList>
+                  <member>
+                    <PolicyName>AdministratorAccess-201409151020</PolicyName>
+                    <PolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}</PolicyDocument>
+                  </member>
+                </GroupPolicyList>
+              </member>
+              <member>
+                <GroupId>AIDACKCEVSQ6C8EXAMPLE</GroupId>
+                <GroupName>Dev</GroupName>
+                <Path>/</Path>
+                <Arn>arn:aws:iam::123456789012:group/Dev</Arn>
+                <CreateDate>2013-10-14T18:33:55Z</CreateDate>
+                <GroupPolicyList>
+                  <member>
+                    <PolicyName>PowerUserAccess-201310141133</PolicyName>
+                    <PolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"NotAction\":\"iam:*\",\"Resource\":\"*\"}}</PolicyDocument>
+                  </member>
+                </GroupPolicyList>
+              </member>
+              <member>
+                <GroupId>AIDACKCEVSQ6C9EXAMPLE</GroupId>
+                <GroupName>Finance</GroupName>
+                <Path>/</Path>
+                <Arn>arn:aws:iam::123456789012:group/Finance</Arn>
+                <CreateDate>2013-10-14T18:57:48Z</CreateDate>
+                <GroupPolicyList>
+                  <member>
+                    <PolicyName>policygen-201310141157</PolicyName>
+                    <PolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"aws-portal:*\"],\"Sid\":\"Stmt1381777017000\",\"Resource\":[\"*\"],\"Effect\":\"Allow\"}]}</PolicyDocument>
+                  </member>
+                </GroupPolicyList>
+              </member>
+            </GroupDetailList>
+            <RoleDetailList>
+              <member>
+                <RolePolicyList>
+                  <member>
+                    <PolicyName>S3andDDBaccess-EC2role-201407301009</PolicyName>
+                    <PolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":[ \"s3:*\",\"dynamodb:*\"],\"Resource\":\"*\"}}</PolicyDocument>
+                  </member>
+                </RolePolicyList>
+                <InstanceProfileList>
+                  <member>
+                    <InstanceProfileName>EC2role</InstanceProfileName>
+                    <Roles>
+                      <member>
+                        <Path>/</Path>
+                        <Arn>arn:aws:iam::123456789012:role/EC2role</Arn>
+                        <RoleName>EC2role</RoleName>
+                        <AssumeRolePolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}</AssumeRolePolicyDocument>
+                        <CreateDate>2014-07-30T17:09:20Z</CreateDate>
+                        <RoleId>AROAFP4BKI7Y7TEXAMPLE</RoleId>
+                      </member>
+                    </Roles>
+                    <Path>/</Path>
+                    <Arn>arn:aws:iam::123456789012:instance-profile/EC2role</Arn>
+                    <InstanceProfileId>AIPAFFYRBHWXW2EXAMPLE</InstanceProfileId>
+                    <CreateDate>2014-07-30T17:09:20Z</CreateDate>
+                  </member>
+                </InstanceProfileList>
+                <Path>/</Path>
+                <Arn>arn:aws:iam::123456789012:role/EC2role</Arn>
+                <RoleName>EC2role</RoleName>
+                <AssumeRolePolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}</AssumeRolePolicyDocument>
+                <CreateDate>2014-07-30T17:09:20Z</CreateDate>
+                <RoleId>AROAFP4BKI7Y7TEXAMPLE</RoleId>
+              </member>
+            </RoleDetailList>
+          </GetAccountAuthorizationDetailsResult>
+          <ResponseMetadata>
+            <RequestId>92e79ae7-7399-11e4-8c85-4b53eEXAMPLE</RequestId>
+          </ResponseMetadata>
+        </GetAccountAuthorizationDetailsResponse>").
+
+get_account_authorization_details_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning the authorization details.",
+             ?_f(erlcloud_iam:get_account_authorization_details()),
+             [
+              {"Action", "GetAccountAuthorizationDetails"}
+              ]})
+        ],
+
+    input_tests(?GET_ACCOUNT_AUTHORIZATION_DETAILS_RESP, Tests).
+
+get_account_authorization_details_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the authorization details",
+              ?GET_ACCOUNT_AUTHORIZATION_DETAILS_RESP,
+              {ok, [{roles,
+                     [[{arn,"arn:aws:iam::123456789012:role/EC2role"},
+                       {assume_role_policy_document,
+                        "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"},
+                       {create_date,{{2014,7,30},{17,9,20}}},
+                       {instance_profiles,
+                        [[{instance_profile_id,"AIPAFFYRBHWXW2EXAMPLE"},
+                          {roles,
+                           [[{path,"/"},
+                             {role_name,"EC2role"},
+                             {role_id,"AROAFP4BKI7Y7TEXAMPLE"},
+                             {assume_role_policy_doc,
+                              "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"},
+                             {create_date,{{2014,7,30},{17,9,20}}},
+                             {arn,"arn:aws:iam::123456789012:role/EC2role"}]]},
+                          {instance_profile_name,"EC2role"},
+                          {path,"/"},
+                          {arn,"arn:aws:iam::123456789012:instance-profile/EC2role"},
+                          {create_date,{{2014,7,30},{17,9,20}}}]]},
+                       {path,"/"},
+                       {role_id,"AROAFP4BKI7Y7TEXAMPLE"},
+                       {role_name,"EC2role"},
+                       {role_policy_list,
+                        [[{policy_document,
+                           "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":[ \"s3:*\",\"dynamodb:*\"],\"Resource\":\"*\"}}"},
+                          {policy_name,"S3andDDBaccess-EC2role-201407301009"}]]}]]},
+                    {groups,
+                     [[{arn,"arn:aws:iam::123456789012:group/Admins"},
+                       {create_date,{{2013,10,14},{18,32,24}}},
+                       {group_id,"AIDACKCEVSQ6C7EXAMPLE"},
+                       {group_name,"Admins"},
+                       {group_policy_list,
+                        [[{policy_document,
+                           "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"},
+                          {policy_name,"AdministratorAccess-201409151020"}]]},
+                       {path,"/"}],
+                      [{arn,"arn:aws:iam::123456789012:group/Dev"},
+                       {create_date,{{2013,10,14},{18,33,55}}},
+                       {group_id,"AIDACKCEVSQ6C8EXAMPLE"},
+                       {group_name,"Dev"},
+                       {group_policy_list,
+                        [[{policy_document,
+                           "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"NotAction\":\"iam:*\",\"Resource\":\"*\"}}"},
+                          {policy_name,"PowerUserAccess-201310141133"}]]},
+                       {path,"/"}],
+                      [{arn,"arn:aws:iam::123456789012:group/Finance"},
+                       {create_date,{{2013,10,14},{18,57,48}}},
+                       {group_id,"AIDACKCEVSQ6C9EXAMPLE"},
+                       {group_name,"Finance"},
+                       {group_policy_list,
+                        [[{policy_document,
+                           "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"aws-portal:*\"],\"Sid\":\"Stmt1381777017000\",\"Resource\":[\"*\"],\"Effect\":\"Allow\"}]}"},
+                          {policy_name,"policygen-201310141157"}]]},
+                       {path,"/"}]]},
+                    {users,
+                     [[{arn,"arn:aws:iam::123456789012:user/Alice"},
+                       {create_date,{{2013,10,14},{18,32,24}}},
+                       {group_list,[[{group_name,"Admins"}]]},
+                       {path,"/"},
+                       {user_id,"AIDACKCEVSQ6C2EXAMPLE"},
+                       {user_name,"Alice"},
+                       {user_policy_list,[]}],
+                      [{arn,"arn:aws:iam::123456789012:user/Bob"},
+                       {create_date,{{2013,10,14},{18,32,25}}},
+                       {group_list,[[{group_name,"Admins"}]]},
+                       {path,"/"},
+                       {user_id,"AIDACKCEVSQ6C3EXAMPLE"},
+                       {user_name,"Bob"},
+                       {user_policy_list,
+                        [[{policy_document,
+                           "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Deny\",\"Action\":\"aws-portal:*\",\"Resource\":\"*\"}}"},
+                          {policy_name,"DenyBillingPolicy"}]]}],
+                      [{arn,"arn:aws:iam::123456789012:user/Charlie"},
+                       {create_date,{{2013,10,14},{18,33,56}}},
+                       {group_list,[[{group_name,"Dev"}]]},
+                       {path,"/"},
+                       {user_id,"AIDACKCEVSQ6C4EXAMPLE"},
+                       {user_name,"Charlie"},
+                       {user_policy_list,[]}],
+                      [{arn,"arn:aws:iam::123456789012:user/Danielle"},
+                       {create_date,{{2013,10,14},{18,33,56}}},
+                       {group_list,[[{group_name,"Dev"}]]},
+                       {path,"/"},
+                       {user_id,"AIDACKCEVSQ6C5EXAMPLE"},
+                       {user_name,"Danielle"},
+                       {user_policy_list,[]}],
+                      [{arn,"arn:aws:iam::123456789012:user/Elaine"},
+                       {create_date,{{2013,10,14},{18,57,48}}},
+                       {group_list,[[{group_name,"Finance"}],[{group_name,"Admins"}]]},
+                       {path,"/"},
+                       {user_id,"AIDACKCEVSQ6C6EXAMPLE"},
+                       {user_name,"Elaine"},
+                       {user_policy_list,[]}]]}]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:get_account_authorization_details()), Tests).
