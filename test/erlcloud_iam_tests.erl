@@ -43,6 +43,8 @@ iam_api_test_() ->
       fun get_role_policy_output_tests/1,
       fun get_user_policy_input_tests/1,
       fun get_user_policy_output_tests/1,
+      fun generate_credential_report_input_tests/1,
+      fun generate_credential_report_output_tests/1,
       fun list_access_keys_input_tests/1,
       fun list_access_keys_output_tests/1,
       fun list_users_input_tests/1,
@@ -60,7 +62,9 @@ iam_api_test_() ->
       fun list_role_policies_input_tests/1,
       fun list_role_policies_output_tests/1,
       fun list_instance_profiles_input_tests/1,
-      fun list_instance_profiles_output_tests/1
+      fun list_instance_profiles_output_tests/1,
+      fun get_credential_report_input_tests/1,
+      fun get_credential_report_output_tests/1
     ]}.
 
 start() ->
@@ -952,8 +956,6 @@ list_role_policies_output_tests(_) ->
             ],
     output_tests(?_f(erlcloud_iam:list_role_policies("S3Access")), Tests).
 
-
-
 -define(LIST_INSTANCE_PROFILES_RESP,
         "<ListInstanceProfilesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
            <ListInstanceProfilesResult>
@@ -1272,3 +1274,72 @@ get_account_authorization_details_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:get_account_authorization_details()), Tests).
+
+-define(GENERATE_CREDENTIAL_REPORT_RESP,
+        "<GenerateCredentialReportResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+           <GenerateCredentialReportResult>
+             <Description>No report exists. Starting a new report generation task</Description>
+             <State>STARTED</State>
+           </GenerateCredentialReportResult>
+           <ResponseMetadata>
+             <RequestId>29f47818-99f5-11e1-a4c3-27EXAMPLE804</RequestId>
+          </ResponseMetadata>
+        </GenerateCredentialReportResponse>").
+
+generate_credential_report_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+         {"Test generating credential report.",
+          ?_f(erlcloud_iam:generate_credential_report()),
+          [
+           {"Action", "GenerateCredentialReport"}
+          ]})
+        ],
+    
+    input_tests(?GENERATE_CREDENTIAL_REPORT_RESP, Tests).
+
+generate_credential_report_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the credential report",
+              ?GENERATE_CREDENTIAL_REPORT_RESP,
+              {ok,[[{description,"No report exists. Starting a new report generation task"},
+                    {state,"STARTED"}]]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:generate_credential_report()), Tests).
+
+-define(GET_CREDENTIAL_REPORT_RESP,
+        "<GetCredentialReportResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+           <GetCredentialReportResult>
+             <Content>BASE-64 ENCODED FILE CONTENTS</Content>
+             <ReportFormat>text/csv</ReportFormat>
+             <GeneratedTime>2014-08-28T21:42:50Z</GeneratedTime>
+           </GetCredentialReportResult>
+           <ResponseMetadata>
+             <RequestId>29f47818-99f5-11e1-a4c3-27EXAMPLE804</RequestId>
+           </ResponseMetadata>
+         </GetCredentialReportResponse>").
+
+get_credential_report_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+         {"Test get credential report.",
+          ?_f(erlcloud_iam:get_credential_report()),
+          [
+           {"Action", "GetCredentialReport"}
+          ]})
+        ],
+    
+    input_tests(?GET_CREDENTIAL_REPORT_RESP, Tests).
+
+get_credential_report_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the credential report",
+              ?GET_CREDENTIAL_REPORT_RESP,
+              {ok,[[{content,"BASE-64 ENCODED FILE CONTENTS"},
+                    {report_format,"text/csv"},
+                    {generated_time,{{2014,8,28},{21,42,50}}}]]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:get_credential_report()), Tests).
+

@@ -28,7 +28,9 @@
     list_instance_profiles/0, list_instance_profiles/1, list_instance_profiles/2,
     get_account_authorization_details/0, get_account_authorization_details/1,
     get_account_summary/0, get_account_summary/1,
-    get_account_password_policy/0, get_account_password_policy/1
+    get_account_password_policy/0, get_account_password_policy/1,
+    generate_credential_report/0, generate_credential_report/1,
+    get_credential_report/0, get_credential_report/1
 ]).
 
 -export([get_uri/2]).
@@ -294,6 +296,30 @@ get_account_password_policy(#aws_config{} = Config) ->
     DataTypeDef = data_type("PasswordPolicy"),
     iam_query(Config, "GetAccountPasswordPolicy", [], ItemPath, DataTypeDef).
 
+
+-spec(generate_credential_report/0 :: () -> proplist()).
+generate_credential_report() ->
+    generate_credential_report(default_config()).
+
+-spec(generate_credential_report/1 :: (aws_config()) -> proplist()).
+generate_credential_report(Config) ->
+    ItemPath = "/GenerateCredentialReportResponse/GenerateCredentialReportResult",
+    DataTypeDef = [{"State", state, "String"},
+                   {"Description", description, "String"}],
+    iam_query(Config, "GenerateCredentialReport", [], ItemPath, DataTypeDef).
+
+-spec(get_credential_report/0 :: () -> proplist()).
+get_credential_report() ->
+    get_credential_report(default_config()).
+
+-spec(get_credential_report/1 :: (aws_config()) -> proplist()).
+get_credential_report(Config) ->
+    ItemPath = "/GetCredentialReportResponse/GetCredentialReportResult",
+    DataTypeDef = [{"GeneratedTime", generated_time, "DateTime"},
+                   {"ReportFormat", report_format, "String"},
+                   {"Content", content, "String"}],
+    iam_query(Config, "GetCredentialReport", [], ItemPath, DataTypeDef).
+
 %
 % Utils
 %
@@ -302,8 +328,8 @@ iam_query(Config, Action, Params) ->
 
 iam_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
-    erlcloud_aws:aws_request_xml2(post, Config#aws_config.iam_host,
-                                  "/", QParams, Config).
+    erlcloud_aws:aws_request_xml4(post, Config#aws_config.iam_host,
+                                  "/", QParams, Config, region(Config), "iam").
 
 iam_query(Config, Action, Params, ItemPath, DataTypeDef) ->
     case iam_query(Config, Action, Params) of
@@ -312,6 +338,14 @@ iam_query(Config, Action, Params, ItemPath, DataTypeDef) ->
             {ok, [extract_values(DataTypeDef, Item) || Item <- Items]};
         {error, _} = Error ->
             Error
+    end.
+
+region(Config) ->
+    case string:tokens(Config#aws_config.iam_host, ".") of
+        [_, Value, _, _] ->
+            Value;
+        _ ->
+            "us-east-1"
     end.
 
 extract_values(DataTypeDef, Item) ->

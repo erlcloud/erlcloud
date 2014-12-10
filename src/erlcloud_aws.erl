@@ -4,6 +4,8 @@
          aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
          aws_request2/7,
          aws_request_xml2/5, aws_request_xml2/7,
+         aws_request4/9,
+         aws_request_xml4/7, aws_request_xml4/9,
          aws_request_form/8,
          param_list/2, default_config/0, update_config/1, format_timestamp/1,
          http_headers_body/1,
@@ -36,6 +38,16 @@ aws_request_xml2(Method, Host, Path, Params, #aws_config{} = Config) ->
     aws_request_xml2(Method, undefined, Host, undefined, Path, Params, Config).
 aws_request_xml2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     case aws_request2(Method, Protocol, Host, Port, Path, Params, Config) of
+        {ok, Body} ->
+            {ok, element(1, xmerl_scan:string(binary_to_list(Body)))};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+aws_request_xml4(Method, Host, Path, Params, #aws_config{} = Config, Region, Service) ->
+    aws_request_xml4(Method, undefined, Host, undefined, Path, Params, Config, Region, Service).
+aws_request_xml4(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config, Region, Service) ->
+    case aws_request4(Method, Protocol, Host, Port, Path, Params, Config, Region, Service) of
         {ok, Body} ->
             {ok, element(1, xmerl_scan:string(binary_to_list(Body)))};
         {error, Reason} ->
@@ -87,6 +99,29 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
     Query = [QueryToSign, "&Signature=", erlcloud_http:url_encode(Signature)],
     
     aws_request_form(Method, Protocol, Host, Port, Path, Query, [], Config).
+
+%% To use signature v4
+aws_request4(Method, Protocol, Host, Port, Path, Params, Config, Region, Service) ->
+    case update_config(Config) of
+        {ok, Config1} ->
+            aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Config1, Region, Service);
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config, Region, Service) ->
+    Timestamp = format_timestamp(erlang:universaltime()),
+    QParams = lists:sort(
+                [{"Timestamp", Timestamp},
+                 {"AWSAccessKeyId", Config#aws_config.access_key_id}|Params] ++
+                    case Config#aws_config.security_token of
+                        undefined -> [];
+                        Token -> [{"SecurityToken", Token}]
+                    end),
+    
+    Query = erlcloud_http:make_query_string(QParams),
+    Headers = sign_v4(Config, [{"host", Host}], Query, Region, Service, []),
+    aws_request_form(Method, Protocol, Host, Port, Path, Query, Headers, Config).
 
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
     case Protocol of
@@ -259,13 +294,17 @@ http_headers_body({error, Reason}) ->
 %% TODO additional parameters - currently only supports what is needed for DynamoDB
 -spec sign_v4(aws_config(), headers(), binary(), string(), string()) -> headers().
 sign_v4(Config, Headers, Payload, Region, Service) ->
+    sign_v4(Config, Headers, Payload, Region, Service, []).
+    
+-spec sign_v4(aws_config(), headers(), binary(), string(), string(), string()) -> headers().
+sign_v4(Config, Headers, Payload, Region, Service, QParams) ->
     Date = iso_8601_basic_time(),
     Headers1 = [{"x-amz-date", Date} | Headers],
     Headers2 = case Config#aws_config.security_token of
                    undefined -> Headers1;
                    Token -> [{"x-amz-security-token", Token} | Headers1]
                end,
-    {Request, SignedHeaders} = canonical_request("POST", "/", "", Headers2, Payload),
+    {Request, SignedHeaders} = canonical_request("POST", "/", QParams, Headers2, Payload),
     CredentialScope = credential_scope(Date, Region, Service),
     ToSign = to_sign(Date, CredentialScope, Request),
     SigningKey = signing_key(Config, Date, Region, Service),
@@ -279,8 +318,9 @@ iso_8601_basic_time() ->
                     "~4.10.0B~2.10.0B~2.10.0BT~2.10.0B~2.10.0B~2.10.0BZ",
                     [Year, Month, Day, Hour, Min, Sec])).
 
-canonical_request(Method, CanonicalURI, CanonicalQueryString, Headers, Payload) ->
+canonical_request(Method, CanonicalURI, QParams, Headers, Payload) ->
     {CanonicalHeaders, SignedHeaders} = canonical_headers(Headers),
+    CanonicalQueryString = canonical_query_string(QParams),
     {[Method, $\n,
       CanonicalURI, $\n,
       CanonicalQueryString, $\n,
@@ -295,6 +335,12 @@ canonical_headers(Headers) ->
     Canonical = [[Name, $:, Value, $\n] || {Name, Value} <- Sorted],
     Signed = string:join([Name || {Name, _} <- Sorted], ";"),
     {Canonical, Signed}.
+
+canonical_query_string(QParams) ->
+    Encoded = [{erlcloud_http:url_encode(Key), erlcloud_http:url_encode(Value)} || {Key, Value} <- QParams],
+    Sorted = lists:keysort(1, Encoded),
+    Canonical = [lists:flatten([Key, $=, Value]) || {Key, Value} <- Sorted],
+    string:join(Canonical, "&").
 
 trimall(Value) ->
     %% TODO - remove excess internal whitespace in header values
