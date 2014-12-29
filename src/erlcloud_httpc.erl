@@ -44,17 +44,17 @@ request_lhttpc(URL, Method, Hdrs, Body, Timeout, _Config) ->
     lhttpc:request(URL, Method, Hdrs, Body, Timeout, []).
 
 request_httpc(URL, Method, Hdrs, <<>>, Timeout, _Config) ->
-    HdrsStr = [{binary_to_list(K), binary_to_list(V)} || {K, V} <- Hdrs],
+    HdrsStr = [{to_list_string(K), to_list_string(V)} || {K, V} <- Hdrs],
     response_httpc(httpc:request(Method, {URL, HdrsStr},
                                  [{timeout, Timeout}],
                                  [{body_format, binary}]));
 request_httpc(URL, Method, Hdrs, Body, Timeout, _Config) ->
     {value,
      {_, ContentType}, HdrsRest} = lists:keytake(<<"content-type">>, 1, Hdrs),
-    HdrsStr = [{binary_to_list(K), binary_to_list(V)} || {K, V} <- HdrsRest],
+    HdrsStr = [{to_list_string(K), to_list_string(V)} || {K, V} <- HdrsRest],
     response_httpc(httpc:request(Method,
                                  {URL, HdrsStr,
-                                  binary_to_list(ContentType), Body},
+                                  to_list_string(ContentType), Body},
                                  [{timeout, Timeout}],
                                  [{body_format, binary}])).
 
@@ -62,3 +62,10 @@ response_httpc({ok, {{_HTTPVer, Status, StatusLine}, Headers, Body}}) ->
     {ok, {{Status, StatusLine}, Headers, Body}};
 response_httpc({error, _} = Error) ->
     Error.
+
+to_list_string(Val) when erlang:is_binary(Val) ->
+  erlang:binary_to_list(Val);
+to_list_string(Val) when erlang:is_list(Val) ->
+  Val.
+
+
