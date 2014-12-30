@@ -10,6 +10,7 @@
           elb_host="elasticloadbalancing.amazonaws.com"::string(),
           ses_host="email.us-east-1.amazonaws.com"::string(),
           sqs_host="queue.amazonaws.com"::string(),
+          sns_scheme="http://"::string(),
           sns_host="sns.amazonaws.com"::string(),
           mturk_host="mechanicalturk.amazonaws.com"::string(),
           mon_host="monitoring.amazonaws.com"::string(),
@@ -31,6 +32,7 @@
           security_token=undefined::string()|undefined,
           timeout=10000::timeout(),
           cloudtrail_raw_result=false::boolean(),
+          http_client=lhttpc::erlcloud_httpc:request_fun(),
 
           %% Default to not retry failures (for backwards compatability).
           %% Recommended to be set to default_retry to provide recommended retry behavior.
