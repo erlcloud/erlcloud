@@ -11,3 +11,4 @@ doc/
 .edts
 *[#]*[#]
 *[#]*
+eunit.coverage.xml

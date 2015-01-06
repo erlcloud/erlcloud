@@ -420,7 +420,10 @@ get_object(BucketName, Key, Options, Config) ->
                       {"If-Modified-Since", proplists:get_value(if_modified_since, Options)},
                       {"If-Unmodified-Since", proplists:get_value(if_unmodified_since, Options)},
                       {"If-Match", proplists:get_value(if_match, Options)},
-                      {"If-None-Match", proplists:get_value(if_none_match, Options)}],
+                      {"If-None-Match", proplists:get_value(if_none_match, Options)},
+                      {"x-amz-server-side-encryption-customer-algorithm", proplists:get_value(server_side_encryption_customer_algorithm, Options)},
+                      {"x-amz-server-side-encryption-customer-key", proplists:get_value(server_side_encryption_customer_key, Options)},
+                      {"x-amz-server-side-encryption-customer-key-md5", proplists:get_value(server_side_encryption_customer_key_md5, Options)}],
     Subresource = case proplists:get_value(version_id, Options) of
                       undefined -> "";
                       Version   -> ["versionId=", Version]

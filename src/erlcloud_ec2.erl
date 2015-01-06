@@ -1667,6 +1667,7 @@ extract_route_set(Node) ->
     [
      {destination_cidr_block, get_text("destinationCidrBlock", Node)},
      {gateway_id, get_text("gatewayId", Node)},
+     {instance_id, get_text("instanceId", Node)},
      {state, get_text("state", Node)},
      {origin, get_text("origin", Node)}
     ].
