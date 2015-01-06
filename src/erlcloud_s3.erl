@@ -607,8 +607,7 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
     RequestHeaders = [{"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}|HTTPHeaders]
         ++ [{"x-amz-meta-" ++ string:to_lower(MKey), MValue} ||
                {MKey, MValue} <- proplists:get_value(meta, Options, [])],
-    ContentType = proplists:get_value("content-type", HTTPHeaders, "application/octet_stream"),
-    POSTData = {iolist_to_binary(Value), ContentType},
+    POSTData = iolist_to_binary(Value),
     {Headers, _Body} = s3_request(Config, put, BucketName, [$/|Key], "", [],
                                   POSTData, RequestHeaders),
     [{version_id, proplists:get_value("x-amz-version-id", Headers, "null")}].
@@ -631,7 +630,7 @@ set_object_acl(BucketName, Key, ACL, Config)
     XMLText = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
     s3_simple_request(Config, put, BucketName, [$/|Key], "acl", [], XMLText, []).
 
--spec sign_get(integer(), string(), string(), aws_config()) -> {string(), string()}.
+-spec sign_get(integer(), string(), string(), aws_config()) -> {binary(), string()}.
 sign_get(Expire_time, BucketName, Key, Config)
   when is_integer(Expire_time), is_list(BucketName), is_list(Key) ->
     {Mega, Sec, _Micro} = os:timestamp(),
@@ -714,9 +713,7 @@ upload_part(BucketName, Key, UploadId, PartNumber, Value, HTTPHeaders, Config)
        is_list(Value) orelse is_binary(Value),
        is_list(HTTPHeaders), is_record(Config, aws_config) ->
 
-    ContentType = proplists:get_value("content-type", HTTPHeaders, "application/octet_stream"),
-    POSTData = {iolist_to_binary(Value), ContentType},
-
+    POSTData = iolist_to_binary(Value),
     case s3_request2(Config, put, BucketName, [$/|Key], [], [{"uploadId", UploadId},
                                                              {"partNumber", integer_to_list(PartNumber)}],
                      POSTData, HTTPHeaders) of
@@ -881,7 +878,7 @@ encode_grant(Grant) ->
 
 s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
-        {_Headers, ""} -> ok;
+        {_Headers, <<>>} -> ok;
         {_Headers, Body} ->
             XML = element(1,xmerl_scan:string(binary_to_list(Body))),
             case XML of
@@ -940,12 +937,14 @@ s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Heade
             Error
     end.
 
-s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
-    {ContentMD5, ContentType, Body} =
-        case POSTData of
-            {PD, CT} -> {base64:encode(erlcloud_util:md5(PD)), CT, PD};
-            PD -> {"", "", PD}
-        end,
+s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Headers0) ->
+    ContentType = proplists:get_value("content-type", Headers0, ""),
+    ContentMD5 = case Body of
+                     <<>> ->
+                         "";
+                     _ ->
+                         base64:encode(erlcloud_util:md5(Body))
+                 end,
     Headers = case Config#aws_config.security_token of
                   undefined -> Headers0;
                   Token when is_list(Token) -> [{"x-amz-security-token", Token} | Headers0]
@@ -974,11 +973,12 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
                                 end
                                ]),
 
-    Response = case Method of
+    Request = #aws_request{service = s3, uri = RequestURI, method = Method},
+    Request2 = case Method of
                    M when M =:= get orelse M =:= head orelse M =:= delete ->
-                       erlcloud_httpc:request(
-                         RequestURI, Method, RequestHeaders, <<>>,
-                         Config#aws_config.timeout, Config);
+                       Request#aws_request{
+                         request_headers = RequestHeaders,
+                         request_body = <<>>};
                    _ ->
                        Headers2 = case lists:keyfind("content-type", 1, RequestHeaders) of
                                       false ->
@@ -986,18 +986,22 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
                                       _ ->
                                           RequestHeaders
                                   end,
-                       erlcloud_httpc:request(
-                         RequestURI, Method, Headers2, Body,
-                         Config#aws_config.timeout, Config)
+                       Request#aws_request{
+                         request_headers = Headers2,
+                         request_body = Body}
                end,
-    http_headers_body(Response).
+    Request3 = erlcloud_retry:request(Config, Request2, fun s3_result_fun/1),
+    erlcloud_aws:request_to_return(Request3).
 
-http_headers_body(Response) ->
-    case erlcloud_aws:http_headers_body(Response) of
-        {ok, {Headers, Body}} ->
-            {ok, {[ {string:to_lower(H), V} || {H, V} <- Headers ], Body}};
-        Other -> Other
-    end.
+s3_result_fun(#aws_request{response_type = ok} = Request) ->
+    Request;
+s3_result_fun(#aws_request{response_type = error, 
+                           error_type = aws, 
+                           response_status = Status} = Request) when
+      Status >= 500 ->
+    Request#aws_request{should_retry = true};
+s3_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
+    Request#aws_request{should_retry = false}.
 
 make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
                    Host, Resource, Subresource, Params) ->

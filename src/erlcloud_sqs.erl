@@ -171,8 +171,11 @@ encode_attribute_name(maximum_message_size) -> "MaximumMessageSize";
 encode_attribute_name(visibility_timeout) -> "VisibilityTimeout";
 encode_attribute_name(approximate_number_of_messages) -> "ApproximateNumberOfMessages";
 encode_attribute_name(approximate_number_of_messages_not_visible) -> "ApproximateNumberOfMessagesNotVisible";
+encode_attribute_name(approximate_number_of_messages_delayed) -> "ApproximateNumberOfMessagesDelayed";
 encode_attribute_name(last_modified_timestamp) -> "LastModifiedTimestamp";
 encode_attribute_name(created_timestamp) -> "CreatedTimestamp";
+encode_attribute_name(delay_seconds) -> "DelaySeconds";
+encode_attribute_name(receive_message_wait_time_seconds) -> "ReceiveMessageWaitTimeSeconds";
 encode_attribute_name(policy) -> "Policy";
 encode_attribute_name(all) -> "All".
 
@@ -183,8 +186,11 @@ decode_attribute_name("MaximumMessageSize") -> maximum_message_size;
 decode_attribute_name("VisibilityTimeout") -> visibility_timeout;
 decode_attribute_name("ApproximateNumberOfMessages") -> approximate_number_of_messages;
 decode_attribute_name("ApproximateNumberOfMessagesNotVisible") -> approximate_number_of_messages_not_visible;
+decode_attribute_name("ApproximateNumberOfMessagesDelayed") -> approximate_number_of_messages_delayed;
 decode_attribute_name("LastModifiedTimestamp") -> last_modified_timestamp;
 decode_attribute_name("CreatedTimestamp") -> created_timestamp;
+decode_attribute_name("DelaySeconds") -> delay_seconds;
+decode_attribute_name("ReceiveMessageWaitTimeSeconds") -> receive_message_wait_time_seconds;
 decode_attribute_name("Policy") -> policy.
 
 -spec list_queues/0 :: () -> [string()].
@@ -257,8 +263,8 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
        VisibilityTimeout =:= none,
        (WaitTimeSeconds >= 0 andalso WaitTimeSeconds =< 20) orelse
        WaitTimeSeconds =:= none ->
-    if (WaitTimeSeconds =/= none andalso WaitTimeSeconds >= 0) -> TotalTimeout = Config#aws_config.timeout + (WaitTimeSeconds * 1000) ;
-       true -> TotalTimeout = Config#aws_config.timeout
+    TotalTimeout = if (WaitTimeSeconds =/= none andalso WaitTimeSeconds >= 0) -> Config#aws_config.timeout + (WaitTimeSeconds * 1000) ;
+       true -> Config#aws_config.timeout
     end,
     Doc = sqs_xml_request(Config#aws_config{timeout=TotalTimeout}, QueueName, "ReceiveMessage",
                           [

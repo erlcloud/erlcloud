@@ -109,6 +109,19 @@ next_token(Path, XML) ->
             ok
     end.
 
+extract_instance(I) ->
+    extract_instance(I, erlcloud_xml:get_text("AutoScalingGroupName", I)).
+
+extract_instance(I, GroupName) ->
+    #aws_autoscaling_instance{
+       instance_id = erlcloud_xml:get_text("InstanceId", I),
+       launch_config_name = erlcloud_xml:get_text("LaunchConfigurationName", I),
+       group_name = GroupName,
+       availability_zone = erlcloud_xml:get_text("AvailabilityZone", I),
+       health_status = erlcloud_xml:get_text("HealthStatus", I),
+       lifecycle_state = erlcloud_xml:get_text("LifecycleState", I)
+      }.
+
 extract_group(G) ->
     #aws_autoscaling_group{
        group_name = erlcloud_xml:get_text("AutoScalingGroupName", G),
@@ -117,6 +130,8 @@ extract_group(G) ->
            [erlcloud_xml:get_text(A) || A <- xmerl_xpath:string("AvailabilityZones/member", G)],
        load_balancer_names = 
            [erlcloud_xml:get_text(L) || L <- xmerl_xpath:string("LoadBalancerNames/member", G)],
+       instances =
+           [extract_instance(I, group_name) || I <- xmerl_xpath:string("Instances/member", G)],
        desired_capacity = erlcloud_xml:get_integer("DesiredCapacity", G),
        min_size = erlcloud_xml:get_integer("MinSize", G),
        max_size = erlcloud_xml:get_integer("MaxSize", G)}.
@@ -155,7 +170,7 @@ set_desired_capacity(GroupName, Capacity, HonorCooldown, Config) ->
     case as_query(Config, "SetDesiredCapacity", Params, ?API_VERSION) of
         {ok, Doc} ->
             [RequestId] = xmerl_xpath:string(?SET_SCALE_REQUEST_ID_PATH, Doc),
-            erlcloud_xml:get_text(RequestId);
+            {ok, erlcloud_xml:get_text(RequestId)};
         {error, Reason} ->
             {error, Reason}
     end.
@@ -210,8 +225,9 @@ describe_instances(I, Config) ->
 
 describe_instances(Config) when is_record(Config, aws_config) ->
     describe_instances([], Config);
-describe_instances(GroupNames) ->
-    describe_instances(GroupNames, erlcloud_aws:default_config()).
+
+describe_instances(I) ->
+    describe_instances(I, erlcloud_aws:default_config()).
 
 %% --------------------------------------------------------------------
 %% @doc Get more information on the given list of instances in your
@@ -237,16 +253,6 @@ describe_instances(I, Params, Config) ->
         {error, Reason} ->
             {error, Reason}
     end.
-
-extract_instance(I) ->
-    #aws_autoscaling_instance{
-       instance_id = erlcloud_xml:get_text("InstanceId", I),
-       launch_config_name = erlcloud_xml:get_text("LaunchConfigurationName", I),
-       group_name = erlcloud_xml:get_text("AutoScalingGroupName", I),
-       availability_zone = erlcloud_xml:get_text("AvailabilityZone", I),
-       health_status = erlcloud_xml:get_text("HealthStatus", I),
-       lifecycle_state = erlcloud_xml:get_text("LifecycleState", I)
-      }.
 
 %% --------------------------------------------------------------------
 %% @doc Terminate the given instance using the default configuration

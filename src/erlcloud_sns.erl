@@ -8,7 +8,7 @@
          create_platform_endpoint/2, create_platform_endpoint/3,
          create_platform_endpoint/4, create_platform_endpoint/5,
          create_platform_endpoint/6,
-         create_topic/1, create_topic/2, 
+         create_topic/1, create_topic/2,
          delete_endpoint/1, delete_endpoint/2, delete_endpoint/3,
          delete_topic/1, delete_topic/2,
          list_endpoints_by_platform_application/1,
@@ -18,6 +18,8 @@
          get_endpoint_attributes/1,
          get_endpoint_attributes/2,
          get_endpoint_attributes/3,
+         set_endpoint_attributes/2,
+         set_endpoint_attributes/3,
          publish_to_topic/2, publish_to_topic/3, publish_to_topic/4,
          publish_to_topic/5, publish_to_target/2, publish_to_target/3,
          publish_to_target/4, publish_to_target/5, publish/5,
@@ -232,15 +234,27 @@ get_endpoint_attributes(EndpointArn, AccessKeyID, SecretAccessKey) ->
 
 
 
--spec list_endpoints_by_platform_application/1 :: (string()) -> [sns_endpoint()].
+-spec set_endpoint_attributes/2 :: (string(), [{sns_endpoint_attribute(), string()}]) -> string().
+-spec set_endpoint_attributes/3 :: (string(), [{sns_endpoint_attribute(), string()}], aws_config()) -> string().
+
+set_endpoint_attributes(EndpointArn, Attributes) ->
+    set_endpoint_attributes(EndpointArn, Attributes, default_config()).
+set_endpoint_attributes(EndpointArn, Attributes, Config) ->
+    Doc = sns_xml_request(Config, "SetEndpointAttributes", [{"EndpointArn", EndpointArn} |
+                                                            encode_attributes(Attributes)]),
+    erlcloud_xml:get_text("ResponseMetadata/RequestId", Doc).
+
+
+
+-spec list_endpoints_by_platform_application/1 :: (string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
+-spec list_endpoints_by_platform_application/2 :: (string(), undefined|string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
+-spec list_endpoints_by_platform_application/3 :: (string(), undefined|string(), aws_config()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
+-spec list_endpoints_by_platform_application/4 :: (string(), undefined|string(), string(), string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
+
 list_endpoints_by_platform_application(PlatformApplicationArn) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, undefined).
-
--spec list_endpoints_by_platform_application/2 :: (string(), undefined|string()) -> [sns_endpoint()].
 list_endpoints_by_platform_application(PlatformApplicationArn, NextToken) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, default_config()).
-
--spec list_endpoints_by_platform_application/3 :: (string(), undefined|string(), aws_config()) -> [sns_endpoint()].
 list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, Config) ->
     Params =
         case NextToken of
@@ -256,8 +270,6 @@ list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, Config
              {next_token, "ListEndpointsByPlatformApplicationResult/NextToken", text}],
             Doc),
     Decoded.
-
--spec list_endpoints_by_platform_application/4 :: (string(), undefined|string(), string(), string()) -> [sns_endpoint()].
 list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, AccessKeyID, SecretAccessKey) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, new_config(AccessKeyID, SecretAccessKey)).
 
@@ -480,9 +492,10 @@ sns_simple_request(Config, Action, Params) ->
 
 sns_xml_request(Config, Action, Params) ->
     case erlcloud_aws:aws_request_xml2(
-            post, "http", Config#aws_config.sns_host, undefined, "/",
-            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-            Config) of
+           post, scheme_to_protocol(Config#aws_config.sns_scheme),
+           Config#aws_config.sns_host, undefined, "/",
+           [{"Action", Action}, {"Version", ?API_VERSION} | Params],
+           Config) of
         {ok, XML} -> XML;
         {error, {http_error, 400, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(binary_to_list(Body))),
@@ -495,9 +508,10 @@ sns_xml_request(Config, Action, Params) ->
 
 sns_request(Config, Action, Params) ->
     case erlcloud_aws:aws_request2(
-            post, "http", Config#aws_config.sns_host, undefined, "/",
-            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-            Config) of
+           post, scheme_to_protocol(Config#aws_config.sns_scheme),
+           Config#aws_config.sns_host, undefined, "/",
+           [{"Action", Action}, {"Version", ?API_VERSION} | Params],
+           Config) of
         {ok, _Response} -> ok;
         {error, {http_error, 400, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(binary_to_list(Body))),
@@ -534,3 +548,11 @@ parse_key("EventEndpointDeleted") -> event_endpoint_deleted;
 parse_key("EventEndpointUpdated") -> event_endpoint_updated;
 parse_key("EVentDeliveryFailure") -> event_delivery_failure;
 parse_key(OtherKey) -> list_to_atom(string:to_lower(OtherKey)).
+
+scheme_to_protocol(S) when is_list(S) -> s2p(string:to_lower(S));
+scheme_to_protocol(_)                 -> erlang:error({sns_error, badarg}).
+
+s2p("http://")  -> "http";
+s2p("https://") -> "https";
+s2p(X)          -> erlang:error({sns_error, {unsupported_scheme, X}}).
+
