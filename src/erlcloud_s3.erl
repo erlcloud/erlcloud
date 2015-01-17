@@ -276,7 +276,7 @@ put_bucket_policy(BucketName, Policy) ->
 -spec put_bucket_policy(string(), binary(), aws_config()) -> ok.
 put_bucket_policy(BucketName, Policy, Config)
   when is_list(BucketName), is_binary(Policy), is_record(Config, aws_config) ->
-    s3_simple_request(Config, put, BucketName, "/", "policy", [], Policy, []).
+    s3_simple_request(Config, put, BucketName, "/", "policy", [], Policy, [{"content-type", "application/json"}]).
 
 
 -spec list_objects(string()) -> proplist().
