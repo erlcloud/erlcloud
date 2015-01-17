@@ -426,13 +426,15 @@ get_object(BucketName, Key, Options, Config) ->
                       Version   -> ["versionId=", Version]
                   end,
     {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders),
-    [{etag, proplists:get_value("etag", Headers)},
-     {content_length, proplists:get_value("content-length", Headers)},
-     {content_type, proplists:get_value("content-type", Headers)},
-     {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
-     {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
+    LowerHeaders = to_lower_headers(Headers),
+
+    [{etag, proplists:get_value("etag", LowerHeaders)},
+     {content_length, proplists:get_value("content-length", LowerHeaders)},
+     {content_type, proplists:get_value("content-type", LowerHeaders)},
+     {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", LowerHeaders, "false"))},
+     {version_id, proplists:get_value("x-amz-version-id", LowerHeaders, "null")},
      {content, Body}|
-     extract_metadata(Headers)].
+     extract_metadata(LowerHeaders)].
 
 -spec get_object_acl(string(), string()) -> proplist().
 
@@ -487,13 +489,14 @@ get_object_metadata(BucketName, Key, Options, Config) ->
                       Version   -> ["versionId=", Version]
                   end,
     {Headers, _Body} = s3_request(Config, head, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders),
+    LowerHeaders = to_lower_headers(Headers),
 
-    [{last_modified, proplists:get_value("last-modified", Headers)},
-     {etag, proplists:get_value("etag", Headers)},
-     {content_length, proplists:get_value("content-length", Headers)},
-     {content_type, proplists:get_value("content-type", Headers)},
-     {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
-     {version_id, proplists:get_value("x-amz-version-id", Headers, "false")}|extract_metadata(Headers)].
+    [{last_modified, proplists:get_value("last-modified", LowerHeaders)},
+     {etag, proplists:get_value("etag", LowerHeaders)},
+     {content_length, proplists:get_value("content-length", LowerHeaders)},
+     {content_type, proplists:get_value("content-type", LowerHeaders)},
+     {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", LowerHeaders, "false"))},
+     {version_id, proplists:get_value("x-amz-version-id", LowerHeaders, "false")}|extract_metadata(LowerHeaders)].
 
 extract_metadata(Headers) ->
     [{Key, Value} || {Key = "x-amz-meta-" ++ _, Value} <- Headers].
@@ -1030,9 +1033,13 @@ make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
     Signature = base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, StringToSign)),
     ["AWS ", Config#aws_config.access_key_id, $:, Signature].
 
+to_lower_headers(Headers) ->
+    [{string:to_lower(Key), Value} || {Key, Value} <- Headers].
+
 default_config() -> erlcloud_aws:default_config().
 
 port_spec(#aws_config{s3_port=80}) ->
     "";
 port_spec(#aws_config{s3_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
+
