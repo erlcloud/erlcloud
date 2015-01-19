@@ -2372,7 +2372,8 @@ request_spot_instances(Request, Config) ->
               {"LaunchSpecification.Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
               {"LaunchSpecification.Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone},
               {"LaunchSpecification.Placement.GroupName", InstanceSpec#ec2_instance_spec.placement_group},
-              {"LaunchSpecification.EbsOptimized", InstanceSpec#ec2_instance_spec.ebs_optimized}
+              {"LaunchSpecification.EbsOptimized", InstanceSpec#ec2_instance_spec.ebs_optimized},
+              {"LaunchSpecification.IamInstanceProfile.Name", InstanceSpec#ec2_instance_spec.iam_instance_profile_name}
              ],
     NetParams = case InstanceSpec#ec2_instance_spec.net_if of
         [] ->
@@ -2475,7 +2476,8 @@ run_instances(InstanceSpec, Config)
               {"Placement.GroupName", InstanceSpec#ec2_instance_spec.placement_group},
               {"DisableApiTermination", InstanceSpec#ec2_instance_spec.disable_api_termination},
               {"InstanceInitiatedShutdownBehavior", InstanceSpec#ec2_instance_spec.instance_initiated_shutdown_behavior},
-              {"EbsOptimized", InstanceSpec#ec2_instance_spec.ebs_optimized}
+              {"EbsOptimized", InstanceSpec#ec2_instance_spec.ebs_optimized},
+              {"IamInstanceProfile.Name", InstanceSpec#ec2_instance_spec.iam_instance_profile_name}
              ],
     NetParams = case InstanceSpec#ec2_instance_spec.net_if of
         [] ->

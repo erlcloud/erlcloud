@@ -37,7 +37,8 @@
           disable_api_termination=false::boolean(),
           instance_initiated_shutdown_behavior::ec2_shutdown_behavior(),
           net_if=[] :: [#ec2_net_if{}], 
-          ebs_optimized = false :: boolean()
+          ebs_optimized = false :: boolean(),
+          iam_instance_profile_name = undefined :: string()
          }).
 -record(ec2_image_spec, {
           image_location::string(),
