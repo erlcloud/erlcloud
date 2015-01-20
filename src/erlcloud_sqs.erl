@@ -373,7 +373,8 @@ sqs_simple_request(Config, QueueName, Action, Params) ->
     ok.
 
 sqs_xml_request(Config, QueueName, Action, Params) ->
-    erlcloud_aws:aws_request_xml(post, Config#aws_config.sqs_host,
+    erlcloud_aws:aws_request_xml(post, Config#aws_config.sqs_scheme,
+                                 Config#aws_config.sqs_host, Config#aws_config.sqs_port,
                                  queue_path(QueueName), [{"Action", Action}, {"Version", ?API_VERSION}|Params], Config).
 
 sqs_request(Config, QueueName, Action, Params) ->

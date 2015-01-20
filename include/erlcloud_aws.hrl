@@ -10,6 +10,8 @@
           elb_host="elasticloadbalancing.amazonaws.com"::string(),
           ses_host="email.us-east-1.amazonaws.com"::string(),
           sqs_host="queue.amazonaws.com"::string(),
+          sqs_scheme="https://"::string(),
+          sqs_port=443::non_neg_integer(),
           sns_scheme="http://"::string(),
           sns_host="sns.amazonaws.com"::string(),
           mturk_host="mechanicalturk.amazonaws.com"::string(),
@@ -61,7 +63,7 @@
           response_status_line :: string(),
           response_headers :: [{string(), string()}],
           response_body :: binary(),
-          
+
           %% Service specific error information
           should_retry :: boolean()
         }).
