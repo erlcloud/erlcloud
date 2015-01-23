@@ -338,7 +338,7 @@ send_message(QueueName, MessageBody, Config)
 send_message(QueueName, MessageBody, DelaySeconds) ->
     send_message(QueueName, MessageBody, DelaySeconds, default_config()).
 
--spec send_message/4 :: (string(), string(), 0..900, aws_config()) -> proplist().
+-spec send_message/4 :: (string(), string(), 0..900 | none, aws_config()) -> proplist().
 send_message(QueueName, MessageBody, DelaySeconds, Config)
   when is_list(QueueName), is_list(MessageBody),
        (DelaySeconds >= 0 andalso DelaySeconds =< 900) orelse
