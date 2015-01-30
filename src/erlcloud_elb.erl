@@ -19,8 +19,9 @@
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
 -define(API_VERSION, "2009-05-15").
+-define(NEW_API_VERSION, "2012-06-01").
 
--import(erlcloud_xml, [get_text/2]).
+-import(erlcloud_xml, [get_text/2, get_text/1]).
 
 -spec(new/2 :: (string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey) ->
@@ -125,17 +126,76 @@ describe_load_balancer(Name, Config) ->
 
 describe_load_balancers(Names) ->
     describe_load_balancers(Names, default_config()).
-describe_load_balancers(Names, Config) ->
-    elb_request(Config,
-                "DescribeLoadBalancers",
-                [erlcloud_aws:param_list(Names, "LoadBalancerNames.member")]).
+describe_load_balancers(Names, Config)  when is_list(Names) ->
+    case elb_request(Config, "DescribeLoadBalancers", [erlcloud_aws:param_list(Names, "LoadBalancerNames.member")], ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            ElasticLoadBalancers = xmerl_xpath:string("/DescribeLoadBalancersResponse/DescribeLoadBalancersResult/LoadBalancerDescriptions/member", Doc),
+            {ok, [ extract_load_balancers(Item) || Item <- ElasticLoadBalancers]};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
+extract_load_balancers(Node) ->
+    [{load_balancer_name, get_text("LoadBalancerName", Node)},
+    {dns_name, get_text("DNSName", Node)},
+    {availibility_zones, [ get_text(Member) || Member <- xmerl_xpath:string("AvailabilityZones/member", Node)]},
+    {backend_server_descriptions,
+        [extract_backend_server_descriptions(Member) || Member <- xmerl_xpath:string("BackendServerDescriptions/member", Node)]},
+    {canonical_hosted_zone_name, get_text("CanonicalHostedZoneName", Node)},
+    {canonical_hosted_zone_name_id, get_text("CanonicalHostedZoneNameID", Node)},
+    {created_time, get_text("CreatedTime", Node)},
+    {health_check, [{healthythreshold, get_text("HealthCheck/HealthyThreshold", Node)},
+        {interval, get_text("HealthCheck/Interval", Node)},
+        {target, get_text("HealthCheck/Target", Node)},
+        {timeout, get_text("HealthCheck/Timeout", Node)},
+        {unhealthy_threshold, get_text("HealthCheck/UnhealthyThreshold", Node)}]},
+    {instances, [extract_instances(Member) || Member <- xmerl_xpath:string("Instances/member",Node)]},
+    {listener_descriptions,
+        [extract_listener_descriptions(Member) || Member <- xmerl_xpath:string("ListenerDescriptions/member", Node)]},
+    {load_balancer_name, get_text("LoadBalancerName", Node)},
+    {policies, [{app_cookie_stickiness_policies, [extract_app_cookie_stickiness_policy(Member) ||
+                      Member <- xmerl_xpath:string("Policies/AppCookieStickinessPolicies/member", Node)]},
+                    {lb_cookie_stickiness_policies, [extract_lb_cookie_stickiness_policy(Member) ||
+                      Member <- xmerl_xpath:string("Policies/LBCookieStickinessPolicies/member", Node)]},
+                    {other_policies, [ get_text(Member) || Member <- xmerl_xpath:string("OtherPolicies/member", Node)]}]},
+    {scheme, get_text("Scheme", Node)},
+    {security_groups, [get_text(Member) || Member <- xmerl_xpath:string("SecurityGroups/member", Node)]},
+    {source_security_group, [{group_name, get_text("SourceSecurityGroup/GroupName", Node)},
+                                          {owner_alias, get_text("SourceSecurityGroup/OwnerAlias", Node)}]},
+    {subnets, [get_text(Member) || Member <- xmerl_xpath:string("Subnets/member", Node)]},
+    {vpc_id, get_text("VPCId", Node)}].
 
+extract_backend_server_descriptions(Member) ->
+  [{instance_port, get_text("InstancePort", Member)},
+   {policy_names, [ get_text(PolicyName) || PolicyName <- xmerl:string("PolicyNames/member", Member)]}].
 
+extract_instances(Member) ->
+{instance_id, get_text("InstanceId", Member)}.
+
+extract_listener_descriptions(Member) ->
+    [{listener, [{instance_port, get_text("Listener/InstancePort", Member)},
+                  {instance_protocol, get_text("Listener/InstanceProtocol", Member)},
+                  {load_balancer_port, get_text("Listener/LoadBalancerPort", Member)},
+                  {protocol, get_text("Listener/protocol", Member)},
+                  {ssl_certificate_id, get_text("Listener/SSLCertificateId", Member)}
+                  ]},
+      {policy_names, [ get_text(PolicyName) || PolicyName <- xmerl_xpath:string("PolicyNames/member", Member)]}
+    ].
+
+extract_app_cookie_stickiness_policy(Member) ->
+  [{cookie_name, get_text("CookieName", Member)},
+   {policy_name, get_text("PolicyName", Member)}].
+
+extract_lb_cookie_stickiness_policy(Member) ->
+  [{cookie_expiration_period, get_text("CookieExpirationPeriod", Member)},
+   {policy_name, get_text("PolicyName", Member)}].
 
 elb_request(Config, Action, Params) ->
-    QParams = [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-    erlcloud_aws:aws_request_xml(get, Config#aws_config.elb_host,
+    elb_request(Config, Action, Params, ?API_VERSION).
+
+elb_request(Config, Action, Params, ApiVersion) ->
+    QParams = [{"Action", Action}, {"Version", ApiVersion} | Params],
+    erlcloud_aws:aws_request_xml2(get, Config#aws_config.elb_host,
                                  "/", QParams, Config).
 
 elb_simple_request(Config, Action, Params) ->
