@@ -152,7 +152,6 @@ extract_load_balancers(Node) ->
     {instances, [extract_instances(Member) || Member <- xmerl_xpath:string("Instances/member",Node)]},
     {listener_descriptions,
         [extract_listener_descriptions(Member) || Member <- xmerl_xpath:string("ListenerDescriptions/member", Node)]},
-    {load_balancer_name, get_text("LoadBalancerName", Node)},
     {policies, [{app_cookie_stickiness_policies, [extract_app_cookie_stickiness_policy(Member) ||
                       Member <- xmerl_xpath:string("Policies/AppCookieStickinessPolicies/member", Node)]},
                     {lb_cookie_stickiness_policies, [extract_lb_cookie_stickiness_policy(Member) ||
