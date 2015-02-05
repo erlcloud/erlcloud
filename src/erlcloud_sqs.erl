@@ -383,6 +383,6 @@ sqs_request(Config, QueueName, Action, Params) ->
                              queue_path(QueueName), [{"Action", Action}, {"Version", ?API_VERSION}|Params], Config).
 
 queue_path([$/|_] = QueueName) -> QueueName;
-queue_path(["http"|_] = URL) ->
+queue_path([$h,$t,$t,$p|_] = URL) ->
     re:replace(URL, "^https?://[^/]*", "", [{return, list}]);
 queue_path(QueueName) -> [$/|QueueName].
