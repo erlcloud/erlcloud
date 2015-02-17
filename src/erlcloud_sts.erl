@@ -4,6 +4,7 @@
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
 -export([assume_role/4, assume_role/5,
+		get_federation_token/3,
 		get_federation_token/4]).
 
 -define(API_VERSION, "2011-06-15").
@@ -52,6 +53,9 @@ assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds, ExternalId)
 
     {AssumedConfig, Creds}.
 
+
+get_federation_token(AwsConfig, DurationSeconds, Name) ->
+	get_federation_token(AwsConfig, DurationSeconds, Name, undefined).
 
 % See http://docs.aws.amazon.com/STS/latest/APIReference/API_GetFederationToken.html
 -spec get_federation_token/4 :: (#aws_config{}, 900..129600, string(), undefined | string()) -> {#aws_config{}, proplist()}.
