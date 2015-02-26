@@ -1,0 +1,49 @@
+This is manual test for the following functions :
+    'erlcloud_s3:delete_objects_batch' 
+    'erlcloud_s3:explore_dirstructure' 
+
+
+1) run erlcloud:
+    make run
+
+2) start connectivity and the library configuration:
+    ssl:start(),
+    lhttpc:start(),
+    AccessKeyId="PROVIDE_YOUR_DATA",
+    SecretAccessKey="PROVIDE_YOUR_DATA",
+    Hostname="ec2.amazonaws.com",
+    erlcloud_ec2:configure(AccessKeyId, SecretAccessKey, Hostname).
+
+3) create test data on AWS S3:
+    erlcloud_s3:put_object("xmppfiledev", "sailfish/deleteme/deep/ZZZ_0.txt", "Value"),
+    erlcloud_s3:put_object("xmppfiledev", "sailfish/deleteme/deep/deep1/ZZZ_0.txt", "Value"),
+    erlcloud_s3:put_object("xmppfiledev", "sailfish/deleteme/deep/deep1/deep4/ZZZ_0.txt", "Value"),
+    erlcloud_s3:put_object("xmppfiledev", "sailfish/deleteme/deep/deep1/deep4/ZZZ_1.txt", "Value").
+
+4) verify test data has been created:
+    KeyList=erlcloud_s3:explore_dirstructure("xmppfiledev", ["sailfish/deleteme"], []).
+
+>KeyList.
+    ["sailfish/deleteme/deep/deep1/deep4/ZZZ_1.txt",
+     "sailfish/deleteme/deep/deep1/deep4/ZZZ_0.txt",
+     "sailfish/deleteme/deep/deep1/ZZZ_0.txt",
+     "sailfish/deleteme/deep/ZZZ_0.txt",
+     "sailfish/deleteme/Germany.png",
+     "sailfish/deleteme/AppIcon57x57.png"]
+  
+5) change files policy on AWS :  s3:DeleteObject: "Allow"
+    Paths = "[\"arn:aws:s3:::xmppfiledev/sailfish/deleteme/deep/deep1/*\",\"arn:aws:s3:::xmppfiledev/sailfish/deleteme/deep/deep1/deep4/*\",\"arn:aws:s3:::xmppfiledev/sailfish/deleteme/*\",\"arn:aws:s3:::xmppfiledev/sailfish/deleteme/deep/*\"]",
+    MsgID = "123456",
+    Msg = "{\"Id\":\"Policy" ++ MsgID ++ "\",\"Statement\":[{\"Sid\":\"Stmt" ++ 
+            MsgID ++ "\",\"Action\":[\"s3:DeleteObject\"],\"Effect\":\"Allow\",\"Resource\":"++ 
+                Paths ++ ",\"Principal\":\"*\"}]}",
+    erlcloud_s3:put_bucket_policy("xmppfiledev", list_to_binary(Msg)).
+
+
+6) delete test files in batch:
+    erlcloud_s3:delete_objects_batch("xmppfiledev", KeyList).
+
+7) verify the test files are deleted
+    > rp(erlcloud_s3:explore_dirstructure("xmppfiledev", ["sailfish/deleteme"], [])).
+    []
+    ok

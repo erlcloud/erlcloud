@@ -12,7 +12,7 @@
          list_objects/1, list_objects/2, list_objects/3,
          list_object_versions/1, list_object_versions/2, list_object_versions/3,
          copy_object/4, copy_object/5, copy_object/6,
-         delete_objects_batch/2,
+         delete_objects_batch/2, explore_dirstructure/3,
          delete_object/2, delete_object/3,
          delete_object_version/3, delete_object_version/4,
          get_object/2, get_object/3, get_object/4,
@@ -198,38 +198,60 @@ delete_bucket(BucketName, Config)
 -spec delete_objects_batch(string(), list()) -> no_return().
 
 delete_objects_batch(Bucket, KeyList) ->
-    Compose_xml = fun(KList) ->
-        Data = lists:map(fun(Item) ->
-                lists:concat(["<Object><Key>", Item, "</Key></Object>"]) end, 
-                    KList),
-        unicode:characters_to_list(
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Delete>" ++ Data ++ "</Delete>", 
-                    utf8)
-        end,
-    
-    Url = fun(#aws_config{s3_scheme = Scheme, s3_host = Host} = Config, BucketName) ->
-        lists:flatten([Scheme, BucketName, ".", Host, port_spec(Config), "/?delete"])
-        end,
-
-
-    Payload = Compose_xml(KeyList),
-    Len = integer_to_list(string:len(Payload)),
     Config = default_config(),
+    Data = lists:map(fun(Item) ->
+            lists:concat(["<Object><Key>", Item, "</Key></Object>"]) end, 
+                KeyList),
+    Payload = unicode:characters_to_list(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Delete>" ++ Data ++ "</Delete>", 
+                utf8),
+
+    
+    
+    
+    Len = integer_to_list(string:len(Payload)),
+    Url = lists:flatten([Config#aws_config.s3_scheme, 
+                Bucket, ".", Config#aws_config.s3_host, port_spec(Config), "/?delete"]),
     Host = Bucket ++ "." ++ Config#aws_config.s3_host,
     ContentMD5 = base64:encode(erlcloud_util:md5(Payload)),
-    
     Headers = [{"host", Host},
                {"content-md5", binary_to_list(ContentMD5)},
                {"content-length", Len}],
-    Region = "not-used",
-    Service = "s3",
-    erlcloud_aws:sign_v4(Config, Headers, Payload, Region, Service),
-    
     Result = erlcloud_httpc:request(
-        Url(Config, Bucket), "POST", Headers, Payload, 1000, Config),
-    io:format("~n~p~n~n", [Result]),
+        Url, "POST", Headers, Payload, 1000, Config),
     erlcloud_aws:http_headers_body(Result).
+
+% returns paths list from AWS S3 root directory, used as input to delete_objects_batch
+% example : 
+%    25> rp(erlcloud_s3:explore_dirstructure("xmppfiledev", ["sailfish/deleteme"], [])).
+%    ["sailfish/deleteme/deep/deep1/deep4/ZZZ_1.txt",
+%     "sailfish/deleteme/deep/deep1/deep4/ZZZ_0.txt",
+%     "sailfish/deleteme/deep/deep1/ZZZ_0.txt",
+%     "sailfish/deleteme/deep/ZZZ_0.txt"]
+%    ok
+%
+-spec explore_dirstructure(string(), list(), list()) -> list().
+
+explore_dirstructure(_, [], Result) -> 
+                                    lists:append(Result);
+explore_dirstructure(Bucketname, [Branch|Tail], Accum) ->
+    ProcessContent = fun(Data)->
+            Content = proplists:get_value(contents, Data),
+            lists:foldl(fun(I,Acc)-> R = proplists:get_value(key, I), [R|Acc] end, [], Content)
+            end,
     
+    Data = erlcloud_s3:list_objects(Bucketname,[{prefix, Branch}, {delimiter, "/"}]),
+    case proplists:get_value(common_prefixes, Data) of
+        [] -> % it has reached end of the branch
+            Files = ProcessContent(Data),
+            explore_dirstructure(Bucketname, Tail, [Files|Accum]);
+        Sub ->
+            Files = ProcessContent(Data),
+            List = lists:foldl(fun(I,Acc)-> R = proplists:get_value(prefix, I), [R|Acc] end, [], Sub),
+            Result = explore_dirstructure(Bucketname, List, Accum),
+            explore_dirstructure(Bucketname, Tail, [Result, Files|Accum])
+    end.
+
 -spec delete_object(string(), string()) -> proplist().
 
 delete_object(BucketName, Key) ->
