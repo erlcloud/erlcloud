@@ -2,7 +2,7 @@
 
 -module(erlcloud_s3).
 -export([new/2, new/3, new/4, configure/2, configure/3, configure/4,
-         create_bucket/1, create_bucket/2, create_bucket/3,
+         create_bucket/1, create_bucket/2, create_bucket/3, create_bucket/4,
          delete_bucket/1, delete_bucket/2,
          get_bucket_attribute/2, get_bucket_attribute/3,
          list_buckets/0, list_buckets/1,
@@ -96,7 +96,16 @@ configure(AccessKeyID, SecretAccessKey, Host, Port) ->
 
 -type s3_location_constraint() :: none
                                 | us_west_1
-                                | eu.
+                                | eu
+                                | 'us-east-1'
+                                | 'us-west-1'
+                                | 'eu-west-1'
+                                | 'eu-central-1'
+                                | 'ap-southeast-1'
+                                | 'ap-southeast-2'
+                                | 'ap-northeast-1'
+                                | 'sa-east-1'.
+                                
 
 -define(XMLNS_S3, "http://s3.amazonaws.com/doc/2006-03-01/").
 
@@ -165,15 +174,27 @@ create_bucket(BucketName, ACL, LocationConstraint, Config)
                   private -> [];  %% private is the default
                   _       -> [{"x-amz-acl", encode_acl(ACL)}]
               end,
-    POSTData = case LocationConstraint of
-                   none -> <<>>;
-                   Location when Location =:= eu; Location =:= us_west_1 ->
-                       LocationName = case Location of eu -> "EU"; us_west_1 -> "us-west-1" end,
+    POSTData = case encode_location_constraint(LocationConstraint) of
+                   undefined -> <<>>;
+                   LocationName ->
                        XML = {'CreateBucketConfiguration', [{xmlns, ?XMLNS_S3}],
                               [{'LocationConstraint', [LocationName]}]},
                        list_to_binary(xmerl:export_simple([XML], xmerl_xml))
                end,
     s3_simple_request(Config, put, BucketName, "/", "", [], POSTData, Headers).
+
+encode_location_constraint(eu) -> "EU";
+encode_location_constraint(us_west_1) -> "us-west-1";
+encode_location_constraint('us-east-1') -> undefined;
+encode_location_constraint('us-west-1') -> "us-west-1";
+encode_location_constraint('us-west-2') -> "us-west-2";
+encode_location_constraint('eu-west-1') -> "EU";
+encode_location_constraint('eu-central-1') -> "eu-central-1";
+encode_location_constraint('ap-southeast-1') -> "ap-southeast-1";
+encode_location_constraint('ap-southeast-2') -> "ap-southeast-2";
+encode_location_constraint('ap-northeast-1') -> "ap-northeast-1";
+encode_location_constraint('sa-east-1') -> "sa-east-1";
+encode_location_constraint(_) -> undefined.
 
 encode_acl(undefined)                 -> undefined;
 encode_acl(private)                   -> "private";
@@ -885,7 +906,9 @@ encode_grant(Grant) ->
 s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
         {_Headers, ""} -> ok;
+        {_Headers, <<>>} -> ok;
         {_Headers, Body} ->
+            io:format("~p", [Body]),
             XML = element(1,xmerl_scan:string(binary_to_list(Body))),
             case XML of
                 #xmlElement{name='Error'} ->
