@@ -1028,8 +1028,10 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
                                 case Subresource of "" -> ""; _ -> [$?, Subresource] end,
                                 if
                                     Params =:= [] -> "";
-                                    Subresource =:= "" -> [$?, erlcloud_http:make_query_string(Params)];
-                                    true -> [$&, erlcloud_http:make_query_string(Params)]
+                                    Subresource =:= "" ->
+                                      [$?, erlcloud_http:make_query_string(Params, no_assignment)];
+                                    true ->
+                                      [$&, erlcloud_http:make_query_string(Params, no_assignment)]
                                 end
                                ]),
 
@@ -1072,7 +1074,8 @@ make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
     FilteredParams = [{Name, Value} || {Name, Value} <- Params,
                                        lists:member(Name, SubResourcesToInclude)],
 
-    ParamsQueryString = erlcloud_http:make_query_string(lists:keysort(1, FilteredParams)),
+    ParamsQueryString = erlcloud_http:make_query_string(lists:keysort(1, FilteredParams),
+                                                        no_assignment),
     StringToSign = [string:to_upper(atom_to_list(Method)), $\n,
                     ContentMD5, $\n,
                     ContentType, $\n,

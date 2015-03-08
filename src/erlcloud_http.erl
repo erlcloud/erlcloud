@@ -1,12 +1,24 @@
 -module(erlcloud_http).
--export([make_query_string/1, url_encode/1, url_encode_loose/1]).
+-export([make_query_string/1, make_query_string/2, url_encode/1, url_encode_loose/1]).
 
+encode_query_term(Key, [], no_assignment) ->
+  [Key];
+encode_query_term(Key, [], empty_assignment) ->
+  [Key, "="];
+encode_query_term(Key, Value, _) ->
+  [Key, "=", url_encode(value_to_string(Value))].
+
+%% encode an empty value query string differently based on the
+%% argument provided, this is based on the fact that S3 and SQS
+%% sign url differently, S3 requires that empty arguments have no
+%% '=' (/?acl) while SQS requires it (/?QueuePrefix=)
+%% default behaviour is adding '='
 make_query_string(Params) ->
-    string:join([case Value of
-                     [] -> [Key, "="];
-                     _ -> [Key, "=", url_encode(value_to_string(Value))]
-                 end
-                 || {Key, Value} <- Params, Value =/= none, Value =/= undefined], "&").
+  make_query_string(Params, empty_assignment).
+
+make_query_string(Params, EmptyQueryOpt) ->
+    string:join([encode_query_term(Key, Value, EmptyQueryOpt) || {Key, Value} <-
+                  Params, Value =/= none, Value =/= undefined], "&").
 
 value_to_string(Integer) when is_integer(Integer) -> integer_to_list(Integer);
 value_to_string(Atom) when is_atom(Atom) -> atom_to_list(Atom);
