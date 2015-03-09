@@ -149,7 +149,7 @@ get_queue_attributes(QueueName) ->
 -spec get_queue_attributes/2 :: (string(), all | [sqs_queue_attribute_name()] | aws_config()) -> proplist().
 get_queue_attributes(QueueName, Config)
   when is_record(Config, aws_config) ->
-    get_queue_attributes(QueueName, all, default_config());
+    get_queue_attributes(QueueName, all, Config);
 get_queue_attributes(QueueName, AttributeNames) ->
     get_queue_attributes(QueueName, AttributeNames, default_config()).
 
