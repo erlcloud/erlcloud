@@ -338,7 +338,7 @@ send_message(QueueName, MessageBody, Config)
 send_message(QueueName, MessageBody, DelaySeconds) ->
     send_message(QueueName, MessageBody, DelaySeconds, default_config()).
 
--spec send_message/4 :: (string(), string(), 0..900, aws_config()) -> proplist().
+-spec send_message/4 :: (string(), string(), 0..900 | none, aws_config()) -> proplist().
 send_message(QueueName, MessageBody, DelaySeconds, Config)
   when is_list(QueueName), is_list(MessageBody),
        (DelaySeconds >= 0 andalso DelaySeconds =< 900) orelse
@@ -373,14 +373,16 @@ sqs_simple_request(Config, QueueName, Action, Params) ->
     ok.
 
 sqs_xml_request(Config, QueueName, Action, Params) ->
-    erlcloud_aws:aws_request_xml(post, Config#aws_config.sqs_host,
+    erlcloud_aws:aws_request_xml(post, Config#aws_config.sqs_protocol,
+                                 Config#aws_config.sqs_host, Config#aws_config.sqs_port,
                                  queue_path(QueueName), [{"Action", Action}, {"Version", ?API_VERSION}|Params], Config).
 
 sqs_request(Config, QueueName, Action, Params) ->
-    erlcloud_aws:aws_request(post, Config#aws_config.sqs_host,
+    erlcloud_aws:aws_request(post, Config#aws_config.sqs_protocol,
+                                 Config#aws_config.sqs_host, Config#aws_config.sqs_port,
                              queue_path(QueueName), [{"Action", Action}, {"Version", ?API_VERSION}|Params], Config).
 
 queue_path([$/|_] = QueueName) -> QueueName;
-queue_path(["http"|_] = URL) ->
+queue_path([$h,$t,$t,$p|_] = URL) ->
     re:replace(URL, "^https?://[^/]*", "", [{return, list}]);
 queue_path(QueueName) -> [$/|QueueName].

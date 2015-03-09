@@ -9,3 +9,5 @@ rebar
 deps/
 doc/
 .edts
+*[#]*[#]
+*[#]*

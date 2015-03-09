@@ -18,6 +18,8 @@
          get_endpoint_attributes/1,
          get_endpoint_attributes/2,
          get_endpoint_attributes/3,
+         set_endpoint_attributes/2,
+         set_endpoint_attributes/3,
          publish_to_topic/2, publish_to_topic/3, publish_to_topic/4,
          publish_to_topic/5, publish_to_target/2, publish_to_target/3,
          publish_to_target/4, publish_to_target/5, publish/5,
@@ -30,6 +32,7 @@
          ]).
 -export([parse_event/1, get_event_type/1, parse_event_message/1,
          get_notification_attribute/2]).
+-export([new/2, new/3, configure/2, configure/3]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -231,6 +234,18 @@ get_endpoint_attributes(EndpointArn, AccessKeyID, SecretAccessKey) ->
 
 
 
+-spec set_endpoint_attributes/2 :: (string(), [{sns_endpoint_attribute(), string()}]) -> string().
+-spec set_endpoint_attributes/3 :: (string(), [{sns_endpoint_attribute(), string()}], aws_config()) -> string().
+
+set_endpoint_attributes(EndpointArn, Attributes) ->
+    set_endpoint_attributes(EndpointArn, Attributes, default_config()).
+set_endpoint_attributes(EndpointArn, Attributes, Config) ->
+    Doc = sns_xml_request(Config, "SetEndpointAttributes", [{"EndpointArn", EndpointArn} |
+                                                            encode_attributes(Attributes)]),
+    erlcloud_xml:get_text("ResponseMetadata/RequestId", Doc).
+
+
+
 -spec list_endpoints_by_platform_application/1 :: (string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
 -spec list_endpoints_by_platform_application/2 :: (string(), undefined|string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
 -spec list_endpoints_by_platform_application/3 :: (string(), undefined|string(), aws_config()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
@@ -403,6 +418,34 @@ subscribe(Endpoint, Protocol, TopicArn, Config)
                 {"TopicArn", TopicArn}]),
         erlcloud_xml:get_text("/SubscribeResponse/SubscribeResult/SubscriptionArn", Doc).
 
+-spec new(string(), string()) -> aws_config().
+
+new(AccessKeyID, SecretAccessKey) ->
+    #aws_config{
+       access_key_id=AccessKeyID,
+       secret_access_key=SecretAccessKey
+      }.
+
+-spec new(string(), string(), string()) -> aws_config().
+
+new(AccessKeyID, SecretAccessKey, Host) ->
+    #aws_config{
+       access_key_id=AccessKeyID,
+       secret_access_key=SecretAccessKey,
+       sns_host=Host
+      }.
+
+-spec configure(string(), string()) -> ok.
+
+configure(AccessKeyID, SecretAccessKey) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey)),
+    ok.
+
+-spec configure(string(), string(), string()) -> ok.
+
+configure(AccessKeyID, SecretAccessKey, Host) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
+    ok.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PRIVATE
