@@ -161,9 +161,8 @@ get_queue_attributes(QueueName, AttributeNames, Config)
     Doc = sqs_xml_request(Config, QueueName, "GetQueueAttributes",
                           erlcloud_aws:param_list([encode_attribute_name(N) || N <- AttributeNames], "AttributeName")),
     Attrs = decode_attributes(xmerl_xpath:string("GetQueueAttributesResult/Attribute", Doc)),
-    [{decode_attribute_name(Name),
-      case Name of "Policy" -> Value; "QueueArn" -> Value; _ -> list_to_integer(Value) end} ||
-        {Name, Value} <- Attrs].
+    [{decode_attribute_name(Name), decode_attribute_value(Name, Value)} || {Name, Value} <- Attrs].
+
 
 encode_attribute_name(message_retention_period) -> "MessageRetentionPeriod";
 encode_attribute_name(queue_arn) -> "QueueArn";
@@ -194,6 +193,13 @@ decode_attribute_name("DelaySeconds") -> delay_seconds;
 decode_attribute_name("ReceiveMessageWaitTimeSeconds") -> receive_message_wait_time_seconds;
 decode_attribute_name("Policy") -> policy;
 decode_attribute_name("RedrivePolicy") -> redrive_policy.
+
+
+decode_attribute_value("Policy", Value) -> Value;
+decode_attribute_value("QueueArn", Value) -> Value;
+decode_attribute_value("RedrivePolicy", Value) -> Value;
+decode_attribute_value(_, Value) -> list_to_integer(Value).
+
 
 -spec list_queues/0 :: () -> [string()].
 list_queues() ->
