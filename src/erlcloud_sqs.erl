@@ -177,6 +177,7 @@ encode_attribute_name(created_timestamp) -> "CreatedTimestamp";
 encode_attribute_name(delay_seconds) -> "DelaySeconds";
 encode_attribute_name(receive_message_wait_time_seconds) -> "ReceiveMessageWaitTimeSeconds";
 encode_attribute_name(policy) -> "Policy";
+encode_attribute_name(redrive_policy) -> "RedrivePolicy";
 encode_attribute_name(all) -> "All".
 
 
@@ -191,7 +192,8 @@ decode_attribute_name("LastModifiedTimestamp") -> last_modified_timestamp;
 decode_attribute_name("CreatedTimestamp") -> created_timestamp;
 decode_attribute_name("DelaySeconds") -> delay_seconds;
 decode_attribute_name("ReceiveMessageWaitTimeSeconds") -> receive_message_wait_time_seconds;
-decode_attribute_name("Policy") -> policy.
+decode_attribute_name("Policy") -> policy;
+decode_attribute_name("RedrivePolicy") -> redrive_policy.
 
 -spec list_queues/0 :: () -> [string()].
 list_queues() ->
