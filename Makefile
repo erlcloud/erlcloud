@@ -12,6 +12,7 @@ CHECK_FILES=\
 	ebin/erlcloud_ddb2.beam \
 	ebin/erlcloud_ddb_impl.beam \
 	ebin/erlcloud_ddb_util.beam \
+	ebin/erlcloud_http.beam \
 	ebin/erlcloud_httpc.beam \
 	ebin/erlcloud_retry.beam \
 	ebin/erlcloud_sts.beam \

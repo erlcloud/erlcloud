@@ -12,6 +12,7 @@
          list_objects/1, list_objects/2, list_objects/3,
          list_object_versions/1, list_object_versions/2, list_object_versions/3,
          copy_object/4, copy_object/5, copy_object/6,
+         delete_objects_batch/2, explore_dirstructure/3,
          delete_object/2, delete_object/3,
          delete_object_version/3, delete_object_version/4,
          get_object/2, get_object/3, get_object/4,
@@ -193,6 +194,63 @@ delete_bucket(BucketName) ->
 delete_bucket(BucketName, Config)
   when is_list(BucketName) ->
     s3_simple_request(Config, delete, BucketName, "/", "", [], <<>>, []).
+
+-spec delete_objects_batch(string(), list()) -> no_return().
+
+delete_objects_batch(Bucket, KeyList) ->
+    Config = default_config(),
+    Data = lists:map(fun(Item) ->
+            lists:concat(["<Object><Key>", Item, "</Key></Object>"]) end, 
+                KeyList),
+    Payload = unicode:characters_to_list(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Delete>" ++ Data ++ "</Delete>", 
+                utf8),
+
+    
+    
+    
+    Len = integer_to_list(string:len(Payload)),
+    Url = lists:flatten([Config#aws_config.s3_scheme, 
+                Bucket, ".", Config#aws_config.s3_host, port_spec(Config), "/?delete"]),
+    Host = Bucket ++ "." ++ Config#aws_config.s3_host,
+    ContentMD5 = base64:encode(erlcloud_util:md5(Payload)),
+    Headers = [{"host", Host},
+               {"content-md5", binary_to_list(ContentMD5)},
+               {"content-length", Len}],
+    Result = erlcloud_httpc:request(
+        Url, "POST", Headers, Payload, 1000, Config),
+    erlcloud_aws:http_headers_body(Result).
+
+% returns paths list from AWS S3 root directory, used as input to delete_objects_batch
+% example : 
+%    25> rp(erlcloud_s3:explore_dirstructure("xmppfiledev", ["sailfish/deleteme"], [])).
+%    ["sailfish/deleteme/deep/deep1/deep4/ZZZ_1.txt",
+%     "sailfish/deleteme/deep/deep1/deep4/ZZZ_0.txt",
+%     "sailfish/deleteme/deep/deep1/ZZZ_0.txt",
+%     "sailfish/deleteme/deep/ZZZ_0.txt"]
+%    ok
+%
+-spec explore_dirstructure(string(), list(), list()) -> list().
+
+explore_dirstructure(_, [], Result) -> 
+                                    lists:append(Result);
+explore_dirstructure(Bucketname, [Branch|Tail], Accum) ->
+    ProcessContent = fun(Data)->
+            Content = proplists:get_value(contents, Data),
+            lists:foldl(fun(I,Acc)-> R = proplists:get_value(key, I), [R|Acc] end, [], Content)
+            end,
+    
+    Data = erlcloud_s3:list_objects(Bucketname,[{prefix, Branch}, {delimiter, "/"}]),
+    case proplists:get_value(common_prefixes, Data) of
+        [] -> % it has reached end of the branch
+            Files = ProcessContent(Data),
+            explore_dirstructure(Bucketname, Tail, [Files|Accum]);
+        Sub ->
+            Files = ProcessContent(Data),
+            List = lists:foldl(fun(I,Acc)-> R = proplists:get_value(prefix, I), [R|Acc] end, [], Sub),
+            Result = explore_dirstructure(Bucketname, List, Accum),
+            explore_dirstructure(Bucketname, Tail, [Result, Files|Accum])
+    end.
 
 -spec delete_object(string(), string()) -> proplist().
 
@@ -432,6 +490,7 @@ get_object(BucketName, Key, Options, Config) ->
     [{etag, proplists:get_value("etag", Headers)},
      {content_length, proplists:get_value("content-length", Headers)},
      {content_type, proplists:get_value("content-type", Headers)},
+     {content_encoding, proplists:get_value("content-encoding", Headers)},
      {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
      {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
      {content, Body}|
@@ -495,6 +554,7 @@ get_object_metadata(BucketName, Key, Options, Config) ->
      {etag, proplists:get_value("etag", Headers)},
      {content_length, proplists:get_value("content-length", Headers)},
      {content_type, proplists:get_value("content-type", Headers)},
+     {content_encoding, proplists:get_value("content-encoding", Headers)},
      {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
      {version_id, proplists:get_value("x-amz-version-id", Headers, "false")}|extract_metadata(Headers)].
 
@@ -971,8 +1031,10 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
                                 case Subresource of "" -> ""; _ -> [$?, Subresource] end,
                                 if
                                     Params =:= [] -> "";
-                                    Subresource =:= "" -> [$?, erlcloud_http:make_query_string(Params)];
-                                    true -> [$&, erlcloud_http:make_query_string(Params)]
+                                    Subresource =:= "" ->
+                                      [$?, erlcloud_http:make_query_string(Params, no_assignment)];
+                                    true ->
+                                      [$&, erlcloud_http:make_query_string(Params, no_assignment)]
                                 end
                                ]),
 
@@ -1015,7 +1077,8 @@ make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
     FilteredParams = [{Name, Value} || {Name, Value} <- Params,
                                        lists:member(Name, SubResourcesToInclude)],
 
-    ParamsQueryString = erlcloud_http:make_query_string(lists:keysort(1, FilteredParams)),
+    ParamsQueryString = erlcloud_http:make_query_string(lists:keysort(1, FilteredParams),
+                                                        no_assignment),
     StringToSign = [string:to_upper(atom_to_list(Method)), $\n,
                     ContentMD5, $\n,
                     ContentType, $\n,
