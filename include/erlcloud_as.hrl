@@ -8,7 +8,9 @@
           tags :: list(string()),
           desired_capacity :: integer(),
           min_size :: integer(),
-          max_size :: integer()          
+          max_size :: integer(),
+          launch_configuration_name :: string(),
+          vpc_zone_id :: list(string())
          }).
 -type(aws_autoscaling_group() :: #aws_autoscaling_group{}).
 
@@ -16,7 +18,13 @@
           name :: string(),
           image_id :: string(),
           instance_type :: string(),
-          tenancy :: string()
+          tenancy :: string(),
+          user_data :: string(),
+          instance_monitoring :: boolean(),
+          security_groups = [] :: list(string()),
+          public_ip_address = false :: boolean(),
+          monitoring = false :: boolean(),
+          key_name :: string()
          }).
 -type(aws_launch_config() :: #aws_launch_config{}).
 

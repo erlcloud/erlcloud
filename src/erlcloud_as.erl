@@ -3,6 +3,8 @@
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 -include_lib("erlcloud/include/erlcloud_as.hrl").
 
+-compile([export_all]).
+
 %% AWS Autoscaling functions
 -export([describe_groups/0, describe_groups/1, describe_groups/2, describe_groups/4,
          set_desired_capacity/2, set_desired_capacity/3, set_desired_capacity/4,
@@ -119,7 +121,10 @@ extract_group(G) ->
            [erlcloud_xml:get_text(L) || L <- xmerl_xpath:string("LoadBalancerNames/member", G)],
        desired_capacity = erlcloud_xml:get_integer("DesiredCapacity", G),
        min_size = erlcloud_xml:get_integer("MinSize", G),
-       max_size = erlcloud_xml:get_integer("MaxSize", G)}.
+       max_size = erlcloud_xml:get_integer("MaxSize", G),
+       launch_configuration_name = get_text("LaunchConfigurationName", G),
+       vpc_zone_id = [ erlcloud_xml:get_text(Zid) || Zid <- xmerl_xpath:string("VPCZoneIdentifier", G)]
+    }.
 extract_tags_from_group(G) ->
     [{erlcloud_xml:get_text("Key", T), erlcloud_xml:get_text("Value", T)} || 
         T <- xmerl_xpath:string("Tags/member", G)].
@@ -197,6 +202,81 @@ describe_launch_configs(LN, Params, Config) ->
             {error, Reason}
     end.
 
+
+%% create launch configuration(
+%%
+%%
+% Input params - lisf of tuples :
+%      "LaunchConfigurationName": "<ConfigName>" 
+%  
+%      "InstanceId" : <ExistingInstanceId> or
+%
+%      "ImageId" : "<ImageId>"
+%      "InstanceType : <InstaceType>  (Example m1.small)
+%
+%      "UserData" : <UserData>
+%      "AssociatePublicIpAddress" : <true|false>
+%      "SecurityGroups.member.N" : <SecurityGroupId>
+%       
+%      "InstanceMonitoring.Enabled" : <true | false>
+%
+%      "UserData" : <UserData>
+%
+create_launch_config(LC, Config) when is_record(LC, aws_launch_config) ->
+    Params = 
+        lists:concat([
+          [
+           {"LaunchConfigurationName", LC#aws_launch_config.name},
+           {"ImageId", LC#aws_launch_config.image_id},
+           {"InstanceType", LC#aws_launch_config.instance_type},
+           {"UserData", LC#aws_launch_config.user_data},
+           {"AssociatePublicIpAddress", atom_to_list(LC#aws_launch_config.public_ip_address)},
+           {"InstanceMonitoring.Enabled", atom_to_list(LC#aws_launch_config.instance_monitoring)}
+          ],
+          member_params("SecurityGroups.member.", LC#aws_launch_config.security_groups),
+          case LC#aws_launch_config.key_name of
+              "" -> [];
+              KeyName ->
+                  [{"KeyName", KeyName}]
+          end
+    ]),
+    create_launch_config(Params, Config);
+
+create_launch_config(Params, Config) ->
+    P = Params,
+    case as_query(Config, "CreateLaunchConfiguration", P, ?API_VERSION) of
+        {ok, Doc} ->
+            ok;
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+create_auto_scaling_group(AC, Config) when is_record(AC, aws_autoscaling_group) ->
+    Params = lists:concat([
+                 [
+                  {"AutoScalingGroupName", AC#aws_autoscaling_group.group_name},
+                  {"LaunchConfigurationName", AC#aws_autoscaling_group.launch_configuration_name},
+                  {"MaxSize", integer_to_list(AC#aws_autoscaling_group.max_size)},
+                  {"MixSize", integer_to_list(AC#aws_autoscaling_group.min_size)}
+                 ],
+                 case AC#aws_autoscaling_group.vpc_zone_id of
+                     [] -> [];
+                     VpcZoneIds ->
+                         [{"VPCZoneIdentifier", strings:join(VpcZoneIds, ",")}]
+                 end,
+                 member_params("AvailabilityZones.member.", AC#aws_autoscaling_group.availability_zones),
+                 member_params("Tags.member.", AC#aws_autoscaling_group.tags)
+             ]),
+    create_auto_scaling_group(Params, Config);
+
+create_auto_scaling_group(Params, Config) ->
+    P = Params,
+    case as_query(Config, "CreateAutoScalingGroup", P, ?API_VERSION) of
+        {ok, Doc} ->
+            {ok, Doc};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 %% --------------------------------------------------------------------
 %% @doc describe_instances([], default max results, no paging offset, default config).
@@ -302,7 +382,11 @@ extract_config(C) ->
        name = erlcloud_xml:get_text("LaunchConfigurationName", C),
        image_id = erlcloud_xml:get_text("ImageId", C),
        tenancy = erlcloud_xml:get_text("PlacementTenancy", C),
-       instance_type = erlcloud_xml:get_text("InstanceType", C)
+       instance_type = erlcloud_xml:get_text("InstanceType", C),
+       user_data = erlcloud_xml:get_text("UserData", C),
+       instance_monitoring = erlcloud_xml:get_bool("InstanceMonitoring/Enabled", C),
+       public_ip_address = erlcloud_xml:get_bool("AssociatePublicIpAddress", C),
+       security_groups = [ erlcloud_xml:get_text(G) || G <- xmerl_xpath:string("SecurityGroups/member", C)]
       }.
 
 extract_as_activity(A) ->
