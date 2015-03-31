@@ -14,7 +14,14 @@
 
          describe_instances/0, describe_instances/1, describe_instances/2, 
          describe_instances/4,
-         terminate_instance/1, terminate_instance/2, terminate_instance/3]).
+         terminate_instance/1, terminate_instance/2, terminate_instance/3,
+
+         create_launch_config/2,
+         create_auto_scaling_group/2,
+         delete_launch_configuration/2,
+         delete_auto_scaling_group/3,
+         describe_scaling_activities/3
+]).
 
 -define(API_VERSION, "2011-01-01").
 -define(DEFAULT_MAX_RECORDS, 20).
@@ -42,6 +49,10 @@
 %% xpath for terminate instance:
 -define(TERMINATE_INSTANCE_ACTIVITY, 
         "/TerminateInstanceInAutoScalingGroupResponse/TerminateInstanceInAutoScalingGroupResult/Activity").
+
+%% xpath for describe scaling activity:
+-define(DESCRIBE_SCALING_ACTIVITIES,
+        "/DescribeScalingActivitiesResponse/DescribeScalingActivitiesResult/Activities/member").
 
 %% --------------------------------------------------------------------
 %% @doc Calls describe_groups([], default_configuration())
@@ -123,7 +134,9 @@ extract_group(G) ->
        min_size = erlcloud_xml:get_integer("MinSize", G),
        max_size = erlcloud_xml:get_integer("MaxSize", G),
        launch_configuration_name = get_text("LaunchConfigurationName", G),
-       vpc_zone_id = [ erlcloud_xml:get_text(Zid) || Zid <- xmerl_xpath:string("VPCZoneIdentifier", G)]
+       vpc_zone_id = [ erlcloud_xml:get_text(Zid) || Zid <- xmerl_xpath:string("VPCZoneIdentifier", G)],
+       instances = [extract_instance(I) || I <- xmerl_xpath:string("Instances/member", G)],
+       status = get_text("Status", G)
     }.
 extract_tags_from_group(G) ->
     [{erlcloud_xml:get_text("Key", T), erlcloud_xml:get_text("Value", T)} || 
@@ -203,80 +216,148 @@ describe_launch_configs(LN, Params, Config) ->
     end.
 
 
-%% create launch configuration(
-%%
-%%
-% Input params - lisf of tuples :
-%      "LaunchConfigurationName": "<ConfigName>" 
-%  
-%      "InstanceId" : <ExistingInstanceId> or
-%
-%      "ImageId" : "<ImageId>"
-%      "InstanceType : <InstaceType>  (Example m1.small)
-%
-%      "UserData" : <UserData>
-%      "AssociatePublicIpAddress" : <true|false>
-%      "SecurityGroups.member.N" : <SecurityGroupId>
-%       
-%      "InstanceMonitoring.Enabled" : <true | false>
-%
-%      "UserData" : <UserData>
-%
-create_launch_config(LC, Config) when is_record(LC, aws_launch_config) ->
+%% --------------------------------------------------------------------
+%% @doc Get scaling activities descriptions of the given autoscaling group with a given
+%%      maximum number of results.
+%% @end
+%% --------------------------------------------------------------------
+-spec describe_scaling_activities(string(), non_neg_integer(), aws_config()) ->
+                                    {ok, list(aws_autoscaling_activity())} |
+                                    {error, term()}.
+describe_scaling_activities(GroupName, Count, Config) ->
+    Params = [ {"AutoScalingGroupName", GroupName},
+               {"MaxRecords", integer_to_list(Count)}
+             ],
+    describe_scaling_activities(Params, Config).
+
+describe_scaling_activities(Params, Config) ->
+    case as_query(Config, "DescribeScalingActivities", Params, ?API_VERSION) of
+        {ok, Doc} ->
+            Activities = [ extract_as_activity(A) || A <- xmerl_xpath:string(?DESCRIBE_SCALING_ACTIVITIES, Doc) ],
+            {ok, Activities};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+
+%% --------------------------------------------------------------------
+%% @doc Delete launch configuration.
+%% @end
+%% --------------------------------------------------------------------
+-spec delete_launch_configuration(string(), aws_config()) ->
+                                    ok | {error, term()}.
+
+delete_launch_configuration(Name, Config) ->
+    Params = [ {"LaunchConfigurationName", Name} ],
+    case as_query(Config, "DeleteLaunchConfiguration", Params, ?API_VERSION) of
+        {ok, _Doc} ->
+            ok;
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+
+%% --------------------------------------------------------------------
+%% @doc Delete AutoScaling group.
+%%         ForceDelete Specifies that the group will be deleted along with all instances associated with the group,
+%%         without waiting for all instances to be terminated. This parameter also deletes any lifecycle actions associated with the group.
+%% @end
+%% --------------------------------------------------------------------
+-spec delete_auto_scaling_group(string(), boolean(), aws_config()) ->
+                                   ok | {error, term()}.    
+delete_auto_scaling_group(Name, ForceDelete, Config) ->
+    Params = [ {"AutoScalingGroupName", Name},
+               {"ForceDelete", atom_to_list(ForceDelete)}
+             ],
+    case as_query(Config, "DeleteAutoScalingGroup", Params, ?API_VERSION) of
+        {ok, _Doc} ->
+            ok;
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+
+%% --------------------------------------------------------------------
+%% @doc Create launch configuration.
+%% @end
+%% --------------------------------------------------------------------
+-spec create_launch_config(aws_launch_config(), aws_config()) ->
+                                  ok | {error, term()}.
+create_launch_config(#aws_launch_config{
+                         name = LCName,
+                         image_id = ImageId,
+                         instance_type = Type,
+                         user_data = UserData,
+                         public_ip_address = PublicIP,
+                         monitoring = Monitoring,
+                         security_groups = SGroups,
+                         key_name = KeyPair
+                     },
+                     Config) ->
     Params = 
         lists:concat([
           [
-           {"LaunchConfigurationName", LC#aws_launch_config.name},
-           {"ImageId", LC#aws_launch_config.image_id},
-           {"InstanceType", LC#aws_launch_config.instance_type},
-           {"UserData", LC#aws_launch_config.user_data},
-           {"AssociatePublicIpAddress", atom_to_list(LC#aws_launch_config.public_ip_address)},
-           {"InstanceMonitoring.Enabled", atom_to_list(LC#aws_launch_config.instance_monitoring)}
+           {"LaunchConfigurationName", LCName},
+           {"ImageId", ImageId},
+           {"InstanceType", Type},
+           {"UserData", UserData},
+           {"AssociatePublicIpAddress", atom_to_list(PublicIP)},
+           {"InstanceMonitoring.Enabled", atom_to_list(Monitoring)}
           ],
-          member_params("SecurityGroups.member.", LC#aws_launch_config.security_groups),
-          case LC#aws_launch_config.key_name of
-              "" -> [];
-              KeyName ->
-                  [{"KeyName", KeyName}]
-          end
+          member_params("SecurityGroups.member.", SGroups),
+          when_defined(KeyPair, [{"KeyName", KeyPair}], [])
     ]),
     create_launch_config(Params, Config);
 
 create_launch_config(Params, Config) ->
     P = Params,
     case as_query(Config, "CreateLaunchConfiguration", P, ?API_VERSION) of
-        {ok, Doc} ->
+        {ok, _Doc} ->
             ok;
         {error, Reason} ->
             {error, Reason}
     end.
 
-create_auto_scaling_group(AC, Config) when is_record(AC, aws_autoscaling_group) ->
+
+%% --------------------------------------------------------------------
+%% @doc Create AutoScaling group.
+%% @end
+%% --------------------------------------------------------------------
+-spec create_auto_scaling_group(aws_autoscaling_group(), aws_config()) ->
+                                       ok | {error, term()}.
+create_auto_scaling_group(#aws_autoscaling_group{
+                              group_name = GName,
+                              launch_configuration_name = LaunchName,
+                              max_size = MaxSize,
+                              min_size = MinSize,
+                              vpc_zone_id = VpcZoneIds,
+                              availability_zones = AZones,
+                              tags = Tags
+                          },
+                          Config) ->
+    ProcessedTags = lists:flatten([ tag_to_member_param(Idx, T) || {Idx, T} <- lists:zip(Tags, lists:seq(1, length(Tags))) ]),
     Params = lists:concat([
                  [
-                  {"AutoScalingGroupName", AC#aws_autoscaling_group.group_name},
-                  {"LaunchConfigurationName", AC#aws_autoscaling_group.launch_configuration_name},
-                  {"MaxSize", integer_to_list(AC#aws_autoscaling_group.max_size)},
-                  {"MixSize", integer_to_list(AC#aws_autoscaling_group.min_size)}
+                  {"AutoScalingGroupName", GName},
+                  {"LaunchConfigurationName", LaunchName},
+                  {"MaxSize", integer_to_list(MaxSize)},
+                  {"MinSize", integer_to_list(MinSize)}
                  ],
-                 case AC#aws_autoscaling_group.vpc_zone_id of
-                     [] -> [];
-                     VpcZoneIds ->
-                         [{"VPCZoneIdentifier", strings:join(VpcZoneIds, ",")}]
-                 end,
-                 member_params("AvailabilityZones.member.", AC#aws_autoscaling_group.availability_zones),
-                 member_params("Tags.member.", AC#aws_autoscaling_group.tags)
+                 when_defined(VpcZoneIds, [{"VPCZoneIdentifier", string:join(VpcZoneIds, ",")}], []),
+                 when_defined(AZones, member_params("AvailabilityZones.member.", AZones), []),
+                 ProcessedTags
              ]),
     create_auto_scaling_group(Params, Config);
 
 create_auto_scaling_group(Params, Config) ->
     P = Params,
     case as_query(Config, "CreateAutoScalingGroup", P, ?API_VERSION) of
-        {ok, Doc} ->
-            {ok, Doc};
+        {ok, _Doc} ->
+            ok;
         {error, Reason} ->
             {error, Reason}
     end.
+
 
 %% --------------------------------------------------------------------
 %% @doc describe_instances([], default max results, no paging offset, default config).
@@ -384,7 +465,7 @@ extract_config(C) ->
        tenancy = erlcloud_xml:get_text("PlacementTenancy", C),
        instance_type = erlcloud_xml:get_text("InstanceType", C),
        user_data = erlcloud_xml:get_text("UserData", C),
-       instance_monitoring = erlcloud_xml:get_bool("InstanceMonitoring/Enabled", C),
+       monitoring = erlcloud_xml:get_bool("InstanceMonitoring/Enabled", C),
        public_ip_address = erlcloud_xml:get_bool("AssociatePublicIpAddress", C),
        security_groups = [ erlcloud_xml:get_text(G) || G <- xmerl_xpath:string("SecurityGroups/member", C)]
       }.
@@ -413,3 +494,29 @@ as_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml2(post, Config#aws_config.as_host, 
                                   "/", QParams, Config).
+
+
+when_defined(Value, Return, DefaultReturn) ->
+    case Value of 
+        undefined ->
+            DefaultReturn;
+        _ ->
+            Return
+    end.
+
+
+tag_to_member_param(#aws_autoscaling_tag{
+                        key = Key,
+                        propogate_at_launch = AtLaunch,
+                        resource_id = ResourceId,
+                        resource_type = ResourceType,
+                        value = Value
+                    }, TagIndex) ->
+    Prefix = "Tags.member." ++ integer_to_list(TagIndex) ++ ".",
+    [
+      {Prefix ++ "Key", Key},
+      {Prefix ++ "Value", Value},
+      when_defined(AtLaunch, {Prefix ++ "PropageteAtLaunch", atom_to_list(AtLaunch)}, []),
+      when_defined(ResourceId, {Prefix ++ "ResourceId", ResourceId}, []),
+      when_defined(ResourceType, {Prefix ++ "ResourceType", ResourceType}, [])
+    ].
