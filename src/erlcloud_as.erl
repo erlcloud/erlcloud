@@ -298,14 +298,15 @@ create_launch_config(#aws_launch_config{
           [
            {"LaunchConfigurationName", LCName},
            {"ImageId", ImageId},
-           {"InstanceType", Type},
-           {"UserData", UserData},
-           {"AssociatePublicIpAddress", atom_to_list(PublicIP)},
-           {"InstanceMonitoring.Enabled", atom_to_list(Monitoring)}
+           {"InstanceType", Type}
           ],
+          when_defined(UserData, [{"UserData", UserData}], []),
+          when_defined(PublicIP, [{"AssociatePublicIpAddress", atom_to_list(PublicIP)}], []),
+          when_defined(Monitoring, [{"InstanceMonitoring.Enabled", atom_to_list(Monitoring)}], []),
           member_params("SecurityGroups.member.", SGroups),
           when_defined(KeyPair, [{"KeyName", KeyPair}], [])
     ]),
+    io:format("~p ~n", [Params]),
     create_launch_config(Params, Config);
 
 create_launch_config(Params, Config) ->
@@ -342,8 +343,14 @@ create_auto_scaling_group(#aws_autoscaling_group{
                   {"MaxSize", integer_to_list(MaxSize)},
                   {"MinSize", integer_to_list(MinSize)}
                  ],
-                 when_defined(VpcZoneIds, [{"VPCZoneIdentifier", string:join(VpcZoneIds, ",")}], []),
-                 when_defined(AZones, member_params("AvailabilityZones.member.", AZones), []),
+                 case VpcZoneIds of
+                     undefined -> [];
+                     _         ->[{"VPCZoneIdentifier", string:join(VpcZoneIds, ",")}]
+                 end,
+                 case AZones of
+                     undefined -> [];
+                     _         -> member_params("AvailabilityZones.member.", AZones)
+                 end,
                  ProcessedTags
              ]),
     create_auto_scaling_group(Params, Config);
