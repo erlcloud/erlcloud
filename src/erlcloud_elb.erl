@@ -166,7 +166,7 @@ extract_load_balancers(Node) ->
 
 extract_backend_server_descriptions(Member) ->
   [{instance_port, get_text("InstancePort", Member)},
-   {policy_names, [ get_text(PolicyName) || PolicyName <- xmerl:string("PolicyNames/member", Member)]}].
+   {policy_names, [ get_text(PolicyName) || PolicyName <- xmerl_xpath:string("PolicyNames/member", Member)]}].
 
 extract_instances(Member) ->
 {instance_id, get_text("InstanceId", Member)}.
