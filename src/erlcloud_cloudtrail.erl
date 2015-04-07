@@ -63,11 +63,11 @@ create_trail(Trail, S3BucketName, S3KeyPrefix, SnsTopicName, IncludeGlobalServic
            ],
     ct_request("CreateTrail", Json, Config).
 
--spec(delete_trail/1 :: ([string()] ) -> ct_return()).
+-spec(delete_trail/1 :: (string() ) -> ct_return()).
 delete_trail(Trail) ->
     delete_trail(Trail, default_config()).
 
--spec(delete_trail/2 :: ([string()], aws_config()) -> ct_return()).
+-spec(delete_trail/2 :: (string(), aws_config()) -> ct_return()).
 delete_trail(Trail, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}],
     ct_request("DeleteTrail", Json, Config).
@@ -75,7 +75,7 @@ delete_trail(Trail, Config) ->
 -spec(describe_trails/0 :: () -> ct_return()).
 describe_trails() -> describe_trails([]).
 
--spec(describe_trails/1 :: ([string()] | aws_config()) -> ct_return()).
+-spec(describe_trails/1 :: (string() | aws_config()) -> ct_return()).
 describe_trails(Config) when is_record(Config, aws_config) ->
     describe_trails([], Config);
 
@@ -84,7 +84,7 @@ describe_trails(Config) when is_record(Config, aws_config) ->
 describe_trails(Trails) ->
     describe_trails(Trails, default_config()).
 
--spec(describe_trails/2 :: ([string()], aws_config()) -> ct_return()).
+-spec(describe_trails/2 :: (string(), aws_config()) -> ct_return()).
 describe_trails([], Config) ->
     ct_request("DescribeTrails", [], Config);
 
@@ -93,29 +93,29 @@ describe_trails(Trails, Config) ->
     Json = [{<<"TrailNameList">>, [list_to_binary(T) || T <- Trails]}],
     ct_request("DescribeTrails", Json, Config).
 
--spec(get_trail_status/1 :: ([string()] ) -> ct_return()).
+-spec(get_trail_status/1 :: (string() ) -> ct_return()).
 get_trail_status(Trail) ->
     get_trail_status(Trail, default_config()).
 
--spec(get_trail_status/2 :: ([string()], aws_config()) -> ct_return()).
+-spec(get_trail_status/2 :: (string(), aws_config()) -> ct_return()).
 get_trail_status(Trail, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}],
     ct_request("GetTrailStatus", Json, Config).
 
--spec(start_logging/1 :: ([string()] ) -> ct_return()).
+-spec(start_logging/1 :: (string() ) -> ct_return()).
 start_logging(Trail) ->
     start_logging(Trail, default_config()).
 
--spec(start_logging/2 :: ([string()], aws_config()) -> ct_return()).
+-spec(start_logging/2 :: (string(), aws_config()) -> ct_return()).
 start_logging(Trail, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}],
     ct_request("StartLogging", Json, Config).
 
--spec(stop_logging/1 :: ([string()] ) -> ct_return()).
+-spec(stop_logging/1 :: (string() ) -> ct_return()).
 stop_logging(Trail) ->
     stop_logging(Trail, default_config()).
 
--spec(stop_logging/2 :: ([string()], aws_config()) -> ct_return()).
+-spec(stop_logging/2 :: (string(), aws_config()) -> ct_return()).
 stop_logging(Trail, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}],
     ct_request("StopLogging", Json, Config).

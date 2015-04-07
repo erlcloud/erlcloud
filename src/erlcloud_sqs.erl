@@ -34,7 +34,8 @@
 				  receive_message_wait_time_seconds).
 -type(sqs_queue_attribute_name() :: all | approximate_number_of_messages |
                                     approximate_number_of_messages_not_visible | visibility_timeout |
-                                    created_timestamp | last_modified_timestamp | policy).
+                                    created_timestamp | last_modified_timestamp | policy |
+                                    queue_arn).
 
 
 

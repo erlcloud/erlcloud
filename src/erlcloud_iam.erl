@@ -89,13 +89,13 @@ get_user_impl(UserNameParam, #aws_config{} = Config) ->
 list_access_keys() ->
     list_access_keys([]).
 
--spec(list_access_keys/1 :: ([string()] | aws_config()) -> proplist()).
+-spec(list_access_keys/1 :: (string() | aws_config()) -> proplist()).
 list_access_keys(#aws_config{} = Config) ->
     list_access_keys([], Config);
 list_access_keys(UserName) ->
     list_access_keys(UserName, default_config()).
 
--spec(list_access_keys/2 :: ([string()], aws_config()) -> proplist()).
+-spec(list_access_keys/2 :: (string(), aws_config()) -> proplist()).
 list_access_keys(UserName, #aws_config{} = Config) when is_list(UserName) ->
     Params = case UserName of
                  [] -> [];
@@ -107,13 +107,13 @@ list_access_keys(UserName, #aws_config{} = Config) when is_list(UserName) ->
 % TODO: Make sure to handle pagination of results
 -spec(list_users/0 :: () -> proplist()).
 list_users() -> list_users([]).
--spec(list_users/1 :: ([string()] | aws_config()) -> proplist()).
+-spec(list_users/1 :: (string() | aws_config()) -> proplist()).
 list_users(#aws_config{} = Config) ->
     list_users("/", Config);
 list_users(PathPrefix) ->
     list_users(PathPrefix, default_config()).
 
--spec(list_users/2 :: ([string()], aws_config()) -> proplist()).
+-spec(list_users/2 :: (string(), aws_config()) -> proplist()).
 list_users(PathPrefix, #aws_config{} = Config)
   when is_list(PathPrefix) ->
     ItemPath = "/ListUsersResponse/ListUsersResult/Users/member",
@@ -163,13 +163,13 @@ get_login_profile(UserName, #aws_config{} = Config) ->
 %
 -spec(list_groups/0 :: () -> proplist()).
 list_groups() -> list_groups([]).
--spec(list_groups/1 :: ([string()] | aws_config()) -> proplist()).
+-spec(list_groups/1 :: (string() | aws_config()) -> proplist()).
 list_groups(#aws_config{} = Config) ->
     list_groups("/", Config);
 list_groups(PathPrefix) ->
     list_groups(PathPrefix, default_config()).
 
--spec(list_groups/2 :: ([string()], aws_config()) -> proplist()).
+-spec(list_groups/2 :: (string(), aws_config()) -> proplist()).
 list_groups(PathPrefix, Config)
   when is_list(PathPrefix) ->
     ItemPath = "/ListGroupsResponse/ListGroupsResult/Groups/member",
@@ -201,13 +201,13 @@ get_group_policy(GroupName, PolicyName, #aws_config{} = Config) ->
 %
 -spec(list_roles/0 :: () -> proplist()).
 list_roles() -> list_roles([]).
--spec(list_roles/1 :: ([string()] | aws_config()) -> proplist()).
+-spec(list_roles/1 :: (string() | aws_config()) -> proplist()).
 list_roles(#aws_config{} = Config) ->
     list_roles("/", Config);
 list_roles(PathPrefix) ->
     list_roles(PathPrefix, default_config()).
 
--spec(list_roles/2 :: ([string()], aws_config()) -> proplist()).
+-spec(list_roles/2 :: (string(), aws_config()) -> proplist()).
 list_roles(PathPrefix, #aws_config{} = Config)
   when is_list(PathPrefix) ->
     ItemPath = "/ListRolesResponse/ListRolesResult/Roles/member",
@@ -217,7 +217,7 @@ list_roles(PathPrefix, #aws_config{} = Config)
 list_role_policies(RoleName) ->
     list_role_policies(RoleName, default_config()).
 
--spec(list_role_policies/2 :: ([string()], aws_config()) -> proplist()).
+-spec(list_role_policies/2 :: (string(), aws_config()) -> proplist()).
 list_role_policies(RoleName, #aws_config{} = Config) ->
     ItemPath = "/ListRolePoliciesResponse/ListRolePoliciesResult/PolicyNames/member",
     DataTypeDef = [{policy_name, "String"}],
