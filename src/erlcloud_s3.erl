@@ -28,13 +28,16 @@
          complete_multipart/4, complete_multipart/6,
          abort_multipart/3, abort_multipart/6,
          list_multipart_uploads/1, list_multipart_uploads/2,
-         get_object_url/2, get_object_url/3
+         get_object_url/2, get_object_url/3,
+         get_bucket_and_key/1
         ]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
+%%% Note that get_bucket_and_key/1 may be used to obtain the Bucket and Key to pass to various
+%%%   functions here, from a URL such as https://s3.amazonaws.com/some_bucket/path_to_file
 
 -spec new(string(), string()) -> aws_config().
 
@@ -924,6 +927,33 @@ set_bucket_attribute(BucketName, AttributeName, Value, Config)
     POSTData = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
     Headers = [{"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, "/", Subresource, [], POSTData, Headers).
+
+%%% See http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html and
+%%%   http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAPI.html for info on
+%%%   addressing
+-spec get_bucket_and_key(string()) -> {string(), string()}.
+
+get_bucket_and_key(Uri) ->
+  {ok, Parsed} = http_uri:parse(Uri),
+  {Host, Path} = extract_host_and_path(Parsed),
+  extract_location_fields(Host, Path).
+
+extract_host_and_path({_Scheme, _UserInfo, Host, _Port, Path, _Query}) ->
+  {Host, Path}.
+
+extract_location_fields(Host, Path) ->
+  HostTokens = string:tokens(Host, "."),
+  extract_bucket_and_key(HostTokens, Path).
+
+extract_bucket_and_key([Bucket, _S3, _AmazonAWS, _Com], [$/ | Key]) ->
+  %% Virtual-hosted-style URL
+  %% For example: bucket_name.s3.amazonaws.com/path/to/key
+  {Bucket, Key};
+extract_bucket_and_key([_S3, _AmazonAWS, _Com], [$/ | BucketAndKey]) ->
+  %% Path-style URL
+  %% For example: s3.amazonaws.com/bucket_name/path/to/key
+  [Bucket, Key] = re:split(BucketAndKey, "/", [{return, list}, {parts, 2}]),
+  {Bucket, Key}.
 
 encode_grants(Grants) ->
     [encode_grant(Grant) || Grant <- Grants].
