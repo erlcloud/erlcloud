@@ -553,7 +553,7 @@ get_object_metadata(BucketName, Key, Options, Config) ->
      {content_type, proplists:get_value("content-type", Headers)},
      {content_encoding, proplists:get_value("content-encoding", Headers)},
      {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
-     {version_id, proplists:get_value("x-amz-version-id", Headers, "false")}|extract_metadata(Headers)].
+     {version_id, proplists:get_value("x-amz-version-id", Headers, "null")}|extract_metadata(Headers)].
 
 extract_metadata(Headers) ->
     [{Key, Value} || {Key = "x-amz-meta-" ++ _, Value} <- Headers].
