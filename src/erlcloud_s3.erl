@@ -568,7 +568,7 @@ get_object_torrent(BucketName, Key) ->
 get_object_torrent(BucketName, Key, Config) ->
     {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], "torrent", [], <<>>, []),
     [{delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
-     {version_id, proplists:get_value("x-amz-delete-marker", Headers, "false")},
+     {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
      {torrent, Body}].
 
 -spec list_object_versions(string()) -> proplist().
