@@ -163,7 +163,7 @@ request_impl(Method, _Protocol, _Host, _Port, _Path, Operation, Params, Body, #a
                 erlcloud_httpc:request(
                      url(Config), Method, 
                      [{<<"content-type">>, <<"application/x-amz-json-1.1">>} | Headers],
-                     Body, 1000, Config)) of
+                     Body, Config#aws_config.timeout, Config)) of
        {ok, {_RespHeader, RespBody}} ->
             case Config#aws_config.cloudtrail_raw_result of
                 true -> {ok, RespBody};
