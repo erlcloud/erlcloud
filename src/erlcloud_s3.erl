@@ -12,6 +12,7 @@
          list_objects/1, list_objects/2, list_objects/3,
          list_object_versions/1, list_object_versions/2, list_object_versions/3,
          copy_object/4, copy_object/5, copy_object/6,
+         delete_objects_batch/2, explore_dirstructure/3,
          delete_object/2, delete_object/3,
          delete_object_version/3, delete_object_version/4,
          get_object/2, get_object/3, get_object/4,
@@ -193,6 +194,63 @@ delete_bucket(BucketName) ->
 delete_bucket(BucketName, Config)
   when is_list(BucketName) ->
     s3_simple_request(Config, delete, BucketName, "/", "", [], <<>>, []).
+
+-spec delete_objects_batch(string(), list()) -> no_return().
+
+delete_objects_batch(Bucket, KeyList) ->
+    Config = default_config(),
+    Data = lists:map(fun(Item) ->
+            lists:concat(["<Object><Key>", Item, "</Key></Object>"]) end, 
+                KeyList),
+    Payload = unicode:characters_to_list(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Delete>" ++ Data ++ "</Delete>", 
+                utf8),
+
+    
+    
+    
+    Len = integer_to_list(string:len(Payload)),
+    Url = lists:flatten([Config#aws_config.s3_scheme, 
+                Bucket, ".", Config#aws_config.s3_host, port_spec(Config), "/?delete"]),
+    Host = Bucket ++ "." ++ Config#aws_config.s3_host,
+    ContentMD5 = base64:encode(erlcloud_util:md5(Payload)),
+    Headers = [{"host", Host},
+               {"content-md5", binary_to_list(ContentMD5)},
+               {"content-length", Len}],
+    Result = erlcloud_httpc:request(
+        Url, "POST", Headers, Payload, 1000, Config),
+    erlcloud_aws:http_headers_body(Result).
+
+% returns paths list from AWS S3 root directory, used as input to delete_objects_batch
+% example : 
+%    25> rp(erlcloud_s3:explore_dirstructure("xmppfiledev", ["sailfish/deleteme"], [])).
+%    ["sailfish/deleteme/deep/deep1/deep4/ZZZ_1.txt",
+%     "sailfish/deleteme/deep/deep1/deep4/ZZZ_0.txt",
+%     "sailfish/deleteme/deep/deep1/ZZZ_0.txt",
+%     "sailfish/deleteme/deep/ZZZ_0.txt"]
+%    ok
+%
+-spec explore_dirstructure(string(), list(), list()) -> list().
+
+explore_dirstructure(_, [], Result) -> 
+                                    lists:append(Result);
+explore_dirstructure(Bucketname, [Branch|Tail], Accum) ->
+    ProcessContent = fun(Data)->
+            Content = proplists:get_value(contents, Data),
+            lists:foldl(fun(I,Acc)-> R = proplists:get_value(key, I), [R|Acc] end, [], Content)
+            end,
+    
+    Data = erlcloud_s3:list_objects(Bucketname,[{prefix, Branch}, {delimiter, "/"}]),
+    case proplists:get_value(common_prefixes, Data) of
+        [] -> % it has reached end of the branch
+            Files = ProcessContent(Data),
+            explore_dirstructure(Bucketname, Tail, [Files|Accum]);
+        Sub ->
+            Files = ProcessContent(Data),
+            List = lists:foldl(fun(I,Acc)-> R = proplists:get_value(prefix, I), [R|Acc] end, [], Sub),
+            Result = explore_dirstructure(Bucketname, List, Accum),
+            explore_dirstructure(Bucketname, Tail, [Result, Files|Accum])
+    end.
 
 -spec delete_object(string(), string()) -> proplist().
 
@@ -429,6 +487,7 @@ get_object(BucketName, Key, Options, Config) ->
     [{etag, proplists:get_value("etag", Headers)},
      {content_length, proplists:get_value("content-length", Headers)},
      {content_type, proplists:get_value("content-type", Headers)},
+     {content_encoding, proplists:get_value("content-encoding", Headers)},
      {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
      {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
      {content, Body}|
@@ -492,6 +551,7 @@ get_object_metadata(BucketName, Key, Options, Config) ->
      {etag, proplists:get_value("etag", Headers)},
      {content_length, proplists:get_value("content-length", Headers)},
      {content_type, proplists:get_value("content-type", Headers)},
+     {content_encoding, proplists:get_value("content-encoding", Headers)},
      {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
      {version_id, proplists:get_value("x-amz-version-id", Headers, "false")}|extract_metadata(Headers)].
 
@@ -607,8 +667,7 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
     RequestHeaders = [{"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}|HTTPHeaders]
         ++ [{"x-amz-meta-" ++ string:to_lower(MKey), MValue} ||
                {MKey, MValue} <- proplists:get_value(meta, Options, [])],
-    ContentType = proplists:get_value("content-type", HTTPHeaders, "application/octet_stream"),
-    POSTData = {iolist_to_binary(Value), ContentType},
+    POSTData = iolist_to_binary(Value),
     {Headers, _Body} = s3_request(Config, put, BucketName, [$/|Key], "", [],
                                   POSTData, RequestHeaders),
     [{version_id, proplists:get_value("x-amz-version-id", Headers, "null")}].
@@ -631,7 +690,7 @@ set_object_acl(BucketName, Key, ACL, Config)
     XMLText = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
     s3_simple_request(Config, put, BucketName, [$/|Key], "acl", [], XMLText, []).
 
--spec sign_get(integer(), string(), string(), aws_config()) -> {string(), string()}.
+-spec sign_get(integer(), string(), string(), aws_config()) -> {binary(), string()}.
 sign_get(Expire_time, BucketName, Key, Config)
   when is_integer(Expire_time), is_list(BucketName), is_list(Key) ->
     {Mega, Sec, _Micro} = os:timestamp(),
@@ -714,9 +773,7 @@ upload_part(BucketName, Key, UploadId, PartNumber, Value, HTTPHeaders, Config)
        is_list(Value) orelse is_binary(Value),
        is_list(HTTPHeaders), is_record(Config, aws_config) ->
 
-    ContentType = proplists:get_value("content-type", HTTPHeaders, "application/octet_stream"),
-    POSTData = {iolist_to_binary(Value), ContentType},
-
+    POSTData = iolist_to_binary(Value),
     case s3_request2(Config, put, BucketName, [$/|Key], [], [{"uploadId", UploadId},
                                                              {"partNumber", integer_to_list(PartNumber)}],
                      POSTData, HTTPHeaders) of
@@ -881,7 +938,7 @@ encode_grant(Grant) ->
 
 s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
-        {_Headers, ""} -> ok;
+        {_Headers, <<>>} -> ok;
         {_Headers, Body} ->
             XML = element(1,xmerl_scan:string(binary_to_list(Body))),
             case XML of
@@ -940,12 +997,14 @@ s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Heade
             Error
     end.
 
-s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
-    {ContentMD5, ContentType, Body} =
-        case POSTData of
-            {PD, CT} -> {base64:encode(erlcloud_util:md5(PD)), CT, PD};
-            PD -> {"", "", PD}
-        end,
+s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Headers0) ->
+    ContentType = proplists:get_value("content-type", Headers0, ""),
+    ContentMD5 = case Body of
+                     <<>> ->
+                         "";
+                     _ ->
+                         base64:encode(erlcloud_util:md5(Body))
+                 end,
     Headers = case Config#aws_config.security_token of
                   undefined -> Headers0;
                   Token when is_list(Token) -> [{"x-amz-security-token", Token} | Headers0]
@@ -969,16 +1028,19 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
                                 case Subresource of "" -> ""; _ -> [$?, Subresource] end,
                                 if
                                     Params =:= [] -> "";
-                                    Subresource =:= "" -> [$?, erlcloud_http:make_query_string(Params)];
-                                    true -> [$&, erlcloud_http:make_query_string(Params)]
+                                    Subresource =:= "" ->
+                                      [$?, erlcloud_http:make_query_string(Params, no_assignment)];
+                                    true ->
+                                      [$&, erlcloud_http:make_query_string(Params, no_assignment)]
                                 end
                                ]),
 
-    Response = case Method of
+    Request = #aws_request{service = s3, uri = RequestURI, method = Method},
+    Request2 = case Method of
                    M when M =:= get orelse M =:= head orelse M =:= delete ->
-                       erlcloud_httpc:request(
-                         RequestURI, Method, RequestHeaders, <<>>,
-                         Config#aws_config.timeout, Config);
+                       Request#aws_request{
+                         request_headers = RequestHeaders,
+                         request_body = <<>>};
                    _ ->
                        Headers2 = case lists:keyfind("content-type", 1, RequestHeaders) of
                                       false ->
@@ -986,11 +1048,22 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, POSTData,
                                       _ ->
                                           RequestHeaders
                                   end,
-                       erlcloud_httpc:request(
-                         RequestURI, Method, Headers2, Body,
-                         Config#aws_config.timeout, Config)
+                       Request#aws_request{
+                         request_headers = Headers2,
+                         request_body = Body}
                end,
-    erlcloud_aws:http_headers_body(Response).
+    Request3 = erlcloud_retry:request(Config, Request2, fun s3_result_fun/1),
+    erlcloud_aws:request_to_return(Request3).
+
+s3_result_fun(#aws_request{response_type = ok} = Request) ->
+    Request;
+s3_result_fun(#aws_request{response_type = error, 
+                           error_type = aws, 
+                           response_status = Status} = Request) when
+      Status >= 500 ->
+    Request#aws_request{should_retry = true};
+s3_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
+    Request#aws_request{should_retry = false}.
 
 make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
                    Host, Resource, Subresource, Params) ->
@@ -1001,7 +1074,8 @@ make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
     FilteredParams = [{Name, Value} || {Name, Value} <- Params,
                                        lists:member(Name, SubResourcesToInclude)],
 
-    ParamsQueryString = erlcloud_http:make_query_string(lists:keysort(1, FilteredParams)),
+    ParamsQueryString = erlcloud_http:make_query_string(lists:keysort(1, FilteredParams),
+                                                        no_assignment),
     StringToSign = [string:to_upper(atom_to_list(Method)), $\n,
                     ContentMD5, $\n,
                     ContentType, $\n,

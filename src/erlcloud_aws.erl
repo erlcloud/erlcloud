@@ -7,6 +7,7 @@
          aws_request_form/8,
          param_list/2, default_config/0, update_config/1, format_timestamp/1,
          http_headers_body/1,
+         request_to_return/1,
          sign_v4/5]).
 
 -include("erlcloud.hrl").
@@ -89,14 +90,14 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
     aws_request_form(Method, Protocol, Host, Port, Path, Query, [], Config).
 
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
-    case Protocol of
-        undefined -> UProtocol = "https://";
-        _ -> UProtocol = [Protocol, "://"]
+    UProtocol = case Protocol of
+        undefined -> "https://";
+        _ -> [Protocol, "://"]
     end,
     
-    case Port of
-        undefined -> URL = [UProtocol, Host, Path];
-        _ -> URL = [UProtocol, Host, $:, port_to_str(Port), Path]
+    URL = case Port of
+        undefined -> [UProtocol, Host, Path];
+        _ -> [UProtocol, Host, $:, port_to_str(Port), Path]
     end,
     
     %% Note: httpc MUST be used with {timeout, timeout()} option
@@ -233,7 +234,7 @@ port_to_str(Port) when is_list(Port) ->
     Port.
 
 -spec http_body({ok, tuple()} | {error, term()}) 
-               -> {ok, string() | binary()} | {error, tuple()}.
+               -> {ok, binary()} | {error, tuple()}.
 %% Extract the body and do error handling on the return of a httpc:request call.
 http_body(Return) ->
     case http_headers_body(Return) of
@@ -245,7 +246,7 @@ http_body(Return) ->
 
 -type headers() :: [{string(), string()}].
 -spec http_headers_body({ok, tuple()} | {error, term()}) 
-                       -> {ok, {headers(), string() | binary()}} | {error, tuple()}.
+                       -> {ok, {headers(), binary()}} | {error, tuple()}.
 %% Extract the headers and body and do error handling on the return of a httpc:request call.
 http_headers_body({ok, {{OKStatus, _StatusLine}, Headers, Body}}) 
   when OKStatus >= 200, OKStatus =< 299 ->
@@ -254,6 +255,22 @@ http_headers_body({ok, {{Status, StatusLine}, _Headers, Body}}) ->
     {error, {http_error, Status, StatusLine, Body}};
 http_headers_body({error, Reason}) ->
     {error, {socket_error, Reason}}.
+
+%% Convert an aws_request record to return value as returned by http_headers_body
+request_to_return(#aws_request{response_type = ok, 
+                               response_headers = Headers, 
+                               response_body = Body}) ->
+    {ok, {Headers, Body}};
+request_to_return(#aws_request{response_type = error,
+                               error_type = httpc, 
+                               httpc_error_reason = Reason}) ->
+    {error, {socket_error, Reason}};
+request_to_return(#aws_request{response_type = error,
+                               error_type = aws,
+                               response_status = Status,
+                               response_status_line = StatusLine,
+                               response_body = Body}) ->
+    {error, {http_error, Status, StatusLine, Body}}.
 
 %% http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
 %% TODO additional parameters - currently only supports what is needed for DynamoDB

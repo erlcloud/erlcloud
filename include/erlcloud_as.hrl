@@ -5,10 +5,11 @@
           group_name :: string(),
           availability_zones :: list(string()),
           load_balancer_names :: list(string()),
+          instances :: list(aws_autoscaling_instance()),
           tags :: list(string()),
           desired_capacity :: integer(),
           min_size :: integer(),
-          max_size :: integer()          
+          max_size :: integer()
          }).
 -type(aws_autoscaling_group() :: #aws_autoscaling_group{}).
 

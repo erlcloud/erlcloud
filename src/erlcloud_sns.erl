@@ -8,7 +8,7 @@
          create_platform_endpoint/2, create_platform_endpoint/3,
          create_platform_endpoint/4, create_platform_endpoint/5,
          create_platform_endpoint/6,
-         create_topic/1, create_topic/2, 
+         create_topic/1, create_topic/2,
          delete_endpoint/1, delete_endpoint/2, delete_endpoint/3,
          delete_topic/1, delete_topic/2,
          list_endpoints_by_platform_application/1,
@@ -18,6 +18,8 @@
          get_endpoint_attributes/1,
          get_endpoint_attributes/2,
          get_endpoint_attributes/3,
+         set_endpoint_attributes/2,
+         set_endpoint_attributes/3,
          publish_to_topic/2, publish_to_topic/3, publish_to_topic/4,
          publish_to_topic/5, publish_to_target/2, publish_to_target/3,
          publish_to_target/4, publish_to_target/5, publish/5,
@@ -30,6 +32,7 @@
          ]).
 -export([parse_event/1, get_event_type/1, parse_event_message/1,
          get_notification_attribute/2]).
+-export([new/2, new/3, configure/2, configure/3]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -144,7 +147,7 @@ create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attribut
 create_topic(TopicName) ->
     create_topic(TopicName, default_config()).
 
-create_topic(TopicName, Config) 
+create_topic(TopicName, Config)
     when is_record(Config, aws_config) ->
         Doc = sns_xml_request(Config, "CreateTopic", [{"Name", TopicName}]),
         erlcloud_xml:get_text("/CreateTopicResponse/CreateTopicResult/TopicArn", Doc).
@@ -204,7 +207,7 @@ delete_endpoint(EndpointArn, AccessKeyID, SecretAccessKey) ->
 delete_topic(TopicArn) ->
     delete_topic(TopicArn, default_config()).
 
-delete_topic(TopicArn, Config) 
+delete_topic(TopicArn, Config)
     when is_record(Config, aws_config) ->
         sns_simple_request(Config, "DeleteTopic", [{"TopicArn", TopicArn}]).
 
@@ -228,6 +231,18 @@ get_endpoint_attributes(EndpointArn, Config) ->
     [{arn, EndpointArn} | Decoded].
 get_endpoint_attributes(EndpointArn, AccessKeyID, SecretAccessKey) ->
     get_endpoint_attributes(EndpointArn, new_config(AccessKeyID, SecretAccessKey)).
+
+
+
+-spec set_endpoint_attributes/2 :: (string(), [{sns_endpoint_attribute(), string()}]) -> string().
+-spec set_endpoint_attributes/3 :: (string(), [{sns_endpoint_attribute(), string()}], aws_config()) -> string().
+
+set_endpoint_attributes(EndpointArn, Attributes) ->
+    set_endpoint_attributes(EndpointArn, Attributes, default_config()).
+set_endpoint_attributes(EndpointArn, Attributes, Config) ->
+    Doc = sns_xml_request(Config, "SetEndpointAttributes", [{"EndpointArn", EndpointArn} |
+                                                            encode_attributes(Attributes)]),
+    erlcloud_xml:get_text("ResponseMetadata/RequestId", Doc).
 
 
 
@@ -403,6 +418,34 @@ subscribe(Endpoint, Protocol, TopicArn, Config)
                 {"TopicArn", TopicArn}]),
         erlcloud_xml:get_text("/SubscribeResponse/SubscribeResult/SubscriptionArn", Doc).
 
+-spec new(string(), string()) -> aws_config().
+
+new(AccessKeyID, SecretAccessKey) ->
+    #aws_config{
+       access_key_id=AccessKeyID,
+       secret_access_key=SecretAccessKey
+      }.
+
+-spec new(string(), string(), string()) -> aws_config().
+
+new(AccessKeyID, SecretAccessKey, Host) ->
+    #aws_config{
+       access_key_id=AccessKeyID,
+       secret_access_key=SecretAccessKey,
+       sns_host=Host
+      }.
+
+-spec configure(string(), string()) -> ok.
+
+configure(AccessKeyID, SecretAccessKey) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey)),
+    ok.
+
+-spec configure(string(), string(), string()) -> ok.
+
+configure(AccessKeyID, SecretAccessKey, Host) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
+    ok.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PRIVATE
@@ -470,9 +513,10 @@ sns_simple_request(Config, Action, Params) ->
 
 sns_xml_request(Config, Action, Params) ->
     case erlcloud_aws:aws_request_xml2(
-            post, "http", Config#aws_config.sns_host, undefined, "/",
-            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-            Config) of
+           post, scheme_to_protocol(Config#aws_config.sns_scheme),
+           Config#aws_config.sns_host, undefined, "/",
+           [{"Action", Action}, {"Version", ?API_VERSION} | Params],
+           Config) of
         {ok, XML} -> XML;
         {error, {http_error, 400, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(binary_to_list(Body))),
@@ -485,9 +529,10 @@ sns_xml_request(Config, Action, Params) ->
 
 sns_request(Config, Action, Params) ->
     case erlcloud_aws:aws_request2(
-            post, "http", Config#aws_config.sns_host, undefined, "/",
-            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-            Config) of
+           post, scheme_to_protocol(Config#aws_config.sns_scheme),
+           Config#aws_config.sns_host, undefined, "/",
+           [{"Action", Action}, {"Version", ?API_VERSION} | Params],
+           Config) of
         {ok, _Response} -> ok;
         {error, {http_error, 400, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(binary_to_list(Body))),
@@ -524,3 +569,11 @@ parse_key("EventEndpointDeleted") -> event_endpoint_deleted;
 parse_key("EventEndpointUpdated") -> event_endpoint_updated;
 parse_key("EVentDeliveryFailure") -> event_delivery_failure;
 parse_key(OtherKey) -> list_to_atom(string:to_lower(OtherKey)).
+
+scheme_to_protocol(S) when is_list(S) -> s2p(string:to_lower(S));
+scheme_to_protocol(_)                 -> erlang:error({sns_error, badarg}).
+
+s2p("http://")  -> "http";
+s2p("https://") -> "https";
+s2p(X)          -> erlang:error({sns_error, {unsupported_scheme, X}}).
+

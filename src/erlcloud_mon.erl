@@ -11,6 +11,9 @@
 
 -module(erlcloud_mon).
 
+%%% Library initialization.
+-export([configure/2, configure/3, new/2, new/3]).
+
 -export([
          list_metrics/4,
          put_metric_data/2,
@@ -259,8 +262,6 @@ mon_query(Config, Action, Params, ApiVersion) ->
                                  QParams,
                                  Config).
 
-default_config() -> erlcloud_aws:default_config().
-
 configure_host(Host, Port, Protocol) ->
     Config = default_config(),
     NewConfig = Config#aws_config{mon_host=Host,
@@ -268,7 +269,28 @@ configure_host(Host, Port, Protocol) ->
                                   mon_protocol=Protocol},
     put(aws_config, NewConfig).
 
+-spec(new/2 :: (string(), string()) -> aws_config()).
+new(AccessKeyID, SecretAccessKey) ->
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey}.
 
+-spec(new/3 :: (string(), string(), string()) -> aws_config()).
+new(AccessKeyID, SecretAccessKey, Host) ->
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey,
+                mon_host=Host}.
+
+-spec(configure/2 :: (string(), string()) -> ok).
+configure(AccessKeyID, SecretAccessKey) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey)),
+    ok.
+
+-spec(configure/3 :: (string(), string(), string()) -> ok).
+configure(AccessKeyID, SecretAccessKey, Host) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
+    ok.
+
+default_config() -> erlcloud_aws:default_config().
 
 %%------------------------------------------------------------------------------
 %% tests
