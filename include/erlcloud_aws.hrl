@@ -10,6 +10,9 @@
           elb_host="elasticloadbalancing.amazonaws.com"::string(),
           ses_host="email.us-east-1.amazonaws.com"::string(),
           sqs_host="queue.amazonaws.com"::string(),
+          sqs_protocol=undefined::string()|undefined,
+          sqs_port=undefined::non_neg_integer()|undefined,
+          sns_scheme="http://"::string(),
           sns_host="sns.amazonaws.com"::string(),
           mturk_host="mechanicalturk.amazonaws.com"::string(),
           mon_host="monitoring.amazonaws.com"::string(),
@@ -33,6 +36,38 @@
           secret_access_key::string()|undefined|false,
           security_token=undefined::string()|undefined,
           timeout=10000::timeout(),
-          cloudtrail_raw_result=false::boolean()
+          cloudtrail_raw_result=false::boolean(),
+          http_client=lhttpc::erlcloud_httpc:request_fun(),
+
+          %% Default to not retry failures (for backwards compatability).
+          %% Recommended to be set to default_retry to provide recommended retry behavior.
+          %% Currently only affects S3, but intent is to change other services to use this as well.
+          %% If you provide a custom function be aware of this anticipated change.
+          %% See erlcloud_retry for full documentation.
+          retry=fun erlcloud_retry:no_retry/1::erlcloud_retry:retry_fun()
          }).
 -type(aws_config() :: #aws_config{}).
+
+-record(aws_request,
+        {
+          %% Provided by requesting service
+          service :: s3,
+          uri :: string() | binary(),
+          method :: atom(),
+          request_headers :: [{string(), string()}],
+          request_body :: binary(),
+
+          %% Read from response
+          attempt = 0 :: integer(),
+          response_type :: ok | error,
+          error_type :: aws | httpc,
+          httpc_error_reason :: term(),
+          response_status :: pos_integer(),
+          response_status_line :: string(),
+          response_headers :: [{string(), string()}],
+          response_body :: binary(),
+
+          %% Service specific error information
+          should_retry :: boolean()
+        }).
+

@@ -16,8 +16,6 @@
     ct_request/3
 ]).
 
--import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
-
 -define(API_VERSION, "2013-11-01").
 -define(CLOUD_TRAIL_API_PREFIX, "CloudTrail_20131101.").
 -define(SERVICE_NAME, "cloudtrail").

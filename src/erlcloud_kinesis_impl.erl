@@ -101,8 +101,8 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
     RetryFun = Config#aws_config.kinesis_retry,
     case erlcloud_httpc:request(
            url(Config), post,
-           [{"content-type", "application/x-amz-json-1.1"} | Headers],
-           Body, 1000, Config) of
+           [{<<"content-type">>, <<"application/x-amz-json-1.1">>} | Headers],
+           Body, Config#aws_config.timeout, Config) of
 
         {ok, {{200, _}, _, RespBody}} ->
             %% TODO check crc
