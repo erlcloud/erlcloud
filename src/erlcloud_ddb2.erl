@@ -641,6 +641,72 @@ conditional_op_opt() ->
 expected_opt() ->
     {expected, <<"Expected">>, fun dynamize_expected/1}.
 
+-spec condition_expression_opt() -> opt_table_entry().
+
+condition_expression_opt() ->
+    {condition_expression, <<"ConditionExpression">>, fun dynamize_condition_expression/1}.
+
+-spec filter_expression_opt() -> opt_table_entry().
+
+filter_expression_opt() ->
+    % FilterExpressions are just ConditionExpressions by a different name.
+    {filter_expression, <<"FilterExpression">>, fun dynamize_condition_expression/1}.
+
+-spec expression_attribute_names_opt() -> opt_table_entry().
+
+expression_attribute_names_opt() ->
+    {expression_attribute_names, <<"ExpressionAttributeNames">>, fun dynamize_expression_attribute/1}.
+
+-spec expression_attribute_values_opt() -> opt_table_entry().
+
+expression_attribute_values_opt() ->
+    {expression_attribute_values, <<"ExpressionAttributeValues">>, fun dynamize_expression_attribute/1}.
+
+dynamize_expression_attribute([{Key, {Type, Value}}|T]) when is_atom(Type) ->
+    [{Key, [dynamize_value({Type, Value})]}|dynamize_expression_attribute(T)];
+dynamize_expression_attribute([{Key, Value}|T]) ->
+    [{Key, Value}|dynamize_expression_attribute(T)];
+dynamize_expression_attribute([]) ->
+    [].
+
+% This matches the Java API, which asks the user to write their own expressions.
+
+dynamize_condition_expression(Expression) when is_binary(Expression) ->
+    Expression;
+dynamize_condition_expression(Expression) when is_list(Expression) ->
+    list_to_binary(Expression);
+
+% Or, some convenience functions for assembling expressions using lists of tuples.
+
+dynamize_condition_expression({A, also, B}) ->
+    AA = dynamize_condition_expression(A),
+    BB = dynamize_condition_expression(B),
+    <<"(", AA/binary, ") AND (", BB/binary, ")">>;
+dynamize_condition_expression({A, eq, B}) ->
+    <<A/binary, " = ", B/binary>>;
+dynamize_condition_expression({A, ne, B}) ->
+    <<A/binary, " <> ", B/binary>>;
+dynamize_condition_expression({A, lt, B}) ->
+    <<A/binary, " < ", B/binary>>;
+dynamize_condition_expression({A, le, B}) ->
+    <<A/binary, " <= ", B/binary>>;
+dynamize_condition_expression({A, gt, B}) ->
+    <<A/binary, " > ", B/binary>>;
+dynamize_condition_expression({A, ge, B}) ->
+    <<A/binary, " >= ", B/binary>>;
+dynamize_condition_expression({A, between, B}) ->
+    <<A/binary, " BETWEEN ", B/binary>>;
+dynamize_condition_expression({A, in, B}) ->
+    <<A/binary, " IN ", B/binary>>;
+dynamize_condition_expression({attribute_exists, Path}) ->
+    <<"attribute_exists(", Path/binary, ")">>;
+dynamize_condition_expression({attribute_not_exists, Path}) ->
+    <<"attribute_not_exists(", Path/binary, ")">>;
+dynamize_condition_expression({begins_with, Path, Operand}) ->
+    <<"begins_with(", Path/binary, ",", Operand/binary, ")">>;
+dynamize_condition_expression({contains, Path, Operand}) ->
+    <<"contains(", Path/binary, ",", Operand/binary, ")">>.
+
 -spec return_consumed_capacity_opt() -> opt_table_entry().
 return_consumed_capacity_opt() ->
     {return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1}.
@@ -659,6 +725,9 @@ return_item_collection_metrics_opt() ->
 -spec get_item_opts() -> opt_table().
 get_item_opts() ->
     [attributes_to_get_opt(),
+     filter_expression_opt(),
+     expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
      consistent_read_opt(),
      return_consumed_capacity_opt()].
 
@@ -1204,6 +1273,9 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
 -spec delete_item_opts() -> opt_table().
 delete_item_opts() ->
     [conditional_op_opt(),
+     condition_expression_opt(),
+     expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
      expected_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
      return_consumed_capacity_opt(),
@@ -1480,6 +1552,9 @@ list_tables(Opts, Config) ->
 -spec put_item_opts() -> opt_table().
 put_item_opts() ->
     [conditional_op_opt(),
+     condition_expression_opt(),
+     expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
      expected_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
      return_consumed_capacity_opt(),
@@ -1599,6 +1674,9 @@ dynamize_select(specific_attributes)      -> <<"SPECIFIC_ATTRIBUTES">>.
 q_opts() ->
     [attributes_to_get_opt(),
      conditional_op_opt(),
+     filter_expression_opt(),
+     expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
      consistent_read_opt(),
      {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
      {index_name, <<"IndexName">>, fun id/1},
@@ -1687,6 +1765,9 @@ q(Table, KeyConditions, Opts, Config) ->
 scan_opts() ->
     [attributes_to_get_opt(),
      conditional_op_opt(),
+     filter_expression_opt(),
+     expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
      {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
      {limit, <<"Limit">>, fun id/1},
      return_consumed_capacity_opt(),
@@ -1786,6 +1867,9 @@ dynamize_updates(Updates) ->
 -spec update_item_opts() -> opt_table().
 update_item_opts() ->
     [conditional_op_opt(),
+     condition_expression_opt(),
+     expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
      expected_opt(),
      return_consumed_capacity_opt(),
      return_item_collection_metrics_opt(),
