@@ -9,6 +9,6 @@ rebar
 deps/
 doc/
 .edts
+eunit.coverage.xml
 *[#]*[#]
 *[#]*
-eunit.coverage.xml

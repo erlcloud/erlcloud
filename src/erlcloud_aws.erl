@@ -295,7 +295,7 @@ http_headers_body({error, Reason}) ->
 request_to_return(#aws_request{response_type = ok, 
                                response_headers = Headers, 
                                response_body = Body}) ->
-    {ok, {Headers, Body}};
+    {ok, {[ {string:to_lower(H), V} || {H, V} <- Headers ], Body}};
 request_to_return(#aws_request{response_type = error,
                                error_type = httpc, 
                                httpc_error_reason = Reason}) ->

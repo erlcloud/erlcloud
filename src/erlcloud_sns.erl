@@ -141,11 +141,12 @@ create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attribut
 
 
 -spec(create_topic/1 :: (string()) -> Arn::string()).
+-spec(create_topic/2 :: (string(), aws_config()) -> Arn::string()).
+
 create_topic(TopicName) ->
     create_topic(TopicName, default_config()).
 
--spec(create_topic/2 :: (string(), aws_config()) -> Arn::string()).
-create_topic(TopicName, Config) 
+create_topic(TopicName, Config)
     when is_record(Config, aws_config) ->
         Doc = sns_xml_request(Config, "CreateTopic", [{"Name", TopicName}]),
         erlcloud_xml:get_text("/CreateTopicResponse/CreateTopicResult/TopicArn", Doc).
@@ -203,11 +204,12 @@ delete_endpoint(EndpointArn, AccessKeyID, SecretAccessKey) ->
 
 
 -spec delete_topic/1 :: (string()) -> ok.
+-spec delete_topic/2 :: (string(), aws_config()) -> ok.
+
 delete_topic(TopicArn) ->
     delete_topic(TopicArn, default_config()).
 
--spec delete_topic/2 :: (string(), aws_config()) -> ok.
-delete_topic(TopicArn, Config) 
+delete_topic(TopicArn, Config)
     when is_record(Config, aws_config) ->
         sns_simple_request(Config, "DeleteTopic", [{"TopicArn", TopicArn}]).
 

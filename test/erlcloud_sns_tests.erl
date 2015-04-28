@@ -42,6 +42,8 @@ sns_api_test_() ->
      ]}.
 
 start() ->
+    erlcloud_sns:configure(string:copies("A", 20), string:copies("a", 40)),
+
     meck:new(erlcloud_httpc),
     meck:expect(erlcloud_httpc, request,
                  fun(_,_,_,_,_,_) -> mock_httpc_response() end).
@@ -72,13 +74,12 @@ common_params() ->
 -type expected_param() :: {string(), string()}.
 -spec validate_param(string(), [expected_param()]) -> [expected_param()].
 validate_param(Param, Expected) ->
-    case string:tokens(Param, "=") of
-        [Key, Value] -> 
-            ok;
-        [Key] ->
-            Value = "",
-            ok
-    end,
+    [Key, Value] = case string:tokens(Param, "=") of
+                        [K, V] -> 
+                            [K, V];
+                        [K] ->
+                            [K, ""]
+                    end,
     case lists:member(Key, common_params()) of
         true ->
             Expected;

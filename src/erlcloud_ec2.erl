@@ -67,6 +67,7 @@
 
          %% Key Pairs
          create_key_pair/1, create_key_pair/2,
+         import_key_pair/2, import_key_pair/3,
          delete_key_pair/1, delete_key_pair/2,
          describe_key_pairs/0, describe_key_pairs/1, describe_key_pairs/2,
 
@@ -476,6 +477,25 @@ create_key_pair(KeyName, Config)
                 {key_name, get_text("/CreateKeyPairResponse/keyName", Doc)},
                 {key_fingerprint, get_text("/CreateKeyPairResponse/keyFingerprint", Doc)},
                 {key_material, get_text("/CreateKeyPairResponse/keyMaterial", Doc)}
+            ]};
+        {error, _} = Error ->
+            Error
+    end.
+
+%%
+%%
+-spec(import_key_pair/2 :: (string(), string()) -> {ok, proplist()} | {error, any()}).
+import_key_pair(KeyName, PublicKeyMaterial) -> import_key_pair(KeyName, PublicKeyMaterial, default_config()).
+
+-spec(import_key_pair/3 :: (string(), string(), aws_config()) -> {ok, proplist()} | {error, any()}).
+import_key_pair(KeyName, PublicKeyMaterial, Config)
+  when is_record(Config, aws_config) ->
+    Params = [{"KeyName", KeyName}, {"PublicKeyMaterial", base64:encode_to_string(PublicKeyMaterial)}],
+    case ec2_query2(Config, "ImportKeyPair", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            {ok, [
+                {key_fingerprint, get_text("/ImportKeyPairResponse/keyFingerprint", Doc)},
+                {key_name, get_text("/ImportKeyPairResponse/keyName", Doc)}
             ]};
         {error, _} = Error ->
             Error
