@@ -1319,6 +1319,21 @@ delete_item(Table, Key, Opts) ->
 %%       [{return_values, all_old},
 %%        {expected, {<<"Replies">>, null}}]),
 %% '
+%%
+%% The ConditionExpression option can also be used in place of the legacy
+%% ConditionalOperator or Expected parameters.
+%%
+%% `
+%% {ok, Item} = 
+%%     erlcloud_ddb2:delete_item(
+%%       <<"Thread">>, 
+%%       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+%%        {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
+%%       [{return_values, all_old},
+%%        {condition_expression, <<"attribute_not_exists(#replies)">>},
+%%        {expression_attribute_names, [{<<"#replies">>, <<"Replies">>}]}]),
+%% '
+%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec delete_item(table_name(), key(), delete_item_opts(), aws_config()) -> delete_item_return().
@@ -1601,6 +1616,25 @@ put_item(Table, Item, Opts) ->
 %%         <<"I want to update multiple items in a single API call. What is the best way to do that?">>}],
 %%       [{expected, [{<<"ForumName">>, null}, {<<"Subject">>, null}]}]),
 %% '
+%%
+%% The ConditionExpression option can be used in place of the legacy Expected parameter.
+%%
+%% `
+%% {ok, []} = 
+%%     erlcloud_ddb2:put_item(
+%%       <<"Thread">>, 
+%%       [{<<"LastPostedBy">>, <<"fred@example.com">>},
+%%        {<<"ForumName">>, <<"Amazon DynamoDB">>},
+%%        {<<"LastPostDateTime">>, <<"201303190422">>},
+%%        {<<"Tags">>, {ss, [<<"Update">>, <<"Multiple Items">>, <<"HelpMe">>]}},
+%%        {<<"Subject">>, <<"How do I update multiple items?">>},
+%%        {<<"Message">>, 
+%%         <<"I want to update multiple items in a single API call. What is the best way to do that?">>}],
+%%       [{condition_expression, <<"#forum <> :forum AND attribute_not_exists(#subject)">>},
+%%        {expression_attribute_names, [{<<"#forum">>, <<"ForumName">>}, {<<"#subject">>, <<"Subject">>}]},
+%%        {expression_attribute_values, [{<<":forum">>, <<"Amazon DynamoDB">>}]}]),
+%% '
+%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec put_item(table_name(), in_item(), put_item_opts(), aws_config()) -> put_item_return().
@@ -1729,8 +1763,12 @@ q(Table, KeyConditions, Opts) ->
 %%       [{index_name, <<"LastPostIndex">>},
 %%        {select, all_attributes},
 %%        {limit, 3},
-%%        {consistent_read, true}]),
+%%        {consistent_read, true},
+%%        {filter_expression, <<"#user = :user">>},
+%%        {expression_attribute_names, [{<<"#user">>, <<"User">>}]},
+%%        {expression_attribute_values, [{<<":user">>, <<"User A">>}]}]),
 %% '
+%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec q(table_name(), conditions(), q_opts(), aws_config()) -> q_return().
