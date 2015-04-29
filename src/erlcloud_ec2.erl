@@ -158,7 +158,8 @@
 % -define(NEW_API_VERSION, "2012-10-01").
 % -define(NEW_API_VERSION, "2013-10-15").
 % -define(NEW_API_VERSION, "2014-02-01").
--define(NEW_API_VERSION, "2014-06-15").
+% -define(NEW_API_VERSION, "2014-06-15").
+-define(NEW_API_VERSION, "2014-10-01").
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 -include_lib("erlcloud/include/erlcloud_ec2.hrl").
@@ -1687,6 +1688,7 @@ extract_route_set(Node) ->
     [
      {destination_cidr_block, get_text("destinationCidrBlock", Node)},
      {gateway_id, get_text("gatewayId", Node)},
+     {instance_id, get_text("instanceId", Node)},
      {state, get_text("state", Node)},
      {origin, get_text("origin", Node)}
     ].

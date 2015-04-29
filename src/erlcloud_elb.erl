@@ -208,7 +208,7 @@ extract_elb(Item) ->
         {canonical_hosted_zone_name, get_text("CanonicalHostedZoneName", Item)},
         {canonical_hosted_zone_id, get_text("CanonicalHostedZoneNameID", Item)},
         {create_time, erlcloud_xml:get_time("CreatedTime", Item)},
-        {listeners, [extract_listener(L) || L <- xmerl_xpath:string("ListenerDescriptions/member", Item)]}
+        {listeners, [extract_listener(L) || L <- xmerl_xpath:string("ListenerDescriptions/member/Listener", Item)]}
     ].
 
 extract_listener(Item) ->
