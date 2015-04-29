@@ -246,16 +246,16 @@ elb_query(Config, Action, Params) ->
 
 elb_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
-    erlcloud_aws:aws_request_xml2(post, 
+    erlcloud_aws:aws_request_xml4(post,
                                   Config#aws_config.elb_host,
-                                  "/", QParams, Config).
-
-
-elb_request(Config, Action, Params) ->
-    QParams = [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-    erlcloud_aws:aws_request_xml(get, Config#aws_config.elb_host,
-                                 "/", QParams, Config).
+                                  "/", QParams, "elasticloadbalancing", Config).
 
 elb_simple_request(Config, Action, Params) ->
     _Doc = elb_request(Config, Action, Params),
     ok.
+
+elb_request(Config, Action, Params) ->
+    QParams = [{"Action", Action}, {"Version", ?API_VERSION} | Params],
+    erlcloud_aws:aws_request_xml4(get,
+                                  Config#aws_config.elb_host,
+                                  "/", QParams, "elasticloadbalancing", Config).

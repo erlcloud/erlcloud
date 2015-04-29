@@ -4,7 +4,9 @@
          aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
          aws_request2/7,
          aws_request_xml2/5, aws_request_xml2/7,
-         aws_request_xml4/6,aws_request_xml4/8,
+         aws_request4/8,
+         aws_request_xml4/6, aws_request_xml4/8,
+         aws_region_from_host/1,
          aws_request_form/8,
          param_list/2, default_config/0, update_config/1, format_timestamp/1,
          http_headers_body/1,
@@ -100,6 +102,14 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
     
     aws_request_form(Method, Protocol, Host, Port, Path, Query, [], Config).
 
+aws_region_from_host(Host) ->
+    case string:tokens(Host, ".") of
+        [_, Value, _, _] ->
+            Value;
+        _ ->
+            "us-east-1"
+    end.
+
 aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) ->
     case update_config(Config) of
         {ok, Config1} ->
@@ -110,16 +120,10 @@ aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) ->
 
 aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service, #aws_config{} = Config) ->
     QueryToSign = erlcloud_http:make_query_string(Params),
-    
+
     Headers = [{"host", Host}],
 
-    Region =
-        case string:tokens(Host, ".") of
-            [_, Value, _, _] ->
-                Value;
-            _ ->
-                "us-east-1"
-        end,
+    Region = aws_region_from_host(Host),
 
     SignedHeaders = case Method of
         get -> sign_v4(Method, Config, Headers, Params, "", Region, Service);

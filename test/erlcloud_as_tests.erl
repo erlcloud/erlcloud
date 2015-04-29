@@ -102,7 +102,7 @@ mocked_groups() ->
     {[post, '_', "/", [
                        {"Action", "DescribeAutoScalingGroups"}, 
                        {"Version", '_'}, 
-                       {"MaxRecords", '_'}], 
+                       {"MaxRecords", '_'}],
       "autoscaling", '_'], parsed_mock_response("
 <DescribeAutoScalingGroupsResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
 <DescribeAutoScalingGroupsResult>
@@ -162,7 +162,7 @@ mocked_instances() ->
     {[post, '_', "/", [
                        {"Action", "DescribeAutoScalingInstances"}, 
                        {"Version", '_'}, 
-                       {"MaxRecords", '_'}], 
+                       {"MaxRecords", '_'}],
       "autoscaling", '_'], {ok, element(1, xmerl_scan:string("
 <DescribeAutoScalingInstancesResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
   <DescribeAutoScalingInstancesResult>
@@ -195,7 +195,7 @@ mocked_launch_configs() ->
     {[post, '_', "/", [
                        {"Action", "DescribeLaunchConfigurations"}, 
                        {"Version", '_'}, 
-                       {"MaxRecords", '_'}], 
+                       {"MaxRecords", '_'}],
       "autoscaling", '_'], parsed_mock_response("
 <DescribeLaunchConfigurationsResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
   <DescribeLaunchConfigurationsResult>

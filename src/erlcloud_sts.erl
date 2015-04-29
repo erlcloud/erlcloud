@@ -100,9 +100,8 @@ sts_query(AwsConfig, Action, Params) ->
 
 
 sts_query(AwsConfig, Action, Params, ApiVersion) ->
-    erlcloud_aws:aws_request_xml(post,
+    erlcloud_aws:aws_request_xml4(post,
         AwsConfig#aws_config.sts_host,
         "/",
         [{"Action", Action}, {"Version", ApiVersion} | Params],
-        AwsConfig
-    ).
+        "sts", AwsConfig).

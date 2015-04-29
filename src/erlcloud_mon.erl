@@ -254,12 +254,13 @@ mon_query(Config, Action, Params) ->
 
 mon_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
-    erlcloud_aws:aws_request_xml(get,
+    erlcloud_aws:aws_request_xml4(get,
                                  Config#aws_config.mon_protocol,
                                  Config#aws_config.mon_host,
                                  Config#aws_config.mon_port,
                                  "/",
                                  QParams,
+                                 "cloudwatch",
                                  Config).
 
 configure_host(Host, Port, Protocol) ->
