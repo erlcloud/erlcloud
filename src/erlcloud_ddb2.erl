@@ -682,22 +682,37 @@ dynamize_condition_expression({A, also, B}) ->
     AA = dynamize_condition_expression(A),
     BB = dynamize_condition_expression(B),
     <<"(", AA/binary, ") AND (", BB/binary, ")">>;
-dynamize_condition_expression({A, eq, B}) ->
+dynamize_condition_expression({{A, B}, eq}) ->
     <<A/binary, " = ", B/binary>>;
-dynamize_condition_expression({A, ne, B}) ->
+dynamize_condition_expression({{A, B}, ne}) ->
     <<A/binary, " <> ", B/binary>>;
-dynamize_condition_expression({A, lt, B}) ->
+dynamize_condition_expression({{A, B}, lt}) ->
     <<A/binary, " < ", B/binary>>;
-dynamize_condition_expression({A, le, B}) ->
+dynamize_condition_expression({{A, B}, le}) ->
     <<A/binary, " <= ", B/binary>>;
-dynamize_condition_expression({A, gt, B}) ->
+dynamize_condition_expression({{A, B}, gt}) ->
     <<A/binary, " > ", B/binary>>;
-dynamize_condition_expression({A, ge, B}) ->
+dynamize_condition_expression({{A, B}, ge}) ->
     <<A/binary, " >= ", B/binary>>;
-dynamize_condition_expression({A, between, B}) ->
-    <<A/binary, " BETWEEN ", B/binary>>;
-dynamize_condition_expression({A, in, B}) ->
+dynamize_condition_expression({{A, {Low, High}}, between}) ->
+    <<A/binary, " BETWEEN ", Low/binary, " AND ", High/binary>>;
+dynamize_condition_expression({{A, B}, in}) when is_binary(B) ->
     <<A/binary, " IN ", B/binary>>;
+dynamize_condition_expression({{A, B}, in}) when is_list(B) ->
+    % Convert everything to binaries.
+
+    InList = [to_binary(X) || X <- B],
+
+    % Join the list of binaries with commas.
+
+    Join = fun(Elem, Acc) when Acc =:= <<"">> ->
+                Elem;
+              (Elem, Acc) ->
+                <<Acc/binary, ",", Elem/binary>> end,
+
+    In = lists:foldl(Join, <<>>, InList),
+
+    <<A/binary, " IN (", In/binary, ")">>;
 dynamize_condition_expression({attribute_exists, Path}) ->
     <<"attribute_exists(", Path/binary, ")">>;
 dynamize_condition_expression({attribute_not_exists, Path}) ->
@@ -2046,3 +2061,10 @@ update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
                 ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_update_table.table_description).
+
+to_binary(X) when is_binary(X) ->
+    X;
+to_binary(X) when is_list(X) ->
+    list_to_binary(X);
+to_binary(X) when is_integer(X) ->
+    integer_to_binary(X).
