@@ -97,7 +97,7 @@
          q/2, q/3, q/4,
          scan/1, scan/2, scan/3,
          update_item/3, update_item/4, update_item/5,
-         update_table/3, update_table/4, update_table/5
+         update_table/2, update_table/3, update_table/4, update_table/5
         ]).
 
 -export_type(
@@ -427,7 +427,7 @@ dynamize_return_consumed_capacity(none) ->
 dynamize_return_consumed_capacity(total) ->
     <<"TOTAL">>;
 dynamize_return_consumed_capacity(indexes) ->
-	<<"INDEXES">>.
+    <<"INDEXES">>.
 
 -type return_item_collection_metrics() :: none | size.
 -type return_item_collection_metrics_opt() :: {return_item_collection_metrics, return_item_collection_metrics()}.
@@ -1995,43 +1995,64 @@ update_item(Table, Key, Updates, Opts, Config) ->
 
 -type update_table_return() :: ddb_return(#ddb2_update_table{}, #ddb2_table_description{}).
 
--type global_secondary_index_update() :: {index_name(), pos_integer(), pos_integer()}.
+-type global_secondary_index_update() :: {index_name(), read_units(), write_units()} %% for backwards compatibility
+                                       | {update, {index_name(), read_units(), write_units()}}
+                                       | {create, global_secondary_index_def()}
+                                       | {delete, index_name()}.
 -type global_secondary_index_updates() :: [global_secondary_index_update()].
 
 -spec dynamize_global_secondary_index_update(global_secondary_index_updates()) -> jsx:json_term().
-dynamize_global_secondary_index_update(Opts) ->
+dynamize_global_secondary_index_update([]) -> [];
+
+dynamize_global_secondary_index_update([{update, {IndexName, ReadUnits, WriteUnits}} | Opts]) ->
     [[{<<"Update">>, [
         {<<"IndexName">>, IndexName},
         {<<"ProvisionedThroughput">>, [
             {<<"ReadCapacityUnits">>, ReadUnits},
             {<<"WriteCapacityUnits">>, WriteUnits}
         ]}        
-    ]}] || {IndexName, ReadUnits, WriteUnits} <- Opts].
+     ]}] | dynamize_global_secondary_index_update(Opts) ];
+dynamize_global_secondary_index_update([{create, GlobalSecondaryIndexDef} | Opts]) ->
+    [[{<<"Create">>, dynamize_global_secondary_index(GlobalSecondaryIndexDef)}] 
+     | dynamize_global_secondary_index_update(Opts) ];
+dynamize_global_secondary_index_update([{delete, IndexName} | Opts]) ->
+    [[{<<"Delete">>, [
+        {<<"IndexName">>, IndexName}
+     ]}] | dynamize_global_secondary_index_update(Opts) ];
+%% for backwards compatibility
+dynamize_global_secondary_index_update([{IndexName, ReadUnits, WriteUnits} | Opts]) ->
+    dynamize_global_secondary_index_update([{update, {IndexName, ReadUnits, WriteUnits}} | Opts]).
 
--type update_table_opt() :: {global_secondary_index_updates, global_secondary_index_updates()} 
+-spec dynamize_provizioned_throughput({read_units(), write_units()}) -> jsx:json_term().
+dynamize_provizioned_throughput({ReadUnits, WriteUnits}) ->
+    [{<<"ReadCapacityUnits">>, ReadUnits},
+     {<<"WriteCapacityUnits">>, WriteUnits}].
+
+-type update_table_opt() :: {attr_defs, attr_defs()}
+                          | {global_secondary_index_updates, global_secondary_index_updates()}
+                          | {provisioned_throughput, {read_units(), write_units()}}
                           | out_opt().
 -type update_table_opts() :: [update_table_opt()].
 
 -spec update_table_opts() -> opt_table().
 update_table_opts() ->
-    [{global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>, 
-      fun dynamize_global_secondary_index_update/1}].
+    [{attr_defs, <<"AttributeDefinitions">>,
+      fun dynamize_attr_defs/1},
+     {global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>, 
+      fun dynamize_global_secondary_index_update/1},
+     {provisioned_throughput, <<"ProvisionedThroughput">>,
+        fun dynamize_provizioned_throughput/1}].
 
 -spec update_table_record() -> record_desc().
 update_table_record() ->
     {#ddb2_update_table{},
      [{<<"TableDescription">>, #ddb2_create_table.table_description, 
        fun(V, Opts) -> undynamize_record(table_description_record(), V, Opts) end}
-     ]}. 
+     ]}.
 
--spec update_table(table_name(), non_neg_integer(), non_neg_integer()) -> update_table_return().
-update_table(Table, ReadUnits, WriteUnits) ->
-    update_table(Table, ReadUnits, WriteUnits, [], default_config()).
-
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), update_table_opts()) 
-                  -> update_table_return().
-update_table(Table, ReadUnits, WriteUnits, Opts) ->
-    update_table(Table, ReadUnits, WriteUnits, Opts, default_config()).
+-spec update_table(table_name(), update_table_opts()) -> update_table_return().
+update_table(Table, Opts) ->
+    update_table(Table, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -2043,24 +2064,36 @@ update_table(Table, ReadUnits, WriteUnits, Opts) ->
 %% Update table "Thread" to have 10 units of read and write capacity.
 %% Update secondary index `<<"SubjectIdx">>' to have 10 units of read write capacity
 %% `
-%% erlcloud_ddb2:update_table(<<"Thread">>, 10, 10, [{global_secondary_index_updates, [{<<"SubjectIdx">>, 10, 10}]}])
+%% erlcloud_ddb2:update_table(<<"Thread">>, 
+%%                            [{provisioned_throughput, {10, 10}},
+%%                             {global_secondary_index_updates, [{update,{<<"SubjectIdx">>, 10, 10}}]}])
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), update_table_opts(), 
-                   aws_config()) 
+-spec update_table(table_name(), update_table_opts() | read_units() , aws_config() | write_units()) 
                   -> update_table_return().
-update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
+update_table(Table, Opts, #aws_config{}=Config) when is_list(Opts) ->
     {AwsOpts, DdbOpts} = opts(update_table_opts(), Opts),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.UpdateTable",
-               [{<<"TableName">>, Table},
-                {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
-                                               {<<"WriteCapacityUnits">>, WriteUnits}]}]
-                ++ AwsOpts),
+               [{<<"TableName">>, Table} | AwsOpts]),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_table_record(), Json, UOpts) end, 
-        DdbOpts, #ddb2_update_table.table_description).
+        DdbOpts, #ddb2_update_table.table_description);
+update_table(Table, ReadUnits, WriteUnits) ->
+    update_table(Table, ReadUnits, WriteUnits, [], default_config()).
+
+-spec update_table(table_name(), read_units(), write_units(), update_table_opts()) 
+                  -> update_table_return().
+update_table(Table, ReadUnits, WriteUnits, Opts) ->
+    update_table(Table, ReadUnits, WriteUnits, Opts, default_config()).
+
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer(), update_table_opts(), 
+                   aws_config()) 
+                  -> update_table_return().
+update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
+    update_table(Table, [{provisioned_throughput, {ReadUnits, WriteUnits}} | Opts], Config).
+
 
 to_binary(X) when is_binary(X) ->
     X;
