@@ -2815,15 +2815,11 @@ update_item_output_tests(_) ->
 update_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
-            {"UpdateTable example request",
-             ?_f(erlcloud_ddb2:update_table(<<"Thread">>, 10, 10, 
-                                            [{global_secondary_index_updates, [{<<"SubjectIdx">>, 30, 40}, {<<"AnotherIdx">>, 50, 60}]}])), "
+            {"UpdateTable example request: update provisioned throughput on table and global secondary index",
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>, 10, 10,
+                                            [{global_secondary_index_updates, [{update, {<<"SubjectIdx">>, 30, 40}}]}])), "
 {
     \"TableName\": \"Thread\",
-    \"ProvisionedThroughput\": {
-        \"ReadCapacityUnits\": 10,
-        \"WriteCapacityUnits\": 10
-    },
     \"GlobalSecondaryIndexUpdates\": [
         {
             \"Update\": {
@@ -2833,14 +2829,68 @@ update_table_input_tests(_) ->
                     \"WriteCapacityUnits\": 40
                 }
             }
-        },
+        }
+    ],
+    \"ProvisionedThroughput\": {
+        \"ReadCapacityUnits\": 10,
+        \"WriteCapacityUnits\": 10
+    }
+}"
+            }),
+         ?_ddb_test(
+            {"UpdateTable example request: create new global secondary index",
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>,
+                                            [{attr_defs, [{<<"ForumType">>, s}]},
+                                             {provisioned_throughput, {10, 10}},
+                                             {global_secondary_index_updates, [{create, {<<"ForumTypeIdx">>, {<<"ForumType">>, <<"LastPostDateTime">>}, keys_only, 60, 90}}]}])), "
+{
+    \"TableName\": \"Thread\",
+    \"AttributeDefinitions\": [
         {
-            \"Update\": {
-                \"IndexName\": \"AnotherIdx\",
+            \"AttributeName\": \"ForumType\",
+            \"AttributeType\": \"S\"
+        }
+    ],
+    \"GlobalSecondaryIndexUpdates\": [
+        {
+            \"Create\": {
+                \"IndexName\": \"ForumTypeIdx\",
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"ForumType\",
+                        \"KeyType\": \"HASH\"
+                    },
+                    {
+                        \"AttributeName\": \"LastPostDateTime\",
+                        \"KeyType\": \"RANGE\"
+                    }
+                ],
+                \"Projection\": {
+                    \"ProjectionType\": \"KEYS_ONLY\"
+                },
                 \"ProvisionedThroughput\": {
-                    \"ReadCapacityUnits\": 50,
-                    \"WriteCapacityUnits\": 60
+                    \"ReadCapacityUnits\": 60,
+                    \"WriteCapacityUnits\": 90
                 }
+            }
+        }
+    ],
+    \"ProvisionedThroughput\": {
+        \"ReadCapacityUnits\": 10,
+        \"WriteCapacityUnits\": 10
+    }
+}"
+            }),
+         ?_ddb_test(
+            {"UpdateTable example request: delete global secondary index",
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>,
+                                            [{global_secondary_index_updates, [{delete, <<"ForumTypeIdx">>}]}])), "
+{
+    \"TableName\": \"Thread\",
+    \"GlobalSecondaryIndexUpdates\": [
+        {
+            \"Delete\": {
+                \"IndexName\": \"ForumTypeIdx\"
             }
         }
     ]
