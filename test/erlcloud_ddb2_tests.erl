@@ -2393,6 +2393,38 @@ scan_input_tests(_) ->
     \"Segment\": 1,
     \"TotalSegments\": 2
 }"
+            }),
+         ?_ddb_test(
+            {"Index Scan",
+             ?_f(erlcloud_ddb2:scan(<<"Thread">>,
+                                    [{scan_filter, [{<<"ForumType">>, <<"Interests">>, eq},
+                                                    {<<"LastPostDateTime">>, {0, 201303201023}, between}]},
+                                     {index_name, <<"ForumTypeIdx">>}])), "
+{
+    \"TableName\": \"Thread\",
+    \"IndexName\": \"ForumTypeIdx\",
+    \"ScanFilter\": {
+        \"ForumType\": {
+            \"AttributeValueList\": [
+                {
+                    \"S\": \"Interests\"
+                }
+            ],
+            \"ComparisonOperator\": \"EQ\"
+        },
+        \"LastPostDateTime\": {
+            \"AttributeValueList\": [
+                {
+                    \"N\": \"0\"
+                },
+                {
+                    \"N\": \"201303201023\"
+                }
+            ],
+            \"ComparisonOperator\": \"BETWEEN\"
+        }
+    }
+}"
             })
         ],
 
