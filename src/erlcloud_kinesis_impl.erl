@@ -105,8 +105,7 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
            Body, Config#aws_config.timeout, Config) of
 
         {ok, {{200, _}, _, RespBody}} ->
-            %% TODO check crc
-            {ok, jsx:decode(RespBody)};
+            {ok, decode(RespBody)};
 
         {ok, {{Status, StatusLine}, _, RespBody}} when Status >= 400 andalso Status < 500 ->
             case client_error(Status, StatusLine, RespBody) of
@@ -173,3 +172,5 @@ port_spec(#aws_config{kinesis_port=80}) ->
 port_spec(#aws_config{kinesis_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
 
+decode(<<>>) -> [];
+decode(JSON) -> jsx:decode(JSON).
