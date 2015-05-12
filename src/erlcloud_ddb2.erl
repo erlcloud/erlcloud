@@ -97,7 +97,7 @@
          q/2, q/3, q/4,
          scan/1, scan/2, scan/3,
          update_item/3, update_item/4, update_item/5,
-         update_table/3, update_table/4, update_table/5
+         update_table/2, update_table/3, update_table/4, update_table/5
         ]).
 
 -export_type(
@@ -427,7 +427,7 @@ dynamize_return_consumed_capacity(none) ->
 dynamize_return_consumed_capacity(total) ->
     <<"TOTAL">>;
 dynamize_return_consumed_capacity(indexes) ->
-	<<"INDEXES">>.
+    <<"INDEXES">>.
 
 -type return_item_collection_metrics() :: none | size.
 -type return_item_collection_metrics_opt() :: {return_item_collection_metrics, return_item_collection_metrics()}.
@@ -641,6 +641,87 @@ conditional_op_opt() ->
 expected_opt() ->
     {expected, <<"Expected">>, fun dynamize_expected/1}.
 
+-spec condition_expression_opt() -> opt_table_entry().
+
+condition_expression_opt() ->
+    {condition_expression, <<"ConditionExpression">>, fun dynamize_condition_expression/1}.
+
+-spec filter_expression_opt() -> opt_table_entry().
+
+filter_expression_opt() ->
+    % FilterExpressions are just ConditionExpressions by a different name.
+    {filter_expression, <<"FilterExpression">>, fun dynamize_condition_expression/1}.
+
+-spec expression_attribute_names_opt() -> opt_table_entry().
+
+expression_attribute_names_opt() ->
+    {expression_attribute_names, <<"ExpressionAttributeNames">>, fun dynamize_expression_attribute/1}.
+
+-spec expression_attribute_values_opt() -> opt_table_entry().
+
+expression_attribute_values_opt() ->
+    {expression_attribute_values, <<"ExpressionAttributeValues">>, fun dynamize_expression_attribute/1}.
+
+dynamize_expression_attribute([{Key, {Type, Value}}|T]) when is_atom(Type) ->
+    [{Key, [dynamize_value({Type, Value})]}|dynamize_expression_attribute(T)];
+dynamize_expression_attribute([{Key, Value}|T]) ->
+    [{Key, Value}|dynamize_expression_attribute(T)];
+dynamize_expression_attribute([]) ->
+    [].
+
+% This matches the Java API, which asks the user to write their own expressions.
+
+dynamize_condition_expression(Expression) when is_binary(Expression) ->
+    Expression;
+dynamize_condition_expression(Expression) when is_list(Expression) ->
+    list_to_binary(Expression);
+
+% Or, some convenience functions for assembling expressions using lists of tuples.
+
+dynamize_condition_expression({A, also, B}) ->
+    AA = dynamize_condition_expression(A),
+    BB = dynamize_condition_expression(B),
+    <<"(", AA/binary, ") AND (", BB/binary, ")">>;
+dynamize_condition_expression({{A, B}, eq}) ->
+    <<A/binary, " = ", B/binary>>;
+dynamize_condition_expression({{A, B}, ne}) ->
+    <<A/binary, " <> ", B/binary>>;
+dynamize_condition_expression({{A, B}, lt}) ->
+    <<A/binary, " < ", B/binary>>;
+dynamize_condition_expression({{A, B}, le}) ->
+    <<A/binary, " <= ", B/binary>>;
+dynamize_condition_expression({{A, B}, gt}) ->
+    <<A/binary, " > ", B/binary>>;
+dynamize_condition_expression({{A, B}, ge}) ->
+    <<A/binary, " >= ", B/binary>>;
+dynamize_condition_expression({{A, {Low, High}}, between}) ->
+    <<A/binary, " BETWEEN ", Low/binary, " AND ", High/binary>>;
+dynamize_condition_expression({{A, B}, in}) when is_binary(B) ->
+    <<A/binary, " IN ", B/binary>>;
+dynamize_condition_expression({{A, B}, in}) when is_list(B) ->
+    % Convert everything to binaries.
+
+    InList = [to_binary(X) || X <- B],
+
+    % Join the list of binaries with commas.
+
+    Join = fun(Elem, Acc) when Acc =:= <<"">> ->
+                Elem;
+              (Elem, Acc) ->
+                <<Acc/binary, ",", Elem/binary>> end,
+
+    In = lists:foldl(Join, <<>>, InList),
+
+    <<A/binary, " IN (", In/binary, ")">>;
+dynamize_condition_expression({attribute_exists, Path}) ->
+    <<"attribute_exists(", Path/binary, ")">>;
+dynamize_condition_expression({attribute_not_exists, Path}) ->
+    <<"attribute_not_exists(", Path/binary, ")">>;
+dynamize_condition_expression({begins_with, Path, Operand}) ->
+    <<"begins_with(", Path/binary, ",", Operand/binary, ")">>;
+dynamize_condition_expression({contains, Path, Operand}) ->
+    <<"contains(", Path/binary, ",", Operand/binary, ")">>.
+
 -spec return_consumed_capacity_opt() -> opt_table_entry().
 return_consumed_capacity_opt() ->
     {return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1}.
@@ -659,6 +740,9 @@ return_item_collection_metrics_opt() ->
 -spec get_item_opts() -> opt_table().
 get_item_opts() ->
     [attributes_to_get_opt(),
+     filter_expression_opt(),
+     expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
      consistent_read_opt(),
      return_consumed_capacity_opt()].
 
@@ -1204,6 +1288,9 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
 -spec delete_item_opts() -> opt_table().
 delete_item_opts() ->
     [conditional_op_opt(),
+     condition_expression_opt(),
+     expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
      expected_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
      return_consumed_capacity_opt(),
@@ -1247,6 +1334,21 @@ delete_item(Table, Key, Opts) ->
 %%       [{return_values, all_old},
 %%        {expected, {<<"Replies">>, null}}]),
 %% '
+%%
+%% The ConditionExpression option can also be used in place of the legacy
+%% ConditionalOperator or Expected parameters.
+%%
+%% `
+%% {ok, Item} = 
+%%     erlcloud_ddb2:delete_item(
+%%       <<"Thread">>, 
+%%       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+%%        {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
+%%       [{return_values, all_old},
+%%        {condition_expression, <<"attribute_not_exists(#replies)">>},
+%%        {expression_attribute_names, [{<<"#replies">>, <<"Replies">>}]}]),
+%% '
+%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec delete_item(table_name(), key(), delete_item_opts(), aws_config()) -> delete_item_return().
@@ -1480,6 +1582,9 @@ list_tables(Opts, Config) ->
 -spec put_item_opts() -> opt_table().
 put_item_opts() ->
     [conditional_op_opt(),
+     condition_expression_opt(),
+     expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
      expected_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
      return_consumed_capacity_opt(),
@@ -1526,6 +1631,25 @@ put_item(Table, Item, Opts) ->
 %%         <<"I want to update multiple items in a single API call. What is the best way to do that?">>}],
 %%       [{expected, [{<<"ForumName">>, null}, {<<"Subject">>, null}]}]),
 %% '
+%%
+%% The ConditionExpression option can be used in place of the legacy Expected parameter.
+%%
+%% `
+%% {ok, []} = 
+%%     erlcloud_ddb2:put_item(
+%%       <<"Thread">>, 
+%%       [{<<"LastPostedBy">>, <<"fred@example.com">>},
+%%        {<<"ForumName">>, <<"Amazon DynamoDB">>},
+%%        {<<"LastPostDateTime">>, <<"201303190422">>},
+%%        {<<"Tags">>, {ss, [<<"Update">>, <<"Multiple Items">>, <<"HelpMe">>]}},
+%%        {<<"Subject">>, <<"How do I update multiple items?">>},
+%%        {<<"Message">>, 
+%%         <<"I want to update multiple items in a single API call. What is the best way to do that?">>}],
+%%       [{condition_expression, <<"#forum <> :forum AND attribute_not_exists(#subject)">>},
+%%        {expression_attribute_names, [{<<"#forum">>, <<"ForumName">>}, {<<"#subject">>, <<"Subject">>}]},
+%%        {expression_attribute_values, [{<<":forum">>, <<"Amazon DynamoDB">>}]}]),
+%% '
+%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec put_item(table_name(), in_item(), put_item_opts(), aws_config()) -> put_item_return().
@@ -1599,6 +1723,9 @@ dynamize_select(specific_attributes)      -> <<"SPECIFIC_ATTRIBUTES">>.
 q_opts() ->
     [attributes_to_get_opt(),
      conditional_op_opt(),
+     filter_expression_opt(),
+     expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
      consistent_read_opt(),
      {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
      {index_name, <<"IndexName">>, fun id/1},
@@ -1651,8 +1778,12 @@ q(Table, KeyConditions, Opts) ->
 %%       [{index_name, <<"LastPostIndex">>},
 %%        {select, all_attributes},
 %%        {limit, 3},
-%%        {consistent_read, true}]),
+%%        {consistent_read, true},
+%%        {filter_expression, <<"#user = :user">>},
+%%        {expression_attribute_names, [{<<"#user">>, <<"User">>}]},
+%%        {expression_attribute_values, [{<<":user">>, <<"User A">>}]}]),
 %% '
+%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec q(table_name(), conditions(), q_opts(), aws_config()) -> q_return().
@@ -1677,6 +1808,7 @@ q(Table, KeyConditions, Opts, Config) ->
                     {limit, pos_integer()} |
                     return_consumed_capacity_opt() |
                     {scan_filter, conditions()} |
+                    {index_name, index_name()} | 
                     {segment, non_neg_integer()} |
                     {select, select()} |
                     {total_segments, pos_integer()} |
@@ -1687,10 +1819,14 @@ q(Table, KeyConditions, Opts, Config) ->
 scan_opts() ->
     [attributes_to_get_opt(),
      conditional_op_opt(),
+     filter_expression_opt(),
+     expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
      {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
      {limit, <<"Limit">>, fun id/1},
      return_consumed_capacity_opt(),
      {scan_filter, <<"ScanFilter">>, fun dynamize_conditions/1},
+     {index_name, <<"IndexName">>, fun id/1},
      {segment, <<"Segment">>, fun id/1},
      {select, <<"Select">>, fun dynamize_select/1},
      {total_segments, <<"TotalSegments">>, fun id/1}
@@ -1786,6 +1922,9 @@ dynamize_updates(Updates) ->
 -spec update_item_opts() -> opt_table().
 update_item_opts() ->
     [conditional_op_opt(),
+     condition_expression_opt(),
+     expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
      expected_opt(),
      return_consumed_capacity_opt(),
      return_item_collection_metrics_opt(),
@@ -1858,43 +1997,64 @@ update_item(Table, Key, Updates, Opts, Config) ->
 
 -type update_table_return() :: ddb_return(#ddb2_update_table{}, #ddb2_table_description{}).
 
--type global_secondary_index_update() :: {index_name(), pos_integer(), pos_integer()}.
+-type global_secondary_index_update() :: {index_name(), read_units(), write_units()} %% for backwards compatibility
+                                       | {update, {index_name(), read_units(), write_units()}}
+                                       | {create, global_secondary_index_def()}
+                                       | {delete, index_name()}.
 -type global_secondary_index_updates() :: [global_secondary_index_update()].
 
 -spec dynamize_global_secondary_index_update(global_secondary_index_updates()) -> jsx:json_term().
-dynamize_global_secondary_index_update(Opts) ->
+dynamize_global_secondary_index_update([]) -> [];
+
+dynamize_global_secondary_index_update([{update, {IndexName, ReadUnits, WriteUnits}} | Opts]) ->
     [[{<<"Update">>, [
         {<<"IndexName">>, IndexName},
         {<<"ProvisionedThroughput">>, [
             {<<"ReadCapacityUnits">>, ReadUnits},
             {<<"WriteCapacityUnits">>, WriteUnits}
         ]}        
-    ]}] || {IndexName, ReadUnits, WriteUnits} <- Opts].
+     ]}] | dynamize_global_secondary_index_update(Opts) ];
+dynamize_global_secondary_index_update([{create, GlobalSecondaryIndexDef} | Opts]) ->
+    [[{<<"Create">>, dynamize_global_secondary_index(GlobalSecondaryIndexDef)}] 
+     | dynamize_global_secondary_index_update(Opts) ];
+dynamize_global_secondary_index_update([{delete, IndexName} | Opts]) ->
+    [[{<<"Delete">>, [
+        {<<"IndexName">>, IndexName}
+     ]}] | dynamize_global_secondary_index_update(Opts) ];
+%% for backwards compatibility
+dynamize_global_secondary_index_update([{IndexName, ReadUnits, WriteUnits} | Opts]) ->
+    dynamize_global_secondary_index_update([{update, {IndexName, ReadUnits, WriteUnits}} | Opts]).
 
--type update_table_opt() :: {global_secondary_index_updates, global_secondary_index_updates()} 
+-spec dynamize_provizioned_throughput({read_units(), write_units()}) -> jsx:json_term().
+dynamize_provizioned_throughput({ReadUnits, WriteUnits}) ->
+    [{<<"ReadCapacityUnits">>, ReadUnits},
+     {<<"WriteCapacityUnits">>, WriteUnits}].
+
+-type update_table_opt() :: {attr_defs, attr_defs()}
+                          | {global_secondary_index_updates, global_secondary_index_updates()}
+                          | {provisioned_throughput, {read_units(), write_units()}}
                           | out_opt().
 -type update_table_opts() :: [update_table_opt()].
 
 -spec update_table_opts() -> opt_table().
 update_table_opts() ->
-    [{global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>, 
-      fun dynamize_global_secondary_index_update/1}].
+    [{attr_defs, <<"AttributeDefinitions">>,
+      fun dynamize_attr_defs/1},
+     {global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>, 
+      fun dynamize_global_secondary_index_update/1},
+     {provisioned_throughput, <<"ProvisionedThroughput">>,
+        fun dynamize_provizioned_throughput/1}].
 
 -spec update_table_record() -> record_desc().
 update_table_record() ->
     {#ddb2_update_table{},
      [{<<"TableDescription">>, #ddb2_create_table.table_description, 
        fun(V, Opts) -> undynamize_record(table_description_record(), V, Opts) end}
-     ]}. 
+     ]}.
 
--spec update_table(table_name(), non_neg_integer(), non_neg_integer()) -> update_table_return().
-update_table(Table, ReadUnits, WriteUnits) ->
-    update_table(Table, ReadUnits, WriteUnits, [], default_config()).
-
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), update_table_opts()) 
-                  -> update_table_return().
-update_table(Table, ReadUnits, WriteUnits, Opts) ->
-    update_table(Table, ReadUnits, WriteUnits, Opts, default_config()).
+-spec update_table(table_name(), update_table_opts()) -> update_table_return().
+update_table(Table, Opts) ->
+    update_table(Table, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -1906,21 +2066,40 @@ update_table(Table, ReadUnits, WriteUnits, Opts) ->
 %% Update table "Thread" to have 10 units of read and write capacity.
 %% Update secondary index `<<"SubjectIdx">>' to have 10 units of read write capacity
 %% `
-%% erlcloud_ddb2:update_table(<<"Thread">>, 10, 10, [{global_secondary_index_updates, [{<<"SubjectIdx">>, 10, 10}]}])
+%% erlcloud_ddb2:update_table(<<"Thread">>, 
+%%                            [{provisioned_throughput, {10, 10}},
+%%                             {global_secondary_index_updates, [{update,{<<"SubjectIdx">>, 10, 10}}]}])
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), update_table_opts(), 
-                   aws_config()) 
+-spec update_table(table_name(), update_table_opts() | read_units() , aws_config() | write_units()) 
                   -> update_table_return().
-update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
+update_table(Table, Opts, #aws_config{}=Config) when is_list(Opts) ->
     {AwsOpts, DdbOpts} = opts(update_table_opts(), Opts),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.UpdateTable",
-               [{<<"TableName">>, Table},
-                {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
-                                               {<<"WriteCapacityUnits">>, WriteUnits}]}]
-                ++ AwsOpts),
+               [{<<"TableName">>, Table} | AwsOpts]),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_table_record(), Json, UOpts) end, 
-        DdbOpts, #ddb2_update_table.table_description).
+        DdbOpts, #ddb2_update_table.table_description);
+update_table(Table, ReadUnits, WriteUnits) ->
+    update_table(Table, ReadUnits, WriteUnits, [], default_config()).
+
+-spec update_table(table_name(), read_units(), write_units(), update_table_opts()) 
+                  -> update_table_return().
+update_table(Table, ReadUnits, WriteUnits, Opts) ->
+    update_table(Table, ReadUnits, WriteUnits, Opts, default_config()).
+
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer(), update_table_opts(), 
+                   aws_config()) 
+                  -> update_table_return().
+update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
+    update_table(Table, [{provisioned_throughput, {ReadUnits, WriteUnits}} | Opts], Config).
+
+
+to_binary(X) when is_binary(X) ->
+    X;
+to_binary(X) when is_list(X) ->
+    list_to_binary(X);
+to_binary(X) when is_integer(X) ->
+    integer_to_binary(X).
