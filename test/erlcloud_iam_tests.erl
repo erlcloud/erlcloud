@@ -64,7 +64,17 @@ iam_api_test_() ->
       fun list_instance_profiles_input_tests/1,
       fun list_instance_profiles_output_tests/1,
       fun get_credential_report_input_tests/1,
-      fun get_credential_report_output_tests/1
+      fun get_credential_report_output_tests/1,
+      fun list_attached_user_policies_input_tests/1,
+      fun list_attached_user_policies_output_tests/1,
+      fun list_attached_group_policies_input_tests/1,
+      fun list_attached_group_policies_output_tests/1,
+      fun list_attached_role_policies_input_tests/1,
+      fun list_attached_role_policies_output_tests/1,
+      fun get_policy_input_tests/1,
+      fun get_policy_output_tests/1,
+      fun get_policy_version_input_tests/1,
+      fun get_policy_version_output_tests/1
     ]}.
 
 start() ->
@@ -1342,4 +1352,223 @@ get_credential_report_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:get_credential_report()), Tests).
+
+-define(LIST_ATTACHED_USER_POLICIES_RESP,
+        "<ListAttachedUserPoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+          <ListAttachedUserPoliciesResult>
+            <AttachedPolicies>
+              <member>
+                <PolicyName>AdministratorAccess</PolicyName>
+                <PolicyArn>arn:aws:iam::aws:policy/AdministratorAccess</PolicyArn>
+              </member>
+            </AttachedPolicies>
+            <IsTruncated>false</IsTruncated>
+          </ListAttachedUserPoliciesResult>
+          <ResponseMetadata>
+            <RequestId>75980e78-3ea6-11e4-9d0d-6f969EXAMPLE</RequestId>
+          </ResponseMetadata>
+        </ListAttachedUserPoliciesResponse>").
+
+list_attached_user_policies_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning the list of user attached policies.",
+             ?_f(erlcloud_iam:list_attached_user_policies("Alice", "/")),
+             [
+              {"Action", "ListAttachedUserPolicies"},
+              {"UserName", "Alice"},
+              {"PathPrefix", http_uri:encode("/")}
+              ]})
+        ],
+
+    input_tests(?LIST_ATTACHED_USER_POLICIES_RESP, Tests).
+
+list_attached_user_policies_output_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"This returns the list of user attached policies.",
+            ?LIST_ATTACHED_USER_POLICIES_RESP,
+            {ok, [[{arn, "arn:aws:iam::aws:policy/AdministratorAccess"},
+                   {policy_name, "AdministratorAccess"}]]}
+            })
+        ],
+    output_tests(?_f(erlcloud_iam:list_attached_user_policies("Alice", "/")), Tests).
+
+-define(LIST_ATTACHED_GROUP_POLICIES_RESP,
+        "<ListAttachedGroupPoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+          <ListAttachedGroupPoliciesResult>
+            <AttachedPolicies>
+              <member>
+                <PolicyName>ReadOnlyAccess</PolicyName>
+                <PolicyArn>arn:aws:iam::aws:policy/ReadOnlyAccess</PolicyArn>
+              </member>
+            </AttachedPolicies>
+            <IsTruncated>false</IsTruncated>
+          </ListAttachedGroupPoliciesResult>
+          <ResponseMetadata>
+            <RequestId>710f2d3f-3df1-11e4-9d0d-6f969EXAMPLE</RequestId>
+          </ResponseMetadata>
+        </ListAttachedGroupPoliciesResponse>").
+
+list_attached_group_policies_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning the list of group attached policies.",
+             ?_f(erlcloud_iam:list_attached_group_policies("ReadOnlyUsers", "/")),
+             [
+              {"Action", "ListAttachedGroupPolicies"},
+              {"GroupName", "ReadOnlyUsers"},
+              {"PathPrefix", http_uri:encode("/")}
+              ]})
+        ],
+
+    input_tests(?LIST_ATTACHED_GROUP_POLICIES_RESP, Tests).
+
+list_attached_group_policies_output_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"This returns the list of group attached policies.",
+            ?LIST_ATTACHED_GROUP_POLICIES_RESP,
+            {ok, [[{arn, "arn:aws:iam::aws:policy/ReadOnlyAccess"},
+                   {policy_name, "ReadOnlyAccess"}]]}
+            })
+        ],
+    output_tests(?_f(erlcloud_iam:list_attached_group_policies("ReadOnlyUsers", "/")), Tests).
+
+-define(LIST_ATTACHED_ROLE_POLICIES_RESP,
+        "<ListAttachedRolePoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+          <ListAttachedRolePoliciesResult>
+            <AttachedPolicies>
+              <member>
+                <PolicyName>ReadOnlyAccess</PolicyName>
+                <PolicyArn>arn:aws:iam::aws:policy/ReadOnlyAccess</PolicyArn>
+              </member>
+            </AttachedPolicies>
+            <IsTruncated>false</IsTruncated>
+          </ListAttachedRolePoliciesResult>
+          <ResponseMetadata>
+            <RequestId>9a3b490d-3ea5-11e4-9d0d-6f969EXAMPLE</RequestId>
+          </ResponseMetadata>
+        </ListAttachedRolePoliciesResponse>").
+
+list_attached_role_policies_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning the list of role attached policies.",
+             ?_f(erlcloud_iam:list_attached_role_policies("ReadOnlyRole", "/")),
+             [
+              {"Action", "ListAttachedRolePolicies"},
+              {"RoleName", "ReadOnlyRole"},
+              {"PathPrefix", http_uri:encode("/")}
+              ]})
+        ],
+
+    input_tests(?LIST_ATTACHED_ROLE_POLICIES_RESP, Tests).
+
+list_attached_role_policies_output_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"This returns the list of role attached policies.",
+            ?LIST_ATTACHED_ROLE_POLICIES_RESP,
+            {ok, [[{arn, "arn:aws:iam::aws:policy/ReadOnlyAccess"},
+                   {policy_name, "ReadOnlyAccess"}]]}
+            })
+        ],
+    output_tests(?_f(erlcloud_iam:list_attached_role_policies("ReadOnlyRole", "/")), Tests).
+
+-define(GET_POLICY_RESP, 
+        "<GetPolicyResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+          <GetPolicyResult>
+            <Policy>
+              <PolicyName>S3-read-only-example-bucket</PolicyName>
+              <DefaultVersionId>v1</DefaultVersionId>
+              <PolicyId>AGPACKCEVSQ6C2EXAMPLE</PolicyId>
+              <Path>/</Path>
+              <Arn>arn:aws:iam::123456789012:policy/S3-read-only-example-bucket</Arn>
+              <AttachmentCount>9</AttachmentCount>
+              <CreateDate>2014-09-15T17:36:14Z</CreateDate>
+              <UpdateDate>2014-09-15T20:31:47Z</UpdateDate>
+            </Policy>
+          </GetPolicyResult>
+          <ResponseMetadata>
+            <RequestId>684f0917-3d22-11e4-a4a0-cffb9EXAMPLE</RequestId>
+          </ResponseMetadata>
+        </GetPolicyResponse>").
+get_policy_input_tests(_) ->
+    Tests =
+        [?_iam_test(
+            {"Test returning a policy.",
+             ?_f(erlcloud_iam:get_policy("arn:aws:iam::123456789012:policy/S3-read-only-example-bucket")),
+             [
+              {"Action", "GetPolicy"},
+              {"PolicyArn", http_uri:encode("arn:aws:iam::123456789012:policy/S3-read-only-example-bucket")}
+              ]})
+        ],
+
+    input_tests(?GET_POLICY_RESP, Tests).
+
+get_policy_output_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"This returns a policy.",
+            ?GET_POLICY_RESP,
+            {ok, [[{update_date, {{2014,9,15},{20,31,47}}},
+                   {create_date, {{2014,9,15},{17,36,14}}},
+                   {attachment_count, 9},
+                   {arn, "arn:aws:iam::123456789012:policy/S3-read-only-example-bucket"},
+                   {path, "/"},
+                   {policy_id, "AGPACKCEVSQ6C2EXAMPLE"},
+                   {default_version_id, "v1"},
+                   {policy_name, "S3-read-only-example-bucket"}
+                 ]]}
+            })
+        ],
+    output_tests(?_f(erlcloud_iam:get_policy("arn:aws:iam::123456789012:policy/S3-read-only-example-bucket")), Tests).
+
+-define(GET_POLICY_VERSION_RESP,
+        "<GetPolicyVersionResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+          <GetPolicyVersionResult>
+            <PolicyVersion>
+              <Document>
+              {\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:Get*\",\"s3:List*\"],
+              \"Resource\":[\"arn:aws:s3:::EXAMPLE-BUCKET\",\"arn:aws:s3:::EXAMPLE-BUCKET/*\"]}]}
+              </Document>
+              <IsDefaultVersion>true</IsDefaultVersion>
+              <VersionId>v1</VersionId>
+              <CreateDate>2014-09-15T20:31:47Z</CreateDate>
+            </PolicyVersion>
+          </GetPolicyVersionResult>
+          <ResponseMetadata>
+            <RequestId>d472f28e-3d23-11e4-a4a0-cffb9EXAMPLE</RequestId>
+          </ResponseMetadata>
+        </GetPolicyVersionResponse>").
+get_policy_version_input_tests(_) ->
+    Tests =
+        [?_iam_test(
+            {"Test returning a policy version.",
+             ?_f(erlcloud_iam:get_policy_version("arn:aws:iam::123456789012:policy/S3-read-only-example-bucket", "v1")),
+             [
+              {"Action", "GetPolicyVersion"},
+              {"PolicyArn", http_uri:encode("arn:aws:iam::123456789012:policy/S3-read-only-example-bucket")},
+              {"VersionId", "v1"}
+              ]})
+        ],
+
+    input_tests(?GET_POLICY_VERSION_RESP, Tests).
+
+get_policy_version_output_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"This returns a policy version.",
+            ?GET_POLICY_VERSION_RESP,
+            {ok, [[{create_date, {{2014,9,15},{20,31,47}}},
+                   {version_id, "v1"},
+                   {is_default_version, true},
+                   {policy_document, 
+                        "\n              {\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:Get*\",\"s3:List*\"],\n              \"Resource\":[\"arn:aws:s3:::EXAMPLE-BUCKET\",\"arn:aws:s3:::EXAMPLE-BUCKET/*\"]}]}\n              "}
+                 ]]}
+            })
+        ],
+    output_tests(?_f(erlcloud_iam:get_policy_version("arn:aws:iam::123456789012:policy/S3-read-only-example-bucket", "v1")), Tests).
+
 
