@@ -11,7 +11,7 @@
          deregister_instance/2, deregister_instance/3,
 
          describe_load_balancer/1, describe_load_balancer/2,
-         describe_load_balancers/1, describe_load_balancers/2,
+         describe_load_balancers/0, describe_load_balancers/1, describe_load_balancers/2,
 
          configure_health_check/2, configure_health_check/3]).
 
@@ -123,14 +123,35 @@ describe_load_balancer(Name) ->
 describe_load_balancer(Name, Config) ->
     describe_load_balancers([Name], Config).
 
+describe_load_balancers() ->
+    describe_load_balancers(default_config()).
 
-describe_load_balancers(Names) ->
-    describe_load_balancers(Names, default_config()).
-describe_load_balancers(Names, Config)  when is_list(Names) ->
-    case elb_request(Config, "DescribeLoadBalancers", [erlcloud_aws:param_list(Names, "LoadBalancerNames.member")], ?NEW_API_VERSION) of
+describe_load_balancers(Config) ->
+  describe_all_load_balancers([], Config, []);
+describe_load_balancers(Names) when is_list(Names) ->
+  describe_load_balancers(Names, default_config()).
+
+describe_load_balancers(Names, Config) when is_list(Names) ->
+  Params = [erlcloud_aws:param_list(Names, "LoadBalancerNames.member")],
+  describe_all_load_balancers(Params, Config, []).
+
+describe_all_load_balancers(Params, Config, Acc) when is_list(Params), is_list(Acc)->
+    case load_balancer_request(Params, Config) of
+      {ok, LoadBalancers, []} ->
+        {ok, Acc ++ LoadBalancers};
+      {ok, error} ->
+        {ok, error};
+      {ok, LoadBalancers, NextMarker} ->
+        NewParams = [{"Marker", NextMarker} | lists:keydelete("Marker", 1, Params)],
+        describe_all_load_balancers(NewParams, Config, Acc ++ LoadBalancers)
+    end.
+
+load_balancer_request(Params, Config)  when is_list(Params) ->
+    case elb_request(Config, "DescribeLoadBalancers", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
-            ElasticLoadBalancers = xmerl_xpath:string("/DescribeLoadBalancersResponse/DescribeLoadBalancersResult/LoadBalancerDescriptions/member", Doc),
-            {ok, [ extract_load_balancers(Item) || Item <- ElasticLoadBalancers]};
+            ElasticLoadBalancers = [extract_load_balancers(Item) || Item <- xmerl_xpath:string("/DescribeLoadBalancersResponse/DescribeLoadBalancersResult/LoadBalancerDescriptions/member", Doc)],
+            NextMarker = get_text("/DescribeLoadBalancersResponse/DescribeLoadBalancersResult/NextMarker", Doc),
+            {ok, ElasticLoadBalancers, NextMarker};
         {error, Reason} ->
             {error, Reason}
     end.
