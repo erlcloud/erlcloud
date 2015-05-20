@@ -139,8 +139,8 @@ describe_all_load_balancers(Params, Config, Acc) when is_list(Params), is_list(A
     case load_balancer_request(Params, Config) of
       {ok, LoadBalancers, []} ->
         {ok, Acc ++ LoadBalancers};
-      {ok, error} ->
-        {ok, error};
+      {error, Reason} ->
+        {error, Reason};
       {ok, LoadBalancers, NextMarker} ->
         NewParams = [{"Marker", NextMarker} | lists:keydelete("Marker", 1, Params)],
         describe_all_load_balancers(NewParams, Config, Acc ++ LoadBalancers)
