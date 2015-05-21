@@ -128,27 +128,22 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
 
 -spec client_error(pos_integer(), string(), binary()) -> {retry, term()} | {error, term()}.
 client_error(Status, StatusLine, Body) ->
-    case jsx:is_json(Body) of
-        false ->
-            {error, {http_error, Status, StatusLine, Body}};
-        true ->
-            Json = jsx:decode(Body),
+    try jsx:decode(Body) of
+        Json ->
+            Message = proplists:get_value(<<"message">>, Json, <<>>),
             case proplists:get_value(<<"__type">>, Json) of
                 undefined ->
                     {error, {http_error, Status, StatusLine, Body}};
-                FullType ->
-                    Message = proplists:get_value(<<"message">>, Json, <<>>),
-                    case binary:split(FullType, <<"#">>) of
-                        [_, <<"ProvisionedThroughputExceededException">> = Type] ->
-                            {retry, {Type, Message}};
-                        [_, <<"ThrottlingException">> = Type] ->
-                            {retry, {Type, Message}};
-                        [_, Type] ->
-                            {error, {Type, Message}};
-                        _ ->
-                            {error, {http_error, Status, StatusLine, Body}}
-                    end
+                <<"ProvisionedThroughputExceededException">> = Type ->
+                    {retry, {Type, Message}};
+                <<"ThrottlingException">> = Type ->
+                    {retry, {Type, Message}};
+                Other ->
+                    {error, {Other, Message}}
             end
+    catch
+        error:badarg ->
+            {error, {http_error, Status, StatusLine, Body}}
     end.
 
 -spec headers(aws_config(), string(), binary()) -> headers().
