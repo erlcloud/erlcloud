@@ -120,20 +120,20 @@ configure_health_check(LB, Target, Config) when is_list(LB) ->
 
 describe_load_balancer(Name) ->
     describe_load_balancer(Name, default_config()).
-describe_load_balancer(Name, Config) ->
+describe_load_balancer(Name, Config) when is_record(Config, aws_config) ->
     describe_load_balancers([Name], Config).
 
 describe_load_balancers() ->
     describe_load_balancers(default_config()).
 
-describe_load_balancers(Config) ->
-  describe_all_load_balancers([], Config, []);
+describe_load_balancers(Config) when is_record(Config, aws_config) ->
+    describe_all_load_balancers([], Config, []);
 describe_load_balancers(Names) when is_list(Names) ->
-  describe_load_balancers(Names, default_config()).
+    describe_load_balancers(Names, default_config()).
 
-describe_load_balancers(Names, Config) when is_list(Names) ->
-  Params = [erlcloud_aws:param_list(Names, "LoadBalancerNames.member")],
-  describe_all_load_balancers(Params, Config, []).
+describe_load_balancers(Names, Config) when is_list(Names), is_record(Config, aws_config) ->
+    Params = [erlcloud_aws:param_list(Names, "LoadBalancerNames.member")],
+    describe_all_load_balancers(Params, Config, []).
 
 describe_all_load_balancers(Params, Config, Acc) when is_list(Params), is_list(Acc)->
     case load_balancer_request(Params, Config) of
@@ -146,7 +146,7 @@ describe_all_load_balancers(Params, Config, Acc) when is_list(Params), is_list(A
         describe_all_load_balancers(NewParams, Config, Acc ++ LoadBalancers)
     end.
 
-load_balancer_request(Params, Config)  when is_list(Params) ->
+load_balancer_request(Params, Config)  when is_list(Params), is_record(Config, aws_config) ->
     case elb_request(Config, "DescribeLoadBalancers", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             ElasticLoadBalancers = [extract_load_balancers(Item) || Item <- xmerl_xpath:string("/DescribeLoadBalancersResponse/DescribeLoadBalancersResult/LoadBalancerDescriptions/member", Doc)],
