@@ -230,7 +230,7 @@ describe_db_instances_input_tests(_) ->
 
 describe_db_instances_output_tests(_) ->
     Test = ?_rds_test({
-        "some description",
+        "Tests describing all db instances",
         "<DescribeDBInstancesResponse xmlns=\"http://rds.amazonaws.com/doc/2014-10-31/\">
             <DescribeDBInstancesResult>
                 <DBInstances>
@@ -350,6 +350,7 @@ describe_db_instances_output_tests(_) ->
                 ]},
                 {vpc_id,"vpc-7a7dc81f"}
             ]},
+            {db_instance_port, 0},
             {dbi_resource_id, "db-HB5FPKLCFRW2HF2OAYZRDYLSEI"},
             {endpoint,[
                 {address, "us-west-2-mysql-test-01.csjsnznjb5ln.us-west-2.rds.amazonaws.com"},
@@ -440,7 +441,7 @@ describe_db_security_groups_input_tests(_) ->
 
 describe_db_security_groups_output_tests(_) ->
     Test = ?_rds_test({
-        "some description",
+        "Tests describing all db security groups",
         "<DescribeDBSecurityGroupsResponse xmlns=\"http://rds.amazonaws.com/doc/2014-10-31/\">
             <DescribeDBSecurityGroupsResult>
                 <DBSecurityGroups>
@@ -559,7 +560,7 @@ describe_db_subnet_groups_input_tests(_) ->
 
 describe_db_subnet_groups_output_tests(_) ->
     Test = ?_rds_test({
-        "some description",
+        "Tests describing all db subnet groups",
         "<DescribeDBSubnetGroupsResponse xmlns=\"http://rds.amazonaws.com/doc/2014-10-31/\">
             <DescribeDBSubnetGroupsResult>
                 <DBSubnetGroups>
