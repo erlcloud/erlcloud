@@ -18,7 +18,7 @@
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
--define(API_VERSION, "2009-05-15").
+-define(API_VERSION, "2012-06-01").
 
 -import(erlcloud_xml, [get_text/2]).
 
