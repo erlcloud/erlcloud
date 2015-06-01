@@ -54,6 +54,7 @@
          %% Instances
          describe_instance_attribute/2, describe_instance_attribute/3,
          describe_instances/0, describe_instances/1, describe_instances/2,
+         describe_instances/3,
          modify_instance_attribute/3, modify_instance_attribute/4,
          modify_instance_attribute/5,
          reboot_instances/1, reboot_instances/2,
@@ -1247,12 +1248,20 @@ describe_instances(Config)
   when is_record(Config, aws_config) ->
     describe_instances([], Config);
 describe_instances(InstanceIDs) ->
-    describe_instances(InstanceIDs, default_config()).
+    describe_instances(InstanceIDs, [], default_config()).
 
--spec(describe_instances/2 :: ([string()], aws_config()) -> proplist()).
+-spec(describe_instances/2 :: ([string()], filter_list() | aws_config()) -> proplist()).
 describe_instances(InstanceIDs, Config)
+  when is_record(Config, aws_config) ->
+    describe_instances(InstanceIDs, [], Config);
+describe_instances(InstanceIDs, Filter) ->
+    describe_instances(InstanceIDs, Filter, default_config()).
+
+-spec(describe_instances/3 :: ([string()], filter_list(), aws_config()) -> proplist()).
+describe_instances(InstanceIDs, Filter, Config)
   when is_list(InstanceIDs) ->
-    case ec2_query2(Config, "DescribeInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId"), ?NEW_API_VERSION) of
+    Params = erlcloud_aws:param_list(InstanceIDs, "InstanceId") ++ list_to_ec2_filter(Filter),
+    case ec2_query2(Config, "DescribeInstances", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             Reservations = xmerl_xpath:string("/DescribeInstancesResponse/reservationSet/item", Doc),
             {ok, [extract_reservation(Item) || Item <- Reservations]};
