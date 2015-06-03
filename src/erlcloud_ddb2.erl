@@ -21,13 +21,15 @@
 %%
 %% Attribute values may be either `{Type, Value}' or `Value'. If only
 %% `Value' is provided then the type is inferred. Lists (iolists are
-%% handled) and binaries are assumed to be strings. The following are
-%% equivalent: `{s, <<"value">>}', `<<"value">>', `"value"'. Numbers
+%% handled), binaries and atoms are assumed to be strings. The following are
+%% equivalent: `{s, <<"value">>}', `<<"value">>', `"value"', `value'. Numbers
 %% are assumed to be numbers. The following are equivalent: `{n, 42}',
 %% `42'. To specify the AWS binary or set types an explicit `Type'
 %% must be provided. For example: `{b, <<1,2,3>>}' or `{ns,
 %% [4,5,6]}'. Note that binary values will be base64 encoded and
-%% decoded automatically.
+%% decoded automatically. Since some atoms (such as `false', `not_null',
+%% `null', `undefined', `delete', etc) have special meanings in some cases,
+%% use them carefully.
 %%
 %% Output is in the form of `{ok, Value}' or `{error, Reason}'. The
 %% format of `Value' is controlled by the `out' option, which defaults
@@ -140,10 +142,6 @@
     global_secondary_index_update/0,
     global_secondary_index_updates/0,
     in_attr/0,
-    in_attr_data/0,
-    in_attr_data_scalar/0,
-    in_attr_data_set/0,
-    in_attr_typed_value/0,
     in_attr_value/0,
     in_expected/0,
     in_expected_item/0,
@@ -222,15 +220,25 @@ default_config() -> erlcloud_aws:default_config().
 %%%------------------------------------------------------------------------------
 
 -type table_name() :: binary().
--type attr_type() :: s | n | b | ss | ns | bs.
+-type attr_type() :: s | n | b | bool | null | ss | ns | bs | l | m.
 -type attr_name() :: binary().
 -type maybe_list(T) :: T | [T].
 
--type in_attr_data_scalar() :: iolist() | binary() | number().
--type in_attr_data_set() :: [iolist() | binary()] | [number()].
--type in_attr_data() :: in_attr_data_scalar() | in_attr_data_set().
--type in_attr_typed_value() :: {attr_type(), in_attr_data()}.
--type in_attr_value() :: in_attr_data() | in_attr_typed_value().
+-type in_string_value() :: binary() | iolist() | atom(). %% non-empty
+-type in_number_value() :: number().
+-type in_binary_value() :: binary() | [byte()]. %% non-empty
+-type in_attr_value() :: in_string_value() |
+                         in_number_value() |
+                         {s, in_string_value()} |
+                         {n, in_number_value()} |
+                         {b, in_binary_value()} |
+                         {bool, boolean()} |
+                         {null, true} |
+                         {ss, [in_string_value(),...]} |
+                         {ns, [in_number_value(),...]} |
+                         {bs, [in_binary_value(),...]} |
+                         {l, [in_attr_value()]} |
+                         {m, [in_attr()]}.
 -type in_attr() :: {attr_name(), in_attr_value()}.
 -type in_expected_item() :: {attr_name(), false} | condition().
 -type in_expected() :: maybe_list(in_expected_item()).
@@ -238,7 +246,7 @@ default_config() -> erlcloud_aws:default_config().
 
 -type json_pair() :: {binary(), jsx:json_term()}.
 -type json_attr_type() :: binary().
--type json_attr_data() :: binary() | [binary()].
+-type json_attr_data() :: binary() | boolean() | [binary()] | [[json_attr_value()]] | [json_attr()].
 -type json_attr_value() :: {json_attr_type(), json_attr_data()}.
 -type json_attr() :: {attr_name(), [json_attr_value()]}.
 -type json_item() :: [json_attr()].
@@ -254,7 +262,7 @@ default_config() -> erlcloud_aws:default_config().
 -type comparison_op() :: eq | ne | le | lt | ge | gt | not_null | null | contains | not_contains | 
                          begins_with | in | between.
 
--type out_attr_value() :: binary() | number() | [binary()] | [number()].
+-type out_attr_value() :: binary() | number() | boolean() | undefined | [binary()] | [number()] | [out_attr_value()] | [out_attr()].
 -type out_attr() :: {attr_name(), out_attr_value()}.
 -type out_item() :: [out_attr() | in_attr()]. % in_attr in the case of typed_record
 -type ok_return(T) :: {ok, T} | {error, term()}.
@@ -273,6 +281,14 @@ dynamize_type(n) ->
 dynamize_type(b) ->
     <<"B">>.
 
+-spec dynamize_string(in_string_value()) -> binary().
+dynamize_string(Value) when is_binary(Value) ->
+    Value;
+dynamize_string(Value) when is_list(Value) ->
+    list_to_binary(Value);
+dynamize_string(Value) when is_atom(Value) ->
+    atom_to_binary(Value, utf8).
+
 -spec dynamize_number(number()) -> binary().
 dynamize_number(Value) when is_integer(Value) ->
     list_to_binary(integer_to_list(Value));
@@ -281,41 +297,34 @@ dynamize_number(Value) when is_float(Value) ->
     [String] = io_lib:format("~p", [Value]),
     list_to_binary(String).
 
--spec dynamize_set(attr_type(), in_attr_data_set()) -> [binary()].
-dynamize_set(ss, Values) ->
-    [iolist_to_binary(Value) || Value <- Values];
-dynamize_set(ns, Values) ->
-    [dynamize_number(Value) || Value <- Values];
-dynamize_set(bs, Values) ->
-    [base64:encode(Value) || Value <- Values].
-
 -spec dynamize_value(in_attr_value()) -> json_attr_value().
-dynamize_value({s, Value}) when is_binary(Value) ->
-    {<<"S">>, Value};
-dynamize_value({s, Value}) when is_list(Value) ->
-    {<<"S">>, list_to_binary(Value)};
-dynamize_value({s, Value}) when is_atom(Value) ->
-    {<<"S">>, atom_to_binary(Value, utf8)};
+dynamize_value({s, Value}) when is_binary(Value); is_list(Value); is_atom(Value) ->
+    {<<"S">>, dynamize_string(Value)};
 dynamize_value({n, Value}) when is_number(Value) ->
     {<<"N">>, dynamize_number(Value)};
-dynamize_value({b, Value}) when is_binary(Value) orelse is_list(Value) ->
+dynamize_value({b, Value}) when is_binary(Value); is_list(Value) ->
     {<<"B">>, base64:encode(Value)};
+dynamize_value({bool, Value}) when is_boolean(Value) ->
+    {<<"BOOL">>, Value};
+dynamize_value({null, true}) ->
+    {<<"NULL">>, true};
 
 dynamize_value({ss, Value}) when is_list(Value) ->
-    {<<"SS">>, dynamize_set(ss, Value)};
+    {<<"SS">>, [dynamize_string(V) || V <- Value]};
 dynamize_value({ns, Value}) when is_list(Value) ->
-    {<<"NS">>, dynamize_set(ns, Value)};
+    {<<"NS">>, [dynamize_number(V) || V <- Value]};
 dynamize_value({bs, Value}) when is_list(Value) ->
-    {<<"BS">>, dynamize_set(bs, Value)};
+    {<<"BS">>, [base64:encode(V) || V <- Value]};
 
-dynamize_value(Value) when is_binary(Value) ->
-    dynamize_value({s, Value});
-dynamize_value(Value) when is_list(Value) ->
-    dynamize_value({s, Value});
+dynamize_value({l, Value}) when is_list(Value) ->
+    {<<"L">>, [[dynamize_value(V)] || V <- Value]};
+dynamize_value({m, Value}) when is_list(Value) ->
+    {<<"M">>, [dynamize_attr(Attr) || Attr <- Value]};
+
+dynamize_value(Value) when is_binary(Value); is_list(Value); is_atom(Value) ->
+    {<<"S">>, dynamize_string(Value)};
 dynamize_value(Value) when is_number(Value) ->
-    dynamize_value({n, Value});
-dynamize_value(Value) when is_atom(Value) ->
-    dynamize_value({s, atom_to_binary(Value, utf8)});
+    {<<"N">>, dynamize_number(Value)};
 dynamize_value(Value) ->
     error({erlcloud_ddb, {invalid_attr_value, Value}}).
 
@@ -427,7 +436,7 @@ dynamize_return_consumed_capacity(none) ->
 dynamize_return_consumed_capacity(total) ->
     <<"TOTAL">>;
 dynamize_return_consumed_capacity(indexes) ->
-	<<"INDEXES">>.
+    <<"INDEXES">>.
 
 -type return_item_collection_metrics() :: none | size.
 -type return_item_collection_metrics_opt() :: {return_item_collection_metrics, return_item_collection_metrics()}.
@@ -472,12 +481,20 @@ undynamize_value({<<"N">>, Value}, Opts) ->
     undynamize_number(Value, Opts);
 undynamize_value({<<"B">>, Value}, _) ->
     base64:decode(Value);
+undynamize_value({<<"BOOL">>, Value}, _) when is_boolean(Value) ->
+    Value;
+undynamize_value({<<"NULL">>, true}, _) ->
+    undefined;
 undynamize_value({<<"SS">>, Values}, _) when is_list(Values) ->
     Values;
 undynamize_value({<<"NS">>, Values}, Opts) ->
     [undynamize_number(Value, Opts) || Value <- Values];
 undynamize_value({<<"BS">>, Values}, _) ->
-    [base64:decode(Value) || Value <- Values].
+    [base64:decode(Value) || Value <- Values];
+undynamize_value({<<"L">>, List}, Opts) ->
+    [undynamize_value(Value, Opts) || [Value] <- List];
+undynamize_value({<<"M">>, Map}, Opts) ->
+    [undynamize_attr(Attr, Opts) || Attr <- Map].
 
 -spec undynamize_attr(json_attr(), undynamize_opts()) -> out_attr().
 undynamize_attr({Name, [ValueJson]}, Opts) ->
@@ -504,19 +521,27 @@ undynamize_item(Json, Opts) ->
 undynamize_items(Items, Opts) ->
     [undynamize_item(I, Opts) || I <- Items].
 
--spec undynamize_value_typed(json_attr_value(), undynamize_opts()) -> in_attr_typed_value().
-undynamize_value_typed({<<"S">>, Value}, _) ->
+-spec undynamize_value_typed(json_attr_value(), undynamize_opts()) -> in_attr_value().
+undynamize_value_typed({<<"S">>, Value}, _) when is_binary(Value) ->
     {s, Value};
 undynamize_value_typed({<<"N">>, Value}, Opts) ->
     {n, undynamize_number(Value, Opts)};
 undynamize_value_typed({<<"B">>, Value}, _) ->
     {b, base64:decode(Value)};
+undynamize_value_typed({<<"BOOL">>, Value}, _) when is_boolean(Value) ->
+    {bool, Value};
+undynamize_value_typed({<<"NULL">>, true}, _) ->
+    {null, true};
 undynamize_value_typed({<<"SS">>, Values}, _) when is_list(Values) ->
     {ss, Values};
 undynamize_value_typed({<<"NS">>, Values}, Opts) ->
     {ns, [undynamize_number(Value, Opts) || Value <- Values]};
 undynamize_value_typed({<<"BS">>, Values}, _) ->
-    {bs, [base64:decode(Value) || Value <- Values]}.
+    {bs, [base64:decode(Value) || Value <- Values]};
+undynamize_value_typed({<<"L">>, List}, Opts) ->
+    {l, [undynamize_value_typed(Value, Opts) || [Value] <- List]};
+undynamize_value_typed({<<"M">>, Map}, Opts) ->
+    {m, [undynamize_attr_typed(Attr, Opts) || Attr <- Map]}.
 
 -spec undynamize_typed_key(json_key(), undynamize_opts()) -> key().
 undynamize_typed_key(Key, Opts) ->
