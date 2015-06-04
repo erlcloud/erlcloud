@@ -23,7 +23,8 @@
          write_capacity_units :: pos_integer()
         }).
 -record(ddb2_global_secondary_index_description,
-        {index_name :: erlcloud_ddb2:index_name(),
+        {backfilling :: boolean(),
+         index_name :: erlcloud_ddb2:index_name(),
          index_size_bytes :: integer(),
          index_status :: index_status(),
          item_count :: integer(),
