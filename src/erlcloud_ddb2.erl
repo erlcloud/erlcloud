@@ -951,7 +951,8 @@ undynamize_index_status(<<"ACTIVE">>, _)   -> active.
 -spec global_secondary_index_description_record() -> record_desc().
 global_secondary_index_description_record() ->
     {#ddb2_global_secondary_index_description{},
-     [{<<"IndexName">>, #ddb2_global_secondary_index_description.index_name, fun id/2},
+     [{<<"Backfilling">>, #ddb2_global_secondary_index_description.backfilling, fun id/2},
+      {<<"IndexName">>, #ddb2_global_secondary_index_description.index_name, fun id/2},
       {<<"IndexSizeBytes">>, #ddb2_global_secondary_index_description.index_size_bytes, fun id/2},
       {<<"IndexStatus">>, #ddb2_global_secondary_index_description.index_status, fun undynamize_index_status/2},
       {<<"ItemCount">>, #ddb2_global_secondary_index_description.item_count, fun id/2},
@@ -2055,51 +2056,47 @@ update_item(Table, Key, Updates, Opts, Config) ->
 
 -type update_table_return() :: ddb_return(#ddb2_update_table{}, #ddb2_table_description{}).
 
--type global_secondary_index_update() :: {index_name(), read_units(), write_units()} %% for backwards compatibility
-                                       | {update, {index_name(), read_units(), write_units()}}
-                                       | {create, global_secondary_index_def()}
-                                       | {delete, index_name()}.
--type global_secondary_index_updates() :: [global_secondary_index_update()].
+-type global_secondary_index_update() :: {index_name(), pos_integer(), pos_integer()} |
+                                         {index_name(), delete} |
+                                         global_secondary_index_def().
+-type global_secondary_index_updates() :: maybe_list(global_secondary_index_update()).
 
--spec dynamize_global_secondary_index_update(global_secondary_index_updates()) -> jsx:json_term().
-dynamize_global_secondary_index_update([]) -> [];
-
-dynamize_global_secondary_index_update([{update, {IndexName, ReadUnits, WriteUnits}} | Opts]) ->
-    [[{<<"Update">>, [
+-spec dynamize_global_secondary_index_update(global_secondary_index_update()) -> jsx:json_term().
+dynamize_global_secondary_index_update({IndexName, ReadUnits, WriteUnits}) ->
+    [{<<"Update">>, [
         {<<"IndexName">>, IndexName},
         {<<"ProvisionedThroughput">>, [
             {<<"ReadCapacityUnits">>, ReadUnits},
             {<<"WriteCapacityUnits">>, WriteUnits}
-        ]}        
-     ]}] | dynamize_global_secondary_index_update(Opts) ];
-dynamize_global_secondary_index_update([{create, GlobalSecondaryIndexDef} | Opts]) ->
-    [[{<<"Create">>, dynamize_global_secondary_index(GlobalSecondaryIndexDef)}] 
-     | dynamize_global_secondary_index_update(Opts) ];
-dynamize_global_secondary_index_update([{delete, IndexName} | Opts]) ->
-    [[{<<"Delete">>, [
+        ]}
+    ]}];
+dynamize_global_secondary_index_update({IndexName, delete}) ->
+    [{<<"Delete">>, [
         {<<"IndexName">>, IndexName}
-     ]}] | dynamize_global_secondary_index_update(Opts) ];
-%% for backwards compatibility
-dynamize_global_secondary_index_update([{IndexName, ReadUnits, WriteUnits} | Opts]) ->
-    dynamize_global_secondary_index_update([{update, {IndexName, ReadUnits, WriteUnits}} | Opts]).
+    ]}];
+dynamize_global_secondary_index_update(Index) ->
+    [{<<"Create">>, dynamize_global_secondary_index(Index)}].
+
+-spec dynamize_global_secondary_index_updates(global_secondary_index_updates()) -> jsx:json_term().
+dynamize_global_secondary_index_updates(Updates) ->
+    dynamize_maybe_list(fun dynamize_global_secondary_index_update/1, Updates).
 
 -spec dynamize_provizioned_throughput({read_units(), write_units()}) -> jsx:json_term().
 dynamize_provizioned_throughput({ReadUnits, WriteUnits}) ->
     [{<<"ReadCapacityUnits">>, ReadUnits},
      {<<"WriteCapacityUnits">>, WriteUnits}].
-
--type update_table_opt() :: {attr_defs, attr_defs()}
-                          | {global_secondary_index_updates, global_secondary_index_updates()}
-                          | {provisioned_throughput, {read_units(), write_units()}}
-                          | out_opt().
+     
+-type update_table_opt() :: {attribute_definitions, attr_defs()} |
+                            {global_secondary_index_updates, global_secondary_index_updates()} |
+                            {provisioned_throughput, {read_units(), write_units()}} |
+                            out_opt().
 -type update_table_opts() :: [update_table_opt()].
 
 -spec update_table_opts() -> opt_table().
 update_table_opts() ->
-    [{attr_defs, <<"AttributeDefinitions">>,
-      fun dynamize_attr_defs/1},
-     {global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>, 
-      fun dynamize_global_secondary_index_update/1},
+    [{attribute_definitions, <<"AttributeDefinitions">>, fun dynamize_attr_defs/1},
+     {global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>,
+      fun dynamize_global_secondary_index_updates/1},
      {provisioned_throughput, <<"ProvisionedThroughput">>,
         fun dynamize_provizioned_throughput/1}].
 
