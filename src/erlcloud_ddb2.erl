@@ -136,6 +136,9 @@
     delete_table_return/0,
     describe_table_return/0,
     expected_opt/0,
+    expression/0,
+    expression_attribute_names/0,
+    expression_attribute_values/0,
     get_item_opt/0,
     get_item_opts/0,
     get_item_return/0,
@@ -269,6 +272,10 @@ default_config() -> erlcloud_aws:default_config().
 -type global_secondary_index_def() :: {index_name(), key_schema(), projection(), read_units(), write_units()}.
 
 -type return_value() :: none | all_old | updated_old | all_new | updated_new.
+
+-type expression() :: binary().
+-type expression_attribute_names() :: [{binary(), attr_name()}].
+-type expression_attribute_values() :: [{binary(), in_attr_value()}].
 
 -type conditional_op() :: 'and' | 'or'.
 
@@ -441,6 +448,18 @@ dynamize_item(Item) when is_list(Item) ->
     [dynamize_attr(Attr) || Attr <- Item];
 dynamize_item(Item) ->
     error({erlcloud_ddb, {invalid_item, Item}}).
+
+-spec dynamize_expression(expression()) -> binary().
+dynamize_expression(Expression) ->
+    Expression.
+
+-spec dynamize_expression_attribute_names(expression_attribute_names()) -> [json_pair()].
+dynamize_expression_attribute_names(Names) ->
+    Names.
+
+-spec dynamize_expression_attribute_values(expression_attribute_values()) -> [json_pair()].
+dynamize_expression_attribute_values(Values) ->
+    [{P, [dynamize_value(Value)]} || {P, Value} <- Values].
 
 -spec dynamize_comparison(comparison_op()) -> {binary(), binary()}.
 dynamize_comparison(eq) ->
@@ -642,6 +661,14 @@ undynamize_key_schema([Key1, Key2], _) ->
             {key_name(Key2), key_name(Key1)}
     end.
 
+-spec undynamize_expression(binary(), undynamize_opts()) -> expression().
+undynamize_expression(Expression, _) ->
+    Expression.
+
+-spec undynamize_expression_attribute_names([json_pair()], undynamize_opts()) -> expression_attribute_names().
+undynamize_expression_attribute_names(Names, _) ->
+    Names.
+
 -spec undynamize_table_status(binary(), undynamize_opts()) -> table_status().
 undynamize_table_status(<<"CREATING">>, _) -> creating;
 undynamize_table_status(<<"UPDATING">>, _) -> updating;
@@ -719,6 +746,24 @@ opts(Table, Opts) when is_list(Opts) ->
 opts(_, _) ->
     error({erlcloud_ddb, opts_not_list}).
 
+-type expression_attribute_names_opt() :: {expression_attribute_names, expression_attribute_names()}.
+
+-spec expression_attribute_names_opt() -> opt_table_entry().
+expression_attribute_names_opt() ->
+    {expression_attribute_names, <<"ExpressionAttributeNames">>, fun dynamize_expression_attribute_names/1}.
+
+-type expression_attribute_values_opt() :: {expression_attribute_values, expression_attribute_values()}.
+
+-spec expression_attribute_values_opt() -> opt_table_entry().
+expression_attribute_values_opt() ->
+    {expression_attribute_values, <<"ExpressionAttributeValues">>, fun dynamize_expression_attribute_values/1}.
+
+-type projection_expression_opt() :: {projection_expression, expression()}.
+
+-spec projection_expression_opt() -> opt_table_entry().
+projection_expression_opt() ->
+    {projection_expression, <<"ProjectionExpression">>, fun dynamize_expression/1}.
+
 -type attributes_to_get_opt() :: {attributes_to_get, [attr_name()]}.
 
 -spec attributes_to_get_opt() -> opt_table_entry().
@@ -730,6 +775,12 @@ attributes_to_get_opt() ->
 -spec consistent_read_opt() -> opt_table_entry().
 consistent_read_opt() ->
     {consistent_read, <<"ConsistentRead">>, fun id/1}.
+
+-type condition_expression_opt() :: {condition_expression, expression()}.
+
+-spec condition_expression_opt() -> opt_table_entry().
+condition_expression_opt() ->
+    {condition_expression, <<"ConditionExpression">>, fun dynamize_expression/1}.
 
 -type conditional_op_opt() :: {conditional_op, conditional_op()}.
 
@@ -931,13 +982,17 @@ table_description_record() ->
 batch_get_item_opts() ->
     [return_consumed_capacity_opt()].
 
--type batch_get_item_request_item_opt() :: attributes_to_get_opt() |
+-type batch_get_item_request_item_opt() :: expression_attribute_names_opt() |
+                                           projection_expression_opt() |
+                                           attributes_to_get_opt() |
                                            consistent_read_opt().
 -type batch_get_item_request_item_opts() :: [batch_get_item_request_item_opt()].
 
 -spec batch_get_item_request_item_opts() -> opt_table().
 batch_get_item_request_item_opts() ->
-    [attributes_to_get_opt(),
+    [expression_attribute_names_opt(),
+     projection_expression_opt(),
+     attributes_to_get_opt(),
      consistent_read_opt()].
 
 -type batch_get_item_request_item() :: {table_name(), [key(),...], batch_get_item_request_item_opts()} |
@@ -960,6 +1015,10 @@ dynamize_batch_get_item_request_items(Request) ->
                                         -> batch_get_item_request_item().
 batch_get_item_request_item_folder({<<"Keys">>, Keys}, {Table, _, Opts}) ->
     {Table, [undynamize_typed_key(K, []) || K <- Keys], Opts};
+batch_get_item_request_item_folder({<<"ExpressionAttributeNames">>, Value}, {Table, Keys, Opts}) ->
+    {Table, Keys, [{expression_attribute_names, undynamize_expression_attribute_names(Value, [])} | Opts]};
+batch_get_item_request_item_folder({<<"ProjectionExpression">>, Value}, {Table, Keys, Opts}) ->
+    {Table, Keys, [{projection_expression, undynamize_expression(Value, [])} | Opts]};
 batch_get_item_request_item_folder({<<"AttributesToGet">>, Value}, {Table, Keys, Opts}) ->
     {Table, Keys, [{attributes_to_get, Value} | Opts]};
 batch_get_item_request_item_folder({<<"ConsistentRead">>, Value}, {Table, Keys, Opts}) ->
@@ -1280,7 +1339,10 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
 %%% DeleteItem
 %%%------------------------------------------------------------------------------
 
--type delete_item_opt() :: conditional_op_opt() |
+-type delete_item_opt() :: expression_attribute_names_opt() |
+                           expression_attribute_values_opt() |
+                           condition_expression_opt() |
+                           conditional_op_opt() |
                            expected_opt() | 
                            {return_values, none | all_old} |
                            return_consumed_capacity_opt() |
@@ -1290,7 +1352,10 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
 
 -spec delete_item_opts() -> opt_table().
 delete_item_opts() ->
-    [conditional_op_opt(),
+    [expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
+     condition_expression_opt(),
+     conditional_op_opt(),
      expected_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
      return_consumed_capacity_opt(),
@@ -1444,7 +1509,9 @@ describe_table(Table, Opts, Config) ->
 %%% GetItem
 %%%------------------------------------------------------------------------------
 
--type get_item_opt() :: attributes_to_get_opt() |
+-type get_item_opt() :: expression_attribute_names_opt() |
+                        projection_expression_opt() |
+                        attributes_to_get_opt() |
                         consistent_read_opt() |
                         return_consumed_capacity_opt() |
                         out_opt().
@@ -1452,7 +1519,9 @@ describe_table(Table, Opts, Config) ->
 
 -spec get_item_opts() -> opt_table().
 get_item_opts() ->
-    [attributes_to_get_opt(),
+    [expression_attribute_names_opt(),
+     projection_expression_opt(),
+     attributes_to_get_opt(),
      consistent_read_opt(),
      return_consumed_capacity_opt()].
 
@@ -1568,7 +1637,10 @@ list_tables(Opts, Config) ->
 %%% PutItem
 %%%------------------------------------------------------------------------------
 
--type put_item_opt() :: conditional_op_opt() |
+-type put_item_opt() :: expression_attribute_names_opt() |
+                        expression_attribute_values_opt() |
+                        condition_expression_opt() |
+                        conditional_op_opt() |
                         expected_opt() | 
                         {return_values, none | all_old} |
                         return_consumed_capacity_opt() |
@@ -1578,7 +1650,10 @@ list_tables(Opts, Config) ->
 
 -spec put_item_opts() -> opt_table().
 put_item_opts() ->
-    [conditional_op_opt(),
+    [expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
+     condition_expression_opt(),
+     conditional_op_opt(),
      expected_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
      return_consumed_capacity_opt(),
@@ -1643,8 +1718,12 @@ put_item(Table, Item, Opts, Config) ->
 %%% Query
 %%%------------------------------------------------------------------------------
 
--type q_opt() :: attributes_to_get_opt() | 
+-type q_opt() :: expression_attribute_names_opt() |
+                 expression_attribute_values_opt() |
+                 projection_expression_opt() |
+                 attributes_to_get_opt() |
                  consistent_read_opt() |
+                 {filter_expression, expression()} |
                  conditional_op_opt() |
                  {query_filter, conditions()} |
                  {limit, pos_integer()} |
@@ -1658,8 +1737,12 @@ put_item(Table, Item, Opts, Config) ->
 
 -spec q_opts() -> opt_table().
 q_opts() ->
-    [attributes_to_get_opt(),
+    [expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
+     projection_expression_opt(),
+     attributes_to_get_opt(),
      consistent_read_opt(),
+     {filter_expression, <<"FilterExpression">>, fun dynamize_expression/1},
      conditional_op_opt(),
      {query_filter, <<"QueryFilter">>, fun dynamize_conditions/1},
      {limit, <<"Limit">>, fun id/1},
@@ -1669,6 +1752,12 @@ q_opts() ->
      {select, <<"Select">>, fun dynamize_select/1},
      return_consumed_capacity_opt()
     ].
+
+-spec dynamize_q_key_conditions_or_expression(conditions() | expression()) -> json_pair().
+dynamize_q_key_conditions_or_expression(KeyConditionExpression) when is_binary(KeyConditionExpression) ->
+    {<<"KeyConditionExpression">>, dynamize_expression(KeyConditionExpression)};
+dynamize_q_key_conditions_or_expression(KeyConditions) ->
+    {<<"KeyConditions">>, dynamize_conditions(KeyConditions)}.
 
 -spec q_record() -> record_desc().
 q_record() ->
@@ -1682,13 +1771,13 @@ q_record() ->
 
 -type q_return() :: ddb_return(#ddb2_q{}, [out_item()]).
 
--spec q(table_name(), conditions()) -> q_return().
-q(Table, KeyConditions) ->
-    q(Table, KeyConditions, [], default_config()).
+-spec q(table_name(), conditions() | expression()) -> q_return().
+q(Table, KeyConditionsOrExpression) ->
+    q(Table, KeyConditionsOrExpression, [], default_config()).
 
--spec q(table_name(), conditions(), q_opts()) -> q_return().
-q(Table, KeyConditions, Opts) ->
-    q(Table, KeyConditions, Opts, default_config()).
+-spec q(table_name(), conditions() | expression(), q_opts()) -> q_return().
+q(Table, KeyConditionsOrExpression, Opts) ->
+    q(Table, KeyConditionsOrExpression, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -1717,14 +1806,14 @@ q(Table, KeyConditions, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec q(table_name(), conditions(), q_opts(), aws_config()) -> q_return().
-q(Table, KeyConditions, Opts, Config) ->
+-spec q(table_name(), conditions() | expression(), q_opts(), aws_config()) -> q_return().
+q(Table, KeyConditionsOrExpression, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(q_opts(), Opts),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.Query",
                [{<<"TableName">>, Table},
-                {<<"KeyConditions">>, dynamize_conditions(KeyConditions)}]
+                dynamize_q_key_conditions_or_expression(KeyConditionsOrExpression)]
                ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(q_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_q.items, {ok, []}).
@@ -1733,7 +1822,11 @@ q(Table, KeyConditions, Opts, Config) ->
 %%% Scan
 %%%------------------------------------------------------------------------------
 
--type scan_opt() :: attributes_to_get_opt() | 
+-type scan_opt() :: expression_attribute_names_opt() |
+                    expression_attribute_values_opt() |
+                    projection_expression_opt() |
+                    attributes_to_get_opt() |
+                    {filter_expression, expression()} |
                     conditional_op_opt() |
                     {scan_filter, conditions()} |
                     {limit, pos_integer()} |
@@ -1748,7 +1841,11 @@ q(Table, KeyConditions, Opts, Config) ->
 
 -spec scan_opts() -> opt_table().
 scan_opts() ->
-    [attributes_to_get_opt(),
+    [expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
+     projection_expression_opt(),
+     attributes_to_get_opt(),
+     {filter_expression, <<"FilterExpression">>, fun dynamize_expression/1},
      conditional_op_opt(),
      {scan_filter, <<"ScanFilter">>, fun dynamize_conditions/1},
      {limit, <<"Limit">>, fun id/1},
@@ -1839,7 +1936,19 @@ dynamize_update({Name, Value}) ->
 dynamize_updates(Updates) ->
     dynamize_maybe_list(fun dynamize_update/1, Updates).
 
--type update_item_opt() :: conditional_op_opt() |
+-spec dynamize_update_item_updates_or_expression(in_updates() | expression()) -> [json_pair()].
+dynamize_update_item_updates_or_expression(UpdateExpression) when is_binary(UpdateExpression) ->
+    [{<<"UpdateExpression">>, dynamize_expression(UpdateExpression)}];
+dynamize_update_item_updates_or_expression(Updates) ->
+    case Updates of
+        [] -> [];
+        _  -> [{<<"AttributeUpdates">>, dynamize_updates(Updates)}]
+    end.
+
+-type update_item_opt() :: expression_attribute_names_opt() |
+                           expression_attribute_values_opt() |
+                           condition_expression_opt() |
+                           conditional_op_opt() |
                            expected_opt() | 
                            {return_values, return_value()} |
                            return_consumed_capacity_opt() |
@@ -1849,7 +1958,10 @@ dynamize_updates(Updates) ->
 
 -spec update_item_opts() -> opt_table().
 update_item_opts() ->
-    [conditional_op_opt(),
+    [expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
+     condition_expression_opt(),
+     conditional_op_opt(),
      expected_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
      return_consumed_capacity_opt(),
@@ -1866,13 +1978,13 @@ update_item_record() ->
 
 -type update_item_return() :: ddb_return(#ddb2_update_item{}, out_item()).
 
--spec update_item(table_name(), key(), in_updates()) -> update_item_return().
-update_item(Table, Key, Updates) ->
-    update_item(Table, Key, Updates, [], default_config()).
+-spec update_item(table_name(), key(), in_updates() | expression()) -> update_item_return().
+update_item(Table, Key, UpdatesOrExpression) ->
+    update_item(Table, Key, UpdatesOrExpression, [], default_config()).
 
--spec update_item(table_name(), key(), in_updates(), update_item_opts()) -> update_item_return().
-update_item(Table, Key, Updates, Opts) ->
-    update_item(Table, Key, Updates, Opts, default_config()).
+-spec update_item(table_name(), key(), in_updates() | expression(), update_item_opts()) -> update_item_return().
+update_item(Table, Key, UpdatesOrExpression, Opts) ->
+    update_item(Table, Key, UpdatesOrExpression, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -1900,18 +2012,15 @@ update_item(Table, Key, Updates, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec update_item(table_name(), key(), in_updates(), update_item_opts(), aws_config()) -> update_item_return().
-update_item(Table, Key, Updates, Opts, Config) ->
+-spec update_item(table_name(), key(), in_updates() | expression(), update_item_opts(), aws_config()) -> update_item_return().
+update_item(Table, Key, UpdatesOrExpression, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(update_item_opts(), Opts),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.UpdateItem",
                [{<<"TableName">>, Table},
                 {<<"Key">>, dynamize_key(Key)}]
-               ++ case Updates of 
-                      [] -> [];
-                      _  -> [{<<"AttributeUpdates">>, dynamize_updates(Updates)}]
-                  end
+               ++ dynamize_update_item_updates_or_expression(UpdatesOrExpression)
                ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_item_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_update_item.attributes, {ok, []}).

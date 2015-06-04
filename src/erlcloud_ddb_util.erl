@@ -29,6 +29,7 @@
 
 -type attr_name() :: erlcloud_ddb2:attr_name().
 -type batch_get_item_request_item() :: erlcloud_ddb2:batch_get_item_request_item().
+-type expression() :: erlcloud_ddb2:expression().
 -type conditions() :: erlcloud_ddb2:conditions().
 -type ddb_opts() :: erlcloud_ddb2:ddb_opts().
 -type get_item_opts() :: erlcloud_ddb2:get_item_opts().
@@ -169,13 +170,13 @@ batch_get_retry(RequestItems, Config, Acc) ->
 %%% q_all
 %%%------------------------------------------------------------------------------
 
--spec q_all(table_name(), conditions()) -> items_return().
-q_all(Table, Conditions) ->
-    q_all(Table, Conditions, [], default_config()).
+-spec q_all(table_name(), conditions() | expression()) -> items_return().
+q_all(Table, KeyConditionsOrExpression) ->
+    q_all(Table, KeyConditionsOrExpression, [], default_config()).
 
--spec q_all(table_name(), conditions(), q_opts()) -> items_return().
-q_all(Table, Conditions, Opts) ->
-    q_all(Table, Conditions, Opts, default_config()).
+-spec q_all(table_name(), conditions() | expression(), q_opts()) -> items_return().
+q_all(Table, KeyConditionsOrExpression, Opts) ->
+    q_all(Table, KeyConditionsOrExpression, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -198,14 +199,14 @@ q_all(Table, Conditions, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec q_all(table_name(), conditions(), q_opts(), aws_config()) -> items_return().
-q_all(Table, Conditions, Opts, Config) ->
-    q_all(Table, Conditions, Opts, Config, [], undefined).
+-spec q_all(table_name(), conditions() | expression(), q_opts(), aws_config()) -> items_return().
+q_all(Table, KeyConditionsOrExpression, Opts, Config) ->
+    q_all(Table, KeyConditionsOrExpression, Opts, Config, [], undefined).
 
--spec q_all(table_name(), conditions(), q_opts(), aws_config(), [out_item()], key() | undefined) 
+-spec q_all(table_name(), conditions() | expression(), q_opts(), aws_config(), [out_item()], key() | undefined)
            -> items_return().
-q_all(Table, Conditions, Opts, Config, Acc, StartKey) ->
-    case erlcloud_ddb2:q(Table, Conditions, 
+q_all(Table, KeyConditionsOrExpression, Opts, Config, Acc, StartKey) ->
+    case erlcloud_ddb2:q(Table, KeyConditionsOrExpression,
                          [{exclusive_start_key, StartKey}, {out, record} | Opts], 
                          Config) of
         {error, Reason} ->
@@ -213,7 +214,7 @@ q_all(Table, Conditions, Opts, Config, Acc, StartKey) ->
         {ok, #ddb2_q{last_evaluated_key = undefined, items = Items}} ->
             {ok, flatreverse([Items | Acc])};
         {ok, #ddb2_q{last_evaluated_key = LastKey, items = Items}} ->
-            q_all(Table, Conditions, Opts, Config, [Items | Acc], LastKey)
+            q_all(Table, KeyConditionsOrExpression, Opts, Config, [Items | Acc], LastKey)
     end.
 
 %%%------------------------------------------------------------------------------
