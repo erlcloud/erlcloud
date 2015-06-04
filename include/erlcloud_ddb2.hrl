@@ -52,6 +52,9 @@
         }).
 -record(ddb2_consumed_capacity,
         {capacity_units :: number(),
+         global_secondary_indexes :: [{erlcloud_ddb2:index_name(), number()}],
+         local_secondary_indexes :: [{erlcloud_ddb2:index_name(), number()}],
+         table :: number(),
          table_name :: erlcloud_ddb2:table_name()
         }).
 -record(ddb2_item_collection_metrics,
