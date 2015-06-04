@@ -72,10 +72,6 @@
          unprocessed_keys = [] :: [erlcloud_ddb2:batch_get_item_request_item()]
         }).
 
--record(ddb2_batch_write_item_response,
-        {table :: erlcloud_ddb2:table_name(),
-         consumed_capacity_units :: number()
-        }).
 -record(ddb2_batch_write_item,
         {consumed_capacity :: [#ddb2_consumed_capacity{}],
          item_collection_metrics :: [{erlcloud_ddb2:table_name(), [#ddb2_item_collection_metrics{}]}],
@@ -120,7 +116,8 @@
         {consumed_capacity :: #ddb2_consumed_capacity{},
          count :: non_neg_integer(),
          items :: [erlcloud_ddb2:out_item()],
-         last_evaluated_key :: erlcloud_ddb2:key()
+         last_evaluated_key :: erlcloud_ddb2:key(),
+         scanned_count :: non_neg_integer()
         }).
 
 -record(ddb2_scan, 
