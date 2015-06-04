@@ -21,7 +21,8 @@
 %%% DynamoDB Higher Layer API
 -export([delete_hash_key/3, delete_hash_key/4, delete_hash_key/5,
          get_all/2, get_all/3, get_all/4,
-         q_all/2, q_all/3, q_all/4
+         q_all/2, q_all/3, q_all/4,
+         scan_all/1, scan_all/2, scan_all/3
         ]).
 
 -define(BATCH_WRITE_LIMIT, 25).
@@ -32,11 +33,12 @@
 -type expression() :: erlcloud_ddb2:expression().
 -type conditions() :: erlcloud_ddb2:conditions().
 -type ddb_opts() :: erlcloud_ddb2:ddb_opts().
--type get_item_opts() :: erlcloud_ddb2:get_item_opts().
+-type batch_get_item_request_item_opts() :: erlcloud_ddb2:batch_get_item_request_item_opts().
 -type key() :: erlcloud_ddb2:key().
--type hash_key() :: erlcloud_ddb2:hash_key().
+-type hash_key() :: erlcloud_ddb2:in_attr().
 -type out_item() :: erlcloud_ddb2:out_item().
 -type q_opts() :: erlcloud_ddb2:q_opts().
+-type scan_opts() :: erlcloud_ddb2:scan_opts().
 -type table_name() :: erlcloud_ddb2:table_name().
 
 -type items_return() :: {ok, [out_item()]} | {error, term()}.
@@ -109,7 +111,7 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts, Config) ->
 get_all(Table, Keys) ->
     get_all(Table, Keys, [], default_config()).
 
--spec get_all(table_name(), [key()], get_item_opts()) -> items_return().
+-spec get_all(table_name(), [key()], batch_get_item_request_item_opts()) -> items_return().
 get_all(Table, Keys, Opts) ->
     get_all(Table, Keys, Opts, default_config()).
 
@@ -135,7 +137,7 @@ get_all(Table, Keys, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_all(table_name(), [key()], get_item_opts(), aws_config()) -> items_return().
+-spec get_all(table_name(), [key()], batch_get_item_request_item_opts(), aws_config()) -> items_return().
 get_all(Table, Keys, Opts, Config) when length(Keys) =< ?BATCH_GET_LIMIT ->
     batch_get_retry([{Table, Keys, Opts}], Config, []);
 get_all(Table, Keys, Opts, Config) ->
@@ -203,7 +205,7 @@ q_all(Table, KeyConditionsOrExpression, Opts) ->
 q_all(Table, KeyConditionsOrExpression, Opts, Config) ->
     q_all(Table, KeyConditionsOrExpression, Opts, Config, [], undefined).
 
--spec q_all(table_name(), conditions() | expression(), q_opts(), aws_config(), [out_item()], key() | undefined)
+-spec q_all(table_name(), conditions() | expression(), q_opts(), aws_config(), [[out_item()]], key() | undefined)
            -> items_return().
 q_all(Table, KeyConditionsOrExpression, Opts, Config, Acc, StartKey) ->
     case erlcloud_ddb2:q(Table, KeyConditionsOrExpression,
@@ -215,6 +217,54 @@ q_all(Table, KeyConditionsOrExpression, Opts, Config, Acc, StartKey) ->
             {ok, flatreverse([Items | Acc])};
         {ok, #ddb2_q{last_evaluated_key = LastKey, items = Items}} ->
             q_all(Table, KeyConditionsOrExpression, Opts, Config, [Items | Acc], LastKey)
+    end.
+
+%%%------------------------------------------------------------------------------
+%%% scan_all
+%%%------------------------------------------------------------------------------
+
+-spec scan_all(table_name()) -> items_return().
+scan_all(Table) ->
+    scan_all(Table, [], default_config()).
+
+-spec scan_all(table_name(), scan_opts()) -> items_return().
+scan_all(Table, Opts) ->
+    scan_all(Table, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% Perform one or more Scan operations to get all matching items.
+%%
+%% ===Example===
+%%
+%% `
+%% {ok, Items} =
+%%     erlcloud_ddb_util:scan_all(
+%%       <<"Thread">>,
+%%       [{segment, 0},
+%%        {total_segments, 4}]),
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec scan_all(table_name(), scan_opts(), aws_config()) -> items_return().
+scan_all(Table, Opts, Config) ->
+    scan_all(Table, Opts, Config, [], undefined).
+
+-spec scan_all(table_name(), scan_opts(), aws_config(), [[out_item()]], key() | undefined)
+        -> items_return().
+scan_all(Table, Opts, Config, Acc, StartKey) ->
+    case erlcloud_ddb2:scan(Table,
+                            [{exclusive_start_key, StartKey}, {out, record} | Opts],
+                            Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, #ddb2_scan{last_evaluated_key = undefined, items = Items}} ->
+            {ok, flatreverse([Items | Acc])};
+        {ok, #ddb2_scan{last_evaluated_key = LastKey, items = Items}} ->
+            scan_all(Table, Opts, Config, [Items | Acc], LastKey)
     end.
 
 %%%------------------------------------------------------------------------------

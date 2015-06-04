@@ -110,6 +110,8 @@
     batch_get_item_opt/0,
     batch_get_item_opts/0,
     batch_get_item_request_item/0,
+    batch_get_item_request_item_opt/0,
+    batch_get_item_request_item_opts/0,
     batch_get_item_return/0,
     batch_write_item_delete/0,
     batch_write_item_opt/0,
