@@ -820,10 +820,27 @@ out(Result, Undynamize, Opts, Index, Default) ->
 %%% Shared Records
 %%%------------------------------------------------------------------------------
 
+undynamize_consumed_capacity_units(V, _Opts) ->
+    {_, CapacityUnits} = lists:keyfind(<<"CapacityUnits">>, 1, V),
+    CapacityUnits.
+
 -spec consumed_capacity_record() -> record_desc().
 consumed_capacity_record() ->
     {#ddb2_consumed_capacity{},
      [{<<"CapacityUnits">>, #ddb2_consumed_capacity.capacity_units, fun id/2},
+      {<<"GlobalSecondaryIndexes">>, #ddb2_consumed_capacity.global_secondary_indexes,
+       fun(V, Opts) -> undynamize_object(
+                         fun({IndexName, Json}, Opts2) ->
+                                 {IndexName, undynamize_consumed_capacity_units(Json, Opts2)}
+                         end, V, Opts)
+       end},
+      {<<"LocalSecondaryIndexes">>, #ddb2_consumed_capacity.local_secondary_indexes,
+       fun(V, Opts) -> undynamize_object(
+                         fun({IndexName, Json}, Opts2) ->
+                                 {IndexName, undynamize_consumed_capacity_units(Json, Opts2)}
+                         end, V, Opts)
+       end},
+      {<<"Table">>, #ddb2_consumed_capacity.table, fun undynamize_consumed_capacity_units/2},
       {<<"TableName">>, #ddb2_consumed_capacity.table_name, fun id/2}]}.
 
 undynamize_consumed_capacity(V, Opts) ->
