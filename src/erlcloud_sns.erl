@@ -32,6 +32,7 @@
          ]).
 -export([parse_event/1, get_event_type/1, parse_event_message/1,
          get_notification_attribute/2]).
+-export([new/2, new/3, configure/2, configure/3]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -417,6 +418,34 @@ subscribe(Endpoint, Protocol, TopicArn, Config)
                 {"TopicArn", TopicArn}]),
         erlcloud_xml:get_text("/SubscribeResponse/SubscribeResult/SubscriptionArn", Doc).
 
+-spec new(string(), string()) -> aws_config().
+
+new(AccessKeyID, SecretAccessKey) ->
+    #aws_config{
+       access_key_id=AccessKeyID,
+       secret_access_key=SecretAccessKey
+      }.
+
+-spec new(string(), string(), string()) -> aws_config().
+
+new(AccessKeyID, SecretAccessKey, Host) ->
+    #aws_config{
+       access_key_id=AccessKeyID,
+       secret_access_key=SecretAccessKey,
+       sns_host=Host
+      }.
+
+-spec configure(string(), string()) -> ok.
+
+configure(AccessKeyID, SecretAccessKey) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey)),
+    ok.
+
+-spec configure(string(), string(), string()) -> ok.
+
+configure(AccessKeyID, SecretAccessKey, Host) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
+    ok.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PRIVATE

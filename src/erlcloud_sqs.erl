@@ -149,7 +149,7 @@ get_queue_attributes(QueueName) ->
 -spec get_queue_attributes/2 :: (string(), all | [sqs_queue_attribute_name()] | aws_config()) -> proplist().
 get_queue_attributes(QueueName, Config)
   when is_record(Config, aws_config) ->
-    get_queue_attributes(QueueName, all, default_config());
+    get_queue_attributes(QueueName, all, Config);
 get_queue_attributes(QueueName, AttributeNames) ->
     get_queue_attributes(QueueName, AttributeNames, default_config()).
 
@@ -161,9 +161,8 @@ get_queue_attributes(QueueName, AttributeNames, Config)
     Doc = sqs_xml_request(Config, QueueName, "GetQueueAttributes",
                           erlcloud_aws:param_list([encode_attribute_name(N) || N <- AttributeNames], "AttributeName")),
     Attrs = decode_attributes(xmerl_xpath:string("GetQueueAttributesResult/Attribute", Doc)),
-    [{decode_attribute_name(Name),
-      case Name of "Policy" -> Value; "QueueArn" -> Value; _ -> list_to_integer(Value) end} ||
-        {Name, Value} <- Attrs].
+    [{decode_attribute_name(Name), decode_attribute_value(Name, Value)} || {Name, Value} <- Attrs].
+
 
 encode_attribute_name(message_retention_period) -> "MessageRetentionPeriod";
 encode_attribute_name(queue_arn) -> "QueueArn";
@@ -177,6 +176,7 @@ encode_attribute_name(created_timestamp) -> "CreatedTimestamp";
 encode_attribute_name(delay_seconds) -> "DelaySeconds";
 encode_attribute_name(receive_message_wait_time_seconds) -> "ReceiveMessageWaitTimeSeconds";
 encode_attribute_name(policy) -> "Policy";
+encode_attribute_name(redrive_policy) -> "RedrivePolicy";
 encode_attribute_name(all) -> "All".
 
 
@@ -191,7 +191,15 @@ decode_attribute_name("LastModifiedTimestamp") -> last_modified_timestamp;
 decode_attribute_name("CreatedTimestamp") -> created_timestamp;
 decode_attribute_name("DelaySeconds") -> delay_seconds;
 decode_attribute_name("ReceiveMessageWaitTimeSeconds") -> receive_message_wait_time_seconds;
-decode_attribute_name("Policy") -> policy.
+decode_attribute_name("Policy") -> policy;
+decode_attribute_name("RedrivePolicy") -> redrive_policy.
+
+
+decode_attribute_value("Policy", Value) -> Value;
+decode_attribute_value("QueueArn", Value) -> Value;
+decode_attribute_value("RedrivePolicy", Value) -> Value;
+decode_attribute_value(_, Value) -> list_to_integer(Value).
+
 
 -spec list_queues/0 :: () -> [string()].
 list_queues() ->
@@ -338,7 +346,7 @@ send_message(QueueName, MessageBody, Config)
 send_message(QueueName, MessageBody, DelaySeconds) ->
     send_message(QueueName, MessageBody, DelaySeconds, default_config()).
 
--spec send_message/4 :: (string(), string(), 0..900, aws_config()) -> proplist().
+-spec send_message/4 :: (string(), string(), 0..900 | none, aws_config()) -> proplist().
 send_message(QueueName, MessageBody, DelaySeconds, Config)
   when is_list(QueueName), is_list(MessageBody),
        (DelaySeconds >= 0 andalso DelaySeconds =< 900) orelse
@@ -373,14 +381,16 @@ sqs_simple_request(Config, QueueName, Action, Params) ->
     ok.
 
 sqs_xml_request(Config, QueueName, Action, Params) ->
-    erlcloud_aws:aws_request_xml(post, Config#aws_config.sqs_host,
+    erlcloud_aws:aws_request_xml(post, Config#aws_config.sqs_protocol,
+                                 Config#aws_config.sqs_host, Config#aws_config.sqs_port,
                                  queue_path(QueueName), [{"Action", Action}, {"Version", ?API_VERSION}|Params], Config).
 
 sqs_request(Config, QueueName, Action, Params) ->
-    erlcloud_aws:aws_request(post, Config#aws_config.sqs_host,
+    erlcloud_aws:aws_request(post, Config#aws_config.sqs_protocol,
+                                 Config#aws_config.sqs_host, Config#aws_config.sqs_port,
                              queue_path(QueueName), [{"Action", Action}, {"Version", ?API_VERSION}|Params], Config).
 
 queue_path([$/|_] = QueueName) -> QueueName;
-queue_path(["http"|_] = URL) ->
+queue_path([$h,$t,$t,$p|_] = URL) ->
     re:replace(URL, "^https?://[^/]*", "", [{return, list}]);
 queue_path(QueueName) -> [$/|QueueName].

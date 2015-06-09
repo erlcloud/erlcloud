@@ -12,6 +12,7 @@
          list_objects/1, list_objects/2, list_objects/3,
          list_object_versions/1, list_object_versions/2, list_object_versions/3,
          copy_object/4, copy_object/5, copy_object/6,
+         delete_objects_batch/2, explore_dirstructure/3,
          delete_object/2, delete_object/3,
          delete_object_version/3, delete_object_version/4,
          get_object/2, get_object/3, get_object/4,
@@ -27,13 +28,16 @@
          complete_multipart/4, complete_multipart/6,
          abort_multipart/3, abort_multipart/6,
          list_multipart_uploads/1, list_multipart_uploads/2,
-         get_object_url/2, get_object_url/3
+         get_object_url/2, get_object_url/3,
+         get_bucket_and_key/1
         ]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
+%%% Note that get_bucket_and_key/1 may be used to obtain the Bucket and Key to pass to various
+%%%   functions here, from a URL such as https://s3.amazonaws.com/some_bucket/path_to_file
 
 -spec new(string(), string()) -> aws_config().
 
@@ -193,6 +197,63 @@ delete_bucket(BucketName) ->
 delete_bucket(BucketName, Config)
   when is_list(BucketName) ->
     s3_simple_request(Config, delete, BucketName, "/", "", [], <<>>, []).
+
+-spec delete_objects_batch(string(), list()) -> no_return().
+
+delete_objects_batch(Bucket, KeyList) ->
+    Config = default_config(),
+    Data = lists:map(fun(Item) ->
+            lists:concat(["<Object><Key>", Item, "</Key></Object>"]) end, 
+                KeyList),
+    Payload = unicode:characters_to_list(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Delete>" ++ Data ++ "</Delete>", 
+                utf8),
+
+    
+    
+    
+    Len = integer_to_list(string:len(Payload)),
+    Url = lists:flatten([Config#aws_config.s3_scheme, 
+                Bucket, ".", Config#aws_config.s3_host, port_spec(Config), "/?delete"]),
+    Host = Bucket ++ "." ++ Config#aws_config.s3_host,
+    ContentMD5 = base64:encode(erlcloud_util:md5(Payload)),
+    Headers = [{"host", Host},
+               {"content-md5", binary_to_list(ContentMD5)},
+               {"content-length", Len}],
+    Result = erlcloud_httpc:request(
+        Url, "POST", Headers, Payload, 1000, Config),
+    erlcloud_aws:http_headers_body(Result).
+
+% returns paths list from AWS S3 root directory, used as input to delete_objects_batch
+% example : 
+%    25> rp(erlcloud_s3:explore_dirstructure("xmppfiledev", ["sailfish/deleteme"], [])).
+%    ["sailfish/deleteme/deep/deep1/deep4/ZZZ_1.txt",
+%     "sailfish/deleteme/deep/deep1/deep4/ZZZ_0.txt",
+%     "sailfish/deleteme/deep/deep1/ZZZ_0.txt",
+%     "sailfish/deleteme/deep/ZZZ_0.txt"]
+%    ok
+%
+-spec explore_dirstructure(string(), list(), list()) -> list().
+
+explore_dirstructure(_, [], Result) -> 
+                                    lists:append(Result);
+explore_dirstructure(Bucketname, [Branch|Tail], Accum) ->
+    ProcessContent = fun(Data)->
+            Content = proplists:get_value(contents, Data),
+            lists:foldl(fun(I,Acc)-> R = proplists:get_value(key, I), [R|Acc] end, [], Content)
+            end,
+    
+    Data = erlcloud_s3:list_objects(Bucketname,[{prefix, Branch}, {delimiter, "/"}]),
+    case proplists:get_value(common_prefixes, Data) of
+        [] -> % it has reached end of the branch
+            Files = ProcessContent(Data),
+            explore_dirstructure(Bucketname, Tail, [Files|Accum]);
+        Sub ->
+            Files = ProcessContent(Data),
+            List = lists:foldl(fun(I,Acc)-> R = proplists:get_value(prefix, I), [R|Acc] end, [], Sub),
+            Result = explore_dirstructure(Bucketname, List, Accum),
+            explore_dirstructure(Bucketname, Tail, [Result, Files|Accum])
+    end.
 
 -spec delete_object(string(), string()) -> proplist().
 
@@ -429,6 +490,7 @@ get_object(BucketName, Key, Options, Config) ->
     [{etag, proplists:get_value("etag", Headers)},
      {content_length, proplists:get_value("content-length", Headers)},
      {content_type, proplists:get_value("content-type", Headers)},
+     {content_encoding, proplists:get_value("content-encoding", Headers)},
      {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
      {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
      {content, Body}|
@@ -492,6 +554,7 @@ get_object_metadata(BucketName, Key, Options, Config) ->
      {etag, proplists:get_value("etag", Headers)},
      {content_length, proplists:get_value("content-length", Headers)},
      {content_type, proplists:get_value("content-type", Headers)},
+     {content_encoding, proplists:get_value("content-encoding", Headers)},
      {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
      {version_id, proplists:get_value("x-amz-version-id", Headers, "false")}|extract_metadata(Headers)].
 
@@ -508,7 +571,7 @@ get_object_torrent(BucketName, Key) ->
 get_object_torrent(BucketName, Key, Config) ->
     {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], "torrent", [], <<>>, []),
     [{delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
-     {version_id, proplists:get_value("x-amz-delete-marker", Headers, "false")},
+     {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
      {torrent, Body}].
 
 -spec list_object_versions(string()) -> proplist().
@@ -636,7 +699,11 @@ sign_get(Expire_time, BucketName, Key, Config)
     {Mega, Sec, _Micro} = os:timestamp(),
     Datetime = (Mega * 1000000) + Sec,
     Expires = integer_to_list(Expire_time + Datetime),
-    To_sign = lists:flatten(["GET\n\n\n", Expires, "\n/", BucketName, "/", Key]),
+    SecurityTokenToSign = case Config#aws_config.security_token of
+        undefined -> "";
+        SecurityToken -> "x-amz-security-token:" ++ SecurityToken ++ "\n"
+    end,
+    To_sign = lists:flatten(["GET\n\n\n", Expires, "\n", SecurityTokenToSign, "/", BucketName, "/", Key]),
     Sig = base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, To_sign)),
     {Sig, Expires}.
 
@@ -651,7 +718,11 @@ make_link(Expire_time, BucketName, Key, Config) ->
     EncodedKey = erlcloud_http:url_encode_loose(Key),
     {Sig, Expires} = sign_get(Expire_time, BucketName, EncodedKey, Config),
     Host = lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config)]),
-    URI = lists:flatten(["/", EncodedKey, "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), "&Signature=", erlcloud_http:url_encode(Sig), "&Expires=", Expires]),
+    SecurityTokenQS = case Config#aws_config.security_token of
+        undefined -> "";
+        SecurityToken -> "&x-amz-security-token=" ++ erlcloud_http:url_encode(SecurityToken)
+    end,
+    URI = lists:flatten(["/", EncodedKey, "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), "&Signature=", erlcloud_http:url_encode(Sig), "&Expires=", Expires, SecurityTokenQS]),
     {list_to_integer(Expires),
      binary_to_list(erlang:iolist_to_binary(Host)),
      binary_to_list(erlang:iolist_to_binary(URI))}.
@@ -675,10 +746,15 @@ make_get_url(Expire_time, BucketName, Key) ->
 
 make_get_url(Expire_time, BucketName, Key, Config) ->
     {Sig, Expires} = sign_get(Expire_time, BucketName, erlcloud_http:url_encode_loose(Key), Config),
-    [Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key,
+    SecurityTokenQS = case Config#aws_config.security_token of
+        undefined -> "";
+        SecurityToken -> "&x-amz-security-token=" ++ erlcloud_http:url_encode(SecurityToken)
+    end,
+    lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key,
      "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id),
      "&Signature=", erlcloud_http:url_encode(Sig),
-     "&Expires=", Expires].
+     "&Expires=", Expires,
+     SecurityTokenQS]).
 
 -spec start_multipart(string(), string()) -> {ok, proplist()} | {error, any()}.
 start_multipart(BucketName, Key)
@@ -865,6 +941,33 @@ set_bucket_attribute(BucketName, AttributeName, Value, Config)
     Headers = [{"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, "/", Subresource, [], POSTData, Headers).
 
+%%% See http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html and
+%%%   http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAPI.html for info on
+%%%   addressing
+-spec get_bucket_and_key(string()) -> {string(), string()}.
+
+get_bucket_and_key(Uri) ->
+  {ok, Parsed} = http_uri:parse(Uri),
+  {Host, Path} = extract_host_and_path(Parsed),
+  extract_location_fields(Host, Path).
+
+extract_host_and_path({_Scheme, _UserInfo, Host, _Port, Path, _Query}) ->
+  {Host, Path}.
+
+extract_location_fields(Host, Path) ->
+  HostTokens = string:tokens(Host, "."),
+  extract_bucket_and_key(HostTokens, Path).
+
+extract_bucket_and_key([Bucket, _S3, _AmazonAWS, _Com], [$/ | Key]) ->
+  %% Virtual-hosted-style URL
+  %% For example: bucket_name.s3.amazonaws.com/path/to/key
+  {Bucket, Key};
+extract_bucket_and_key([_S3, _AmazonAWS, _Com], [$/ | BucketAndKey]) ->
+  %% Path-style URL
+  %% For example: s3.amazonaws.com/bucket_name/path/to/key
+  [Bucket, Key] = re:split(BucketAndKey, "/", [{return, list}, {parts, 2}]),
+  {Bucket, Key}.
+
 encode_grants(Grants) ->
     [encode_grant(Grant) || Grant <- Grants].
 
@@ -968,8 +1071,10 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
                                 case Subresource of "" -> ""; _ -> [$?, Subresource] end,
                                 if
                                     Params =:= [] -> "";
-                                    Subresource =:= "" -> [$?, erlcloud_http:make_query_string(Params)];
-                                    true -> [$&, erlcloud_http:make_query_string(Params)]
+                                    Subresource =:= "" ->
+                                      [$?, erlcloud_http:make_query_string(Params, no_assignment)];
+                                    true ->
+                                      [$&, erlcloud_http:make_query_string(Params, no_assignment)]
                                 end
                                ]),
 
@@ -1012,7 +1117,8 @@ make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
     FilteredParams = [{Name, Value} || {Name, Value} <- Params,
                                        lists:member(Name, SubResourcesToInclude)],
 
-    ParamsQueryString = erlcloud_http:make_query_string(lists:keysort(1, FilteredParams)),
+    ParamsQueryString = erlcloud_http:make_query_string(lists:keysort(1, FilteredParams),
+                                                        no_assignment),
     StringToSign = [string:to_upper(atom_to_list(Method)), $\n,
                     ContentMD5, $\n,
                     ContentType, $\n,
