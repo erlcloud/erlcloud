@@ -21,13 +21,15 @@
 %%
 %% Attribute values may be either `{Type, Value}' or `Value'. If only
 %% `Value' is provided then the type is inferred. Lists (iolists are
-%% handled) and binaries are assumed to be strings. The following are
-%% equivalent: `{s, <<"value">>}', `<<"value">>', `"value"'. Numbers
+%% handled), binaries and atoms are assumed to be strings. The following are
+%% equivalent: `{s, <<"value">>}', `<<"value">>', `"value"', `value'. Numbers
 %% are assumed to be numbers. The following are equivalent: `{n, 42}',
 %% `42'. To specify the AWS binary or set types an explicit `Type'
 %% must be provided. For example: `{b, <<1,2,3>>}' or `{ns,
 %% [4,5,6]}'. Note that binary values will be base64 encoded and
-%% decoded automatically.
+%% decoded automatically. Since some atoms (such as `false', `not_null',
+%% `null', `undefined', `delete', etc) have special meanings in some cases,
+%% use them carefully.
 %%
 %% Output is in the form of `{ok, Value}' or `{error, Reason}'. The
 %% format of `Value' is controlled by the `out' option, which defaults
@@ -108,6 +110,8 @@
     batch_get_item_opt/0,
     batch_get_item_opts/0,
     batch_get_item_request_item/0,
+    batch_get_item_request_item_opt/0,
+    batch_get_item_request_item_opts/0,
     batch_get_item_return/0,
     batch_write_item_delete/0,
     batch_write_item_opt/0,
@@ -134,16 +138,15 @@
     delete_table_return/0,
     describe_table_return/0,
     expected_opt/0,
+    expression/0,
+    expression_attribute_names/0,
+    expression_attribute_values/0,
     get_item_opt/0,
     get_item_opts/0,
     get_item_return/0,
     global_secondary_index_update/0,
     global_secondary_index_updates/0,
     in_attr/0,
-    in_attr_data/0,
-    in_attr_data_scalar/0,
-    in_attr_data_set/0,
-    in_attr_typed_value/0,
     in_attr_value/0,
     in_expected/0,
     in_expected_item/0,
@@ -222,15 +225,25 @@ default_config() -> erlcloud_aws:default_config().
 %%%------------------------------------------------------------------------------
 
 -type table_name() :: binary().
--type attr_type() :: s | n | b | ss | ns | bs.
+-type attr_type() :: s | n | b | bool | null | ss | ns | bs | l | m.
 -type attr_name() :: binary().
 -type maybe_list(T) :: T | [T].
 
--type in_attr_data_scalar() :: iolist() | binary() | number().
--type in_attr_data_set() :: [iolist() | binary()] | [number()].
--type in_attr_data() :: in_attr_data_scalar() | in_attr_data_set().
--type in_attr_typed_value() :: {attr_type(), in_attr_data()}.
--type in_attr_value() :: in_attr_data() | in_attr_typed_value().
+-type in_string_value() :: binary() | iolist() | atom(). %% non-empty
+-type in_number_value() :: number().
+-type in_binary_value() :: binary() | [byte()]. %% non-empty
+-type in_attr_value() :: in_string_value() |
+                         in_number_value() |
+                         {s, in_string_value()} |
+                         {n, in_number_value()} |
+                         {b, in_binary_value()} |
+                         {bool, boolean()} |
+                         {null, true} |
+                         {ss, [in_string_value(),...]} |
+                         {ns, [in_number_value(),...]} |
+                         {bs, [in_binary_value(),...]} |
+                         {l, [in_attr_value()]} |
+                         {m, [in_attr()]}.
 -type in_attr() :: {attr_name(), in_attr_value()}.
 -type in_expected_item() :: {attr_name(), false} | condition().
 -type in_expected() :: maybe_list(in_expected_item()).
@@ -238,7 +251,7 @@ default_config() -> erlcloud_aws:default_config().
 
 -type json_pair() :: {binary(), jsx:json_term()}.
 -type json_attr_type() :: binary().
--type json_attr_data() :: binary() | [binary()].
+-type json_attr_data() :: binary() | boolean() | [binary()] | [[json_attr_value()]] | [json_attr()].
 -type json_attr_value() :: {json_attr_type(), json_attr_data()}.
 -type json_attr() :: {attr_name(), [json_attr_value()]}.
 -type json_item() :: [json_attr()].
@@ -248,13 +261,42 @@ default_config() -> erlcloud_aws:default_config().
 -type key() :: maybe_list(in_attr()).
 -type attr_defs() :: maybe_list({attr_name(), attr_type()}).
 -type key_schema() :: hash_key_name() | {hash_key_name(), range_key_name()}.
+-type hash_key_name() :: attr_name().
+-type range_key_name() :: attr_name().
+-type read_units() :: pos_integer().
+-type write_units() :: pos_integer().
+
+-type index_name() :: binary().
+-type projection() :: keys_only |
+                      {include, [attr_name()]} |
+                      all.
+
+-type global_secondary_index_def() :: {index_name(), key_schema(), projection(), read_units(), write_units()}.
 
 -type return_value() :: none | all_old | updated_old | all_new | updated_new.
+
+-type expression() :: binary().
+-type expression_attribute_names() :: [{binary(), attr_name()}].
+-type expression_attribute_values() :: [{binary(), in_attr_value()}].
+
+-type conditional_op() :: 'and' | 'or'.
 
 -type comparison_op() :: eq | ne | le | lt | ge | gt | not_null | null | contains | not_contains | 
                          begins_with | in | between.
 
--type out_attr_value() :: binary() | number() | [binary()] | [number()].
+-type condition() :: {attr_name(), not_null | null} |
+                     {attr_name(), in_attr_value()} |
+                     {attr_name(), in_attr_value(), comparison_op()} |
+                     {attr_name(), {in_attr_value(), in_attr_value()}, between} |
+                     {attr_name(), [in_attr_value(),...], in}.
+-type conditions() :: maybe_list(condition()).
+
+-type select() :: all_attributes | all_projected_attributes | count | specific_attributes.
+
+-type return_consumed_capacity() :: none | total | indexes.
+-type return_item_collection_metrics() :: none | size.
+
+-type out_attr_value() :: binary() | number() | boolean() | undefined | [binary()] | [number()] | [out_attr_value()] | [out_attr()].
 -type out_attr() :: {attr_name(), out_attr_value()}.
 -type out_item() :: [out_attr() | in_attr()]. % in_attr in the case of typed_record
 -type ok_return(T) :: {ok, T} | {error, term()}.
@@ -273,6 +315,14 @@ dynamize_type(n) ->
 dynamize_type(b) ->
     <<"B">>.
 
+-spec dynamize_string(in_string_value()) -> binary().
+dynamize_string(Value) when is_binary(Value) ->
+    Value;
+dynamize_string(Value) when is_list(Value) ->
+    list_to_binary(Value);
+dynamize_string(Value) when is_atom(Value) ->
+    atom_to_binary(Value, utf8).
+
 -spec dynamize_number(number()) -> binary().
 dynamize_number(Value) when is_integer(Value) ->
     list_to_binary(integer_to_list(Value));
@@ -281,41 +331,34 @@ dynamize_number(Value) when is_float(Value) ->
     [String] = io_lib:format("~p", [Value]),
     list_to_binary(String).
 
--spec dynamize_set(attr_type(), in_attr_data_set()) -> [binary()].
-dynamize_set(ss, Values) ->
-    [iolist_to_binary(Value) || Value <- Values];
-dynamize_set(ns, Values) ->
-    [dynamize_number(Value) || Value <- Values];
-dynamize_set(bs, Values) ->
-    [base64:encode(Value) || Value <- Values].
-
 -spec dynamize_value(in_attr_value()) -> json_attr_value().
-dynamize_value({s, Value}) when is_binary(Value) ->
-    {<<"S">>, Value};
-dynamize_value({s, Value}) when is_list(Value) ->
-    {<<"S">>, list_to_binary(Value)};
-dynamize_value({s, Value}) when is_atom(Value) ->
-    {<<"S">>, atom_to_binary(Value, utf8)};
+dynamize_value({s, Value}) when is_binary(Value); is_list(Value); is_atom(Value) ->
+    {<<"S">>, dynamize_string(Value)};
 dynamize_value({n, Value}) when is_number(Value) ->
     {<<"N">>, dynamize_number(Value)};
-dynamize_value({b, Value}) when is_binary(Value) orelse is_list(Value) ->
+dynamize_value({b, Value}) when is_binary(Value); is_list(Value) ->
     {<<"B">>, base64:encode(Value)};
+dynamize_value({bool, Value}) when is_boolean(Value) ->
+    {<<"BOOL">>, Value};
+dynamize_value({null, true}) ->
+    {<<"NULL">>, true};
 
 dynamize_value({ss, Value}) when is_list(Value) ->
-    {<<"SS">>, dynamize_set(ss, Value)};
+    {<<"SS">>, [dynamize_string(V) || V <- Value]};
 dynamize_value({ns, Value}) when is_list(Value) ->
-    {<<"NS">>, dynamize_set(ns, Value)};
+    {<<"NS">>, [dynamize_number(V) || V <- Value]};
 dynamize_value({bs, Value}) when is_list(Value) ->
-    {<<"BS">>, dynamize_set(bs, Value)};
+    {<<"BS">>, [base64:encode(V) || V <- Value]};
 
-dynamize_value(Value) when is_binary(Value) ->
-    dynamize_value({s, Value});
-dynamize_value(Value) when is_list(Value) ->
-    dynamize_value({s, Value});
+dynamize_value({l, Value}) when is_list(Value) ->
+    {<<"L">>, [[dynamize_value(V)] || V <- Value]};
+dynamize_value({m, Value}) when is_list(Value) ->
+    {<<"M">>, [dynamize_attr(Attr) || Attr <- Value]};
+
+dynamize_value(Value) when is_binary(Value); is_list(Value); is_atom(Value) ->
+    {<<"S">>, dynamize_string(Value)};
 dynamize_value(Value) when is_number(Value) ->
-    dynamize_value({n, Value});
-dynamize_value(Value) when is_atom(Value) ->
-    dynamize_value({s, atom_to_binary(Value, utf8)});
+    {<<"N">>, dynamize_number(Value)};
 dynamize_value(Value) ->
     error({erlcloud_ddb, {invalid_attr_value, Value}}).
 
@@ -355,8 +398,25 @@ dynamize_maybe_list(DynamizeItem, List) when is_list(List) ->
 dynamize_maybe_list(DynamizeItem, Item) ->
     [DynamizeItem(Item)].
 
--type conditional_op() :: 'and' | 'or'.
--type conditional_op_opt() :: {conditional_op, conditional_op()}.
+-spec dynamize_projection(projection()) -> jsx:json_term().
+dynamize_projection(keys_only) ->
+    [{<<"ProjectionType">>, <<"KEYS_ONLY">>}];
+dynamize_projection(all) ->
+    [{<<"ProjectionType">>, <<"ALL">>}];
+dynamize_projection({include, AttrNames}) ->
+    [{<<"ProjectionType">>, <<"INCLUDE">>},
+     {<<"NonKeyAttributes">>, AttrNames}].
+
+-spec dynamize_global_secondary_index(global_secondary_index_def()) -> jsx:json_term().
+dynamize_global_secondary_index({IndexName, KeySchema, Projection, ReadUnits, WriteUnits}) ->
+    [{<<"IndexName">>, IndexName},
+     {<<"KeySchema">>, dynamize_key_schema(KeySchema)},
+     {<<"Projection">>, dynamize_projection(Projection)},
+     {<<"ProvisionedThroughput">>, [
+         {<<"ReadCapacityUnits">>, ReadUnits},
+         {<<"WriteCapacityUnits">>, WriteUnits}
+     ]}].
+
 -spec dynamize_conditional_op(conditional_op()) -> binary().
 dynamize_conditional_op('and') ->
     <<"AND">>;
@@ -391,6 +451,18 @@ dynamize_item(Item) when is_list(Item) ->
 dynamize_item(Item) ->
     error({erlcloud_ddb, {invalid_item, Item}}).
 
+-spec dynamize_expression(expression()) -> binary().
+dynamize_expression(Expression) ->
+    Expression.
+
+-spec dynamize_expression_attribute_names(expression_attribute_names()) -> [json_pair()].
+dynamize_expression_attribute_names(Names) ->
+    Names.
+
+-spec dynamize_expression_attribute_values(expression_attribute_values()) -> [json_pair()].
+dynamize_expression_attribute_values(Values) ->
+    [{P, [dynamize_value(Value)]} || {P, Value} <- Values].
+
 -spec dynamize_comparison(comparison_op()) -> {binary(), binary()}.
 dynamize_comparison(eq) ->
     {<<"ComparisonOperator">>, <<"EQ">>};
@@ -419,18 +491,43 @@ dynamize_comparison(in) ->
 dynamize_comparison(between) ->
     {<<"ComparisonOperator">>, <<"BETWEEN">>}.
 
--type return_consumed_capacity() :: none | total | indexes.
--type return_consumed_capacity_opt() :: {return_consumed_capacity, return_consumed_capacity()}.
+-spec dynamize_condition(condition()) -> json_pair().
+dynamize_condition({Name, not_null}) ->
+    {Name, [dynamize_comparison(not_null)]};
+dynamize_condition({Name, null}) ->
+    {Name, [dynamize_comparison(null)]};
+dynamize_condition({Name, AttrValue}) ->
+    %% Default to eq
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]},
+            dynamize_comparison(eq)]};
+dynamize_condition({Name, AttrValueList, in}) ->
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(A)] || A <- AttrValueList]},
+            dynamize_comparison(in)]};
+dynamize_condition({Name, {AttrValue1, AttrValue2}, between}) ->
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue1)], [dynamize_value(AttrValue2)]]},
+            dynamize_comparison(between)]};
+dynamize_condition({Name, AttrValue, Op}) ->
+    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]},
+            dynamize_comparison(Op)]}.
+
+-spec dynamize_conditions(conditions()) -> [json_pair()].
+dynamize_conditions(Conditions) ->
+    dynamize_maybe_list(fun dynamize_condition/1, Conditions).
+
+-spec dynamize_select(select()) -> binary().
+dynamize_select(all_attributes)           -> <<"ALL_ATTRIBUTES">>;
+dynamize_select(all_projected_attributes) -> <<"ALL_PROJECTED_ATTRIBUTES">>;
+dynamize_select(count)                    -> <<"COUNT">>;
+dynamize_select(specific_attributes)      -> <<"SPECIFIC_ATTRIBUTES">>.
+
 -spec dynamize_return_consumed_capacity(return_consumed_capacity()) -> binary().
 dynamize_return_consumed_capacity(none) ->
     <<"NONE">>;
 dynamize_return_consumed_capacity(total) ->
     <<"TOTAL">>;
 dynamize_return_consumed_capacity(indexes) ->
-	<<"INDEXES">>.
+    <<"INDEXES">>.
 
--type return_item_collection_metrics() :: none | size.
--type return_item_collection_metrics_opt() :: {return_item_collection_metrics, return_item_collection_metrics()}.
 -spec dynamize_return_item_collection_metrics(return_item_collection_metrics()) -> binary().
 dynamize_return_item_collection_metrics(none) ->
     <<"NONE">>;
@@ -472,12 +569,20 @@ undynamize_value({<<"N">>, Value}, Opts) ->
     undynamize_number(Value, Opts);
 undynamize_value({<<"B">>, Value}, _) ->
     base64:decode(Value);
+undynamize_value({<<"BOOL">>, Value}, _) when is_boolean(Value) ->
+    Value;
+undynamize_value({<<"NULL">>, true}, _) ->
+    undefined;
 undynamize_value({<<"SS">>, Values}, _) when is_list(Values) ->
     Values;
 undynamize_value({<<"NS">>, Values}, Opts) ->
     [undynamize_number(Value, Opts) || Value <- Values];
 undynamize_value({<<"BS">>, Values}, _) ->
-    [base64:decode(Value) || Value <- Values].
+    [base64:decode(Value) || Value <- Values];
+undynamize_value({<<"L">>, List}, Opts) ->
+    [undynamize_value(Value, Opts) || [Value] <- List];
+undynamize_value({<<"M">>, Map}, Opts) ->
+    [undynamize_attr(Attr, Opts) || Attr <- Map].
 
 -spec undynamize_attr(json_attr(), undynamize_opts()) -> out_attr().
 undynamize_attr({Name, [ValueJson]}, Opts) ->
@@ -504,19 +609,35 @@ undynamize_item(Json, Opts) ->
 undynamize_items(Items, Opts) ->
     [undynamize_item(I, Opts) || I <- Items].
 
--spec undynamize_value_typed(json_attr_value(), undynamize_opts()) -> in_attr_typed_value().
-undynamize_value_typed({<<"S">>, Value}, _) ->
+-spec undynamize_value_typed(json_attr_value(), undynamize_opts()) -> in_attr_value().
+undynamize_value_typed({<<"S">>, Value}, _) when is_binary(Value) ->
     {s, Value};
 undynamize_value_typed({<<"N">>, Value}, Opts) ->
     {n, undynamize_number(Value, Opts)};
 undynamize_value_typed({<<"B">>, Value}, _) ->
     {b, base64:decode(Value)};
+undynamize_value_typed({<<"BOOL">>, Value}, _) when is_boolean(Value) ->
+    {bool, Value};
+undynamize_value_typed({<<"NULL">>, true}, _) ->
+    {null, true};
 undynamize_value_typed({<<"SS">>, Values}, _) when is_list(Values) ->
     {ss, Values};
 undynamize_value_typed({<<"NS">>, Values}, Opts) ->
     {ns, [undynamize_number(Value, Opts) || Value <- Values]};
 undynamize_value_typed({<<"BS">>, Values}, _) ->
-    {bs, [base64:decode(Value) || Value <- Values]}.
+    {bs, [base64:decode(Value) || Value <- Values]};
+undynamize_value_typed({<<"L">>, List}, Opts) ->
+    {l, [undynamize_value_typed(Value, Opts) || [Value] <- List]};
+undynamize_value_typed({<<"M">>, Map}, Opts) ->
+    {m, [undynamize_attr_typed(Attr, Opts) || Attr <- Map]}.
+
+-spec undynamize_attr_typed(json_attr(), undynamize_opts()) -> in_attr().
+undynamize_attr_typed({Name, [ValueJson]}, Opts) ->
+    {Name, undynamize_value_typed(ValueJson, Opts)}.
+
+-spec undynamize_item_typed(json_item(), undynamize_opts()) -> in_item().
+undynamize_item_typed(Json, Opts) ->
+    undynamize_object(fun undynamize_attr_typed/2, Json, Opts).
 
 -spec undynamize_typed_key(json_key(), undynamize_opts()) -> key().
 undynamize_typed_key(Key, Opts) ->
@@ -541,6 +662,14 @@ undynamize_key_schema([Key1, Key2], _) ->
         <<"RANGE">> ->
             {key_name(Key2), key_name(Key1)}
     end.
+
+-spec undynamize_expression(binary(), undynamize_opts()) -> expression().
+undynamize_expression(Expression, _) ->
+    Expression.
+
+-spec undynamize_expression_attribute_names([json_pair()], undynamize_opts()) -> expression_attribute_names().
+undynamize_expression_attribute_names(Names, _) ->
+    Names.
 
 -spec undynamize_table_status(binary(), undynamize_opts()) -> table_status().
 undynamize_table_status(<<"CREATING">>, _) -> creating;
@@ -619,6 +748,24 @@ opts(Table, Opts) when is_list(Opts) ->
 opts(_, _) ->
     error({erlcloud_ddb, opts_not_list}).
 
+-type expression_attribute_names_opt() :: {expression_attribute_names, expression_attribute_names()}.
+
+-spec expression_attribute_names_opt() -> opt_table_entry().
+expression_attribute_names_opt() ->
+    {expression_attribute_names, <<"ExpressionAttributeNames">>, fun dynamize_expression_attribute_names/1}.
+
+-type expression_attribute_values_opt() :: {expression_attribute_values, expression_attribute_values()}.
+
+-spec expression_attribute_values_opt() -> opt_table_entry().
+expression_attribute_values_opt() ->
+    {expression_attribute_values, <<"ExpressionAttributeValues">>, fun dynamize_expression_attribute_values/1}.
+
+-type projection_expression_opt() :: {projection_expression, expression()}.
+
+-spec projection_expression_opt() -> opt_table_entry().
+projection_expression_opt() ->
+    {projection_expression, <<"ProjectionExpression">>, fun dynamize_expression/1}.
+
 -type attributes_to_get_opt() :: {attributes_to_get, [attr_name()]}.
 
 -spec attributes_to_get_opt() -> opt_table_entry().
@@ -631,6 +778,14 @@ attributes_to_get_opt() ->
 consistent_read_opt() ->
     {consistent_read, <<"ConsistentRead">>, fun id/1}.
 
+-type condition_expression_opt() :: {condition_expression, expression()}.
+
+-spec condition_expression_opt() -> opt_table_entry().
+condition_expression_opt() ->
+    {condition_expression, <<"ConditionExpression">>, fun dynamize_expression/1}.
+
+-type conditional_op_opt() :: {conditional_op, conditional_op()}.
+
 -spec conditional_op_opt() -> opt_table_entry().
 conditional_op_opt() ->
     {conditional_op, <<"ConditionalOperator">>, fun dynamize_conditional_op/1}.
@@ -641,26 +796,18 @@ conditional_op_opt() ->
 expected_opt() ->
     {expected, <<"Expected">>, fun dynamize_expected/1}.
 
+-type return_consumed_capacity_opt() :: {return_consumed_capacity, return_consumed_capacity()}.
+
 -spec return_consumed_capacity_opt() -> opt_table_entry().
 return_consumed_capacity_opt() ->
     {return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1}.
+
+-type return_item_collection_metrics_opt() :: {return_item_collection_metrics, return_item_collection_metrics()}.
 
 -spec return_item_collection_metrics_opt() -> opt_table_entry().
 return_item_collection_metrics_opt() ->
     {return_item_collection_metrics, <<"ReturnItemCollectionMetrics">>, 
      fun dynamize_return_item_collection_metrics/1}.
-
--type get_item_opt() :: attributes_to_get_opt() | 
-                        consistent_read_opt() |
-                        return_consumed_capacity_opt() |
-                        out_opt().
--type get_item_opts() :: [get_item_opt()].
-
--spec get_item_opts() -> opt_table().
-get_item_opts() ->
-    [attributes_to_get_opt(),
-     consistent_read_opt(),
-     return_consumed_capacity_opt()].
 
 %%%------------------------------------------------------------------------------
 %%% Output
@@ -711,10 +858,27 @@ out(Result, Undynamize, Opts, Index, Default) ->
 %%% Shared Records
 %%%------------------------------------------------------------------------------
 
+undynamize_consumed_capacity_units(V, _Opts) ->
+    {_, CapacityUnits} = lists:keyfind(<<"CapacityUnits">>, 1, V),
+    CapacityUnits.
+
 -spec consumed_capacity_record() -> record_desc().
 consumed_capacity_record() ->
     {#ddb2_consumed_capacity{},
      [{<<"CapacityUnits">>, #ddb2_consumed_capacity.capacity_units, fun id/2},
+      {<<"GlobalSecondaryIndexes">>, #ddb2_consumed_capacity.global_secondary_indexes,
+       fun(V, Opts) -> undynamize_object(
+                         fun({IndexName, Json}, Opts2) ->
+                                 {IndexName, undynamize_consumed_capacity_units(Json, Opts2)}
+                         end, V, Opts)
+       end},
+      {<<"LocalSecondaryIndexes">>, #ddb2_consumed_capacity.local_secondary_indexes,
+       fun(V, Opts) -> undynamize_object(
+                         fun({IndexName, Json}, Opts2) ->
+                                 {IndexName, undynamize_consumed_capacity_units(Json, Opts2)}
+                         end, V, Opts)
+       end},
+      {<<"Table">>, #ddb2_consumed_capacity.table, fun undynamize_consumed_capacity_units/2},
       {<<"TableName">>, #ddb2_consumed_capacity.table_name, fun id/2}]}.
 
 undynamize_consumed_capacity(V, Opts) ->
@@ -759,7 +923,8 @@ undynamize_index_status(<<"ACTIVE">>, _)   -> active.
 -spec global_secondary_index_description_record() -> record_desc().
 global_secondary_index_description_record() ->
     {#ddb2_global_secondary_index_description{},
-     [{<<"IndexName">>, #ddb2_global_secondary_index_description.index_name, fun id/2},
+     [{<<"Backfilling">>, #ddb2_global_secondary_index_description.backfilling, fun id/2},
+      {<<"IndexName">>, #ddb2_global_secondary_index_description.index_name, fun id/2},
       {<<"IndexSizeBytes">>, #ddb2_global_secondary_index_description.index_size_bytes, fun id/2},
       {<<"IndexStatus">>, #ddb2_global_secondary_index_description.index_status, fun undynamize_index_status/2},
       {<<"ItemCount">>, #ddb2_global_secondary_index_description.item_count, fun id/2},
@@ -819,19 +984,32 @@ table_description_record() ->
 batch_get_item_opts() ->
     [return_consumed_capacity_opt()].
 
--type batch_get_item_request_item() :: {table_name(), [key(),...], get_item_opts()} | 
+-type batch_get_item_request_item_opt() :: expression_attribute_names_opt() |
+                                           projection_expression_opt() |
+                                           attributes_to_get_opt() |
+                                           consistent_read_opt().
+-type batch_get_item_request_item_opts() :: [batch_get_item_request_item_opt()].
+
+-spec batch_get_item_request_item_opts() -> opt_table().
+batch_get_item_request_item_opts() ->
+    [expression_attribute_names_opt(),
+     projection_expression_opt(),
+     attributes_to_get_opt(),
+     consistent_read_opt()].
+
+-type batch_get_item_request_item() :: {table_name(), [key(),...], batch_get_item_request_item_opts()} |
                                        {table_name(), [key(),...]}.
 
 -spec dynamize_batch_get_item_request_item(batch_get_item_request_item()) 
-                                          -> {binary(), jsx:json_term()}.
+                                          -> json_pair().
 dynamize_batch_get_item_request_item({Table, Keys}) ->
     dynamize_batch_get_item_request_item({Table, Keys, []});
 dynamize_batch_get_item_request_item({Table, Keys, Opts}) ->
-    {AwsOpts, []} = opts(get_item_opts(), Opts),
+    {AwsOpts, []} = opts(batch_get_item_request_item_opts(), Opts),
     {Table, [{<<"Keys">>, [dynamize_key(K) || K <- Keys]}] ++ AwsOpts}.
 
 -type batch_get_item_request_items() :: maybe_list(batch_get_item_request_item()).
--spec dynamize_batch_get_item_request_items(batch_get_item_request_items()) -> [tuple()].
+-spec dynamize_batch_get_item_request_items(batch_get_item_request_items()) -> [json_pair()].
 dynamize_batch_get_item_request_items(Request) ->
     dynamize_maybe_list(fun dynamize_batch_get_item_request_item/1, Request).
 
@@ -839,6 +1017,10 @@ dynamize_batch_get_item_request_items(Request) ->
                                         -> batch_get_item_request_item().
 batch_get_item_request_item_folder({<<"Keys">>, Keys}, {Table, _, Opts}) ->
     {Table, [undynamize_typed_key(K, []) || K <- Keys], Opts};
+batch_get_item_request_item_folder({<<"ExpressionAttributeNames">>, Value}, {Table, Keys, Opts}) ->
+    {Table, Keys, [{expression_attribute_names, undynamize_expression_attribute_names(Value, [])} | Opts]};
+batch_get_item_request_item_folder({<<"ProjectionExpression">>, Value}, {Table, Keys, Opts}) ->
+    {Table, Keys, [{projection_expression, undynamize_expression(Value, [])} | Opts]};
 batch_get_item_request_item_folder({<<"AttributesToGet">>, Value}, {Table, Keys, Opts}) ->
     {Table, Keys, [{attributes_to_get, Value} | Opts]};
 batch_get_item_request_item_folder({<<"ConsistentRead">>, Value}, {Table, Keys, Opts}) ->
@@ -869,7 +1051,7 @@ batch_get_item_record() ->
        end}
      ]}.
 
--type batch_get_item_return() :: ddb_return(#ddb2_batch_get_item{}, [erlcloud_ddb:out_item()]).
+-type batch_get_item_return() :: ddb_return(#ddb2_batch_get_item{}, [out_item()]).
 
 -spec batch_get_item(batch_get_item_request_items()) -> batch_get_item_return().
 batch_get_item(RequestItems) ->
@@ -961,17 +1143,9 @@ dynamize_batch_write_item_request_item({Table, Requests}) ->
     {Table, [dynamize_batch_write_item_request(R) || R <- Requests]}.
 
 -type batch_write_item_request_items() :: maybe_list(batch_write_item_request_item()).
--spec dynamize_batch_write_item_request_items(batch_write_item_request_items()) -> [tuple()].
+-spec dynamize_batch_write_item_request_items(batch_write_item_request_items()) -> [json_pair()].
 dynamize_batch_write_item_request_items(Request) ->
     dynamize_maybe_list(fun dynamize_batch_write_item_request_item/1, Request).
-
--spec undynamize_attr_typed(json_attr(), undynamize_opts()) -> in_attr().
-undynamize_attr_typed({Name, [ValueJson]}, Opts) ->
-    {Name, undynamize_value_typed(ValueJson, Opts)}.
-
--spec undynamize_item_typed(json_item(), undynamize_opts()) -> in_item().
-undynamize_item_typed(Json, Opts) ->
-    undynamize_object(fun undynamize_attr_typed/2, Json, Opts).
 
 -spec batch_write_item_request_folder([{binary(), term()}], batch_write_item_request_item()) 
                                      -> batch_write_item_request_item().
@@ -1066,52 +1240,26 @@ batch_write_item(RequestItems, Opts, Config) ->
 %%% CreateTable
 %%%------------------------------------------------------------------------------
 
--type index_name() :: binary().
--type range_key_name() :: attr_name().
--type hash_key_name() :: attr_name().
--type read_units() :: pos_integer().
--type write_units() :: pos_integer().
--type projection() :: keys_only |
-                      {include, [attr_name()]} |
-                      all.
 -type local_secondary_index_def() :: {index_name(), range_key_name(), projection()}.
+-type local_secondary_indexes() :: maybe_list(local_secondary_index_def()).
+-type global_secondary_indexes() :: maybe_list(global_secondary_index_def()).
 
--type global_secondary_index_def() :: {index_name(), key_schema(), projection(),
-    read_units(), write_units()}.
-
-dynamize_projection(keys_only) ->
-    [{<<"ProjectionType">>, <<"KEYS_ONLY">>}];
-dynamize_projection(all) ->
-    [{<<"ProjectionType">>, <<"ALL">>}];
-dynamize_projection({include, AttrNames}) ->
-    [{<<"ProjectionType">>, <<"INCLUDE">>},
-     {<<"NonKeyAttributes">>, AttrNames}].
-
-dynamize_global_secondary_index({IndexName, KeySchema, Projection, ReadUnits, WriteUnits}) ->
-    [{<<"IndexName">>, IndexName},
-     {<<"KeySchema">>, dynamize_key_schema(KeySchema)},
-     {<<"Projection">>, dynamize_projection(Projection)},
-     {<<"ProvisionedThroughput">>, [
-         {<<"ReadCapacityUnits">>, ReadUnits},
-         {<<"WriteCapacityUnits">>, WriteUnits}
-     ]}].
-
-dynamize_global_secondary_indexes(Value) ->
-    [dynamize_global_secondary_index(I) || I <- Value].
-
+-spec dynamize_local_secondary_index(hash_key_name(), local_secondary_index_def()) -> jsx:json_term().
 dynamize_local_secondary_index(HashKey, {IndexName, RangeKey, Projection}) ->
     [{<<"IndexName">>, IndexName},
-     {<<"KeySchema">>, [[{<<"AttributeName">>, HashKey},
-                         {<<"KeyType">>, <<"HASH">>}],
-                        [{<<"AttributeName">>, RangeKey},
-                         {<<"KeyType">>, <<"RANGE">>}]]},
+     {<<"KeySchema">>, dynamize_key_schema({HashKey, RangeKey})},
      {<<"Projection">>, dynamize_projection(Projection)}].
 
+-spec dynamize_local_secondary_indexes(key_schema(), local_secondary_indexes()) -> jsx:json_term().
 dynamize_local_secondary_indexes({HashKey, _RangeKey}, Value) ->
-    [dynamize_local_secondary_index(HashKey, I) || I <- Value].
+    dynamize_maybe_list(fun(I) -> dynamize_local_secondary_index(HashKey, I) end, Value).
 
--type create_table_opt() :: {local_secondary_indexes, [local_secondary_index_def()]} 
-    | {global_secondary_indexes, [global_secondary_index_def()]}.
+-spec dynamize_global_secondary_indexes(global_secondary_indexes()) -> jsx:json_term().
+dynamize_global_secondary_indexes(Value) ->
+    dynamize_maybe_list(fun dynamize_global_secondary_index/1, Value).
+
+-type create_table_opt() :: {local_secondary_indexes, local_secondary_indexes()} |
+                            {global_secondary_indexes, global_secondary_indexes()}.
 -type create_table_opts() :: [create_table_opt()].
 
 -spec create_table_opts(key_schema()) -> opt_table().
@@ -1193,7 +1341,10 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
 %%% DeleteItem
 %%%------------------------------------------------------------------------------
 
--type delete_item_opt() :: conditional_op_opt() |
+-type delete_item_opt() :: expression_attribute_names_opt() |
+                           expression_attribute_values_opt() |
+                           condition_expression_opt() |
+                           conditional_op_opt() |
                            expected_opt() | 
                            {return_values, none | all_old} |
                            return_consumed_capacity_opt() |
@@ -1203,7 +1354,10 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
 
 -spec delete_item_opts() -> opt_table().
 delete_item_opts() ->
-    [conditional_op_opt(),
+    [expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
+     condition_expression_opt(),
+     conditional_op_opt(),
      expected_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
      return_consumed_capacity_opt(),
@@ -1268,7 +1422,7 @@ delete_item(Table, Key, Opts, Config) ->
 -spec delete_table_record() -> record_desc().
 delete_table_record() ->
     {#ddb2_delete_table{},
-     [{<<"TableDescription">>, #ddb2_create_table.table_description, 
+     [{<<"TableDescription">>, #ddb2_delete_table.table_description,
        fun(V, Opts) -> undynamize_record(table_description_record(), V, Opts) end}
      ]}. 
 
@@ -1357,6 +1511,22 @@ describe_table(Table, Opts, Config) ->
 %%% GetItem
 %%%------------------------------------------------------------------------------
 
+-type get_item_opt() :: expression_attribute_names_opt() |
+                        projection_expression_opt() |
+                        attributes_to_get_opt() |
+                        consistent_read_opt() |
+                        return_consumed_capacity_opt() |
+                        out_opt().
+-type get_item_opts() :: [get_item_opt()].
+
+-spec get_item_opts() -> opt_table().
+get_item_opts() ->
+    [expression_attribute_names_opt(),
+     projection_expression_opt(),
+     attributes_to_get_opt(),
+     consistent_read_opt(),
+     return_consumed_capacity_opt()].
+
 -spec get_item_record() -> record_desc().
 get_item_record() ->
     {#ddb2_get_item{},
@@ -1412,7 +1582,7 @@ get_item(Table, Key, Opts, Config) ->
 %%%------------------------------------------------------------------------------
 
 -type list_tables_opt() :: {limit, pos_integer()} | 
-                           {exclusive_start_table_name, binary()} |
+                           {exclusive_start_table_name, table_name() | undefined} |
                            out_opt().
 -type list_tables_opts() :: [list_tables_opt()].
 
@@ -1469,7 +1639,10 @@ list_tables(Opts, Config) ->
 %%% PutItem
 %%%------------------------------------------------------------------------------
 
--type put_item_opt() :: conditional_op_opt() |
+-type put_item_opt() :: expression_attribute_names_opt() |
+                        expression_attribute_values_opt() |
+                        condition_expression_opt() |
+                        conditional_op_opt() |
                         expected_opt() | 
                         {return_values, none | all_old} |
                         return_consumed_capacity_opt() |
@@ -1479,7 +1652,10 @@ list_tables(Opts, Config) ->
 
 -spec put_item_opts() -> opt_table().
 put_item_opts() ->
-    [conditional_op_opt(),
+    [expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
+     condition_expression_opt(),
+     conditional_op_opt(),
      expected_opt(),
      {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
      return_consumed_capacity_opt(),
@@ -1541,73 +1717,49 @@ put_item(Table, Item, Opts, Config) ->
         #ddb2_put_item.attributes, {ok, []}).
 
 %%%------------------------------------------------------------------------------
-%%% Queue
+%%% Query
 %%%------------------------------------------------------------------------------
 
--type condition() :: {attr_name(), not_null | null} |
-                     {attr_name(), in_attr_value()} |
-                     {attr_name(), in_attr_value(), comparison_op()} |
-                     {attr_name(), {in_attr_value(), in_attr_value()}, between} |
-                     {attr_name(), [in_attr_value(),...], in}.
--type conditions() :: maybe_list(condition()).
-
--spec dynamize_condition(condition()) -> json_pair().
-dynamize_condition({Name, not_null}) ->
-    {Name, [dynamize_comparison(not_null)]};
-dynamize_condition({Name, null}) ->
-    {Name, [dynamize_comparison(null)]};
-dynamize_condition({Name, AttrValue}) ->
-    %% Default to eq
-    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]}, 
-            dynamize_comparison(eq)]};
-dynamize_condition({Name, AttrValueList, in}) ->
-    {Name, [{<<"AttributeValueList">>, [[dynamize_value(A)] || A <- AttrValueList]},
-            dynamize_comparison(in)]};
-dynamize_condition({Name, {AttrValue1, AttrValue2}, between}) ->
-    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue1)], [dynamize_value(AttrValue2)]]},
-            dynamize_comparison(between)]};
-dynamize_condition({Name, AttrValue, Op}) ->
-    {Name, [{<<"AttributeValueList">>, [[dynamize_value(AttrValue)]]},
-            dynamize_comparison(Op)]}.
-
-dynamize_conditions(V) when is_list(V) ->
-    [dynamize_condition(I) || I <- V];
-dynamize_conditions(I) ->
-    [dynamize_condition(I)].
-
--type select() :: all_attributes | all_projected_attributes | count | specific_attributes.
-dynamize_select(all_attributes)           -> <<"ALL_ATTRIBUTES">>;
-dynamize_select(all_projected_attributes) -> <<"ALL_PROJECTED_ATTRIBUTES">>;
-dynamize_select(count)                    -> <<"COUNT">>;
-dynamize_select(specific_attributes)      -> <<"SPECIFIC_ATTRIBUTES">>.
-
-
--type q_opt() :: attributes_to_get_opt() | 
+-type q_opt() :: expression_attribute_names_opt() |
+                 expression_attribute_values_opt() |
+                 projection_expression_opt() |
+                 attributes_to_get_opt() |
+                 consistent_read_opt() |
+                 {filter_expression, expression()} |
                  conditional_op_opt() |
-                 consistent_read_opt() | 
-                 {exclusive_start_key, key() | undefined} |
-                 {index_name, index_name()} |
-                 {limit, pos_integer()} |
                  {query_filter, conditions()} |
-                 return_consumed_capacity_opt() |
+                 {limit, pos_integer()} |
+                 {exclusive_start_key, key() | undefined} |
                  boolean_opt(scan_index_forward) |
+                 {index_name, index_name()} |
                  {select, select()} |
+                 return_consumed_capacity_opt() |
                  out_opt().
 -type q_opts() :: [q_opt()].
 
 -spec q_opts() -> opt_table().
 q_opts() ->
-    [attributes_to_get_opt(),
-     conditional_op_opt(),
+    [expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
+     projection_expression_opt(),
+     attributes_to_get_opt(),
      consistent_read_opt(),
-     {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
-     {index_name, <<"IndexName">>, fun id/1},
-     {limit, <<"Limit">>, fun id/1},
+     {filter_expression, <<"FilterExpression">>, fun dynamize_expression/1},
+     conditional_op_opt(),
      {query_filter, <<"QueryFilter">>, fun dynamize_conditions/1},
-     return_consumed_capacity_opt(),
+     {limit, <<"Limit">>, fun id/1},
+     {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
      {scan_index_forward, <<"ScanIndexForward">>, fun id/1},
-     {select, <<"Select">>, fun dynamize_select/1}
+     {index_name, <<"IndexName">>, fun id/1},
+     {select, <<"Select">>, fun dynamize_select/1},
+     return_consumed_capacity_opt()
     ].
+
+-spec dynamize_q_key_conditions_or_expression(conditions() | expression()) -> json_pair().
+dynamize_q_key_conditions_or_expression(KeyConditionExpression) when is_binary(KeyConditionExpression) ->
+    {<<"KeyConditionExpression">>, dynamize_expression(KeyConditionExpression)};
+dynamize_q_key_conditions_or_expression(KeyConditions) ->
+    {<<"KeyConditions">>, dynamize_conditions(KeyConditions)}.
 
 -spec q_record() -> record_desc().
 q_record() ->
@@ -1615,18 +1767,19 @@ q_record() ->
      [{<<"ConsumedCapacity">>, #ddb2_q.consumed_capacity, fun undynamize_consumed_capacity/2},
       {<<"Count">>, #ddb2_q.count, fun id/2},
       {<<"Items">>, #ddb2_q.items, fun(V, Opts) -> [undynamize_item(I, Opts) || I <- V] end},
-      {<<"LastEvaluatedKey">>, #ddb2_q.last_evaluated_key, fun undynamize_typed_key/2}
+      {<<"LastEvaluatedKey">>, #ddb2_q.last_evaluated_key, fun undynamize_typed_key/2},
+      {<<"ScannedCount">>, #ddb2_q.scanned_count, fun id/2}
      ]}.
 
 -type q_return() :: ddb_return(#ddb2_q{}, [out_item()]).
 
--spec q(table_name(), conditions()) -> q_return().
-q(Table, KeyConditions) ->
-    q(Table, KeyConditions, [], default_config()).
+-spec q(table_name(), conditions() | expression()) -> q_return().
+q(Table, KeyConditionsOrExpression) ->
+    q(Table, KeyConditionsOrExpression, [], default_config()).
 
--spec q(table_name(), conditions(), q_opts()) -> q_return().
-q(Table, KeyConditions, Opts) ->
-    q(Table, KeyConditions, Opts, default_config()).
+-spec q(table_name(), conditions() | expression(), q_opts()) -> q_return().
+q(Table, KeyConditionsOrExpression, Opts) ->
+    q(Table, KeyConditionsOrExpression, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -1655,14 +1808,14 @@ q(Table, KeyConditions, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec q(table_name(), conditions(), q_opts(), aws_config()) -> q_return().
-q(Table, KeyConditions, Opts, Config) ->
+-spec q(table_name(), conditions() | expression(), q_opts(), aws_config()) -> q_return().
+q(Table, KeyConditionsOrExpression, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(q_opts(), Opts),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.Query",
                [{<<"TableName">>, Table},
-                {<<"KeyConditions">>, dynamize_conditions(KeyConditions)}]
+                dynamize_q_key_conditions_or_expression(KeyConditionsOrExpression)]
                ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(q_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_q.items, {ok, []}).
@@ -1671,29 +1824,39 @@ q(Table, KeyConditions, Opts, Config) ->
 %%% Scan
 %%%------------------------------------------------------------------------------
 
--type scan_opt() :: attributes_to_get_opt() | 
+-type scan_opt() :: expression_attribute_names_opt() |
+                    expression_attribute_values_opt() |
+                    projection_expression_opt() |
+                    attributes_to_get_opt() |
+                    {filter_expression, expression()} |
                     conditional_op_opt() |
-                    {exclusive_start_key, key() | undefined} |
-                    {limit, pos_integer()} |
-                    return_consumed_capacity_opt() |
                     {scan_filter, conditions()} |
+                    {limit, pos_integer()} |
+                    {exclusive_start_key, key() | undefined} |
                     {segment, non_neg_integer()} |
-                    {select, select()} |
                     {total_segments, pos_integer()} |
+                    {index_name, index_name()} |
+                    {select, select()} |
+                    return_consumed_capacity_opt() |
                     out_opt().
 -type scan_opts() :: [scan_opt()].
 
 -spec scan_opts() -> opt_table().
 scan_opts() ->
-    [attributes_to_get_opt(),
+    [expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
+     projection_expression_opt(),
+     attributes_to_get_opt(),
+     {filter_expression, <<"FilterExpression">>, fun dynamize_expression/1},
      conditional_op_opt(),
-     {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
-     {limit, <<"Limit">>, fun id/1},
-     return_consumed_capacity_opt(),
      {scan_filter, <<"ScanFilter">>, fun dynamize_conditions/1},
+     {limit, <<"Limit">>, fun id/1},
+     {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
      {segment, <<"Segment">>, fun id/1},
+     {total_segments, <<"TotalSegments">>, fun id/1},
+     {index_name, <<"IndexName">>, fun id/1},
      {select, <<"Select">>, fun dynamize_select/1},
-     {total_segments, <<"TotalSegments">>, fun id/1}
+     return_consumed_capacity_opt()
     ].
 
 -spec scan_record() -> record_desc().
@@ -1753,7 +1916,7 @@ scan(Table, Opts, Config) ->
 -type in_update() :: {attr_name(), in_attr_value(), update_action()} | in_attr() | {attr_name(), delete}.
 -type in_updates() :: maybe_list(in_update()).
 -type json_update_action() :: {binary(), binary()}.
--type json_update() :: {attr_name(), [{binary(), json_attr_value()} | json_update_action()]}.
+-type json_update() :: {attr_name(), [{binary(), [json_attr_value()]} | json_update_action()]}.
 -spec dynamize_action(update_action()) -> json_update_action().
 dynamize_action(put) ->
     {<<"Action">>, <<"PUT">>};
@@ -1775,21 +1938,36 @@ dynamize_update({Name, Value}) ->
 dynamize_updates(Updates) ->
     dynamize_maybe_list(fun dynamize_update/1, Updates).
 
--type update_item_opt() :: conditional_op_opt() |
+-spec dynamize_update_item_updates_or_expression(in_updates() | expression()) -> [json_pair()].
+dynamize_update_item_updates_or_expression(UpdateExpression) when is_binary(UpdateExpression) ->
+    [{<<"UpdateExpression">>, dynamize_expression(UpdateExpression)}];
+dynamize_update_item_updates_or_expression(Updates) ->
+    case Updates of
+        [] -> [];
+        _  -> [{<<"AttributeUpdates">>, dynamize_updates(Updates)}]
+    end.
+
+-type update_item_opt() :: expression_attribute_names_opt() |
+                           expression_attribute_values_opt() |
+                           condition_expression_opt() |
+                           conditional_op_opt() |
                            expected_opt() | 
+                           {return_values, return_value()} |
                            return_consumed_capacity_opt() |
                            return_item_collection_metrics_opt() |
-                           {return_values, return_value()} |
                            out_opt().
 -type update_item_opts() :: [update_item_opt()].
 
 -spec update_item_opts() -> opt_table().
 update_item_opts() ->
-    [conditional_op_opt(),
+    [expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
+     condition_expression_opt(),
+     conditional_op_opt(),
      expected_opt(),
+     {return_values, <<"ReturnValues">>, fun dynamize_return_value/1},
      return_consumed_capacity_opt(),
-     return_item_collection_metrics_opt(),
-     {return_values, <<"ReturnValues">>, fun dynamize_return_value/1}].
+     return_item_collection_metrics_opt()].
 
 -spec update_item_record() -> record_desc().
 update_item_record() ->
@@ -1802,13 +1980,13 @@ update_item_record() ->
 
 -type update_item_return() :: ddb_return(#ddb2_update_item{}, out_item()).
 
--spec update_item(table_name(), key(), in_updates()) -> update_item_return().
-update_item(Table, Key, Updates) ->
-    update_item(Table, Key, Updates, [], default_config()).
+-spec update_item(table_name(), key(), in_updates() | expression()) -> update_item_return().
+update_item(Table, Key, UpdatesOrExpression) ->
+    update_item(Table, Key, UpdatesOrExpression, [], default_config()).
 
--spec update_item(table_name(), key(), in_updates(), update_item_opts()) -> update_item_return().
-update_item(Table, Key, Updates, Opts) ->
-    update_item(Table, Key, Updates, Opts, default_config()).
+-spec update_item(table_name(), key(), in_updates() | expression(), update_item_opts()) -> update_item_return().
+update_item(Table, Key, UpdatesOrExpression, Opts) ->
+    update_item(Table, Key, UpdatesOrExpression, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
 %% @doc 
@@ -1836,18 +2014,15 @@ update_item(Table, Key, Updates, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec update_item(table_name(), key(), in_updates(), update_item_opts(), aws_config()) -> update_item_return().
-update_item(Table, Key, Updates, Opts, Config) ->
+-spec update_item(table_name(), key(), in_updates() | expression(), update_item_opts(), aws_config()) -> update_item_return().
+update_item(Table, Key, UpdatesOrExpression, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(update_item_opts(), Opts),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.UpdateItem",
                [{<<"TableName">>, Table},
                 {<<"Key">>, dynamize_key(Key)}]
-               ++ case Updates of 
-                      [] -> [];
-                      _  -> [{<<"AttributeUpdates">>, dynamize_updates(Updates)}]
-                  end
+               ++ dynamize_update_item_updates_or_expression(UpdatesOrExpression)
                ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_item_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_update_item.attributes, {ok, []}).
@@ -1858,32 +2033,46 @@ update_item(Table, Key, Updates, Opts, Config) ->
 
 -type update_table_return() :: ddb_return(#ddb2_update_table{}, #ddb2_table_description{}).
 
--type global_secondary_index_update() :: {index_name(), pos_integer(), pos_integer()}.
--type global_secondary_index_updates() :: [global_secondary_index_update()].
+-type global_secondary_index_update() :: {index_name(), pos_integer(), pos_integer()} |
+                                         {index_name(), delete} |
+                                         global_secondary_index_def().
+-type global_secondary_index_updates() :: maybe_list(global_secondary_index_update()).
 
--spec dynamize_global_secondary_index_update(global_secondary_index_updates()) -> jsx:json_term().
-dynamize_global_secondary_index_update(Opts) ->
-    [[{<<"Update">>, [
+-spec dynamize_global_secondary_index_update(global_secondary_index_update()) -> jsx:json_term().
+dynamize_global_secondary_index_update({IndexName, ReadUnits, WriteUnits}) ->
+    [{<<"Update">>, [
         {<<"IndexName">>, IndexName},
         {<<"ProvisionedThroughput">>, [
             {<<"ReadCapacityUnits">>, ReadUnits},
             {<<"WriteCapacityUnits">>, WriteUnits}
-        ]}        
-    ]}] || {IndexName, ReadUnits, WriteUnits} <- Opts].
+        ]}
+    ]}];
+dynamize_global_secondary_index_update({IndexName, delete}) ->
+    [{<<"Delete">>, [
+        {<<"IndexName">>, IndexName}
+    ]}];
+dynamize_global_secondary_index_update(Index) ->
+    [{<<"Create">>, dynamize_global_secondary_index(Index)}].
 
--type update_table_opt() :: {global_secondary_index_updates, global_secondary_index_updates()} 
-                          | out_opt().
+-spec dynamize_global_secondary_index_updates(global_secondary_index_updates()) -> jsx:json_term().
+dynamize_global_secondary_index_updates(Updates) ->
+    dynamize_maybe_list(fun dynamize_global_secondary_index_update/1, Updates).
+
+-type update_table_opt() :: {attribute_definitions, attr_defs()} |
+                            {global_secondary_index_updates, global_secondary_index_updates()} |
+                            out_opt().
 -type update_table_opts() :: [update_table_opt()].
 
 -spec update_table_opts() -> opt_table().
 update_table_opts() ->
-    [{global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>, 
-      fun dynamize_global_secondary_index_update/1}].
+    [{attribute_definitions, <<"AttributeDefinitions">>, fun dynamize_attr_defs/1},
+     {global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>,
+      fun dynamize_global_secondary_index_updates/1}].
 
 -spec update_table_record() -> record_desc().
 update_table_record() ->
     {#ddb2_update_table{},
-     [{<<"TableDescription">>, #ddb2_create_table.table_description, 
+     [{<<"TableDescription">>, #ddb2_update_table.table_description,
        fun(V, Opts) -> undynamize_record(table_description_record(), V, Opts) end}
      ]}. 
 
