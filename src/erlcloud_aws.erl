@@ -11,7 +11,8 @@
          param_list/2, default_config/0, update_config/1, format_timestamp/1,
          http_headers_body/1,
          request_to_return/1,
-         sign_v4/5]).
+         sign_v4_headers/5,
+         sign_v4/8]).
 
 -include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -119,18 +120,12 @@ aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) ->
     end.
 
 aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service, #aws_config{} = Config) ->
-    QueryToSign = erlcloud_http:make_query_string(Params),
-
-    Headers = [{"host", Host}],
-
+    Query = erlcloud_http:make_query_string(Params),
     Region = aws_region_from_host(Host),
 
-    SignedHeaders = case Method of
-        get -> sign_v4(Method, Config, Headers, Params, "", Region, Service);
-        post -> sign_v4(Method, Config, Headers, "", QueryToSign, Region, Service)
-    end,
+    SignedHeaders = sign_v4(Method, Path, Config, [{"host", Host}], list_to_binary(Query), Region, Service, []),
 
-    aws_request_form(Method, Protocol, Host, Port, Path, QueryToSign, SignedHeaders, Config).
+    aws_request_form(Method, Protocol, Host, Port, Path, Query, SignedHeaders, Config).
 
 
 -spec aws_request_form(Method :: atom(), Protocol :: undefined | string(), Host :: string(),
@@ -320,22 +315,20 @@ request_to_return(#aws_request{response_type = error,
     {error, {http_error, Status, StatusLine, Body}}.
 
 %% http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
-%% TODO additional parameters - currently only supports what is needed for DynamoDB
--spec sign_v4(aws_config(), headers(), binary(), string(), string()) -> headers().
-sign_v4(Config, Headers, Payload, Region, Service) ->
-    sign_v4(post, Config, Headers, [], Payload, Region, Service).
+-spec sign_v4_headers(aws_config(), headers(), binary(), string(), string()) -> headers().
+sign_v4_headers(Config, Headers, Payload, Region, Service) ->
+    sign_v4(post, "/", Config, Headers, Payload, Region, Service, []).
 
--spec sign_v4(atom(), aws_config(), headers(), string(), iodata(), string(), string()) -> headers().
-sign_v4(Method, Config, Headers, QueryParams, Payload, Region, Service) ->
+-spec sign_v4(atom(), list(), aws_config(), headers(), binary(), string(), string(), list()) -> headers().
+sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams) ->
     Date = iso_8601_basic_time(),
-    Headers1 = [{"x-amz-date", Date} | Headers],
+    PayloadHash = hash_encode(Payload),
+    Headers1 = [{"x-amz-content-sha256", PayloadHash}, {"x-amz-date", Date} | Headers],
     Headers2 = case Config#aws_config.security_token of
                    undefined -> Headers1;
                    Token -> [{"x-amz-security-token", Token} | Headers1]
                end,
-    CanonicalQueryString = canonical_query_string(QueryParams),
-    MethodString = string:to_upper(atom_to_list(Method)),
-    {Request, SignedHeaders} = canonical_request(MethodString, "/", CanonicalQueryString, Headers2, Payload),
+    {Request, SignedHeaders} = canonical_request(Method, Uri, QueryParams, Headers2, PayloadHash),
     CredentialScope = credential_scope(Date, Region, Service),
     ToSign = to_sign(Date, CredentialScope, Request),
     SigningKey = signing_key(Config, Date, Region, Service),
@@ -349,15 +342,15 @@ iso_8601_basic_time() ->
                     "~4.10.0B~2.10.0B~2.10.0BT~2.10.0B~2.10.0B~2.10.0BZ",
                     [Year, Month, Day, Hour, Min, Sec])).
 
-canonical_request(Method, CanonicalURI, QParams, Headers, Payload) ->
+canonical_request(Method, CanonicalURI, QParams, Headers, PayloadHash) ->
     {CanonicalHeaders, SignedHeaders} = canonical_headers(Headers),
     CanonicalQueryString = canonical_query_string(QParams),
-    {[Method, $\n,
+    {[string:to_upper(atom_to_list(Method)), $\n,
       CanonicalURI, $\n,
       CanonicalQueryString, $\n,
       CanonicalHeaders, $\n,
       SignedHeaders, $\n,
-      hash_encode(Payload)],
+      PayloadHash],
      SignedHeaders}.
 
 canonical_headers(Headers) ->

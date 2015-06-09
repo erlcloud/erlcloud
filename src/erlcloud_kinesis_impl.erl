@@ -150,7 +150,7 @@ client_error(Status, StatusLine, Body) ->
 headers(Config, Operation, Body) ->
     Headers = [{"host", Config#aws_config.kinesis_host},
                {"x-amz-target", Operation}],
-    erlcloud_aws:sign_v4(Config, Headers, Body, erlcloud_aws:aws_region_from_host(Config#aws_config.kinesis_host), "kinesis").
+    erlcloud_aws:sign_v4_headers(Config, Headers, Body, erlcloud_aws:aws_region_from_host(Config#aws_config.kinesis_host), "kinesis").
 
 url(#aws_config{kinesis_scheme = Scheme, kinesis_host = Host} = Config) ->
     lists:flatten([Scheme, Host, port_spec(Config)]).

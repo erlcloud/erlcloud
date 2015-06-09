@@ -179,7 +179,7 @@ headers(Config, Operation, _Params, Body, Service) ->
                {"host", Config#aws_config.cloudtrail_host},
                {"x-amz-target", Operation}
                ],
-    erlcloud_aws:sign_v4(Config, Headers, Body, erlcloud_aws:aws_region_from_host(Config#aws_config.cloudtrail_host), Service).
+    erlcloud_aws:sign_v4_headers(Config, Headers, Body, erlcloud_aws:aws_region_from_host(Config#aws_config.cloudtrail_host), Service).
 
 
 default_config() -> erlcloud_aws:default_config().

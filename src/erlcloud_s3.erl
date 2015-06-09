@@ -1044,7 +1044,7 @@ s3_request(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) 
 s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
-            s3_request2_no_update(Config1, Method, Host, Path, Subresource, Params, POSTData, Headers);
+            s3_request4_no_update(Config1, Method, Host, Path, Subresource, Params, POSTData, Headers);
         {error, Reason} ->
             {error, Reason}
     end.
@@ -1065,44 +1065,37 @@ s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Heade
             Error
     end.
 
-s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Headers0) ->
-    ContentType = proplists:get_value("content-type", Headers0, ""),
-    ContentMD5 = case Body of
-                     <<>> ->
-                         "";
-                     _ ->
-                         base64:encode(erlcloud_util:md5(Body))
-                 end,
-    Headers = case Config#aws_config.security_token of
-                  undefined -> Headers0;
-                  Token when is_list(Token) -> [{"x-amz-security-token", Token} | Headers0]
-              end,
-    FHeaders = [Header || {_, Value} = Header <- Headers, Value =/= undefined],
-    AmzHeaders = [Header || {"x-amz-" ++ _, _} = Header <- FHeaders],
-    Date = httpd_util:rfc1123_date(erlang:localtime()),
+s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body, Headers) ->
+    ContentType = proplists:get_value("content-type", Headers, ""),
+    FParams = [Param || {_, Value} = Param <- Params, Value =/= undefined],
+    FHeaders = [Header || {_, Val} = Header <- Headers, Val =/= undefined],
+    
+    QueryParams = case Subresource of "" -> FParams; _ -> [{Subresource, ""} | FParams] end,
     EscapedPath = erlcloud_http:url_encode_loose(Path),
-    Authorization = make_authorization(Config, Method, ContentMD5, ContentType,
-                                       Date, AmzHeaders, Host, EscapedPath, Subresource, Params),
-    RequestHeaders = [{"date", Date}, {"authorization", Authorization}|FHeaders] ++
-        case ContentMD5 of
-            "" -> [];
-            _ -> [{"content-md5", binary_to_list(ContentMD5)}]
-        end,
+    
+    HostName = lists:flatten([case Bucket of "" -> ""; _ -> [Bucket, $.] end,
+                              Config#aws_config.s3_host]),
+
+    RequestHeaders = erlcloud_aws:sign_v4(Method, EscapedPath, Config, 
+                      [{"host", HostName} | FHeaders ], 
+                      Body, 
+                      erlcloud_aws:aws_region_from_host(Config#aws_config.s3_host),
+                      "s3", QueryParams),
+    
     RequestURI = lists:flatten([
                                 Config#aws_config.s3_scheme,
-                                case Host of "" -> ""; _ -> [Host, $.] end,
-                                Config#aws_config.s3_host, port_spec(Config),
+                                HostName, port_spec(Config),
                                 EscapedPath,
                                 case Subresource of "" -> ""; _ -> [$?, Subresource] end,
                                 if
-                                    Params =:= [] -> "";
+                                    FParams =:= [] -> "";
                                     Subresource =:= "" ->
-                                      [$?, erlcloud_http:make_query_string(Params, no_assignment)];
+                                      [$?, erlcloud_http:make_query_string(FParams, no_assignment)];
                                     true ->
-                                      [$&, erlcloud_http:make_query_string(Params, no_assignment)]
+                                      [$&, erlcloud_http:make_query_string(FParams, no_assignment)]
                                 end
                                ]),
-
+    
     Request = #aws_request{service = s3, uri = RequestURI, method = Method},
     Request2 = case Method of
                    M when M =:= get orelse M =:= head orelse M =:= delete ->
@@ -1123,6 +1116,7 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
     Request3 = erlcloud_retry:request(Config, Request2, fun s3_result_fun/1),
     erlcloud_aws:request_to_return(Request3).
 
+
 s3_result_fun(#aws_request{response_type = ok} = Request) ->
     Request;
 s3_result_fun(#aws_request{response_type = error, 
@@ -1132,34 +1126,6 @@ s3_result_fun(#aws_request{response_type = error,
     Request#aws_request{should_retry = true};
 s3_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
     Request#aws_request{should_retry = false}.
-
-make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
-                   Host, Resource, Subresource, Params) ->
-    CanonizedAmzHeaders =
-        [[Name, $:, Value, $\n] || {Name, Value} <- lists:sort(AmzHeaders)],
-
-    SubResourcesToInclude = ["acl", "lifecycle", "location", "logging", "notification", "partNumber", "policy", "requestPayment", "torrent", "uploadId", "uploads", "versionId", "versioning", "versions", "website"],
-    FilteredParams = [{Name, Value} || {Name, Value} <- Params,
-                                       lists:member(Name, SubResourcesToInclude)],
-
-    ParamsQueryString = erlcloud_http:make_query_string(lists:keysort(1, FilteredParams),
-                                                        no_assignment),
-    StringToSign = [string:to_upper(atom_to_list(Method)), $\n,
-                    ContentMD5, $\n,
-                    ContentType, $\n,
-                    Date, $\n,
-                    CanonizedAmzHeaders,
-                    case Host of "" -> ""; _ -> [$/, Host] end,
-                    Resource,
-                    case Subresource of "" -> ""; _ -> [$?, Subresource] end,
-                    if
-                        ParamsQueryString =:= "" -> "";
-                        Subresource =:= "" -> [$?, ParamsQueryString];
-                        true -> [$&, ParamsQueryString]
-                    end
-                   ],
-    Signature = base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, StringToSign)),
-    ["AWS ", Config#aws_config.access_key_id, $:, Signature].
 
 default_config() -> erlcloud_aws:default_config().
 
