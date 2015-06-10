@@ -1127,7 +1127,7 @@ batch_get_item(RequestItems, Opts) ->
 %%
 %% ===Example===
 %%
-%% Get 5 items total from 2 tables.
+%% Get 4 items total from 2 tables.
 %%
 %% `
 %% {ok, Record} =
@@ -1136,11 +1136,11 @@ batch_get_item(RequestItems, Opts) ->
 %%         [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
 %%          {<<"Name">>, {s, <<"Amazon RDS">>}}, 
 %%          {<<"Name">>, {s, <<"Amazon Redshift">>}}],
-%%         [{attributes_to_get, [<<"Name">>, <<"Threads">>, <<"Messages">>, <<"Views">>]}]},
+%%         [{projection_expression, <<"Name, Threads, Messages, Views">>}]},
 %%        {<<"Thread">>, 
 %%         [[{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
 %%           {<<"Subject">>, {s, <<"Concurrent reads">>}}]],
-%%         [{attributes_to_get, [<<"Tags">>, <<"Message">>]}]}],
+%%         [{projection_expression, <<"Tags, Message">>}]}],
 %%       [{return_consumed_capacity, total},
 %%        {out, record}]),
 %% '
@@ -1458,7 +1458,7 @@ delete_item(Table, Key, Opts) ->
 %%       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
 %%        {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
 %%       [{return_values, all_old},
-%%        {expected, {<<"Replies">>, null}}]),
+%%        {condition_expression, <<"attribute_not_exists(Replies)">>}]),
 %% '
 %%
 %% The ConditionExpression option can also be used in place of the legacy
@@ -1633,7 +1633,7 @@ get_item(Table, Key, Opts) ->
 %%       <<"Thread">>,
 %%       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
 %%        {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
-%%       [{attributes_to_get, [<<"LastPostDateTime">>, <<"Message">>, <<"Tags">>]},
+%%       [{projection_expression, <<"LastPostDateTime, Message, Tags">>},
 %%        consistent_read,
 %%        {return_consumed_capacity, total}]),
 %% '
@@ -1774,7 +1774,10 @@ put_item(Table, Item, Opts) ->
 %%        {<<"Subject">>, <<"How do I update multiple items?">>},
 %%        {<<"Message">>, 
 %%         <<"I want to update multiple items in a single API call. What is the best way to do that?">>}],
-%%       [{expected, [{<<"ForumName">>, null}, {<<"Subject">>, null}]}]),
+%%       [{condition_expression, <<"ForumName <> :f and Subject <> :s">>},
+%%        {expression_attribute_values,
+%%         [{<<":f">>, <<"Amazon DynamoDB">>},
+%%          {<<":s">>, <<"How do I update multiple items?">>}]}]),
 %% '
 %%
 %% The ConditionExpression option can be used in place of the legacy Expected parameter.
@@ -1892,9 +1895,12 @@ q(Table, KeyConditionsOrExpression, Opts) ->
 %% {ok, Items} =
 %%     erlcloud_ddb2:q(
 %%       <<"Thread">>,
-%%       [{<<"LastPostDateTime">>, {{s, <<"20130101">>}, {s, <<"20130115">>}}, between},
-%%        {<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}],
-%%       [{index_name, <<"LastPostIndex">>},
+%%       <<"ForumName = :n AND LastPostDateTime BETWEEN :t1 AND :t2">>,
+%%       [{expression_attribute_values,
+%%         [{<<":n">>, <<"Amazon DynamoDB">>},
+%%          {<<":t1">>, <<"20130101">>},
+%%          {<<":t2">>, <<"20130115">>}]},
+%%        {index_name, <<"LastPostIndex">>},
 %%        {select, all_attributes},
 %%        {limit, 3},
 %%        {consistent_read, true},
@@ -2108,8 +2114,11 @@ update_item(Table, Key, UpdatesOrExpression, Opts) ->
 %%       <<"Thread">>, 
 %%       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
 %%        {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
-%%       [{<<"LastPostedBy">>, {s, <<"alice@example.com">>}, put}],
-%%       [{expected, {<<"LastPostedBy">>, {s, <<"fred@example.com">>}}},
+%%       <<"set LastPostedBy = :val1">>,
+%%       [{condition_expression, <<"LastPostedBy = :val2">>},
+%%        {expression_attribute_values,
+%%         [{<<":val1">>, <<"alice@example.com">>},
+%%          {<<":val2">>, <<"fred@example.com">>}]},
 %%        {return_values, all_new}]),
 %% '
 %% @end
