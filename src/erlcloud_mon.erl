@@ -254,14 +254,20 @@ mon_query(Config, Action, Params) ->
 
 mon_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
-    erlcloud_aws:aws_request_xml4(get,
+    case erlcloud_aws:aws_request_xml4(get,
                                  Config#aws_config.mon_protocol,
                                  Config#aws_config.mon_host,
                                  Config#aws_config.mon_port,
                                  "/",
                                  QParams,
                                  "cloudwatch",
-                                 Config).
+                                 Config)
+    of
+        {ok, Body} ->
+            Body;
+        {error, Reason} ->
+            erlang:error({aws_error, Reason})
+    end.
 
 configure_host(Host, Port, Protocol) ->
     Config = default_config(),

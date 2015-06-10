@@ -382,18 +382,30 @@ sqs_simple_request(Config, QueueName, Action, Params) ->
     ok.
 
 sqs_xml_request(Config, QueueName, Action, Params) ->
-    erlcloud_aws:aws_request_xml4(post, Config#aws_config.sqs_protocol,
+    case erlcloud_aws:aws_request_xml4(post, Config#aws_config.sqs_protocol,
                                   Config#aws_config.sqs_host, Config#aws_config.sqs_port,
                                   queue_path(QueueName),
                                   [{"Action", Action}, {"Version", ?API_VERSION}|Params],
-                                  "sqs",Config).
+                                  "sqs",Config)
+    of
+        {ok, Body} ->
+            Body;
+        {error, Reason} ->
+            erlang:error({aws_error, Reason})
+    end.
 
 sqs_request(Config, QueueName, Action, Params) ->
-    erlcloud_aws:aws_request4(post, Config#aws_config.sqs_protocol,
+    case erlcloud_aws:aws_request4(post, Config#aws_config.sqs_protocol,
                               Config#aws_config.sqs_host, Config#aws_config.sqs_port,
                               queue_path(QueueName),
                               [{"Action", Action}, {"Version", ?API_VERSION}|Params],
-                              "sqs", Config).
+                              "sqs", Config)
+    of
+        {ok, Body} ->
+            Body;
+        {error, Reason} ->
+            erlang:error({aws_error, Reason})
+    end.
 
 queue_path([$/|_] = QueueName) -> QueueName;
 queue_path([$h,$t,$t,$p|_] = URL) ->

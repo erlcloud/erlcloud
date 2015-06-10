@@ -256,6 +256,12 @@ elb_simple_request(Config, Action, Params) ->
 
 elb_request(Config, Action, Params) ->
     QParams = [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-    erlcloud_aws:aws_request_xml4(get,
+    case erlcloud_aws:aws_request_xml4(get,
                                   Config#aws_config.elb_host,
-                                  "/", QParams, "elasticloadbalancing", Config).
+                                  "/", QParams, "elasticloadbalancing", Config)
+    of
+        {ok, Body} ->
+            Body;
+        {error, Reason} ->
+            erlang:error({aws_error, Reason})
+    end.
