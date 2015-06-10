@@ -131,7 +131,7 @@ get_all(Table, Keys, Opts) ->
 %%       [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
 %%        {<<"Name">>, {s, <<"Amazon RDS">>}}, 
 %%        {<<"Name">>, {s, <<"Amazon Redshift">>}}],
-%%       [{attributes_to_get, [<<"Name">>, <<"Threads">>, <<"Messages">>, <<"Views">>]}]),
+%%       [{projection_expression, <<"Name, Threads, Messages, Views">>}]),
 %% '
 %%
 %% @end
@@ -191,9 +191,12 @@ q_all(Table, KeyConditionsOrExpression, Opts) ->
 %% {ok, Items} =
 %%     erlcloud_ddb_util:q_all(
 %%       <<"Thread">>,
-%%       [{<<"LastPostDateTime">>, {{s, <<"20130101">>}, {s, <<"20130115">>}}, between},
-%%        {<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}],
-%%       [{index_name, <<"LastPostIndex">>},
+%%       <<"ForumName = :n AND LastPostDateTime BETWEEN :t1 AND :t2">>,
+%%       [{expression_attribute_values,
+%%         [{<<":n">>, <<"Amazon DynamoDB">>},
+%%          {<<":t1">>, <<"20130101">>},
+%%          {<<":t2">>, <<"20130115">>}]},
+%%        {index_name, <<"LastPostIndex">>},
 %%        {select, all_attributes},
 %%        {consistent_read, true}]),
 %% '
