@@ -105,6 +105,7 @@ get_integer(XPath, Doc, Default) ->
 
 get_bool(XPath, Doc) ->
     case get_text(XPath, Doc, "false") of
+        "1" -> true;
         "true" -> true;
         _ -> false
     end.
