@@ -28,7 +28,8 @@ operation_test_() ->
      fun stop/1,
      [fun delete_hash_key_tests/1,
       fun get_all_tests/1,
-      fun q_all_tests/1
+      fun q_all_tests/1,
+      fun scan_all_tests/1
      ]}.
 
 start() ->
@@ -470,6 +471,102 @@ q_all_tests(_) ->
             \"ComparisonOperator\": \"EQ\"
         }
     },
+    \"ExclusiveStartKey\": {
+        \"hkn\": {
+            \"S\": \"hkv\"
+        },
+        \"rkn\": {
+            \"S\": \"rk2\"
+        }
+    }
+}"
+               , "
+{
+    \"Count\": 1,
+    \"Items\": [
+        {
+            \"hkn\": {
+                \"S\": \"hkv\"
+            },
+            \"rkn\": {
+                \"S\": \"rk3\"
+            }
+        }
+    ]
+}"
+              }],
+             {ok, [[{<<"hkn">>, <<"hkv">>}, {<<"rkn">>, <<"rk1">>}],
+                   [{<<"hkn">>, <<"hkv">>}, {<<"rkn">>, <<"rk2">>}],
+                   [{<<"hkn">>, <<"hkv">>}, {<<"rkn">>, <<"rk3">>}]
+                  ]}})
+         ],
+    multi_call_tests(Tests).
+
+scan_all_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"scan_all one item",
+             ?_f(erlcloud_ddb_util:scan_all(<<"tn">>)),
+             [{"
+{
+    \"TableName\": \"tn\"
+}"
+               , "
+{
+    \"Count\": 1,
+    \"Items\": [
+        {
+            \"hkn\": {
+                \"S\": \"hkv\"
+            },
+            \"rkn\": {
+                \"S\": \"rkv\"
+            }
+        }
+    ]
+}"
+               }],
+             {ok, [[{<<"hkn">>, <<"hkv">>}, {<<"rkn">>, <<"rkv">>}]]}}),
+         ?_ddb_test(
+            {"scan_all two batches",
+             ?_f(erlcloud_ddb_util:scan_all(<<"tn">>)),
+             [{"
+{
+    \"TableName\": \"tn\"
+}"
+               , "
+{
+    \"Count\": 2,
+    \"Items\": [
+        {
+            \"hkn\": {
+                \"S\": \"hkv\"
+            },
+            \"rkn\": {
+                \"S\": \"rk1\"
+            }
+        },
+        {
+            \"hkn\": {
+                \"S\": \"hkv\"
+            },
+            \"rkn\": {
+                \"S\": \"rk2\"
+            }
+        }
+    ],
+    \"LastEvaluatedKey\": {
+        \"hkn\": {
+            \"S\": \"hkv\"
+        },
+        \"rkn\": {
+            \"S\": \"rk2\"
+        }
+    }
+}"},
+              {"
+{
+    \"TableName\": \"tn\",
     \"ExclusiveStartKey\": {
         \"hkn\": {
             \"S\": \"hkv\"
