@@ -17,14 +17,19 @@
     list_users/0, list_users/1, list_users/2,
     list_groups_for_user/1, list_groups_for_user/2,
     list_user_policies/1, list_user_policies/2,
+    list_attached_user_policies/1, list_attached_user_policies/2, list_attached_user_policies/3,
     get_user_policy/2, get_user_policy/3,
     get_login_profile/1, get_login_profile/2,
     list_groups/0, list_groups/1, list_groups/2,
     list_group_policies/1, list_group_policies/2,
     get_group_policy/2, get_group_policy/3,
+    list_attached_group_policies/1, list_attached_group_policies/2, list_attached_group_policies/3,
     list_roles/0, list_roles/1, list_roles/2,
     list_role_policies/1, list_role_policies/2,
+    list_attached_role_policies/1, list_attached_role_policies/2, list_attached_role_policies/3,
     get_role_policy/2, get_role_policy/3,
+    get_policy/1, get_policy/2,
+    get_policy_version/2, get_policy_version/3,
     list_instance_profiles/0, list_instance_profiles/1, list_instance_profiles/2,
     get_account_authorization_details/0, get_account_authorization_details/1,
     get_account_summary/0, get_account_summary/1,
@@ -148,6 +153,25 @@ get_user_policy(UserName, PolicyName, #aws_config{} = Config) ->
     Params = [{"UserName", UserName}, {"PolicyName", PolicyName}],
     iam_query(Config, "GetUserPolicy", Params, ItemPath, data_type("UserPolicyList")).
 
+-spec(list_attached_user_policies/1 :: (string()) -> proplist()).
+list_attached_user_policies(UserName) ->
+    list_attached_user_policies(UserName, "/", default_config()).
+
+-spec(list_attached_user_policies/2 :: (string(), string() | aws_config()) -> proplist()).
+list_attached_user_policies(UserName, #aws_config{} = Config) ->
+    list_attached_user_policies(UserName, "/", Config);
+list_attached_user_policies(UserName, PathPrefix)
+  when is_list(UserName), is_list(PathPrefix) ->
+    list_attached_user_policies(UserName, PathPrefix, default_config()).
+
+-spec(list_attached_user_policies/3 :: (string(), string(), aws_config()) -> proplist()).
+list_attached_user_policies(UserName, [], Config) ->
+    list_attached_user_policies(UserName, "/", Config);
+list_attached_user_policies(UserName, PathPrefix, #aws_config{} = Config)
+  when is_list(UserName), is_list(PathPrefix) ->
+    ItemPath = "/ListAttachedUserPoliciesResponse/ListAttachedUserPoliciesResult/AttachedPolicies/member",
+    Params = [{"UserName", UserName}, {"PathPrefix", PathPrefix}],
+    iam_query(Config, "ListAttachedUserPolicies", Params, ItemPath, data_type("AttachedPolicy")).
 
 -spec(get_login_profile/1 :: (string()) -> proplist()).
 get_login_profile(UserName) ->
@@ -195,6 +219,23 @@ get_group_policy(GroupName, PolicyName, #aws_config{} = Config) ->
     Params = [{"GroupName", GroupName}, {"PolicyName", PolicyName}],
     iam_query(Config, "GetGroupPolicy", Params, ItemPath, data_type("GroupPolicyList")).
 
+-spec(list_attached_group_policies/1 :: (string()) -> proplist()).
+list_attached_group_policies(GroupName) ->
+    list_attached_group_policies(GroupName, "/", default_config()).
+
+-spec(list_attached_group_policies/2 :: (string(), string() | aws_config()) -> proplist()).
+list_attached_group_policies(GroupName, #aws_config{} = Config) ->
+    list_attached_group_policies(GroupName, "/", Config);
+list_attached_group_policies(GroupName, PathPrefix)
+  when is_list(GroupName), is_list(PathPrefix) ->
+    list_attached_group_policies(GroupName, PathPrefix, default_config()).
+
+-spec(list_attached_group_policies/3 :: (string(), string(), aws_config()) -> proplist()).
+list_attached_group_policies(GroupName, PathPrefix, #aws_config{} = Config)
+  when is_list(GroupName), is_list(PathPrefix) ->
+    ItemPath = "/ListAttachedGroupPoliciesResponse/ListAttachedGroupPoliciesResult/AttachedPolicies/member",
+    Params = [{"GroupName", GroupName}, {"PathPrefix", PathPrefix}],
+    iam_query(Config, "ListAttachedGroupPolicies", Params, ItemPath, data_type("AttachedPolicy")).
 
 %
 % Roles API
@@ -233,6 +274,43 @@ get_role_policy(RoleName, PolicyName, #aws_config{} = Config) ->
     Params = [{"RoleName", RoleName}, {"PolicyName", PolicyName}],
     iam_query(Config, "GetRolePolicy", Params, ItemPath, data_type("RolePolicyList")).
 
+-spec(list_attached_role_policies/1 :: (string()) -> proplist()).
+list_attached_role_policies(RoleName) ->
+    list_attached_role_policies(RoleName, "/", default_config()).
+
+-spec(list_attached_role_policies/2 :: (string(), string() | aws_config()) -> proplist()).
+list_attached_role_policies(RoleName, #aws_config{} = Config) ->
+    list_attached_role_policies(RoleName, "/", Config);
+list_attached_role_policies(RoleName, PathPrefix)
+  when is_list(RoleName), is_list(PathPrefix) ->
+    list_attached_role_policies(RoleName, PathPrefix, default_config()).
+
+-spec(list_attached_role_policies/3 :: (string(), string(), aws_config()) -> proplist()).
+list_attached_role_policies(RoleName, PathPrefix, #aws_config{} = Config)
+  when is_list(RoleName), is_list(PathPrefix) ->
+    ItemPath = "/ListAttachedRolePoliciesResponse/ListAttachedRolePoliciesResult/AttachedPolicies/member",
+    Params = [{"RoleName", RoleName}, {"PathPrefix", PathPrefix}],
+    iam_query(Config, "ListAttachedRolePolicies", Params, ItemPath, data_type("AttachedPolicy")).
+
+%
+% Policies API
+%
+-spec(get_policy/1 :: (string()) -> proplist()).
+get_policy(PolicyArn) -> get_policy(PolicyArn, default_config()).
+-spec(get_policy/2 :: (string(), aws_config()) -> proplist()).
+get_policy(PolicyArn, #aws_config{} = Config)
+  when is_list(PolicyArn) ->
+    ItemPath = "/GetPolicyResponse/GetPolicyResult/Policy",
+    iam_query(Config, "GetPolicy", [{"PolicyArn", PolicyArn}], ItemPath, data_type("Policy")).
+
+-spec(get_policy_version/2 :: (string(), string()) -> proplist()).
+get_policy_version(PolicyArn, VersionId) ->
+    get_policy_version(PolicyArn, VersionId, default_config()).
+-spec(get_policy_version/3 :: (string(), string(), aws_config()) -> proplist()).
+get_policy_version(PolicyArn, VersionId, #aws_config{} = Config)
+  when is_list(PolicyArn), is_list(VersionId) ->
+    ItemPath = "/GetPolicyVersionResponse/GetPolicyVersionResult/PolicyVersion",
+    iam_query(Config, "GetPolicyVersion", [{"PolicyArn", PolicyArn}, {"VersionId", VersionId}], ItemPath, data_type("PolicyVersion")).
 
 %
 % InstanceProfile
@@ -473,6 +551,23 @@ data_type("RolePolicyList") ->
     [{"PolicyDocument", policy_document, "String"},
      {"RoleName", role_name, "String"},
      {"PolicyName", policy_name, "String"}];
+data_type("Policy") ->
+    [{"PolicyName", policy_name, "String"},
+     {"DefaultVersionId", default_version_id, "String"},
+     {"PolicyId", policy_id, "String"},
+     {"Path", path, "String"},
+     {"Arn", arn, "String"},
+     {"AttachmentCount", attachment_count, "Integer"},
+     {"CreateDate", create_date, "DateTime"},
+     {"UpdateDate", update_date, "DateTime"}];
+data_type("PolicyVersion") ->
+    [{"Document", policy_document, "String"},
+     {"IsDefaultVersion", is_default_version, "Boolean"},
+     {"VersionId", version_id, "String"},
+     {"CreateDate", create_date, "DateTime"}];
+data_type("AttachedPolicy") ->
+    [{"PolicyName", policy_name, "String"},
+     {"PolicyArn", arn, "String"}];
 data_type("User") ->
     [{"PasswordLastUsed", password_last_used, "DateTime"},
      {"CreateDate", create_date, "DateTime"},

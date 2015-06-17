@@ -149,7 +149,16 @@
 
          %% Tagging. Uses different version of AWS API
          create_tags/2, create_tags/3,
-         describe_tags/0, describe_tags/1, describe_tags/2
+         describe_tags/0, describe_tags/1, describe_tags/2,
+         delete_tags/2, delete_tags/3,
+        
+         %% VPN gateways
+         describe_vpn_gateways/0, describe_vpn_gateways/1, describe_vpn_gateways/2,
+         describe_vpn_connections/0, describe_vpn_connections/1, describe_vpn_connections/2,
+        
+        %% Customer gateways
+         describe_customer_gateways/0, describe_customer_gateways/1, describe_customer_gateways/2
+
         ]).
 
 -import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
@@ -2554,7 +2563,39 @@ create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
                                          TKey = "ResourceId."++I,
                                          {[{TKey, ResourceId} | Acc], Index+1}
                                  end, {[], 1}, ResourceIds),
-    ec2_query2(Config, "CreateTags", Resources ++ Tags, ?NEW_API_VERSION).
+    case ec2_query2(Config, "CreateTags", Resources ++ Tags, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            {ok, [{return, get_text("/CreateTagsResponse/return", Doc)}]};
+        {error, _} = Error ->
+            Error
+    end.
+
+%%
+%%
+-spec(delete_tags/2 :: ([string()], [{string(), string()}]) -> proplist()).
+delete_tags(ResourceIds, TagsList) when is_list(ResourceIds) ->
+    delete_tags(ResourceIds, TagsList, default_config()).
+
+-spec(delete_tags/3 :: ([string()], [{string(), string()}], aws_config()) -> proplist()).
+delete_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
+    {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
+                                    I = integer_to_list(Index),
+                                    TKKey = "Tag."++I++".Key",
+                                    TVKey = "Tag."++I++".Value",
+                                    {[{TKKey, Key}, {TVKey, Value} | Acc], Index+1}
+                            end, {[], 1}, TagsList),
+    {Resources, _} = lists:foldl(fun(ResourceId, {Acc, Index}) ->
+                                         I = integer_to_list(Index),
+                                         TKey = "ResourceId."++I,
+                                         {[{TKey, ResourceId} | Acc], Index+1}
+                                 end, {[], 1}, ResourceIds),
+    case ec2_query2(Config, "DeleteTags", Resources ++ Tags, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            {ok, [{return, get_text("/DeleteTagsResponse/return", Doc)}]};
+        {error, _} = Error ->
+            Error
+    end.
+
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -2800,3 +2841,112 @@ list_to_ec2_values([], _Count, _VCount, Res) ->
 list_to_ec2_values([H|T], Count, VCount, Res) ->
     Tup = {io_lib:format("Filter.~p.Value.~p", [Count, VCount]), H},
     list_to_ec2_values(T, Count, VCount + 1, [Tup|Res]).
+
+
+%%
+%%
+-spec(describe_vpn_gateways/0 :: () -> {ok, [proplist()]} | {error, any()}).
+describe_vpn_gateways() ->
+    describe_vpn_gateways(none, default_config()).
+
+-spec(describe_vpn_gateways/1 :: (filter_list | aws_config()) -> {ok, [proplist()]} | {error, any()}).
+describe_vpn_gateways(Config) when is_record(Config, aws_config) ->
+    describe_vpn_gateways(none, Config);
+describe_vpn_gateways(Filter) ->
+    describe_vpn_gateways(Filter, default_config()).
+
+-spec(describe_vpn_gateways/2 :: (none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
+describe_vpn_gateways(Filter, Config) ->
+    Params = list_to_ec2_filter(Filter),
+    case ec2_query2(Config, "DescribeVpnGateways", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            ResultPath = "/DescribeVpnGatewaysResponse/vpnGatewaySet/item",
+            {ok, [ extract_vgw(Item) || Item <- xmerl_xpath:string(ResultPath, Doc) ]};
+        {error, _} = Error ->
+            Error
+    end.
+
+extract_vgw(Node) ->
+    Items = xmerl_xpath:string("attachments/item", Node),
+    [ {vpn_gateway_id, get_text("vpnGatewayId", Node)},
+      {vpn_gateway_type, get_text("type", Node)},
+      {vpn_gateway_state, get_text("state", Node)},
+      {vpn_az, get_text("availabilityZone", Node)},
+      {vpc_attachment_set, [ extract_vgw_attachments(Item) || Item <- Items]},
+      {tag_set, 
+       [extract_tag_item(Item)
+        || Item <- xmerl_xpath:string("tagSet/item", Node)]}
+ ].
+
+extract_vgw_attachments(Node) ->
+    [ {vpc_id, get_text("vpcId", Node)},
+      {state, get_text("state", Node)} ].
+
+%%
+%%
+-spec(describe_vpn_connections/0 :: () -> {ok, [proplist()]} | {error, any()}).
+describe_vpn_connections() ->
+    describe_vpn_connections(none, default_config()).
+
+-spec(describe_vpn_connections/1 :: (filter_list | aws_config()) -> {ok, [proplist()]} | {error, any()}).
+describe_vpn_connections(Config) when is_record(Config, aws_config) ->
+    describe_vpn_connections(none, Config);
+describe_vpn_connections(Filter) ->
+    describe_vpn_connections(Filter, default_config()).
+
+-spec(describe_vpn_connections/2 :: (none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
+describe_vpn_connections(Filter, Config) ->
+    Params = list_to_ec2_filter(Filter),
+    case ec2_query2(Config, "DescribeVpnConnections", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            ResultPath = "/DescribeVpnConnectionsResponse/vpnConnectionSet/item",
+            {ok, [ extract_vpn_connection(Item) || Item <- xmerl_xpath:string(ResultPath, Doc) ]};
+        {error, _} = Error ->
+            Error
+    end.
+
+extract_vpn_connection(Node) ->
+    [ {vpn_connection_id, get_text("vpnConnectionId", Node)},
+      {vpn_connection_state, get_text("state", Node)},
+      {customer_gateway_configuration, get_text("customerGatewayConfiguration", Node)},
+      {vpn_connection_type, get_text("type", Node)},
+      {customer_gateway_id, get_text("customerGatewayId", Node)},
+      {vpn_gateway_id, get_text("vpnGatewayId", Node)},
+      {tag_set, 
+       [extract_tag_item(Item)
+        || Item <- xmerl_xpath:string("tagSet/item", Node)]}
+ ].
+
+%%
+%%
+-spec(describe_customer_gateways/0 :: () -> {ok, [proplist()]} | {error, any()}).
+describe_customer_gateways() ->
+    describe_customer_gateways(none, default_config()).
+
+-spec(describe_customer_gateways/1 :: (filter_list | aws_config()) -> {ok, [proplist()]} | {error, any()}).
+describe_customer_gateways(Config) when is_record(Config, aws_config) ->
+    describe_customer_gateways(none, Config);
+describe_customer_gateways(Filter) ->
+    describe_customer_gateways(Filter, default_config()).
+
+-spec(describe_customer_gateways/2 :: (none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
+describe_customer_gateways(Filter, Config) ->
+    Params = list_to_ec2_filter(Filter),
+    case ec2_query2(Config, "DescribeCustomerGateways", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            ResultPath = "/DescribeCustomerGatewaysResponse/customerGatewaySet/item",
+            {ok, [ extract_cgw(Item) || Item <- xmerl_xpath:string(ResultPath, Doc) ]};
+        {error, _} = Error ->
+            Error
+    end.
+
+extract_cgw(Node) ->
+    [ {customer_gateway_id, get_text("customerGatewayId", Node)},
+      {customer_gateway_state, get_text("state", Node)},
+      {customer_gateway_type, get_text("type", Node)},
+      {customer_gateway_ip, get_text("ipAddress", Node)},
+      {customer_gateway_bgpasn, get_text("bgpAsn", Node)},
+      {tag_set, 
+       [extract_tag_item(Item)
+        || Item <- xmerl_xpath:string("tagSet/item", Node)]}
+ ].
