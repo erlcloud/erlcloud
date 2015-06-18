@@ -8,7 +8,7 @@
          param_list/2, default_config/0, update_config/1, format_timestamp/1,
          http_headers_body/1,
          request_to_return/1,
-         sign_v4/5]).
+         sign_v4/5, sign_v4/8]).
 
 -include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -276,13 +276,18 @@ request_to_return(#aws_request{response_type = error,
 %% TODO additional parameters - currently only supports what is needed for DynamoDB
 -spec sign_v4(aws_config(), headers(), binary(), string(), string()) -> headers().
 sign_v4(Config, Headers, Payload, Region, Service) ->
+    sign_v4(Config, "POST", "/", [], Headers, Payload, Region, Service).
+
+-spec sign_v4(aws_config(), atom() | string(), string(), list(), headers(), binary(), string(), string()) -> headers().
+sign_v4(Config, Method, URI, Params, Headers, Payload, Region, Service) ->
     Date = iso_8601_basic_time(),
     Headers1 = [{"x-amz-date", Date} | Headers],
     Headers2 = case Config#aws_config.security_token of
                    undefined -> Headers1;
                    Token -> [{"x-amz-security-token", Token} | Headers1]
                end,
-    {Request, SignedHeaders} = canonical_request("POST", "/", "", Headers2, Payload),
+    QueryString = erlcloud_http:make_query_string(Params), 
+    {Request, SignedHeaders} = canonical_request(Method, URI, QueryString, Headers2, Payload),
     CredentialScope = credential_scope(Date, Region, Service),
     ToSign = to_sign(Date, CredentialScope, Request),
     SigningKey = signing_key(Config, Date, Region, Service),

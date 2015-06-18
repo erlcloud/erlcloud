@@ -33,7 +33,7 @@
           timeout=10000::timeout(),
           cloudtrail_raw_result=false::boolean(),
           http_client=lhttpc::erlcloud_httpc:request_fun(),
-
+          dns_host="route53.amazonaws.com",
           %% Default to not retry failures (for backwards compatability).
           %% Recommended to be set to default_retry to provide recommended retry behavior.
           %% Currently only affects S3, but intent is to change other services to use this as well.
