@@ -451,10 +451,6 @@ dynamize_item(Item) when is_list(Item) ->
 dynamize_item(Item) ->
     error({erlcloud_ddb, {invalid_item, Item}}).
 
--spec dynamize_expression(expression()) -> binary().
-dynamize_expression(Expression) ->
-    Expression.
-
 -spec dynamize_expression_attribute_names(expression_attribute_names()) -> [json_pair()].
 dynamize_expression_attribute_names(Names) ->
     Names.
@@ -782,7 +778,7 @@ consistent_read_opt() ->
 
 -spec condition_expression_opt() -> opt_table_entry().
 condition_expression_opt() ->
-    {condition_expression, <<"ConditionExpression">>, fun dynamize_condition_expression/1}.
+    {condition_expression, <<"ConditionExpression">>, fun dynamize_expression/1}.
 
 -type conditional_op_opt() :: {conditional_op, conditional_op()}.
 
@@ -799,39 +795,39 @@ expected_opt() ->
 -spec filter_expression_opt() -> opt_table_entry().
 
 filter_expression_opt() ->
-    % FilterExpressions are just ConditionExpressions by a different name.
-    {filter_expression, <<"FilterExpression">>, fun dynamize_condition_expression/1}.
+    {filter_expression, <<"FilterExpression">>, fun dynamize_expression/1}.
 
 % This matches the Java API, which asks the user to write their own expressions.
 
-dynamize_condition_expression(Expression) when is_binary(Expression) ->
+-spec dynamize_expression(expression()) -> binary().
+dynamize_expression(Expression) when is_binary(Expression) ->
     Expression;
-dynamize_condition_expression(Expression) when is_list(Expression) ->
+dynamize_expression(Expression) when is_list(Expression) ->
     list_to_binary(Expression);
 
 % Or, some convenience functions for assembling expressions using lists of tuples.
 
-dynamize_condition_expression({A, also, B}) ->
-    AA = dynamize_condition_expression(A),
-    BB = dynamize_condition_expression(B),
+dynamize_expression({A, also, B}) ->
+    AA = dynamize_expression(A),
+    BB = dynamize_expression(B),
     <<"(", AA/binary, ") AND (", BB/binary, ")">>;
-dynamize_condition_expression({{A, B}, eq}) ->
+dynamize_expression({{A, B}, eq}) ->
     <<A/binary, " = ", B/binary>>;
-dynamize_condition_expression({{A, B}, ne}) ->
+dynamize_expression({{A, B}, ne}) ->
     <<A/binary, " <> ", B/binary>>;
-dynamize_condition_expression({{A, B}, lt}) ->
+dynamize_expression({{A, B}, lt}) ->
     <<A/binary, " < ", B/binary>>;
-dynamize_condition_expression({{A, B}, le}) ->
+dynamize_expression({{A, B}, le}) ->
     <<A/binary, " <= ", B/binary>>;
-dynamize_condition_expression({{A, B}, gt}) ->
+dynamize_expression({{A, B}, gt}) ->
     <<A/binary, " > ", B/binary>>;
-dynamize_condition_expression({{A, B}, ge}) ->
+dynamize_expression({{A, B}, ge}) ->
     <<A/binary, " >= ", B/binary>>;
-dynamize_condition_expression({{A, {Low, High}}, between}) ->
+dynamize_expression({{A, {Low, High}}, between}) ->
     <<A/binary, " BETWEEN ", Low/binary, " AND ", High/binary>>;
-dynamize_condition_expression({{A, B}, in}) when is_binary(B) ->
+dynamize_expression({{A, B}, in}) when is_binary(B) ->
     <<A/binary, " IN ", B/binary>>;
-dynamize_condition_expression({{A, B}, in}) when is_list(B) ->
+dynamize_expression({{A, B}, in}) when is_list(B) ->
     % Convert everything to binaries.
 
     InList = [to_binary(X) || X <- B],
@@ -846,13 +842,13 @@ dynamize_condition_expression({{A, B}, in}) when is_list(B) ->
     In = lists:foldl(Join, <<>>, InList),
 
     <<A/binary, " IN (", In/binary, ")">>;
-dynamize_condition_expression({attribute_exists, Path}) ->
+dynamize_expression({attribute_exists, Path}) ->
     <<"attribute_exists(", Path/binary, ")">>;
-dynamize_condition_expression({attribute_not_exists, Path}) ->
+dynamize_expression({attribute_not_exists, Path}) ->
     <<"attribute_not_exists(", Path/binary, ")">>;
-dynamize_condition_expression({begins_with, Path, Operand}) ->
+dynamize_expression({begins_with, Path, Operand}) ->
     <<"begins_with(", Path/binary, ",", Operand/binary, ")">>;
-dynamize_condition_expression({contains, Path, Operand}) ->
+dynamize_expression({contains, Path, Operand}) ->
     <<"contains(", Path/binary, ",", Operand/binary, ")">>.
 
 -type return_consumed_capacity_opt() :: {return_consumed_capacity, return_consumed_capacity()}.
@@ -1840,7 +1836,7 @@ q_opts() ->
      projection_expression_opt(),
      attributes_to_get_opt(),
      consistent_read_opt(),
-     {filter_expression, <<"FilterExpression">>, fun dynamize_expression/1},
+     filter_expression_opt(),
      conditional_op_opt(),
      {query_filter, <<"QueryFilter">>, fun dynamize_conditions/1},
      {limit, <<"Limit">>, fun id/1},
@@ -1950,11 +1946,8 @@ scan_opts() ->
      expression_attribute_values_opt(),
      projection_expression_opt(),
      attributes_to_get_opt(),
-     {filter_expression, <<"FilterExpression">>, fun dynamize_expression/1},
-     conditional_op_opt(),
      filter_expression_opt(),
-     expression_attribute_names_opt(),
-     expression_attribute_values_opt(),
+     conditional_op_opt(),
      {scan_filter, <<"ScanFilter">>, fun dynamize_conditions/1},
      {limit, <<"Limit">>, fun id/1},
      {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
@@ -2142,7 +2135,7 @@ update_item(Table, Key, UpdatesOrExpression, Opts, Config) ->
 
 -type update_table_return() :: ddb_return(#ddb2_update_table{}, #ddb2_table_description{}).
 
--type global_secondary_index_update() :: {index_name(), pos_integer(), pos_integer()} |
+-type global_secondary_index_update() :: {index_name(), read_units(), write_units()} |
                                          {index_name(), delete} |
                                          global_secondary_index_def().
 -type global_secondary_index_updates() :: maybe_list(global_secondary_index_update()).
