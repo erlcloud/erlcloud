@@ -35,6 +35,7 @@
           timeout=10000::timeout(),
           cloudtrail_raw_result=false::boolean(),
           http_client=lhttpc::erlcloud_httpc:request_fun(),
+          lhttpc_options=[]::proplists:proplist(),
 
           %% Default to not retry failures (for backwards compatability).
           %% Recommended to be set to default_retry to provide recommended retry behavior.
