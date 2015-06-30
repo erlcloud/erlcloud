@@ -4,6 +4,7 @@
 -export([configure/2, configure/3, new/2, new/3]).
 
 %% ELB API Functions
+
 -export([list_hosted_zones/0,list_hosted_zones/1,list_hosted_zones/2, list_resource_record_sets/1, list_resource_record_sets/2]).
 
 -import(erlcloud_xml, [get_text/2, get_text/1]).
