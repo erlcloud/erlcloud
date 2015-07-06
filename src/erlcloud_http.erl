@@ -26,7 +26,7 @@ value_to_string(Binary) when is_binary(Binary) -> Binary;
 value_to_string(String) when is_list(String) -> unicode:characters_to_binary(String).
 
 url_encode(Binary) when is_binary(Binary) ->
-    url_encode(binary_to_list(Binary));
+    url_encode(unicode:characters_to_list(Binary));
 url_encode(String) ->
     url_encode(String, []).
 url_encode([], Accum) ->
