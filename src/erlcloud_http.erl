@@ -1,5 +1,5 @@
 -module(erlcloud_http).
--export([make_query_string/1, make_query_string/2, url_encode/1, url_encode_loose/1]).
+-export([make_query_string/1, make_query_string/2, value_to_string/1, url_encode/1, url_encode_loose/1]).
 
 encode_query_term(Key, [], no_assignment) ->
   [Key];
@@ -26,7 +26,7 @@ value_to_string(Binary) when is_binary(Binary) -> Binary;
 value_to_string(String) when is_list(String) -> unicode:characters_to_binary(String).
 
 url_encode(Binary) when is_binary(Binary) ->
-    url_encode(binary_to_list(Binary));
+    url_encode(unicode:characters_to_list(Binary));
 url_encode(String) ->
     url_encode(String, []).
 url_encode([], Accum) ->
