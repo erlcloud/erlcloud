@@ -2765,8 +2765,8 @@ ec2_query2(Config, Action, Params) ->
 
 ec2_query2(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
-    erlcloud_aws:aws_request_xml2(post, Config#aws_config.ec2_host,
-                                  "/", QParams, Config).
+    erlcloud_aws:aws_request_xml4(post, Config#aws_config.ec2_host,
+                                  "/", QParams, "ec2", Config).
 
 default_config() -> erlcloud_aws:default_config().
 

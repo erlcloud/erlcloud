@@ -1,5 +1,5 @@
 -module(erlcloud_http).
--export([make_query_string/1, make_query_string/2, url_encode/1, url_encode_loose/1]).
+-export([make_query_string/1, make_query_string/2, value_to_string/1, url_encode/1, url_encode_loose/1]).
 
 encode_query_term(Key, [], no_assignment) ->
   [Key];
