@@ -49,7 +49,7 @@ terminate_tests(_) ->
     
 mocked_aws_xml() ->
     meck:expect(erlcloud_aws, default_config, [{[], #aws_config{}}]),
-    meck:expect(erlcloud_aws, aws_request_xml2, [
+    meck:expect(erlcloud_aws, aws_request_xml4, [
                                                  mocked_groups(), 
                                                  mocked_instances(),
                                                  mocked_launch_configs(),
@@ -63,7 +63,7 @@ mocked_groups() ->
                        {"Action", "DescribeAutoScalingGroups"}, 
                        {"Version", '_'}, 
                        {"MaxRecords", '_'}], 
-      '_'], parsed_mock_response("
+      "autoscaling", '_'], parsed_mock_response("
 <DescribeAutoScalingGroupsResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
 <DescribeAutoScalingGroupsResult>
     <AutoScalingGroups>
@@ -118,7 +118,7 @@ mocked_instances() ->
                        {"Action", "DescribeAutoScalingInstances"}, 
                        {"Version", '_'}, 
                        {"MaxRecords", '_'}], 
-      '_'], {ok, element(1, xmerl_scan:string("
+      "autoscaling", '_'], {ok, element(1, xmerl_scan:string("
 <DescribeAutoScalingInstancesResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
   <DescribeAutoScalingInstancesResult>
     <AutoScalingInstances>
@@ -151,7 +151,7 @@ mocked_launch_configs() ->
                        {"Action", "DescribeLaunchConfigurations"}, 
                        {"Version", '_'}, 
                        {"MaxRecords", '_'}], 
-      '_'], parsed_mock_response("
+      "autoscaling", '_'], parsed_mock_response("
 <DescribeLaunchConfigurationsResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
   <DescribeLaunchConfigurationsResult>
     <LaunchConfigurations>
@@ -195,7 +195,7 @@ mocked_activity() ->
                        {"Version", "2011-01-01"}, 
                        {"InstanceId", "i-bdae7a84"}, 
                        {"ShouldDecrementDesiredCapacity", "true"}],
-      '_'], parsed_mock_response("
+      "autoscaling", '_'], parsed_mock_response("
 <TerminateInstanceInAutoScalingGroupResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
   <TerminateInstanceInAutoScalingGroupResult>
     <Activity>

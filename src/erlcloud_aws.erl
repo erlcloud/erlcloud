@@ -130,7 +130,7 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service, #aws
 
 
 -spec aws_request_form(Method :: atom(), Protocol :: undefined | string(), Host :: string(),
-                        Port :: undefined | integer() | string(), Path :: string(), Form :: string(),
+                        Port :: undefined | integer() | string(), Path :: string(), Form :: iodata(),
                         Headers :: list(), Config :: aws_config()) -> {ok, binary()} | {error, tuple()}.
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
     UProtocol = case Protocol of
@@ -321,7 +321,7 @@ request_to_return(#aws_request{response_type = error,
 sign_v4(Config, Headers, Payload, Region, Service) ->
     sign_v4(post, Config, Headers, [], Payload, Region, Service).
 
--spec sign_v4(atom(), aws_config(), headers(), binary(), binary(), string(), string()) -> headers().
+-spec sign_v4(atom(), aws_config(), headers(), string(), iodata(), string(), string()) -> headers().
 sign_v4(Method, Config, Headers, QueryParams, Payload, Region, Service) ->
     Date = iso_8601_basic_time(),
     Headers1 = [{"x-amz-date", Date} | Headers],
