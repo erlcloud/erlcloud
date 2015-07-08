@@ -2093,6 +2093,8 @@ extract_vpc(Node) ->
       {state, get_text("state", Node)},
       {cidr_block, get_text("cidrBlock", Node)},
       {dhcp_options_id, get_text("dhcpOptionsId", Node)},
+      {instance_tenancy, get_text("instanceTenancy", Node)},
+      {is_default, get_bool("isDefault", Node)},
       {tag_set, 
         [extract_tag_item(Item)
          || Item <- xmerl_xpath:string("tagSet/item", Node)]}
