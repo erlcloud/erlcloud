@@ -157,12 +157,12 @@ get_identity_dkim_attributes(Identities) ->
 %% Get DKIM attributes for an identity.
 %%
 %% `
-%%  {ok,[{dkim_attributes,[{"amazon.com",
-%%                          [{dkim_enabled, true},
-%%                           {dkim_verification_status, success},
-%%                           {dkim_tokens,["vvjuipp74whm76gqoni7qmwwn4w4qusjiainivf6f",
-%%                                         "3frqe7jn4obpuxjpwpolz6ipb3k5nvt2nhjpik2oy",
-%%                                         "wrqplteh7oodxnad7hsl4mixg2uavzneazxv5sxi2"]}]}]}]} =
+%%  {ok, [{dkim_attributes, [{"amazon.com",
+%%                            [{dkim_enabled, true},
+%%                             {dkim_verification_status, success},
+%%                             {dkim_tokens,["vvjuipp74whm76gqoni7qmwwn4w4qusjiainivf6f",
+%%                                           "3frqe7jn4obpuxjpwpolz6ipb3k5nvt2nhjpik2oy",
+%%                                           "wrqplteh7oodxnad7hsl4mixg2uavzneazxv5sxi2"]}]}]}]} =
 %% erlcloud_ses:get_identity_dkim_attributes(["amazon.com"]).
 %% '
 %%
@@ -207,11 +207,11 @@ get_identity_notification_attributes(Identities) ->
 %% Get notification attributes for an identity.
 %%
 %% `
-%%  {ok,[{notification_attributes,[{"user@example.com",
-%%                                  [{forwarding_enabled, true},
-%%                                   {bounce_topic, "arn:aws:sns:us-east-1:123456789012:example"},
-%%                                   {complaint_topic, "arn:aws:sns:us-east-1:123456789012:example"},
-%%                                   {delivery_topic, "arn:aws:sns:us-east-1:123456789012:example"}]}]}]} = 
+%%  {ok, [{notification_attributes, [{"user@example.com",
+%%                                    [{forwarding_enabled, true},
+%%                                     {bounce_topic, "arn:aws:sns:us-east-1:123456789012:example"},
+%%                                     {complaint_topic, "arn:aws:sns:us-east-1:123456789012:example"},
+%%                                     {delivery_topic, "arn:aws:sns:us-east-1:123456789012:example"}]}]}]} = 
 %% erlcloud_ses:get_identity_notification_attributes(["user@example.com"]).
 %% '
 %%
@@ -259,7 +259,7 @@ get_identity_verification_attributes(Identities) ->
 %%                                     {verification_token, "QTKknzFg2J4ygwa+XvHAxUl1hyHoY0gVfZdfjIedHZ0="}]},
 %%                                   {"user@domain.com",
 %%                                    [{verification_status, pending}]}]}]} =
-%% erlcloud_ses:get_identity_verification_attributes(["domain.com", "user@domain.com"]).
+%% erlcloud_ses:get_identity_verification_attributes(["user@domain.com", "domain.com"]).
 %% '
 %%
 %% @end
@@ -299,9 +299,9 @@ get_send_quota() ->
 %% Get the send quota.
 %%
 %% `
-%%  {ok, [{sent_last_24_hours,10.0},
-%%        {max_24_hour_send,5.0e4},
-%%        {max_send_rate,14.0}]} = 
+%%  {ok, [{sent_last_24_hours, 127.0},
+%%        {max_24_hour_send, 200.0},
+%%        {max_send_rate, 1.0}]} = 
 %% erlcloud_ses:get_send_quota().
 %% '
 %%
@@ -665,7 +665,7 @@ verify_domain_dkim(Domain) ->
 %% `
 %%  {ok, [{dkim_tokens, ["vvjuipp74whm76gqoni7qmwwn4w4qusjiainivf6sf",
 %%                       "3frqe7jn4obpuxjpwpolz6ipb3k5nvt2nhjpik2oy",
-%%                       "wrqplteh7oodxnad7hsl4mixg2uavzneazxv5sxi2"]}] =
+%%                       "wrqplteh7oodxnad7hsl4mixg2uavzneazxv5sxi2"]}]} =
 %% erlcloud_ses:verify_domain_dkim(<<"example.com">>).
 %% '
 %%
