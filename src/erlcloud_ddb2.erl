@@ -298,7 +298,8 @@ default_config() -> erlcloud_aws:default_config().
 -type return_consumed_capacity() :: none | total | indexes.
 -type return_item_collection_metrics() :: none | size.
 
--type out_attr_value() :: binary() | number() | boolean() | undefined | [binary()] | [number()] | [out_attr_value()] | [out_attr()].
+-type out_attr_value() :: binary() | number() | boolean() | undefined |
+                          [binary()] | [number()] | [out_attr_value()] | [out_attr()].
 -type out_attr() :: {attr_name(), out_attr_value()}.
 -type out_item() :: [out_attr() | in_attr()]. % in_attr in the case of typed_record
 -type ok_return(T) :: {ok, T} | {error, term()}.
@@ -2026,7 +2027,8 @@ update_item(Table, Key, UpdatesOrExpression, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec update_item(table_name(), key(), in_updates() | expression(), update_item_opts(), aws_config()) -> update_item_return().
+-spec update_item(table_name(), key(), in_updates() | expression(), update_item_opts(), aws_config())
+                 -> update_item_return().
 update_item(Table, Key, UpdatesOrExpression, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(update_item_opts(), Opts),
     Return = erlcloud_ddb_impl:request(
@@ -2126,6 +2128,7 @@ update_table(Table, ReadUnits, WriteUnits) ->
 update_table(Table, ReadUnits, WriteUnits, Opts) ->
     update_table(Table, ReadUnits, WriteUnits, Opts, default_config()).
 
--spec update_table(table_name(), read_units(), write_units(), update_table_opts(), aws_config()) -> update_table_return().
+-spec update_table(table_name(), read_units(), write_units(), update_table_opts(), aws_config())
+                  -> update_table_return().
 update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
     update_table(Table, [{provisioned_throughput, {ReadUnits, WriteUnits}} | Opts], Config).
