@@ -503,8 +503,8 @@ get_text(Label, Doc) ->
 -spec as_query(aws_config(), string(), list({string(), string()}), string()) -> {ok, term()} | {error, term}.
 as_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
-    erlcloud_aws:aws_request_xml2(post, Config#aws_config.as_host, 
-                                  "/", QParams, Config).
+    erlcloud_aws:aws_request_xml4(post, Config#aws_config.as_host,
+                                  "/", QParams, "autoscaling", Config).
 
 
 when_defined(Value, Return, DefaultReturn) ->

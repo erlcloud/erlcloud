@@ -407,7 +407,7 @@ iam_query(Config, Action, Params) ->
 iam_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml4(post, Config#aws_config.iam_host,
-                                  "/", QParams, Config, region(Config), "iam").
+                                  "/", QParams, "iam", Config).
 
 iam_query(Config, Action, Params, ItemPath, DataTypeDef) ->
     case iam_query(Config, Action, Params) of
@@ -416,14 +416,6 @@ iam_query(Config, Action, Params, ItemPath, DataTypeDef) ->
             {ok, [extract_values(DataTypeDef, Item) || Item <- Items]};
         {error, _} = Error ->
             Error
-    end.
-
-region(Config) ->
-    case string:tokens(Config#aws_config.iam_host, ".") of
-        [_, Value, _, _] ->
-            Value;
-        _ ->
-            "us-east-1"
     end.
 
 extract_values(DataTypeDef, Item) ->
