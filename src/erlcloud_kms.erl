@@ -350,17 +350,17 @@ enable_key_rotation(KeyId) ->
 
 -spec encrypt(string(), string(), tuple() | 'undefined', [string()] | 'undefined') -> any().
 
-encrypt(KeyId, PlainText, undefined, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"PlainText">>, PlainText}],
+encrypt(KeyId, Plaintext, undefined, undefined) ->
+    Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}],
     erlcloud_kms_impl:request(default_config(), "TrentService.Encrypt", Json);
-encrypt(KeyId, PlainText, undefined, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"PlainText">>, PlainText}, {<<"GrantTokens">>, GrantTokens}],
+encrypt(KeyId, Plaintext, undefined, GrantTokens) ->
+    Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}, {<<"GrantTokens">>, GrantTokens}],
     erlcloud_kms_impl:request(default_config(), "TrentService.Encrypt", Json);
-encrypt(KeyId, PlainText, EncryptionContent, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"PlainText">>, PlainText}, {<<"EncryptionContent">>, EncryptionContent}],
+encrypt(KeyId, Plaintext, EncryptionContent, undefined) ->
+    Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}, {<<"EncryptionContent">>, EncryptionContent}],
     erlcloud_kms_impl:request(default_config(), "TrentService.Encrypt", Json);
-encrypt(KeyId, PlainText, EncryptionContent, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"PlainText">>, PlainText}, {<<"EncryptionContent">>, EncryptionContent}, {<<"GrantTokens">>, GrantTokens}],
+encrypt(KeyId, Plaintext, EncryptionContent, GrantTokens) ->
+    Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}, {<<"EncryptionContent">>, EncryptionContent}, {<<"GrantTokens">>, GrantTokens}],
     erlcloud_kms_impl:request(default_config(), "TrentService.Encrypt", Json).
 
 %%%------------------------------------------------------------------------------
