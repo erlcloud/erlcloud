@@ -498,13 +498,12 @@ extract_as_activity(A) ->
 get_text(Label, Doc) ->
     erlcloud_xml:get_text(Label, Doc).
 
-%% Based on erlcoud_ec2:ec2_query2()
 %% @TODO:  spec is too general with terms I think
 -spec as_query(aws_config(), string(), list({string(), string()}), string()) -> {ok, term()} | {error, term}.
 as_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
-    erlcloud_aws:aws_request_xml2(post, Config#aws_config.as_host, 
-                                  "/", QParams, Config).
+    erlcloud_aws:aws_request_xml4(post, Config#aws_config.as_host,
+                                  "/", QParams, "autoscaling", Config).
 
 
 when_defined(Value, Return, DefaultReturn) ->

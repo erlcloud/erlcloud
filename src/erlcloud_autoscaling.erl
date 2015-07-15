@@ -144,8 +144,9 @@ autoscaling_query(Config, Action, Params) ->
 
 autoscaling_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
-    erlcloud_aws:aws_request_xml2(post, 
+    erlcloud_aws:aws_request_xml4(post,
                                   Config#aws_config.autoscaling_host,
-                                  "/", QParams, Config).
+                                  "/", QParams, ?SERVICE_NAME, Config).
+
 
 default_config() -> erlcloud_aws:default_config().

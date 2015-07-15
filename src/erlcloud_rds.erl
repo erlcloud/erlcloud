@@ -96,7 +96,7 @@ describe_db_instances(Params, Config) ->
         end,
         Params
     ),
-    case rds_query2(Config, "DescribeDBInstances", Query) of
+    case rds_query(Config, "DescribeDBInstances", Query) of
         {ok, Doc} ->
             DBInstances = extract_db_instances(
                 xmerl_xpath:string(
@@ -153,7 +153,7 @@ describe_db_security_groups(Params, Config) ->
         end,
         Params
     ),
-    case rds_query2(Config, "DescribeDBSecurityGroups", Query) of
+    case rds_query(Config, "DescribeDBSecurityGroups", Query) of
         {ok, Doc} ->
             DBSecurityGroups = extract_db_security_groups(
                 xmerl_xpath:string(
@@ -212,7 +212,7 @@ describe_db_subnet_groups(Params, Config) ->
         end,
         Params
     ),
-    case rds_query2(Config, "DescribeDBSubnetGroups", Query) of
+    case rds_query(Config, "DescribeDBSubnetGroups", Query) of
         {ok, Doc} ->
             DBSubnetGroups = extract_db_subnet_groups(
                 xmerl_xpath:string(
@@ -251,11 +251,10 @@ describe_db_subnet_groups_all(Config) ->
 %%==============================================================================
 
 
-rds_query2(Config, Action, Params) ->
+rds_query(Config, Action, Params) ->
     Query = [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-    erlcloud_aws:aws_request_xml2(
-        post, Config#aws_config.rds_host, "/", Query, Config
-    ).
+    erlcloud_aws:aws_request_xml4(
+        post, Config#aws_config.rds_host, "/", Query, "rds", Config).
 
 
 default_config() ->

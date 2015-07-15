@@ -522,11 +522,11 @@ sns_simple_request(Config, Action, Params) ->
     ok.
 
 sns_xml_request(Config, Action, Params) ->
-    case erlcloud_aws:aws_request_xml2(
-           post, scheme_to_protocol(Config#aws_config.sns_scheme),
-           Config#aws_config.sns_host, undefined, "/",
-           [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-           Config) of
+    case erlcloud_aws:aws_request_xml4(post,
+                                       scheme_to_protocol(Config#aws_config.sns_scheme),
+                                       Config#aws_config.sns_host, undefined, "/",
+                                       [{"Action", Action}, {"Version", ?API_VERSION} | Params],
+                                       "sns", Config) of
         {ok, XML} -> XML;
         {error, {http_error, 400, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(binary_to_list(Body))),
@@ -538,11 +538,11 @@ sns_xml_request(Config, Action, Params) ->
     end.
 
 sns_request(Config, Action, Params) ->
-    case erlcloud_aws:aws_request2(
-           post, scheme_to_protocol(Config#aws_config.sns_scheme),
-           Config#aws_config.sns_host, undefined, "/",
-           [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-           Config) of
+    case erlcloud_aws:aws_request_xml4(post,
+                                       scheme_to_protocol(Config#aws_config.sns_scheme),
+                                       Config#aws_config.sns_host, undefined, "/",
+                                       [{"Action", Action}, {"Version", ?API_VERSION} | Params],
+                                       "sns", Config) of
         {ok, _Response} -> ok;
         {error, {http_error, 400, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(binary_to_list(Body))),

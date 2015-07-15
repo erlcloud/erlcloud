@@ -85,7 +85,7 @@ create_tests(_) ->
     
 mocked_aws_xml() ->
     meck:expect(erlcloud_aws, default_config, [{[], #aws_config{}}]),
-    meck:expect(erlcloud_aws, aws_request_xml2, [
+    meck:expect(erlcloud_aws, aws_request_xml4, [
                                                  mocked_groups(), 
                                                  mocked_instances(),
                                                  mocked_launch_configs(),
@@ -102,8 +102,8 @@ mocked_groups() ->
     {[post, '_', "/", [
                        {"Action", "DescribeAutoScalingGroups"}, 
                        {"Version", '_'}, 
-                       {"MaxRecords", '_'}], 
-      '_'], parsed_mock_response("
+                       {"MaxRecords", '_'}],
+      "autoscaling", '_'], parsed_mock_response("
 <DescribeAutoScalingGroupsResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
 <DescribeAutoScalingGroupsResult>
     <AutoScalingGroups>
@@ -162,8 +162,8 @@ mocked_instances() ->
     {[post, '_', "/", [
                        {"Action", "DescribeAutoScalingInstances"}, 
                        {"Version", '_'}, 
-                       {"MaxRecords", '_'}], 
-      '_'], {ok, element(1, xmerl_scan:string("
+                       {"MaxRecords", '_'}],
+      "autoscaling", '_'], {ok, element(1, xmerl_scan:string("
 <DescribeAutoScalingInstancesResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
   <DescribeAutoScalingInstancesResult>
     <AutoScalingInstances>
@@ -195,8 +195,8 @@ mocked_launch_configs() ->
     {[post, '_', "/", [
                        {"Action", "DescribeLaunchConfigurations"}, 
                        {"Version", '_'}, 
-                       {"MaxRecords", '_'}], 
-      '_'], parsed_mock_response("
+                       {"MaxRecords", '_'}],
+      "autoscaling", '_'], parsed_mock_response("
 <DescribeLaunchConfigurationsResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
   <DescribeLaunchConfigurationsResult>
     <LaunchConfigurations>
@@ -245,7 +245,7 @@ mocked_activity() ->
                        {"Version", "2011-01-01"}, 
                        {"InstanceId", "i-bdae7a84"}, 
                        {"ShouldDecrementDesiredCapacity", "true"}],
-      '_'], parsed_mock_response("
+      "autoscaling", '_'], parsed_mock_response("
 <TerminateInstanceInAutoScalingGroupResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
   <TerminateInstanceInAutoScalingGroupResult>
     <Activity>
@@ -270,7 +270,7 @@ mocked_scaling_activity() ->
                        {"AutoScalingGroupName", "my-test-asg"},
                        {"MaxRecords", "20"}
                       ],
-      '_'], parsed_mock_response("
+      "autoscaling", '_'], parsed_mock_response("
 <DescribeScalingActivitiesResponse xmlns=\"http://ec2.amazonaws.com/doc/2011-01-01/\">
 <DescribeScalingActivitiesResult>
 <Activities>
@@ -303,7 +303,7 @@ mocked_create_launch_config() ->
                        {"AssociatePublicIpAddress", "true"},
                        {"InstanceMonitoring.Enabled","false"}
                       ],
-      '_'], parsed_mock_response("
+      "autoscaling", '_'], parsed_mock_response("
 <CreateLaunchConfigurationResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
 <ResponseMetadata>
    <RequestId>7c6e177f-f082-11e1-ac58-3714bEXAMPLE</RequestId>
@@ -322,7 +322,7 @@ mocked_create_asg() ->
                        {"Tags.member.1.Value", "BAR"},
                        {"Tags.member.1.PropageteAtLaunch", "true"}
                       ],
-      '_'], parsed_mock_response("
+      "autoscaling", '_'], parsed_mock_response("
 <CreateAutoScalingGroupResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
 <ResponseMetadata>
 <RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>

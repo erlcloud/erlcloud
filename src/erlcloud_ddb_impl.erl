@@ -256,14 +256,8 @@ client_error(Body, DDBError) ->
 headers(Config, Operation, Body) ->
     Headers = [{"host", Config#aws_config.ddb_host},
                {"x-amz-target", Operation}],
-    Region =
-        case string:tokens(Config#aws_config.ddb_host, ".") of
-            [_, Value, _, _] ->
-                Value;
-            _ ->
-                "us-east-1"
-        end,
-    erlcloud_aws:sign_v4(Config, Headers, Body, Region, "dynamodb").
+
+    erlcloud_aws:sign_v4_headers(Config, Headers, Body, erlcloud_aws:aws_region_from_host(Config#aws_config.ddb_host), "dynamodb").
 
 url(#aws_config{ddb_scheme = Scheme, ddb_host = Host} = Config) ->
     lists:flatten([Scheme, Host, port_spec(Config)]).

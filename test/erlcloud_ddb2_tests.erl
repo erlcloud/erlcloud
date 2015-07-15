@@ -3250,6 +3250,52 @@ update_table_input_tests(_) ->
         }
     ]
 }"
+            }),
+        ?_ddb_test(
+            {"UpdateTable example request with Create and Delete GSI",
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>, 10, 10,
+                                            [{attribute_definitions, [{<<"HashKey1">>, s}]},
+                                             {global_secondary_index_updates, [
+                                                {<<"Index1">>, <<"HashKey1">>, all, 30, 40},
+                                                {<<"Index2">>, delete}]}])), "
+{
+    \"TableName\": \"Thread\",
+    \"ProvisionedThroughput\": {
+        \"ReadCapacityUnits\": 10,
+        \"WriteCapacityUnits\": 10
+    },
+    \"AttributeDefinitions\": [
+        {
+            \"AttributeName\": \"HashKey1\",
+            \"AttributeType\": \"S\"
+        }
+    ],
+    \"GlobalSecondaryIndexUpdates\": [
+        {
+            \"Create\": {
+                \"IndexName\": \"Index1\",
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"HashKey1\",
+                        \"KeyType\": \"HASH\"
+                    }
+                ],
+                \"Projection\": {
+                    \"ProjectionType\": \"ALL\"
+                },
+                \"ProvisionedThroughput\": {
+                    \"ReadCapacityUnits\": 30,
+                    \"WriteCapacityUnits\": 40
+                }
+            }
+        },
+        {
+            \"Delete\": {
+                \"IndexName\": \"Index2\"
+            }
+        }
+    ]
+}"
             })
         ],
 
