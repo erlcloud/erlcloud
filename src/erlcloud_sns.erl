@@ -89,6 +89,8 @@
 
 -type(sns_subscribe_protocol_type () :: http | https | email | 'email-json' | sms | sqs | application).
 
+-type(sns_response() :: {ok, string()} | {error, any()}).
+
 -export_type([sns_acl/0, sns_endpoint_attribute/0,
               sns_message/0, sns_application/0, sns_endpoint/0]).
 
@@ -303,15 +305,15 @@ list_platform_applications(NextToken, AccessKeyID, SecretAccessKey) ->
 
 
 
--spec publish_to_topic/2 :: (string(), sns_message()) -> string().
--spec publish_to_topic/3 :: (string(), sns_message(), undefined|string()) -> string().
--spec publish_to_topic/4 :: (string(), sns_message(), undefined|string(), aws_config()) -> string().
--spec publish_to_topic/5 :: (string(), sns_message(), undefined|string(), string(), string()) -> string().
--spec publish_to_target/2 :: (string(), sns_message()) -> string().
--spec publish_to_target/3 :: (string(), sns_message(), undefined|string()) -> string().
--spec publish_to_target/4 :: (string(), sns_message(), undefined|string(), aws_config()) -> string().
--spec publish_to_target/5 :: (string(), sns_message(), undefined|string(), string(), string()) -> string().
--spec publish/5 :: (topic|target, string(), sns_message(), undefined|string(), aws_config()) -> string().
+-spec publish_to_topic/2 :: (string(), sns_message()) -> sns_response().
+-spec publish_to_topic/3 :: (string(), sns_message(), undefined|string()) -> sns_response().
+-spec publish_to_topic/4 :: (string(), sns_message(), undefined|string(), aws_config()) -> sns_response().
+-spec publish_to_topic/5 :: (string(), sns_message(), undefined|string(), string(), string()) -> sns_response().
+-spec publish_to_target/2 :: (string(), sns_message()) -> sns_response().
+-spec publish_to_target/3 :: (string(), sns_message(), undefined|string()) -> sns_response().
+-spec publish_to_target/4 :: (string(), sns_message(), undefined|string(),aws_config()) -> sns_response().
+-spec publish_to_target/5 :: (string(), sns_message(), undefined|string(), string(), string()) -> sns_response().
+-spec publish/5 :: (topic|target, string(), sns_message(), undefined|string(), aws_config()) -> sns_response().
 
 publish_to_topic(TopicArn, Message) ->
     publish_to_topic(TopicArn, Message, undefined).
@@ -349,12 +351,12 @@ publish(Type, RecipientArn, Message, Subject, Config) ->
             undefined -> [];
             Subject -> [{"Subject", Subject}]
         end,
-    Doc =
-        sns_xml_request(
-            Config, "Publish",
-            RecipientParam ++ MessageParams ++ SubjectParam),
-    erlcloud_xml:get_text(
-        "PublishResult/MessageId", Doc).
+    case sns_xml_request2(
+           Config, "Publish",
+           RecipientParam ++ MessageParams ++ SubjectParam) of
+      {ok, Doc} -> {ok, erlcloud_xml:get_text("PublishResult/MessageId", Doc)};
+      Error -> Error
+    end.
 
 
 
@@ -512,35 +514,47 @@ sns_simple_request(Config, Action, Params) ->
     ok.
 
 sns_xml_request(Config, Action, Params) ->
+      case sns_xml_request2(Config, Action, Params) of
+        {error, Error} -> erlang:error(Error);
+        {ok, XML} -> XML
+      end.
+
+sns_xml_request2(Config, Action, Params) ->
     case erlcloud_aws:aws_request_xml2(
            post, scheme_to_protocol(Config#aws_config.sns_scheme),
            Config#aws_config.sns_host, undefined, "/",
            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
            Config) of
-        {ok, XML} -> XML;
+        {ok, XML} -> {ok, XML};
         {error, {http_error, 400, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(binary_to_list(Body))),
             ErrCode = erlcloud_xml:get_text("Error/Code", XML),
             ErrMsg = erlcloud_xml:get_text("Error/Message", XML),
-            erlang:error({sns_error, ErrCode, ErrMsg});
+            {error, {sns_error, ErrCode, ErrMsg}};
         {error, Reason} ->
-            erlang:error({sns_error, Reason})
+            {error, {sns_error, Reason}}
     end.
 
 sns_request(Config, Action, Params) ->
+    case sns_request2(Config, Action, Params) of
+      {error, Error} -> erlang:error(Error);
+      {ok, _Response} -> ok
+    end.
+
+sns_request2(Config, Action, Params) ->
     case erlcloud_aws:aws_request2(
            post, scheme_to_protocol(Config#aws_config.sns_scheme),
            Config#aws_config.sns_host, undefined, "/",
            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
            Config) of
-        {ok, _Response} -> ok;
+        {ok, Response} -> {ok, Response};
         {error, {http_error, 400, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(binary_to_list(Body))),
             ErrCode = erlcloud_xml:get_text("Error/Code", XML),
             ErrMsg = erlcloud_xml:get_text("Error/Message", XML),
-            erlang:error({sns_error, ErrCode, ErrMsg});
+            {error, {sns_error, ErrCode, ErrMsg}};
         {error, Reason} ->
-            erlang:error({sns_error, Reason})
+            {error, {sns_error, Reason}}
     end.
 
 
