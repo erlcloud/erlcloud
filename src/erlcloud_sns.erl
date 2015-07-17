@@ -512,35 +512,47 @@ sns_simple_request(Config, Action, Params) ->
     ok.
 
 sns_xml_request(Config, Action, Params) ->
+      case sns_xml_request2(Config, Action, Params) of
+        {error, Error} -> erlang:error(Error);
+        {ok, XML} -> XML
+      end.
+
+sns_xml_request2(Config, Action, Params) ->
     case erlcloud_aws:aws_request_xml2(
            post, scheme_to_protocol(Config#aws_config.sns_scheme),
            Config#aws_config.sns_host, undefined, "/",
            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
            Config) of
-        {ok, XML} -> XML;
+        {ok, XML} -> {ok, XML};
         {error, {http_error, 400, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(binary_to_list(Body))),
             ErrCode = erlcloud_xml:get_text("Error/Code", XML),
             ErrMsg = erlcloud_xml:get_text("Error/Message", XML),
-            erlang:error({sns_error, ErrCode, ErrMsg});
+            {error, {sns_error, ErrCode, ErrMsg}};
         {error, Reason} ->
-            erlang:error({sns_error, Reason})
+            {error, {sns_error, Reason}}
     end.
 
 sns_request(Config, Action, Params) ->
+    case sns_request2(Config, Action, Params) of
+      {error, Error} -> erlang:error(Error);
+      {ok, _Response} -> ok
+    end.
+
+sns_request2(Config, Action, Params) ->
     case erlcloud_aws:aws_request2(
            post, scheme_to_protocol(Config#aws_config.sns_scheme),
            Config#aws_config.sns_host, undefined, "/",
            [{"Action", Action}, {"Version", ?API_VERSION} | Params],
            Config) of
-        {ok, _Response} -> ok;
+        {ok, Response} -> {ok, Response};
         {error, {http_error, 400, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(binary_to_list(Body))),
             ErrCode = erlcloud_xml:get_text("Error/Code", XML),
             ErrMsg = erlcloud_xml:get_text("Error/Message", XML),
-            erlang:error({sns_error, ErrCode, ErrMsg});
+            {error, {sns_error, ErrCode, ErrMsg}};
         {error, Reason} ->
-            erlang:error({sns_error, Reason})
+            {error, {sns_error, Reason}}
     end.
 
 
