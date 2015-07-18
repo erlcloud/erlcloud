@@ -4,10 +4,12 @@ _build
 ebin/*.beam
 ebin/*.app
 .eunit/
+.rebar/
 rebar
 *.sublime-*
 deps/
 doc/
+erl_crash.dump
 .edts
 *[#]*[#]
 *[#]*
