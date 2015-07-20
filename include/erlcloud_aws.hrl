@@ -75,4 +75,4 @@
           %% Service specific error information
           should_retry :: boolean()
         }).
-
+-type(aws_request() :: #aws_request{}).

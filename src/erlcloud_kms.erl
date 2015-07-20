@@ -7,7 +7,7 @@
 -define(API_VERSION, "2014-11-01").
 
 %%% Library initialization.
--export([configure/2, configure/3, configure/4, new/2, new/3, new/4]).
+-export([configure/2, configure/3, configure/4, new/2, new/3, new/4, kms_result_fun/1]).
 
 %%% KMS API
 -export([create_alias/2, create_alias/3,
@@ -124,7 +124,7 @@ create_alias(AliasName, TargetKeyId) ->
           any().
 create_alias(AliasName, TargetKeyId, Config) ->
     Json = [{<<"AliasName">>, AliasName}, {<<"TargetKeyId">>, TargetKeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateAlias", Json).	
+    request(Config, "TrentService.CreateAlias", Json).	
 
 
 %%%------------------------------------------------------------------------------
@@ -171,7 +171,7 @@ create_grant(GranteePrincipal, KeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"GranteePrincipal">>, GranteePrincipal},
             {<<"KeyId">>, KeyId}|OptJson],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json).
+    request(Config, "TrentService.CreateGrant", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -209,7 +209,7 @@ create_key(Options) ->
           any().
 create_key(Options, Config) ->
     Json = dynamize_options(Options),
-    erlcloud_kms_impl:request(Config, "TrentService.CreateKey", Json).
+    request(Config, "TrentService.CreateKey", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -252,7 +252,7 @@ decrypt(CiphertextBlob, Options) ->
 decrypt(CiphertextBlob, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"CiphertextBlob">>, CiphertextBlob}|OptJson],
-    erlcloud_kms_impl:request(Config, "TrentService.Decrypt", Json).
+    request(Config, "TrentService.Decrypt", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -280,7 +280,7 @@ delete_alias(AliasName) ->
           any().
 delete_alias(AliasName, Config) ->
     Json = [{<<"AliasName">>, AliasName}],
-    erlcloud_kms_impl:request(Config, "TrentService.DeleteAlias", Json).
+    request(Config, "TrentService.DeleteAlias", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -308,7 +308,7 @@ describe_key(KeyId) ->
           any().
 describe_key(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.DescribeKey", Json).
+    request(Config, "TrentService.DescribeKey", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -336,7 +336,7 @@ disable_key(KeyId) ->
           any().
 disable_key(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.DisableKey", Json).
+    request(Config, "TrentService.DisableKey", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -364,7 +364,7 @@ disable_key_rotation(KeyId) ->
           any().
 disable_key_rotation(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.DisableKey", Json).
+    request(Config, "TrentService.DisableKey", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -391,7 +391,7 @@ enable_key(KeyId) ->
           any().
 enable_key(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.EnableKey", Json).
+    request(Config, "TrentService.EnableKey", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -419,7 +419,7 @@ enable_key_rotation(KeyId) ->
           any().
 enable_key_rotation(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.EnableKeyRotation", Json).
+    request(Config, "TrentService.EnableKeyRotation", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -465,7 +465,7 @@ encrypt(KeyId, Plaintext, Options) ->
 encrypt(KeyId, Plaintext, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}|OptJson],
-    erlcloud_kms_impl:request(Config, "TrentService.Encrypt", Json).
+    request(Config, "TrentService.Encrypt", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -508,7 +508,7 @@ generate_data_key(KeyId, Options) ->
 generate_data_key(KeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}|OptJson],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json).
+    request(Config, "TrentService.GenerateDataKey", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -547,7 +547,7 @@ generate_data_key_without_plaintext(KeyId, Options) ->
 generate_data_key_without_plaintext(KeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}|OptJson],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json).
+    request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -575,7 +575,7 @@ generate_random(NumberOfBytes) ->
           any().
 generate_random(NumberOfBytes, Config) ->
     Json = [{<<"NumberOfBytes">>, NumberOfBytes}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateRandom", Json).
+    request(Config, "TrentService.GenerateRandom", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -605,7 +605,7 @@ get_key_policy(KeyId, PolicyName) ->
           any().
 get_key_policy(KeyId, PolicyName, Config) ->
     Json = [{<<"KeyId">>, KeyId}, {<<"PolicyName">>, PolicyName}],
-    erlcloud_kms_impl:request(Config, "TrentService.GetKeyPolicy", Json).
+    request(Config, "TrentService.GetKeyPolicy", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -633,7 +633,7 @@ get_key_rotation_status(KeyId) ->
           any().
 get_key_rotation_status(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.GetKeyRotationStatus", Json).
+    request(Config, "TrentService.GetKeyRotationStatus", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -668,7 +668,7 @@ list_aliases(Options) ->
           any().
 list_aliases(Options, Config) ->
     Json = dynamize_options(Options),
-    erlcloud_kms_impl:request(Config, "TrentService.ListAliases", Json).
+    request(Config, "TrentService.ListAliases", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -706,7 +706,7 @@ list_grants(KeyId, Options) ->
 list_grants(KeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}|OptJson],
-    erlcloud_kms_impl:request(Config, "TrentService.ListGrants", Json).
+    request(Config, "TrentService.ListGrants", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -744,7 +744,7 @@ list_key_policies(KeyId, Options) ->
 list_key_policies(KeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}|OptJson],
-    erlcloud_kms_impl:request(Config, "TrentService.ListKeyPolicies", Json).
+    request(Config, "TrentService.ListKeyPolicies", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -779,7 +779,7 @@ list_keys(Options) ->
           any().
 list_keys(Options, Config) ->
     Json = dynamize_options(Options),
-    erlcloud_kms_impl:request(Config, "TrentService.ListKeys", Json).
+    request(Config, "TrentService.ListKeys", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -811,7 +811,7 @@ put_key_policy(KeyId, Policy, PolicyName) ->
           any().
 put_key_policy(KeyId, Policy, PolicyName, Config) ->
     Json = [{<<"KeyId">>, KeyId}, {<<"Policy">>, Policy}, {<<"PolicyName">>, PolicyName}],
-    erlcloud_kms_impl:request(Config, "TrentService.PutKeyPolicy", Json).
+    request(Config, "TrentService.PutKeyPolicy", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -857,7 +857,7 @@ re_encrypt(CiphertextBlob, DestinationKeyId, Options) ->
 re_encrypt(CiphertextBlob, DestinationKeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}|OptJson],
-    erlcloud_kms_impl:request(Config, "TrentService.ReEncrypt", Json).
+    request(Config, "TrentService.ReEncrypt", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -889,7 +889,7 @@ retire_grant(Options) ->
           any().
 retire_grant(Options, Config) ->
     Json = dynamize_options(Options),
-    erlcloud_kms_impl:request(Config, "TrentService.RetireGrant", Json).
+    request(Config, "TrentService.RetireGrant", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -919,7 +919,7 @@ revoke_grant(GrantId, KeyId) ->
           any().
 revoke_grant(GrantId, KeyId, Config) ->
     Json = [{<<"GrantId">>, GrantId}, {<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.RevokeGrant", Json).
+    request(Config, "TrentService.RevokeGrant", Json).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateAlias
@@ -946,7 +946,7 @@ update_alias(AliasName, TargetKeyId) ->
            Config :: aws_config()) -> any().
 update_alias(AliasName, TargetKeyId, Config) ->
     Json = [{<<"AliasName">>, AliasName}, {<<"TargetKeyId">>, TargetKeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.UpdateAlias", Json).
+    request(Config, "TrentService.UpdateAlias", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -976,12 +976,60 @@ update_key_description(KeyId, Description) ->
           any().
 update_key_description(KeyId, Description, Config) ->
     Json = [{<<"KeyId">>, KeyId}, {<<"Description">>, Description}],
-    erlcloud_kms_impl:request(Config, "TrentService.UpdateKeyDescription", Json).
+    request(Config, "TrentService.UpdateKeyDescription", Json).
+
+
+-spec kms_result_fun/1 ::
+          (Request :: aws_request()) -> aws_request().
+kms_result_fun(#aws_request{response_type = ok} = Request) ->
+    Request;
+kms_result_fun(#aws_request{response_type = error, 
+                           error_type = aws, 
+                           response_status = Status} = Request)
+  when Status >= 500 ->
+    Request#aws_request{should_retry = true};
+kms_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
+    Request#aws_request{should_retry = false}.
 
 
 %
 % Private
 %
+request(Config, Operation, Body) ->
+    Payload = case Body of
+               [] -> <<"{}">>;
+               _ -> jsx:encode(Body)
+           end,
+    Headers = headers(Config, Operation, Payload),
+    Request = #aws_request{service = kms,
+                           uri = uri(Config),
+                           method = post,
+                           request_headers = Headers,
+                           request_body = Payload},
+    case erlcloud_aws:request_to_return(erlcloud_retry:request(Config, Request, fun kms_result_fun/1)) of
+        {ok, {_RespHeaders, RespBody}} -> {ok, jsx:decode(RespBody)};
+        {error, _} = Error-> Error
+    end.
+
+
+headers(Config, Operation, Body) ->
+    Headers = [{"host", Config#aws_config.kms_host},
+               {"x-amz-target", Operation},
+               {"content-type", "application/x-amz-json-1.1"}],
+    Region = erlcloud_aws:aws_region_from_host(Config#aws_config.kms_host),
+    erlcloud_aws:sign_v4_headers(Config, Headers, Body, Region, "kms").
+
+
+uri(#aws_config{kms_scheme = Scheme, kms_host = Host} = Config) ->
+    lists:flatten([Scheme, Host, port_spec(Config)]).
+
+
+port_spec(#aws_config{kms_port=80}) ->
+    "";
+port_spec(#aws_config{kms_port=Port}) ->
+    [":", erlang:integer_to_list(Port)].
+
+
 dynamize_options(List) ->
     dynamize_options(List, []).
 
