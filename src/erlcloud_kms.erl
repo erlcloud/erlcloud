@@ -10,12 +10,39 @@
 -export([configure/2, configure/3, configure/4, new/2, new/3, new/4]).
 
 %%% KMS API
--export([create_alias/2, create_alias/3, create_grant/6, create_grant/7, create_key/3, create_key/4, decrypt/3, decrypt/4, delete_alias/1, delete_alias/2, describe_key/1, describe_key/2, disable_key/1, 
-	 disable_key/2, disable_key_rotation/1, disable_key_rotation/2, enable_key/1, enable_key/2, enable_key_rotation/1, enable_key_rotation/2, encrypt/4, encrypt/5, generate_data_key/5, 
-	 generate_data_key/6, generate_data_key_without_plaintext/5, generate_data_key_without_plaintext/6, generate_random/1, generate_random/2, get_key_policy/2, get_key_policy/3, 
-	 get_key_rotation_status/1, get_key_rotation_status/2, list_aliases/2, list_aliases/3, list_grants/3, list_grants/4, list_key_policies/3, list_key_policies/4, list_keys/2, list_keys/3,
-	 put_key_policy/3, put_key_policy/4, re_encrypt/5, re_encrypt/6, retire_grant/3, retire_grant/4, revoke_grant/2, revoke_grant/3, update_alias/2, update_alias/3, 
-	 update_key_description/2, update_key_description/3]).
+-export([create_alias/2, create_alias/3,
+         create_grant/2, create_grant/3, create_grant/4,
+         create_key/0, create_key/1, create_key/2,
+         decrypt/1, decrypt/2, decrypt/3,
+         delete_alias/1, delete_alias/2,
+         describe_key/1, describe_key/2,
+         disable_key/1, disable_key/2,
+         disable_key_rotation/1, disable_key_rotation/2,
+         enable_key/1, enable_key/2,
+         enable_key_rotation/1, enable_key_rotation/2,
+         encrypt/2, encrypt/3, encrypt/4,
+         generate_data_key/1, generate_data_key/2, generate_data_key/3,
+         generate_data_key_without_plaintext/1, generate_data_key_without_plaintext/2, generate_data_key_without_plaintext/3,
+         generate_random/1, generate_random/2,
+         get_key_policy/2, get_key_policy/3,
+         get_key_rotation_status/1, get_key_rotation_status/2,
+         list_aliases/0, list_aliases/1, list_aliases/2,
+         list_grants/1, list_grants/2, list_grants/3,
+         list_key_policies/1, list_key_policies/2, list_key_policies/3,
+         list_keys/0, list_keys/1, list_keys/2,
+         put_key_policy/3, put_key_policy/4,
+         re_encrypt/2, re_encrypt/3, re_encrypt/4,
+         retire_grant/1, retire_grant/2,
+         revoke_grant/2, revoke_grant/3,
+         update_alias/2, update_alias/3,
+         update_key_description/2, update_key_description/3]).
+
+
+%%%------------------------------------------------------------------------------
+%%% Shared types
+%%%------------------------------------------------------------------------------
+-type pagination_opts() :: [pagination_opt()].
+-type pagination_opt() :: {limit, non_neg_integer()} | {marker, string()}.
 
 
 %%%------------------------------------------------------------------------------
@@ -82,15 +109,19 @@ default_config() ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
-
--spec create_alias(string(), string()) -> any().
-
+-spec create_alias/2 ::
+          (AliasName :: string(),
+           TargetKeyId :: string()) ->
+          any().
 create_alias(AliasName, TargetKeyId) ->
-    Json = [{<<"AliasName">>, AliasName}, {<<"TargetKeyId">>, TargetKeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateAlias", Json).
+    create_alias(AliasName, TargetKeyId, default_config()).
 
--spec create_alias(string(), string(), aws_config()) -> any().
 
+-spec create_alias/3 ::
+          (AliasName :: string(),
+           TargetKeyId :: string(),
+           Config :: aws_config()) ->
+          any().
 create_alias(AliasName, TargetKeyId, Config) ->
     Json = [{<<"AliasName">>, AliasName}, {<<"TargetKeyId">>, TargetKeyId}],
     erlcloud_kms_impl:request(Config, "TrentService.CreateAlias", Json).	
@@ -108,110 +139,40 @@ create_alias(AliasName, TargetKeyId, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
+-type create_grant_opts() :: [create_grant_opt()].
+-type create_grant_opt() :: {create_grant_opt_key(), term()}.
+-type create_grant_opt_key() :: grant_tokens | operations | grantee_principal.
 
--spec create_grant(string(), string(), tuple() | 'undefined', [string()] | 'undefined', [string()] | 'undefined', string() | 'undefined') -> any().
 
-create_grant(GranteePrincipal, KeyId, undefined, undefined, undefined, undefined) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, undefined, undefined, undefined) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, GrantTokens, undefined, undefined) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, undefined, Operations, undefined) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Operations">>, Operations}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, undefined, undefined, RetiringPrincipal) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, undefined, Operations, RetiringPrincipal) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Operations">>, Operations}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, GrantTokens, undefined, RetiringPrincipal) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"GrantTokens">>, GrantTokens}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, GrantTokens, Operations, undefined) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"GrantTokens">>, GrantTokens}, {<<"Operations">>, Operations}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, undefined, undefined, RetiringPrincipal) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, undefined, Operations, undefined) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"Operations">>, Operations}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, GrantTokens, undefined, undefined) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, GrantTokens, Operations, RetiringPrincipal) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"GrantTokens">>, GrantTokens}, {<<"Operations">>, Operations}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, undefined, Operations, RetiringPrincipal) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"Operations">>, Operations}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, GrantTokens, undefined, RetiringPrincipal) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"GrantTokens">>, GrantTokens}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, GrantTokens, Operations, undefined) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"GrantTokens">>, GrantTokens}, {<<"Operations">>, Operations}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, GrantTokens, Operations, RetiringPrincipal) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"GrantTokens">>, GrantTokens}, {<<"Operations">>, Operations},
-	    {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateGrant", Json).
+-spec create_grant/2 ::
+          (GranteePrincipal :: string(),
+           KeyId :: string()) ->
+          any().
+create_grant(GranteePrincipal, KeyId) ->
+    create_grant(GranteePrincipal, KeyId, []).
 
--spec create_grant(string(), string(), tuple() | 'undefined', [string()] | 'undefined', [string()] | 'undefined', string() | 'undefined', aws_config()) -> any().
 
-create_grant(GranteePrincipal, KeyId, undefined, undefined, undefined, undefined, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, undefined, undefined, undefined, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, GrantTokens, undefined, undefined, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, undefined, Operations, undefined, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Operations">>, Operations}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, undefined, undefined, RetiringPrincipal, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, undefined, Operations, RetiringPrincipal, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Operations">>, Operations}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, GrantTokens, undefined, RetiringPrincipal, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"GrantTokens">>, GrantTokens}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, GrantTokens, Operations, undefined, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"GrantTokens">>, GrantTokens}, {<<"Operations">>, Operations}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, undefined, undefined, RetiringPrincipal, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, undefined, Operations, undefined, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"Operations">>, Operations}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, GrantTokens, undefined, undefined, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, undefined, GrantTokens, Operations, RetiringPrincipal, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"GrantTokens">>, GrantTokens}, {<<"Operations">>, Operations}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, undefined, Operations, RetiringPrincipal, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"Operations">>, Operations}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, GrantTokens, undefined, RetiringPrincipal, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"GrantTokens">>, GrantTokens}, {<<"RetiringPrincipal">>, RetiringPrincipal}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, GrantTokens, Operations, undefined, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"GrantTokens">>, GrantTokens}, {<<"Operations">>, Operations}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json);
-create_grant(GranteePrincipal, KeyId, Constraints, GrantTokens, Operations, RetiringPrincipal, Config) ->
-    Json = [{<<"GranteePrincipal">>, GranteePrincipal}, {<<"KeyId">>, KeyId}, {<<"Constraints">>, Constraints}, {<<"GrantTokens">>, GrantTokens}, {<<"Operations">>, Operations},
-	    {<<"RetiringPrincipal">>, RetiringPrincipal}],
+-spec create_grant/3 ::
+          (GranteePrincipal :: string(),
+           KeyId :: string(),
+           Options :: create_grant_opts()) ->
+          any().
+create_grant(GranteePrincipal, KeyId, Options) ->
+    create_grant(GranteePrincipal, KeyId, Options, default_config()).
+
+
+-spec create_grant/4 ::
+          (GranteePrincipal :: string(),
+           KeyId :: string(),
+           Options :: create_grant_opts(),
+           Config :: aws_config()) ->
+          any().
+create_grant(GranteePrincipal, KeyId, Options, Config) ->
+    OptJson = dynamize_options(Options),
+    Json = [{<<"GranteePrincipal">>, GranteePrincipal},
+            {<<"KeyId">>, KeyId}|OptJson],
     erlcloud_kms_impl:request(Config, "TrentService.CreateGrant", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% CreateKey
@@ -225,60 +186,31 @@ create_grant(GranteePrincipal, KeyId, Constraints, GrantTokens, Operations, Reti
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
+-type create_key_opts() :: [create_key_opt()].
+-type create_key_opt() :: [{create_key_opt_key(), term()}].
+-type create_key_opt_key() :: description | key_usage | policy.
 
--spec create_key(string() | 'undefined', string() | 'undefined', string() | 'undefined') -> any().
 
-create_key(undefined, undefined, undefined) ->
-    Json = [],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateKey", Json);
-create_key(Description, undefined, undefined) ->
-    Json = [{<<"Description">>, Description}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateKey", Json);
-create_key(undefined, KeyUsage, undefined) ->
-    Json = [{<<"KeyUsage">>, KeyUsage}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateKey", Json);
-create_key(undefined, undefined, Policy) ->
-    Json = [{<<"Policy">>, Policy}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateKey", Json);
-create_key(Description, KeyUsage, undefined) ->
-    Json = [{<<"Description">>, Description}, {<<"KeyUsage">>, KeyUsage}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateKey", Json);
-create_key(Description, undefined, Policy) ->
-    Json = [{<<"Description">>, Description}, {<<"Policy">>, Policy}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateKey", Json);
-create_key(undefined, KeyUsage, Policy) ->
-    Json = [{<<"KeyUsage">>, KeyUsage}, {<<"Policy">>, Policy}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateKey", Json);
-create_key(Description, KeyUsage, Policy) ->
-    Json = [{<<"Description">>, Description}, {<<"KeyUsage">>, KeyUsage}, {<<"Policy">>, Policy}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.CreateKey", Json).
+-spec create_key/0 :: () -> any().
+create_key() ->
+    create_key([]).
 
--spec create_key(string() | 'undefined', string() | 'undefined', string() | 'undefined', aws_config()) -> any().
 
-create_key(undefined, undefined, undefined, Config) ->
-    Json = [],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateKey", Json);
-create_key(Description, undefined, undefined, Config) ->
-    Json = [{<<"Description">>, Description}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateKey", Json);
-create_key(undefined, KeyUsage, undefined, Config) ->
-    Json = [{<<"KeyUsage">>, KeyUsage}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateKey", Json);
-create_key(undefined, undefined, Policy, Config) ->
-    Json = [{<<"Policy">>, Policy}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateKey", Json);
-create_key(Description, KeyUsage, undefined, Config) ->
-    Json = [{<<"Description">>, Description}, {<<"KeyUsage">>, KeyUsage}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateKey", Json);
-create_key(Description, undefined, Policy, Config) ->
-    Json = [{<<"Description">>, Description}, {<<"Policy">>, Policy}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateKey", Json);
-create_key(undefined, KeyUsage, Policy, Config) ->
-    Json = [{<<"KeyUsage">>, KeyUsage}, {<<"Policy">>, Policy}],
-    erlcloud_kms_impl:request(Config, "TrentService.CreateKey", Json);
-create_key(Description, KeyUsage, Policy, Config) ->
-    Json = [{<<"Description">>, Description}, {<<"KeyUsage">>, KeyUsage}, {<<"Policy">>, Policy}],
+-spec create_key/1 ::
+          (Options :: create_key_opts()) ->
+          any().
+create_key(Options) ->
+    create_key(Options, default_config()).
+
+
+-spec create_key/2 ::
+          (Options :: create_key_opts(),
+           Config :: aws_config()) ->
+          any().
+create_key(Options, Config) ->
+    Json = dynamize_options(Options),
     erlcloud_kms_impl:request(Config, "TrentService.CreateKey", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% Decrypt
@@ -292,36 +224,36 @@ create_key(Description, KeyUsage, Policy, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
+-type decrypt_opts() :: [decrypt_opt()].
+-type decrypt_opt() :: {decrypt_opt_key(), term()}.
+-type decrypt_opt_key() :: encryption_context | grant_tokens.
 
--spec decrypt(string(), tuple() | 'undefined', [string()] | 'undefined') -> any().
 
-decrypt(CiphertextBlob, undefined, undefined) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.Decrypt", Json);
-decrypt(CiphertextBlob, undefined, GrantTokens) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.Decrypt", Json);
-decrypt(CiphertextBlob, EncryptionContext, undefined) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.Decrypt", Json);
-decrypt(CiphertextBlob, EncryptionContext, GrantTokens) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.Decrypt", Json).
+-spec decrypt/1 ::
+          (CiphertextBlob :: binary()) ->
+          any().
+decrypt(CiphertextBlob) ->
+    decrypt(CiphertextBlob, []).
 
--spec decrypt(string(), tuple() | 'undefined', [string()] | 'undefined', aws_config()) -> any().
 
-decrypt(CiphertextBlob, undefined, undefined, Config) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}],
-    erlcloud_kms_impl:request(Config, "TrentService.Decrypt", Json);
-decrypt(CiphertextBlob, undefined, GrantTokens, Config) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.Decrypt", Json);
-decrypt(CiphertextBlob, EncryptionContext, undefined, Config) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.Decrypt", Json);
-decrypt(CiphertextBlob, EncryptionContext, GrantTokens, Config) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
+-spec decrypt/2 ::
+          (CiphertextBlob :: binary(),
+           Options :: decrypt_opts()) ->
+          any().
+decrypt(CiphertextBlob, Options) ->
+    decrypt(CiphertextBlob, Options, default_config()).
+
+
+-spec decrypt/3 ::
+          (CiphertextBlob :: binary(),
+           Options :: decrypt_opts(),
+           Config :: aws_config()) ->
+          any().
+decrypt(CiphertextBlob, Options, Config) ->
+    OptJson = dynamize_options(Options),
+    Json = [{<<"CiphertextBlob">>, CiphertextBlob}|OptJson],
     erlcloud_kms_impl:request(Config, "TrentService.Decrypt", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% DeleteAlias
@@ -335,15 +267,17 @@ decrypt(CiphertextBlob, EncryptionContext, GrantTokens, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
-
--spec delete_alias(string()) -> any().
-
+-spec delete_alias/1 ::
+          (AliasName :: string()) ->
+          any().
 delete_alias(AliasName) ->
-    Json = [{<<"AliasName">>, AliasName}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.DeleteAlias", Json).
+    delete_alias(AliasName, default_config()).
 
--spec delete_alias(string(), aws_config()) -> any().
 
+-spec delete_alias/2 ::
+          (AliasName :: string(),
+           Config :: aws_config()) ->
+          any().
 delete_alias(AliasName, Config) ->
     Json = [{<<"AliasName">>, AliasName}],
     erlcloud_kms_impl:request(Config, "TrentService.DeleteAlias", Json).
@@ -361,18 +295,21 @@ delete_alias(AliasName, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
-
--spec describe_key(string()) -> any().
-
+-spec describe_key/1 ::
+          (KeyId :: string()) ->
+          any().
 describe_key(KeyId) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.DescribeKey", Json).
+    describe_key(KeyId, default_config()).
 
--spec describe_key(string(), aws_config()) -> any().
 
+-spec describe_key/2 ::
+          (KeyId :: string(),
+           Config :: aws_config()) ->
+          any().
 describe_key(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
     erlcloud_kms_impl:request(Config, "TrentService.DescribeKey", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% DisableKey
@@ -386,18 +323,21 @@ describe_key(KeyId, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
-
--spec disable_key(string()) -> any().
-
+-spec disable_key/1 ::
+          (KeyId :: string()) ->
+          any().
 disable_key(KeyId) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.DisableKey", Json).
+    disable_key(KeyId, default_config()).
 
--spec disable_key(string(), aws_config()) -> any().
 
+-spec disable_key/2 ::
+          (KeyId :: string(),
+           Config :: aws_config()) ->
+          any().
 disable_key(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
     erlcloud_kms_impl:request(Config, "TrentService.DisableKey", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% DisableKeyRotation
@@ -411,18 +351,21 @@ disable_key(KeyId, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
-
--spec disable_key_rotation(string()) -> any().
-
+-spec disable_key_rotation/1 ::
+          (KeyId :: string()) ->
+          any().
 disable_key_rotation(KeyId) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.DisableKey", Json).
+    disable_key_rotation(KeyId, default_config()).
 
--spec disable_key_rotation(string(), aws_config()) -> any().
 
+-spec disable_key_rotation/2 ::
+          (KeyId :: string(),
+           Config :: aws_config()) ->
+          any().
 disable_key_rotation(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
     erlcloud_kms_impl:request(Config, "TrentService.DisableKey", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% EnableKey
@@ -436,18 +379,20 @@ disable_key_rotation(KeyId, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
-
--spec enable_key(string()) -> any().
-
+-spec enable_key/1 ::
+          (KeyId :: string()) ->
+          any().
 enable_key(KeyId) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.EnableKey", Json).
+    enable_key(KeyId, default_config()).
 
--spec enable_key(string(), aws_config()) -> any().
-
+-spec enable_key/2 ::
+          (KeyId :: string(),
+           Config :: aws_config()) ->
+          any().
 enable_key(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
     erlcloud_kms_impl:request(Config, "TrentService.EnableKey", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% EnableKeyRotation
@@ -461,18 +406,21 @@ enable_key(KeyId, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
-
--spec enable_key_rotation(string()) -> any().
-
+-spec enable_key_rotation/1 ::
+          (KeyId :: string()) ->
+          any().
 enable_key_rotation(KeyId) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.EnableKeyRotation", Json).
+    enable_key_rotation(KeyId, default_config()).
 
--spec enable_key_rotation(string(), aws_config()) -> any().
 
+-spec enable_key_rotation/2 ::
+          (KeyId :: string(),
+           Config :: aws_config()) ->
+          any().
 enable_key_rotation(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
     erlcloud_kms_impl:request(Config, "TrentService.EnableKeyRotation", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% Encrypt
@@ -486,36 +434,39 @@ enable_key_rotation(KeyId, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
+-type encrypt_opts() :: [encrypt_opt()].
+-type encrypt_opt() :: {encrypt_opt_key(), term()}.
+-type encrypt_opt_key() :: encryption_context | grant_tokens.
 
--spec encrypt(string(), string(), tuple() | 'undefined', [string()] | 'undefined') -> any().
 
-encrypt(KeyId, Plaintext, undefined, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.Encrypt", Json);
-encrypt(KeyId, Plaintext, undefined, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.Encrypt", Json);
-encrypt(KeyId, Plaintext, EncryptionContent, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}, {<<"EncryptionContent">>, EncryptionContent}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.Encrypt", Json);
-encrypt(KeyId, Plaintext, EncryptionContent, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}, {<<"EncryptionContent">>, EncryptionContent}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.Encrypt", Json).
+-spec encrypt/2 ::
+          (KeyId :: string(),
+           Plaintext :: string()) ->
+          any().
+encrypt(KeyId, Plaintext) ->
+    encrypt(KeyId, Plaintext, []).
 
--spec encrypt(string(), string(), tuple() | 'undefined', [string()] | 'undefined', aws_config()) -> any().
 
-encrypt(KeyId, Plaintext, undefined, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}],
-    erlcloud_kms_impl:request(Config, "TrentService.Encrypt", Json);
-encrypt(KeyId, Plaintext, undefined, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.Encrypt", Json);
-encrypt(KeyId, Plaintext, EncryptionContent, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}, {<<"EncryptionContent">>, EncryptionContent}],
-    erlcloud_kms_impl:request(Config, "TrentService.Encrypt", Json);
-encrypt(KeyId, Plaintext, EncryptionContent, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}, {<<"EncryptionContent">>, EncryptionContent}, {<<"GrantTokens">>, GrantTokens}],
+-spec encrypt/3 ::
+          (KeyId :: string(),
+           Plaintext :: string(),
+           Options :: encrypt_opts()) ->
+          any().
+encrypt(KeyId, Plaintext, Options) ->
+    encrypt(KeyId, Plaintext, Options, default_config()).
+
+
+-spec encrypt/4 ::
+          (KeyId :: string(),
+           Plaintext :: string(),
+           Options :: encrypt_opts(),
+           Config :: aws_config()) ->
+          any().
+encrypt(KeyId, Plaintext, Options, Config) ->
+    OptJson = dynamize_options(Options),
+    Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}|OptJson],
     erlcloud_kms_impl:request(Config, "TrentService.Encrypt", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% GenerateDataKey
@@ -529,110 +480,36 @@ encrypt(KeyId, Plaintext, EncryptionContent, GrantTokens, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
+-type generate_data_key_opts() :: [generate_data_key_opt()].
+-type generate_data_key_opt() :: {generate_data_key_opt_key(), term()}.
+-type generate_data_key_opt_key() :: encryption_context | grant_tokens | key_spec | number_of_bytes.
 
--spec generate_data_key(string(), string() | 'undefined', non_neg_integer() | 'undefined', tuple() | 'undefined', [string()] | 'undefined') -> any().
 
-generate_data_key(KeyId, undefined, undefined, undefined, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, undefined, undefined, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, NumberOfBytes, undefined, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, undefined, EncryptionContext, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, undefined, undefined, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, undefined, EncryptionContext, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, NumberOfBytes, undefined, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, NumberOfBytes, EncryptionContext, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, undefined, undefined, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, undefined, EncryptionContext, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, NumberOfBytes, undefined, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, NumberOfBytes, EncryptionContext, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, undefined, EncryptionContext, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, NumberOfBytes, undefined, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, NumberOfBytes, EncryptionContext, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, NumberOfBytes, EncryptionContext, NumberOfBytes) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext},
-	    {<<"NumberOfBytes">>, NumberOfBytes}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKey", Json).
+-spec generate_data_key/1 ::
+          (KeyId :: string()) ->
+          any().
+generate_data_key(KeyId) ->
+    generate_data_key(KeyId, []).
 
--spec generate_data_key(string(), string() | 'undefined', non_neg_integer() | 'undefined', tuple() | 'undefined', [string()] | 'undefined', aws_config()) -> any().
 
-generate_data_key(KeyId, undefined, undefined, undefined, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, undefined, undefined, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, NumberOfBytes, undefined, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, undefined, EncryptionContext, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, undefined, undefined, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, undefined, EncryptionContext, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, NumberOfBytes, undefined, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, NumberOfBytes, EncryptionContext, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, undefined, undefined, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, undefined, EncryptionContext, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, NumberOfBytes, undefined, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, undefined, NumberOfBytes, EncryptionContext, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, undefined, EncryptionContext, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, NumberOfBytes, undefined, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, NumberOfBytes, EncryptionContext, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json);
-generate_data_key(KeyId, KeySpec, NumberOfBytes, EncryptionContext, NumberOfBytes, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext},
-	    {<<"NumberOfBytes">>, NumberOfBytes}],
+-spec generate_data_key/2 ::
+          (KeyId :: string(),
+           Options :: generate_data_key_opts()) ->
+          any().
+generate_data_key(KeyId, Options) ->
+    generate_data_key(KeyId, Options, default_config()).
+
+
+-spec generate_data_key/3 ::
+          (KeyId :: string(),
+           Options :: generate_data_key_opts(),
+           Config :: aws_config()) ->
+          any().
+generate_data_key(KeyId, Options, Config) ->
+    OptJson = dynamize_options(Options),
+    Json = [{<<"KeyId">>, KeyId}|OptJson],
     erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKey", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%%------------------------------------------------------------------------------
@@ -647,110 +524,31 @@ generate_data_key(KeyId, KeySpec, NumberOfBytes, EncryptionContext, NumberOfByte
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
+-spec generate_data_key_without_plaintext/1 ::
+          (KeyId :: string()) ->
+          any().
+generate_data_key_without_plaintext(KeyId) ->
+    generate_data_key_without_plaintext(KeyId, []).
 
--spec generate_data_key_without_plaintext(string(), string() | 'undefined', non_neg_integer() | 'undefined', tuple() | 'undefined', [string()] | 'undefined') -> any().
 
-generate_data_key_without_plaintext(KeyId, undefined, undefined, undefined, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, undefined, undefined, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, NumberOfBytes, undefined, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, undefined, EncryptionContext, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, undefined, undefined, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, undefined, EncryptionContext, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, NumberOfBytes, undefined, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, NumberOfBytes, EncryptionContext, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, undefined, undefined, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, undefined, EncryptionContext, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, NumberOfBytes, undefined, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, NumberOfBytes, EncryptionContext, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, undefined, EncryptionContext, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, NumberOfBytes, undefined, GrantTokens) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, NumberOfBytes, EncryptionContext, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, NumberOfBytes, EncryptionContext, NumberOfBytes) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext},
-	    {<<"NumberOfBytes">>, NumberOfBytes}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateDataKeyWithoutPlaintext", Json).
+-spec generate_data_key_without_plaintext/2 ::
+          (KeyId :: string(),
+           Options :: generate_data_key_opts()) ->
+          any().
+generate_data_key_without_plaintext(KeyId, Options) ->
+    generate_data_key_without_plaintext(KeyId, Options, default_config()).
 
--spec generate_data_key_without_plaintext(string(), string() | 'undefined', non_neg_integer() | 'undefined', tuple() | 'undefined', [string()] | 'undefined', aws_config()) -> any().
 
-generate_data_key_without_plaintext(KeyId, undefined, undefined, undefined, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, undefined, undefined, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, NumberOfBytes, undefined, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, undefined, EncryptionContext, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, undefined, undefined, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, undefined, EncryptionContext, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, NumberOfBytes, undefined, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, NumberOfBytes, EncryptionContext, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, undefined, undefined, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, undefined, EncryptionContext, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, NumberOfBytes, undefined, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, undefined, NumberOfBytes, EncryptionContext, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, undefined, EncryptionContext, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"EncryptionContext">>, EncryptionContext}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, NumberOfBytes, undefined, GrantTokens, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, NumberOfBytes, EncryptionContext, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json);
-generate_data_key_without_plaintext(KeyId, KeySpec, NumberOfBytes, EncryptionContext, NumberOfBytes, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"KeySpec">>, KeySpec}, {<<"NumberOfBytes">>, NumberOfBytes}, {<<"EncryptionContext">>, EncryptionContext},
-	    {<<"NumberOfBytes">>, NumberOfBytes}],
+-spec generate_data_key_without_plaintext/3 ::
+          (KeyId :: string(),
+           Options :: generate_data_key_opts(),
+           Config :: aws_config()) ->
+          any().
+generate_data_key_without_plaintext(KeyId, Options, Config) ->
+    OptJson = dynamize_options(Options),
+    Json = [{<<"KeyId">>, KeyId}|OptJson],
     erlcloud_kms_impl:request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% GenerateRandom
@@ -764,18 +562,21 @@ generate_data_key_without_plaintext(KeyId, KeySpec, NumberOfBytes, EncryptionCon
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
-
--spec generate_random(non_neg_integer()) -> any().
-
+-spec generate_random/1 ::
+          (NumberOfBytes :: non_neg_integer()) ->
+          any().
 generate_random(NumberOfBytes) ->
-    Json = [{<<"NumberOfBytes">>, NumberOfBytes}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GenerateRandom", Json).
+    generate_random(NumberOfBytes, default_config()).
 
--spec generate_random(non_neg_integer(), aws_config()) -> any().
 
+-spec generate_random/2 ::
+          (NumberOfBytes :: non_neg_integer(),
+           Config :: aws_config()) ->
+          any().
 generate_random(NumberOfBytes, Config) ->
     Json = [{<<"NumberOfBytes">>, NumberOfBytes}],
     erlcloud_kms_impl:request(Config, "TrentService.GenerateRandom", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% GetKeyPolicy
@@ -789,18 +590,23 @@ generate_random(NumberOfBytes, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
-
--spec get_key_policy(string(), string()) -> any().
-
+-spec get_key_policy/2 ::
+          (KeyId :: string(),
+           PolicyName :: string()) ->
+          any().
 get_key_policy(KeyId, PolicyName) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"PolicyName">>, PolicyName}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GetKeyPolicy", Json).
+    get_key_policy(KeyId, PolicyName, default_config()).
 
--spec get_key_policy(string(), string(), aws_config()) -> any().
 
+-spec get_key_policy/3 ::
+          (KeyId :: string(),
+           PolicyName :: string(),
+           Config :: aws_config()) ->
+          any().
 get_key_policy(KeyId, PolicyName, Config) ->
     Json = [{<<"KeyId">>, KeyId}, {<<"PolicyName">>, PolicyName}],
     erlcloud_kms_impl:request(Config, "TrentService.GetKeyPolicy", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% GetKeyRotationStatus
@@ -814,15 +620,17 @@ get_key_policy(KeyId, PolicyName, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
-
--spec get_key_rotation_status(string()) -> any().
-
+-spec get_key_rotation_status/1 ::
+          (KeyId :: string()) ->
+          any().
 get_key_rotation_status(KeyId) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.GetKeyRotationStatus", Json).
+    get_key_rotation_status(KeyId, default_config()).
 
--spec get_key_rotation_status(string(), aws_config()) -> any().
 
+-spec get_key_rotation_status/2 ::
+          (KeyId :: string(),
+           Config :: aws_config()) ->
+          any().
 get_key_rotation_status(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
     erlcloud_kms_impl:request(Config, "TrentService.GetKeyRotationStatus", Json).
@@ -840,36 +648,28 @@ get_key_rotation_status(KeyId, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
+-spec list_aliases/0 ::
+          () ->
+          any().
+list_aliases() ->
+    list_aliases([]).
 
--spec list_aliases(non_neg_integer() | 'undefined', string() | 'undefined') -> any().
 
-list_aliases(undefined, undefined) ->
-    Json = [],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListAliases", Json);
-list_aliases(undefined, Marker) ->
-    Json = [{<<"Marker">>, Marker}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListAliases", Json);
-list_aliases(Limit, undefined) ->
-    Json = [{<<"Limit">>, Limit}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListAliases", Json);
-list_aliases(Limit, Marker) ->
-    Json = [{<<"Limit">>, Limit}, {<<"Marker">>, Marker}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListAliases", Json).
+-spec list_aliases/1 ::
+          (Options :: pagination_opts()) ->
+          any().
+list_aliases(Options) ->
+    list_aliases(Options, default_config()).
 
--spec list_aliases(non_neg_integer() | 'undefined', string() | 'undefined', aws_config()) -> any().
 
-list_aliases(undefined, undefined, Config) ->
-    Json = [],
-    erlcloud_kms_impl:request(Config, "TrentService.ListAliases", Json);
-list_aliases(undefined, Marker, Config) ->
-    Json = [{<<"Marker">>, Marker}],
-    erlcloud_kms_impl:request(Config, "TrentService.ListAliases", Json);
-list_aliases(Limit, undefined, Config) ->
-    Json = [{<<"Limit">>, Limit}],
-    erlcloud_kms_impl:request(Config, "TrentService.ListAliases", Json);
-list_aliases(Limit, Marker, Config) ->
-    Json = [{<<"Limit">>, Limit}, {<<"Marker">>, Marker}],
+-spec list_aliases/2 ::
+          (Options :: pagination_opts(),
+           Config :: aws_config()) ->
+          any().
+list_aliases(Options, Config) ->
+    Json = dynamize_options(Options),
     erlcloud_kms_impl:request(Config, "TrentService.ListAliases", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% ListGrants
@@ -883,36 +683,31 @@ list_aliases(Limit, Marker, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
+-spec list_grants/1 ::
+          (KeyId :: string()) ->
+          any().
+list_grants(KeyId) ->
+    list_grants(KeyId, []).
 
--spec list_grants(string(), non_neg_integer() | 'undefined', string() | 'undefined') -> any().
 
-list_grants(KeyId, undefined, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListGrants", Json);
-list_grants(KeyId, undefined, Marker) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Marker">>, Marker}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListGrants", Json);
-list_grants(KeyId, Limit, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Limit">>, Limit}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListGrants", Json);
-list_grants(KeyId, Limit, Marker) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Limit">>, Limit}, {<<"Marker">>, Marker}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListGrants", Json).
+-spec list_grants/2 ::
+          (KeyId :: string(),
+           Options :: pagination_opts()) ->
+          any().
+list_grants(KeyId, Options) ->
+    list_grants(KeyId, Options, default_config()).
 
--spec list_grants(string(), non_neg_integer() | 'undefined', string() | 'undefined', aws_config) -> any().
 
-list_grants(KeyId, undefined, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.ListGrants", Json);
-list_grants(KeyId, undefined, Marker, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Marker">>, Marker}],
-    erlcloud_kms_impl:request(Config, "TrentService.ListGrants", Json);
-list_grants(KeyId, Limit, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Limit">>, Limit}],
-    erlcloud_kms_impl:request(Config, "TrentService.ListGrants", Json);
-list_grants(KeyId, Limit, Marker, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Limit">>, Limit}, {<<"Marker">>, Marker}],
+-spec list_grants/3 ::
+          (KeyId :: string(),
+           Options :: pagination_opts(),
+           Config :: aws_config()) ->
+          any().
+list_grants(KeyId, Options, Config) ->
+    OptJson = dynamize_options(Options),
+    Json = [{<<"KeyId">>, KeyId}|OptJson],
     erlcloud_kms_impl:request(Config, "TrentService.ListGrants", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% ListKeyPolicies
@@ -926,36 +721,31 @@ list_grants(KeyId, Limit, Marker, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
+-spec list_key_policies/1 ::
+          (KeyId :: string()) ->
+          any().
+list_key_policies(KeyId) ->
+    list_key_policies(KeyId, []).
 
--spec list_key_policies(string(), non_neg_integer() | 'undefined', string() | 'undefined') -> any().
 
-list_key_policies(KeyId, undefined, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListKeyPolicies", Json);
-list_key_policies(KeyId, undefined, Marker) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Marker">>, Marker}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListKeyPolicies", Json);
-list_key_policies(KeyId, Limit, undefined) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Limit">>, Limit}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListKeyPolicies", Json);
-list_key_policies(KeyId, Limit, Marker) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Limit">>, Limit}, {<<"Marker">>, Marker}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListKeyPolicies", Json).
+-spec list_key_policies/2 ::
+          (KeyId :: string(),
+           Options :: pagination_opts()) ->
+          any().
+list_key_policies(KeyId, Options) ->
+    list_key_policies(KeyId, Options, default_config()).
 
--spec list_key_policies(string(), non_neg_integer() | 'undefined', string() | 'undefined', aws_config()) -> any().
 
-list_key_policies(KeyId, undefined, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.ListKeyPolicies", Json);
-list_key_policies(KeyId, undefined, Marker, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Marker">>, Marker}],
-    erlcloud_kms_impl:request(Config, "TrentService.ListKeyPolicies", Json);
-list_key_policies(KeyId, Limit, undefined, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Limit">>, Limit}],
-    erlcloud_kms_impl:request(Config, "TrentService.ListKeyPolicies", Json);
-list_key_policies(KeyId, Limit, Marker, Config) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Limit">>, Limit}, {<<"Marker">>, Marker}],
+-spec list_key_policies/3 ::
+          (KeyId :: string(),
+           Options :: pagination_opts(),
+           Config :: aws_config()) ->
+          any().
+list_key_policies(KeyId, Options, Config) ->
+    OptJson = dynamize_options(Options),
+    Json = [{<<"KeyId">>, KeyId}|OptJson],
     erlcloud_kms_impl:request(Config, "TrentService.ListKeyPolicies", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% ListKeys
@@ -969,36 +759,28 @@ list_key_policies(KeyId, Limit, Marker, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
+-spec list_keys/0 ::
+          () ->
+          any().
+list_keys() ->
+    list_keys([]).
 
--spec list_keys(non_neg_integer() | 'undefined', string() | 'undefined') -> any().
 
-list_keys(undefined, undefined) ->
-    Json = [],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListKeys", Json);
-list_keys(undefined, Marker) ->
-    Json = [{<<"Marker">>, Marker}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListKeys", Json);
-list_keys(Limit, undefined) ->
-    Json = [{<<"Limit">>, Limit}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListKeys", Json);
-list_keys(Limit, Marker) ->
-    Json = [{<<"Limit">>, Limit}, {<<"Marker">>, Marker}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ListKeys", Json).
+-spec list_keys/1 ::
+          (Options :: pagination_opts()) ->
+          any().
+list_keys(Options) ->
+    list_keys(Options, default_config()).
 
--spec list_keys(non_neg_integer() | 'undefined', string() | 'undefined', aws_config()) -> any().
 
-list_keys(undefined, undefined, Config) ->
-    Json = [],
-    erlcloud_kms_impl:request(Config, "TrentService.ListKeys", Json);
-list_keys(undefined, Marker, Config) ->
-    Json = [{<<"Marker">>, Marker}],
-    erlcloud_kms_impl:request(Config, "TrentService.ListKeys", Json);
-list_keys(Limit, undefined, Config) ->
-    Json = [{<<"Limit">>, Limit}],
-    erlcloud_kms_impl:request(Config, "TrentService.ListKeys", Json);
-list_keys(Limit, Marker, Config) ->
-    Json = [{<<"Limit">>, Limit}, {<<"Marker">>, Marker}],
+-spec list_keys/2 ::
+          (Options :: pagination_opts(),
+           Config :: aws_config()) ->
+          any().
+list_keys(Options, Config) ->
+    Json = dynamize_options(Options),
     erlcloud_kms_impl:request(Config, "TrentService.ListKeys", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% PutKeyPolicy
@@ -1012,15 +794,21 @@ list_keys(Limit, Marker, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
-
--spec put_key_policy(string(), string(), string()) -> any().
-
+-spec put_key_policy/3 ::
+          (KeyId :: string(),
+           Policy :: string(),
+           PolicyName :: string()) ->
+          any().
 put_key_policy(KeyId, Policy, PolicyName) ->
-    Json = [{<<"KeyId">>, KeyId}, {<<"Policy">>, Policy}, {<<"PolicyName">>, PolicyName}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.PutKeyPolicy", Json).
+    put_key_policy(KeyId, Policy, PolicyName, default_config()).
 
--spec put_key_policy(string(), string(), string(), aws_config()) -> any().
 
+-spec put_key_policy/4 ::
+          (KeyId :: string(),
+           Policy :: string(),
+           PolicyName :: string(),
+           Config :: aws_config()) ->
+          any().
 put_key_policy(KeyId, Policy, PolicyName, Config) ->
     Json = [{<<"KeyId">>, KeyId}, {<<"Policy">>, Policy}, {<<"PolicyName">>, PolicyName}],
     erlcloud_kms_impl:request(Config, "TrentService.PutKeyPolicy", Json).
@@ -1038,60 +826,39 @@ put_key_policy(KeyId, Policy, PolicyName, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
+-type re_encrypt_opts() :: [re_encrypt_opt()].
+-type re_encrypt_opt() :: {re_encrypt_opt_key(), term()}.
+-type re_encrypt_opt_key() :: destination_encryption_context | grant_tokens | source_encryption_context.
 
--spec re_encrypt(binary(), string(), [string()] | 'undefined', tuple() | 'undefined', tuple() | 'undefined') -> any().
 
-re_encrypt(CiphertextBlob, DestinationKeyId, undefined, undefined, undefined) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, GrantTokens, undefined, undefined) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, undefined, SourceEncryptionContext, undefined) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"SourceEncryptionContext">>, SourceEncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, undefined, undefined, DestinationEncryptionContext) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"DestinationEncryptionContext">>, DestinationEncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, undefined, SourceEncryptionContext, DestinationEncryptionContext) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"SourceEncryptionContext">>, SourceEncryptionContext}, {<<"DestinationEncryptionContext">>, DestinationEncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, GrantTokens, undefined, DestinationEncryptionContext) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"GrantTokens">>, GrantTokens}, {<<"DestinationEncryptionContext">>, DestinationEncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, GrantTokens, SourceEncryptionContext, undefined) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"GrantTokens">>, GrantTokens}, {<<"SourceEncryptionContext">>, SourceEncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, GrantTokens, SourceEncryptionContext, DestinationEncryptionContext) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"GrantTokens">>, GrantTokens}, {<<"SourceEncryptionContext">>, SourceEncryptionContext}, {<<"DestinationEncryptionContext">>, DestinationEncryptionContext}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.ReEncrypt", Json).
+-spec re_encrypt/2 ::
+          (CiphertextBlob :: string(),
+           DestinationKeyId :: string()) ->
+          any().
+re_encrypt(CiphertextBlob, DestinationKeyId) ->
+    re_encrypt(CiphertextBlob, DestinationKeyId, []).
 
--spec re_encrypt(binary(), string(), [string()] | 'undefined', tuple() | 'undefined', tuple() | 'undefined', aws_config()) -> any().
 
-re_encrypt(CiphertextBlob, DestinationKeyId, undefined, undefined, undefined, Config) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, GrantTokens, undefined, undefined, Config) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"GrantTokens">>, GrantTokens}],
-    erlcloud_kms_impl:request(Config, "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, undefined, SourceEncryptionContext, undefined, Config) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"SourceEncryptionContext">>, SourceEncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, undefined, undefined, DestinationEncryptionContext, Config) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"DestinationEncryptionContext">>, DestinationEncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, undefined, SourceEncryptionContext, DestinationEncryptionContext, Config) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"SourceEncryptionContext">>, SourceEncryptionContext}, {<<"DestinationEncryptionContext">>, DestinationEncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, GrantTokens, undefined, DestinationEncryptionContext, Config) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"GrantTokens">>, GrantTokens}, {<<"DestinationEncryptionContext">>, DestinationEncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, GrantTokens, SourceEncryptionContext, undefined, Config) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"GrantTokens">>, GrantTokens}, {<<"SourceEncryptionContext">>, SourceEncryptionContext}],
-    erlcloud_kms_impl:request(Config, "TrentService.ReEncrypt", Json);
-re_encrypt(CiphertextBlob, DestinationKeyId, GrantTokens, SourceEncryptionContext, DestinationEncryptionContext, Config) ->
-    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}, {<<"GrantTokens">>, GrantTokens}, {<<"SourceEncryptionContext">>, SourceEncryptionContext}, {<<"DestinationEncryptionContext">>, DestinationEncryptionContext}],
+-spec re_encrypt/3 ::
+          (CiphertextBlob :: string(),
+           DestinationKeyId :: string(),
+           Options :: re_encrypt_opts()) ->
+          any().
+re_encrypt(CiphertextBlob, DestinationKeyId, Options) ->
+    re_encrypt(CiphertextBlob, DestinationKeyId, Options, default_config()).
+
+
+-spec re_encrypt/4 ::
+          (CiphertextBlob :: string(),
+           DestinationKeyId :: string(),
+           Options :: re_encrypt_opts(),
+           Config :: aws_config()) ->
+          any().
+re_encrypt(CiphertextBlob, DestinationKeyId, Options, Config) ->
+    OptJson = dynamize_options(Options),
+    Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}|OptJson],
     erlcloud_kms_impl:request(Config, "TrentService.ReEncrypt", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% RetireGrant
@@ -1105,60 +872,25 @@ re_encrypt(CiphertextBlob, DestinationKeyId, GrantTokens, SourceEncryptionContex
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
+-type retire_grant_opts() :: [retire_grant_opt()].
+-type retire_grant_opt() :: {retire_grant_opt_key(), term()}.
+-type retire_grant_opt_key() :: key_id | grant_id | grant_token.
 
--spec retire_grant(string() | 'undefined', string() | 'undefined', string() | 'undefined') -> any().
+-spec retire_grant/1 ::
+          (Options :: retire_grant_opts()) ->
+          any().
+retire_grant(Options) ->
+    retire_grant(Options, default_config()).
 
-retire_grant(undefined, undefined, undefined) ->
-    Json = [],
-    erlcloud_kms_impl:request(default_config(), "TrentService.RetireGrant", Json);
-retire_grant(GrantId, undefined, undefined) ->
-    Json = [{<<"GrantId">>, GrantId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.RetireGrant", Json);
-retire_grant(undefined, GrantToken, undefined) ->
-    Json = [{<<"GrantToken">>, GrantToken}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.RetireGrants", Json);
-retire_grant(undefined, undefined, KeyId) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.RetireGrants", Json);
-retire_grant(GrantId, GrantToken, undefined) ->
-    Json = [{<<"GrantId">>, GrantId}, {<<"GrantToken">>, GrantToken}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.RetireGrants", Json);
-retire_grant(GrantId, undefined, KeyId) ->
-    Json = [{<<"GrantId">>, GrantId}, {<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.RetireGrant", Json);
-retire_grant(undefined, GrantToken, KeyId) ->
-    Json = [{<<"GrantToken">>, GrantToken}, {<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.RetireGrants", Json);
-retire_grant(GrantId, GrantToken, KeyId) ->
-    Json = [{<<"GrantId">>, GrantId}, {<<"GrantToken">>, GrantToken}, {<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.RetireGrants", Json).
 
--spec retire_grant(string() | 'undefined', string() | 'undefined', string() | 'undefined', aws_config()) -> any().
+-spec retire_grant/2 ::
+          (Options :: retire_grant_opts(),
+           Config :: aws_config()) ->
+          any().
+retire_grant(Options, Config) ->
+    Json = dynamize_options(Options),
+    erlcloud_kms_impl:request(Config, "TrentService.RetireGrant", Json).
 
-retire_grant(undefined, undefined, undefined, Config) ->
-    Json = [],
-    erlcloud_kms_impl:request(Config, "TrentService.RetireGrant", Json);
-retire_grant(GrantId, undefined, undefined, Config) ->
-    Json = [{<<"GrantId">>, GrantId}],
-    erlcloud_kms_impl:request(Config, "TrentService.RetireGrant", Json);
-retire_grant(undefined, GrantToken, undefined, Config) ->
-    Json = [{<<"GrantToken">>, GrantToken}],
-    erlcloud_kms_impl:request(Config, "TrentService.RetireGrants", Json);
-retire_grant(undefined, undefined, KeyId, Config) ->
-    Json = [{<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.RetireGrants", Json);
-retire_grant(GrantId, GrantToken, undefined, Config) ->
-    Json = [{<<"GrantId">>, GrantId}, {<<"GrantToken">>, GrantToken}],
-    erlcloud_kms_impl:request(Config, "TrentService.RetireGrants", Json);
-retire_grant(GrantId, undefined, KeyId, Config) ->
-    Json = [{<<"GrantId">>, GrantId}, {<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.RetireGrant", Json);
-retire_grant(undefined, GrantToken, KeyId, Config) ->
-    Json = [{<<"GrantToken">>, GrantToken}, {<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.RetireGrants", Json);
-retire_grant(GrantId, GrantToken, KeyId, Config) ->
-    Json = [{<<"GrantId">>, GrantId}, {<<"GrantToken">>, GrantToken}, {<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(Config, "TrentService.RetireGrants", Json).
 
 %%%------------------------------------------------------------------------------
 %%% RevokeGrant
@@ -1172,15 +904,19 @@ retire_grant(GrantId, GrantToken, KeyId, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
-
--spec revoke_grant(string(), string()) -> any().
-
+-spec revoke_grant/2 ::
+          (GrantId :: string(),
+           KeyId :: string()) ->
+          any().
 revoke_grant(GrantId, KeyId) ->
-    Json = [{<<"GrantId">>, GrantId}, {<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.RevokeGrant", Json).
+    revoke_grant(GrantId, KeyId, default_config()).
 
--spec revoke_grant(string(), string(), aws_config()) -> any().
 
+-spec revoke_grant/3 ::
+          (GrantId :: string(),
+           KeyId :: string(),
+           Config :: aws_config()) ->
+          any().
 revoke_grant(GrantId, KeyId, Config) ->
     Json = [{<<"GrantId">>, GrantId}, {<<"KeyId">>, KeyId}],
     erlcloud_kms_impl:request(Config, "TrentService.RevokeGrant", Json).
@@ -1197,18 +933,21 @@ revoke_grant(GrantId, KeyId, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
-
--spec update_alias(string(), string()) -> any().
-
+-spec update_alias/2 ::
+          (AliasName :: string(),
+           TargetKeyId :: string()) -> any().
 update_alias(AliasName, TargetKeyId) ->
-    Json = [{<<"AliasName">>, AliasName}, {<<"TargetKeyId">>, TargetKeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.UpdateAlias", Json).
+    update_alias(AliasName, TargetKeyId, default_config()).
 
--spec update_alias(string(), string(), aws_config()) -> any().
 
+-spec update_alias/3 ::
+          (AliasName :: string(),
+           TargetKeyId :: string(),
+           Config :: aws_config()) -> any().
 update_alias(AliasName, TargetKeyId, Config) ->
     Json = [{<<"AliasName">>, AliasName}, {<<"TargetKeyId">>, TargetKeyId}],
     erlcloud_kms_impl:request(Config, "TrentService.UpdateAlias", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% UpdateKeyDescription
@@ -1222,15 +961,52 @@ update_alias(AliasName, TargetKeyId, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
+-spec update_key_description/2 ::
+          (KeyId :: string(),
+           Description :: string()) ->
+          any().
+update_key_description(KeyId, Description) ->
+    update_key_description(KeyId, Description, default_config()).
 
--spec update_key_description(string(), string()) -> any().
 
-update_key_description(Description, KeyId) ->
-    Json = [{<<"Description">>, Description}, {<<"KeyId">>, KeyId}],
-    erlcloud_kms_impl:request(default_config(), "TrentService.UpdateKeyDescription", Json).
-
--spec update_key_description(string(), string(), aws_config()) -> any().
-
-update_key_description(Description, KeyId, Config) ->
-    Json = [{<<"Description">>, Description}, {<<"KeyId">>, KeyId}],
+-spec update_key_description/3 ::
+          (KeyId :: string(),
+           Description :: string(),
+           Config :: aws_config()) ->
+          any().
+update_key_description(KeyId, Description, Config) ->
+    Json = [{<<"KeyId">>, KeyId}, {<<"Description">>, Description}],
     erlcloud_kms_impl:request(Config, "TrentService.UpdateKeyDescription", Json).
+
+
+%
+% Private
+%
+dynamize_options(List) ->
+    dynamize_options(List, []).
+
+
+dynamize_options([{Key, Value}|T], Acc) ->
+    case dynamize_option_key(Key) of
+        undefined -> dynamize_options(T, Acc);
+        DynamizedKey -> dynamize_options(T, [{DynamizedKey, Value}|Acc])
+    end;
+dynamize_options([], Acc) ->
+    Acc.
+
+
+dynamize_option_key(constraints) -> <<"Constraints">>;
+dynamize_option_key(description) -> <<"Description">>;
+dynamize_option_key(encryption_context) -> <<"EncryptionContext">>;
+dynamize_option_key(grant_id) -> <<"KeySpec">>;
+dynamize_option_key(grant_tokens) -> <<"GrantTokens">>;
+dynamize_option_key(grantee_principal) -> <<"GranteePrincipal">>;
+dynamize_option_key(key_id) -> <<"KeyId">>;
+dynamize_option_key(key_spec) -> <<"KeySpec">>;
+dynamize_option_key(key_usage) -> <<"KeyUsage">>;
+dynamize_option_key(limit) -> <<"Limit">>;
+dynamize_option_key(marker) -> <<"Marker">>;
+dynamize_option_key(number_of_bytes) -> <<"NumberOfBytes">>;
+dynamize_option_key(operations) -> <<"Operations">>;
+dynamize_option_key(policy) -> <<"Policy">>;
+dynamize_option_key(_) -> undefined.
