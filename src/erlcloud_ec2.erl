@@ -1137,12 +1137,12 @@ extract_permissions(Nodes) ->
 
 extract_permissions([], Accum) ->
     lists:reverse(Accum);
-extract_permissions([#xmlElement{name="group"} = Node|Nodes], Accum) ->
-    extract_permissions(Nodes, [{group, get_text(Node)}|Accum]);
-extract_permissions([#xmlElement{name="userId"} = Node|Nodes], Accum) ->
-    extract_permissions(Nodes, [{user_id, get_text(Node)}|Accum]);
-extract_permissions([_|Nodes], Accum) ->
-    extract_permissions(Nodes, Accum).
+extract_permissions([Node|Nodes], Accum) ->
+    case {erlcloud_xml:get_text("userId", Node), erlcloud_xml:get_text("groupId", Node)} of
+        {[], []} -> extract_permissions(Nodes, Accum);
+        {UserId, []} -> extract_permissions(Nodes, [{user_id, UserId}|Accum]);
+        {[], GroupId} -> extract_permissions(Nodes, [{groupId, GroupId}|Accum])
+    end.
 
 %%
 %%
