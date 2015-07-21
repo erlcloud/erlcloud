@@ -1,6 +1,7 @@
 %% Amazon Simple Storage Service (S3)
 
 -module(erlcloud_s3).
+
 -export([new/2, new/3, new/4, configure/2, configure/3, configure/4,
          create_bucket/1, create_bucket/2, create_bucket/3, create_bucket/4,
          delete_bucket/1, delete_bucket/2,
@@ -1079,7 +1080,7 @@ s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body, H
     RequestHeaders = erlcloud_aws:sign_v4(Method, EscapedPath, Config, 
                       [{"host", HostName} | FHeaders ], 
                       Body, 
-                      erlcloud_aws:aws_region_from_host(Config#aws_config.s3_host),
+                      aws_region_from_host(Config#aws_config.s3_host),
                       "s3", QueryParams),
     
     RequestURI = lists:flatten([
@@ -1095,7 +1096,7 @@ s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body, H
                                       [$&, erlcloud_http:make_query_string(FParams, no_assignment)]
                                 end
                                ]),
-    
+
     Request = #aws_request{service = s3, uri = RequestURI, method = Method},
     Request2 = case Method of
                    M when M =:= get orelse M =:= head orelse M =:= delete ->
@@ -1133,3 +1134,15 @@ port_spec(#aws_config{s3_port=80}) ->
     "";
 port_spec(#aws_config{s3_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
+
+aws_region_from_host(Host) ->
+    % Example: s3-us-east-1.amazonaws.com
+    case string:tokens(Host, ".") of
+        ["s3", _, _] ->
+            "us-east-1";
+        [Value, _, _] ->
+            % Skip "s3-" prefix
+            string:substr(Value, 4);
+        _ ->
+            "us-east-1"
+    end.
