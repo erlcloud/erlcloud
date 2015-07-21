@@ -11,7 +11,7 @@
 
 %%% KMS API
 -export([create_alias/2, create_alias/3,
-         create_grant/2, create_grant/3, create_grant/4,
+         create_grant/3, create_grant/4, create_grant/5,
          create_key/0, create_key/1, create_key/2,
          decrypt/1, decrypt/2, decrypt/3,
          delete_alias/1, delete_alias/2,
@@ -21,8 +21,8 @@
          enable_key/1, enable_key/2,
          enable_key_rotation/1, enable_key_rotation/2,
          encrypt/2, encrypt/3, encrypt/4,
-         generate_data_key/1, generate_data_key/2, generate_data_key/3,
-         generate_data_key_without_plaintext/1, generate_data_key_without_plaintext/2, generate_data_key_without_plaintext/3,
+         generate_data_key/2, generate_data_key/3,
+         generate_data_key_without_plaintext/2, generate_data_key_without_plaintext/3,
          generate_random/1, generate_random/2,
          get_key_policy/2, get_key_policy/3,
          get_key_rotation_status/1, get_key_rotation_status/2,
@@ -142,36 +142,40 @@ create_alias(AliasName, TargetKeyId, Config) ->
 %%------------------------------------------------------------------------------
 -type create_grant_opts() :: [create_grant_opt()].
 -type create_grant_opt() :: {create_grant_opt_key(), term()}.
--type create_grant_opt_key() :: grant_tokens | operations | grantee_principal.
-
-
--spec create_grant/2 ::
-          (GranteePrincipal :: string(),
-           KeyId :: string()) ->
-          kms_return_val().
-create_grant(GranteePrincipal, KeyId) ->
-    create_grant(GranteePrincipal, KeyId, []).
+-type create_grant_opt_key() :: grant_tokens | constraints | retiring_principal.
 
 
 -spec create_grant/3 ::
           (GranteePrincipal :: string(),
            KeyId :: string(),
-           Options :: create_grant_opts()) ->
+           Operations :: [string()]) ->
           kms_return_val().
-create_grant(GranteePrincipal, KeyId, Options) ->
-    create_grant(GranteePrincipal, KeyId, Options, default_config()).
+create_grant(GranteePrincipal, KeyId, Operations) ->
+    create_grant(GranteePrincipal, KeyId, Operations, []).
 
 
 -spec create_grant/4 ::
           (GranteePrincipal :: string(),
            KeyId :: string(),
+           Operations :: [string()],
+           Options :: create_grant_opts()) ->
+          kms_return_val().
+create_grant(GranteePrincipal, KeyId, Operations, Options) ->
+    create_grant(GranteePrincipal, KeyId, Operations, Options, default_config()).
+
+
+-spec create_grant/5 ::
+          (GranteePrincipal :: string(),
+           KeyId :: string(),
+           Operations :: [string()],
            Options :: create_grant_opts(),
            Config :: aws_config()) ->
           kms_return_val().
-create_grant(GranteePrincipal, KeyId, Options, Config) ->
+create_grant(GranteePrincipal, KeyId, Operations, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"GranteePrincipal">>, GranteePrincipal},
-            {<<"KeyId">>, KeyId}|OptJson],
+            {<<"KeyId">>, KeyId},
+            {<<"Operations">>, Operations}|OptJson],
     request(Config, "TrentService.CreateGrant", Json).
 
 
@@ -486,13 +490,6 @@ encrypt(KeyId, Plaintext, Options, Config) ->
 -type generate_data_key_opt_key() :: encryption_context | grant_tokens | key_spec | number_of_bytes.
 
 
--spec generate_data_key/1 ::
-          (KeyId :: string()) ->
-          kms_return_val().
-generate_data_key(KeyId) ->
-    generate_data_key(KeyId, []).
-
-
 -spec generate_data_key/2 ::
           (KeyId :: string(),
            Options :: generate_data_key_opts()) ->
@@ -525,13 +522,6 @@ generate_data_key(KeyId, Options, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
--spec generate_data_key_without_plaintext/1 ::
-          (KeyId :: string()) ->
-          kms_return_val().
-generate_data_key_without_plaintext(KeyId) ->
-    generate_data_key_without_plaintext(KeyId, []).
-
-
 -spec generate_data_key_without_plaintext/2 ::
           (KeyId :: string(),
            Options :: generate_data_key_opts()) ->
@@ -1007,6 +997,7 @@ request(Config, Operation, Body) ->
                            method = post,
                            request_headers = Headers,
                            request_body = Payload},
+    io:format("Request\n~p\n\n", [Request]),
     case erlcloud_aws:request_to_return(erlcloud_retry:request(Config, Request, fun kms_result_fun/1)) of
         {ok, {_RespHeaders, <<>>}} -> {ok, []};
         {ok, {_RespHeaders, RespBody}} -> {ok, jsx:decode(RespBody)};
