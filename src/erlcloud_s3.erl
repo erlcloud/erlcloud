@@ -1074,28 +1074,29 @@ s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body, H
     QueryParams = case Subresource of "" -> FParams; _ -> [{Subresource, ""} | FParams] end,
     EscapedPath = erlcloud_http:url_encode_loose(Path),
     
-    HostName = lists:flatten([case Bucket of "" -> ""; _ -> [Bucket, $.] end,
-                              Config#aws_config.s3_host]),
+    HostName = lists:flatten(
+        [case Bucket of "" -> ""; _ -> [Bucket, $.] end,
+        Config#aws_config.s3_host]),
 
-    RequestHeaders = erlcloud_aws:sign_v4(Method, EscapedPath, Config, 
-                      [{"host", HostName} | FHeaders ], 
-                      Body, 
-                      aws_region_from_host(Config#aws_config.s3_host),
-                      "s3", QueryParams),
-    
+    RequestHeaders = erlcloud_aws:sign_v4(
+        Method, EscapedPath, Config, 
+        [{"host", HostName} | FHeaders ], 
+        Body, 
+        aws_region_from_host(Config#aws_config.s3_host),
+        "s3", QueryParams),
+
     RequestURI = lists:flatten([
-                                Config#aws_config.s3_scheme,
-                                HostName, port_spec(Config),
-                                EscapedPath,
-                                case Subresource of "" -> ""; _ -> [$?, Subresource] end,
-                                if
-                                    FParams =:= [] -> "";
-                                    Subresource =:= "" ->
-                                      [$?, erlcloud_http:make_query_string(FParams, no_assignment)];
-                                    true ->
-                                      [$&, erlcloud_http:make_query_string(FParams, no_assignment)]
-                                end
-                               ]),
+        Config#aws_config.s3_scheme,
+        Config#aws_config.s3_host, port_spec(Config),
+        EscapedPath,
+        case Subresource of "" -> ""; _ -> [$?, Subresource] end,
+        if
+            FParams =:= [] -> "";
+            Subresource =:= "" ->
+              [$?, erlcloud_http:make_query_string(FParams, no_assignment)];
+            true ->
+              [$&, erlcloud_http:make_query_string(FParams, no_assignment)]
+        end]),
 
     Request = #aws_request{service = s3, uri = RequestURI, method = Method},
     Request2 = case Method of
