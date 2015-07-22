@@ -1136,13 +1136,22 @@ port_spec(#aws_config{s3_port=80}) ->
 port_spec(#aws_config{s3_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
 
+%% Extract region form s3 endpoint names.
+%% http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region
 aws_region_from_host(Host) ->
-    % Example: s3-us-east-1.amazonaws.com
     case string:tokens(Host, ".") of
+        %% s3.eu-central-1.amazonaws.com
+        ["s3", Value, _, _] ->
+            Value;
+        %% s3.amazonaws.com
         ["s3", _, _] ->
             "us-east-1";
+        %% s3-external-1.amazonaws.com
+        ["s3-external-1", _, _] ->
+            "us-east-1";
+        %% For example: s3-us-east-1.amazonaws.com
         [Value, _, _] ->
-            % Skip "s3-" prefix
+            %% Skip "s3-" prefix
             string:substr(Value, 4);
         _ ->
             "us-east-1"
