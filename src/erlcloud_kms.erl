@@ -1,5 +1,6 @@
 -module(erlcloud_kms).
 -author('rorra@rorra.com.ar').
+-author('zfox@alertlogic.com').
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
