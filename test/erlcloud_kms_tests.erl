@@ -73,7 +73,19 @@ operation_test_() ->
       fun list_key_policies_input_tests/1,
       fun list_key_policies_output_tests/1,
       fun list_keys_input_tests/1,
-      fun list_keys_output_tests/1]}.
+      fun list_keys_output_tests/1,
+      fun put_key_policy_input_tests/1,
+      fun put_key_policy_output_tests/1,
+      fun re_encrypt_input_tests/1,
+      fun re_encrypt_output_tests/1,
+      fun retire_grant_input_tests/1,
+      fun retire_grant_output_tests/1,
+      fun revoke_grant_input_tests/1,
+      fun revoke_grant_output_tests/1,
+      fun update_alias_input_tests/1,
+      fun update_alias_output_tests/1,
+      fun update_key_description_input_tests/1,
+      fun update_key_description_output_tests/1]}.
 
 
 start() ->
@@ -745,3 +757,167 @@ list_keys_output_tests(_) ->
     output_tests(?_f(erlcloud_kms:list_keys()), Tests).
 
 
+-define(KEY_POLICY,
+        jsx:encode([{<<"Version">>, <<"2012-10-17">>},
+                     {<<"Id">>, <<"key-default-1">>},
+                     {<<"Statement">>,
+                      [[{<<"Sid">>, <<"Enable IAM User Permissions">>},
+                        {<<"Effect">>, <<"Allow">>},
+                        {<<"Principal">>,
+                         [{<<"AWS">>, <<"arn:aws:iam::", ?AWS_ACCOUNT_ID/binary, ":root">>}]},
+                        {<<"Action">>, <<"kms:*">>},
+                        {<<"Resource">>, <<"*">>}]]}])).
+
+
+put_key_policy_input_tests(_) ->
+    Tests = [?_kms_test(
+             {"PutKeyPolicy input test",
+              ?_f(erlcloud_kms:put_key_policy(?KEY_ID, ?KEY_POLICY, <<"default">>)),
+              jsx:encode([{<<"KeyId">>, ?KEY_ID},
+                          {<<"Policy">>, ?KEY_POLICY},
+                          {<<"PolicyName">>, <<"default">>}])
+             }
+             )],
+
+    Response = <<>>,
+    input_tests(Response, Tests).
+
+
+put_key_policy_output_tests(_) ->
+    Tests = [?_kms_test(
+             {"PutKeyPolicy example response",
+              <<>>,
+              {ok, []}}
+             )],
+
+    output_tests(?_f(erlcloud_kms:put_key_policy(?KEY_ID, ?KEY_POLICY, <<"default">>)), Tests).
+
+
+-define(RE_ENCRYPT_RESP,
+        [{<<"CiphertextBlob">>,
+          ?CIPHERTEXT_BLOB},
+         {<<"KeyId">>,
+          ?KEY_ARN},
+         {<<"SourceKeyId">>,
+          ?KEY_ARN}]).
+
+
+re_encrypt_input_tests(_) ->
+    Tests = [?_kms_test(
+             {"ReEncrypt input test",
+              ?_f(erlcloud_kms:re_encrypt(?CIPHERTEXT_BLOB, ?KEY_ID)),
+              jsx:encode([{<<"CiphertextBlob">>, ?CIPHERTEXT_BLOB},
+                          {<<"DestinationKeyId">>, ?KEY_ID}])
+             }
+             )],
+
+    Response = jsx:encode(?RE_ENCRYPT_RESP),
+    input_tests(Response, Tests).
+
+
+re_encrypt_output_tests(_) ->
+    Tests = [?_kms_test(
+             {"ReEncrypt example response",
+              jsx:encode(?RE_ENCRYPT_RESP),
+              {ok, ?RE_ENCRYPT_RESP}}
+             )],
+
+    output_tests(?_f(erlcloud_kms:re_encrypt(<<"Test Plaintext">>, ?KEY_ID)), Tests).
+
+
+retire_grant_input_tests(_) ->
+    Tests = [?_kms_test(
+             {"RetireGrant input test",
+              ?_f(erlcloud_kms:retire_grant(
+                    [{key_id, ?KEY_ARN},
+                     {grant_id, <<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>}])),
+              jsx:encode([{<<"KeyId">>, ?KEY_ARN},
+                          {<<"GrantId">>, <<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>}])
+             }
+             )],
+    
+    Response = <<>>,
+    input_tests(Response, Tests).
+
+
+retire_grant_output_tests(_) ->
+    Tests = [?_kms_test(
+             {"RetireGrant example response",
+              <<>>,
+              {ok, []}}
+             )],
+    
+    output_tests(?_f(erlcloud_kms:retire_grant(
+                       [{key_id, ?KEY_ARN},
+                        {grant_id, <<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>}])), Tests).
+
+
+revoke_grant_input_tests(_) ->
+    Tests = [?_kms_test(
+             {"RevokeGrant input test",
+              ?_f(erlcloud_kms:revoke_grant(<<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>,
+                                            ?KEY_ID)),
+              jsx:encode([{<<"GrantId">>, <<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>},
+                          {<<"KeyId">>, ?KEY_ID}])
+             }
+             )],
+
+    Response = <<>>,
+    input_tests(Response, Tests).
+
+
+revoke_grant_output_tests(_) ->
+    Tests = [?_kms_test(
+             {"RevokeGrant example response",
+              <<>>,
+              {ok, []}}
+             )],
+    
+    output_tests(?_f(erlcloud_kms:revoke_grant(<<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>,
+                                               ?KEY_ID)), Tests).
+
+
+update_alias_input_tests(_) ->
+    Tests = [?_kms_test(
+             {"UpdateAlias input test",
+              ?_f(erlcloud_kms:update_alias(<<"alias/unit_test_update">>, ?KEY_ID)),
+              jsx:encode([{<<"AliasName">>, <<"alias/unit_test_update">>},
+                          {<<"TargetKeyId">>, ?KEY_ID}])
+             }
+             )],
+
+    Response = <<>>,
+    input_tests(Response, Tests).
+
+
+update_alias_output_tests(_) ->
+    Tests = [?_kms_test(
+             {"UpdateAlias example response",
+              <<>>,
+              {ok, []}}
+             )],
+    
+    output_tests(?_f(erlcloud_kms:update_alias(<<"alias/unit_test_update">>, ?KEY_ID)), Tests).
+
+
+update_key_description_input_tests(_) ->
+    Tests = [?_kms_test(
+             {"UpdateAlias input test",
+              ?_f(erlcloud_kms:update_key_description(?KEY_ID, <<"Updated key description">>)),
+              jsx:encode([{<<"KeyId">>, ?KEY_ID},
+                          {<<"Description">>, <<"Updated key description">>}])
+             }
+             )],
+
+    Response = <<>>,
+    input_tests(Response, Tests).
+
+
+update_key_description_output_tests(_) ->
+    Tests = [?_kms_test(
+             {"UpdateAlias example response",
+              <<>>,
+              {ok, []}}
+             )],
+    
+    output_tests(?_f(erlcloud_kms:update_key_description(?KEY_ID, <<"Updated key description">>)), Tests).

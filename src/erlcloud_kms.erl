@@ -997,7 +997,6 @@ request(Config, Operation, Body) ->
                            method = post,
                            request_headers = Headers,
                            request_body = Payload},
-    io:format("Request\n~p\n\n", [Request]),
     case erlcloud_aws:request_to_return(erlcloud_retry:request(Config, Request, fun kms_result_fun/1)) of
         {ok, {_RespHeaders, <<>>}} -> {ok, []};
         {ok, {_RespHeaders, RespBody}} -> {ok, jsx:decode(RespBody)};
@@ -1028,26 +1027,16 @@ dynamize_options(List) ->
 
 
 dynamize_options([{Key, Value}|T], Acc) ->
-    case dynamize_option_key(Key) of
-        undefined -> dynamize_options(T, Acc);
-        DynamizedKey -> dynamize_options(T, [{DynamizedKey, Value}|Acc])
-    end;
+    DynamizedKey = dynamize_option_key(Key),
+    dynamize_options(T, [{DynamizedKey, Value}|Acc]);
 dynamize_options([], Acc) ->
     Acc.
 
 
-dynamize_option_key(constraints) -> <<"Constraints">>;
-dynamize_option_key(description) -> <<"Description">>;
-dynamize_option_key(encryption_context) -> <<"EncryptionContext">>;
-dynamize_option_key(grant_id) -> <<"KeySpec">>;
-dynamize_option_key(grant_tokens) -> <<"GrantTokens">>;
-dynamize_option_key(grantee_principal) -> <<"GranteePrincipal">>;
-dynamize_option_key(key_id) -> <<"KeyId">>;
-dynamize_option_key(key_spec) -> <<"KeySpec">>;
-dynamize_option_key(key_usage) -> <<"KeyUsage">>;
-dynamize_option_key(limit) -> <<"Limit">>;
-dynamize_option_key(marker) -> <<"Marker">>;
-dynamize_option_key(number_of_bytes) -> <<"NumberOfBytes">>;
-dynamize_option_key(operations) -> <<"Operations">>;
-dynamize_option_key(policy) -> <<"Policy">>;
-dynamize_option_key(_) -> undefined.
+dynamize_option_key(Key) when is_atom(Key) ->
+    F = fun([A|B], Acc) ->
+                C = list_to_binary([string:to_upper(A)|B]),
+                <<Acc/binary, C/binary>>
+        end,
+    lists:foldl(F, <<>>, string:tokens(atom_to_list(Key), "_")).
+
