@@ -1042,10 +1042,18 @@ s3_request(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) 
 
 %% s3_request2 returns {ok, Body} or {error, Reason} instead of throwing as s3_request does
 %% This is the preferred pattern for new APIs
-s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
+s3_request2(Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
-            s3_request4_no_update(Config1, Method, Host, Path, Subresource, Params, POSTData, Headers);
+            Response = s3_request4_no_update(Config1, Method, Bucket, Path, 
+                   Subresource, Params, POSTData, Headers),
+            case Config1#aws_config.s3_follow_redirect of
+                true ->
+                    s3_follow_redirect(Response, Config1, Method, Bucket, Path, 
+                        Subresource, Params, POSTData, Headers);
+                _ ->
+                    Response
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
@@ -1126,6 +1134,11 @@ s3_result_fun(#aws_request{response_type = error,
                            response_status = Status} = Request) when
       Status >= 500 ->
     Request#aws_request{should_retry = true};
+s3_result_fun(#aws_request{response_type = error, 
+                           error_type = aws, 
+                           response_status = Status} = Request) when
+      Status >= 300 andalso Status < 400->
+    Request#aws_request{should_retry = false};
 s3_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
     Request#aws_request{should_retry = false}.
 
@@ -1155,4 +1168,30 @@ aws_region_from_host(Host) ->
             string:substr(Value, 4);
         _ ->
             "us-east-1"
+    end.
+
+%%
+%% http://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
+%% http://docs.aws.amazon.com/AmazonS3/latest/dev/Redirects.html
+%%
+s3_follow_redirect(Response, Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers) ->
+    case Response of
+        %% Handle redirect response once.
+        {error, {http_error, StatusCode, _, ErrBody, ErrHeaders}} = _Err
+            when StatusCode >= 301 andalso StatusCode < 400 ->
+            RedirectHostName = case ErrBody of
+                <<>> ->
+                    %% Extract redirect location from response headers
+                    RedirectUrl = proplists:get_value("location", ErrHeaders),
+                    [HostName | _] =  string:tokens(RedirectUrl -- Config#aws_config.s3_scheme, "/"),
+                    HostName;
+                Body ->
+                    XML = element(1,xmerl_scan:string(binary_to_list(Body))),
+                    erlcloud_xml:get_text("/Error/Endpoint", XML)
+            end,
+            S3RegionEndpoint = RedirectHostName -- lists:flatten([Bucket, $.]),
+            s3_request4_no_update(Config#aws_config{s3_host = S3RegionEndpoint}, 
+                Method, Bucket, Path, Subresource, Params, POSTData, Headers);
+        Result ->
+            Result
     end.

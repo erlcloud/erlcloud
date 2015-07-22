@@ -6,6 +6,7 @@
           s3_scheme="https://"::string(),
           s3_host="s3.amazonaws.com"::string(),
           s3_port=80::non_neg_integer(),
+          s3_follow_redirect=false::boolean(),
           sdb_host="sdb.amazonaws.com"::string(),
           elb_host="elasticloadbalancing.amazonaws.com"::string(),
           rds_host="rds.us-east-1.amazonaws.com"::string(),

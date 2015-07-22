@@ -319,8 +319,9 @@ request_to_return(#aws_request{response_type = error,
                                error_type = aws,
                                response_status = Status,
                                response_status_line = StatusLine,
-                               response_body = Body}) ->
-    {error, {http_error, Status, StatusLine, Body}}.
+                               response_body = Body,
+                               response_headers = Headers}) ->
+    {error, {http_error, Status, StatusLine, Body, Headers}}.
 
 %% http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
 -spec sign_v4_headers(aws_config(), headers(), binary(), string(), string()) -> headers().
