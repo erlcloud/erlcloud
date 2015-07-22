@@ -45,7 +45,9 @@
 -type pagination_opts() :: [pagination_opt()].
 -type pagination_opt() :: {limit, non_neg_integer()} | {marker, string()}.
 
--type kms_return_val() :: {ok, proplists:proplist()} | {error, term()}.
+-type return_val() :: {ok, proplists:proplist()} | {error, term()}.
+
+-export_type([return_val/0]).
 
 %%%------------------------------------------------------------------------------
 %%% Library initialization.
@@ -114,7 +116,7 @@ default_config() ->
 -spec create_alias/2 ::
           (AliasName :: string(),
            TargetKeyId :: string()) ->
-          kms_return_val().
+          return_val().
 create_alias(AliasName, TargetKeyId) ->
     create_alias(AliasName, TargetKeyId, default_config()).
 
@@ -123,7 +125,7 @@ create_alias(AliasName, TargetKeyId) ->
           (AliasName :: string(),
            TargetKeyId :: string(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 create_alias(AliasName, TargetKeyId, Config) ->
     Json = [{<<"AliasName">>, AliasName}, {<<"TargetKeyId">>, TargetKeyId}],
     request(Config, "TrentService.CreateAlias", Json).	
@@ -150,7 +152,7 @@ create_alias(AliasName, TargetKeyId, Config) ->
           (GranteePrincipal :: string(),
            KeyId :: string(),
            Operations :: [string()]) ->
-          kms_return_val().
+          return_val().
 create_grant(GranteePrincipal, KeyId, Operations) ->
     create_grant(GranteePrincipal, KeyId, Operations, []).
 
@@ -160,7 +162,7 @@ create_grant(GranteePrincipal, KeyId, Operations) ->
            KeyId :: string(),
            Operations :: [string()],
            Options :: create_grant_opts()) ->
-          kms_return_val().
+          return_val().
 create_grant(GranteePrincipal, KeyId, Operations, Options) ->
     create_grant(GranteePrincipal, KeyId, Operations, Options, default_config()).
 
@@ -171,7 +173,7 @@ create_grant(GranteePrincipal, KeyId, Operations, Options) ->
            Operations :: [string()],
            Options :: create_grant_opts(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 create_grant(GranteePrincipal, KeyId, Operations, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"GranteePrincipal">>, GranteePrincipal},
@@ -197,14 +199,14 @@ create_grant(GranteePrincipal, KeyId, Operations, Options, Config) ->
 -type create_key_opt_key() :: description | key_usage | policy.
 
 
--spec create_key/0 :: () -> kms_return_val().
+-spec create_key/0 :: () -> return_val().
 create_key() ->
     create_key([]).
 
 
 -spec create_key/1 ::
           (Options :: create_key_opts()) ->
-          kms_return_val().
+          return_val().
 create_key(Options) ->
     create_key(Options, default_config()).
 
@@ -212,7 +214,7 @@ create_key(Options) ->
 -spec create_key/2 ::
           (Options :: create_key_opts(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 create_key(Options, Config) ->
     Json = dynamize_options(Options),
     request(Config, "TrentService.CreateKey", Json).
@@ -237,7 +239,7 @@ create_key(Options, Config) ->
 
 -spec decrypt/1 ::
           (CiphertextBlob :: binary()) ->
-          kms_return_val().
+          return_val().
 decrypt(CiphertextBlob) ->
     decrypt(CiphertextBlob, []).
 
@@ -245,7 +247,7 @@ decrypt(CiphertextBlob) ->
 -spec decrypt/2 ::
           (CiphertextBlob :: binary(),
            Options :: decrypt_opts()) ->
-          kms_return_val().
+          return_val().
 decrypt(CiphertextBlob, Options) ->
     decrypt(CiphertextBlob, Options, default_config()).
 
@@ -254,7 +256,7 @@ decrypt(CiphertextBlob, Options) ->
           (CiphertextBlob :: binary(),
            Options :: decrypt_opts(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 decrypt(CiphertextBlob, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"CiphertextBlob">>, CiphertextBlob}|OptJson],
@@ -275,7 +277,7 @@ decrypt(CiphertextBlob, Options, Config) ->
 %%------------------------------------------------------------------------------
 -spec delete_alias/1 ::
           (AliasName :: string()) ->
-          kms_return_val().
+          return_val().
 delete_alias(AliasName) ->
     delete_alias(AliasName, default_config()).
 
@@ -283,7 +285,7 @@ delete_alias(AliasName) ->
 -spec delete_alias/2 ::
           (AliasName :: string(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 delete_alias(AliasName, Config) ->
     Json = [{<<"AliasName">>, AliasName}],
     request(Config, "TrentService.DeleteAlias", Json).
@@ -303,7 +305,7 @@ delete_alias(AliasName, Config) ->
 %%------------------------------------------------------------------------------
 -spec describe_key/1 ::
           (KeyId :: string()) ->
-          kms_return_val().
+          return_val().
 describe_key(KeyId) ->
     describe_key(KeyId, default_config()).
 
@@ -311,7 +313,7 @@ describe_key(KeyId) ->
 -spec describe_key/2 ::
           (KeyId :: string(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 describe_key(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
     request(Config, "TrentService.DescribeKey", Json).
@@ -331,7 +333,7 @@ describe_key(KeyId, Config) ->
 %%------------------------------------------------------------------------------
 -spec disable_key/1 ::
           (KeyId :: string()) ->
-          kms_return_val().
+          return_val().
 disable_key(KeyId) ->
     disable_key(KeyId, default_config()).
 
@@ -339,7 +341,7 @@ disable_key(KeyId) ->
 -spec disable_key/2 ::
           (KeyId :: string(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 disable_key(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
     request(Config, "TrentService.DisableKey", Json).
@@ -359,7 +361,7 @@ disable_key(KeyId, Config) ->
 %%------------------------------------------------------------------------------
 -spec disable_key_rotation/1 ::
           (KeyId :: string()) ->
-          kms_return_val().
+          return_val().
 disable_key_rotation(KeyId) ->
     disable_key_rotation(KeyId, default_config()).
 
@@ -367,7 +369,7 @@ disable_key_rotation(KeyId) ->
 -spec disable_key_rotation/2 ::
           (KeyId :: string(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 disable_key_rotation(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
     request(Config, "TrentService.DisableKey", Json).
@@ -387,14 +389,14 @@ disable_key_rotation(KeyId, Config) ->
 %%------------------------------------------------------------------------------
 -spec enable_key/1 ::
           (KeyId :: string()) ->
-          kms_return_val().
+          return_val().
 enable_key(KeyId) ->
     enable_key(KeyId, default_config()).
 
 -spec enable_key/2 ::
           (KeyId :: string(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 enable_key(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
     request(Config, "TrentService.EnableKey", Json).
@@ -414,7 +416,7 @@ enable_key(KeyId, Config) ->
 %%------------------------------------------------------------------------------
 -spec enable_key_rotation/1 ::
           (KeyId :: string()) ->
-          kms_return_val().
+          return_val().
 enable_key_rotation(KeyId) ->
     enable_key_rotation(KeyId, default_config()).
 
@@ -422,7 +424,7 @@ enable_key_rotation(KeyId) ->
 -spec enable_key_rotation/2 ::
           (KeyId :: string(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 enable_key_rotation(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
     request(Config, "TrentService.EnableKeyRotation", Json).
@@ -448,7 +450,7 @@ enable_key_rotation(KeyId, Config) ->
 -spec encrypt/2 ::
           (KeyId :: string(),
            Plaintext :: string()) ->
-          kms_return_val().
+          return_val().
 encrypt(KeyId, Plaintext) ->
     encrypt(KeyId, Plaintext, []).
 
@@ -457,7 +459,7 @@ encrypt(KeyId, Plaintext) ->
           (KeyId :: string(),
            Plaintext :: string(),
            Options :: encrypt_opts()) ->
-          kms_return_val().
+          return_val().
 encrypt(KeyId, Plaintext, Options) ->
     encrypt(KeyId, Plaintext, Options, default_config()).
 
@@ -467,7 +469,7 @@ encrypt(KeyId, Plaintext, Options) ->
            Plaintext :: string(),
            Options :: encrypt_opts(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 encrypt(KeyId, Plaintext, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}|OptJson],
@@ -494,7 +496,7 @@ encrypt(KeyId, Plaintext, Options, Config) ->
 -spec generate_data_key/2 ::
           (KeyId :: string(),
            Options :: generate_data_key_opts()) ->
-          kms_return_val().
+          return_val().
 generate_data_key(KeyId, Options) ->
     generate_data_key(KeyId, Options, default_config()).
 
@@ -503,7 +505,7 @@ generate_data_key(KeyId, Options) ->
           (KeyId :: string(),
            Options :: generate_data_key_opts(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 generate_data_key(KeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}|OptJson],
@@ -526,7 +528,7 @@ generate_data_key(KeyId, Options, Config) ->
 -spec generate_data_key_without_plaintext/2 ::
           (KeyId :: string(),
            Options :: generate_data_key_opts()) ->
-          kms_return_val().
+          return_val().
 generate_data_key_without_plaintext(KeyId, Options) ->
     generate_data_key_without_plaintext(KeyId, Options, default_config()).
 
@@ -535,7 +537,7 @@ generate_data_key_without_plaintext(KeyId, Options) ->
           (KeyId :: string(),
            Options :: generate_data_key_opts(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 generate_data_key_without_plaintext(KeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}|OptJson],
@@ -556,7 +558,7 @@ generate_data_key_without_plaintext(KeyId, Options, Config) ->
 %%------------------------------------------------------------------------------
 -spec generate_random/1 ::
           (NumberOfBytes :: non_neg_integer()) ->
-          kms_return_val().
+          return_val().
 generate_random(NumberOfBytes) ->
     generate_random(NumberOfBytes, default_config()).
 
@@ -564,7 +566,7 @@ generate_random(NumberOfBytes) ->
 -spec generate_random/2 ::
           (NumberOfBytes :: non_neg_integer(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 generate_random(NumberOfBytes, Config) ->
     Json = [{<<"NumberOfBytes">>, NumberOfBytes}],
     request(Config, "TrentService.GenerateRandom", Json).
@@ -585,7 +587,7 @@ generate_random(NumberOfBytes, Config) ->
 -spec get_key_policy/2 ::
           (KeyId :: string(),
            PolicyName :: string()) ->
-          kms_return_val().
+          return_val().
 get_key_policy(KeyId, PolicyName) ->
     get_key_policy(KeyId, PolicyName, default_config()).
 
@@ -594,7 +596,7 @@ get_key_policy(KeyId, PolicyName) ->
           (KeyId :: string(),
            PolicyName :: string(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 get_key_policy(KeyId, PolicyName, Config) ->
     Json = [{<<"KeyId">>, KeyId}, {<<"PolicyName">>, PolicyName}],
     request(Config, "TrentService.GetKeyPolicy", Json).
@@ -614,7 +616,7 @@ get_key_policy(KeyId, PolicyName, Config) ->
 %%------------------------------------------------------------------------------
 -spec get_key_rotation_status/1 ::
           (KeyId :: string()) ->
-          kms_return_val().
+          return_val().
 get_key_rotation_status(KeyId) ->
     get_key_rotation_status(KeyId, default_config()).
 
@@ -622,7 +624,7 @@ get_key_rotation_status(KeyId) ->
 -spec get_key_rotation_status/2 ::
           (KeyId :: string(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 get_key_rotation_status(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
     request(Config, "TrentService.GetKeyRotationStatus", Json).
@@ -642,14 +644,14 @@ get_key_rotation_status(KeyId, Config) ->
 %%------------------------------------------------------------------------------
 -spec list_aliases/0 ::
           () ->
-          kms_return_val().
+          return_val().
 list_aliases() ->
     list_aliases([]).
 
 
 -spec list_aliases/1 ::
           (Options :: pagination_opts()) ->
-          kms_return_val().
+          return_val().
 list_aliases(Options) ->
     list_aliases(Options, default_config()).
 
@@ -657,7 +659,7 @@ list_aliases(Options) ->
 -spec list_aliases/2 ::
           (Options :: pagination_opts(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 list_aliases(Options, Config) ->
     Json = dynamize_options(Options),
     request(Config, "TrentService.ListAliases", Json).
@@ -677,7 +679,7 @@ list_aliases(Options, Config) ->
 %%------------------------------------------------------------------------------
 -spec list_grants/1 ::
           (KeyId :: string()) ->
-          kms_return_val().
+          return_val().
 list_grants(KeyId) ->
     list_grants(KeyId, []).
 
@@ -685,7 +687,7 @@ list_grants(KeyId) ->
 -spec list_grants/2 ::
           (KeyId :: string(),
            Options :: pagination_opts()) ->
-          kms_return_val().
+          return_val().
 list_grants(KeyId, Options) ->
     list_grants(KeyId, Options, default_config()).
 
@@ -694,7 +696,7 @@ list_grants(KeyId, Options) ->
           (KeyId :: string(),
            Options :: pagination_opts(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 list_grants(KeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}|OptJson],
@@ -715,7 +717,7 @@ list_grants(KeyId, Options, Config) ->
 %%------------------------------------------------------------------------------
 -spec list_key_policies/1 ::
           (KeyId :: string()) ->
-          kms_return_val().
+          return_val().
 list_key_policies(KeyId) ->
     list_key_policies(KeyId, []).
 
@@ -723,7 +725,7 @@ list_key_policies(KeyId) ->
 -spec list_key_policies/2 ::
           (KeyId :: string(),
            Options :: pagination_opts()) ->
-          kms_return_val().
+          return_val().
 list_key_policies(KeyId, Options) ->
     list_key_policies(KeyId, Options, default_config()).
 
@@ -732,7 +734,7 @@ list_key_policies(KeyId, Options) ->
           (KeyId :: string(),
            Options :: pagination_opts(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 list_key_policies(KeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}|OptJson],
@@ -753,14 +755,14 @@ list_key_policies(KeyId, Options, Config) ->
 %%------------------------------------------------------------------------------
 -spec list_keys/0 ::
           () ->
-          kms_return_val().
+          return_val().
 list_keys() ->
     list_keys([]).
 
 
 -spec list_keys/1 ::
           (Options :: pagination_opts()) ->
-          kms_return_val().
+          return_val().
 list_keys(Options) ->
     list_keys(Options, default_config()).
 
@@ -768,7 +770,7 @@ list_keys(Options) ->
 -spec list_keys/2 ::
           (Options :: pagination_opts(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 list_keys(Options, Config) ->
     Json = dynamize_options(Options),
     request(Config, "TrentService.ListKeys", Json).
@@ -790,7 +792,7 @@ list_keys(Options, Config) ->
           (KeyId :: string(),
            Policy :: string(),
            PolicyName :: string()) ->
-          kms_return_val().
+          return_val().
 put_key_policy(KeyId, Policy, PolicyName) ->
     put_key_policy(KeyId, Policy, PolicyName, default_config()).
 
@@ -800,7 +802,7 @@ put_key_policy(KeyId, Policy, PolicyName) ->
            Policy :: string(),
            PolicyName :: string(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 put_key_policy(KeyId, Policy, PolicyName, Config) ->
     Json = [{<<"KeyId">>, KeyId}, {<<"Policy">>, Policy}, {<<"PolicyName">>, PolicyName}],
     request(Config, "TrentService.PutKeyPolicy", Json).
@@ -826,7 +828,7 @@ put_key_policy(KeyId, Policy, PolicyName, Config) ->
 -spec re_encrypt/2 ::
           (CiphertextBlob :: string(),
            DestinationKeyId :: string()) ->
-          kms_return_val().
+          return_val().
 re_encrypt(CiphertextBlob, DestinationKeyId) ->
     re_encrypt(CiphertextBlob, DestinationKeyId, []).
 
@@ -835,7 +837,7 @@ re_encrypt(CiphertextBlob, DestinationKeyId) ->
           (CiphertextBlob :: string(),
            DestinationKeyId :: string(),
            Options :: re_encrypt_opts()) ->
-          kms_return_val().
+          return_val().
 re_encrypt(CiphertextBlob, DestinationKeyId, Options) ->
     re_encrypt(CiphertextBlob, DestinationKeyId, Options, default_config()).
 
@@ -845,7 +847,7 @@ re_encrypt(CiphertextBlob, DestinationKeyId, Options) ->
            DestinationKeyId :: string(),
            Options :: re_encrypt_opts(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 re_encrypt(CiphertextBlob, DestinationKeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}|OptJson],
@@ -870,7 +872,7 @@ re_encrypt(CiphertextBlob, DestinationKeyId, Options, Config) ->
 
 -spec retire_grant/1 ::
           (Options :: retire_grant_opts()) ->
-          kms_return_val().
+          return_val().
 retire_grant(Options) ->
     retire_grant(Options, default_config()).
 
@@ -878,7 +880,7 @@ retire_grant(Options) ->
 -spec retire_grant/2 ::
           (Options :: retire_grant_opts(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 retire_grant(Options, Config) ->
     Json = dynamize_options(Options),
     request(Config, "TrentService.RetireGrant", Json).
@@ -899,7 +901,7 @@ retire_grant(Options, Config) ->
 -spec revoke_grant/2 ::
           (GrantId :: string(),
            KeyId :: string()) ->
-          kms_return_val().
+          return_val().
 revoke_grant(GrantId, KeyId) ->
     revoke_grant(GrantId, KeyId, default_config()).
 
@@ -908,7 +910,7 @@ revoke_grant(GrantId, KeyId) ->
           (GrantId :: string(),
            KeyId :: string(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 revoke_grant(GrantId, KeyId, Config) ->
     Json = [{<<"GrantId">>, GrantId}, {<<"KeyId">>, KeyId}],
     request(Config, "TrentService.RevokeGrant", Json).
@@ -927,7 +929,7 @@ revoke_grant(GrantId, KeyId, Config) ->
 %%------------------------------------------------------------------------------
 -spec update_alias/2 ::
           (AliasName :: string(),
-           TargetKeyId :: string()) -> kms_return_val().
+           TargetKeyId :: string()) -> return_val().
 update_alias(AliasName, TargetKeyId) ->
     update_alias(AliasName, TargetKeyId, default_config()).
 
@@ -935,7 +937,7 @@ update_alias(AliasName, TargetKeyId) ->
 -spec update_alias/3 ::
           (AliasName :: string(),
            TargetKeyId :: string(),
-           Config :: aws_config()) -> kms_return_val().
+           Config :: aws_config()) -> return_val().
 update_alias(AliasName, TargetKeyId, Config) ->
     Json = [{<<"AliasName">>, AliasName}, {<<"TargetKeyId">>, TargetKeyId}],
     request(Config, "TrentService.UpdateAlias", Json).
@@ -956,7 +958,7 @@ update_alias(AliasName, TargetKeyId, Config) ->
 -spec update_key_description/2 ::
           (KeyId :: string(),
            Description :: string()) ->
-          kms_return_val().
+          return_val().
 update_key_description(KeyId, Description) ->
     update_key_description(KeyId, Description, default_config()).
 
@@ -965,7 +967,7 @@ update_key_description(KeyId, Description) ->
           (KeyId :: string(),
            Description :: string(),
            Config :: aws_config()) ->
-          kms_return_val().
+          return_val().
 update_key_description(KeyId, Description, Config) ->
     Json = [{<<"KeyId">>, KeyId}, {<<"Description">>, Description}],
     request(Config, "TrentService.UpdateKeyDescription", Json).
