@@ -27,6 +27,9 @@
           kinesis_host="kinesis.us-east-1.amazonaws.com"::string(),
           kinesis_port=80::non_neg_integer(),
           kinesis_retry=fun erlcloud_kinesis_impl:retry/2::erlcloud_kinesis_impl:retry_fun(),
+          kms_scheme="https://"::string(),
+          kms_host="kms.us-east-1.amazonaws.com"::string(),
+          kms_port=80::non_neg_integer(),
           cloudtrail_scheme="https://"::string(),
           cloudtrail_host="cloudtrail.amazonaws.com"::string(),
           cloudtrail_port=80::non_neg_integer(),
@@ -71,4 +74,4 @@
           %% Service specific error information
           should_retry :: boolean()
         }).
-
+-type(aws_request() :: #aws_request{}).

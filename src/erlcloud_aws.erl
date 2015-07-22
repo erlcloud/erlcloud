@@ -192,8 +192,16 @@ format_timestamp({{Yr, Mo, Da}, {H, M, S}}) ->
 default_config() ->
     case get(aws_config) of
         undefined ->
-            #aws_config{access_key_id=os:getenv("AWS_ACCESS_KEY_ID"),
-                        secret_access_key=os:getenv("AWS_SECRET_ACCESS_KEY")};
+            AccessKeyId = case os:getenv("AWS_ACCESS_KEY_ID") of
+                              false -> "";
+                              AKI -> AKI
+                          end,
+            SecretAccessKey = case os:getenv("AWS_SECRET_ACCESS_KEY") of
+                                  false -> "";
+                                  SAC -> SAC
+                              end,
+            #aws_config{access_key_id = AccessKeyId,
+                        secret_access_key = SecretAccessKey};
         Config ->
             Config
     end.
