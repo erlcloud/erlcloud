@@ -67,7 +67,7 @@ new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{
        access_key_id=AccessKeyID,
        secret_access_key=SecretAccessKey,
-       s3_host=Host
+       kms_host=Host
       }.
 
 -spec new(string(), string(), string(), non_neg_integer()) -> aws_config().
