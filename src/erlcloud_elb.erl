@@ -11,9 +11,17 @@
          deregister_instance/2, deregister_instance/3,
 
          describe_load_balancer/1, describe_load_balancer/2,
-         describe_load_balancers/0, describe_load_balancers/1, describe_load_balancers/2, describe_load_balancers/3, describe_load_balancers/4,
+         describe_load_balancers/0, describe_load_balancers/1, 
+         describe_load_balancers/2, describe_load_balancers/3, describe_load_balancers/4,
 
-         configure_health_check/2, configure_health_check/3]).
+         configure_health_check/2, 
+         configure_health_check/3,
+         
+         describe_load_balancer_policies/0, describe_load_balancer_policies/1, 
+         describe_load_balancer_policies/2,
+         
+         describe_load_balancer_policy_types/0, describe_load_balancer_policy_types/1, 
+         describe_load_balancer_policy_types/2]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -27,6 +35,10 @@
         "/DescribeLoadBalancersResponse/DescribeLoadBalancersResult/LoadBalancerDescriptions/member").
 -define(DESCRIBE_ELBS_NEXT_TOKEN, 
         "/DescribeLoadBalancersResponse/DescribeLoadBalancersResult/NextMarker").
+-define(DESCRIBE_ELB_POLICIES_PATH, 
+        "/DescribeLoadBalancerPoliciesResponse/DescribeLoadBalancerPoliciesResult/PolicyDescriptions/member").
+-define(DESCRIBE_ELB_POLICY_TYPE_PATH, 
+        "/DescribeLoadBalancerPolicyTypesResponse/DescribeLoadBalancerPolicyTypesResult/PolicyTypeDescriptions/member").
 
 -import(erlcloud_xml, [get_text/1, get_text/2, get_integer/2]).
 
@@ -219,7 +231,6 @@ extract_listener(Item) ->
         {ssl_certificate_id, get_text("Listener/SSLCertificateId", Item)}
     ].
 
-
 %% retrieve NextToken from the XML at Path location.  Path is expected to lead to a 
 %% single occurrence and if it does not exist as such, this just returns ok.
 -spec next_token(string(), term()) -> ok | {paged, string()}.
@@ -230,6 +241,101 @@ next_token(Path, XML) ->
         _ ->
             ok
     end.
+
+%% --------------------------------------------------------------------
+%% @doc Calls describe_load_balancer_policies([], default_configuration())
+%% @end
+%% --------------------------------------------------------------------
+describe_load_balancer_policies() ->
+    describe_load_balancer_policies([], default_config()).
+
+%% --------------------------------------------------------------------
+%% @doc describe_load_balancer_policies with specific policy names.
+%% @end
+%% --------------------------------------------------------------------
+describe_load_balancer_policies(PolicyNames) when is_list(PolicyNames) ->
+    describe_load_balancer_policies(PolicyNames, default_config());
+describe_load_balancer_policies(Config) when is_record(Config, aws_config) ->
+    describe_load_balancer_policies([], Config).
+
+%% --------------------------------------------------------------------
+%% @doc Get descriptions of the given load balancer policies.
+%%      
+-spec describe_load_balancer_policies(list(string()), aws_config()) -> 
+                             {ok, term()} | {error, term()}.
+describe_load_balancer_policies(PolicyNames, Config) ->
+    P = member_params("PolicyNames.member.", PolicyNames),
+    case elb_query(Config, "DescribeLoadBalancerPolicies", P) of
+        {ok, Doc} ->
+            ElbPolicies = xmerl_xpath:string(?DESCRIBE_ELB_POLICIES_PATH, Doc),            
+            {ok, [extract_elb_policy(ElbPolicy) || ElbPolicy <- ElbPolicies]};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+extract_elb_policy(Item) ->
+    [
+        {policy_name, get_text("PolicyName", Item)},
+        {policy_type_name, get_text("PolicyTypeName", Item)},
+        {policy_attributes, 
+            [extract_policy_attribute(A) || 
+                A <- xmerl_xpath:string("PolicyAttributeDescriptions/member", Item)]}
+    ].
+
+extract_policy_attribute(Item) ->
+    [
+        {attr_name, get_text("AttributeName", Item)},
+        {attr_value, get_text("AttributeValue", Item)}
+    ].
+
+%% --------------------------------------------------------------------
+%% @doc Calls describe_load_balancer_policy_types([], default_configuration())
+%% @end
+%% --------------------------------------------------------------------
+describe_load_balancer_policy_types() ->
+    describe_load_balancer_policy_types([], default_config()).
+
+%% --------------------------------------------------------------------
+%% @doc describe_load_balancer_policy_types with specific policy type names.
+%% @end
+%% --------------------------------------------------------------------
+describe_load_balancer_policy_types(PolicyTypeNames) when is_list(PolicyTypeNames) ->
+    describe_load_balancer_policy_types(PolicyTypeNames, default_config());
+describe_load_balancer_policy_types(Config) when is_record(Config, aws_config) ->
+    describe_load_balancer_policy_types([], Config).
+
+%% --------------------------------------------------------------------
+%% @doc Get descriptions of the given load balancer policy types.
+%%      
+-spec describe_load_balancer_policy_types(list(string()), aws_config()) -> 
+                             {ok, term()} | {error, term()}.
+describe_load_balancer_policy_types(PolicyTypeNames, Config) ->
+    P = member_params("PolicyTypeNames.member.", PolicyTypeNames),
+    case elb_query(Config, "DescribeLoadBalancerPolicyTypes", P) of
+        {ok, Doc} ->
+            ElbPolicyTypes = xmerl_xpath:string(?DESCRIBE_ELB_POLICY_TYPE_PATH, Doc),            
+            {ok, [extract_elb_policy_type(ElbPolicyType) || ElbPolicyType <- ElbPolicyTypes]};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+extract_elb_policy_type(Item) ->
+    [
+        {policy_type_name, get_text("PolicyTypeName", Item)},
+        {policy_type_description, get_text("Description", Item)},
+        {policy_type_attributes, 
+            [extract_policy_type_attribute(A) || 
+                A <- xmerl_xpath:string("PolicyAttributeTypeDescriptions/member", Item)]}
+    ].
+
+extract_policy_type_attribute(Item) ->
+    [
+        {attr_name, get_text("AttributeName", Item)},
+        {attr_type, get_text("AttributeType", Item)},
+        {cardinality, get_text("Cardinality", Item)},
+        {description, get_text("Description", Item)},
+        {default_value, get_text("DefaultValue", Item)}
+    ].
 
 %% given a list of member identifiers, return a list of 
 %% {key with prefix, member identifier} for use in elb calls.
