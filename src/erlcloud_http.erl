@@ -38,9 +38,8 @@ url_encode([Char|String], Accum)
        Char =:= $-; Char =:= $_;
        Char =:= $.; Char =:= $~ ->
     url_encode(String, [Char|Accum]);
-url_encode([Char|String], Accum)
-  when Char >=0, Char =< 255 ->
-    url_encode(String, [hex_char(Char rem 16), hex_char(Char div 16),$%|Accum]).
+url_encode([Char|String], Accum) ->
+    url_encode(String, utf8_encode_char(Char) ++ Accum).
 
 url_encode_loose(Binary) when is_binary(Binary) ->
     url_encode_loose(binary_to_list(Binary));
@@ -58,7 +57,25 @@ url_encode_loose([Char|String], Accum)
     url_encode_loose(String, [Char|Accum]);
 url_encode_loose([Char|String], Accum)
   when Char >=0, Char =< 255 ->
-    url_encode_loose(String, [hex_char(Char rem 16), hex_char(Char div 16),$%|Accum]).
+    url_encode_loose(String, [hex_char(Char rem 16), hex_char(Char div 16), $% | Accum]).
 
-hex_char(C) when C >= 0, C =< 9 -> $0 + C;
-hex_char(C) when C >= 10, C =< 15 -> $A + C - 10.
+utf8_encode_char(Char) when Char > 16#7FFF, Char =< 16#7FFFF ->
+    encode_char(Char band 16#3F + 16#80)
+      ++ encode_char((16#3F band (Char bsr 6)) + 16#80)
+      ++ encode_char((16#3F band (Char bsr 12)) + 16#80)
+      ++ encode_char((Char bsr 18) + 16#F0);
+utf8_encode_char(Char) when Char > 16#7FF, Char =< 16#7FFF ->
+    encode_char(Char band 16#3F + 16#80)
+      ++ encode_char((16#3F band (Char bsr 6)) + 16#80)
+      ++ encode_char((Char bsr 12) + 16#E0);
+utf8_encode_char(Char) when Char > 16#7F, Char =< 16#7FF ->
+    encode_char(Char band 16#3F + 16#80)
+      ++ encode_char((Char bsr 6) + 16#C0);
+utf8_encode_char(Char) when Char =< 16#7F ->
+  encode_char(Char).
+
+encode_char(Char) ->
+  [hex_char(Char rem 16), hex_char(Char div 16), $%].
+
+hex_char(C) when C < 10 -> $0 + C;
+hex_char(C) when C < 16 -> $A + C - 10.
