@@ -1042,10 +1042,19 @@ s3_request(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) 
 
 %% s3_request2 returns {ok, Body} or {error, Reason} instead of throwing as s3_request does
 %% This is the preferred pattern for new APIs
-s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
+s3_request2(Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
-            s3_request4_no_update(Config1, Method, Host, Path, Subresource, Params, POSTData, Headers);
+            case s3_request4_no_update(Config1, Method, Bucket, Path, 
+                   Subresource, Params, POSTData, Headers) 
+            of
+                {error, {http_error, StatusCode, _, _, _}} = RedirectResponse
+                    when StatusCode >= 301 andalso StatusCode < 400 ->
+                    s3_follow_redirect(RedirectResponse, Config1, Method, Bucket, Path, 
+                        Subresource, Params, POSTData, Headers);
+                Response ->
+                    Response
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
@@ -1156,3 +1165,40 @@ aws_region_from_host(Host) ->
         _ ->
             "us-east-1"
     end.
+
+%%
+%% http://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
+%% http://docs.aws.amazon.com/AmazonS3/latest/dev/Redirects.html
+%% Note: redirect response is handled only once.
+s3_follow_redirect({error, {http_error, _StatusCode, _StatusLine, ErrBody, ErrHeaders}} = Response, 
+    Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers) ->
+    case Config#aws_config.s3_follow_redirect of
+        true ->
+            S3RegionEndpoint = case {proplists:get_value("x-amz-bucket-region", ErrHeaders),
+                                     proplists:get_value("location", ErrHeaders)}
+            of
+                {undefined, undefined} ->
+                    %% Try to get redirect location from error message.
+                    XML = element(1,xmerl_scan:string(binary_to_list(ErrBody))),
+                    RedirectHostName = erlcloud_xml:get_text("/Error/Endpoint", XML),
+                    s3_endpoint_from_hostname(RedirectHostName, Bucket);
+                {undefined, RedirectUrl} ->
+                    %% Use "location" header value if there is no "x-amz-bucket-region" one.
+                    [_Scheme, HostName | _] =  string:tokens(RedirectUrl, "/"),
+                    s3_endpoint_from_hostname(HostName, Bucket);
+                {BucketRegion, _} ->
+                    %% Use "x-amz-bucket-region" header value if present.
+                    lists:flatten(["s3-", BucketRegion, ".amazonaws.com"]) 
+            end,
+            s3_request4_no_update(Config#aws_config{s3_host = S3RegionEndpoint}, 
+                Method, Bucket, Path, Subresource, Params, POSTData, Headers);
+        _ ->
+            Response
+    end.
+
+%% Substract bucket name from a bucket virtual host name.
+%% Example: s3_endpoint_from_hostname(
+%%              "test.bucket.s3.eu-central-1.amazonaws.com", 
+%%              "test.bucket") -> "s3.eu-central-1.amazonaws.com"
+s3_endpoint_from_hostname(HostName, Bucket) ->
+    HostName -- lists:flatten([Bucket, $.]).
