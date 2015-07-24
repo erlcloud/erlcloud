@@ -14,8 +14,10 @@
          describe_load_balancers/0, describe_load_balancers/1, 
          describe_load_balancers/2, describe_load_balancers/3, describe_load_balancers/4,
 
-         configure_health_check/2, 
-         configure_health_check/3,
+         configure_health_check/2, configure_health_check/3,
+         
+         create_load_balancer_policy/3, create_load_balancer_policy/4, create_load_balancer_policy/5,
+         delete_load_balancer_policy/2, delete_load_balancer_policy/3,
          
          describe_load_balancer_policies/0, describe_load_balancer_policies/1, 
          describe_load_balancer_policies/2,
@@ -160,7 +162,7 @@ describe_load_balancers() ->
 %% --------------------------------------------------------------------
 describe_load_balancers(Names) when is_list(Names) ->
     describe_load_balancers(Names, default_config());
-describe_load_balancers(Config) when is_record(Config, aws_config) ->
+describe_load_balancers(Config = #aws_config{}) ->
     describe_load_balancers([], Config).
 
 %% --------------------------------------------------------------------
@@ -243,7 +245,8 @@ next_token(Path, XML) ->
     end.
 
 %% --------------------------------------------------------------------
-%% @doc Calls describe_load_balancer_policies([], default_configuration())
+%% @doc Calls describe_load_balancer_policies([], 
+%%              default_configuration())
 %% @end
 %% --------------------------------------------------------------------
 describe_load_balancer_policies() ->
@@ -255,12 +258,13 @@ describe_load_balancer_policies() ->
 %% --------------------------------------------------------------------
 describe_load_balancer_policies(PolicyNames) when is_list(PolicyNames) ->
     describe_load_balancer_policies(PolicyNames, default_config());
-describe_load_balancer_policies(Config) when is_record(Config, aws_config) ->
+describe_load_balancer_policies(Config = #aws_config{}) ->
     describe_load_balancer_policies([], Config).
 
 %% --------------------------------------------------------------------
 %% @doc Get descriptions of the given load balancer policies.
-%%      
+%% @end
+%% --------------------------------------------------------------------
 -spec describe_load_balancer_policies(list(string()), aws_config()) -> 
                              {ok, term()} | {error, term()}.
 describe_load_balancer_policies(PolicyNames, Config) ->
@@ -289,24 +293,27 @@ extract_policy_attribute(Item) ->
     ].
 
 %% --------------------------------------------------------------------
-%% @doc Calls describe_load_balancer_policy_types([], default_configuration())
+%% @doc Calls describe_load_balancer_policy_types([], 
+%%                  default_configuration())
 %% @end
 %% --------------------------------------------------------------------
 describe_load_balancer_policy_types() ->
     describe_load_balancer_policy_types([], default_config()).
 
 %% --------------------------------------------------------------------
-%% @doc describe_load_balancer_policy_types with specific policy type names.
+%% @doc describe_load_balancer_policy_types() with specific 
+%% policy type names.
 %% @end
 %% --------------------------------------------------------------------
 describe_load_balancer_policy_types(PolicyTypeNames) when is_list(PolicyTypeNames) ->
     describe_load_balancer_policy_types(PolicyTypeNames, default_config());
-describe_load_balancer_policy_types(Config) when is_record(Config, aws_config) ->
+describe_load_balancer_policy_types(Config = #aws_config{}) ->
     describe_load_balancer_policy_types([], Config).
 
 %% --------------------------------------------------------------------
 %% @doc Get descriptions of the given load balancer policy types.
-%%      
+%% @end
+%% --------------------------------------------------------------------
 -spec describe_load_balancer_policy_types(list(string()), aws_config()) -> 
                              {ok, term()} | {error, term()}.
 describe_load_balancer_policy_types(PolicyTypeNames, Config) ->
@@ -336,6 +343,76 @@ extract_policy_type_attribute(Item) ->
         {description, get_text("Description", Item)},
         {default_value, get_text("DefaultValue", Item)}
     ].
+%% --------------------------------------------------------------------
+%% @doc Calls create_load_balancer_policy() without attributes and 
+%% with default aws config.
+%% @end
+%% --------------------------------------------------------------------
+-spec create_load_balancer_policy(string(), string(), string()) -> 
+                                    ok | {error, term()}.
+create_load_balancer_policy(LB, PolicyName, PolicyTypeName) 
+    when is_list(LB),
+         is_list(PolicyName),
+         is_list(PolicyTypeName) ->
+    create_load_balancer_policy(LB, PolicyName, PolicyTypeName, [], default_config()).
+
+%% --------------------------------------------------------------------
+%% @doc Calls create_load_balancer_policy() with default aws config.
+%% @end
+%% --------------------------------------------------------------------
+-spec create_load_balancer_policy(string(), string(), string(), list({string(), string()})) -> 
+                                    ok | {error, term()}.
+create_load_balancer_policy(LB, PolicyName, PolicyTypeName, Attrs) 
+    when is_list(LB),
+         is_list(PolicyName),
+         is_list(PolicyTypeName),
+         is_list(Attrs)->
+    create_load_balancer_policy(LB, PolicyName, PolicyTypeName, Attrs, default_config()).
+
+%% --------------------------------------------------------------------
+%% @doc Create a load balancer policy with given parameters.
+%% http://docs.aws.amazon.com/ElasticLoadBalancing/latest/APIReference/API_CreateLoadBalancerPolicy.html
+%% @end
+%% --------------------------------------------------------------------
+-spec create_load_balancer_policy(string(), string(), string(), list({string(), string()}), aws_config()) -> 
+                                    ok | {error, term()}.
+create_load_balancer_policy(LB, PolicyName, PolicyTypeName, AttrList, Config) 
+    when is_list(LB),
+         is_list(PolicyName),
+         is_list(PolicyTypeName),
+         is_list(AttrList)->
+    _XML = elb_request(Config,
+                      "CreateLoadBalancerPolicy",
+                      [{"LoadBalancerName", LB},
+                       {"PolicyName", PolicyName},
+                       {"PolicyTypeName", PolicyTypeName} |
+                       erlcloud_aws:param_list([[{"AttributeName", AttrName},
+                                                 {"AttributeValue", AttrValue}] || 
+                                                {AttrName, AttrValue} <- AttrList],
+                                               "PolicyAttributes.member")]),
+    ok.
+
+%% --------------------------------------------------------------------
+%% @doc Calls delete_load_balancer_policy() with default aws config.
+%% @end
+%% --------------------------------------------------------------------
+-spec delete_load_balancer_policy(string(), string()) -> ok.
+delete_load_balancer_policy(LB, PolicyName) when is_list(LB), 
+                                                 is_list(PolicyName) ->
+    delete_load_balancer_policy(LB, PolicyName, default_config()).
+
+%% --------------------------------------------------------------------
+%% @doc Deletes the specified policy from the specified load balancer. 
+%% This policy must not be enabled for any listeners.
+%% @end
+%% --------------------------------------------------------------------
+-spec delete_load_balancer_policy(string(), string(), aws_config()) -> ok.
+delete_load_balancer_policy(LB, PolicyName, Config) when is_list(LB),
+                                             is_list(PolicyName)->
+    elb_simple_request(Config,
+                       "DeleteLoadBalancerPolicy",
+                       [{"LoadBalancerName", LB},
+                        {"PolicyName", PolicyName}]).
 
 %% given a list of member identifiers, return a list of 
 %% {key with prefix, member identifier} for use in elb calls.
@@ -362,7 +439,7 @@ elb_simple_request(Config, Action, Params) ->
 
 elb_request(Config, Action, Params) ->
     QParams = [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-    case erlcloud_aws:aws_request_xml4(get,
+    case erlcloud_aws:aws_request_xml4(post,
                                   Config#aws_config.elb_host,
                                   "/", QParams, "elasticloadbalancing", Config)
     of
