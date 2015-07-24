@@ -1174,21 +1174,19 @@ s3_follow_redirect({error, {http_error, _StatusCode, _StatusLine, ErrBody, ErrHe
     Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers) ->
     case Config#aws_config.s3_follow_redirect of
         true ->
-            S3RegionEndpoint = case proplists:get_value("x-amz-bucket-region", ErrHeaders) of
-                undefined ->
-                    RedirectHostName = try 
-                        %% Use "location" header value if exists.
-                        RedirectUrl = proplists:get_value("location", ErrHeaders),
-                        [_Scheme, HostName | _] =  string:tokens(RedirectUrl, "/"),
-                        HostName
-                    catch
-                        _:_ ->
-                            %% Try to get redirect location from error message.
-                            XML = element(1,xmerl_scan:string(binary_to_list(ErrBody))),
-                            erlcloud_xml:get_text("/Error/Endpoint", XML)
-                    end,
-                    RedirectHostName -- lists:flatten([Bucket, $.]);
-                BucketRegion ->
+            S3RegionEndpoint = case {proplists:get_value("x-amz-bucket-region", ErrHeaders),
+                                     proplists:get_value("location", ErrHeaders)}
+            of
+                {undefined, undefined} ->
+                    %% Try to get redirect location from error message.
+                    XML = element(1,xmerl_scan:string(binary_to_list(ErrBody))),
+                    RedirectHostName = erlcloud_xml:get_text("/Error/Endpoint", XML),
+                    s3_endpoint_from_hostname(RedirectHostName, Bucket);
+                {undefined, RedirectUrl} ->
+                    %% Use "location" header value if there is no "x-amz-bucket-region" one.
+                    [_Scheme, HostName | _] =  string:tokens(RedirectUrl, "/"),
+                    s3_endpoint_from_hostname(HostName, Bucket);
+                {BucketRegion, _} ->
                     %% Use "x-amz-bucket-region" header value if present.
                     lists:flatten(["s3-", BucketRegion, ".amazonaws.com"]) 
             end,
@@ -1197,3 +1195,10 @@ s3_follow_redirect({error, {http_error, _StatusCode, _StatusLine, ErrBody, ErrHe
         _ ->
             Response
     end.
+
+%% Substract bucket name from a bucket virtual host name.
+%% Example: s3_endpoint_from_hostname(
+%%              "test.bucket.s3.eu-central-1.amazonaws.com", 
+%%              "test.bucket") -> "s3.eu-central-1.amazonaws.com"
+s3_endpoint_from_hostname(HostName, Bucket) ->
+    HostName -- lists:flatten([Bucket, $.]).
