@@ -28,7 +28,7 @@ stop(_) ->
     meck:unload(erlcloud_httpc).
 
 config() ->
-    config(#aws_config{}).
+    config(#aws_config{s3_follow_redirect = true}).
 
 config(Config) ->
     Config#aws_config{
@@ -80,8 +80,66 @@ error_handling_httpc_error() ->
                config(#aws_config{retry = fun erlcloud_retry:default_retry/1})),
     ?_assertEqual({ok, "TestBody"}, Result).
 
+%% Handle redirect by using location from error message.
+error_handling_redirect_message() ->
+    Response1 = {error, {http_error,307,"Temporary Redirect", 
+        <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Error><Code>TemporaryRedirect</Code>"
+          "<Message>Please re-send this request to the specified temporary endpoint. Continue to use the original request endpoint for future requests.</Message>"
+          "<Bucket>bucket.name</Bucket>"
+          "<Endpoint>bucket.name.s3.eu-central-1.amazonaws.com</Endpoint>"
+          "<RequestId>5B157C1FD7B351A9</RequestId>"
+          "<HostId>IbIGCfmLGzCxQ14C14VuqbjzLjWZ61M1xF3y9ovUu/j/Qj//BXsrbsAuYQJN//FARyvYtOmj8K0=</HostId></Error>">>, []}},
+    Response2 = {ok, {{200, "OK"}, [], <<"TestBody">>}},
+    meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2]),
+    Result = erlcloud_s3:get_bucket_policy(
+               "bucket.name", 
+               config(#aws_config{retry = fun erlcloud_retry:default_retry/1})),
+    ?_assertEqual({ok, "TestBody"}, Result).
+
+%% Handle redirect by using url from location header.
+error_handling_redirect_location() ->
+    Response1 = {error, {http_error,301,"Temporary Redirect", <<>>, 
+        [{"server","AmazonS3"},
+         {"date","Wed, 22 Jul 2015 09:58:03 GMT"},
+         {"transfer-encoding","chunked"},
+         {"content-type","application/xml"},
+         {"location",
+          "https://kkuzmin-test-frankfurt.s3.eu-central-1.amazonaws.com/"},
+         {"x-amz-id-2",
+          "YIgyI9Lb9I/dMpDrRASSD8w5YsNAyhRlF+PDF0jlf9Hq6eVLvSkuj+ftZI2RmU5eXnOKW1Wqh20="},
+         {"x-amz-request-id","FAECC30C2CD53BCA"}
+    ]}},
+    Response2 = {ok, {{200, "OK"}, [], <<"TestBody">>}},
+    meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2]),
+     Result = erlcloud_s3:get_bucket_policy(
+                "bucket.name",
+                config(#aws_config{retry = fun erlcloud_retry:default_retry/1})),
+     ?_assertEqual({ok, "TestBody"}, Result).
+
+%% Handle redirect by using bucket region from "x-amz-bucket-region" header.
+error_handling_redirect_bucket_region() ->
+    Response1 = {error, {http_error,301,"Temporary Redirect", <<>>, 
+        [{"server","AmazonS3"},
+         {"date","Wed, 22 Jul 2015 09:58:03 GMT"},
+         {"transfer-encoding","chunked"},
+         {"content-type","application/xml"},
+         {"x-amz-id-2",
+          "YIgyI9Lb9I/dMpDrRASSD8w5YsNAyhRlF+PDF0jlf9Hq6eVLvSkuj+ftZI2RmU5eXnOKW1Wqh20="},
+         {"x-amz-request-id","FAECC30C2CD53BCA"},
+         {"x-amz-bucket-region","us-west-1"}
+    ]}},
+    Response2 = {ok, {{200, "OK"}, [], <<"TestBody">>}},
+    meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2]),
+     Result = erlcloud_s3:get_bucket_policy(
+                "bucket.name",
+                config(#aws_config{retry = fun erlcloud_retry:default_retry/1})),
+     ?_assertEqual({ok, "TestBody"}, Result).
+
 error_handling_tests(_) ->
     [error_handling_no_retry(),
      error_handling_default_retry(),
-     error_handling_httpc_error()
+     error_handling_httpc_error(),
+     error_handling_redirect_message(),
+     error_handling_redirect_location(),
+     error_handling_redirect_bucket_region()
     ].

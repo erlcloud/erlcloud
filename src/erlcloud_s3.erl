@@ -1169,7 +1169,7 @@ aws_region_from_host(Host) ->
 %%
 %% http://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
 %% http://docs.aws.amazon.com/AmazonS3/latest/dev/Redirects.html
-%% Note: redirect responce is handled only once.
+%% Note: redirect response is handled only once.
 s3_follow_redirect({error, {http_error, _StatusCode, _StatusLine, ErrBody, ErrHeaders}} = Response, 
     Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers) ->
     case Config#aws_config.s3_follow_redirect of
@@ -1177,15 +1177,15 @@ s3_follow_redirect({error, {http_error, _StatusCode, _StatusLine, ErrBody, ErrHe
             S3RegionEndpoint = case proplists:get_value("x-amz-bucket-region", ErrHeaders) of
                 undefined ->
                     RedirectHostName = try 
-                        %% Try to get redirect location from error message.
-                        XML = element(1,xmerl_scan:string(binary_to_list(ErrBody))),
-                        erlcloud_xml:get_text("/Error/Endpoint", XML)
+                        %% Use "location" header value if exists.
+                        RedirectUrl = proplists:get_value("location", ErrHeaders),
+                        [_Scheme, HostName | _] =  string:tokens(RedirectUrl, "/"),
+                        HostName
                     catch
                         _:_ ->
-                            %% Use "location" header value.
-                            RedirectUrl = proplists:get_value("location", ErrHeaders, ""),
-                            [HostName | _] =  string:tokens(RedirectUrl -- Config#aws_config.s3_scheme, "/"),
-                            HostName
+                            %% Try to get redirect location from error message.
+                            XML = element(1,xmerl_scan:string(binary_to_list(ErrBody))),
+                            erlcloud_xml:get_text("/Error/Endpoint", XML)
                     end,
                     RedirectHostName -- lists:flatten([Bucket, $.]);
                 BucketRegion ->
