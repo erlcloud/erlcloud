@@ -12,7 +12,8 @@
          http_headers_body/1,
          request_to_return/1,
          sign_v4_headers/5,
-         sign_v4/8]).
+         sign_v4/8,
+         get_service_status/1]).
 
 -include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -415,3 +416,27 @@ authorization(Config, CredentialScope, SignedHeaders, Signature) ->
      " Credential=", Config#aws_config.access_key_id, $/, CredentialScope, $,,
      " SignedHeaders=", SignedHeaders, $,,
      " Signature=", Signature].
+
+%% This function fetches http://status.aws.amazon.com/data.json
+%% and examine "current" section for on going AWS issues/failures.
+-spec get_service_status(string()) -> ok | list().
+get_service_status(ServiceName) when is_list(ServiceName) ->
+    {ok, Json} = aws_request_form(
+        get, "http", "status.aws.amazon.com", undefined, 
+        "/data.json", "", [], default_config()),
+    ServiceNameBin = list_to_binary(ServiceName),
+    ServiceNameLen = byte_size(ServiceNameBin),
+    
+    ServiceStatuses = lists:filter(
+        fun(S)-> 
+            case proplists:get_value(<<"service">>, S) of 
+                <<ServiceNameBin:ServiceNameLen/binary, _/binary>> -> true;
+                _ -> false
+            end
+        end,
+    proplists:get_value(<<"current">>, jsx:decode(Json))),
+        
+    case ServiceStatuses of
+        [] -> ok;
+        ReturnStatuses -> ReturnStatuses
+    end.
