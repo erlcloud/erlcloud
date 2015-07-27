@@ -1838,6 +1838,7 @@ q(Table, KeyConditionsOrExpression, Opts, Config) ->
                     expression_attribute_values_opt() |
                     projection_expression_opt() |
                     attributes_to_get_opt() |
+                    consistent_read_opt() |
                     {filter_expression, expression()} |
                     conditional_op_opt() |
                     {scan_filter, conditions()} |
@@ -1857,6 +1858,7 @@ scan_opts() ->
      expression_attribute_values_opt(),
      projection_expression_opt(),
      attributes_to_get_opt(),
+     consistent_read_opt(),
      {filter_expression, <<"FilterExpression">>, fun dynamize_expression/1},
      conditional_op_opt(),
      {scan_filter, <<"ScanFilter">>, fun dynamize_conditions/1},

@@ -2600,6 +2600,15 @@ scan_input_tests(_) ->
 }"
             }),
          ?_ddb_test(
+            {"Scan consistent read",
+             ?_f(erlcloud_ddb2:scan(<<"Reply">>,
+                                   [{consistent_read, true}])), "
+{
+    \"TableName\": \"Reply\",
+    \"ConsistentRead\": true
+}"
+            }),
+         ?_ddb_test(
             {"Scan exclusive start key",
              ?_f(erlcloud_ddb2:scan(<<"Reply">>, 
                                    [{exclusive_start_key, [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
