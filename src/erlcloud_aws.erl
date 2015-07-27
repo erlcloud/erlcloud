@@ -208,7 +208,7 @@ default_config() ->
 
 -spec update_config(aws_config()) -> {ok, aws_config()} | {error, term()}.
 update_config(#aws_config{access_key_id = KeyId} = Config)
-  when is_list(KeyId) ->
+  when is_list(KeyId), KeyId /= [] ->
     %% In order to support caching of the aws_config, we could store the expiration_time
     %% and check it here. If it is about to expire (within 5 minutes is what boto uses)
     %% then we should get the new config.
