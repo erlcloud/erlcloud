@@ -1,6 +1,7 @@
 %% -*- mode: erlang;erlang-indent-level: 4;indent-tabs-mode: nil -*-
 
 %% @author Smiler Lee <smilerlee@live.com>
+%% @author Nicholas Lundgaard <nalundgaard@gmail.com>
 %% @doc
 %% An Erlang interface to Amazon's DynamoDB Streams.
 %%
@@ -84,7 +85,6 @@ default_config() -> erlcloud_aws:default_config().
 %%% Shared Types
 %%%------------------------------------------------------------------------------
 
--type aws_region() :: binary().
 -type table_name() :: binary().
 -type attr_name() :: binary().
 -type key_schema() :: hash_key_name() | {hash_key_name(), range_key_name()}.
@@ -105,6 +105,12 @@ default_config() -> erlcloud_aws:default_config().
 -type sequence_number() :: binary().
 -type sequence_number_range() :: {sequence_number(), sequence_number()} |
                                  {sequence_number(), undefined}.
+
+-type aws_region() :: binary().
+-type event_id() :: binary().
+-type event_name() :: binary().
+-type event_source() :: binary().
+-type event_version() :: binary().
 
 -type maybe_list(T) :: T | [T].
 
@@ -132,13 +138,9 @@ default_config() -> erlcloud_aws:default_config().
 -type out_attr() :: {attr_name(), out_attr_value()}.
 -type out_item() :: [out_attr() | in_attr()]. % in_attr in the case of typed_record
 
--type event_id() :: binary().
--type event_name() :: binary().
--type event_source() :: binary().
--type event_version() :: binary().
-
 -type json_pair() :: {binary(), json_term()}.
 -type json_term() :: jsx:json_term().
+
 -type json_attr_type() :: binary().
 -type json_attr_data() :: binary() | boolean() | [binary()] | [[json_attr_value()]] | [json_attr()].
 -type json_attr_value() :: {json_attr_type(), json_attr_data()}.
@@ -180,31 +182,31 @@ undynamize_number(Value, _) ->
             list_to_integer(String)
     end.
             
--spec undynamize_value(json_attr_value(), undynamize_opts()) -> out_attr_value().
-undynamize_value({<<"S">>, Value}, _) when is_binary(Value) ->
+-spec undynamize_value_untyped(json_attr_value(), undynamize_opts()) -> out_attr_value().
+undynamize_value_untyped({<<"S">>, Value}, _) when is_binary(Value) ->
     Value;
-undynamize_value({<<"N">>, Value}, Opts) ->
+undynamize_value_untyped({<<"N">>, Value}, Opts) ->
     undynamize_number(Value, Opts);
-undynamize_value({<<"B">>, Value}, _) ->
+undynamize_value_untyped({<<"B">>, Value}, _) ->
     base64:decode(Value);
-undynamize_value({<<"BOOL">>, Value}, _) when is_boolean(Value) ->
+undynamize_value_untyped({<<"BOOL">>, Value}, _) when is_boolean(Value) ->
     Value;
-undynamize_value({<<"NULL">>, true}, _) ->
+undynamize_value_untyped({<<"NULL">>, true}, _) ->
     undefined;
-undynamize_value({<<"SS">>, Values}, _) when is_list(Values) ->
+undynamize_value_untyped({<<"SS">>, Values}, _) when is_list(Values) ->
     Values;
-undynamize_value({<<"NS">>, Values}, Opts) ->
+undynamize_value_untyped({<<"NS">>, Values}, Opts) ->
     [undynamize_number(Value, Opts) || Value <- Values];
-undynamize_value({<<"BS">>, Values}, _) ->
+undynamize_value_untyped({<<"BS">>, Values}, _) ->
     [base64:decode(Value) || Value <- Values];
-undynamize_value({<<"L">>, List}, Opts) ->
-    [undynamize_value(Value, Opts) || [Value] <- List];
-undynamize_value({<<"M">>, Map}, Opts) ->
-    [undynamize_attr(Attr, Opts) || Attr <- Map].
+undynamize_value_untyped({<<"L">>, List}, Opts) ->
+    [undynamize_value_untyped(Value, Opts) || [Value] <- List];
+undynamize_value_untyped({<<"M">>, Map}, Opts) ->
+    [undynamize_attr_untyped(Attr, Opts) || Attr <- Map].
 
--spec undynamize_attr(json_attr(), undynamize_opts()) -> out_attr().
-undynamize_attr({Name, [ValueJson]}, Opts) ->
-    {Name, undynamize_value(ValueJson, Opts)}.
+-spec undynamize_attr_untyped(json_attr(), undynamize_opts()) -> out_attr().
+undynamize_attr_untyped({Name, [ValueJson]}, Opts) ->
+    {Name, undynamize_value_untyped(ValueJson, Opts)}.
 
 -spec undynamize_object(fun((json_pair(), undynamize_opts()) -> A), 
                         [json_pair()] | [{}], undynamize_opts()) -> [A].
@@ -220,7 +222,7 @@ undynamize_item(Json, Opts) ->
         {typed, true} ->
             undynamize_object(fun undynamize_attr_typed/2, Json, Opts);
         _ ->
-            undynamize_object(fun undynamize_attr/2, Json, Opts)
+            undynamize_object(fun undynamize_attr_untyped/2, Json, Opts)
     end.
 
 -spec undynamize_value_typed(json_attr_value(), undynamize_opts()) -> in_attr_value().
@@ -430,6 +432,28 @@ stream_description_record() ->
       {<<"TableName">>, #ddb_streams_stream_description.table_name, fun id/2}
      ]}.
 
+-spec stream_record_record() -> record_desc().
+stream_record_record() ->
+    {#ddb_streams_stream_record{},
+     [{<<"Keys">>, #ddb_streams_stream_record.keys, fun undynamize_item/2},
+      {<<"NewImage">>, #ddb_streams_stream_record.new_image, fun undynamize_item/2},
+      {<<"OldImage">>, #ddb_streams_stream_record.old_image, fun undynamize_item/2},
+      {<<"SequenceNumber">>, #ddb_streams_stream_record.sequence_number, fun id/2},
+      {<<"SizeBytes">>, #ddb_streams_stream_record.size_bytes, fun id/2},
+      {<<"StreamViewType">>, #ddb_streams_stream_record.stream_view_type,
+       fun undynamize_stream_view_type/2}]}.
+
+-spec record_record() -> record_desc().
+record_record() ->
+    {#ddb_streams_record{},
+     [{<<"awsRegion">>, #ddb_streams_record.aws_region, fun id/2},
+      {<<"dynamodb">>, #ddb_streams_record.dynamodb,
+       fun(V, Opts) -> undynamize_record(stream_record_record(), V, Opts) end},
+      {<<"eventID">>, #ddb_streams_record.event_id, fun id/2},
+      {<<"eventName">>, #ddb_streams_record.event_name, fun id/2},
+      {<<"eventSource">>, #ddb_streams_record.event_source, fun id/2},
+      {<<"eventVersion">>, #ddb_streams_record.event_version, fun id/2}]}.
+
 %%%------------------------------------------------------------------------------
 %%% DescribeStream
 %%%------------------------------------------------------------------------------
@@ -498,28 +522,6 @@ describe_stream(StreamArn, Opts, Config) ->
 get_records_opts() ->
     [{limit, <<"Limit">>, fun id/1}].
 
--spec record_dynamodb_record() -> record_desc().
-record_dynamodb_record() ->
-    {#ddb_streams_record_dynamodb{},
-     [{<<"Keys">>, #ddb_streams_record_dynamodb.keys, fun undynamize_item/2},
-      {<<"NewImage">>, #ddb_streams_record_dynamodb.new_image, fun undynamize_item/2},
-      {<<"OldImage">>, #ddb_streams_record_dynamodb.old_image, fun undynamize_item/2},
-      {<<"SequenceNumber">>, #ddb_streams_record_dynamodb.sequence_number, fun id/2},
-      {<<"SizeBytes">>, #ddb_streams_record_dynamodb.size_bytes, fun id/2},
-      {<<"StreamViewType">>, #ddb_streams_record_dynamodb.stream_view_type,
-       fun undynamize_stream_view_type/2}]}.
-
--spec record_record() -> record_desc().
-record_record() ->
-    {#ddb_streams_record{},
-     [{<<"awsRegion">>, #ddb_streams_record.aws_region, fun id/2},
-      {<<"dynamodb">>, #ddb_streams_record.dynamodb,
-       fun(V, Opts) -> undynamize_record(record_dynamodb_record(), V, Opts) end},
-      {<<"eventID">>, #ddb_streams_record.event_id, fun id/2},
-      {<<"eventName">>, #ddb_streams_record.event_name, fun id/2},
-      {<<"eventSource">>, #ddb_streams_record.event_source, fun id/2},
-      {<<"eventVersion">>, #ddb_streams_record.event_version, fun id/2}]}.
-
 -spec get_records_record() -> record_desc().
 get_records_record() ->
     {#ddb_streams_get_records{},
@@ -556,7 +558,7 @@ get_records(ShardIterator, Opts, Config) ->
              fun(Json, UOpts) -> undynamize_record(get_records_record(), Json, UOpts) end,
              DdbOpts) of
         {simple, #ddb_streams_get_records{records = Records}} ->
-            {ok, [DDB || #ddb_streams_record{dynamodb=DDB} <- Records]};
+            {ok, [StreamRecord || #ddb_streams_record{dynamodb= StreamRecord} <- Records]};
         {ok, _} = Out -> Out;
         {error, _} = Out -> Out
     end.
