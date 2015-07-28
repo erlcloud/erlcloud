@@ -480,7 +480,7 @@ describe_stream_record() ->
        fun(V, Opts) -> undynamize_record(stream_description_record(), V, Opts) end}
      ]}.
 
--type describe_stream_return() :: ddb_return(#ddb_streams_describe_stream{}, [shard_id()]).
+-type describe_stream_return() :: ddb_return(#ddb_streams_describe_stream{}, #ddb_streams_stream_description{}).
 
 -spec describe_stream(stream_arn()) -> describe_stream_return().
 describe_stream(StreamArn) ->
@@ -505,15 +505,9 @@ describe_stream(StreamArn, Opts, Config) ->
                "DynamoDBStreams_20120810.DescribeStream",
                [{<<"StreamArn">>, StreamArn}]
                ++ AwsOpts),
-    case out(Return,
-             fun(Json, UOpts) -> undynamize_record(describe_stream_record(), Json, UOpts) end,
-             DdbOpts) of
-        {simple, #ddb_streams_describe_stream{stream_description = StreamDescription}} ->
-            Shards = StreamDescription#ddb_streams_stream_description.shards,
-            {ok, [ShardId || #ddb_streams_shard{shard_id = ShardId} <- Shards]};
-        {ok, _} = Out -> Out;
-        {error, _} = Out -> Out
-    end.
+    out(Return,
+        fun(Json, UOpts) -> undynamize_record(describe_stream_record(), Json, UOpts) end,
+        DdbOpts, #ddb_streams_describe_stream.stream_description).
 
 %%%------------------------------------------------------------------------------
 %%% GetRecords
@@ -534,7 +528,7 @@ get_records_record() ->
       {<<"Records">>, #ddb_streams_get_records.records,
        fun(V, Opts) -> [undynamize_record(record_record(), I, Opts) || I <- V] end}]}.
 
--type get_records_return() :: ddb_return(#ddb_streams_get_records{}, #ddb_streams_get_records{}).
+-type get_records_return() :: ddb_return(#ddb_streams_get_records{}, [#ddb_streams_record{}]).
 
 -spec get_records(shard_iterator()) -> get_records_return().
 get_records(ShardIterator) ->
@@ -559,14 +553,9 @@ get_records(ShardIterator, Opts, Config) ->
                "DynamoDBStreams_20120810.GetRecords",
                [{<<"ShardIterator">>, ShardIterator}]
                ++ AwsOpts),
-    case out(Return,
-             fun(Json, UOpts) -> undynamize_record(get_records_record(), Json, UOpts) end,
-             DdbOpts) of
-        {simple, #ddb_streams_get_records{records = Records}} ->
-            {ok, [StreamRecord || #ddb_streams_record{dynamodb= StreamRecord} <- Records]};
-        {ok, _} = Out -> Out;
-        {error, _} = Out -> Out
-    end.
+    out(Return,
+        fun(Json, UOpts) -> undynamize_record(get_records_record(), Json, UOpts) end,
+        DdbOpts, #ddb_streams_get_records.records).
 
 %%%------------------------------------------------------------------------------
 %%% GetShardIterator
@@ -643,7 +632,7 @@ list_streams_record() ->
        fun(V, Opts) -> [undynamize_record(stream_record(), I, Opts) || I <- V] end}
      ]}.
 
--type list_streams_return() :: ddb_return(#ddb_streams_list_streams{}, [stream_arn()]).
+-type list_streams_return() :: ddb_return(#ddb_streams_list_streams{}, [#ddb_streams_stream{}]).
 
 -spec list_streams() -> list_streams_return().
 list_streams() ->
@@ -667,11 +656,6 @@ list_streams(Opts, Config) ->
                Config,
                "DynamoDBStreams_20120810.ListStreams",
                AwsOpts),
-    case out(Return,
-             fun(Json, UOpts) -> undynamize_record(list_streams_record(), Json, UOpts) end,
-             DdbOpts) of
-        {simple, #ddb_streams_list_streams{streams = Streams}} ->
-            {ok, [StreamArn || #ddb_streams_stream{stream_arn = StreamArn} <- Streams]};
-        {ok, _} = Out -> Out;
-        {error, _} = Out -> Out
-    end.
+    out(Return,
+        fun(Json, UOpts) -> undynamize_record(list_streams_record(), Json, UOpts) end,
+        DdbOpts, #ddb_streams_list_streams.streams).
