@@ -57,11 +57,21 @@ get_service_status_test(_) ->
               {<<"details">>,<<>>},
               {<<"description">>,
                <<"<div><span class=\"yellowfg\"> 6:46 PM PDT</span>&nbsp;We are investigatin">>},
-              {<<"service">>,<<"s3-eu-central-1">>}]
+              {<<"service">>,<<"s3-eu-central-1">>}],
+             [{<<"service_name">>,
+               <<"Amazon Simple Storage Service (US Standard)">>},
+              {<<"summary">>,
+               <<"[RESOLVED] Elevated errors for bucket operations in US-STANDARD ">>},
+              {<<"date">>,<<"1408497982">>},
+              {<<"status">>,2},
+              {<<"details">>,<<>>},
+              {<<"description">>,
+               <<"<div><span class=\"yellowfg\"> 6:46 PM PDT</span>&nbsp;We are investigatin">>},
+              {<<"service">>,<<"ec2-us-west-2">>}]
             ]}
         ]
     ),
-    OKStatusJson = jsx:encode(
+    OKStatusEmptyJson = jsx:encode(
         [{<<"archive">>,
             [[{<<"service_name">>,
                <<"Amazon Simple Storage Service (US Standard)">>},
@@ -79,17 +89,18 @@ get_service_status_test(_) ->
     ),
 
     meck:expect(erlcloud_httpc, request, fun(_,_,_,_,_,_) -> {ok, {{200, "OK"}, [], StatusJsonS3}} end),
-    [S3Status] = erlcloud_aws:get_service_status("s3"),
-    meck:expect(erlcloud_httpc, request, fun(_,_,_,_,_,_) -> {ok, {{200, "OK"}, [], OKStatusJson}} end),
-    OKStatus = erlcloud_aws:get_service_status("sqs"),
+    [S3Status, EC2Status] = erlcloud_aws:get_service_status(["s3", "ec2", "sns"]),
+    meck:expect(erlcloud_httpc, request, fun(_,_,_,_,_,_) -> {ok, {{200, "OK"}, [], OKStatusEmptyJson}} end),
+    OKStatusEmpty = erlcloud_aws:get_service_status(["sqs", "sns"]),
     meck:expect(erlcloud_httpc, request, fun(_,_,_,_,_,_) -> {ok, {{200, "OK"}, [], StatusJsonS3}} end),
-    OKStatusEC2 = erlcloud_aws:get_service_status("ec2"),
+    OKStatus = erlcloud_aws:get_service_status(["cloudformation", "sns", "vpc"]),
     
-    ?debugFmt("OKStatusEC2 = ~p~n", [OKStatusEC2]),
     [?_assertEqual(proplists:get_value(<<"status">>, S3Status), 0),
      ?_assertEqual(proplists:get_value(<<"service">>, S3Status), <<"s3-eu-central-1">>),
-     ?_assertEqual(OKStatus, ok),
-     ?_assertEqual(OKStatusEC2, ok)
+     ?_assertEqual(proplists:get_value(<<"status">>, EC2Status), 2),
+     ?_assertEqual(proplists:get_value(<<"service">>, EC2Status), <<"ec2-us-west-2">>),
+     ?_assertEqual(OKStatusEmpty, ok),
+     ?_assertEqual(OKStatus, ok)
      ].
 
 % ==================
