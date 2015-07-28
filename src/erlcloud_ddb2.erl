@@ -961,6 +961,7 @@ undynamize_index_status(<<"ACTIVE">>, _)   -> active.
 global_secondary_index_description_record() ->
     {#ddb2_global_secondary_index_description{},
      [{<<"Backfilling">>, #ddb2_global_secondary_index_description.backfilling, fun id/2},
+      {<<"IndexArn">>, #ddb2_global_secondary_index_description.index_arn, fun id/2},
       {<<"IndexName">>, #ddb2_global_secondary_index_description.index_name, fun id/2},
       {<<"IndexSizeBytes">>, #ddb2_global_secondary_index_description.index_size_bytes, fun id/2},
       {<<"IndexStatus">>, #ddb2_global_secondary_index_description.index_status, fun undynamize_index_status/2},
@@ -974,7 +975,8 @@ global_secondary_index_description_record() ->
 -spec local_secondary_index_description_record() -> record_desc().
 local_secondary_index_description_record() ->
     {#ddb2_local_secondary_index_description{},
-     [{<<"IndexName">>, #ddb2_local_secondary_index_description.index_name, fun id/2},
+     [{<<"IndexArn">>, #ddb2_local_secondary_index_description.index_arn, fun id/2},
+      {<<"IndexName">>, #ddb2_local_secondary_index_description.index_name, fun id/2},
       {<<"IndexSizeBytes">>, #ddb2_local_secondary_index_description.index_size_bytes, fun id/2},
       {<<"ItemCount">>, #ddb2_local_secondary_index_description.item_count, fun id/2},
       {<<"KeySchema">>, #ddb2_local_secondary_index_description.key_schema, fun undynamize_key_schema/2},

@@ -24,6 +24,7 @@
         }).
 -record(ddb2_global_secondary_index_description,
         {backfilling :: boolean(),
+         index_arn :: binary(),
          index_name :: erlcloud_ddb2:index_name(),
          index_size_bytes :: integer(),
          index_status :: index_status(),
@@ -33,7 +34,8 @@
          provisioned_throughput :: #ddb2_provisioned_throughput_description{}
         }).
 -record(ddb2_local_secondary_index_description,
-        {index_name :: erlcloud_ddb2:index_name(),
+        {index_arn :: binary(),
+         index_name :: erlcloud_ddb2:index_name(),
          index_size_bytes :: integer(),
          item_count :: integer(),
          key_schema :: erlcloud_ddb2:key_schema(),
