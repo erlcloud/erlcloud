@@ -36,8 +36,24 @@
 -record(ddb_streams_describe_stream,
         {stream_description :: #ddb_streams_stream_description{}
         }).
+-record(ddb_streams_record_dynamodb,
+        {keys :: erlcloud_ddb_streams:key(),
+         new_image :: erlcloud_ddb_streams:in_item(),
+         old_image :: erlcloud_ddb_streams:in_item(),
+         sequence_number :: erlcloud_ddb_streams:sequence_number(),
+         size_bytes :: pos_integer(),
+         stream_view_type :: erlcloud_ddb_streams:stream_view_type()}).
+-record(ddb_streams_record,
+        {aws_region :: erlcloud_ddb_streams:aws_region(),
+         dynamodb :: #ddb_streams_record_dynamodb{},
+         event_id :: erlcloud_ddb_streams:event_id(),
+         event_name :: erlcloud_ddb_streams:event_name(),
+         event_source :: erlcloud_ddb_streams:event_source(),
+         event_version :: erlcloud_ddb_streams:event_version()
+        }).
 -record(ddb_streams_get_records,
-        {
+        {next_shard_iterator :: erlcloud_ddb_streams:shard_iterator(),
+         records :: [#ddb_streams_record{}]
         }).
 -record(ddb_streams_get_shard_iterator,
         {shard_iterator :: erlcloud_ddb_streams:shard_iterator()

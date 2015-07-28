@@ -32,7 +32,15 @@
         ]).
 
 -export_type(
-   [key_schema/0,
+   [aws_region/0,
+    event_id/0,
+    event_name/0,
+    event_source/0,
+    event_version/0,
+    in_item/0,
+    key/0,
+    key_schema/0,
+    out_item/0,
     sequence_number/0,
     sequence_number_range/0,
     shard_id/0,
@@ -76,6 +84,7 @@ default_config() -> erlcloud_aws:default_config().
 %%% Shared Types
 %%%------------------------------------------------------------------------------
 
+-type aws_region() :: binary().
 -type table_name() :: binary().
 -type attr_name() :: binary().
 -type key_schema() :: hash_key_name() | {hash_key_name(), range_key_name()}.
@@ -97,8 +106,44 @@ default_config() -> erlcloud_aws:default_config().
 -type sequence_number_range() :: {sequence_number(), sequence_number()} |
                                  {sequence_number(), undefined}.
 
+-type maybe_list(T) :: T | [T].
+
+-type in_string_value() :: binary() | iolist() | atom(). %% non-empty
+-type in_number_value() :: number().
+-type in_binary_value() :: binary() | [byte()]. %% non-empty
+-type in_attr_value() :: in_string_value() |
+                         in_number_value() |
+                         {s, in_string_value()} |
+                         {n, in_number_value()} |
+                         {b, in_binary_value()} |
+                         {bool, boolean()} |
+                         {null, true} |
+                         {ss, [in_string_value(),...]} |
+                         {ns, [in_number_value(),...]} |
+                         {bs, [in_binary_value(),...]} |
+                         {l, [in_attr_value()]} |
+                         {m, [in_attr()]}.
+-type in_attr() :: {attr_name(), in_attr_value()}.
+-type in_item() :: [in_attr()].
+-type key() :: maybe_list(in_attr()).
+
+-type out_attr_value() :: binary() | number() | boolean() | undefined |
+                          [binary()] | [number()] | [out_attr_value()] | [out_attr()].
+-type out_attr() :: {attr_name(), out_attr_value()}.
+-type out_item() :: [out_attr() | in_attr()]. % in_attr in the case of typed_record
+
+-type event_id() :: binary().
+-type event_name() :: binary().
+-type event_source() :: binary().
+-type event_version() :: binary().
+
 -type json_pair() :: {binary(), json_term()}.
 -type json_term() :: jsx:json_term().
+-type json_attr_type() :: binary().
+-type json_attr_data() :: binary() | boolean() | [binary()] | [[json_attr_value()]] | [json_attr()].
+-type json_attr_value() :: {json_attr_type(), json_attr_data()}.
+-type json_attr() :: {attr_name(), [json_attr_value()]}.
+-type json_item() :: [json_attr()].
 
 -type ok_return(T) :: {ok, T} | {error, term()}.
 
@@ -124,6 +169,85 @@ id(X, _) -> X.
 
 key_name(Key) ->
     proplists:get_value(<<"AttributeName">>, Key).
+
+-spec undynamize_number(binary(), undynamize_opts()) -> number().
+undynamize_number(Value, _) ->
+    String = binary_to_list(Value),
+    case lists:member($., String) of
+        true ->
+            list_to_float(String);
+        false ->
+            list_to_integer(String)
+    end.
+            
+-spec undynamize_value(json_attr_value(), undynamize_opts()) -> out_attr_value().
+undynamize_value({<<"S">>, Value}, _) when is_binary(Value) ->
+    Value;
+undynamize_value({<<"N">>, Value}, Opts) ->
+    undynamize_number(Value, Opts);
+undynamize_value({<<"B">>, Value}, _) ->
+    base64:decode(Value);
+undynamize_value({<<"BOOL">>, Value}, _) when is_boolean(Value) ->
+    Value;
+undynamize_value({<<"NULL">>, true}, _) ->
+    undefined;
+undynamize_value({<<"SS">>, Values}, _) when is_list(Values) ->
+    Values;
+undynamize_value({<<"NS">>, Values}, Opts) ->
+    [undynamize_number(Value, Opts) || Value <- Values];
+undynamize_value({<<"BS">>, Values}, _) ->
+    [base64:decode(Value) || Value <- Values];
+undynamize_value({<<"L">>, List}, Opts) ->
+    [undynamize_value(Value, Opts) || [Value] <- List];
+undynamize_value({<<"M">>, Map}, Opts) ->
+    [undynamize_attr(Attr, Opts) || Attr <- Map].
+
+-spec undynamize_attr(json_attr(), undynamize_opts()) -> out_attr().
+undynamize_attr({Name, [ValueJson]}, Opts) ->
+    {Name, undynamize_value(ValueJson, Opts)}.
+
+-spec undynamize_object(fun((json_pair(), undynamize_opts()) -> A), 
+                        [json_pair()] | [{}], undynamize_opts()) -> [A].
+undynamize_object(_, [{}], _) ->
+    %% jsx returns [{}] for empty objects
+    [];
+undynamize_object(PairFun, List, Opts) ->
+    [PairFun(I, Opts) || I <- List].
+
+-spec undynamize_item(json_item(), undynamize_opts()) -> out_item().
+undynamize_item(Json, Opts) ->
+    case lists:keyfind(typed, 1, Opts) of
+        {typed, true} ->
+            undynamize_object(fun undynamize_attr_typed/2, Json, Opts);
+        _ ->
+            undynamize_object(fun undynamize_attr/2, Json, Opts)
+    end.
+
+-spec undynamize_value_typed(json_attr_value(), undynamize_opts()) -> in_attr_value().
+undynamize_value_typed({<<"S">>, Value}, _) when is_binary(Value) ->
+    {s, Value};
+undynamize_value_typed({<<"N">>, Value}, Opts) ->
+    {n, undynamize_number(Value, Opts)};
+undynamize_value_typed({<<"B">>, Value}, _) ->
+    {b, base64:decode(Value)};
+undynamize_value_typed({<<"BOOL">>, Value}, _) when is_boolean(Value) ->
+    {bool, Value};
+undynamize_value_typed({<<"NULL">>, true}, _) ->
+    {null, true};
+undynamize_value_typed({<<"SS">>, Values}, _) when is_list(Values) ->
+    {ss, Values};
+undynamize_value_typed({<<"NS">>, Values}, Opts) ->
+    {ns, [undynamize_number(Value, Opts) || Value <- Values]};
+undynamize_value_typed({<<"BS">>, Values}, _) ->
+    {bs, [base64:decode(Value) || Value <- Values]};
+undynamize_value_typed({<<"L">>, List}, Opts) ->
+    {l, [undynamize_value_typed(Value, Opts) || [Value] <- List]};
+undynamize_value_typed({<<"M">>, Map}, Opts) ->
+    {m, [undynamize_attr_typed(Attr, Opts) || Attr <- Map]}.
+
+-spec undynamize_attr_typed(json_attr(), undynamize_opts()) -> in_attr().
+undynamize_attr_typed({Name, [ValueJson]}, Opts) ->
+    {Name, undynamize_value_typed(ValueJson, Opts)}.
 
 -spec undynamize_key_schema(json_term(), undynamize_opts()) -> key_schema().
 undynamize_key_schema([HashKey], _) ->
@@ -374,11 +498,34 @@ describe_stream(StreamArn, Opts, Config) ->
 get_records_opts() ->
     [{limit, <<"Limit">>, fun id/1}].
 
+-spec record_dynamodb_record() -> record_desc().
+record_dynamodb_record() ->
+    {#ddb_streams_record_dynamodb{},
+     [{<<"Keys">>, #ddb_streams_record_dynamodb.keys, fun undynamize_item/2},
+      {<<"NewImage">>, #ddb_streams_record_dynamodb.new_image, fun undynamize_item/2},
+      {<<"OldImage">>, #ddb_streams_record_dynamodb.old_image, fun undynamize_item/2},
+      {<<"SequenceNumber">>, #ddb_streams_record_dynamodb.sequence_number, fun id/2},
+      {<<"SizeBytes">>, #ddb_streams_record_dynamodb.size_bytes, fun id/2},
+      {<<"StreamViewType">>, #ddb_streams_record_dynamodb.stream_view_type,
+       fun undynamize_stream_view_type/2}]}.
+
+-spec record_record() -> record_desc().
+record_record() ->
+    {#ddb_streams_record{},
+     [{<<"awsRegion">>, #ddb_streams_record.aws_region, fun id/2},
+      {<<"dynamodb">>, #ddb_streams_record.dynamodb,
+       fun(V, Opts) -> undynamize_record(record_dynamodb_record(), V, Opts) end},
+      {<<"eventID">>, #ddb_streams_record.event_id, fun id/2},
+      {<<"eventName">>, #ddb_streams_record.event_name, fun id/2},
+      {<<"eventSource">>, #ddb_streams_record.event_source, fun id/2},
+      {<<"eventVersion">>, #ddb_streams_record.event_version, fun id/2}]}.
+
 -spec get_records_record() -> record_desc().
 get_records_record() ->
     {#ddb_streams_get_records{},
-     [
-     ]}.
+     [{<<"NextShardIterator">>, #ddb_streams_get_records.next_shard_iterator, fun id/2},
+      {<<"Records">>, #ddb_streams_get_records.records,
+       fun(V, Opts) -> [undynamize_record(record_record(), I, Opts) || I <- V] end}]}.
 
 -type get_records_return() :: ddb_return(#ddb_streams_get_records{}, #ddb_streams_get_records{}).
 
@@ -408,6 +555,8 @@ get_records(ShardIterator, Opts, Config) ->
     case out(Return,
              fun(Json, UOpts) -> undynamize_record(get_records_record(), Json, UOpts) end,
              DdbOpts) of
+        {simple, #ddb_streams_get_records{records = Records}} ->
+            {ok, [DDB || #ddb_streams_record{dynamodb=DDB} <- Records]};
         {ok, _} = Out -> Out;
         {error, _} = Out -> Out
     end.
