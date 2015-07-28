@@ -315,22 +315,21 @@ id(X) -> X.
 
 -type out_type() :: json | record | typed_record | simple.
 -type out_opt() :: {out, out_type()}.
--type boolean_opt(Name) :: Name | {Name, boolean()}.
 -type property() :: proplists:property().
 
 -type aws_opts() :: [json_pair()].
--type ddb_opts() :: [out_opt()].
--type opts() :: {aws_opts(), ddb_opts()}.
+-type ddb_streams_opts() :: [out_opt()].
+-type opts() :: {aws_opts(), ddb_streams_opts()}.
 
--spec verify_ddb_opt(atom(), term()) -> ok.
-verify_ddb_opt(out, Value) ->
+-spec verify_ddb_streams_opt(atom(), term()) -> ok.
+verify_ddb_streams_opt(out, Value) ->
     case lists:member(Value, [json, record, typed_record, simple]) of
         true ->
             ok;
         false ->
             error({erlcloud_ddb, {invalid_opt, {out, Value}}})
     end;
-verify_ddb_opt(Name, Value) ->
+verify_ddb_streams_opt(Name, Value) ->
     error({erlcloud_ddb, {invalid_opt, {Name, Value}}}).
 
 -type opt_table_entry() :: {atom(), binary(), fun((_) -> json_term())}.
@@ -344,7 +343,7 @@ opt_folder(Table, {Name, Value}, {AwsOpts, DdbOpts}) ->
         {Name, Key, ValueFun} ->
             {[{Key, ValueFun(Value)} | AwsOpts], DdbOpts};
         false ->
-            verify_ddb_opt(Name, Value),
+            verify_ddb_streams_opt(Name, Value),
             {AwsOpts, [{Name, Value} | DdbOpts]}
     end.
 
@@ -360,10 +359,10 @@ opts(_, _) ->
 %%% Output
 %%%------------------------------------------------------------------------------
 
--type ddb_return(Record, Simple) :: {ok, json_term() | Record | Simple} | {error, term()}.
+-type ddb_streams_return(Record, Simple) :: {ok, json_term() | Record | Simple} | {error, term()}.
 -type undynamize_fun() :: fun((json_term(), undynamize_opts()) -> tuple()).
 
--spec out(erlcloud_ddb_streams_impl:json_return(), undynamize_fun(), ddb_opts()) 
+-spec out(erlcloud_ddb_streams_impl:json_return(), undynamize_fun(), ddb_streams_opts())
          -> {ok, json_term() | tuple()} |
             {simple, term()} |
             {error, term()}.
@@ -382,12 +381,12 @@ out({ok, Json}, Undynamize, Opts) ->
     end.
 
 %% Returns specified field of tuple for simple return
--spec out(erlcloud_ddb_streams_impl:json_return(), undynamize_fun(), ddb_opts(), pos_integer()) 
+-spec out(erlcloud_ddb_streams_impl:json_return(), undynamize_fun(), ddb_streams_opts(), pos_integer())
          -> ok_return(term()).
 out(Result, Undynamize, Opts, Index) ->
     out(Result, Undynamize, Opts, Index, {error, no_return}).
 
--spec out(erlcloud_ddb_streams_impl:json_return(), undynamize_fun(), ddb_opts(), pos_integer(), ok_return(term())) 
+-spec out(erlcloud_ddb_streams_impl:json_return(), undynamize_fun(), ddb_streams_opts(), pos_integer(), ok_return(term()))
          -> ok_return(term()).
 out(Result, Undynamize, Opts, Index, Default) ->
     case out(Result, Undynamize, Opts) of
@@ -480,7 +479,7 @@ describe_stream_record() ->
        fun(V, Opts) -> undynamize_record(stream_description_record(), V, Opts) end}
      ]}.
 
--type describe_stream_return() :: ddb_return(#ddb_streams_describe_stream{}, #ddb_streams_stream_description{}).
+-type describe_stream_return() :: ddb_streams_return(#ddb_streams_describe_stream{}, #ddb_streams_stream_description{}).
 
 -spec describe_stream(stream_arn()) -> describe_stream_return().
 describe_stream(StreamArn) ->
@@ -499,7 +498,7 @@ describe_stream(StreamArn, Opts) ->
 %%------------------------------------------------------------------------------
 -spec describe_stream(stream_arn(), describe_stream_opts(), aws_config()) -> describe_stream_return().
 describe_stream(StreamArn, Opts, Config) ->
-    {AwsOpts, DdbOpts} = opts(describe_stream_opts(), Opts),
+    {AwsOpts, DdbStreamsOpts} = opts(describe_stream_opts(), Opts),
     Return = erlcloud_ddb_streams_impl:request(
                Config,
                "DynamoDBStreams_20120810.DescribeStream",
@@ -507,7 +506,7 @@ describe_stream(StreamArn, Opts, Config) ->
                ++ AwsOpts),
     out(Return,
         fun(Json, UOpts) -> undynamize_record(describe_stream_record(), Json, UOpts) end,
-        DdbOpts, #ddb_streams_describe_stream.stream_description).
+        DdbStreamsOpts, #ddb_streams_describe_stream.stream_description).
 
 %%%------------------------------------------------------------------------------
 %%% GetRecords
@@ -528,7 +527,7 @@ get_records_record() ->
       {<<"Records">>, #ddb_streams_get_records.records,
        fun(V, Opts) -> [undynamize_record(record_record(), I, Opts) || I <- V] end}]}.
 
--type get_records_return() :: ddb_return(#ddb_streams_get_records{}, [#ddb_streams_record{}]).
+-type get_records_return() :: ddb_streams_return(#ddb_streams_get_records{}, [#ddb_streams_record{}]).
 
 -spec get_records(shard_iterator()) -> get_records_return().
 get_records(ShardIterator) ->
@@ -547,7 +546,7 @@ get_records(ShardIterator, Opts) ->
 %%------------------------------------------------------------------------------
 -spec get_records(shard_iterator(), get_records_opts(), aws_config()) -> get_records_return().
 get_records(ShardIterator, Opts, Config) ->
-    {AwsOpts, DdbOpts} = opts(get_records_opts(), Opts),
+    {AwsOpts, DdbStreamsOpts} = opts(get_records_opts(), Opts),
     Return = erlcloud_ddb_streams_impl:request(
                Config,
                "DynamoDBStreams_20120810.GetRecords",
@@ -555,7 +554,7 @@ get_records(ShardIterator, Opts, Config) ->
                ++ AwsOpts),
     out(Return,
         fun(Json, UOpts) -> undynamize_record(get_records_record(), Json, UOpts) end,
-        DdbOpts, #ddb_streams_get_records.records).
+        DdbStreamsOpts, #ddb_streams_get_records.records).
 
 %%%------------------------------------------------------------------------------
 %%% GetShardIterator
@@ -575,7 +574,7 @@ get_shard_iterator_record() ->
      [{<<"ShardIterator">>, #ddb_streams_get_shard_iterator.shard_iterator, fun id/2}
      ]}.
 
--type get_shard_iterator_return() :: ddb_return(#ddb_streams_get_shard_iterator{}, shard_iterator()).
+-type get_shard_iterator_return() :: ddb_streams_return(#ddb_streams_get_shard_iterator{}, shard_iterator()).
 
 -spec get_shard_iterator(stream_arn(), shard_id(), shard_iterator_type()) -> get_shard_iterator_return().
 get_shard_iterator(StreamArn, ShardId, ShardIteratorType) ->
@@ -597,7 +596,7 @@ get_shard_iterator(StreamArn, ShardId, ShardIteratorType, Opts) ->
                          aws_config())
                         -> get_shard_iterator_return().
 get_shard_iterator(StreamArn, ShardId, ShardIteratorType, Opts, Config) ->
-    {AwsOpts, DdbOpts} = opts(get_shard_iterator_opts(), Opts),
+    {AwsOpts, DdbStreamsOpts} = opts(get_shard_iterator_opts(), Opts),
     Return = erlcloud_ddb_streams_impl:request(
                Config,
                "DynamoDBStreams_20120810.GetShardIterator",
@@ -606,7 +605,7 @@ get_shard_iterator(StreamArn, ShardId, ShardIteratorType, Opts, Config) ->
                 {<<"ShardIteratorType">>, dynamize_shard_iterator_type(ShardIteratorType)}]
                ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(get_shard_iterator_record(), Json, UOpts) end,
-        DdbOpts, #ddb_streams_get_shard_iterator.shard_iterator).
+        DdbStreamsOpts, #ddb_streams_get_shard_iterator.shard_iterator).
 
 %%%------------------------------------------------------------------------------
 %%% ListStreams
@@ -632,7 +631,7 @@ list_streams_record() ->
        fun(V, Opts) -> [undynamize_record(stream_record(), I, Opts) || I <- V] end}
      ]}.
 
--type list_streams_return() :: ddb_return(#ddb_streams_list_streams{}, [#ddb_streams_stream{}]).
+-type list_streams_return() :: ddb_streams_return(#ddb_streams_list_streams{}, [#ddb_streams_stream{}]).
 
 -spec list_streams() -> list_streams_return().
 list_streams() ->
@@ -651,11 +650,11 @@ list_streams(Opts) ->
 %%------------------------------------------------------------------------------
 -spec list_streams(list_streams_opts(), aws_config()) -> list_streams_return().
 list_streams(Opts, Config) ->
-    {AwsOpts, DdbOpts} = opts(list_streams_opts(), Opts),
+    {AwsOpts, DdbStreamsOpts} = opts(list_streams_opts(), Opts),
     Return = erlcloud_ddb_streams_impl:request(
                Config,
                "DynamoDBStreams_20120810.ListStreams",
                AwsOpts),
     out(Return,
         fun(Json, UOpts) -> undynamize_record(list_streams_record(), Json, UOpts) end,
-        DdbOpts, #ddb_streams_list_streams.streams).
+        DdbStreamsOpts, #ddb_streams_list_streams.streams).
