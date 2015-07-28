@@ -505,7 +505,7 @@ describe_stream(StreamArn, Opts, Config) ->
              DdbOpts) of
         {simple, #ddb_streams_describe_stream{stream_description = StreamDescription}} ->
             Shards = StreamDescription#ddb_streams_stream_description.shards,
-            {ok, [Shard#ddb_streams_shard.shard_id || Shard <- Shards]};
+            {ok, [ShardId || #ddb_streams_shard{shard_id = ShardId} <- Shards]};
         {ok, _} = Out -> Out;
         {error, _} = Out -> Out
     end.
@@ -666,7 +666,7 @@ list_streams(Opts, Config) ->
              fun(Json, UOpts) -> undynamize_record(list_streams_record(), Json, UOpts) end,
              DdbOpts) of
         {simple, #ddb_streams_list_streams{streams = Streams}} ->
-            {ok, [Stream#ddb_streams_stream.stream_arn || Stream <- Streams]};
+            {ok, [StreamArn || #ddb_streams_stream{stream_arn = StreamArn} <- Streams]};
         {ok, _} = Out -> Out;
         {error, _} = Out -> Out
     end.
