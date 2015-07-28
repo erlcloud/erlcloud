@@ -12,7 +12,8 @@
          http_headers_body/1,
          request_to_return/1,
          sign_v4_headers/5,
-         sign_v4/8]).
+         sign_v4/8,
+         get_service_status/1]).
 
 -include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -415,3 +416,48 @@ authorization(Config, CredentialScope, SignedHeaders, Signature) ->
      " Credential=", Config#aws_config.access_key_id, $/, CredentialScope, $,,
      " SignedHeaders=", SignedHeaders, $,,
      " Signature=", Signature].
+
+%% This function fetches http://status.aws.amazon.com/data.json
+%% and examine "current" section for on going AWS issues/failures.
+%% Example of a return status:
+%% [{<<"service_name">>,
+%%   <<"Amazon Elastic Compute Cloud (Frankfurt)">>},
+%%  {<<"summary">>,<<"[RESOLVED] Internet Connectivity ">>},
+%%  {<<"date">>,<<"1436972949">>},
+%%  {<<"status">>,1},
+%%  {<<"details">>,<<>>},
+%%  {<<"description">>,
+%%   <<"<div><span class=\"yellowfg\"> 8:22 AM PDT</span>&nbsp;Between 7:55 AM PDT and 8:05 AM PDT we experienced Internet connectivity issues for some instances in the EU-CENTRAL-1 Region. The issue has been resolved and the service is operating normally.</div>">>},
+%%  {<<"service">>,<<"ec2-eu-central-1">>}]
+%%
+%% <<"status">> field values are the following:
+%%  0 - service is operating normally;
+%%  1 - performance issues;
+%%  2 - service disruption.
+-spec get_service_status(list(string())) -> ok | list().
+get_service_status(ServiceNames) when is_list(ServiceNames) ->
+    {ok, Json} = aws_request_form(get, "http", "status.aws.amazon.com", undefined, 
+        "/data.json", "", [], default_config()),
+
+    case get_filtered_statuses(ServiceNames, 
+            proplists:get_value(<<"current">>, jsx:decode(Json)))
+    of
+        [] -> ok;
+        ReturnStatuses -> ReturnStatuses
+    end.
+
+get_filtered_statuses(ServiceNames, Statuses) ->
+    lists:filter(
+        fun(S)-> 
+            lists:any(
+                fun(InputService)-> 
+                    ServiceNameBin = list_to_binary(InputService),
+                    ServiceNameLen = byte_size(ServiceNameBin),
+                    case proplists:get_value(<<"service">>, S) of 
+                        <<ServiceNameBin:ServiceNameLen/binary, _/binary>> -> true;
+                        _ -> false
+                    end
+                end, 
+            ServiceNames)
+        end,
+    Statuses).
