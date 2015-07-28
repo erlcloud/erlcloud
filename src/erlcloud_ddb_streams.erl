@@ -108,7 +108,7 @@ default_config() -> erlcloud_aws:default_config().
 
 -type aws_region() :: binary().
 -type event_id() :: binary().
--type event_name() :: binary().
+-type event_name() :: insert | modify | remove.
 -type event_source() :: binary().
 -type event_version() :: binary().
 
@@ -280,6 +280,11 @@ undynamize_sequence_number_range(Json, _) ->
     Ending = proplists:get_value(<<"EndingSequenceNumber">>, Json),
     {Starting, Ending}.
 
+-spec undynamize_event_name(binary(), undynamize_opts()) -> event_name().
+undynamize_event_name(<<"INSERT">>, _) -> insert;
+undynamize_event_name(<<"MODIFY">>, _) -> modify;
+undynamize_event_name(<<"REMOVE">>, _) -> remove.
+
 -type field_table() :: [{binary(), pos_integer(),
                          fun((json_term(), undynamize_opts()) -> term())}].
 
@@ -450,7 +455,7 @@ record_record() ->
       {<<"dynamodb">>, #ddb_streams_record.dynamodb,
        fun(V, Opts) -> undynamize_record(stream_record_record(), V, Opts) end},
       {<<"eventID">>, #ddb_streams_record.event_id, fun id/2},
-      {<<"eventName">>, #ddb_streams_record.event_name, fun id/2},
+      {<<"eventName">>, #ddb_streams_record.event_name, fun undynamize_event_name/2},
       {<<"eventSource">>, #ddb_streams_record.event_source, fun id/2},
       {<<"eventVersion">>, #ddb_streams_record.event_version, fun id/2}]}.
 
