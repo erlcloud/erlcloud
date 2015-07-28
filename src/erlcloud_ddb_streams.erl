@@ -32,12 +32,16 @@
         ]).
 
 -export_type(
-   [sequence_number/0,
+   [key_schema/0,
+    sequence_number/0,
+    sequence_number_range/0,
     shard_id/0,
     shard_iterator/0,
     shard_iterator_type/0,
     stream_arn/0,
     stream_label/0,
+    stream_status/0,
+    stream_view_type/0,
     table_name/0
    ]).
 
@@ -73,14 +77,25 @@ default_config() -> erlcloud_aws:default_config().
 %%%------------------------------------------------------------------------------
 
 -type table_name() :: binary().
+-type attr_name() :: binary().
+-type key_schema() :: hash_key_name() | {hash_key_name(), range_key_name()}.
+-type hash_key_name() :: attr_name().
+-type range_key_name() :: attr_name().
 
 -type stream_arn() :: binary().
 -type stream_label() :: binary().
 
+-type stream_status() :: enabling | enabled | disabling | disabled.
+-type stream_view_type() :: keys_only | new_image | old_image | new_and_old_images.
+
 -type shard_id() :: binary().
+
 -type shard_iterator() :: binary().
 -type shard_iterator_type() :: trim_horizon | latest | at_sequence_number | after_sequence_number.
+
 -type sequence_number() :: binary().
+-type sequence_number_range() :: {sequence_number(), sequence_number()} |
+                                 {sequence_number(), undefined}.
 
 -type json_pair() :: {binary(), json_term()}.
 -type json_term() :: jsx:json_term().
@@ -103,6 +118,41 @@ dynamize_shard_iterator_type(after_sequence_number) -> <<"AFTER_SEQUENCE_NUMBER"
 
 -type undynamize_opt() :: {typed, boolean()}.
 -type undynamize_opts() :: [undynamize_opt()].
+
+-spec id(X, undynamize_opts()) -> X.
+id(X, _) -> X.
+
+key_name(Key) ->
+    proplists:get_value(<<"AttributeName">>, Key).
+
+-spec undynamize_key_schema(json_term(), undynamize_opts()) -> key_schema().
+undynamize_key_schema([HashKey], _) ->
+    key_name(HashKey);
+undynamize_key_schema([Key1, Key2], _) ->
+    case proplists:get_value(<<"KeyType">>, Key1) of
+        <<"HASH">> ->
+            {key_name(Key1), key_name(Key2)};
+        <<"RANGE">> ->
+            {key_name(Key2), key_name(Key1)}
+    end.
+
+-spec undynamize_stream_status(binary(), undynamize_opts()) -> stream_status().
+undynamize_stream_status(<<"ENABLING">>, _) -> enabling;
+undynamize_stream_status(<<"ENABLED">>, _) -> enabled;
+undynamize_stream_status(<<"DISABLING">>, _) -> disabling;
+undynamize_stream_status(<<"DISABLED">>, _) -> disabled.
+
+-spec undynamize_stream_view_type(binary(), undynamize_opts()) -> stream_view_type().
+undynamize_stream_view_type(<<"KEYS_ONLY">>, _) -> keys_only;
+undynamize_stream_view_type(<<"NEW_IMAGE">>, _) -> new_image;
+undynamize_stream_view_type(<<"OLD_IMAGE">>, _) -> old_image;
+undynamize_stream_view_type(<<"NEW_AND_OLD_IMAGES">>, _) -> new_and_old_images.
+
+-spec undynamize_sequence_number_range(json_term(), undynamize_opts()) -> sequence_number_range().
+undynamize_sequence_number_range(Json, _) ->
+    Starting = proplists:get_value(<<"StartingSequenceNumber">>, Json),
+    Ending = proplists:get_value(<<"EndingSequenceNumber">>, Json),
+    {Starting, Ending}.
 
 -type field_table() :: [{binary(), pos_integer(),
                          fun((json_term(), undynamize_opts()) -> term())}].
@@ -225,6 +275,37 @@ out(Result, Undynamize, Opts, Index, Default) ->
 %%% Shared Records
 %%%------------------------------------------------------------------------------
 
+-spec stream_record() -> record_desc().
+stream_record() ->
+    {#ddb_streams_stream{},
+     [{<<"StreamArn">>, #ddb_streams_stream.stream_arn, fun id/2},
+      {<<"StreamLabel">>, #ddb_streams_stream.stream_label, fun id/2},
+      {<<"TableName">>, #ddb_streams_stream.table_name, fun id/2}
+     ]}.
+
+-spec shard_record() -> record_desc().
+shard_record() ->
+    {#ddb_streams_shard{},
+     [{<<"ParentShardId">>, #ddb_streams_shard.parent_shard_id, fun id/2},
+      {<<"SequenceNumberRange">>, #ddb_streams_shard.sequence_number_range, fun undynamize_sequence_number_range/2},
+      {<<"ShardId">>, #ddb_streams_shard.shard_id, fun id/2}
+     ]}.
+
+-spec stream_description_record() -> record_desc().
+stream_description_record() ->
+    {#ddb_streams_stream_description{},
+     [{<<"CreationRequestDateTime">>, #ddb_streams_stream_description.creation_request_date_time, fun id/2},
+      {<<"KeySchema">>, #ddb_streams_stream_description.key_schema, fun undynamize_key_schema/2},
+      {<<"LastEvaluatedShardId">>, #ddb_streams_stream_description.last_evaluated_shard_id, fun id/2},
+      {<<"Shards">>, #ddb_streams_stream_description.shards,
+       fun(V, Opts) -> [undynamize_record(shard_record(), I, Opts) || I <- V] end},
+      {<<"StreamArn">>, #ddb_streams_stream_description.stream_arn, fun id/2},
+      {<<"StreamLabel">>, #ddb_streams_stream_description.stream_label, fun id/2},
+      {<<"StreamStatus">>, #ddb_streams_stream_description.stream_status, fun undynamize_stream_status/2},
+      {<<"StreamViewType">>, #ddb_streams_stream_description.stream_view_type, fun undynamize_stream_view_type/2},
+      {<<"TableName">>, #ddb_streams_stream_description.table_name, fun id/2}
+     ]}.
+
 %%%------------------------------------------------------------------------------
 %%% DescribeStream
 %%%------------------------------------------------------------------------------
@@ -242,10 +323,11 @@ describe_stream_opts() ->
 -spec describe_stream_record() -> record_desc().    
 describe_stream_record() ->
     {#ddb_streams_describe_stream{},
-     [
+     [{<<"StreamDescription">>, #ddb_streams_describe_stream.stream_description,
+       fun(V, Opts) -> undynamize_record(stream_description_record(), V, Opts) end}
      ]}.
 
--type describe_stream_return() :: ddb_return(#ddb_streams_describe_stream{}, #ddb_streams_describe_stream{}).
+-type describe_stream_return() :: ddb_return(#ddb_streams_describe_stream{}, [shard_id()]).
 
 -spec describe_stream(stream_arn()) -> describe_stream_return().
 describe_stream(StreamArn) ->
@@ -270,9 +352,12 @@ describe_stream(StreamArn, Opts, Config) ->
                "DynamoDBStreams_20120810.DescribeStream",
                [{<<"StreamArn">>, StreamArn}]
                ++ AwsOpts),
-    case out(Return, 
-             fun(Json, UOpts) -> undynamize_record(describe_stream_record(), Json, UOpts) end, 
+    case out(Return,
+             fun(Json, UOpts) -> undynamize_record(describe_stream_record(), Json, UOpts) end,
              DdbOpts) of
+        {simple, #ddb_streams_describe_stream{stream_description = StreamDescription}} ->
+            Shards = StreamDescription#ddb_streams_stream_description.shards,
+            {ok, [Shard#ddb_streams_shard.shard_id || Shard <- Shards]};
         {ok, _} = Out -> Out;
         {error, _} = Out -> Out
     end.
@@ -342,10 +427,10 @@ get_shard_iterator_opts() ->
 -spec get_shard_iterator_record() -> record_desc().
 get_shard_iterator_record() ->
     {#ddb_streams_get_shard_iterator{},
-     [
+     [{<<"ShardIterator">>, #ddb_streams_get_shard_iterator.shard_iterator, fun id/2}
      ]}.
 
--type get_shard_iterator_return() :: ddb_return(#ddb_streams_get_shard_iterator{}, #ddb_streams_get_shard_iterator{}).
+-type get_shard_iterator_return() :: ddb_return(#ddb_streams_get_shard_iterator{}, shard_iterator()).
 
 -spec get_shard_iterator(stream_arn(), shard_id(), shard_iterator_type()) -> get_shard_iterator_return().
 get_shard_iterator(StreamArn, ShardId, ShardIteratorType) ->
@@ -375,18 +460,14 @@ get_shard_iterator(StreamArn, ShardId, ShardIteratorType, Opts, Config) ->
                 {<<"ShardId">>, ShardId},
                 {<<"ShardIteratorType">>, dynamize_shard_iterator_type(ShardIteratorType)}]
                ++ AwsOpts),
-    case out(Return,
-             fun(Json, UOpts) -> undynamize_record(get_shard_iterator_record(), Json, UOpts) end,
-             DdbOpts) of
-        {ok, _} = Out -> Out;
-        {error, _} = Out -> Out
-    end.
+    out(Return, fun(Json, UOpts) -> undynamize_record(get_shard_iterator_record(), Json, UOpts) end,
+        DdbOpts, #ddb_streams_get_shard_iterator.shard_iterator).
 
 %%%------------------------------------------------------------------------------
 %%% ListStreams
 %%%------------------------------------------------------------------------------
 
--type list_streams_opt() :: {exclusive_start_stream_arn, shard_id()} |
+-type list_streams_opt() :: {exclusive_start_stream_arn, stream_arn()} |
                             {limit, 1..100} |
                             {table_name, table_name()} |
                             out_opt().
@@ -401,10 +482,12 @@ list_streams_opts() ->
 -spec list_streams_record() -> record_desc().
 list_streams_record() ->
     {#ddb_streams_list_streams{},
-     [
+     [{<<"LastEvaluatedStreamArn">>, #ddb_streams_list_streams.last_evaluated_stream_arn, fun id/2},
+      {<<"Streams">>, #ddb_streams_list_streams.streams,
+       fun(V, Opts) -> [undynamize_record(stream_record(), I, Opts) || I <- V] end}
      ]}.
 
--type list_streams_return() :: ddb_return(#ddb_streams_list_streams{}, #ddb_streams_list_streams{}).
+-type list_streams_return() :: ddb_return(#ddb_streams_list_streams{}, [stream_arn()]).
 
 -spec list_streams() -> list_streams_return().
 list_streams() ->
@@ -431,6 +514,8 @@ list_streams(Opts, Config) ->
     case out(Return,
              fun(Json, UOpts) -> undynamize_record(list_streams_record(), Json, UOpts) end,
              DdbOpts) of
+        {simple, #ddb_streams_list_streams{streams = Streams}} ->
+            {ok, [Stream#ddb_streams_stream.stream_arn || Stream <- Streams]};
         {ok, _} = Out -> Out;
         {error, _} = Out -> Out
     end.
