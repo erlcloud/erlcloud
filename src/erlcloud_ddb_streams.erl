@@ -370,7 +370,7 @@ opts(_, _) ->
 out({error, Reason}, _, _) ->
     {error, Reason};
 out({ok, Json}, Undynamize, Opts) ->
-    case proplists:get_value(out, Opts, json) of %% TODO use `simple` as default
+    case proplists:get_value(out, Opts, simple) of
         json ->
             {ok, Json};
         record ->
