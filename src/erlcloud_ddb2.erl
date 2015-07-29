@@ -2162,15 +2162,9 @@ dynamize_global_secondary_index_update(Index) ->
 dynamize_global_secondary_index_updates(Updates) ->
     dynamize_maybe_list(fun dynamize_global_secondary_index_update/1, Updates).
 
--spec dynamize_provizioned_throughput({read_units(), write_units()}) -> jsx:json_term().
-dynamize_provizioned_throughput({ReadUnits, WriteUnits}) ->
-    [{<<"ReadCapacityUnits">>, ReadUnits},
-     {<<"WriteCapacityUnits">>, WriteUnits}].
-
 -type update_table_opt() :: {provisioned_throughput, {read_units(), write_units()}} |
                             {attribute_definitions, attr_defs()} |
                             {global_secondary_index_updates, global_secondary_index_updates()} |
-                            {provisioned_throughput, {read_units(), write_units()}} |
                             out_opt().
 -type update_table_opts() :: [update_table_opt()].
 
@@ -2179,9 +2173,7 @@ update_table_opts() ->
     [{provisioned_throughput, <<"ProvisionedThroughput">>, fun dynamize_provisioned_throughput/1},
      {attribute_definitions, <<"AttributeDefinitions">>, fun dynamize_attr_defs/1},
      {global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>,
-      fun dynamize_global_secondary_index_updates/1},
-     {provisioned_throughput, <<"ProvisionedThroughput">>,
-        fun dynamize_provizioned_throughput/1}].
+      fun dynamize_global_secondary_index_updates/1}].
 
 -spec update_table_record() -> record_desc().
 update_table_record() ->
