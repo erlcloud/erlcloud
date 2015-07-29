@@ -42,7 +42,7 @@
 -define(DESCRIBE_ELB_POLICY_TYPE_PATH, 
         "/DescribeLoadBalancerPolicyTypesResponse/DescribeLoadBalancerPolicyTypesResult/PolicyTypeDescriptions/member").
 
--import(erlcloud_xml, [get_text/1, get_text/2, get_integer/2]).
+-import(erlcloud_xml, [get_text/1, get_text/2, get_integer/2, get_list/2]).
 
 -spec(new/2 :: (string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey) ->
@@ -208,20 +208,25 @@ extract_elb(Item) ->
     [
         {load_balancer_name, get_text("LoadBalancerName", Item)},
         {scheme, get_text("Scheme", Item)},
-        {availability_zones, [get_text(Z) || Z <- xmerl_xpath:string("AvailabilityZones/member", Item)]},
+        {availability_zones, get_list("AvailabilityZones/member", Item)},
         {dns_name, get_text("DNSName", Item)},
         {source_security_group, [
                                     {group_name, get_text("SourceSecurityGroup/GroupName", Item)},
                                     {owner_alias, get_text("SourceSecurityGroup/OwnerAlias", Item)}
                                 ]},
-        {security_groups, [get_text(G) || G <- xmerl_xpath:string("SecurityGroups/member", Item)]},
-        {subnets, [get_text(S) || S <- xmerl_xpath:string("Subnets/member", Item)]},
+        {security_groups, get_list("SecurityGroups/member", Item)},
+        {subnets, get_list("Subnets/member", Item)},
         {vpc_id, get_text("VPCId", Item)},
-        {instances, [get_text("InstanceId", I) || I <- xmerl_xpath:string("Instances/member", Item)]},
+        {instances, get_list("Instances/member/InstanceId", Item)},
         {canonical_hosted_zone_name, get_text("CanonicalHostedZoneName", Item)},
         {canonical_hosted_zone_id, get_text("CanonicalHostedZoneNameID", Item)},
         {create_time, erlcloud_xml:get_time("CreatedTime", Item)},
-        {listeners, [extract_listener(L) || L <- xmerl_xpath:string("ListenerDescriptions/member/Listener", Item)]}
+        {listeners, [extract_listener(L) || L <- xmerl_xpath:string("ListenerDescriptions/member/Listener", Item)]},
+        {policies, [
+                        {app_cookie_stickiness, get_list("Policies/AppCookieStickinessPolicies/member", Item)},
+                        {lb_cookie_stickiness, get_list("Policies/LBCookieStickinessPolicies/member", Item)},
+                        {other, get_list("Policies/OtherPolicies/member", Item)}
+                    ]}
     ].
 
 extract_listener(Item) ->
