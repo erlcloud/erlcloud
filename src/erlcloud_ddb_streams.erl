@@ -494,6 +494,27 @@ describe_stream(StreamArn, Opts) ->
 %% DynamoDB Streams API:
 %% [http://docs.aws.amazon.com/dynamodbstreams/latest/APIReference/API_DescribeStream.html]
 %%
+%% ===Example===
+%%
+%% Describe a stream.
+%%
+%% `
+%% erlcloud_ddb_streams:describe_stream(<<"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-20T20:51:10.252">>).
+%%   {ok, #ddb_streams_stream_description{
+%%          creation_request_date_time = 1437677671.062,
+%%          key_schema = {<<"ForumName">>, <<"Subject">>},
+%%          last_evaluated_shard_id = undefined,
+%%          shards = [#ddb_streams_shard{
+%%                      parent_shard_id = <<"shardId-00000001414562045508-2bac9cd1">>,
+%%                      sequence_number_range, {<<"20500000000000000910398">>,
+%%                                              <<"20500000000000000910398">>},
+%%                      shard_id = <<"shardId-00000001414562045508-2bac9cd2">>}],
+%%          stream_arn = <<"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-20T20:51:10.252">>,
+%%          stream_label = <<"2015-05-20T20:51:10.252">>,
+%%          stream_status = disabled,
+%%          stream_view_type = new_and_old_images,
+%%          table_name = <<"Forum">>}}
+%% '
 %% @end
 %%------------------------------------------------------------------------------
 -spec describe_stream(stream_arn(), describe_stream_opts(), aws_config()) -> describe_stream_return().
@@ -542,6 +563,56 @@ get_records(ShardIterator, Opts) ->
 %% DynamoDB Streams API:
 %% [http://docs.aws.amazon.com/dynamodbstreams/latest/APIReference/API_GetRecords.html]
 %%
+%% ===Example===
+%%
+%% Get the records from a given shard iterator.
+%%
+%% `
+%% erlcloud_ddb_streams:get_records(<<"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-20T20:51:10.252|1|AAAAAAAAAAEvJp6D+zaQ...  <remaining characters omitted> ...">>).
+%%   {ok, [#ddb_streams_record{
+%%           aws_region = <<"us-west-2">>,
+%%           dynamodb = #ddb_streams_stream_record{
+%%                        keys = [{<<""ForumName">>, <<"DynamoDB">>},
+%%                                {<<"Subject">>, <<"DynamoDB Thread 3">>}],
+%%                        new_image = undefined,
+%%                        old_image = undefined,
+%%                        sequence_number = <<"300000000000000499659">>,
+%%                        size_bytes = 41,
+%%                        stream_view_type = keys_only},
+%%           event_id = <<"e2fd9c34eff2d779b297b26f5fef4206">>,
+%%           event_name = insert,
+%%           event_source = <<"aws:dynamodb">>,
+%%           event_version = <<"1.0">>},
+%%         #ddb_streams_record{
+%%           aws_region = <<"us-west-2">>,
+%%           dynamodb = #ddb_streams_stream_record{
+%%                        keys = [{<<""ForumName">>, <<"DynamoDB">>},
+%%                                {<<"Subject">>, <<"DynamoDB Thread 1">>}],
+%%                        new_image = undefined,
+%%                        old_image = undefined,
+%%                        sequence_number = <<"400000000000000499660">>,
+%%                        size_bytes = 41,
+%%                        stream_view_type = keys_only},
+%%           event_id = <<"4b25bd0da9a181a155114127e4837252">>,
+%%           event_name = modify,
+%%           event_source = <<"aws:dynamodb">>,
+%%           event_version = <<"1.0">>},
+%%         #ddb_streams_record{
+%%           aws_region = <<"us-west-2">>,
+%%           dynamodb = #ddb_streams_stream_record{
+%%                        keys = [{<<""ForumName">>, <<"DynamoDB">>},
+%%                                {<<"Subject">>, <<"DynamoDB Thread 2">>}],
+%%                        new_image = undefined,
+%%                        old_image = undefined,
+%%                        sequence_number = <<"500000000000000499661">>,
+%%                        size_bytes = 41,
+%%                        stream_view_type = keys_only},
+%%           event_id = <<"740280c73a3df7842edab3548a1b08ad">>,
+%%           event_name = remove,
+%%           event_source = <<"aws:dynamodb">>,
+%%           event_version = <<"1.0">>}]}
+%% '
+%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_records(shard_iterator(), get_records_opts(), aws_config()) -> get_records_return().
@@ -589,6 +660,17 @@ get_shard_iterator(StreamArn, ShardId, ShardIteratorType, Opts) ->
 %% @doc
 %% DynamoDB API:
 %% [http://docs.aws.amazon.com/dynamodbstreams/latest/APIReference/API_GetShardIterator.html]
+%%
+%% ===Example===
+%%
+%% Get a shard iterator.
+%%
+%% `
+%% erlcloud_ddb_streams:get_shard_iterator(<<"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-20T20:51:10.252">>,
+%%                                         <<"shardId-00000001414576573621-f55eea83">>,
+%%                                         trim_horizon).
+%%   {ok, <<"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-20T20:51:10.252|1|AAAAAAAAAAEvJp6D+zaQ...  <remaining characters omitted> ...">>}
+%% '
 %%
 %% @end
 %%------------------------------------------------------------------------------
@@ -645,6 +727,26 @@ list_streams(Opts) ->
 %% @doc
 %% DynamoDB API:
 %% [http://docs.aws.amazon.com/dynamodbstreams/latest/APIReference/API_ListStreams.html]
+%%
+%% ===Example===
+%%
+%% Get the list of streams with a limit of 3.
+%%
+%% `
+%% erlcloud_ddb_streams:list_streams([{limit, 3}]).
+%%   {ok, [#ddb_streams_stream{
+%%           stream_arn = <<"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-20T20:51:10.252">>,
+%%           stream_label = <<"2015-05-20T20:51:10.252">>,
+%%           table_name = <<"Forum">>},
+%%         #ddb_streams_stream{
+%%           stream_arn = <<"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-20T20:50:02.714">>,
+%%           stream_label = <<"2015-05-20T20:50:02.714">>,
+%%           table_name = <<"Forum">>},
+%%         #ddb_streams_stream{
+%%           stream_arn = <<"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-19T23:03:50.641">>,
+%%           stream_label = <<"2015-05-19T23:03:50.641">>,
+%%           table_name = <<"Forum">>}]}
+%% '
 %%
 %% @end
 %%------------------------------------------------------------------------------
