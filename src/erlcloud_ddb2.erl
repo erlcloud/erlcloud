@@ -1840,6 +1840,7 @@ q(Table, KeyConditionsOrExpression, Opts, Config) ->
                     attributes_to_get_opt() |
                     {filter_expression, expression()} |
                     conditional_op_opt() |
+                    consistent_read_opt() |
                     {scan_filter, conditions()} |
                     {limit, pos_integer()} |
                     {exclusive_start_key, key() | undefined} |
@@ -1859,6 +1860,7 @@ scan_opts() ->
      attributes_to_get_opt(),
      {filter_expression, <<"FilterExpression">>, fun dynamize_expression/1},
      conditional_op_opt(),
+     consistent_read_opt(),
      {scan_filter, <<"ScanFilter">>, fun dynamize_conditions/1},
      {limit, <<"Limit">>, fun id/1},
      {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
