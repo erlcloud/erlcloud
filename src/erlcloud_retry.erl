@@ -94,6 +94,6 @@ request_and_retry(Config, ResultFun, {retry, Request}) ->
             Request4 = Request2#aws_request{
                          response_type = error,
                          error_type = httpc,
-                         httpc_error_reason = Reason},
+                         error_reason = Reason},
             request_and_retry(Config, ResultFun, RetryFun(Request4))
     end.

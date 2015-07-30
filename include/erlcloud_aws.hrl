@@ -62,7 +62,7 @@
           attempt = 0 :: integer(),
           response_type :: ok | error,
           error_type :: aws | httpc,
-          httpc_error_reason :: term(),
+          error_reason :: term(),
           response_status :: pos_integer(),
           response_status_line :: string(),
           response_headers :: [{string(), string()}],
@@ -72,3 +72,4 @@
           should_retry :: boolean()
         }).
 
+-type(aws_request() :: #aws_request{}).

@@ -14,6 +14,10 @@
 %% all methods take an options proplist argument which can be used to
 %% pass optional parameters. See function documentation for examples.
 %%
+%% As to the underlying request, we use `erlcloud_retry:default_retry/1'
+%% as the default retry strategy, this behaviour can be changed through
+%% `aws_config()'.
+%%
 %% @end
 
 -module(erlcloud_ddb_streams).
@@ -61,13 +65,15 @@
 -spec(new/2 :: (string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id=AccessKeyID,
-                secret_access_key=SecretAccessKey}.
+                secret_access_key=SecretAccessKey,
+                retry = fun erlcloud_retry:default_retry/1}.
 
 -spec(new/3 :: (string(), string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
-                ddb_streams_host=Host}.
+                ddb_streams_host=Host,
+                retry = fun erlcloud_retry:default_retry/1}.
 
 -spec(configure/2 :: (string(), string()) -> ok).
 configure(AccessKeyID, SecretAccessKey) ->
@@ -362,7 +368,7 @@ opts(_, _) ->
 -type ddb_streams_return(Record, Simple) :: {ok, json_term() | Record | Simple} | {error, term()}.
 -type undynamize_fun() :: fun((json_term(), undynamize_opts()) -> tuple()).
 
--spec out(erlcloud_ddb_streams_impl:json_return(), undynamize_fun(), ddb_streams_opts())
+-spec out(json_return(), undynamize_fun(), ddb_streams_opts())
          -> {ok, json_term() | tuple()} |
             {simple, term()} |
             {error, term()}.
@@ -381,12 +387,12 @@ out({ok, Json}, Undynamize, Opts) ->
     end.
 
 %% Returns specified field of tuple for simple return
--spec out(erlcloud_ddb_streams_impl:json_return(), undynamize_fun(), ddb_streams_opts(), pos_integer())
+-spec out(json_return(), undynamize_fun(), ddb_streams_opts(), pos_integer())
          -> ok_return(term()).
 out(Result, Undynamize, Opts, Index) ->
     out(Result, Undynamize, Opts, Index, {error, no_return}).
 
--spec out(erlcloud_ddb_streams_impl:json_return(), undynamize_fun(), ddb_streams_opts(), pos_integer(), ok_return(term()))
+-spec out(json_return(), undynamize_fun(), ddb_streams_opts(), pos_integer(), ok_return(term()))
          -> ok_return(term()).
 out(Result, Undynamize, Opts, Index, Default) ->
     case out(Result, Undynamize, Opts) of
@@ -520,7 +526,7 @@ describe_stream(StreamArn, Opts) ->
 -spec describe_stream(stream_arn(), describe_stream_opts(), aws_config()) -> describe_stream_return().
 describe_stream(StreamArn, Opts, Config) ->
     {AwsOpts, DdbStreamsOpts} = opts(describe_stream_opts(), Opts),
-    Return = erlcloud_ddb_streams_impl:request(
+    Return = request(
                Config,
                "DynamoDBStreams_20120810.DescribeStream",
                [{<<"StreamArn">>, StreamArn}]
@@ -618,7 +624,7 @@ get_records(ShardIterator, Opts) ->
 -spec get_records(shard_iterator(), get_records_opts(), aws_config()) -> get_records_return().
 get_records(ShardIterator, Opts, Config) ->
     {AwsOpts, DdbStreamsOpts} = opts(get_records_opts(), Opts),
-    Return = erlcloud_ddb_streams_impl:request(
+    Return = request(
                Config,
                "DynamoDBStreams_20120810.GetRecords",
                [{<<"ShardIterator">>, ShardIterator}]
@@ -679,7 +685,7 @@ get_shard_iterator(StreamArn, ShardId, ShardIteratorType, Opts) ->
                         -> get_shard_iterator_return().
 get_shard_iterator(StreamArn, ShardId, ShardIteratorType, Opts, Config) ->
     {AwsOpts, DdbStreamsOpts} = opts(get_shard_iterator_opts(), Opts),
-    Return = erlcloud_ddb_streams_impl:request(
+    Return = request(
                Config,
                "DynamoDBStreams_20120810.GetShardIterator",
                [{<<"StreamArn">>, StreamArn},
@@ -753,10 +759,117 @@ list_streams(Opts) ->
 -spec list_streams(list_streams_opts(), aws_config()) -> list_streams_return().
 list_streams(Opts, Config) ->
     {AwsOpts, DdbStreamsOpts} = opts(list_streams_opts(), Opts),
-    Return = erlcloud_ddb_streams_impl:request(
+    Return = request(
                Config,
                "DynamoDBStreams_20120810.ListStreams",
                AwsOpts),
     out(Return,
         fun(Json, UOpts) -> undynamize_record(list_streams_record(), Json, UOpts) end,
         DdbStreamsOpts, #ddb_streams_list_streams.streams).
+
+%%%------------------------------------------------------------------------------
+%%% Request
+%%%------------------------------------------------------------------------------
+
+-type operation() :: string().
+-type json_return() :: {ok, json_term()} | {error, term()}.
+
+-spec request(aws_config(), operation(), json_term()) -> json_return().
+request(Config, Operation, Json) ->
+    case erlcloud_aws:update_config(Config) of
+        {ok, Config2} ->
+            request2(Config2, Operation, Json);
+        {error, _} = Error ->
+            Error
+    end.
+
+-spec request2(aws_config(), operation(), json_term()) -> json_return().
+request2(Config, Operation, Json) ->
+    Body = case Json of
+               [] -> <<"{}">>;
+               _ -> jsx:encode(Json)
+           end,
+    Headers = headers(Config, Operation, Body),
+    Request = #aws_request{service = ddb_streams,
+                           uri = uri(Config),
+                           method = post,
+                           request_headers = Headers,
+                           request_body = Body},
+    request_to_return(erlcloud_retry:request(Config, Request, fun result_fun/1)).
+
+-spec request_to_return(aws_request()) -> json_return().
+request_to_return(#aws_request{response_type = ok,
+                               response_body = Body}) ->
+    %% TODO check crc
+    {ok, jsx:decode(Body)};
+request_to_return(#aws_request{response_type = error,
+                               error_reason = Reason}) ->
+    {error, Reason}.
+
+-spec result_fun(aws_request()) -> aws_request().
+result_fun(#aws_request{response_type = ok} = Request) ->
+    Request;
+result_fun(#aws_request{response_type = error,
+                        error_type = aws,
+                        response_status = Status,
+                        response_status_line = StatusLine,
+                        response_body = Body} = Request) ->
+    Request2 = Request#aws_request{
+        error_reason = {http_error, Status, StatusLine, Body}},
+    if
+        Status >= 400 andalso Status < 500 ->
+            client_error(Request2);
+        Status >= 500 ->
+            Request2#aws_request{should_retry = true};
+        Status < 400 ->
+            Request2#aws_request{should_retry = false}
+    end.
+
+-spec client_error(#aws_request{}) -> #aws_request{}.
+client_error(#aws_request{response_body = Body} = Request) ->
+    case jsx:is_json(Body) of
+        false ->
+            Request#aws_request{should_retry = false};
+        true ->
+            Json = jsx:decode(Body),
+            case proplists:get_value(<<"__type">>, Json) of
+                undefined ->
+                    Request#aws_request{should_retry = false};
+                FullType ->
+                    Message = proplists:get_value(<<"message">>, Json, <<>>),
+                    case binary:split(FullType, <<"#">>) of
+                        [_, Type] when
+                              Type =:= <<"ProvisionedThroughputExceededException">>;
+                              Type =:= <<"ThrottlingException">> ->
+                            Request#aws_request{error_reason = {Type, Message},
+                                                should_retry = true};
+                        [_, Type] ->
+                            Request#aws_request{error_reason = {Type, Message},
+                                                should_retry = false};
+                        _ ->
+                            Request#aws_request{should_retry = false}
+                    end
+            end
+    end.
+
+-spec headers(aws_config(), string(), binary()) -> [{string(), string()}].
+headers(Config, Operation, Body) ->
+    Headers = [{"host", Config#aws_config.ddb_streams_host},
+               {"x-amz-target", Operation},
+               {"content-type", "application/x-amz-json-1.0"}],
+    Region =
+        case string:tokens(Config#aws_config.ddb_streams_host, ".") of
+            [_, _, Value, _, _] ->
+                Value;
+            _ ->
+                "us-east-1"
+        end,
+    erlcloud_aws:sign_v4(Config, Headers, Body, Region, "dynamodb").
+
+uri(#aws_config{ddb_streams_scheme = Scheme, ddb_streams_host = Host} = Config) ->
+    lists:flatten([Scheme, Host, port_spec(Config)]).
+
+port_spec(#aws_config{ddb_streams_port=80}) ->
+    "";
+port_spec(#aws_config{ddb_streams_port=Port}) ->
+    [":", erlang:integer_to_list(Port)].
