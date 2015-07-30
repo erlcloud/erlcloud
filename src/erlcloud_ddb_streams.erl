@@ -512,8 +512,8 @@ describe_stream(StreamArn, Opts) ->
 %%          last_evaluated_shard_id = undefined,
 %%          shards = [#ddb_streams_shard{
 %%                      parent_shard_id = <<"shardId-00000001414562045508-2bac9cd1">>,
-%%                      sequence_number_range, {<<"20500000000000000910398">>,
-%%                                              <<"20500000000000000910398">>},
+%%                      sequence_number_range = {<<"20500000000000000910398">>,
+%%                                               <<"20500000000000000910398">>},
 %%                      shard_id = <<"shardId-00000001414562045508-2bac9cd2">>}],
 %%          stream_arn = <<"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-20T20:51:10.252">>,
 %%          stream_label = <<"2015-05-20T20:51:10.252">>,
@@ -578,7 +578,7 @@ get_records(ShardIterator, Opts) ->
 %%   {ok, [#ddb_streams_record{
 %%           aws_region = <<"us-west-2">>,
 %%           dynamodb = #ddb_streams_stream_record{
-%%                        keys = [{<<""ForumName">>, <<"DynamoDB">>},
+%%                        keys = [{<<"ForumName">>, <<"DynamoDB">>},
 %%                                {<<"Subject">>, <<"DynamoDB Thread 3">>}],
 %%                        new_image = undefined,
 %%                        old_image = undefined,
@@ -592,7 +592,7 @@ get_records(ShardIterator, Opts) ->
 %%         #ddb_streams_record{
 %%           aws_region = <<"us-west-2">>,
 %%           dynamodb = #ddb_streams_stream_record{
-%%                        keys = [{<<""ForumName">>, <<"DynamoDB">>},
+%%                        keys = [{<<"ForumName">>, <<"DynamoDB">>},
 %%                                {<<"Subject">>, <<"DynamoDB Thread 1">>}],
 %%                        new_image = undefined,
 %%                        old_image = undefined,
@@ -606,7 +606,7 @@ get_records(ShardIterator, Opts) ->
 %%         #ddb_streams_record{
 %%           aws_region = <<"us-west-2">>,
 %%           dynamodb = #ddb_streams_stream_record{
-%%                        keys = [{<<""ForumName">>, <<"DynamoDB">>},
+%%                        keys = [{<<"ForumName">>, <<"DynamoDB">>},
 %%                                {<<"Subject">>, <<"DynamoDB Thread 2">>}],
 %%                        new_image = undefined,
 %%                        old_image = undefined,
