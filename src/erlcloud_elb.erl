@@ -42,7 +42,7 @@
 -define(DESCRIBE_ELB_POLICY_TYPE_PATH, 
         "/DescribeLoadBalancerPolicyTypesResponse/DescribeLoadBalancerPolicyTypesResult/PolicyTypeDescriptions/member").
 
--import(erlcloud_xml, [get_text/1, get_text/2, get_integer/2, get_list/2]).
+-import(erlcloud_xml, [get_text/2, get_integer/2, get_list/2]).
 
 -spec(new/2 :: (string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey) ->
@@ -221,7 +221,7 @@ extract_elb(Item) ->
         {canonical_hosted_zone_name, get_text("CanonicalHostedZoneName", Item)},
         {canonical_hosted_zone_id, get_text("CanonicalHostedZoneNameID", Item)},
         {create_time, erlcloud_xml:get_time("CreatedTime", Item)},
-        {listeners, [extract_listener(L) || L <- xmerl_xpath:string("ListenerDescriptions/member/Listener", Item)]},
+        {listeners, [extract_listener(L) || L <- xmerl_xpath:string("ListenerDescriptions/member", Item)]},
         {policies, [
                         {app_cookie_stickiness, get_list("Policies/AppCookieStickinessPolicies/member", Item)},
                         {lb_cookie_stickiness, get_list("Policies/LBCookieStickinessPolicies/member", Item)},
@@ -235,7 +235,8 @@ extract_listener(Item) ->
         {port, get_integer("Listener/LoadBalancerPort", Item)},
         {instance_protocol, get_text("Listener/InstanceProtocol", Item)},
         {instance_port, get_integer("Listener/InstancePort", Item)},
-        {ssl_certificate_id, get_text("Listener/SSLCertificateId", Item)}
+        {ssl_certificate_id, get_text("Listener/SSLCertificateId", Item)},
+        {policy_names, get_list("PolicyNames/member", Item)}
     ].
 
 %% retrieve NextToken from the XML at Path location.  Path is expected to lead to a 
