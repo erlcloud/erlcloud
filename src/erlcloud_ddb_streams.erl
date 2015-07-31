@@ -12,9 +12,38 @@
 %%
 %% Required parameters are passed as function arguments. In addition
 %% all methods take an options proplist argument which can be used to
-%% pass optional parameters. See function documentation for examples.
+%% pass optional parameters.
 %%
-%% As to the underlying request, we use `erlcloud_retry:default_retry/1'
+%% Output is in the form of `{ok, Value}' or `{error, Reason}'. The
+%% format of `Value' is controlled by the `out' option, which defaults
+%% to `simple'. The possible values are:
+%%
+%% * `simple' - The most interesting part of the output. For example
+%% `list_streams' will return the streams, `describe_stream' will return
+%% the stream description.
+%%
+%% * `record' - A record containing all the information from the
+%% DynamoDB Streams response except field types. This is useful if you
+%% need more detailed information than what is returned with `simple'.
+%% For example, with `list_streams' the record will contain the last
+%% evaluated stream ARN which can be used to continue the operation.
+%%
+%% * `typed_record' - A record containing all the information from the
+%% DynamoDB Streams response. All field values are returned with type
+%% information. This option only makes sense to `get_records'.
+%%
+%% * `json' - The output from DynamoDB Streams as processed by
+%% `jsx:decode' but with no further manipulation. This would rarely be
+%% useful, unless the DynamoDB Streams API is updated to include data
+%% that is not yet parsed correctly.
+%%
+%% DynamoDB Streams errors are return in the form `{error, {ErrorCode,
+%% Message}}' where `ErrorCode' and 'Message' are both binary
+%% strings. So
+%% to handle limit exceeded exception, match `{error,
+%% {<<"LimitExceededException">>, _}}'.
+%%
+%% As to the error retries, we use `erlcloud_retry:default_retry/1'
 %% as the default retry strategy, this behaviour can be changed through
 %% `aws_config()'.
 %%
@@ -42,10 +71,9 @@
     event_name/0,
     event_source/0,
     event_version/0,
-    in_item/0,
+    item/0,
     key/0,
     key_schema/0,
-    out_item/0,
     sequence_number/0,
     sequence_number_range/0,
     shard_id/0,
@@ -92,10 +120,11 @@ default_config() -> erlcloud_aws:default_config().
 %%%------------------------------------------------------------------------------
 
 -type table_name() :: binary().
+
 -type attr_name() :: binary().
--type key_schema() :: hash_key_name() | {hash_key_name(), range_key_name()}.
 -type hash_key_name() :: attr_name().
 -type range_key_name() :: attr_name().
+-type key_schema() :: hash_key_name() | {hash_key_name(), range_key_name()}.
 
 -type stream_arn() :: binary().
 -type stream_label() :: binary().
@@ -118,40 +147,26 @@ default_config() -> erlcloud_aws:default_config().
 -type event_source() :: binary().
 -type event_version() :: binary().
 
--type maybe_list(T) :: T | [T].
-
--type in_string_value() :: binary() | iolist() | atom(). %% non-empty
--type in_number_value() :: number().
--type in_binary_value() :: binary() | [byte()]. %% non-empty
--type in_attr_value() :: in_string_value() |
-                         in_number_value() |
-                         {s, in_string_value()} |
-                         {n, in_number_value()} |
-                         {b, in_binary_value()} |
-                         {bool, boolean()} |
-                         {null, true} |
-                         {ss, [in_string_value(),...]} |
-                         {ns, [in_number_value(),...]} |
-                         {bs, [in_binary_value(),...]} |
-                         {l, [in_attr_value()]} |
-                         {m, [in_attr()]}.
--type in_attr() :: {attr_name(), in_attr_value()}.
--type in_item() :: [in_attr()].
--type key() :: maybe_list(in_attr()).
-
--type out_attr_value() :: binary() | number() | boolean() | undefined |
-                          [binary()] | [number()] | [out_attr_value()] | [out_attr()].
--type out_attr() :: {attr_name(), out_attr_value()}.
--type out_item() :: [out_attr() | in_attr()]. % in_attr in the case of typed_record
+-type untyped_attr_value() :: binary() | number() | boolean() | undefined |
+                              [binary()] | [number()] | [untyped_attr_value()] | [untyped_attr()].
+-type typed_attr_value() :: {s, binary()} |
+                            {n, number()} |
+                            {b, binary()} |
+                            {bool, boolean()} |
+                            {null, true} |
+                            {ss, [binary(),...]} |
+                            {ns, [number(),...]} |
+                            {bs, [binary(),...]} |
+                            {l, [typed_attr_value()]} |
+                            {m, [typed_attr()]}.
+-type untyped_attr() :: {attr_name(), untyped_attr_value()}.
+-type typed_attr() :: {attr_name(), typed_attr_value()}.
+-type attr() :: untyped_attr() | typed_attr().
+-type item() :: [attr()].
+-type key() :: [attr(),...].
 
 -type json_pair() :: {binary(), json_term()}.
 -type json_term() :: jsx:json_term().
-
--type json_attr_type() :: binary().
--type json_attr_data() :: binary() | boolean() | [binary()] | [[json_attr_value()]] | [json_attr()].
--type json_attr_value() :: {json_attr_type(), json_attr_data()}.
--type json_attr() :: {attr_name(), [json_attr_value()]}.
--type json_item() :: [json_attr()].
 
 -type ok_return(T) :: {ok, T} | {error, term()}.
 
@@ -175,9 +190,6 @@ dynamize_shard_iterator_type(after_sequence_number) -> <<"AFTER_SEQUENCE_NUMBER"
 -spec id(X, undynamize_opts()) -> X.
 id(X, _) -> X.
 
-key_name(Key) ->
-    proplists:get_value(<<"AttributeName">>, Key).
-
 -spec undynamize_number(binary(), undynamize_opts()) -> number().
 undynamize_number(Value, _) ->
     String = binary_to_list(Value),
@@ -188,7 +200,7 @@ undynamize_number(Value, _) ->
             list_to_integer(String)
     end.
             
--spec undynamize_value_untyped(json_attr_value(), undynamize_opts()) -> out_attr_value().
+-spec undynamize_value_untyped(json_pair(), undynamize_opts()) -> untyped_attr_value().
 undynamize_value_untyped({<<"S">>, Value}, _) when is_binary(Value) ->
     Value;
 undynamize_value_untyped({<<"N">>, Value}, Opts) ->
@@ -210,7 +222,7 @@ undynamize_value_untyped({<<"L">>, List}, Opts) ->
 undynamize_value_untyped({<<"M">>, Map}, Opts) ->
     [undynamize_attr_untyped(Attr, Opts) || Attr <- Map].
 
--spec undynamize_attr_untyped(json_attr(), undynamize_opts()) -> out_attr().
+-spec undynamize_attr_untyped(json_pair(), undynamize_opts()) -> untyped_attr().
 undynamize_attr_untyped({Name, [ValueJson]}, Opts) ->
     {Name, undynamize_value_untyped(ValueJson, Opts)}.
 
@@ -222,7 +234,7 @@ undynamize_object(_, [{}], _) ->
 undynamize_object(PairFun, List, Opts) ->
     [PairFun(I, Opts) || I <- List].
 
--spec undynamize_item(json_item(), undynamize_opts()) -> out_item().
+-spec undynamize_item(json_term(), undynamize_opts()) -> item().
 undynamize_item(Json, Opts) ->
     case lists:keyfind(typed, 1, Opts) of
         {typed, true} ->
@@ -231,7 +243,16 @@ undynamize_item(Json, Opts) ->
             undynamize_object(fun undynamize_attr_untyped/2, Json, Opts)
     end.
 
--spec undynamize_value_typed(json_attr_value(), undynamize_opts()) -> in_attr_value().
+-spec undynamize_key(json_term(), undynamize_opts()) -> key().
+undynamize_key(Json, Opts) ->
+    case lists:keyfind(typed, 1, Opts) of
+        {typed, true} ->
+            [undynamize_attr_typed(I, Opts) || I <- Json];
+        _ ->
+            [undynamize_attr_untyped(I, Opts) || I <- Json]
+    end.
+
+-spec undynamize_value_typed(json_pair(), undynamize_opts()) -> typed_attr_value().
 undynamize_value_typed({<<"S">>, Value}, _) when is_binary(Value) ->
     {s, Value};
 undynamize_value_typed({<<"N">>, Value}, Opts) ->
@@ -253,9 +274,12 @@ undynamize_value_typed({<<"L">>, List}, Opts) ->
 undynamize_value_typed({<<"M">>, Map}, Opts) ->
     {m, [undynamize_attr_typed(Attr, Opts) || Attr <- Map]}.
 
--spec undynamize_attr_typed(json_attr(), undynamize_opts()) -> in_attr().
+-spec undynamize_attr_typed(json_pair(), undynamize_opts()) -> typed_attr().
 undynamize_attr_typed({Name, [ValueJson]}, Opts) ->
     {Name, undynamize_value_typed(ValueJson, Opts)}.
+
+key_name(Key) ->
+    proplists:get_value(<<"AttributeName">>, Key).
 
 -spec undynamize_key_schema(json_term(), undynamize_opts()) -> key_schema().
 undynamize_key_schema([HashKey], _) ->
@@ -445,7 +469,7 @@ stream_description_record() ->
 -spec stream_record_record() -> record_desc().
 stream_record_record() ->
     {#ddb_streams_stream_record{},
-     [{<<"Keys">>, #ddb_streams_stream_record.keys, fun undynamize_item/2},
+     [{<<"Keys">>, #ddb_streams_stream_record.keys, fun undynamize_key/2},
       {<<"NewImage">>, #ddb_streams_stream_record.new_image, fun undynamize_item/2},
       {<<"OldImage">>, #ddb_streams_stream_record.old_image, fun undynamize_item/2},
       {<<"SequenceNumber">>, #ddb_streams_stream_record.sequence_number, fun id/2},

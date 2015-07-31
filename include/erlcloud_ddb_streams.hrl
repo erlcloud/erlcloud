@@ -21,8 +21,8 @@
         }).
 -record(ddb_streams_stream_record,
         {keys :: erlcloud_ddb_streams:key(),
-         new_image :: erlcloud_ddb_streams:in_item(),
-         old_image :: erlcloud_ddb_streams:in_item(),
+         new_image :: erlcloud_ddb_streams:item(),
+         old_image :: erlcloud_ddb_streams:item(),
          sequence_number :: erlcloud_ddb_streams:sequence_number(),
          size_bytes :: pos_integer(),
          stream_view_type :: erlcloud_ddb_streams:stream_view_type()}).
