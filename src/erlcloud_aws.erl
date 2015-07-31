@@ -306,7 +306,7 @@ request_to_return(#aws_request{response_type = ok,
     {ok, {Headers, Body}};
 request_to_return(#aws_request{response_type = error,
                                error_type = httpc, 
-                               error_reason = Reason}) ->
+                               httpc_error_reason = Reason}) ->
     {error, {socket_error, Reason}};
 request_to_return(#aws_request{response_type = error,
                                error_type = aws,

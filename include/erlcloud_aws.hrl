@@ -25,7 +25,6 @@
           ddb_streams_scheme="https://"::string(),
           ddb_streams_host="streams.dynamodb.us-east-1.amazonaws.com"::string(),
           ddb_streams_port=80::non_neg_integer(),
-          ddb_streams_retry=fun erlcloud_ddb_streams_impl:retry/1::erlcloud_ddb_streams_impl:retry_fun(),
           kinesis_scheme="https://"::string(),
           kinesis_host="kinesis.us-east-1.amazonaws.com"::string(),
           kinesis_port=80::non_neg_integer(),
@@ -62,7 +61,7 @@
           attempt = 0 :: integer(),
           response_type :: ok | error,
           error_type :: aws | httpc,
-          error_reason :: term(),
+          httpc_error_reason :: term(),
           response_status :: pos_integer(),
           response_status_line :: string(),
           response_headers :: [{string(), string()}],
@@ -71,5 +70,3 @@
           %% Service specific error information
           should_retry :: boolean()
         }).
-
--type(aws_request() :: #aws_request{}).

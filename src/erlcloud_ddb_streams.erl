@@ -797,16 +797,21 @@ request2(Config, Operation, Json) ->
                            request_body = Body},
     request_to_return(erlcloud_retry:request(Config, Request, fun result_fun/1)).
 
--spec request_to_return(aws_request()) -> json_return().
+-spec request_to_return(#aws_request{}) -> json_return().
 request_to_return(#aws_request{response_type = ok,
                                response_body = Body}) ->
     %% TODO check crc
     {ok, jsx:decode(Body)};
 request_to_return(#aws_request{response_type = error,
-                               error_reason = Reason}) ->
+                               error_type = aws,
+                               httpc_error_reason = Reason}) ->
+    {error, Reason};
+request_to_return(#aws_request{response_type = error,
+                               error_type = httpc,
+                               httpc_error_reason = Reason}) ->
     {error, Reason}.
 
--spec result_fun(aws_request()) -> aws_request().
+-spec result_fun(#aws_request{}) -> #aws_request{}.
 result_fun(#aws_request{response_type = ok} = Request) ->
     Request;
 result_fun(#aws_request{response_type = error,
@@ -814,8 +819,11 @@ result_fun(#aws_request{response_type = error,
                         response_status = Status,
                         response_status_line = StatusLine,
                         response_body = Body} = Request) ->
+    %% == IMPLEMENTATION NOTES ==
+    %% We store the error reason in `httpc_error_reason` for now,
+    %% this may be changed at any time later
     Request2 = Request#aws_request{
-        error_reason = {http_error, Status, StatusLine, Body}},
+        httpc_error_reason = {http_error, Status, StatusLine, Body}},
     if
         Status >= 400 andalso Status < 500 ->
             client_error(Request2);
@@ -839,12 +847,12 @@ client_error(#aws_request{response_body = Body} = Request) ->
                     Message = proplists:get_value(<<"message">>, Json, <<>>),
                     case binary:split(FullType, <<"#">>) of
                         [_, Type] when
-                              Type =:= <<"ProvisionedThroughputExceededException">>;
+                              Type =:= <<"LimitExceededException">>;
                               Type =:= <<"ThrottlingException">> ->
-                            Request#aws_request{error_reason = {Type, Message},
+                            Request#aws_request{httpc_error_reason = {Type, Message},
                                                 should_retry = true};
                         [_, Type] ->
-                            Request#aws_request{error_reason = {Type, Message},
+                            Request#aws_request{httpc_error_reason = {Type, Message},
                                                 should_retry = false};
                         _ ->
                             Request#aws_request{should_retry = false}
@@ -864,7 +872,7 @@ headers(Config, Operation, Body) ->
             _ ->
                 "us-east-1"
         end,
-    erlcloud_aws:sign_v4(Config, Headers, Body, Region, "dynamodb").
+    erlcloud_aws:sign_v4(Config, Headers, Body, Region, "dynamodbstreams").
 
 uri(#aws_config{ddb_streams_scheme = Scheme, ddb_streams_host = Host} = Config) ->
     lists:flatten([Scheme, Host, port_spec(Config)]).
