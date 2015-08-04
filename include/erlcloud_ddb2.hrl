@@ -24,6 +24,7 @@
         }).
 -record(ddb2_global_secondary_index_description,
         {backfilling :: boolean(),
+         index_arn :: binary(),
          index_name :: erlcloud_ddb2:index_name(),
          index_size_bytes :: integer(),
          index_status :: index_status(),
@@ -33,7 +34,8 @@
          provisioned_throughput :: #ddb2_provisioned_throughput_description{}
         }).
 -record(ddb2_local_secondary_index_description,
-        {index_name :: erlcloud_ddb2:index_name(),
+        {index_arn :: binary(),
+         index_name :: erlcloud_ddb2:index_name(),
          index_size_bytes :: integer(),
          item_count :: integer(),
          key_schema :: erlcloud_ddb2:key_schema(),
@@ -42,11 +44,15 @@
 -record(ddb2_table_description,
         {attribute_definitions :: erlcloud_ddb2:attr_defs(),
          creation_date_time :: number(),
+         global_secondary_indexes :: [#ddb2_global_secondary_index_description{}],
          item_count :: integer(),
          key_schema :: erlcloud_ddb2:key_schema(),
+         latest_stream_arn :: binary(),
+         latest_stream_label :: binary(),
          local_secondary_indexes :: [#ddb2_local_secondary_index_description{}],
-         global_secondary_indexes :: [#ddb2_global_secondary_index_description{}],
          provisioned_throughput :: #ddb2_provisioned_throughput_description{},
+         stream_specification :: erlcloud_ddb2:stream_specification(),
+         table_arn :: binary(),
          table_name :: binary(),
          table_size_bytes :: integer(),
          table_status :: table_status()
