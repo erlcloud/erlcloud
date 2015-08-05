@@ -27,7 +27,7 @@
 %% `42'. To specify the AWS binary or set types an explicit `Type'
 %% must be provided. For example: `{b, <<1,2,3>>}' or `{ns,
 %% [4,5,6]}'. Note that binary values will be base64 encoded and
-%% decoded automatically. Since some atoms (such as `false', `not_null',
+%% decoded automatically. Since some atoms (such as `true', `false', `not_null',
 %% `null', `undefined', `delete', etc) have special meanings in some cases,
 %% use them carefully.
 %%
@@ -247,7 +247,9 @@ default_config() -> erlcloud_aws:default_config().
                          {l, [in_attr_value()]} |
                          {m, [in_attr()]}.
 -type in_attr() :: {attr_name(), in_attr_value()}.
--type in_expected_item() :: {attr_name(), false} | condition().
+-type in_expected_item() :: {attr_name(), false} |
+                            {attr_name(), true, in_attr_value()} |
+                            condition().
 -type in_expected() :: maybe_list(in_expected_item()).
 -type in_item() :: [in_attr()].
 
@@ -431,6 +433,9 @@ dynamize_conditional_op('or') ->
 -spec dynamize_expected_item(in_expected_item()) -> json_pair().
 dynamize_expected_item({Name, false}) ->
     {Name, [{<<"Exists">>, false}]};
+dynamize_expected_item({Name, true, Value}) ->
+    {Name, [{<<"Exists">>, true},
+            {<<"Value">>, [dynamize_value(Value)]}]};
 dynamize_expected_item(Condition) ->
     dynamize_condition(Condition).
 
