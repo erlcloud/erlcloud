@@ -828,6 +828,13 @@ request_to_return(#aws_request{response_type = ok,
     {ok, jsx:decode(Body)};
 request_to_return(#aws_request{response_type = error,
                                error_type = aws,
+                               httpc_error_reason = undefined,
+                               response_status = Status,
+                               response_status_line = StatusLine,
+                               response_body = Body}) ->
+    {error, {http_error, Status, StatusLine, Body}};
+request_to_return(#aws_request{response_type = error,
+                               error_type = aws,
                                httpc_error_reason = Reason}) ->
     {error, Reason};
 request_to_return(#aws_request{response_type = error,
@@ -840,14 +847,10 @@ result_fun(#aws_request{response_type = ok} = Request) ->
     Request;
 result_fun(#aws_request{response_type = error,
                         error_type = aws,
-                        response_status = Status,
-                        response_status_line = StatusLine,
-                        response_body = Body} = Request) ->
+                        response_status = Status} = Request) ->
     %% == IMPLEMENTATION NOTES ==
-    %% We store the error reason in `httpc_error_reason` for now,
-    %% this may be changed at any time later
-    Request2 = Request#aws_request{
-        httpc_error_reason = {http_error, Status, StatusLine, Body}},
+    %% Set `httpc_error_reason` to `undefined` in case of retry
+    Request2 = Request#aws_request{httpc_error_reason = undefined},
     if
         Status >= 400 andalso Status < 500 ->
             client_error(Request2);
@@ -859,6 +862,9 @@ result_fun(#aws_request{response_type = error,
 
 -spec client_error(#aws_request{}) -> #aws_request{}.
 client_error(#aws_request{response_body = Body} = Request) ->
+    %% == IMPLEMENTATION NOTES ==
+    %% We store the error reason in `httpc_error_reason` for now,
+    %% this may be changed at any time later
     case jsx:is_json(Body) of
         false ->
             Request#aws_request{should_retry = false};
