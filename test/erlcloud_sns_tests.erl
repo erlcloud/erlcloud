@@ -17,7 +17,8 @@ sns_publish_test_() ->
 start() ->
     meck:new(erlcloud_httpc),
     meck:expect(erlcloud_httpc, request,
-                 fun(_,_,_,_,_,_) -> mock_httpc_response() end).
+                 fun(_,_,_,_,_,_) -> mock_httpc_response() end),
+    erlcloud_sns:configure(string:copies("A", 20), string:copies("a", 40)).
 
 stop(_) ->
     meck:unload(erlcloud_httpc).
