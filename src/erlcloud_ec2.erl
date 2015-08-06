@@ -15,7 +15,7 @@
          deregister_image/1, deregister_image/2,
          describe_image_attribute/2, describe_image_attribute/3,
          describe_images/0, describe_images/1, describe_images/2,
-         describe_images/3, describe_images/4,
+         describe_images/3, describe_images/4, describe_images/5,
          modify_image_attribute/3, modify_image_attribute/4,
 
          %% Availability Zones and Regions
@@ -96,6 +96,7 @@
          delete_security_group/1, delete_security_group/2, delete_security_group/3,
          describe_security_groups/0, describe_security_groups/1, describe_security_groups/2,
          describe_security_groups_filtered/1, describe_security_groups_filtered/2,
+         describe_security_groups/4,
          revoke_security_group_ingress/2, revoke_security_group_ingress/3,
 
          %% Spot Instances
@@ -118,7 +119,7 @@
          get_password_data/1, get_password_data/2,
 
          %% VPC
-         describe_subnets/0, describe_subnets/1, describe_subnets/2,
+         describe_subnets/0, describe_subnets/1, describe_subnets/2, describe_subnets/3,
          create_subnet/2, create_subnet/3, create_subnet/4,
          delete_subnet/1, delete_subnet/2,
          describe_vpcs/0, describe_vpcs/1, describe_vpcs/2,
@@ -1173,15 +1174,29 @@ describe_images(ImageIDs, Owner, ExecutableBy) ->
     describe_images(ImageIDs, Owner, ExecutableBy, default_config()).
 
 -spec(describe_images/4 :: ([string()], string() | none, string() | none, aws_config()) -> proplist  ()).
-describe_images(ImageIDs, Owner, ExecutableBy, Config)
+describe_images(ImageIDs, Owner, ExecutableBy, Config) 
   when is_list(ImageIDs),
        is_list(Owner) orelse Owner =:= none,
-       is_list(ExecutableBy) orelse ExecutableBy =:= none ->
+       is_list(ExecutableBy) orelse ExecutableBy =:= none,
+       is_record(Config, aws_config) ->
+    describe_images(ImageIDs, Owner, ExecutableBy, none, Config).
+
+-spec(describe_images/5 :: ([string()], 
+                            string() | none, 
+                            string() | none, 
+                            filter_list() | none, 
+                            aws_config()) -> proplist()).
+describe_images(ImageIDs, Owner, ExecutableBy, Filters, Config)
+  when is_list(ImageIDs),
+       is_list(Owner) orelse Owner =:= none,
+       is_list(ExecutableBy) orelse ExecutableBy =:= none,
+       is_list(Filters) orelse Filters =:= none,
+       is_record(Config, aws_config)->
     Params = [
-              {"ExecutableBy", ExecutableBy}, {"Owner", Owner}|
+              {"ExecutableBy", ExecutableBy}, {"Owner", Owner} |
               erlcloud_aws:param_list(ImageIDs, "ImageId")
-             ],
-    case ec2_query(Config, "DescribeImages", Params) of
+             ] ++ list_to_ec2_filter(Filters),
+    case ec2_query(Config, "DescribeImages", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [extract_image(Item) || Item <- xmerl_xpath:string("/DescribeImagesResponse/imagesSet/item", Doc)]};
         {error, _} = Error ->
@@ -1735,7 +1750,27 @@ describe_security_groups(GroupNames) ->
 -spec(describe_security_groups/2 :: ([string()], aws_config()) -> [proplist()]).
 describe_security_groups(GroupNames, Config)
   when is_list(GroupNames) ->
-    case ec2_query(Config, "DescribeSecurityGroups", erlcloud_aws:param_list(GroupNames, "GroupName"), ?NEW_API_VERSION) of
+    describe_security_groups([], GroupNames, [], Config).
+
+-spec(describe_security_groups_filtered/1 :: (filter_list()) -> [proplist()]).
+describe_security_groups_filtered(Filter) ->
+    describe_security_groups_filtered(Filter, default_config()).
+
+-spec(describe_security_groups_filtered/2 :: (filter_list(), aws_config()) -> [proplist()]).
+describe_security_groups_filtered(Filter, Config)->
+    describe_security_groups([], [], Filter, Config).
+
+%
+% describe_security_groups functions above are left for interface backward compatibility.
+-spec(describe_security_groups/4 :: (list(), list(), list(), aws_config()) -> [proplist()]).
+describe_security_groups(GroupIds, GroupNames, Filters, Config)
+  when is_list(GroupIds),
+       is_list(GroupNames),
+       is_list(Filters) ->
+    Params = erlcloud_aws:param_list(GroupIds, "GroupId") ++
+        erlcloud_aws:param_list(GroupNames, "GroupName") ++
+        list_to_ec2_filter(Filters),
+    case ec2_query(Config, "DescribeSecurityGroups", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [extract_security_group(Node) ||
                 Node <- xmerl_xpath:string("/DescribeSecurityGroupsResponse/securityGroupInfo/item", Doc)]};
@@ -1743,22 +1778,6 @@ describe_security_groups(GroupNames, Config)
             Error
     end.
 
-%%
-%%
--spec(describe_security_groups_filtered/1 :: (filter_list()) -> [proplist()]).
-describe_security_groups_filtered(Filter) ->
-    describe_security_groups_filtered(Filter, default_config()).
-
--spec(describe_security_groups_filtered/2 :: (filter_list(), aws_config()) -> [proplist()]).
-describe_security_groups_filtered(Filter, Config)->
-    Params = list_to_ec2_filter(Filter),
-    case ec2_query(Config, "DescribeSecurityGroups", Params, ?NEW_API_VERSION) of
-        {ok, Doc} ->
-            Path = "/DescribeSecurityGroupsResponse/securityGroupInfo/item",
-            {ok, [extract_security_group(Node) || Node <- xmerl_xpath:string(Path, Doc)]};
-        {error, _} = Error ->
-            Error
-    end.
 
 extract_security_group(Node) ->
     [
@@ -2012,7 +2031,12 @@ describe_subnets(Filter) when is_list(Filter) ->
 
 -spec(describe_subnets/2 :: (none | filter_list(), aws_config()) -> proplist()).
 describe_subnets(Filter, Config) ->
-    Params = list_to_ec2_filter(Filter),
+    describe_subnets([], Filter, Config).
+
+-spec(describe_subnets/3 :: (list(), none | filter_list(), aws_config()) -> proplist()).
+describe_subnets(SubnetIds, Filter, Config) 
+        when is_list(SubnetIds) ->
+    Params = erlcloud_aws:param_list(SubnetIds, "SubnetId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeSubnets", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             Subnets = xmerl_xpath:string("/DescribeSubnetsResponse/subnetSet/item", Doc),
