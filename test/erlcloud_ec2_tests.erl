@@ -30,7 +30,8 @@ describe_tags_test_() ->
       fun describe_tags_output_tests/1,
       fun describe_vpn_gateways_tests/1,
       fun describe_customer_gateways_tests/1,
-      fun describe_vpn_connections_tests/1]}.
+      fun describe_vpn_connections_tests/1,
+      fun describe_images_tests/1]}.
 
 start() ->
     meck:new(erlcloud_httpc),
@@ -424,3 +425,51 @@ describe_vpn_connections_tests(_) ->
     
     %% Remaining AWS API examples return subsets of the same data
     output_tests(?_f(erlcloud_ec2:describe_vpn_connections()), Tests).
+
+
+describe_images_tests(_) ->
+    Tests = 
+        [?_ec2_test(
+            {"This example describes AMIs.", "
+<DescribeImagesResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-04-15/\">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId> 
+   <imagesSet>
+      <item>
+         <imageId>ami-1a2b3c4d</imageId>
+         <imageLocation>ec2-public-windows-images/Server2003r2-x86_64-Win-v1.07.manifest.xml</imageLocation>
+         <imageState>available</imageState>
+         <imageOwnerId>123456789012</imageOwnerId>
+         <isPublic>true</isPublic>
+         <architecture>x86_64</architecture>
+         <imageType>machine</imageType>
+         <platform>windows</platform>
+         <imageOwnerAlias>amazon</imageOwnerAlias>
+         <rootDeviceType>instance-store</rootDeviceType>
+         <blockDeviceMapping/>
+         <virtualizationType>hvm</virtualizationType>
+         <tagSet/>
+         <hypervisor>xen</hypervisor>
+      </item>
+   </imagesSet>
+</DescribeImagesResponse>",
+             {ok, [[ {image_id, "ami-1a2b3c4d"},
+                     {image_location, "ec2-public-windows-images/Server2003r2-x86_64-Win-v1.07.manifest.xml"},
+                     {image_state, "available"},
+                     {image_owner_id, "123456789012"},
+                     {is_public, true},
+                     {architecture, "x86_64"},
+                     {image_type, "machine"},
+                     {kernel_id, []},
+                     {ramdisk_id, []},
+                     {image_owner_alias, "amazon"},
+                     {name, []},
+                     {description, []},
+                     {root_device_type, "instance-store"},
+                     {root_device_name, []},
+                     {platform, "windows"},
+                     {block_device_mapping, []},
+                     {product_codes, []}
+                ]]}})],
+    
+    %% Remaining AWS API examples return subsets of the same data
+    output_tests(?_f(erlcloud_ec2:describe_images()), Tests).

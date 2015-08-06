@@ -15,7 +15,7 @@
          deregister_image/1, deregister_image/2,
          describe_image_attribute/2, describe_image_attribute/3,
          describe_images/0, describe_images/1, describe_images/2,
-         describe_images/3, describe_images/4,
+         describe_images/3, describe_images/4, describe_images/5,
          modify_image_attribute/3, modify_image_attribute/4,
 
          %% Availability Zones and Regions
@@ -1173,15 +1173,29 @@ describe_images(ImageIDs, Owner, ExecutableBy) ->
     describe_images(ImageIDs, Owner, ExecutableBy, default_config()).
 
 -spec(describe_images/4 :: ([string()], string() | none, string() | none, aws_config()) -> proplist  ()).
-describe_images(ImageIDs, Owner, ExecutableBy, Config)
+describe_images(ImageIDs, Owner, ExecutableBy, Config) 
   when is_list(ImageIDs),
        is_list(Owner) orelse Owner =:= none,
-       is_list(ExecutableBy) orelse ExecutableBy =:= none ->
+       is_list(ExecutableBy) orelse ExecutableBy =:= none,
+       is_record(Config, aws_config) ->
+    describe_images(ImageIDs, Owner, ExecutableBy, none, Config).
+
+-spec(describe_images/5 :: ([string()], 
+                            string() | none, 
+                            string() | none, 
+                            filter_list() | none, 
+                            aws_config()) -> proplist()).
+describe_images(ImageIDs, Owner, ExecutableBy, Filters, Config)
+  when is_list(ImageIDs),
+       is_list(Owner) orelse Owner =:= none,
+       is_list(ExecutableBy) orelse ExecutableBy =:= none,
+       is_list(Filters) orelse Filters =:= none,
+       is_record(Config, aws_config)->
     Params = [
-              {"ExecutableBy", ExecutableBy}, {"Owner", Owner}|
+              {"ExecutableBy", ExecutableBy}, {"Owner", Owner} |
               erlcloud_aws:param_list(ImageIDs, "ImageId")
-             ],
-    case ec2_query(Config, "DescribeImages", Params) of
+             ] ++ list_to_ec2_filter(Filters),
+    case ec2_query(Config, "DescribeImages", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [extract_image(Item) || Item <- xmerl_xpath:string("/DescribeImagesResponse/imagesSet/item", Doc)]};
         {error, _} = Error ->
