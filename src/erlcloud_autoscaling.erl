@@ -15,7 +15,7 @@
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
--import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
+-import(erlcloud_xml, [get_text/1, get_text/2, get_bool/2, get_integer/2]).
 
 -define(API_VERSION, "2011-01-01").
 -define(SERVICE_NAME, "autoscaling").
@@ -29,7 +29,7 @@ new(AccessKeyID, SecretAccessKey) ->
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
-                sqs_host=Host}.
+                autoscaling_host=Host}.
 
 -spec(configure/2 :: (string(), string()) -> ok).
 configure(AccessKeyID, SecretAccessKey) ->
