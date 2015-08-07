@@ -503,7 +503,7 @@ data_type("GroupDetail") ->
      {"CreateDate", create_date, "DateTime"},
      {"Arn", arn, "String"}];
 data_type("GroupPolicyList") ->
-    [{"PolicyDocument", policy_document, "String"},
+    [{"PolicyDocument", policy_document, "Uri"},
      {"GroupName", group_name, "String"},
      {"PolicyName", policy_name, "String"}];
 data_type("LoginProfile") ->
@@ -522,7 +522,7 @@ data_type("PasswordPolicy") ->
      {"AllowUsersToChangePassword", allow_users_to_change_password, "Boolean"}];
 data_type("PolicyDetail") ->
     [{"PolicyName", policy_name, "String"},
-     {"PolicyDocument", policy_document, "String"}];
+     {"PolicyDocument", policy_document, "Uri"}];
 data_type("Role") ->
     [{"Arn", arn, "String"},
      {"CreateDate", create_date, "DateTime"},
@@ -540,7 +540,7 @@ data_type("RoleDetail") ->
      {"AssumeRolePolicyDocument", assume_role_policy_document, "Uri"},
      {"Arn", arn, "String"}];
 data_type("RolePolicyList") ->
-    [{"PolicyDocument", policy_document, "String"},
+    [{"PolicyDocument", policy_document, "Uri"},
      {"RoleName", role_name, "String"},
      {"PolicyName", policy_name, "String"}];
 data_type("Policy") ->
@@ -553,7 +553,7 @@ data_type("Policy") ->
      {"CreateDate", create_date, "DateTime"},
      {"UpdateDate", update_date, "DateTime"}];
 data_type("PolicyVersion") ->
-    [{"Document", policy_document, "String"},
+    [{"Document", policy_document, "Uri"},
      {"IsDefaultVersion", is_default_version, "Boolean"},
      {"VersionId", version_id, "String"},
      {"CreateDate", create_date, "DateTime"}];
