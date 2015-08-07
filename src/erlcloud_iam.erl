@@ -576,7 +576,7 @@ data_type("UserDetail") ->
      {"CreateDate", create_date, "DateTime"},
      {"Arn", arn, "String"}];
 data_type("UserPolicyList") ->
-    [{"PolicyDocument", policy_document, "String"},
+    [{"PolicyDocument", policy_document, "Uri"},
      {"UserName", user_name, "String"},
      {"PolicyName", policy_name, "String"}].
 
