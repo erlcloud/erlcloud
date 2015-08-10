@@ -185,6 +185,7 @@
     scan_opt/0,
     scan_opts/0,
     scan_return/0,
+    stream_specification/0,
     select/0,
     table_name/0,
     update_action/0,
@@ -276,6 +277,9 @@ default_config() -> erlcloud_aws:default_config().
                       all.
 
 -type global_secondary_index_def() :: {index_name(), key_schema(), projection(), read_units(), write_units()}.
+
+-type stream_view_type() :: keys_only | new_image | old_image | new_and_old_images.
+-type stream_specification() :: false | {true, stream_view_type()}.
 
 -type return_value() :: none | all_old | updated_old | all_new | updated_new.
 
@@ -423,6 +427,19 @@ dynamize_global_secondary_index({IndexName, KeySchema, Projection, ReadUnits, Wr
      {<<"KeySchema">>, dynamize_key_schema(KeySchema)},
      {<<"Projection">>, dynamize_projection(Projection)},
      {<<"ProvisionedThroughput">>, dynamize_provisioned_throughput({ReadUnits, WriteUnits})}].
+
+-spec dynamize_stream_view_type(stream_view_type()) -> binary().
+dynamize_stream_view_type(keys_only) -> <<"KEYS_ONLY">>;
+dynamize_stream_view_type(new_image) -> <<"NEW_IMAGE">>;
+dynamize_stream_view_type(old_image) -> <<"OLD_IMAGE">>;
+dynamize_stream_view_type(new_and_old_images) -> <<"NEW_AND_OLD_IMAGES">>.
+
+-spec dynamize_stream_specification(stream_specification()) -> jsx:json_term().
+dynamize_stream_specification(false) ->
+    [{<<"StreamEnabled">>, false}];
+dynamize_stream_specification({true, StreamViewType}) ->
+    [{<<"StreamEnabled">>, true},
+     {<<"StreamViewType">>, dynamize_stream_view_type(StreamViewType)}].
 
 -spec dynamize_conditional_op(conditional_op()) -> binary().
 dynamize_conditional_op('and') ->
@@ -671,6 +688,21 @@ undynamize_key_schema([Key1, Key2], _) ->
             {key_name(Key1), key_name(Key2)};
         <<"RANGE">> ->
             {key_name(Key2), key_name(Key1)}
+    end.
+
+-spec undynamize_stream_view_type(binary(), undynamize_opts()) -> stream_view_type().
+undynamize_stream_view_type(<<"KEYS_ONLY">>, _) -> keys_only;
+undynamize_stream_view_type(<<"NEW_IMAGE">>, _) -> new_image;
+undynamize_stream_view_type(<<"OLD_IMAGE">>, _) -> old_image;
+undynamize_stream_view_type(<<"NEW_AND_OLD_IMAGES">>, _) -> new_and_old_images.
+
+-spec undynamize_stream_specification(jsx:json_term(), undynamize_opts()) -> stream_specification().
+undynamize_stream_specification(Json, Opts) ->
+    case proplists:get_value(<<"StreamEnabled">>, Json, false) of
+        false ->
+            false;
+        true ->
+            {true, undynamize_stream_view_type(proplists:get_value(<<"StreamViewType">>, Json), Opts)}
     end.
 
 -spec undynamize_expression(binary(), undynamize_opts()) -> expression().
@@ -934,6 +966,7 @@ undynamize_index_status(<<"ACTIVE">>, _)   -> active.
 global_secondary_index_description_record() ->
     {#ddb2_global_secondary_index_description{},
      [{<<"Backfilling">>, #ddb2_global_secondary_index_description.backfilling, fun id/2},
+      {<<"IndexArn">>, #ddb2_global_secondary_index_description.index_arn, fun id/2},
       {<<"IndexName">>, #ddb2_global_secondary_index_description.index_name, fun id/2},
       {<<"IndexSizeBytes">>, #ddb2_global_secondary_index_description.index_size_bytes, fun id/2},
       {<<"IndexStatus">>, #ddb2_global_secondary_index_description.index_status, fun undynamize_index_status/2},
@@ -947,7 +980,8 @@ global_secondary_index_description_record() ->
 -spec local_secondary_index_description_record() -> record_desc().
 local_secondary_index_description_record() ->
     {#ddb2_local_secondary_index_description{},
-     [{<<"IndexName">>, #ddb2_local_secondary_index_description.index_name, fun id/2},
+     [{<<"IndexArn">>, #ddb2_local_secondary_index_description.index_arn, fun id/2},
+      {<<"IndexName">>, #ddb2_local_secondary_index_description.index_name, fun id/2},
       {<<"IndexSizeBytes">>, #ddb2_local_secondary_index_description.index_size_bytes, fun id/2},
       {<<"ItemCount">>, #ddb2_local_secondary_index_description.item_count, fun id/2},
       {<<"KeySchema">>, #ddb2_local_secondary_index_description.key_schema, fun undynamize_key_schema/2},
@@ -973,10 +1007,14 @@ table_description_record() ->
        fun(V, Opts) -> [undynamize_record(global_secondary_index_description_record(), I, Opts) || I <- V] end},
       {<<"ItemCount">>, #ddb2_table_description.item_count, fun id/2},
       {<<"KeySchema">>, #ddb2_table_description.key_schema, fun undynamize_key_schema/2},
+      {<<"LatestStreamArn">>, #ddb2_table_description.latest_stream_arn, fun id/2},
+      {<<"LatestStreamLabel">>, #ddb2_table_description.latest_stream_label, fun id/2},
       {<<"LocalSecondaryIndexes">>, #ddb2_table_description.local_secondary_indexes,
        fun(V, Opts) -> [undynamize_record(local_secondary_index_description_record(), I, Opts) || I <- V] end},
       {<<"ProvisionedThroughput">>, #ddb2_table_description.provisioned_throughput,
        fun(V, Opts) -> undynamize_record(provisioned_throughput_description_record(), V, Opts) end},
+      {<<"StreamSpecification">>, #ddb2_table_description.stream_specification, fun undynamize_stream_specification/2},
+      {<<"TableArn">>, #ddb2_table_description.table_arn, fun id/2},
       {<<"TableName">>, #ddb2_table_description.table_name, fun id/2},
       {<<"TableSizeBytes">>, #ddb2_table_description.table_size_bytes, fun id/2},
       {<<"TableStatus">>, #ddb2_table_description.table_status, fun undynamize_table_status/2}
@@ -1269,7 +1307,8 @@ dynamize_global_secondary_indexes(Value) ->
     dynamize_maybe_list(fun dynamize_global_secondary_index/1, Value).
 
 -type create_table_opt() :: {local_secondary_indexes, local_secondary_indexes()} |
-                            {global_secondary_indexes, global_secondary_indexes()}.
+                            {global_secondary_indexes, global_secondary_indexes()} |
+                            {stream_specification, stream_specification()}.
 -type create_table_opts() :: [create_table_opt()].
 
 -spec create_table_opts(key_schema()) -> opt_table().
@@ -1277,7 +1316,8 @@ create_table_opts(KeySchema) ->
     [{local_secondary_indexes, <<"LocalSecondaryIndexes">>, 
       fun(V) -> dynamize_local_secondary_indexes(KeySchema, V) end},
      {global_secondary_indexes, <<"GlobalSecondaryIndexes">>,
-      fun dynamize_global_secondary_indexes/1}].
+      fun dynamize_global_secondary_indexes/1},
+     {stream_specification, <<"StreamSpecification">>, fun dynamize_stream_specification/1}].
 
 -spec create_table_record() -> record_desc().
 create_table_record() ->
@@ -2079,6 +2119,7 @@ dynamize_global_secondary_index_updates(Updates) ->
 -type update_table_opt() :: {provisioned_throughput, {read_units(), write_units()}} |
                             {attribute_definitions, attr_defs()} |
                             {global_secondary_index_updates, global_secondary_index_updates()} |
+                            {stream_specification, stream_specification()} |
                             out_opt().
 -type update_table_opts() :: [update_table_opt()].
 
@@ -2087,7 +2128,8 @@ update_table_opts() ->
     [{provisioned_throughput, <<"ProvisionedThroughput">>, fun dynamize_provisioned_throughput/1},
      {attribute_definitions, <<"AttributeDefinitions">>, fun dynamize_attr_defs/1},
      {global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>,
-      fun dynamize_global_secondary_index_updates/1}].
+      fun dynamize_global_secondary_index_updates/1},
+     {stream_specification, <<"StreamSpecification">>, fun dynamize_stream_specification/1}].
 
 -spec update_table_record() -> record_desc().
 update_table_record() ->
