@@ -196,7 +196,7 @@ describe_stream_input_tests(_) ->
                 \"SequenceNumberRange\": {\"StartingSequenceNumber\": \"2574600000000000000935255\"},
                 \"ShardId\": \"shardId-00000001414608446368-3a1afbaf\"
             }
-        ],
+        ]
     }
 }",
     input_tests(Response, Tests).
@@ -246,7 +246,7 @@ describe_stream_output_tests(_) ->
                 \"SequenceNumberRange\": {\"StartingSequenceNumber\": \"2574600000000000000935255\"},
                 \"ShardId\": \"shardId-00000001414608446368-3a1afbaf\"
             }
-        ],
+        ]
     }
 }",
              {ok, #ddb_streams_stream_description{

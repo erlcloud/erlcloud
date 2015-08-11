@@ -1,3 +1,4 @@
+%% -*- coding: utf-8 -*-
 -module(erlcloud_http_tests).
 -include_lib("eunit/include/eunit.hrl").
 

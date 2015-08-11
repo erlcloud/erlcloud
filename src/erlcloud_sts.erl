@@ -79,8 +79,9 @@ get_federation_token(AwsConfig, DurationSeconds, Name, Policy)
 
     Creds = erlcloud_xml:decode(
               [
-               {access_key_id               , "GetFederationTokenResult/Credentials/AccessKeyId", text},
+               {access_key_id       , "GetFederationTokenResult/Credentials/AccessKeyId", text},
                {secret_access_key   , "GetFederationTokenResult/Credentials/SecretAccessKey", text},
+               {session_token       , "GetFederationTokenResult/Credentials/SessionToken"   , text},
                {federated_user_arn  , "GetFederationTokenResult/FederatedUser/Arn", text},
                {federated_user_id   , "GetFederationTokenResult/FederatedUser/FederatedUserId", text}
               ],
