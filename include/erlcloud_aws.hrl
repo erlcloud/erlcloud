@@ -48,8 +48,8 @@
           security_token=undefined::string()|undefined,
           timeout=10000::timeout(),
           cloudtrail_raw_result=false::boolean(),
-          http_client=lhttpc::erlcloud_httpc:request_fun(),
-
+          http_client=lhttpc::erlcloud_httpc:request_fun(), %% If using hackney, ensure that it is started.
+          hackney_pool=default::atom(), %% The name of the http request pool hackney should use.
           %% Default to not retry failures (for backwards compatability).
           %% Recommended to be set to default_retry to provide recommended retry behavior.
           %% Currently only affects S3, but intent is to change other services to use this as well.
