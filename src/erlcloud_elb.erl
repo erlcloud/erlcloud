@@ -20,7 +20,7 @@
          delete_load_balancer_policy/2, delete_load_balancer_policy/3,
          
          describe_load_balancer_policies/0, describe_load_balancer_policies/1, 
-         describe_load_balancer_policies/2,
+         describe_load_balancer_policies/2, describe_load_balancer_policies/3,
          
          describe_load_balancer_policy_types/0, describe_load_balancer_policy_types/1, 
          describe_load_balancer_policy_types/2]).
@@ -255,27 +255,54 @@ next_token(Path, XML) ->
 %%              default_configuration())
 %% @end
 %% --------------------------------------------------------------------
-describe_load_balancer_policies() ->
-    describe_load_balancer_policies([], default_config()).
-
-%% --------------------------------------------------------------------
-%% @doc describe_load_balancer_policies with specific policy names.
-%% @end
-%% --------------------------------------------------------------------
-describe_load_balancer_policies(PolicyNames) when is_list(PolicyNames) ->
-    describe_load_balancer_policies(PolicyNames, default_config());
-describe_load_balancer_policies(Config = #aws_config{}) ->
-    describe_load_balancer_policies([], Config).
-
-%% --------------------------------------------------------------------
-%% @doc Get descriptions of the given load balancer policies.
-%% @end
-%% --------------------------------------------------------------------
--spec describe_load_balancer_policies(list(string()), aws_config()) -> 
+-spec describe_load_balancer_policies() -> 
                              {ok, term()} | {error, term()}.
-describe_load_balancer_policies(PolicyNames, Config) ->
-    P = member_params("PolicyNames.member.", PolicyNames),
-    case elb_query(Config, "DescribeLoadBalancerPolicies", P) of
+describe_load_balancer_policies() ->
+    describe_load_balancer_policies([], [], default_config()).
+
+%% --------------------------------------------------------------------
+%% @doc describe_load_balancer_policies with specific config.
+%% @end
+%% --------------------------------------------------------------------
+-spec describe_load_balancer_policies(aws_config()) -> 
+                             {ok, term()} | {error, term()}.
+describe_load_balancer_policies(Config = #aws_config{}) ->
+    describe_load_balancer_policies([], [], Config).
+
+%% --------------------------------------------------------------------
+%% @doc describe_load_balancer_policies for specified ELB 
+%%      with specificied policy names using default config.
+%% @end
+%% --------------------------------------------------------------------
+-spec describe_load_balancer_policies(string(), list() | aws_config()) -> 
+                             {ok, term()} | {error, term()}.
+describe_load_balancer_policies(ElbName, PolicyNames) 
+    when is_list(ElbName),
+         is_list(PolicyNames) ->
+    describe_load_balancer_policies(ElbName, PolicyNames, default_config());
+describe_load_balancer_policies(PolicyNames, Config = #aws_config{}) 
+    when is_list(PolicyNames) ->
+    describe_load_balancer_policies([], PolicyNames, Config).
+
+
+%% --------------------------------------------------------------------
+%% @doc Get descriptions of the given load balancer policies
+%%      with specified config.
+%% @end
+%% --------------------------------------------------------------------
+-spec describe_load_balancer_policies(string(), list(), aws_config()) -> 
+                             {ok, term()} | {error, term()}.
+describe_load_balancer_policies(ElbName, PolicyNames, Config)
+    when is_list(ElbName),
+         is_list(PolicyNames) ->
+    ElbNameParam = case ElbName of
+        [] ->
+            [];
+        _ ->
+            [{"LoadBalancerName", ElbName}]
+    end,
+    Params = ElbNameParam ++ member_params("PolicyNames.member.", PolicyNames),
+    case elb_query(Config, "DescribeLoadBalancerPolicies", Params) of
         {ok, Doc} ->
             ElbPolicies = xmerl_xpath:string(?DESCRIBE_ELB_POLICIES_PATH, Doc),            
             {ok, [extract_elb_policy(ElbPolicy) || ElbPolicy <- ElbPolicies]};
