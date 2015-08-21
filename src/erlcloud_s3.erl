@@ -319,8 +319,9 @@ list_buckets() ->
 
 list_buckets(Config) ->
     Doc = s3_xml_request(Config, get, "", "/", "", [], <<>>, []),
+    Owner = extract_user(xmerl_xpath:string("/*/Owner", Doc)),
     Buckets = [extract_bucket(Node) || Node <- xmerl_xpath:string("/*/Buckets/Bucket", Doc)],
-    [{buckets, Buckets}].
+    [{owner, Owner}, {buckets, Buckets}].
 
 %
 % @doc Get S3 bucket policy JSON object
