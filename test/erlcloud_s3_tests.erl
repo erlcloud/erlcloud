@@ -60,7 +60,7 @@ error_handling_no_retry() ->
     Response = {ok, {{500, "Internal Server Error"}, [], <<"TestBody">>}},
     meck:expect(erlcloud_httpc, request, httpc_expect(Response)),
     Result = erlcloud_s3:get_bucket_policy("BucketName", config()),
-    ?_assertEqual({error,{http_error,500,"Internal Server Error",<<"TestBody">>,[]}}, Result).
+    ?_assertEqual({error,{http_error,500,"Internal Server Error",<<"TestBody">>}}, Result).
 
 error_handling_default_retry() ->
     Response1 = {ok, {{500, "Internal Server Error"}, [], <<"TestBody">>}},
