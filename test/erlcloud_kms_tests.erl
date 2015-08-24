@@ -130,9 +130,9 @@ validate_body(Body, Expected) ->
 %% Validates the request body and responds with the provided response.
 -spec input_expect(string(), expected_body()) -> fun().
 input_expect(Response, Expected) ->
-    fun(_Url, post, _Headers, Body, _Timeout, _Config) -> 
+    fun(_Url, post, _Headers, Body, _Timeout, _Config) ->
             validate_body(Body, Expected),
-            {ok, {{200, "OK"}, [], Response}} 
+            {ok, {{200, "OK"}, [], Response}}
     end.
 
 
@@ -141,10 +141,11 @@ input_expect(Response, Expected) ->
 -spec input_test(string(), input_test_spec()) -> tuple().
 input_test(Response, {Line, {Description, Fun, Expected}})
   when is_list(Description) ->
-    {Description, 
+    {Description,
      {Line,
       fun() ->
               meck:expect(erlcloud_httpc, request, input_expect(Response, Expected)),
+              erlcloud_kms:configure(string:copies("A", 20), string:copies("a", 40)),
               Fun()
       end}}.
 
@@ -161,8 +162,8 @@ input_tests(Response, Tests) ->
 %% returns the mock of the erlcloud_httpc function output tests expect to be called.
 -spec output_expect(string()) -> fun().
 output_expect(Response) ->
-    fun(_Url, post, _Headers, _Body, _Timeout, _Config) -> 
-            {ok, {{200, "OK"}, [], Response}} 
+    fun(_Url, post, _Headers, _Body, _Timeout, _Config) ->
+            {ok, {{200, "OK"}, [], Response}}
     end.
 
 %% output_test converts an output_test specifier into an eunit test generator
@@ -173,6 +174,7 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
      {Line,
       fun() ->
               meck:expect(erlcloud_httpc, request, output_expect(Response)),
+              erlcloud_kms:configure(string:copies("A", 20), string:copies("a", 40)),
               Actual = Fun(),
               case Result =:= Actual of
                   true -> ok;
@@ -184,7 +186,7 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
 
 
 %% output_tests converts a list of output_test specifiers into an eunit test generator
--spec output_tests(fun(), [output_test_spec()]) -> [term()].       
+-spec output_tests(fun(), [output_test_spec()]) -> [term()].
 output_tests(Fun, Tests) ->
     [output_test(Fun, Test) || Test <- Tests].
 
@@ -203,7 +205,7 @@ create_alias_input_tests(_) ->
                           {<<"TargetKeyId">>, ?KEY_ID}])
              }
              )],
-    
+
     Response = <<>>,
     input_tests(Response, Tests).
 
@@ -214,7 +216,7 @@ create_alias_output_tests(_) ->
               <<>>,
               {ok, []}}
              )],
-    
+
     output_tests(?_f(erlcloud_kms:create_alias(<<"alias/eunit_test_key">>,
                                                ?KEY_ID)), Tests).
 
@@ -246,7 +248,7 @@ create_grant_output_tests(_) ->
               jsx:encode(?CREATE_GRANT_RESP),
               {ok, ?CREATE_GRANT_RESP}}
              )],
-    
+
     output_tests(?_f(erlcloud_kms:create_grant(<<"arn:aws:iam::", ?AWS_ACCOUNT_ID/binary, ":root">>,
                                             ?KEY_ID,
                                             [<<"Decrypt">>])), Tests).
@@ -282,7 +284,7 @@ create_key_output_tests(_) ->
               jsx:encode(?CREATE_KEY_RESP),
               {ok, ?CREATE_KEY_RESP}}
              )],
-    
+
     output_tests(?_f(erlcloud_kms:create_key()), Tests).
 
 
@@ -316,7 +318,7 @@ decrypt_output_tests(_) ->
               jsx:encode(?DECRYPT_RESP),
               {ok, ?DECRYPT_RESP}}
              )],
-    
+
     output_tests(?_f(erlcloud_kms:decrypt(?CIPHERTEXT_BLOB)), Tests).
 
 
@@ -835,7 +837,7 @@ retire_grant_input_tests(_) ->
                           {<<"GrantId">>, <<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>}])
              }
              )],
-    
+
     Response = <<>>,
     input_tests(Response, Tests).
 
@@ -846,7 +848,7 @@ retire_grant_output_tests(_) ->
               <<>>,
               {ok, []}}
              )],
-    
+
     output_tests(?_f(erlcloud_kms:retire_grant(
                        [{key_id, ?KEY_ARN},
                         {grant_id, <<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>}])), Tests).
@@ -872,7 +874,7 @@ revoke_grant_output_tests(_) ->
               <<>>,
               {ok, []}}
              )],
-    
+
     output_tests(?_f(erlcloud_kms:revoke_grant(<<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>,
                                                ?KEY_ID)), Tests).
 
@@ -896,7 +898,7 @@ update_alias_output_tests(_) ->
               <<>>,
               {ok, []}}
              )],
-    
+
     output_tests(?_f(erlcloud_kms:update_alias(<<"alias/unit_test_update">>, ?KEY_ID)), Tests).
 
 
@@ -919,5 +921,5 @@ update_key_description_output_tests(_) ->
               <<>>,
               {ok, []}}
              )],
-    
+
     output_tests(?_f(erlcloud_kms:update_key_description(?KEY_ID, <<"Updated key description">>)), Tests).
