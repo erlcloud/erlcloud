@@ -1052,6 +1052,8 @@ s3_request2(Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers
                     when StatusCode >= 301 andalso StatusCode < 400 ->
                     s3_follow_redirect(RedirectResponse, Config1, Method, Bucket, Path, 
                         Subresource, Params, POSTData, Headers);
+                {error, {http_error, StatusCode, StatusLine, Body, _Headers}} ->
+                    {error, {http_error, StatusCode, StatusLine, Body}};
                 Response ->
                     Response
             end;
