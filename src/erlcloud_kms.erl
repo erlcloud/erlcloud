@@ -128,7 +128,7 @@ create_alias(AliasName, TargetKeyId) ->
           return_val().
 create_alias(AliasName, TargetKeyId, Config) ->
     Json = [{<<"AliasName">>, AliasName}, {<<"TargetKeyId">>, TargetKeyId}],
-    request(Config, "TrentService.CreateAlias", Json).	
+    kms_request(Config, "TrentService.CreateAlias", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -179,7 +179,7 @@ create_grant(GranteePrincipal, KeyId, Operations, Options, Config) ->
     Json = [{<<"GranteePrincipal">>, GranteePrincipal},
             {<<"KeyId">>, KeyId},
             {<<"Operations">>, Operations}|OptJson],
-    request(Config, "TrentService.CreateGrant", Json).
+    kms_request(Config, "TrentService.CreateGrant", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -217,7 +217,7 @@ create_key(Options) ->
           return_val().
 create_key(Options, Config) ->
     Json = dynamize_options(Options),
-    request(Config, "TrentService.CreateKey", Json).
+    kms_request(Config, "TrentService.CreateKey", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -260,7 +260,7 @@ decrypt(CiphertextBlob, Options) ->
 decrypt(CiphertextBlob, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"CiphertextBlob">>, CiphertextBlob}|OptJson],
-    request(Config, "TrentService.Decrypt", Json).
+    kms_request(Config, "TrentService.Decrypt", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -288,7 +288,7 @@ delete_alias(AliasName) ->
           return_val().
 delete_alias(AliasName, Config) ->
     Json = [{<<"AliasName">>, AliasName}],
-    request(Config, "TrentService.DeleteAlias", Json).
+    kms_request(Config, "TrentService.DeleteAlias", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -316,7 +316,7 @@ describe_key(KeyId) ->
           return_val().
 describe_key(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
-    request(Config, "TrentService.DescribeKey", Json).
+    kms_request(Config, "TrentService.DescribeKey", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -344,7 +344,7 @@ disable_key(KeyId) ->
           return_val().
 disable_key(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
-    request(Config, "TrentService.DisableKey", Json).
+    kms_request(Config, "TrentService.DisableKey", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -372,7 +372,7 @@ disable_key_rotation(KeyId) ->
           return_val().
 disable_key_rotation(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
-    request(Config, "TrentService.DisableKey", Json).
+    kms_request(Config, "TrentService.DisableKey", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -399,7 +399,7 @@ enable_key(KeyId) ->
           return_val().
 enable_key(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
-    request(Config, "TrentService.EnableKey", Json).
+    kms_request(Config, "TrentService.EnableKey", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -427,7 +427,7 @@ enable_key_rotation(KeyId) ->
           return_val().
 enable_key_rotation(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
-    request(Config, "TrentService.EnableKeyRotation", Json).
+    kms_request(Config, "TrentService.EnableKeyRotation", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -473,7 +473,7 @@ encrypt(KeyId, Plaintext, Options) ->
 encrypt(KeyId, Plaintext, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}, {<<"Plaintext">>, Plaintext}|OptJson],
-    request(Config, "TrentService.Encrypt", Json).
+    kms_request(Config, "TrentService.Encrypt", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -509,7 +509,7 @@ generate_data_key(KeyId, Options) ->
 generate_data_key(KeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}|OptJson],
-    request(Config, "TrentService.GenerateDataKey", Json).
+    kms_request(Config, "TrentService.GenerateDataKey", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -541,7 +541,7 @@ generate_data_key_without_plaintext(KeyId, Options) ->
 generate_data_key_without_plaintext(KeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}|OptJson],
-    request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json).
+    kms_request(Config, "TrentService.GenerateDataKeyWithoutPlaintext", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -569,7 +569,7 @@ generate_random(NumberOfBytes) ->
           return_val().
 generate_random(NumberOfBytes, Config) ->
     Json = [{<<"NumberOfBytes">>, NumberOfBytes}],
-    request(Config, "TrentService.GenerateRandom", Json).
+    kms_request(Config, "TrentService.GenerateRandom", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -599,7 +599,7 @@ get_key_policy(KeyId, PolicyName) ->
           return_val().
 get_key_policy(KeyId, PolicyName, Config) ->
     Json = [{<<"KeyId">>, KeyId}, {<<"PolicyName">>, PolicyName}],
-    request(Config, "TrentService.GetKeyPolicy", Json).
+    kms_request(Config, "TrentService.GetKeyPolicy", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -627,7 +627,7 @@ get_key_rotation_status(KeyId) ->
           return_val().
 get_key_rotation_status(KeyId, Config) ->
     Json = [{<<"KeyId">>, KeyId}],
-    request(Config, "TrentService.GetKeyRotationStatus", Json).
+    kms_request(Config, "TrentService.GetKeyRotationStatus", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -662,7 +662,7 @@ list_aliases(Options) ->
           return_val().
 list_aliases(Options, Config) ->
     Json = dynamize_options(Options),
-    request(Config, "TrentService.ListAliases", Json).
+    kms_request(Config, "TrentService.ListAliases", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -700,7 +700,7 @@ list_grants(KeyId, Options) ->
 list_grants(KeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}|OptJson],
-    request(Config, "TrentService.ListGrants", Json).
+    kms_request(Config, "TrentService.ListGrants", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -738,7 +738,7 @@ list_key_policies(KeyId, Options) ->
 list_key_policies(KeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"KeyId">>, KeyId}|OptJson],
-    request(Config, "TrentService.ListKeyPolicies", Json).
+    kms_request(Config, "TrentService.ListKeyPolicies", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -773,7 +773,7 @@ list_keys(Options) ->
           return_val().
 list_keys(Options, Config) ->
     Json = dynamize_options(Options),
-    request(Config, "TrentService.ListKeys", Json).
+    kms_request(Config, "TrentService.ListKeys", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -805,7 +805,7 @@ put_key_policy(KeyId, Policy, PolicyName) ->
           return_val().
 put_key_policy(KeyId, Policy, PolicyName, Config) ->
     Json = [{<<"KeyId">>, KeyId}, {<<"Policy">>, Policy}, {<<"PolicyName">>, PolicyName}],
-    request(Config, "TrentService.PutKeyPolicy", Json).
+    kms_request(Config, "TrentService.PutKeyPolicy", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -851,7 +851,7 @@ re_encrypt(CiphertextBlob, DestinationKeyId, Options) ->
 re_encrypt(CiphertextBlob, DestinationKeyId, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"CiphertextBlob">>, CiphertextBlob}, {<<"DestinationKeyId">>, DestinationKeyId}|OptJson],
-    request(Config, "TrentService.ReEncrypt", Json).
+    kms_request(Config, "TrentService.ReEncrypt", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -883,7 +883,7 @@ retire_grant(Options) ->
           return_val().
 retire_grant(Options, Config) ->
     Json = dynamize_options(Options),
-    request(Config, "TrentService.RetireGrant", Json).
+    kms_request(Config, "TrentService.RetireGrant", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -913,7 +913,7 @@ revoke_grant(GrantId, KeyId) ->
           return_val().
 revoke_grant(GrantId, KeyId, Config) ->
     Json = [{<<"GrantId">>, GrantId}, {<<"KeyId">>, KeyId}],
-    request(Config, "TrentService.RevokeGrant", Json).
+    kms_request(Config, "TrentService.RevokeGrant", Json).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateAlias
@@ -940,7 +940,7 @@ update_alias(AliasName, TargetKeyId) ->
            Config :: aws_config()) -> return_val().
 update_alias(AliasName, TargetKeyId, Config) ->
     Json = [{<<"AliasName">>, AliasName}, {<<"TargetKeyId">>, TargetKeyId}],
-    request(Config, "TrentService.UpdateAlias", Json).
+    kms_request(Config, "TrentService.UpdateAlias", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -970,15 +970,15 @@ update_key_description(KeyId, Description) ->
           return_val().
 update_key_description(KeyId, Description, Config) ->
     Json = [{<<"KeyId">>, KeyId}, {<<"Description">>, Description}],
-    request(Config, "TrentService.UpdateKeyDescription", Json).
+    kms_request(Config, "TrentService.UpdateKeyDescription", Json).
 
 
 -spec kms_result_fun/1 ::
           (Request :: aws_request()) -> aws_request().
 kms_result_fun(#aws_request{response_type = ok} = Request) ->
     Request;
-kms_result_fun(#aws_request{response_type = error, 
-                           error_type = aws, 
+kms_result_fun(#aws_request{response_type = error,
+                           error_type = aws,
                            response_status = Status} = Request)
   when Status >= 500 ->
     Request#aws_request{should_retry = true};
@@ -986,10 +986,19 @@ kms_result_fun(#aws_request{response_type = error, error_type = aws} = Request) 
     Request#aws_request{should_retry = false}.
 
 
-%
-% Private
-%
-request(Config, Operation, Body) ->
+%%%------------------------------------------------------------------------------
+%%% Internal Functions
+%%%------------------------------------------------------------------------------
+
+kms_request(Config, Operation, Body) ->
+    case erlcloud_aws:update_config(Config) of
+        {ok, Config1} ->
+            kms_request_no_update(Config1, Operation, Body);
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+kms_request_no_update(Config, Operation, Body) ->
     Payload = case Body of
                [] -> <<"{}">>;
                _ -> jsx:encode(Body)
@@ -1042,4 +1051,3 @@ dynamize_option_key(Key) when is_atom(Key) ->
                 <<Acc/binary, C/binary>>
         end,
     lists:foldl(F, <<>>, string:tokens(atom_to_list(Key), "_")).
-
