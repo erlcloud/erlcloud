@@ -319,8 +319,9 @@ list_buckets() ->
 
 list_buckets(Config) ->
     Doc = s3_xml_request(Config, get, "", "/", "", [], <<>>, []),
+    Owner = extract_user(xmerl_xpath:string("/*/Owner", Doc)),
     Buckets = [extract_bucket(Node) || Node <- xmerl_xpath:string("/*/Buckets/Bucket", Doc)],
-    [{buckets, Buckets}].
+    [{owner, Owner}, {buckets, Buckets}].
 
 %
 % @doc Get S3 bucket policy JSON object
@@ -466,9 +467,18 @@ get_bucket_attribute(BucketName, AttributeName, Config)
 extract_acl(ACL) ->
     [extract_grant(Item) || Item <- ACL].
 
-extract_grant(Node) ->
-    [{grantee, extract_user(xmerl_xpath:string("Grantee", Node))},
-     {permission, decode_permission(erlcloud_xml:get_text("Permission", Node))}].
+extract_grant(GrantNode) ->
+    [GranteeNode] = xmerl_xpath:string("Grantee", GrantNode),
+    [{grantee, extract_grantee(GranteeNode)},
+     {permission, decode_permission(erlcloud_xml:get_text("Permission", GrantNode))}].
+
+extract_grantee(Node) ->
+    erlcloud_xml:decode([
+        {type, {".", "xsi:type"}, text},
+        {id, "ID", optional_text},
+        {display_name, "DisplayName", optional_text},
+        {uri, "URI", optional_text}
+    ], Node).
 
 encode_permission(full_control) -> "FULL_CONTROL";
 encode_permission(write)        -> "WRITE";
