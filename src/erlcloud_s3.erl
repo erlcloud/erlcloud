@@ -1182,7 +1182,7 @@ aws_region_from_host(Host) ->
 %% http://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
 %% http://docs.aws.amazon.com/AmazonS3/latest/dev/Redirects.html
 %% Note: redirect response is handled only once.
-s3_follow_redirect({error, {http_error, _StatusCode, _StatusLine, ErrBody, ErrHeaders}} = Response, 
+s3_follow_redirect({error, {http_error, StatusCode, StatusLine, ErrBody, ErrHeaders}} = Response, 
     Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers) ->
     case Config#aws_config.s3_follow_redirect of
         true ->
@@ -1202,10 +1202,15 @@ s3_follow_redirect({error, {http_error, _StatusCode, _StatusLine, ErrBody, ErrHe
                     %% Use "x-amz-bucket-region" header value if present.
                     lists:flatten(["s3-", BucketRegion, ".amazonaws.com"]) 
             end,
-            s3_request4_no_update(Config#aws_config{s3_host = S3RegionEndpoint}, 
-                Method, Bucket, Path, Subresource, Params, POSTData, Headers);
+            case s3_request4_no_update(Config#aws_config{s3_host = S3RegionEndpoint}, 
+                Method, Bucket, Path, Subresource, Params, POSTData, Headers) of
+                {error, {http_error, StatusCode, StatusLine, Body, _Headers}} ->
+                    {error, {http_error, StatusCode, StatusLine, Body}};
+                Response ->
+                    Response
+            end;
         _ ->
-            Response
+            {error, {http_error, StatusCode, StatusLine, ErrBody}}
     end.
 
 %% Substract bucket name from a bucket virtual host name.
