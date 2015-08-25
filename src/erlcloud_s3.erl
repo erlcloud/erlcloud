@@ -417,7 +417,14 @@ get_bucket_attribute(BucketName, AttributeName, Config)
                           {access_control_list, "AccessControlList/Grant", fun extract_acl/1}],
             erlcloud_xml:decode(Attributes, Doc);
         location ->
-            erlcloud_xml:get_text("/LocationConstraint", Doc);
+            case erlcloud_xml:get_text("/LocationConstraint", Doc) of
+                %% logic according to http://s3tools.org/s3cmd
+                %% s3cmd-1.5.2/S3/S3.py : line 342 (function get_bucket_location)
+                [] -> "us-east-1";
+                ["US"] -> "us-east-1";
+                ["EU"] -> "eu-west-1";
+                Loc -> Loc
+            end;
         logging ->
             case xmerl_xpath:string("/BucketLoggingStatus/LoggingEnabled", Doc) of
                 [] ->
