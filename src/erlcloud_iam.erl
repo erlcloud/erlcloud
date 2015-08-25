@@ -53,7 +53,7 @@ new(AccessKeyID, SecretAccessKey) ->
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
-                ec2_host=Host}.
+                iam_host=Host}.
 
 -spec(configure/2 :: (string(), string()) -> ok).
 configure(AccessKeyID, SecretAccessKey) ->
