@@ -1019,7 +1019,11 @@ s3_request(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) 
 s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
-            s3_request2_no_update(Config1, Method, Host, Path, Subresource, Params, POSTData, Headers);
+            %% The name of a bucket is originally passed as Host parameter, but our host doesn't change.
+            %% So instead I've modified this line so the name of a bucket is passed between the host adress and the object key (Path parameter).
+            %% Original line:
+            %% s3_request2_no_update(Config1, Method, Host, Path, Subresource, Params, POSTData, Headers);
+            s3_request2_no_update(Config1, Method, "", [$/|Host] ++ Path, Subresource, Params, POSTData, Headers);
         {error, Reason} ->
             {error, Reason}
     end.
