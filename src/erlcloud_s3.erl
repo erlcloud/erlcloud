@@ -1182,7 +1182,7 @@ aws_region_from_host(Host) ->
 %% http://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
 %% http://docs.aws.amazon.com/AmazonS3/latest/dev/Redirects.html
 %% Note: redirect response is handled only once.
-s3_follow_redirect({error, {http_error, StatusCode, StatusLine, ErrBody, ErrHeaders}} = Response, 
+s3_follow_redirect({error, {http_error, StatusCode, StatusLine, ErrBody, ErrHeaders}} = _Response, 
     Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers) ->
     case Config#aws_config.s3_follow_redirect of
         true ->
@@ -1204,10 +1204,10 @@ s3_follow_redirect({error, {http_error, StatusCode, StatusLine, ErrBody, ErrHead
             end,
             case s3_request4_no_update(Config#aws_config{s3_host = S3RegionEndpoint}, 
                 Method, Bucket, Path, Subresource, Params, POSTData, Headers) of
-                {error, {http_error, StatusCode, StatusLine, Body, _Headers}} ->
-                    {error, {http_error, StatusCode, StatusLine, Body}};
-                Response ->
-                    Response
+                {error, {http_error, ErrorCode, ErrorLine, ErrorBody, _ErrorHeaders}} ->
+                    {error, {http_error, ErrorCode, ErrorLine, ErrorBody}};
+                FinalResponse ->
+                    FinalResponse
             end;
         _ ->
             {error, {http_error, StatusCode, StatusLine, ErrBody}}
