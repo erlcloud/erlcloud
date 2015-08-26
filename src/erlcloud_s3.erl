@@ -1066,34 +1066,21 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
             "" -> [];
             _ -> [{"content-md5", binary_to_list(ContentMD5)}]
         end,
-    RequestURI = case Config#aws_config.s3_bucket_after_host of
-                     false -> lists:flatten([Config#aws_config.s3_scheme,
-                                             case Host of "" -> ""; _ -> [Host, $.] end,
-                                             Config#aws_config.s3_host, port_spec(Config),
-                                             EscapedPath,
-                                             case Subresource of "" -> ""; _ -> [$?, Subresource] end,
-                                             if
-                                                 Params =:= [] -> "";
-                                                 Subresource =:= "" ->
-                                                   [$?, erlcloud_http:make_query_string(Params, no_assignment)];
-                                                 true ->
-                                                   [$&, erlcloud_http:make_query_string(Params, no_assignment)]
-                                             end
-                                            ]);
-                     true  -> lists:flatten([Config#aws_config.s3_scheme,
-                                             Config#aws_config.s3_host, port_spec(Config),
-                                             case Host of "" -> ""; _ -> [$/, Host] end,
-                                             EscapedPath,
-                                             case Subresource of "" -> ""; _ -> [$?, Subresource] end,
-                                             if
-                                                 Params =:= [] -> "";
-                                                 Subresource =:= "" ->
-                                                   [$?, erlcloud_http:make_query_string(Params, no_assignment)];
-                                                 true ->
-                                                   [$&, erlcloud_http:make_query_string(Params, no_assignment)]
-                                             end
-                                            ])
-                 end,
+    HostURI = case Config#aws_config.s3_bucket_after_host of
+                  false -> [case Host of "" -> ""; _ -> [Host, $.] end, Config#aws_config.s3_host, port_spec(Config)];
+                  true  -> [Config#aws_config.s3_host, port_spec(Config), case Host of "" -> ""; _ -> [$/, Host] end]
+              end,
+    RequestURI = lists:flatten([Config#aws_config.s3_scheme,
+                                HostURI, EscapedPath,
+                                case Subresource of "" -> ""; _ -> [$?, Subresource] end,
+                                if
+                                    Params =:= [] -> "";
+                                    Subresource =:= "" ->
+                                      [$?, erlcloud_http:make_query_string(Params, no_assignment)];
+                                    true ->
+                                      [$&, erlcloud_http:make_query_string(Params, no_assignment)]
+                                end
+                               ]),
 
     Request = #aws_request{service = s3, uri = RequestURI, method = Method},
     Request2 = case Method of
