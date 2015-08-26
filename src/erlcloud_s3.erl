@@ -735,7 +735,10 @@ make_link(Expire_time, BucketName, Key, Config) ->
 -spec get_object_url(string(), string(), aws_config()) -> string().
 
  get_object_url(BucketName, Key, Config) ->
-  lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]).
+  case Config#aws_config.s3_bucket_after_host of
+      false -> lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]);
+      true  -> lists:flatten([Config#aws_config.s3_scheme, Config#aws_config.s3_host, port_spec(Config), "/", BucketName, "/", Key])
+  end.
 
 -spec make_get_url(integer(), string(), string()) -> iolist().
 
@@ -750,7 +753,7 @@ make_get_url(Expire_time, BucketName, Key, Config) ->
         undefined -> "";
         SecurityToken -> "&x-amz-security-token=" ++ erlcloud_http:url_encode(SecurityToken)
     end,
-    lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key,
+    lists:flatten([get_object_url(BucketName, Key, Config),
      "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id),
      "&Signature=", erlcloud_http:url_encode(Sig),
      "&Expires=", Expires,
@@ -1019,11 +1022,7 @@ s3_request(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) 
 s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
-            %% The name of a bucket is originally passed as Host parameter, but our host doesn't change.
-            %% So instead I've modified this line so the name of a bucket is passed between the host adress and the object key (Path parameter).
-            %% Original line:
-            %% s3_request2_no_update(Config1, Method, Host, Path, Subresource, Params, POSTData, Headers);
-            s3_request2_no_update(Config1, Method, "", [$/|Host] ++ Path, Subresource, Params, POSTData, Headers);
+            s3_request2_no_update(Config1, Method, Host, Path, Subresource, Params, POSTData, Headers);
         {error, Reason} ->
             {error, Reason}
     end.
@@ -1067,20 +1066,34 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
             "" -> [];
             _ -> [{"content-md5", binary_to_list(ContentMD5)}]
         end,
-    RequestURI = lists:flatten([
-                                Config#aws_config.s3_scheme,
-                                case Host of "" -> ""; _ -> [Host, $.] end,
-                                Config#aws_config.s3_host, port_spec(Config),
-                                EscapedPath,
-                                case Subresource of "" -> ""; _ -> [$?, Subresource] end,
-                                if
-                                    Params =:= [] -> "";
-                                    Subresource =:= "" ->
-                                      [$?, erlcloud_http:make_query_string(Params, no_assignment)];
-                                    true ->
-                                      [$&, erlcloud_http:make_query_string(Params, no_assignment)]
-                                end
-                               ]),
+    RequestURI = case Config#aws_config.s3_bucket_after_host of
+                     false -> lists:flatten([Config#aws_config.s3_scheme,
+                                             case Host of "" -> ""; _ -> [Host, $.] end,
+                                             Config#aws_config.s3_host, port_spec(Config),
+                                             EscapedPath,
+                                             case Subresource of "" -> ""; _ -> [$?, Subresource] end,
+                                             if
+                                                 Params =:= [] -> "";
+                                                 Subresource =:= "" ->
+                                                   [$?, erlcloud_http:make_query_string(Params, no_assignment)];
+                                                 true ->
+                                                   [$&, erlcloud_http:make_query_string(Params, no_assignment)]
+                                             end
+                                            ]);
+                     true  -> lists:flatten([Config#aws_config.s3_scheme,
+                                             Config#aws_config.s3_host, port_spec(Config),
+                                             case Host of "" -> ""; _ -> [$/, Host] end,
+                                             EscapedPath,
+                                             case Subresource of "" -> ""; _ -> [$?, Subresource] end,
+                                             if
+                                                 Params =:= [] -> "";
+                                                 Subresource =:= "" ->
+                                                   [$?, erlcloud_http:make_query_string(Params, no_assignment)];
+                                                 true ->
+                                                   [$&, erlcloud_http:make_query_string(Params, no_assignment)]
+                                             end
+                                            ])
+                 end,
 
     Request = #aws_request{service = s3, uri = RequestURI, method = Method},
     Request2 = case Method of
