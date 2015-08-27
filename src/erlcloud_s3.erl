@@ -983,8 +983,8 @@ encode_grant(Grant) ->
     Grantee = proplists:get_value(grantee, Grant),
     {'Grant',
      [{'Grantee', [{xmlns, ?XMLNS_S3}],
-       [{'ID', [proplists:get_value(id, proplists:get_value(owner, Grantee))]},
-        {'DisplayName', [proplists:get_value(display_name, proplists:get_value(owner, Grantee))]}]},
+       [{'ID', [proplists:get_value(id, Grantee)]},
+        {'DisplayName', [proplists:get_value(display_name, Grantee)]}]},
       {'Permission', [encode_permission(proplists:get_value(permission, Grant))]}]}.
 
 s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
