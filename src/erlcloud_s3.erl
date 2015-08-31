@@ -701,7 +701,7 @@ set_object_acl(BucketName, Key, ACL, Config)
            [{'Owner', [{'ID', [Id]}, {'DisplayName', [DisplayName]}]},
             {'AccessControlList', encode_grants(ACL1)}]},
     XMLText = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
-    s3_simple_request(Config, put, BucketName, [$/|Key], "acl", [], XMLText, []).
+    s3_simple_request(Config, put, BucketName, [$/|Key], "acl", [], XMLText, [{"content-type", "application/xml"}]).
 
 -spec sign_get(integer(), string(), string(), aws_config()) -> {binary(), string()}.
 sign_get(Expire_time, BucketName, Key, Config)

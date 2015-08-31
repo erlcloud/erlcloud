@@ -53,8 +53,8 @@ request_httpc(URL, Method, Hdrs, <<>>, Timeout, _Config) ->
                                  [{body_format, binary}]));
 request_httpc(URL, Method, Hdrs, Body, Timeout, _Config) ->
     {value,
-     {_, ContentType}, HdrsRest} = lists:keytake(<<"content-type">>, 1, Hdrs),
-    HdrsStr = [{to_list_string(K), to_list_string(V)} || {K, V} <- HdrsRest],
+     {_, ContentType}, _HdrsRest} = lists:keytake("content-type", 1, Hdrs),
+    HdrsStr = [{to_list_string(K), to_list_string(V)} || {K, V} <- Hdrs],
     response_httpc(httpc:request(Method,
                                  {URL, HdrsStr,
                                   to_list_string(ContentType), Body},
