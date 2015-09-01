@@ -38,7 +38,9 @@ sns_api_test_() ->
       fun subscribe_input_tests/1,
       fun subscribe_output_tests/1,
       fun set_topic_attributes_input_tests/1,
-      fun set_topic_attributes_output_tests/1
+      fun set_topic_attributes_output_tests/1,
+      fun list_topics_input_tests/1,
+      fun list_topics_output_tests/1
      ]}.
 
 start() ->
@@ -166,7 +168,7 @@ output_tests(Fun, Tests) ->
 %% CreateTopic test based on the API examples:
 %% http://docs.aws.amazon.com/sns/latest/APIReference/API_CreateTopic.html
 create_topic_input_tests(_) ->
-    Tests = 
+    Tests =
         [?_sns_test(
             {"Test creates a topic in a region.",
              ?_f(erlcloud_sns:create_topic("test_topic")),
@@ -187,7 +189,7 @@ create_topic_input_tests(_) ->
         </CreateTopicResponse>",
 
     input_tests(Response, Tests).
- 
+
 create_topic_output_tests(_) ->
     Tests = [?_sns_test(
                 {"This is a create topic test",
@@ -305,6 +307,124 @@ set_topic_attributes_output_tests(_) ->
                 ok})
             ],
     output_tests(?_f(erlcloud_sns:set_topic_attributes("DisplayName", "MyTopicName", "arn:aws:sns:us-west-2:123456789012:MyTopic")), Tests).
+
+%% List topics test based on the API example:
+%% http://docs.aws.amazon.com/sns/latest/APIReference/API_ListTopics.html
+list_topics_input_tests(_) ->
+    Tests =
+        [?_sns_test(
+            {"Test lists topics.",
+             ?_f(erlcloud_sns:list_topics()),
+             [
+              {"Action", "ListTopics"}
+              ]}),
+        ?_sns_test(
+            {"Test lists topics with token.",
+             ?_f(erlcloud_sns:list_topics("token")),
+             [
+              {"Action", "ListTopics"},
+              {"NextToken", "token"}
+              ]}),
+        ?_sns_test(
+            {"Test lists topics all.",
+             ?_f(erlcloud_sns:list_topics_all()),
+             [
+              {"Action", "ListTopics"}
+              ]})
+        ],
+
+   Response = "<ListTopicsResponse xmlns=\"http://sns.amazonaws.com/doc/2010-03-31/\">
+                  <ListTopicsResult>
+                    <Topics>
+                      <member>
+                        <TopicArn>arn:aws:sns:us-east-1:123456789012:My-Topic</TopicArn>
+                      </member>
+                    </Topics>
+                  </ListTopicsResult>
+                  <ResponseMetadata>
+                    <RequestId>3f1478c7-33a9-11df-9540-99d0768312d3</RequestId>
+                  </ResponseMetadata>
+                </ListTopicsResponse>",
+
+    input_tests(Response, Tests).
+
+list_topics_output_tests(_) ->
+    output_tests(?_f(erlcloud_sns:list_topics()),
+      [?_sns_test(
+                {"Test lists topics.",
+                     "<ListTopicsResponse xmlns=\"http://sns.amazonaws.com/doc/2010-03-31/\">
+                  <ListTopicsResult>
+                    <Topics>
+                      <member>
+                        <TopicArn>arn:aws:sns:us-east-1:123456789012:My-Topic</TopicArn>
+                      </member>
+                      <member>
+                        <TopicArn>arn:aws:sns:us-east-1:123456789012:My-Another-Topic</TopicArn>
+                      </member>
+                    </Topics>
+                  </ListTopicsResult>
+                  <ResponseMetadata>
+                    <RequestId>3f1478c7-33a9-11df-9540-99d0768312d3</RequestId>
+                  </ResponseMetadata>
+                </ListTopicsResponse>",
+                [{topics,
+                  [
+                    [{arn, "arn:aws:sns:us-east-1:123456789012:My-Topic"}],
+                    [{arn, "arn:aws:sns:us-east-1:123456789012:My-Another-Topic"}]
+                  ]},
+                 {next_token, ""}
+                ]}),
+        ?_sns_test(
+                {"Test lists topics with token.",
+                     "<ListTopicsResponse xmlns=\"http://sns.amazonaws.com/doc/2010-03-31/\">
+                  <ListTopicsResult>
+                    <Topics>
+                      <member>
+                        <TopicArn>arn:aws:sns:us-east-1:123456789012:My-Topic</TopicArn>
+                      </member>
+                      <member>
+                        <TopicArn>arn:aws:sns:us-east-1:123456789012:My-Another-Topic</TopicArn>
+                      </member>
+                    </Topics>
+                    <NextToken>token</NextToken>
+                  </ListTopicsResult>
+                  <ResponseMetadata>
+                    <RequestId>3f1478c7-33a9-11df-9540-99d0768312d3</RequestId>
+                  </ResponseMetadata>
+                </ListTopicsResponse>",
+                [{topics,
+                  [
+                    [{arn, "arn:aws:sns:us-east-1:123456789012:My-Topic"}],
+                    [{arn, "arn:aws:sns:us-east-1:123456789012:My-Another-Topic"}]
+                  ]},
+                 {next_token, "token"}
+                ]})
+            ]) ++
+    output_tests(?_f(erlcloud_sns:list_topics_all()),
+      [?_sns_test(
+                {"Test lists topics all.",
+                     "<ListTopicsResponse xmlns=\"http://sns.amazonaws.com/doc/2010-03-31/\">
+                  <ListTopicsResult>
+                    <Topics>
+                      <member>
+                        <TopicArn>arn:aws:sns:us-east-1:123456789012:My-Topic</TopicArn>
+                      </member>
+                      <member>
+                        <TopicArn>arn:aws:sns:us-east-1:123456789012:My-Another-Topic</TopicArn>
+                      </member>
+                    </Topics>
+                  </ListTopicsResult>
+                  <ResponseMetadata>
+                    <RequestId>3f1478c7-33a9-11df-9540-99d0768312d3</RequestId>
+                  </ResponseMetadata>
+                </ListTopicsResponse>",
+                  [
+                    [{arn, "arn:aws:sns:us-east-1:123456789012:My-Topic"}],
+                    [{arn, "arn:aws:sns:us-east-1:123456789012:My-Another-Topic"}]
+                  ]})
+            ]).
+
+
 
 defaults_to_http(_) ->
     Config = erlcloud_aws:default_config(),
