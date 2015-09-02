@@ -7,7 +7,7 @@
          aws_request_xml4/6,aws_request_xml4/8,
          aws_request_form/8,
          param_list/2, default_config/0, update_config/1,
-         change_config/1, format_timestamp/1,
+         configure/1, format_timestamp/1,
          http_headers_body/1,
          request_to_return/1,
          sign_v4/5]).
@@ -219,11 +219,11 @@ update_config(#aws_config{} = Config) ->
                    security_token = Credentials#metadata_credentials.security_token}}
     end.
 
--spec change_config(aws_config()) -> {ok, aws_config()} | {error, term()}.
+-spec configure(aws_config()) -> {ok, aws_config()}.
 
-change_config(Config) ->
+configure(#aws_config{} = Config) ->
     put(aws_config, Config),
-    ok.
+    {ok, default_config()}.
 
 -spec get_metadata_credentials(aws_config()) -> {ok, #metadata_credentials{}} | {error, term()}.
 get_metadata_credentials(Config) ->
