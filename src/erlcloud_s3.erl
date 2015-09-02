@@ -993,7 +993,7 @@ encode_grantee(Grantee) ->
       {'Grantee', [{'xmlns:xsi', ?XMLNS_S3}, {'xsi:type', "Group"}],
       [{'URI', [proplists:get_value(uri, Grantee)]}]};
     Id ->
-      {'Grantee', [{'xmlns:xsi', ?XMLNS_S3}],
+      {'Grantee', [{'xmlns:xsi', ?XMLNS_S3}, {'xsi:type', "CanonicalUser"}],
       [{'ID', [Id]},
        {'DisplayName', [proplists:get_value(display_name, Grantee)]}]}
   end.
