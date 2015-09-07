@@ -13,6 +13,7 @@
          describe_load_balancer/1, describe_load_balancer/2,
          describe_load_balancers/0, describe_load_balancers/1, 
          describe_load_balancers/2, describe_load_balancers/3, describe_load_balancers/4,
+         describe_load_balancers_all/0, describe_load_balancers_all/1, describe_load_balancers_all/2,
 
          configure_health_check/2, configure_health_check/3,
          
@@ -203,6 +204,29 @@ describe_load_balancers(Names, Params, Config) ->
         {error, Reason} ->
             {error, Reason}
     end.
+
+-spec describe_load_balancers_all() ->
+    {ok, [term()]} | {error, term()}.
+describe_load_balancers_all() ->
+    describe_load_balancers_all(default_config()).
+
+-spec describe_load_balancers_all(list(string()) | aws_config()) ->
+    {ok, [term()]} | {error, term()}.
+describe_load_balancers_all(Config) when is_record(Config, aws_config) ->
+    describe_load_balancers_all([], default_config());
+describe_load_balancers_all(Names) ->
+    describe_load_balancers_all(Names, default_config()).
+
+-spec describe_load_balancers_all(list(string()), aws_config()) ->
+    {ok, [term()]} | {error, term()}.
+describe_load_balancers_all(Names, Config) ->
+    describe_all(
+        fun(Marker, Cfg) ->
+            describe_load_balancers(
+                Names, ?DEFAULT_MAX_RECORDS, Marker, Cfg
+            )
+        end, Config, none, []).
+    
     
 extract_elb(Item) ->
     [
@@ -456,6 +480,17 @@ member_params(Prefix, MemberIdentifiers) ->
     MemberKeys = [Prefix ++ integer_to_list(I) || I <- lists:seq(1, length(MemberIdentifiers))],
     [{K, V} || {K, V} <- lists:zip(MemberKeys, MemberIdentifiers)].
  
+
+describe_all(Fun, AwsConfig, Marker, Acc) ->
+    case Fun(Marker, AwsConfig) of
+        {ok, Res} ->
+            {ok, lists:append(Acc, Res)};
+        {{paged, NewMarker}, Res} ->
+            describe_all(Fun, AwsConfig, NewMarker, lists:append(Acc, Res));
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
 
 elb_query(Config, Action, Params) ->
     elb_query(Config, Action, Params, ?API_VERSION).
