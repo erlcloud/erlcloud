@@ -13,3 +13,5 @@ erl_crash.dump
 .edts
 *[#]*[#]
 *[#]*
+
+*.sw[o-p]
