@@ -743,7 +743,10 @@ make_link(Expire_time, BucketName, Key, Config) ->
 -spec get_object_url(string(), string(), aws_config()) -> string().
 
  get_object_url(BucketName, Key, Config) ->
-  lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]).
+  case Config#aws_config.s3_bucket_after_host of
+      false -> lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]);
+      true  -> lists:flatten([Config#aws_config.s3_scheme, Config#aws_config.s3_host, port_spec(Config), "/", BucketName, "/", Key])
+  end.
 
 -spec make_get_url(integer(), string(), string()) -> iolist().
 
@@ -758,7 +761,7 @@ make_get_url(Expire_time, BucketName, Key, Config) ->
         undefined -> "";
         SecurityToken -> "&x-amz-security-token=" ++ erlcloud_http:url_encode(SecurityToken)
     end,
-    lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key,
+    lists:flatten([get_object_url(BucketName, Key, Config),
      "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id),
      "&Signature=", erlcloud_http:url_encode(Sig),
      "&Expires=", Expires,
@@ -1071,11 +1074,12 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
             "" -> [];
             _ -> [{"content-md5", binary_to_list(ContentMD5)}]
         end,
-    RequestURI = lists:flatten([
-                                Config#aws_config.s3_scheme,
-                                case Host of "" -> ""; _ -> [Host, $.] end,
-                                Config#aws_config.s3_host, port_spec(Config),
-                                EscapedPath,
+    HostURI = case Config#aws_config.s3_bucket_after_host of
+                  false -> [case Host of "" -> ""; _ -> [Host, $.] end, Config#aws_config.s3_host, port_spec(Config)];
+                  true  -> [Config#aws_config.s3_host, port_spec(Config), case Host of "" -> ""; _ -> [$/, Host] end]
+              end,
+    RequestURI = lists:flatten([Config#aws_config.s3_scheme,
+                                HostURI, EscapedPath,
                                 case Subresource of "" -> ""; _ -> [$?, Subresource] end,
                                 if
                                     Params =:= [] -> "";
