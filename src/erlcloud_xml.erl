@@ -1,6 +1,7 @@
 -module(erlcloud_xml).
--export([decode/2, decode/3, get_bool/2, get_float/2, get_integer/2, get_list/2,
-         get_text/1, get_text/2, get_text/3, get_time/2]).
+-export([decode/2, decode/3, get_bool/2, get_float/2, get_integer/2,
+         get_integer/3, get_list/2, get_text/1, get_text/2,
+         get_text/3, get_time/2]).
 
 -include_lib("xmerl/include/xmerl.hrl").
 
