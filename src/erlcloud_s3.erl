@@ -174,7 +174,7 @@ create_bucket(BucketName, ACL, LocationConstraint, Config)
                    none -> <<>>;
                    Location when Location =:= eu; Location =:= us_west_1 ->
                        LocationName = case Location of eu -> "EU"; us_west_1 -> "us-west-1" end,
-                       XML = {'CreateBucketConfiguration', [{xmlns, ?XMLNS_S3}],
+                       XML = {'CreateBucketConfiguration', [{'xmlns:xsi', ?XMLNS_S3}],
                               [{'LocationConstraint', [LocationName]}]},
                        list_to_binary(xmerl:export_simple([XML], xmerl_xml))
                end,
@@ -391,8 +391,10 @@ extract_contents(Nodes) ->
 extract_user([]) ->
     [];
 extract_user([Node]) ->
-    Attributes = [{id, "ID", text},
-                  {display_name, "DisplayName", optional_text}],
+    Attributes = [{id, "ID", optional_text},
+                  {display_name, "DisplayName", optional_text},
+                  {uri, "URI", optional_text}
+                 ],
     erlcloud_xml:decode(Attributes, Node).
 
 -spec get_bucket_attribute(string(), s3_bucket_attribute_name()) -> term().
@@ -699,7 +701,7 @@ set_object_acl(BucketName, Key, ACL, Config)
            [{'Owner', [{'ID', [Id]}, {'DisplayName', [DisplayName]}]},
             {'AccessControlList', encode_grants(ACL1)}]},
     XMLText = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
-    s3_simple_request(Config, put, BucketName, [$/|Key], "acl", [], XMLText, []).
+    s3_simple_request(Config, put, BucketName, [$/|Key], "acl", [], XMLText, [{"content-type", "application/xml"}]).
 
 -spec sign_get(integer(), string(), string(), aws_config()) -> {binary(), string()}.
 sign_get(Expire_time, BucketName, Key, Config)
@@ -909,7 +911,7 @@ set_bucket_attribute(BucketName, AttributeName, Value, Config)
                 {"acl", ACLXML};
             logging ->
                 LoggingXML = {'BucketLoggingStatus',
-                              [{xmlns, ?XMLNS_S3}],
+                              [{'xmlns:xsi', ?XMLNS_S3}],
                               case proplists:get_bool(enabled, Value) of
                                   true ->
                                       [{'LoggingEnabled',
@@ -928,7 +930,7 @@ set_bucket_attribute(BucketName, AttributeName, Value, Config)
                                 requester -> "Requester";
                                 bucket_owner -> "BucketOwner"
                             end,
-                RPXML = {'RequestPaymentConfiguration', [{xmlns, ?XMLNS_S3}],
+                RPXML = {'RequestPaymentConfiguration', [{'xmlns:xsi', ?XMLNS_S3}],
                          [
                           {'Payer', [PayerName]}
                          ]
@@ -943,7 +945,7 @@ set_bucket_attribute(BucketName, AttributeName, Value, Config)
                                 enabled -> "Enabled";
                                 disabled -> "Disabled"
                             end,
-                VersioningXML = {'VersioningConfiguration', [{xmlns, ?XMLNS_S3}],
+                VersioningXML = {'VersioningConfiguration', [{'xmlns:xsi', ?XMLNS_S3}],
                                  [{'Status', [Status]},
                                   {'MfaDelete', [MFADelete]}]},
                 {"versioning", VersioningXML}
@@ -985,10 +987,19 @@ encode_grants(Grants) ->
 encode_grant(Grant) ->
     Grantee = proplists:get_value(grantee, Grant),
     {'Grant',
-     [{'Grantee', [{xmlns, ?XMLNS_S3}],
-       [{'ID', [proplists:get_value(id, proplists:get_value(owner, Grantee))]},
-        {'DisplayName', [proplists:get_value(display_name, proplists:get_value(owner, Grantee))]}]},
+     [encode_grantee(Grantee),
       {'Permission', [encode_permission(proplists:get_value(permission, Grant))]}]}.
+
+encode_grantee(Grantee) ->
+  case proplists:get_value(id, Grantee) of
+    undefined ->
+      {'Grantee', [{'xmlns:xsi', ?XMLNS_S3}, {'xsi:type', "Group"}],
+      [{'URI', [proplists:get_value(uri, Grantee)]}]};
+    Id ->
+      {'Grantee', [{'xmlns:xsi', ?XMLNS_S3}, {'xsi:type', "CanonicalUser"}],
+      [{'ID', [Id]},
+       {'DisplayName', [proplists:get_value(display_name, Grantee)]}]}
+  end.
 
 s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
