@@ -142,7 +142,8 @@
          %% VPC/Network ACLs
          create_network_acl/1, create_network_acl/2,
          delete_network_acl/1, delete_network_acl/2,
-         describe_network_acls/0, describe_network_acls/1, describe_network_acls/2,
+         describe_network_acls/0, describe_network_acls/1, 
+         describe_network_acls/2, describe_network_acls/3,
          create_network_acl_entry/1, create_network_acl_entry/2,
          replace_network_acl_entry/1, replace_network_acl_entry/2,
          delete_network_acl_entry/2, delete_network_acl_entry/3,
@@ -1471,17 +1472,21 @@ describe_key_pairs(KeyNames, Config)
 %%
 -spec(describe_network_acls/0 :: () -> [proplist()]).
 describe_network_acls() ->
-    describe_network_acls(none, default_config()).
+    describe_network_acls([], none, default_config()).
 
 -spec(describe_network_acls/1 :: (filter_list() | aws_config()) -> [proplist()]).
 describe_network_acls(Config) when is_record(Config, aws_config) ->
-    describe_network_acls(none, Config);
+    describe_network_acls([], none, Config);
 describe_network_acls(Filter) ->
-    describe_network_acls(Filter, default_config()).
+    describe_network_acls([], Filter, default_config()).
 
 -spec(describe_network_acls/2 :: (filter_list(), aws_config()) -> [proplist()]).
-describe_network_acls(Filter, Config) ->
-    Params = list_to_ec2_filter(Filter),
+describe_network_acls(Filter, Config) when is_record(Config, aws_config) ->
+    describe_network_acls([], Filter, Config).
+
+-spec(describe_network_acls/3 :: ([string()], filter_list(), aws_config()) -> [proplist()]).
+describe_network_acls(AclIds, Filter, Config) ->
+    Params = erlcloud_aws:param_list(AclIds, "NetworkAclId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeNetworkAcls", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             Path = "/DescribeNetworkAclsResponse/networkAclSet/item",
