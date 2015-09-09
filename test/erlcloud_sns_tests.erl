@@ -75,13 +75,12 @@ common_params() ->
 -type expected_param() :: {string(), string()}.
 -spec validate_param(string(), [expected_param()]) -> [expected_param()].
 validate_param(Param, Expected) ->
-    case string:tokens(Param, "=") of
-        [Key, Value] -> 
-            ok;
-        [Key] ->
-            Value = "",
-            ok
-    end,
+    [Key, Value] = case string:tokens(Param, "=") of
+                        [K, V] ->
+                            [K, V];
+                        [K] ->
+                            [K, ""]
+                    end,
     case lists:member(Key, common_params()) of
         true ->
             Expected;
