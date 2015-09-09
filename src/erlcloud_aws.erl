@@ -18,7 +18,7 @@
 -include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
--record(metadata_credentials, 
+-record(metadata_credentials,
         {access_key_id :: string(),
          secret_access_key :: string(),
          security_token=undefined :: string(),
@@ -94,14 +94,14 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
                         undefined -> [];
                         Token -> [{"SecurityToken", Token}]
                     end),
-    
+
     QueryToSign = erlcloud_http:make_query_string(QParams),
     RequestToSign = [string:to_upper(atom_to_list(Method)), $\n,
                      string:to_lower(Host), $\n, Path, $\n, QueryToSign],
     Signature = base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, RequestToSign)),
-    
+
     Query = [QueryToSign, "&Signature=", erlcloud_http:url_encode(Signature)],
-    
+
     aws_request_form(Method, Protocol, Host, Port, Path, Query, [], Config).
 
 aws_region_from_host(Host) ->
@@ -124,7 +124,15 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service, #aws
     Query = erlcloud_http:make_query_string(Params),
     Region = aws_region_from_host(Host),
 
-    SignedHeaders = sign_v4(Method, Path, Config, [{"host", Host}], list_to_binary(Query), Region, Service, []),
+    SignedHeaders = case Method of
+                        post ->
+                            sign_v4(Method, Path, Config,
+                                    [{"host", Host}], list_to_binary(Query),
+                                    Region, Service, []);
+                        get ->
+                            sign_v4(Method, Path, Config, [{"host", Host}],
+                                    [], Region, Service, Params)
+                    end,
 
     aws_request_form(Method, Protocol, Host, Port, Path, Query, SignedHeaders, Config).
 
@@ -137,12 +145,12 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
         undefined -> "https://";
         _ -> [Protocol, "://"]
     end,
-    
+
     URL = case Port of
         undefined -> [UProtocol, Host, Path];
         _ -> [UProtocol, Host, $:, port_to_str(Port), Path]
     end,
-    
+
     %% Note: httpc MUST be used with {timeout, timeout()} option
     %%       Many timeout related failures is observed at prod env
     %%       when library is used in 24/7 manner
@@ -154,11 +162,11 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
                   Req, get, Headers, <<>>, Config#aws_config.timeout, Config);
             _ ->
                 erlcloud_httpc:request(
-                  lists:flatten(URL), Method, 
+                  lists:flatten(URL), Method,
                   [{<<"content-type">>, <<"application/x-www-form-urlencoded; charset=utf-8">>} | Headers],
                   list_to_binary(Form), Config#aws_config.timeout, Config)
         end,
-    
+
     http_body(Response).
 
 param_list([], _Key) -> [];
@@ -244,8 +252,8 @@ get_metadata_credentials(Config) ->
 timestamp_to_gregorian_seconds(Timestamp) ->
     {ok, [Yr, Mo, Da, H, M, S], []} = io_lib:fread("~d-~d-~dT~d:~d:~dZ", binary_to_list(Timestamp)),
     calendar:datetime_to_gregorian_seconds({{Yr, Mo, Da}, {H, M, S}}).
-    
--spec get_credentials_from_metadata(aws_config()) 
+
+-spec get_credentials_from_metadata(aws_config())
                                    -> {ok, #metadata_credentials{}} | {error, term()}.
 get_credentials_from_metadata(Config) ->
     %% TODO this function should retry on errors getting credentials
@@ -261,7 +269,7 @@ get_credentials_from_metadata(Config) ->
             [Role | _] = binary:split(Body, <<$\n>>),
             case http_body(
                    erlcloud_httpc:request(
-                     "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++ 
+                     "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++
                          binary_to_list(Role),
                      get, [], <<>>, Config#aws_config.timeout, Config)) of
                 {error, Reason} ->
@@ -284,7 +292,7 @@ port_to_str(Port) when is_integer(Port) ->
 port_to_str(Port) when is_list(Port) ->
     Port.
 
--spec http_body({ok, tuple()} | {error, term()}) 
+-spec http_body({ok, tuple()} | {error, term()})
                -> {ok, binary()} | {error, tuple()}.
 %% Extract the body and do error handling on the return of a httpc:request call.
 http_body(Return) ->
@@ -296,10 +304,10 @@ http_body(Return) ->
     end.
 
 -type headers() :: [{string(), string()}].
--spec http_headers_body({ok, tuple()} | {error, term()}) 
+-spec http_headers_body({ok, tuple()} | {error, term()})
                        -> {ok, {headers(), binary()}} | {error, tuple()}.
 %% Extract the headers and body and do error handling on the return of a httpc:request call.
-http_headers_body({ok, {{OKStatus, _StatusLine}, Headers, Body}}) 
+http_headers_body({ok, {{OKStatus, _StatusLine}, Headers, Body}})
   when OKStatus >= 200, OKStatus =< 299 ->
     {ok, {Headers, Body}};
 http_headers_body({ok, {{Status, StatusLine}, _Headers, Body}}) ->
@@ -308,12 +316,12 @@ http_headers_body({error, Reason}) ->
     {error, {socket_error, Reason}}.
 
 %% Convert an aws_request record to return value as returned by http_headers_body
-request_to_return(#aws_request{response_type = ok, 
-                               response_headers = Headers, 
+request_to_return(#aws_request{response_type = ok,
+                               response_headers = Headers,
                                response_body = Body}) ->
     {ok, {[ {string:to_lower(H), V} || {H, V} <- Headers ], Body}};
 request_to_return(#aws_request{response_type = error,
-                               error_type = httpc, 
+                               error_type = httpc,
                                httpc_error_reason = Reason}) ->
     {error, {socket_error, Reason}};
 request_to_return(#aws_request{response_type = error,
@@ -345,7 +353,7 @@ sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams) ->
     Signature = base16(erlcloud_util:sha256_mac( SigningKey, ToSign)),
     Authorization = authorization(Config, CredentialScope, SignedHeaders, Signature),
     [{"Authorization", lists:flatten(Authorization)} | Headers2].
-    
+
 iso_8601_basic_time() ->
     {{Year,Month,Day},{Hour,Min,Sec}} = calendar:now_to_universal_time(os:timestamp()),
     lists:flatten(io_lib:format(
@@ -396,13 +404,13 @@ base16(Data) ->
 credential_scope(Date, Region, Service) ->
     DateOnly = string:left(Date, 8),
     [DateOnly, $/, Region, $/, Service, "/aws4_request"].
-    
+
 to_sign(Date, CredentialScope, Request) ->
     ["AWS4-HMAC-SHA256\n",
      Date, $\n,
      CredentialScope, $\n,
      hash_encode(Request)].
-    
+
 signing_key(Config, Date, Region, Service) ->
     %% TODO cache the signing key so we don't have to recompute for every request
     DateOnly = string:left(Date, 8),
@@ -410,7 +418,7 @@ signing_key(Config, Date, Region, Service) ->
     KRegion = erlcloud_util:sha256_mac( KDate, Region),
     KService = erlcloud_util:sha256_mac( KRegion, Service),
     erlcloud_util:sha256_mac( KService, "aws4_request").
-    
+
 authorization(Config, CredentialScope, SignedHeaders, Signature) ->
     ["AWS4-HMAC-SHA256"
      " Credential=", Config#aws_config.access_key_id, $/, CredentialScope, $,,
@@ -436,10 +444,10 @@ authorization(Config, CredentialScope, SignedHeaders, Signature) ->
 %%  2 - service disruption.
 -spec get_service_status(list(string())) -> ok | list().
 get_service_status(ServiceNames) when is_list(ServiceNames) ->
-    {ok, Json} = aws_request_form(get, "http", "status.aws.amazon.com", undefined, 
+    {ok, Json} = aws_request_form(get, "http", "status.aws.amazon.com", undefined,
         "/data.json", "", [], default_config()),
 
-    case get_filtered_statuses(ServiceNames, 
+    case get_filtered_statuses(ServiceNames,
             proplists:get_value(<<"current">>, jsx:decode(Json)))
     of
         [] -> ok;
@@ -448,16 +456,16 @@ get_service_status(ServiceNames) when is_list(ServiceNames) ->
 
 get_filtered_statuses(ServiceNames, Statuses) ->
     lists:filter(
-        fun(S)-> 
+        fun(S)->
             lists:any(
-                fun(InputService)-> 
+                fun(InputService)->
                     ServiceNameBin = list_to_binary(InputService),
                     ServiceNameLen = byte_size(ServiceNameBin),
-                    case proplists:get_value(<<"service">>, S) of 
+                    case proplists:get_value(<<"service">>, S) of
                         <<ServiceNameBin:ServiceNameLen/binary, _/binary>> -> true;
                         _ -> false
                     end
-                end, 
+                end,
             ServiceNames)
         end,
     Statuses).
