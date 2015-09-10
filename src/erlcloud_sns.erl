@@ -585,9 +585,9 @@ list_all(Fun, Type, Config, Token, Acc) ->
     List = proplists:get_value(Type, Res),
     case proplists:get_value(next_token, Res) of
         "" ->
-            lists:append(Acc, List);
+            lists:foldl(fun erlang:'++'/2, [], [List | Acc]);
         NextToken ->
-            list_all(Fun, Type, Config, NextToken, lists:append(Acc, List))
+            list_all(Fun, Type, Config, NextToken, [List | Acc])
     end.
 
 extract_endpoint(Nodes) ->
