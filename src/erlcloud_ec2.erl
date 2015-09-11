@@ -133,7 +133,8 @@
          attach_internet_gateway/2, attach_internet_gateway/3,
          delete_internet_gateway/1, delete_internet_gateway/2,
          detach_internet_gateway/2, detach_internet_gateway/3,
-         describe_route_tables/0, describe_route_tables/1, describe_route_tables/2,
+         describe_route_tables/0, describe_route_tables/1, 
+         describe_route_tables/2, describe_route_tables/3,
          create_route_table/1, create_route_table/2,
          delete_route_table/1, delete_route_table/2,
          create_route/4, create_route/5, delete_route/2, delete_route/3,
@@ -1689,17 +1690,21 @@ extract_reserved_instances_offering(Node) ->
 %%
 -spec(describe_route_tables/0 :: () -> [proplist()]).
 describe_route_tables() ->
-    describe_route_tables(none, default_config()).
+    describe_route_tables([], none, default_config()).
 
 -spec(describe_route_tables/1 :: (filter_list() | none | aws_config()) -> [proplist()]).
 describe_route_tables(Config) when is_record(Config, aws_config) ->
-    describe_route_tables(none, Config);
+    describe_route_tables([], none, Config);
 describe_route_tables(Filter) ->
-    describe_route_tables(Filter, default_config()).
+    describe_route_tables([], Filter, default_config()).
 
 -spec(describe_route_tables/2 :: (filter_list() | none, aws_config()) -> [proplist()]).
 describe_route_tables(Filter, Config) ->
-    Params = list_to_ec2_filter(Filter),
+    describe_route_tables([], Filter, Config).
+
+-spec(describe_route_tables/3 :: ([string()], filter_list() | none, aws_config()) -> [proplist()]).
+describe_route_tables(RouteTableIds, Filter, Config) ->
+    Params = erlcloud_aws:param_list(RouteTableIds, "RouteTableId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeRouteTables", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             Path = "/DescribeRouteTablesResponse/routeTableSet/item",
