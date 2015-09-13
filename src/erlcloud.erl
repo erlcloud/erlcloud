@@ -1,5 +1,4 @@
 -module(erlcloud).
-
 -export([start/0]).
 
 -define(APP, erlcloud).
