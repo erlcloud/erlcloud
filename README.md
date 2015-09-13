@@ -90,16 +90,6 @@ For usage information, consult the source code and refer to the API reference at
 - http://docs.aws.amazon.com/AmazonS3/latest/API/Welcome.html
 - http://docs.amazonwebservices.com/AmazonSimpleDB/latest/DeveloperGuide/
 
-## Multi-part uploads ##
-
-A small library is included for managing multi-part uploading of files in a fault-tolerant manner, `erlcloud_s3_multipart`. Example usage: 
-
-```
-erlcloud:start_s3_multipart_sup(). %% starts the multi-part supervisor; intended to be started by one of your supervisors
-erlcloud:put_object_multipart("/path/to/file", "bucket", "key").
-
-```
-
 ## Roadmap ##
 
 v0.8.0
