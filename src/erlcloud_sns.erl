@@ -11,6 +11,8 @@
          create_topic/1, create_topic/2,
          delete_endpoint/1, delete_endpoint/2, delete_endpoint/3,
          delete_topic/1, delete_topic/2,
+         list_topics/0, list_topics/1, list_topics/2,
+         list_topics_all/0, list_topics_all/1,
          list_endpoints_by_platform_application/1,
          list_endpoints_by_platform_application/2,
          list_endpoints_by_platform_application/3,
@@ -273,6 +275,41 @@ list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, Config
 list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, AccessKeyID, SecretAccessKey) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, new_config(AccessKeyID, SecretAccessKey)).
 
+-spec list_topics/0 :: () -> [{topics, [[{arn, string()}]]} | {next_token, string()}].
+-spec list_topics/1 :: (undefined | string() | aws_config()) -> [{topics, [[{arn, string()}]]} | {next_token, string()}].
+-spec list_topics/2 :: (undefined | string(), aws_config()) ->  [{topics, [[{arn, string()}]]} | {next_token, string()}].
+
+list_topics() ->
+    list_topics(default_config()).
+
+list_topics(Config) when is_record(Config, aws_config) ->
+    list_topics(undefined, Config);
+list_topics(NextToken) ->
+    list_topics(NextToken, default_config()).
+
+list_topics(NextToken, Config) ->
+    Params =
+        case NextToken of
+            undefined -> [];
+            NextToken -> [{"NextToken", NextToken}]
+        end,
+    Doc = sns_xml_request(Config, "ListTopics", Params),
+    Decoded =
+        erlcloud_xml:decode(
+            [{topics, "ListTopicsResult/Topics/member",
+                fun extract_topic_arn/1
+             },
+             {next_token, "ListTopicsResult/NextToken", text}],
+            Doc),
+    Decoded.
+
+-spec list_topics_all/0 :: () -> [[{arn, string()}]].
+-spec list_topics_all/1 :: (aws_config()) -> [[{arn, string()}]].
+list_topics_all() ->
+    list_topics_all(default_config()).
+
+list_topics_all(Config) ->
+    list_all(fun list_topics/2, topics, Config, undefined, []).
 
 
 -spec list_platform_applications/0 :: () -> [sns_application()].
@@ -543,6 +580,15 @@ sns_request(Config, Action, Params) ->
             erlang:error({sns_error, Reason})
     end.
 
+list_all(Fun, Type, Config, Token, Acc) ->
+    Res = Fun(Token, Config),
+    List = proplists:get_value(Type, Res),
+    case proplists:get_value(next_token, Res) of
+        "" ->
+            lists:foldl(fun erlang:'++'/2, [], [List | Acc]);
+        NextToken ->
+            list_all(Fun, Type, Config, NextToken, [List | Acc])
+    end.
 
 extract_endpoint(Nodes) ->
     [erlcloud_xml:decode(
@@ -560,6 +606,9 @@ extract_attribute(Nodes) ->
     [{parse_key(erlcloud_xml:get_text("key", Node)),
       erlcloud_xml:get_text("value", Node)}
      || Node <- Nodes].
+
+extract_topic_arn(Nodes) ->
+    [erlcloud_xml:decode([{arn, "TopicArn", text}], Node) || Node <- Nodes].
 
 parse_key("Enabled") -> enabled;
 parse_key("CustomUserData") -> custom_user_data;
