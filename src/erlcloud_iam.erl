@@ -111,7 +111,7 @@ list_access_keys(UserName, #aws_config{} = Config) when is_list(UserName) ->
 
 % TODO: Make sure to handle pagination of results
 -spec(list_users/0 :: () -> proplist()).
-list_users() -> list_users([]).
+list_users() -> list_users("/").
 -spec(list_users/1 :: (string() | aws_config()) -> proplist()).
 list_users(#aws_config{} = Config) ->
     list_users("/", Config);
