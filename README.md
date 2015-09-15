@@ -106,3 +106,8 @@ v1.0.0
 ## Notes ##
 
 Indentation in contributions should follow indentation style of surrounding text. In general it follows default indentation rules of official erlang-mode as provided by OTP team.
+
+## Best Practices ##
+
+- Public interfaces with paging logic should prefer {ok, Results, Marker} style to the {{paged, Marker}, Results} found in some modules
+- Public interfaces should normally expose proplists over records
