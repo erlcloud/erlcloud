@@ -29,7 +29,7 @@
           ddb_streams_port=80::non_neg_integer(),
           route53_scheme="https://"::string(),
           route53_host="route53.amazonaws.com"::string(),
-          route53_port="80"::integer(),
+          route53_port="80"::string(),
           kinesis_scheme="https://"::string(),
           kinesis_host="kinesis.us-east-1.amazonaws.com"::string(),
           kinesis_port=80::non_neg_integer(),
