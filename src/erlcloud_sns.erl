@@ -595,9 +595,9 @@ list_all(Fun, Type, Config, Token, Acc) ->
     List = proplists:get_value(Type, Res),
     case proplists:get_value(next_token, Res) of
         "" ->
-            lists:append(Acc, List);
+            lists:foldl(fun erlang:'++'/2, [], [List | Acc]);
         NextToken ->
-            list_all(Fun, Type, Config, NextToken, lists:append(Acc, List))
+            list_all(Fun, Type, Config, NextToken, [List | Acc])
     end.
 
 extract_endpoint(Nodes) ->
@@ -635,4 +635,3 @@ scheme_to_protocol(_)                 -> erlang:error({sns_error, badarg}).
 s2p("http://")  -> "http";
 s2p("https://") -> "https";
 s2p(X)          -> erlang:error({sns_error, {unsupported_scheme, X}}).
-

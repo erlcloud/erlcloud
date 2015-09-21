@@ -52,12 +52,11 @@ request_httpc(URL, Method, Hdrs, <<>>, Timeout, _Config) ->
                                  [{timeout, Timeout}],
                                  [{body_format, binary}]));
 request_httpc(URL, Method, Hdrs, Body, Timeout, _Config) ->
-    {value,
-     {_, ContentType}, HdrsRest} = lists:keytake(<<"content-type">>, 1, Hdrs),
-    HdrsStr = [{to_list_string(K), to_list_string(V)} || {K, V} <- HdrsRest],
+    HdrsStr = [{to_list_string(K), to_list_string(V)} || {K, V} <- Hdrs],
+    {"content-type", ContentType} = lists:keyfind("content-type", 1, HdrsStr),
     response_httpc(httpc:request(Method,
                                  {URL, HdrsStr,
-                                  to_list_string(ContentType), Body},
+                                  ContentType, Body},
                                  [{timeout, Timeout}],
                                  [{body_format, binary}])).
 
