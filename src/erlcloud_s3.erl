@@ -1222,7 +1222,7 @@ s3_follow_redirect({error, {http_error, StatusCode, StatusLine, ErrBody, ErrHead
                     s3_endpoint_from_hostname(HostName, Bucket);
                 {BucketRegion, _} ->
                     %% Use "x-amz-bucket-region" header value if present.
-                    lists:flatten(["s3-", BucketRegion, ".amazonaws.com"])
+                    s3_endpoint_for_region(BucketRegion)
             end,
             case s3_request4_no_update(Config#aws_config{s3_host = S3RegionEndpoint},
                 Method, Bucket, Path, Subresource, Params, POSTData, Headers) of
@@ -1241,3 +1241,11 @@ s3_follow_redirect({error, {http_error, StatusCode, StatusLine, ErrBody, ErrHead
 %%              "test.bucket") -> "s3.eu-central-1.amazonaws.com"
 s3_endpoint_from_hostname(HostName, Bucket) ->
     HostName -- lists:flatten([Bucket, $.]).
+
+s3_endpoint_for_region(RegionName) ->
+    case RegionName of
+        "us-east-1" ->
+            "s3.amazonaws.com";
+        _ ->
+            lists:flatten(["s3-", RegionName, ".amazonaws.com"])
+    end.
