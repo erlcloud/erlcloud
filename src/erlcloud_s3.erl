@@ -1245,7 +1245,7 @@ s3_endpoint_from_hostname(HostName, Bucket) ->
 s3_endpoint_for_region(RegionName) ->
     case RegionName of
         "us-east-1" ->
-            "s3.amazonaws.com";
+            "s3-external-1.amazonaws.com";
         _ ->
             lists:flatten(["s3-", RegionName, ".amazonaws.com"])
     end.
