@@ -935,6 +935,7 @@ decode_error_code("InvalidParameterCombination") -> invalid_parameter_combinatio
 decode_error_code("InvalidParameterValue") -> invalid_parameter_value;
 decode_error_code("InvalidQueryParameter") -> invalid_query_parameter;
 decode_error_code("MalformedQueryString") -> malformed_query_string;
+decode_error_code("MessageRejected") -> message_rejected;
 decode_error_code("MissingAction") -> missing_action;
 decode_error_code("MissingAuthenticationToken") -> missing_authentication_token;
 decode_error_code("MissingParameter") -> missing_parameter;
