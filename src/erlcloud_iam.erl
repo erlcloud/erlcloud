@@ -31,6 +31,7 @@
     get_policy/1, get_policy/2,
     get_policy_version/2, get_policy_version/3,
     list_instance_profiles/0, list_instance_profiles/1, list_instance_profiles/2,
+    get_instance_profile/1, get_instance_profile/2,
     get_account_authorization_details/0, get_account_authorization_details/1,
     get_account_summary/0, get_account_summary/1,
     get_account_password_policy/0, get_account_password_policy/1,
@@ -332,6 +333,15 @@ list_instance_profiles(PathPrefix, #aws_config{} = Config) ->
     Params = [{"PathPrefix", PathPrefix}],
     iam_query(Config, "ListInstanceProfiles", Params, ItemPath, data_type("InstanceProfile")).
 
+-spec(get_instance_profile/1 :: (string()) -> proplist()).
+get_instance_profile(ProfileName) ->
+    get_instance_profile(ProfileName, default_config()).
+
+-spec(get_instance_profile/2 :: (string(), aws_config()) -> proplist()).
+get_instance_profile(ProfileName, #aws_config{} = Config) ->
+    ItemPath = "/GetInstanceProfileResponse/GetInstanceProfileResult/InstanceProfile",
+    Params = [{"InstanceProfileName", ProfileName}],
+    iam_query(Config, "GetInstanceProfile", Params, ItemPath, data_type("InstanceProfile")).
 
 %
 % Account APIs

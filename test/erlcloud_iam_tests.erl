@@ -63,6 +63,8 @@ iam_api_test_() ->
       fun list_role_policies_output_tests/1,
       fun list_instance_profiles_input_tests/1,
       fun list_instance_profiles_output_tests/1,
+      fun get_instance_profile_input_tests/1,
+      fun get_instance_profile_output_tests/1,
       fun get_credential_report_input_tests/1,
       fun get_credential_report_output_tests/1,
       fun list_attached_user_policies_input_tests/1,
@@ -1108,6 +1110,66 @@ list_instance_profiles_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:list_instance_profiles()), Tests).
+
+-define(GET_INSTANCE_PROFILE_RESP,
+        "<GetInstanceProfileResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+        <GetInstanceProfileResult>
+          <InstanceProfile>
+            <InstanceProfileId>AIPAD5ARO2C5EXAMPLE3G</InstanceProfileId>
+            <Roles>
+              <member>
+                <Path>/application_abc/component_xyz/</Path>
+                <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+                <RoleName>S3Access</RoleName>
+                <AssumeRolePolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}</AssumeRolePolicyDocument>
+                <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+                <RoleId>AROACVYKSVTSZFEXAMPLE</RoleId>
+              </member>
+            </Roles>
+            <InstanceProfileName>Webserver</InstanceProfileName>
+            <Path>/application_abc/component_xyz/</Path>
+            <Arn>arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Webserver</Arn>
+            <CreateDate>2012-05-09T16:11:10Z</CreateDate>
+          </InstanceProfile>
+        </GetInstanceProfileResult>
+        <ResponseMetadata>
+          <RequestId>37289fda-99f2-11e1-a4c3-27EXAMPLE804</RequestId>
+        </ResponseMetadata>
+        </GetInstanceProfileResponse>").
+
+get_instance_profile_input_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"Test returning instance profile.",
+             ?_f(erlcloud_iam:get_instance_profile("Webserver")),
+             [
+              {"Action", "GetInstanceProfile"},
+              {"InstanceProfileName", "Webserver"}
+              ]})
+        ],
+
+    input_tests(?GET_INSTANCE_PROFILE_RESP, Tests).
+
+get_instance_profile_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the instance profile",
+              ?GET_INSTANCE_PROFILE_RESP,
+              {ok,[[{instance_profile_id,"AIPAD5ARO2C5EXAMPLE3G"},
+                    {roles,[[{path,"/application_abc/component_xyz/"},
+                             {role_name,"S3Access"},
+                             {role_id,"AROACVYKSVTSZFEXAMPLE"},
+                             {assume_role_policy_doc,"{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"},
+                             {create_date,{{2012,5,9},{15,45,35}}},
+                             {arn,"arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access"}
+                             ]]},
+                    {instance_profile_name,"Webserver"},
+                    {path,"/application_abc/component_xyz/"},
+                    {arn,"arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Webserver"},
+                    {create_date,{{2012,5,9},{16,11,10}}}]
+                  ]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:get_instance_profile("Webserver")), Tests).
 
 -define(GET_ACCOUNT_AUTHORIZATION_DETAILS_RESP,
         "<GetAccountAuthorizationDetailsResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
