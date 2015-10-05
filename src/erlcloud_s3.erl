@@ -1,8 +1,9 @@
 %% Amazon Simple Storage Service (S3)
 
 -module(erlcloud_s3).
+
 -export([new/2, new/3, new/4, configure/2, configure/3, configure/4,
-         create_bucket/1, create_bucket/2, create_bucket/3,
+         create_bucket/1, create_bucket/2, create_bucket/3, create_bucket/4,
          delete_bucket/1, delete_bucket/2,
          get_bucket_attribute/2, get_bucket_attribute/3,
          list_buckets/0, list_buckets/1,
@@ -101,7 +102,16 @@ configure(AccessKeyID, SecretAccessKey, Host, Port) ->
 
 -type s3_location_constraint() :: none
                                 | us_west_1
-                                | eu.
+                                | eu
+                                | 'us-east-1'
+                                | 'us-west-1'
+                                | 'eu-west-1'
+                                | 'eu-central-1'
+                                | 'ap-southeast-1'
+                                | 'ap-southeast-2'
+                                | 'ap-northeast-1'
+                                | 'sa-east-1'.
+
 
 -define(XMLNS_S3, "http://s3.amazonaws.com/doc/2006-03-01/").
 
@@ -170,15 +180,27 @@ create_bucket(BucketName, ACL, LocationConstraint, Config)
                   private -> [];  %% private is the default
                   _       -> [{"x-amz-acl", encode_acl(ACL)}]
               end,
-    POSTData = case LocationConstraint of
-                   none -> <<>>;
-                   Location when Location =:= eu; Location =:= us_west_1 ->
-                       LocationName = case Location of eu -> "EU"; us_west_1 -> "us-west-1" end,
-                       XML = {'CreateBucketConfiguration', [{'xmlns:xsi', ?XMLNS_S3}],
+    POSTData = case encode_location_constraint(LocationConstraint) of
+                   undefined -> <<>>;
+                   LocationName ->
+                       XML = {'CreateBucketConfiguration', [{xmlns, ?XMLNS_S3}],
                               [{'LocationConstraint', [LocationName]}]},
                        list_to_binary(xmerl:export_simple([XML], xmerl_xml))
                end,
     s3_simple_request(Config, put, BucketName, "/", "", [], POSTData, Headers).
+
+encode_location_constraint(eu) -> "EU";
+encode_location_constraint(us_west_1) -> "us-west-1";
+encode_location_constraint('us-east-1') -> undefined;
+encode_location_constraint('us-west-1') -> "us-west-1";
+encode_location_constraint('us-west-2') -> "us-west-2";
+encode_location_constraint('eu-west-1') -> "EU";
+encode_location_constraint('eu-central-1') -> "eu-central-1";
+encode_location_constraint('ap-southeast-1') -> "ap-southeast-1";
+encode_location_constraint('ap-southeast-2') -> "ap-southeast-2";
+encode_location_constraint('ap-northeast-1') -> "ap-northeast-1";
+encode_location_constraint('sa-east-1') -> "sa-east-1";
+encode_location_constraint(_) -> undefined.
 
 encode_acl(undefined)                 -> undefined;
 encode_acl(private)                   -> "private";
@@ -207,14 +229,14 @@ delete_objects_batch(Bucket, KeyList) ->
 -spec delete_objects_batch(string(), list(), aws_config()) -> no_return().
 delete_objects_batch(Bucket, KeyList, Config) ->
     Data = lists:map(fun(Item) ->
-            lists:concat(["<Object><Key>", Item, "</Key></Object>"]) end, 
+            lists:concat(["<Object><Key>", Item, "</Key></Object>"]) end,
                 KeyList),
     Payload = unicode:characters_to_list(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Delete>" ++ Data ++ "</Delete>", 
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Delete>" ++ Data ++ "</Delete>",
                 utf8),
 
     Len = integer_to_list(string:len(Payload)),
-    Url = lists:flatten([Config#aws_config.s3_scheme, 
+    Url = lists:flatten([Config#aws_config.s3_scheme,
                 Bucket, ".", Config#aws_config.s3_host, port_spec(Config), "/?delete"]),
     Host = Bucket ++ "." ++ Config#aws_config.s3_host,
     ContentMD5 = base64:encode(erlcloud_util:md5(Payload)),
@@ -226,7 +248,7 @@ delete_objects_batch(Bucket, KeyList, Config) ->
     erlcloud_aws:http_headers_body(Result).
 
 % returns paths list from AWS S3 root directory, used as input to delete_objects_batch
-% example : 
+% example :
 %    25> rp(erlcloud_s3:explore_dirstructure("xmppfiledev", ["sailfish/deleteme"], [])).
 %    ["sailfish/deleteme/deep/deep1/deep4/ZZZ_1.txt",
 %     "sailfish/deleteme/deep/deep1/deep4/ZZZ_0.txt",
@@ -236,14 +258,14 @@ delete_objects_batch(Bucket, KeyList, Config) ->
 %
 -spec explore_dirstructure(string(), list(), list()) -> list().
 
-explore_dirstructure(_, [], Result) -> 
+explore_dirstructure(_, [], Result) ->
                                     lists:append(Result);
 explore_dirstructure(Bucketname, [Branch|Tail], Accum) ->
     ProcessContent = fun(Data)->
             Content = proplists:get_value(contents, Data),
             lists:foldl(fun(I,Acc)-> R = proplists:get_value(key, I), [R|Acc] end, [], Content)
             end,
-    
+
     Data = erlcloud_s3:list_objects(Bucketname,[{prefix, Branch}, {delimiter, "/"}]),
     case proplists:get_value(common_prefixes, Data) of
         [] -> % it has reached end of the branch
@@ -298,8 +320,9 @@ list_buckets() ->
 
 list_buckets(Config) ->
     Doc = s3_xml_request(Config, get, "", "/", "", [], <<>>, []),
+    Owner = extract_user(xmerl_xpath:string("/*/Owner", Doc)),
     Buckets = [extract_bucket(Node) || Node <- xmerl_xpath:string("/*/Buckets/Bucket", Doc)],
-    [{buckets, Buckets}].
+    [{owner, Owner}, {buckets, Buckets}].
 
 %
 % @doc Get S3 bucket policy JSON object
@@ -454,9 +477,18 @@ get_bucket_attribute(BucketName, AttributeName, Config)
 extract_acl(ACL) ->
     [extract_grant(Item) || Item <- ACL].
 
-extract_grant(Node) ->
-    [{grantee, extract_user(xmerl_xpath:string("Grantee", Node))},
-     {permission, decode_permission(erlcloud_xml:get_text("Permission", Node))}].
+extract_grant(GrantNode) ->
+    [GranteeNode] = xmerl_xpath:string("Grantee", GrantNode),
+    [{grantee, extract_grantee(GranteeNode)},
+     {permission, decode_permission(erlcloud_xml:get_text("Permission", GrantNode))}].
+
+extract_grantee(Node) ->
+    erlcloud_xml:decode([
+        {type, {".", "xsi:type"}, text},
+        {id, "ID", optional_text},
+        {display_name, "DisplayName", optional_text},
+        {uri, "URI", optional_text}
+    ], Node).
 
 encode_permission(full_control) -> "FULL_CONTROL";
 encode_permission(write)        -> "WRITE";
@@ -491,7 +523,10 @@ get_object(BucketName, Key, Options, Config) ->
                       {"If-Modified-Since", proplists:get_value(if_modified_since, Options)},
                       {"If-Unmodified-Since", proplists:get_value(if_unmodified_since, Options)},
                       {"If-Match", proplists:get_value(if_match, Options)},
-                      {"If-None-Match", proplists:get_value(if_none_match, Options)}],
+                      {"If-None-Match", proplists:get_value(if_none_match, Options)},
+                      {"x-amz-server-side-encryption-customer-algorithm", proplists:get_value(server_side_encryption_customer_algorithm, Options)},
+                      {"x-amz-server-side-encryption-customer-key", proplists:get_value(server_side_encryption_customer_key, Options)},
+                      {"x-amz-server-side-encryption-customer-key-md5", proplists:get_value(server_side_encryption_customer_key_md5, Options)}],
     Subresource = case proplists:get_value(version_id, Options) of
                       undefined -> "";
                       Version   -> ["versionId=", Version]
@@ -1005,6 +1040,7 @@ s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Hea
     case s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
         {_Headers, <<>>} -> ok;
         {_Headers, Body} ->
+            io:format("~p", [Body]),
             XML = element(1,xmerl_scan:string(binary_to_list(Body))),
             case XML of
                 #xmlElement{name='Error'} ->
@@ -1038,10 +1074,21 @@ s3_request(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) 
 
 %% s3_request2 returns {ok, Body} or {error, Reason} instead of throwing as s3_request does
 %% This is the preferred pattern for new APIs
-s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
+s3_request2(Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
-            s3_request2_no_update(Config1, Method, Host, Path, Subresource, Params, POSTData, Headers);
+            case s3_request4_no_update(Config1, Method, Bucket, Path,
+                   Subresource, Params, POSTData, Headers)
+            of
+                {error, {http_error, StatusCode, _, _, _}} = RedirectResponse
+                    when StatusCode >= 301 andalso StatusCode < 400 ->
+                    s3_follow_redirect(RedirectResponse, Config1, Method, Bucket, Path,
+                        Subresource, Params, POSTData, Headers);
+                {error, {http_error, StatusCode, StatusLine, Body, _Headers}} ->
+                    {error, {http_error, StatusCode, StatusLine, Body}};
+                Response ->
+                    Response
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
@@ -1062,44 +1109,37 @@ s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Heade
             Error
     end.
 
-s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Headers0) ->
-    ContentType = proplists:get_value("content-type", Headers0, ""),
-    ContentMD5 = case Body of
-                     <<>> ->
-                         "";
-                     _ ->
-                         base64:encode(erlcloud_util:md5(Body))
-                 end,
-    Headers = case Config#aws_config.security_token of
-                  undefined -> Headers0;
-                  Token when is_list(Token) -> [{"x-amz-security-token", Token} | Headers0]
-              end,
-    FHeaders = [Header || {_, Value} = Header <- Headers, Value =/= undefined],
-    AmzHeaders = [Header || {"x-amz-" ++ _, _} = Header <- FHeaders],
-    Date = httpd_util:rfc1123_date(erlang:localtime()),
+s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body, Headers) ->
+    ContentType = proplists:get_value("content-type", Headers, ""),
+    FParams = [Param || {_, Value} = Param <- Params, Value =/= undefined],
+    FHeaders = [Header || {_, Val} = Header <- Headers, Val =/= undefined],
+
+    QueryParams = case Subresource of "" -> FParams; _ -> [{Subresource, ""} | FParams] end,
     EscapedPath = erlcloud_http:url_encode_loose(Path),
-    Authorization = make_authorization(Config, Method, ContentMD5, ContentType,
-                                       Date, AmzHeaders, Host, EscapedPath, Subresource, Params),
-    RequestHeaders = [{"date", Date}, {"authorization", Authorization}|FHeaders] ++
-        case ContentMD5 of
-            "" -> [];
-            _ -> [{"content-md5", binary_to_list(ContentMD5)}]
-        end,
-    HostURI = case Config#aws_config.s3_bucket_after_host of
-                  false -> [case Host of "" -> ""; _ -> [Host, $.] end, Config#aws_config.s3_host, port_spec(Config)];
-                  true  -> [Config#aws_config.s3_host, port_spec(Config), case Host of "" -> ""; _ -> [$/, Host] end]
-              end,
-    RequestURI = lists:flatten([Config#aws_config.s3_scheme,
-                                HostURI, EscapedPath,
-                                case Subresource of "" -> ""; _ -> [$?, Subresource] end,
-                                if
-                                    Params =:= [] -> "";
-                                    Subresource =:= "" ->
-                                      [$?, erlcloud_http:make_query_string(Params, no_assignment)];
-                                    true ->
-                                      [$&, erlcloud_http:make_query_string(Params, no_assignment)]
-                                end
-                               ]),
+
+    HostName = lists:flatten(
+        [case Bucket of "" -> ""; _ -> [Bucket, $.] end,
+        Config#aws_config.s3_host]),
+
+    RequestHeaders = erlcloud_aws:sign_v4(
+        Method, EscapedPath, Config,
+        [{"host", HostName} | FHeaders ],
+        Body,
+        aws_region_from_host(Config#aws_config.s3_host),
+        "s3", QueryParams),
+
+    RequestURI = lists:flatten([
+        Config#aws_config.s3_scheme,
+        Config#aws_config.s3_host, port_spec(Config),
+        EscapedPath,
+        case Subresource of "" -> ""; _ -> [$?, Subresource] end,
+        if
+            FParams =:= [] -> "";
+            Subresource =:= "" ->
+              [$?, erlcloud_http:make_query_string(FParams, no_assignment)];
+            true ->
+              [$&, erlcloud_http:make_query_string(FParams, no_assignment)]
+        end]),
 
     Request = #aws_request{service = s3, uri = RequestURI, method = Method},
     Request2 = case Method of
@@ -1121,43 +1161,16 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
     Request3 = erlcloud_retry:request(Config, Request2, fun s3_result_fun/1),
     erlcloud_aws:request_to_return(Request3).
 
+
 s3_result_fun(#aws_request{response_type = ok} = Request) ->
     Request;
-s3_result_fun(#aws_request{response_type = error, 
-                           error_type = aws, 
+s3_result_fun(#aws_request{response_type = error,
+                           error_type = aws,
                            response_status = Status} = Request) when
       Status >= 500 ->
     Request#aws_request{should_retry = true};
 s3_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
     Request#aws_request{should_retry = false}.
-
-make_authorization(Config, Method, ContentMD5, ContentType, Date, AmzHeaders,
-                   Host, Resource, Subresource, Params) ->
-    CanonizedAmzHeaders =
-        [[Name, $:, Value, $\n] || {Name, Value} <- lists:sort(AmzHeaders)],
-
-    SubResourcesToInclude = ["acl", "lifecycle", "location", "logging", "notification", "partNumber", "policy", "requestPayment", "torrent", "uploadId", "uploads", "versionId", "versioning", "versions", "website"],
-    FilteredParams = [{Name, Value} || {Name, Value} <- Params,
-                                       lists:member(Name, SubResourcesToInclude)],
-
-    ParamsQueryString = erlcloud_http:make_query_string(lists:keysort(1, FilteredParams),
-                                                        no_assignment),
-    StringToSign = [string:to_upper(atom_to_list(Method)), $\n,
-                    ContentMD5, $\n,
-                    ContentType, $\n,
-                    Date, $\n,
-                    CanonizedAmzHeaders,
-                    case Host of "" -> ""; _ -> [$/, Host] end,
-                    Resource,
-                    case Subresource of "" -> ""; _ -> [$?, Subresource] end,
-                    if
-                        ParamsQueryString =:= "" -> "";
-                        Subresource =:= "" -> [$?, ParamsQueryString];
-                        true -> [$&, ParamsQueryString]
-                    end
-                   ],
-    Signature = base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, StringToSign)),
-    ["AWS ", Config#aws_config.access_key_id, $:, Signature].
 
 default_config() -> erlcloud_aws:default_config().
 
@@ -1165,3 +1178,74 @@ port_spec(#aws_config{s3_port=80}) ->
     "";
 port_spec(#aws_config{s3_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
+
+%% Extract region form s3 endpoint names.
+%% http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region
+aws_region_from_host(Host) ->
+    case string:tokens(Host, ".") of
+        %% s3.eu-central-1.amazonaws.com
+        ["s3", Value, _, _] ->
+            Value;
+        %% s3.amazonaws.com
+        ["s3", _, _] ->
+            "us-east-1";
+        %% s3-external-1.amazonaws.com
+        ["s3-external-1", _, _] ->
+            "us-east-1";
+        %% For example: s3-us-east-1.amazonaws.com
+        [Value, _, _] ->
+            %% Skip "s3-" prefix
+            string:substr(Value, 4);
+        _ ->
+            "us-east-1"
+    end.
+
+%%
+%% http://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
+%% http://docs.aws.amazon.com/AmazonS3/latest/dev/Redirects.html
+%% Note: redirect response is handled only once.
+s3_follow_redirect({error, {http_error, StatusCode, StatusLine, ErrBody, ErrHeaders}} = _Response,
+    Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers) ->
+    case Config#aws_config.s3_follow_redirect of
+        true ->
+            S3RegionEndpoint = case {proplists:get_value("x-amz-bucket-region", ErrHeaders),
+                                     proplists:get_value("location", ErrHeaders)}
+            of
+                {undefined, undefined} ->
+                    %% Try to get redirect location from error message.
+                    XML = element(1,xmerl_scan:string(binary_to_list(ErrBody))),
+                    RedirectHostName = erlcloud_xml:get_text("/Error/Endpoint", XML),
+                    s3_endpoint_from_hostname(RedirectHostName, Bucket);
+                {undefined, RedirectUrl} ->
+                    %% Use "location" header value if there is no "x-amz-bucket-region" one.
+                    [_Scheme, HostName | _] =  string:tokens(RedirectUrl, "/"),
+                    s3_endpoint_from_hostname(HostName, Bucket);
+                {BucketRegion, _} ->
+                    %% Use "x-amz-bucket-region" header value if present.
+                    s3_endpoint_for_region(BucketRegion)
+            end,
+            case s3_request4_no_update(Config#aws_config{s3_host = S3RegionEndpoint},
+                Method, Bucket, Path, Subresource, Params, POSTData, Headers) of
+                {error, {http_error, ErrorCode, ErrorLine, ErrorBody, _ErrorHeaders}} ->
+                    {error, {http_error, ErrorCode, ErrorLine, ErrorBody}};
+                FinalResponse ->
+                    FinalResponse
+            end;
+        _ ->
+            {error, {http_error, StatusCode, StatusLine, ErrBody}}
+    end.
+
+%% Substract bucket name from a bucket virtual host name.
+%% Example: s3_endpoint_from_hostname(
+%%              "test.bucket.s3.eu-central-1.amazonaws.com",
+%%              "test.bucket") -> "s3.eu-central-1.amazonaws.com"
+s3_endpoint_from_hostname(HostName, Bucket) ->
+    HostName -- lists:flatten([Bucket, $.]).
+
+s3_endpoint_for_region(RegionName) ->
+    case RegionName of
+        "us-east-1" ->
+            "s3-external-1.amazonaws.com";
+        _ ->
+            lists:flatten(["s3-", RegionName, ".amazonaws.com"])
+    end.

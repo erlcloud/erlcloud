@@ -1,6 +1,7 @@
 -module(erlcloud_xml).
--export([decode/2, decode/3, get_bool/2, get_float/2, get_integer/2, get_list/2,
-         get_text/1, get_text/2, get_text/3, get_time/2]).
+-export([decode/2, decode/3, get_bool/2, get_float/2, get_integer/2,
+         get_integer/3, get_list/2, get_text/1, get_text/2,
+         get_text/3, get_time/2]).
 
 -include_lib("xmerl/include/xmerl.hrl").
 
@@ -55,6 +56,13 @@ get_value(XPath, Type, Node) ->
                 [] -> undefined;
                 [SubNode] -> Fun(SubNode)
             end;
+        {map, Fun} when is_function(Fun, 1) ->
+            lists:map(Fun, xmerl_xpath:string(XPath, Node));
+        {optional_map, Fun} when is_function(Fun, 1) ->
+            case xmerl_xpath:string(XPath, Node) of
+                [] -> undefined;
+                List  -> lists:map(Fun, List)
+            end;
         {single, List} when is_list(List) ->
             case xmerl_xpath:string(XPath, Node) of
                 [] -> undefined;
@@ -98,6 +106,7 @@ get_integer(XPath, Doc, Default) ->
 
 get_bool(XPath, Doc) ->
     case get_text(XPath, Doc, "false") of
+        "1" -> true;
         "true" -> true;
         _ -> false
     end.

@@ -1,0 +1,9 @@
+sudo: false
+language: erlang
+otp_release:
+  - R16B03-1
+  - 17.5
+branches:
+  only:
+    - master
+script: make eunit

@@ -312,25 +312,25 @@ get_shard_iterator(StreamName, ShardId, ShardIteratorType, StartingSequenceNumbe
 %%------------------------------------------------------------------------------
 
 -spec get_records/1 :: (string()) -> proplist().
-
 get_records(ShardIterator) ->
-  Json = [{<<"ShardIterator">>, ShardIterator}],
-  get_normalized_records(default_config(), Json).
+    Json = [{<<"ShardIterator">>, ShardIterator}],
+    get_normalized_records(default_config(), Json).
 
--spec get_records/2 :: (string(), 1..100 | aws_config()) -> proplist().
-
+-spec get_records/2 :: (string(), 1..10000 | aws_config()) -> proplist().
 get_records(ShardIterator, Config) when is_record(Config, aws_config) ->
-  Json = [{<<"ShardIterator">>, ShardIterator}],
-  erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.GetRecords", Json);
-get_records(ShardIterator, Limit) when is_integer(Limit), Limit > 0, Limit =< 100 ->
-  Json = [{<<"ShardIterator">>, ShardIterator}, {<<"Limit">>, Limit}],
-  get_normalized_records(default_config(), Json).
+    Json = [{<<"ShardIterator">>, ShardIterator}],
+    get_normalized_records(Config, Json);
+get_records(ShardIterator, Limit)
+  when is_integer(Limit), Limit > 0, Limit =< 10000 ->
+    get_records(ShardIterator, Limit, default_config()).
 
--spec get_records/3 :: (string(), 1..100, aws_config()) -> proplist().
-
-get_records(ShardIterator, Limit, Config) when is_record(Config, aws_config), is_integer(Limit), Limit > 0, Limit =< 100 ->
-  Json = [{<<"ShardIterator">>, ShardIterator}, {<<"Limit">>, Limit}],
-  get_normalized_records(Config, Json).
+-spec get_records/3 :: (string(), 1..10000, aws_config()) -> proplist().
+get_records(ShardIterator, Limit, Config) when is_record(Config, aws_config),
+                                               is_integer(Limit),
+                                               Limit > 0,
+                                               Limit =< 10000 ->
+    Json = [{<<"ShardIterator">>, ShardIterator}, {<<"Limit">>, Limit}],
+    get_normalized_records(Config, Json).
 
 %% Normalize records from Kinesis
 

@@ -11,5 +11,6 @@ deps/
 doc/
 erl_crash.dump
 .edts
+eunit.coverage.xml
 *[#]*[#]
 *[#]*

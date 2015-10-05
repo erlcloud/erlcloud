@@ -1,6 +1,6 @@
 # erlcloud: Cloud Computing APIs For Erlang #
 
-This is version 0.8.0.  The API is subject to change.
+[![Build Status](https://secure.travis-ci.org/alertlogic/erlcloud.png?branch=master)](http://travis-ci.org/alertlogic/erlcloud)
 
 Service APIs implemented:
 
@@ -10,7 +10,9 @@ Service APIs implemented:
 - Amazon SimpleDB
 - Amazon Mechanical Turk
 - Amazon CloudWatch (MON)
-- Amazon DynamoDB (ddb2) 
+- Amazon DynamoDB (ddb2)
+- Amazon Key Management Service (KMS)
+- Amazon DirectConnect
 
 All API functions have been implemented.  Not all functions have been thoroughly tested, so exercise care when integrating this library into production code.  Please send bug reports and patches.
 
@@ -104,3 +106,8 @@ v1.0.0
 ## Notes ##
 
 Indentation in contributions should follow indentation style of surrounding text. In general it follows default indentation rules of official erlang-mode as provided by OTP team.
+
+## Best Practices ##
+
+- Public interfaces with paging logic should prefer {ok, Results, Marker} style to the {{paged, Marker}, Results} found in some modules
+- Public interfaces should normally expose proplists over records

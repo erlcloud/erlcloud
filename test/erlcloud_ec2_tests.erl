@@ -27,7 +27,11 @@ describe_tags_test_() ->
      fun start/0,
      fun stop/1,
      [fun describe_tags_input_tests/1,
-      fun describe_tags_output_tests/1]}.
+      fun describe_tags_output_tests/1,
+      fun describe_vpn_gateways_tests/1,
+      fun describe_customer_gateways_tests/1,
+      fun describe_vpn_connections_tests/1,
+      fun describe_images_tests/1]}.
 
 start() ->
     meck:new(erlcloud_httpc),
@@ -284,3 +288,188 @@ describe_tags_output_tests(_) ->
     
     %% Remaining AWS API examples return subsets of the same data
     output_tests(?_f(erlcloud_ec2:describe_tags()), Tests).
+
+describe_vpn_gateways_tests(_) ->
+    Tests = 
+        [?_ec2_test(
+            {"This example describes VPN gateways.", "
+<DescribeVpnGatewaysResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-04-15/\">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <vpnGatewaySet>   
+    <item>
+      <vpnGatewayId>vgw-8db04f81</vpnGatewayId>
+      <state>available</state>
+      <type>ipsec.1</type>
+      <availabilityZone>us-east-1a</availabilityZone> 
+      <attachments>
+        <item>
+          <vpcId>vpc-1a2b3c4d</vpcId>
+          <state>attached</state>
+        </item>
+      </attachments>
+      <tagSet/>
+    </item>
+    <item>
+      <vpnGatewayId>vgw-8db04f82</vpnGatewayId>
+      <state>available</state>
+      <type>ipsec.1</type>
+      <availabilityZone>us-east-1a</availabilityZone> 
+      <attachments>
+        <item>
+          <vpcId>vpc-1a2b3c4d</vpcId>
+          <state>attached</state>
+        </item>
+      </attachments>
+      <tagSet/>
+    </item>
+  </vpnGatewaySet>
+</DescribeVpnGatewaysResponse>",
+             {ok, [[{vpn_gateway_id, "vgw-8db04f81"},
+                    {vpn_gateway_type, "ipsec.1"},
+                    {vpn_gateway_state, "available"},
+                    {vpn_az, "us-east-1a"},
+                    {vpc_attachment_set, [[{vpc_id, "vpc-1a2b3c4d"}, {state, "attached"}]]},
+                    {tag_set, []}],
+                   [{vpn_gateway_id, "vgw-8db04f82"},
+                    {vpn_gateway_type, "ipsec.1"},
+                    {vpn_gateway_state, "available"},
+                    {vpn_az, "us-east-1a"},
+                    {vpc_attachment_set, [[{vpc_id, "vpc-1a2b3c4d"}, {state, "attached"}]]},
+                    {tag_set, []}]]}})],
+    
+    %% Remaining AWS API examples return subsets of the same data
+    output_tests(?_f(erlcloud_ec2:describe_vpn_gateways()), Tests).
+
+describe_customer_gateways_tests(_) ->
+    Tests = 
+        [?_ec2_test(
+            {"This example describes customer gateways.", "
+<DescribeCustomerGatewaysResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-04-15/\">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <customerGatewaySet>
+    <item>
+       <customerGatewayId>cgw-b4dc3961</customerGatewayId>
+       <state>available</state>
+       <type>ipsec.1</type>
+       <ipAddress>12.1.2.3</ipAddress> 
+       <bgpAsn>65534</bgpAsn>   
+       <tagSet/>
+    </item>
+    <item>
+       <customerGatewayId>cgw-b4dc3962</customerGatewayId>
+       <state>available</state>
+       <type>ipsec.1</type>
+       <ipAddress>12.1.2.3</ipAddress> 
+       <bgpAsn>65534</bgpAsn>   
+       <tagSet/>
+    </item>
+  </customerGatewaySet>
+</DescribeCustomerGatewaysResponse>",
+             {ok, [[{customer_gateway_id, "cgw-b4dc3961"},
+                    {customer_gateway_state, "available"},
+                    {customer_gateway_type, "ipsec.1"},
+                    {customer_gateway_ip, "12.1.2.3"},
+                    {customer_gateway_bgpasn, "65534"},
+                    {tag_set, []}],
+                   [{customer_gateway_id, "cgw-b4dc3962"},
+                    {customer_gateway_state, "available"},
+                    {customer_gateway_type, "ipsec.1"},
+                    {customer_gateway_ip, "12.1.2.3"},
+                    {customer_gateway_bgpasn, "65534"},
+                    {tag_set, []}]]}})],
+    
+    %% Remaining AWS API examples return subsets of the same data
+    output_tests(?_f(erlcloud_ec2:describe_customer_gateways()), Tests).
+
+describe_vpn_connections_tests(_) ->
+    Tests = 
+        [?_ec2_test(
+            {"This example describes VPN connections.", "
+<DescribeVpnConnectionsResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-04-15/\">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <vpnConnectionSet>
+    <item>
+      <vpnConnectionId>vpn-44a8938f</vpnConnectionId>
+      <state>available</state>
+      <customerGatewayConfiguration>config1</customerGatewayConfiguration>     
+      <type>ipsec.1</type>
+      <customerGatewayId>cgw-b4dc3961</customerGatewayId>
+      <vpnGatewayId>vgw-8db04f81</vpnGatewayId>
+      <tagSet/>
+    </item>
+    <item>
+      <vpnConnectionId>vpn-54a8938f</vpnConnectionId>
+      <state>available</state>
+      <customerGatewayConfiguration>config2</customerGatewayConfiguration>     
+      <type>ipsec.1</type>
+      <customerGatewayId>cgw-b4dc3962</customerGatewayId>
+      <vpnGatewayId>vgw-8db04f82</vpnGatewayId>
+      <tagSet/>
+    </item>
+  </vpnConnectionSet>
+</DescribeVpnConnectionsResponse>",
+             {ok, [[{vpn_connection_id, "vpn-44a8938f"},
+                    {vpn_connection_state, "available"},
+                    {customer_gateway_configuration, "config1"},
+                    {vpn_connection_type, "ipsec.1"},
+                    {customer_gateway_id, "cgw-b4dc3961"},
+                    {vpn_gateway_id, "vgw-8db04f81"},
+                    {tag_set, []}],
+                   [{vpn_connection_id, "vpn-54a8938f"},
+                    {vpn_connection_state, "available"},
+                    {customer_gateway_configuration, "config2"},
+                    {vpn_connection_type, "ipsec.1"},
+                    {customer_gateway_id, "cgw-b4dc3962"},
+                    {vpn_gateway_id, "vgw-8db04f82"},
+                    {tag_set, []}]]}})],
+    
+    %% Remaining AWS API examples return subsets of the same data
+    output_tests(?_f(erlcloud_ec2:describe_vpn_connections()), Tests).
+
+
+describe_images_tests(_) ->
+    Tests = 
+        [?_ec2_test(
+            {"This example describes AMIs.", "
+<DescribeImagesResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-04-15/\">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId> 
+   <imagesSet>
+      <item>
+         <imageId>ami-1a2b3c4d</imageId>
+         <imageLocation>ec2-public-windows-images/Server2003r2-x86_64-Win-v1.07.manifest.xml</imageLocation>
+         <imageState>available</imageState>
+         <imageOwnerId>123456789012</imageOwnerId>
+         <isPublic>true</isPublic>
+         <architecture>x86_64</architecture>
+         <imageType>machine</imageType>
+         <platform>windows</platform>
+         <imageOwnerAlias>amazon</imageOwnerAlias>
+         <rootDeviceType>instance-store</rootDeviceType>
+         <blockDeviceMapping/>
+         <virtualizationType>hvm</virtualizationType>
+         <tagSet/>
+         <hypervisor>xen</hypervisor>
+      </item>
+   </imagesSet>
+</DescribeImagesResponse>",
+             {ok, [[ {image_id, "ami-1a2b3c4d"},
+                     {image_location, "ec2-public-windows-images/Server2003r2-x86_64-Win-v1.07.manifest.xml"},
+                     {image_state, "available"},
+                     {image_owner_id, "123456789012"},
+                     {is_public, true},
+                     {architecture, "x86_64"},
+                     {image_type, "machine"},
+                     {kernel_id, []},
+                     {ramdisk_id, []},
+                     {image_owner_alias, "amazon"},
+                     {name, []},
+                     {description, []},
+                     {root_device_type, "instance-store"},
+                     {root_device_name, []},
+                     {platform, "windows"},
+                     {block_device_mapping, []},
+                     {product_codes, []}
+                ]]}})],
+    
+    %% Remaining AWS API examples return subsets of the same data
+    output_tests(?_f(erlcloud_ec2:describe_images()), Tests).

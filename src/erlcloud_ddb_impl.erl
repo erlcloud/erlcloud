@@ -42,7 +42,7 @@
 %% retry(Error) ->
 %%     RequestId = erlcloud_ddb_impl:request_id_from_error(Error),
 %%     {_, Operation} = lists:keyfind("x-amz-target", 1, Error#ddb2_error.request_headers),
-%%     lager:notice("DDB Attempt: ~p Reason: ~p RequestId: ~p, Request: ~p ~p", 
+%%     lager:notice("DDB Attempt: ~p Reason: ~p RequestId: ~p, Request: ~p ~p",
 %%                  [Error#ddb2_error.attempt,
 %%                   Error#ddb2_error.reason,
 %%                   RequestId,
@@ -50,7 +50,7 @@
 %%                   Error#ddb2_error.request_body]),
 %%     Error2 = erlcloud_ddb_impl:error_reason2(Error),
 %%     erlcloud_ddb_impl:retry(Error2).
-%% `
+%% '
 %%
 %% @end
 
@@ -256,14 +256,8 @@ client_error(Body, DDBError) ->
 headers(Config, Operation, Body) ->
     Headers = [{"host", Config#aws_config.ddb_host},
                {"x-amz-target", Operation}],
-    Region =
-        case string:tokens(Config#aws_config.ddb_host, ".") of
-            [_, Value, _, _] ->
-                Value;
-            _ ->
-                "us-east-1"
-        end,
-    erlcloud_aws:sign_v4(Config, Headers, Body, Region, "dynamodb").
+
+    erlcloud_aws:sign_v4_headers(Config, Headers, Body, erlcloud_aws:aws_region_from_host(Config#aws_config.ddb_host), "dynamodb").
 
 url(#aws_config{ddb_scheme = Scheme, ddb_host = Host} = Config) ->
     lists:flatten([Scheme, Host, port_spec(Config)]).

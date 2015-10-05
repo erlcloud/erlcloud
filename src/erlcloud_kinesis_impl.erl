@@ -105,8 +105,7 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
            Body, Config#aws_config.timeout, Config) of
 
         {ok, {{200, _}, _, RespBody}} ->
-            %% TODO check crc
-            {ok, jsx:decode(RespBody)};
+            {ok, decode(RespBody)};
 
         {ok, {{Status, StatusLine}, _, RespBody}} when Status >= 400 andalso Status < 500 ->
             case client_error(Status, StatusLine, RespBody) of
@@ -129,41 +128,29 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
 
 -spec client_error(pos_integer(), string(), binary()) -> {retry, term()} | {error, term()}.
 client_error(Status, StatusLine, Body) ->
-    case jsx:is_json(Body) of
-        false ->
-            {error, {http_error, Status, StatusLine, Body}};
-        true ->
-            Json = jsx:decode(Body),
+    try jsx:decode(Body) of
+        Json ->
+            Message = proplists:get_value(<<"message">>, Json, <<>>),
             case proplists:get_value(<<"__type">>, Json) of
                 undefined ->
                     {error, {http_error, Status, StatusLine, Body}};
-                FullType ->
-                    Message = proplists:get_value(<<"message">>, Json, <<>>),
-                    case binary:split(FullType, <<"#">>) of
-                        [_, <<"ProvisionedThroughputExceededException">> = Type] ->
-                            {retry, {Type, Message}};
-                        [_, <<"ThrottlingException">> = Type] ->
-                            {retry, {Type, Message}};
-                        [_, Type] ->
-                            {error, {Type, Message}};
-                        _ ->
-                            {error, {http_error, Status, StatusLine, Body}}
-                    end
+                <<"ProvisionedThroughputExceededException">> = Type ->
+                    {retry, {Type, Message}};
+                <<"ThrottlingException">> = Type ->
+                    {retry, {Type, Message}};
+                Other ->
+                    {error, {Other, Message}}
             end
+    catch
+        error:badarg ->
+            {error, {http_error, Status, StatusLine, Body}}
     end.
 
 -spec headers(aws_config(), string(), binary()) -> headers().
 headers(Config, Operation, Body) ->
     Headers = [{"host", Config#aws_config.kinesis_host},
                {"x-amz-target", Operation}],
-    Region =
-        case string:tokens(Config#aws_config.kinesis_host, ".") of
-            [_, Value, _, _] ->
-                Value;
-            _ ->
-                "us-east-1"
-        end,
-    erlcloud_aws:sign_v4(Config, Headers, Body, Region, "kinesis").
+    erlcloud_aws:sign_v4_headers(Config, Headers, Body, erlcloud_aws:aws_region_from_host(Config#aws_config.kinesis_host), "kinesis").
 
 url(#aws_config{kinesis_scheme = Scheme, kinesis_host = Host} = Config) ->
     lists:flatten([Scheme, Host, port_spec(Config)]).
@@ -173,3 +160,5 @@ port_spec(#aws_config{kinesis_port=80}) ->
 port_spec(#aws_config{kinesis_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
 
+decode(<<>>) -> [];
+decode(JSON) -> jsx:decode(JSON).

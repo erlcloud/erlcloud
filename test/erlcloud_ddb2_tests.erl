@@ -2637,6 +2637,38 @@ scan_input_tests(_) ->
 }"
             }),
          ?_ddb_test(
+            {"Index Scan",
+             ?_f(erlcloud_ddb2:scan(<<"Thread">>,
+                                    [{scan_filter, [{<<"ForumType">>, <<"Interests">>, eq},
+                                                    {<<"LastPostDateTime">>, {0, 201303201023}, between}]},
+                                     {index_name, <<"ForumTypeIdx">>}])), "
+{
+    \"TableName\": \"Thread\",
+    \"IndexName\": \"ForumTypeIdx\",
+    \"ScanFilter\": {
+        \"ForumType\": {
+            \"AttributeValueList\": [
+                {
+                    \"S\": \"Interests\"
+                }
+            ],
+            \"ComparisonOperator\": \"EQ\"
+        },
+        \"LastPostDateTime\": {
+            \"AttributeValueList\": [
+                {
+                    \"N\": \"0\"
+                },
+                {
+                    \"N\": \"201303201023\"
+                }
+            ],
+            \"ComparisonOperator\": \"BETWEEN\"
+        }
+    }
+}"
+            }),
+         ?_ddb_test(
             {"Scan example with FilterExpression",
              ?_f(erlcloud_ddb2:scan(<<"Reply">>,
                                    [{filter_expression, <<"PostedBy = :val">>},
@@ -3101,15 +3133,11 @@ update_item_output_tests(_) ->
 update_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
-            {"UpdateTable example request",
-             ?_f(erlcloud_ddb2:update_table(<<"Thread">>, 10, 10, 
-                                            [{global_secondary_index_updates, [{<<"SubjectIdx">>, 30, 40}, {<<"AnotherIdx">>, 50, 60}]}])), "
+            {"UpdateTable example request: update provisioned throughput on table and global secondary index",
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>, 10, 10,
+                                            [{global_secondary_index_updates, [{<<"SubjectIdx">>, 30, 40}]}])), "
 {
     \"TableName\": \"Thread\",
-    \"ProvisionedThroughput\": {
-        \"ReadCapacityUnits\": 10,
-        \"WriteCapacityUnits\": 10
-    },
     \"GlobalSecondaryIndexUpdates\": [
         {
             \"Update\": {
@@ -3119,14 +3147,114 @@ update_table_input_tests(_) ->
                     \"WriteCapacityUnits\": 40
                 }
             }
+        }
+    ],
+    \"ProvisionedThroughput\": {
+        \"ReadCapacityUnits\": 10,
+        \"WriteCapacityUnits\": 10
+    }
+}"
+            }),
+         ?_ddb_test(
+            {"UpdateTable example request: create new global secondary index",
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>,
+                                            [{attribute_definitions, [{<<"ForumType">>, s}]},
+                                             {provisioned_throughput, {10, 10}},
+                                             {global_secondary_index_updates, [{<<"ForumTypeIdx">>, {<<"ForumType">>, <<"LastPostDateTime">>}, keys_only, 60, 90}]}])), "
+{
+    \"TableName\": \"Thread\",
+    \"AttributeDefinitions\": [
+        {
+            \"AttributeName\": \"ForumType\",
+            \"AttributeType\": \"S\"
+        }
+    ],
+    \"GlobalSecondaryIndexUpdates\": [
+        {
+            \"Create\": {
+                \"IndexName\": \"ForumTypeIdx\",
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"ForumType\",
+                        \"KeyType\": \"HASH\"
+                    },
+                    {
+                        \"AttributeName\": \"LastPostDateTime\",
+                        \"KeyType\": \"RANGE\"
+                    }
+                ],
+                \"Projection\": {
+                    \"ProjectionType\": \"KEYS_ONLY\"
+                },
+                \"ProvisionedThroughput\": {
+                    \"ReadCapacityUnits\": 60,
+                    \"WriteCapacityUnits\": 90
+                }
+            }
+        }
+    ],
+    \"ProvisionedThroughput\": {
+        \"ReadCapacityUnits\": 10,
+        \"WriteCapacityUnits\": 10
+    }
+}"
+            }),
+         ?_ddb_test(
+            {"UpdateTable example request: delete global secondary index",
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>,
+                                            [{global_secondary_index_updates, [{<<"ForumTypeIdx">>, delete}]}])), "
+{
+    \"TableName\": \"Thread\",
+    \"GlobalSecondaryIndexUpdates\": [
+        {
+            \"Delete\": {
+                \"IndexName\": \"ForumTypeIdx\"
+            }
+        }
+    ]
+}"
+            }),
+        ?_ddb_test(
+            {"UpdateTable example request with Create and Delete GSI",
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>, 10, 10,
+                                            [{attribute_definitions, [{<<"HashKey1">>, s}]},
+                                             {global_secondary_index_updates, [
+                                                {<<"Index1">>, <<"HashKey1">>, all, 30, 40},
+                                                {<<"Index2">>, delete}]}])), "
+{
+    \"TableName\": \"Thread\",
+    \"ProvisionedThroughput\": {
+        \"ReadCapacityUnits\": 10,
+        \"WriteCapacityUnits\": 10
+    },
+    \"AttributeDefinitions\": [
+        {
+            \"AttributeName\": \"HashKey1\",
+            \"AttributeType\": \"S\"
+        }
+    ],
+    \"GlobalSecondaryIndexUpdates\": [
+        {
+            \"Create\": {
+                \"IndexName\": \"Index1\",
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"HashKey1\",
+                        \"KeyType\": \"HASH\"
+                    }
+                ],
+                \"Projection\": {
+                    \"ProjectionType\": \"ALL\"
+                },
+                \"ProvisionedThroughput\": {
+                    \"ReadCapacityUnits\": 30,
+                    \"WriteCapacityUnits\": 40
+                }
+            }
         },
         {
-            \"Update\": {
-                \"IndexName\": \"AnotherIdx\",
-                \"ProvisionedThroughput\": {
-                    \"ReadCapacityUnits\": 50,
-                    \"WriteCapacityUnits\": 60
-                }
+            \"Delete\": {
+                \"IndexName\": \"Index2\"
             }
         }
     ]
