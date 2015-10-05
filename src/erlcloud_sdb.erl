@@ -333,7 +333,7 @@ extract_item(Item) ->
     ].
 
 sdb_request(Config, Action, Params) ->
-    case sdb_request_with_retry(Config, Action, Params, 1, ?SDB_TIMEOUT, erlang:monotonic_time()) of
+    case sdb_request_with_retry(Config, Action, Params, 1, ?SDB_TIMEOUT, os:timestamp()) of
         {ok, {Doc, Metadata}} ->
             {Doc, Metadata};
         {error, Error} ->
@@ -346,7 +346,7 @@ sdb_request_with_retry(Config, Action, Params, Try, Timeout, StartTime) ->
             {ok, {Doc, Metadata}};
         {error, {http_error, 503, _StatusLine, _Body}} ->
             %% Convert from microseconds to milliseconds
-            Waited = (erlang:monotonic_time() - StartTime) / 1000000.0,
+            Waited = timer:diff_now(os:timestamp() - StartTime) / 1000000.0,
             case Waited of
                 _TooLong when Waited > Timeout ->
                     {error, retry_timeout};
