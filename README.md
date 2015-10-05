@@ -1,6 +1,6 @@
 # erlcloud: Cloud Computing APIs For Erlang #
 
-[![Build Status](https://secure.travis-ci.org/alertlogic/erlcloud.png?branch=master)](http://travis-ci.org/alertlogic/erlcloud)
+[![Build Status](https://secure.travis-ci.org/gleber/erlcloud.png?branch=master)](http://travis-ci.org/gleber/erlcloud)
 
 Service APIs implemented:
 
