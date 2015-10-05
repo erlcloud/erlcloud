@@ -346,7 +346,7 @@ sdb_request_with_retry(Config, Action, Params, Try, Timeout, StartTime) ->
             {ok, {Doc, Metadata}};
         {error, {http_error, 503, _StatusLine, _Body}} ->
             %% Convert from microseconds to milliseconds
-            Waited = timer:diff_now(os:timestamp() - StartTime) / 1000000.0,
+            Waited = timer:now_diff(os:timestamp() - StartTime) / 1000000.0,
             case Waited of
                 _TooLong when Waited > Timeout ->
                     {error, retry_timeout};
