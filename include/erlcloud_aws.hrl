@@ -6,9 +6,11 @@
           s3_scheme="https://"::string(),
           s3_host="s3.amazonaws.com"::string(),
           s3_port=80::non_neg_integer(),
+          s3_follow_redirect=false::boolean(),
           s3_bucket_after_host=false::boolean(),
           sdb_host="sdb.amazonaws.com"::string(),
           elb_host="elasticloadbalancing.amazonaws.com"::string(),
+          rds_host="rds.us-east-1.amazonaws.com"::string(),
           ses_host="email.us-east-1.amazonaws.com"::string(),
           sqs_host="queue.amazonaws.com"::string(),
           sqs_protocol=undefined::string()|undefined,
@@ -26,13 +28,25 @@
           ddb_streams_scheme="https://"::string(),
           ddb_streams_host="streams.dynamodb.us-east-1.amazonaws.com"::string(),
           ddb_streams_port=80::non_neg_integer(),
+          route53_scheme="https://"::string(),
+          route53_host="route53.amazonaws.com"::string(),
+          route53_port="80"::string(),
           kinesis_scheme="https://"::string(),
           kinesis_host="kinesis.us-east-1.amazonaws.com"::string(),
           kinesis_port=80::non_neg_integer(),
           kinesis_retry=fun erlcloud_kinesis_impl:retry/2::erlcloud_kinesis_impl:retry_fun(),
+          kms_scheme="https://"::string(),
+          kms_host="kms.us-east-1.amazonaws.com"::string(),
+          kms_port=80::non_neg_integer(),
           cloudtrail_scheme="https://"::string(),
           cloudtrail_host="cloudtrail.amazonaws.com"::string(),
           cloudtrail_port=80::non_neg_integer(),
+          autoscaling_scheme="https://"::string(),
+          autoscaling_host="autoscaling.us-east-1.amazonaws.com"::string(),
+          autoscaling_port=80::non_neg_integer(),
+          directconnect_scheme="https://"::string(),
+          directconnect_host="directconnect.us-east-1.amazonaws.com"::string(),
+          directconnect_port=80::non_neg_integer(),
           access_key_id::string()|undefined|false,
           secret_access_key::string()|undefined|false,
           security_token=undefined::string()|undefined,
@@ -58,7 +72,7 @@
           request_headers :: [{string(), string()}],
           request_body :: binary(),
 
-          %% Read from response
+        %% Read from response
           attempt = 0 :: integer(),
           response_type :: ok | error,
           error_type :: aws | httpc,
@@ -71,3 +85,4 @@
           %% Service specific error information
           should_retry :: boolean()
         }).
+-type(aws_request() :: #aws_request{}).

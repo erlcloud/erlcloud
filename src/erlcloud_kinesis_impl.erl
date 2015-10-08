@@ -163,7 +163,7 @@ headers(Config, Operation, Body) ->
             _ ->
                 "us-east-1"
         end,
-    erlcloud_aws:sign_v4(Config, Headers, Body, Region, "kinesis").
+    erlcloud_aws:sign_v4_headers(Config, Headers, Body, Region, "kinesis").
 
 url(#aws_config{kinesis_scheme = Scheme, kinesis_host = Host} = Config) ->
     lists:flatten([Scheme, Host, port_spec(Config)]).
