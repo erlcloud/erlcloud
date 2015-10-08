@@ -1,30 +1,30 @@
 -module(erlcloud_aws).
 
 -export([aws_request/5, aws_request/6, aws_request/7, aws_request/8,
-    aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
-    aws_request2/7,
-    aws_request_xml2/5, aws_request_xml2/7,
-    aws_request4/8,
-    aws_request_xml4/6, aws_request_xml4/8,
-    aws_region_from_host/1,
-    aws_request_form/8,
-    param_list/2, default_config/0, update_config/1,
-    configure/1, format_timestamp/1,
-    http_headers_body/1,
-    request_to_return/1,
-    sign_v4_headers/5,
-    sign_v4/8,
-    get_service_status/1]).
+         aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
+         aws_request2/7,
+         aws_request_xml2/5, aws_request_xml2/7,
+         aws_request4/8,
+         aws_request_xml4/6, aws_request_xml4/8,
+         aws_region_from_host/1,
+         aws_request_form/8,
+         param_list/2, default_config/0, update_config/1,
+         configure/1, format_timestamp/1,
+         http_headers_body/1,
+         request_to_return/1,
+         sign_v4_headers/5,
+         sign_v4/8,
+         get_service_status/1]).
 
 -include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
 -record(metadata_credentials,
-{access_key_id :: string(),
-    secret_access_key :: string(),
-    security_token = undefined :: string(),
-    expiration_gregorian_seconds :: integer()
-}).
+        {access_key_id :: string(),
+         secret_access_key :: string(),
+         security_token=undefined :: string(),
+         expiration_gregorian_seconds :: integer()
+        }).
 
 aws_request_xml(Method, Host, Path, Params, #aws_config{} = Config) ->
     Body = aws_request(Method, Host, Path, Params, Config),
@@ -72,7 +72,7 @@ aws_request(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) 
     end.
 aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey) ->
     aws_request(Method, Protocol, Host, Port, Path, Params,
-        #aws_config{access_key_id = AccessKeyID, secret_access_key = SecretAccessKey}).
+                #aws_config{access_key_id = AccessKeyID, secret_access_key = SecretAccessKey}).
 
 %% aws_request2 returns {ok, Body} or {error, Reason} instead of throwing as aws_request does
 %% This is the preferred pattern for new APIs
@@ -87,18 +87,18 @@ aws_request2(Method, Protocol, Host, Port, Path, Params, Config) ->
 aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     Timestamp = format_timestamp(erlang:universaltime()),
     QParams = lists:sort(
-        [{"Timestamp", Timestamp},
-            {"SignatureVersion", "2"},
-            {"SignatureMethod", "HmacSHA1"},
-            {"AWSAccessKeyId", Config#aws_config.access_key_id} | Params] ++
-        case Config#aws_config.security_token of
-            undefined -> [];
-            Token -> [{"SecurityToken", Token}]
-        end),
+                [{"Timestamp", Timestamp},
+                    {"SignatureVersion", "2"},
+                    {"SignatureMethod", "HmacSHA1"},
+                    {"AWSAccessKeyId", Config#aws_config.access_key_id} | Params] ++
+                case Config#aws_config.security_token of
+                    undefined -> [];
+                    Token -> [{"SecurityToken", Token}]
+                end),
 
     QueryToSign = erlcloud_http:make_query_string(QParams),
     RequestToSign = [string:to_upper(atom_to_list(Method)), $\n,
-        string:to_lower(Host), $\n, Path, $\n, QueryToSign],
+                     string:to_lower(Host), $\n, Path, $\n, QueryToSign],
     Signature = base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, RequestToSign)),
 
     Query = [QueryToSign, "&Signature=", erlcloud_http:url_encode(Signature)],
@@ -143,14 +143,14 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service, #aws
     Headers :: list(), Config :: aws_config()) -> {ok, binary()} | {error, tuple()}.
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
     UProtocol = case Protocol of
-                    undefined -> "https://";
-                    _ -> [Protocol, "://"]
-                end,
+        undefined -> "https://";
+        _ -> [Protocol, "://"]
+    end,
 
     URL = case Port of
-              undefined -> [UProtocol, Host, Path];
-              _ -> [UProtocol, Host, $:, port_to_str(Port), Path]
-          end,
+        undefined -> [UProtocol, Host, Path];
+        _ -> [UProtocol, Host, $:, port_to_str(Port), Path]
+    end,
 
     %% Note: httpc MUST be used with {timeout, timeout()} option
     %%       Many timeout related failures is observed at prod env
@@ -163,9 +163,9 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
                     Req, get, Headers, <<>>, Config#aws_config.timeout, Config);
             _ ->
                 erlcloud_httpc:request(
-                    lists:flatten(URL), Method,
-                    [{<<"content-type">>, <<"application/x-www-form-urlencoded; charset=utf-8">>} | Headers],
-                    list_to_binary(Form), Config#aws_config.timeout, Config)
+                  lists:flatten(URL), Method,
+                  [{<<"content-type">>, <<"application/x-www-form-urlencoded; charset=utf-8">>} | Headers],
+                  list_to_binary(Form), Config#aws_config.timeout, Config)
         end,
 
     http_body(Response).
@@ -177,7 +177,7 @@ param_list(Values, Key) when is_tuple(Key) ->
         [[{lists:append([element(J, Key), ".", integer_to_list(I)]),
             element(J, Value)} || J <- Seq] ||
             {I, Value} <- lists:zip(lists:seq(1, length(Values)), Values)]
-    );
+     );
 param_list([[{_, _} | _] | _] = Values, Key) ->
     lists:flatten(
         [[{lists:flatten([Key, $., integer_to_list(I), $., SubKey]),
@@ -197,7 +197,7 @@ value_to_string({{_Yr, _Mo, _Da}, {_Hr, _Min, _Sec}} = Timestamp) -> format_time
 format_timestamp({{Yr, Mo, Da}, {H, M, S}}) ->
     lists:flatten(
         io_lib:format("~4.10.0b-~2.10.0b-~2.10.0bT~2.10.0b:~2.10.0b:~2.10.0bZ",
-            [Yr, Mo, Da, H, M, S])).
+                      [Yr, Mo, Da, H, M, S])).
 
 default_config() ->
     case get(aws_config) of
@@ -230,9 +230,9 @@ update_config(#aws_config{} = Config) ->
             {error, Reason};
         {ok, Credentials} ->
             {ok, Config#aws_config{
-                access_key_id = Credentials#metadata_credentials.access_key_id,
-                secret_access_key = Credentials#metadata_credentials.secret_access_key,
-                security_token = Credentials#metadata_credentials.security_token}}
+                   access_key_id = Credentials#metadata_credentials.access_key_id,
+                   secret_access_key = Credentials#metadata_credentials.secret_access_key,
+                   security_token = Credentials#metadata_credentials.security_token}}
     end.
 
 -spec configure(aws_config()) -> {ok, aws_config()}.
@@ -261,7 +261,7 @@ timestamp_to_gregorian_seconds(Timestamp) ->
     calendar:datetime_to_gregorian_seconds({{Yr, Mo, Da}, {H, M, S}}).
 
 -spec get_credentials_from_metadata(aws_config())
-        -> {ok, #metadata_credentials{}} | {error, term()}.
+                                   -> {ok, #metadata_credentials{}} | {error, term()}.
 get_credentials_from_metadata(Config) ->
     %% TODO this function should retry on errors getting credentials
     %% First get the list of roles
@@ -364,8 +364,8 @@ sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams) ->
 iso_8601_basic_time() ->
     {{Year, Month, Day}, {Hour, Min, Sec}} = calendar:now_to_universal_time(os:timestamp()),
     lists:flatten(io_lib:format(
-        "~4.10.0B~2.10.0B~2.10.0BT~2.10.0B~2.10.0B~2.10.0BZ",
-        [Year, Month, Day, Hour, Min, Sec])).
+                    "~4.10.0B~2.10.0B~2.10.0BT~2.10.0B~2.10.0B~2.10.0BZ",
+                    [Year, Month, Day, Hour, Min, Sec])).
 
 canonical_request(Method, CanonicalURI, QParams, Headers, PayloadHash) ->
     {CanonicalHeaders, SignedHeaders} = canonical_headers(Headers),

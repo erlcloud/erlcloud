@@ -2,35 +2,35 @@
 
 -module(erlcloud_s3).
 -export([new/2, new/3, new/4, configure/2, configure/3, configure/4,
-        create_bucket/1, create_bucket/2, create_bucket/3, create_bucket/4,
-        delete_bucket/1, delete_bucket/2,
-        get_bucket_attribute/2, get_bucket_attribute/3,
-        list_buckets/0, list_buckets/1,
-        set_bucket_attribute/3, set_bucket_attribute/4,
-        get_bucket_policy/1, get_bucket_policy/2,
-        put_bucket_policy/2, put_bucket_policy/3,
-        list_objects/1, list_objects/2, list_objects/3,
-        list_object_versions/1, list_object_versions/2, list_object_versions/3,
-        copy_object/4, copy_object/5, copy_object/6,
-        delete_objects_batch/2, explore_dirstructure/3,
-        delete_object/2, delete_object/3,
-        delete_object_version/3, delete_object_version/4,
-        get_object/2, get_object/3, get_object/4,
-        get_object_acl/2, get_object_acl/3, get_object_acl/4,
-        get_object_torrent/2, get_object_torrent/3,
-        get_object_metadata/2, get_object_metadata/3, get_object_metadata/4,
-        put_object/3, put_object/4, put_object/5, put_object/6,
-        set_object_acl/3, set_object_acl/4,
-        make_link/3, make_link/4,
-        make_get_url/3, make_get_url/4,
-        start_multipart/2, start_multipart/5,
-        upload_part/5, upload_part/7,
-        complete_multipart/4, complete_multipart/6,
-        abort_multipart/3, abort_multipart/6,
-        list_multipart_uploads/1, list_multipart_uploads/2,
-        get_object_url/2, get_object_url/3,
-        get_bucket_and_key/1
-       ]).
+         create_bucket/1, create_bucket/2, create_bucket/3, create_bucket/4,
+         delete_bucket/1, delete_bucket/2,
+         get_bucket_attribute/2, get_bucket_attribute/3,
+         list_buckets/0, list_buckets/1,
+         set_bucket_attribute/3, set_bucket_attribute/4,
+         get_bucket_policy/1, get_bucket_policy/2,
+         put_bucket_policy/2, put_bucket_policy/3,
+         list_objects/1, list_objects/2, list_objects/3,
+         list_object_versions/1, list_object_versions/2, list_object_versions/3,
+         copy_object/4, copy_object/5, copy_object/6,
+         delete_objects_batch/2, explore_dirstructure/3,
+         delete_object/2, delete_object/3,
+         delete_object_version/3, delete_object_version/4,
+         get_object/2, get_object/3, get_object/4,
+         get_object_acl/2, get_object_acl/3, get_object_acl/4,
+         get_object_torrent/2, get_object_torrent/3,
+         get_object_metadata/2, get_object_metadata/3, get_object_metadata/4,
+         put_object/3, put_object/4, put_object/5, put_object/6,
+         set_object_acl/3, set_object_acl/4,
+         make_link/3, make_link/4,
+         make_get_url/3, make_get_url/4,
+         start_multipart/2, start_multipart/5,
+         upload_part/5, upload_part/7,
+         complete_multipart/4, complete_multipart/6,
+         abort_multipart/3, abort_multipart/6,
+         list_multipart_uploads/1, list_multipart_uploads/2,
+         get_object_url/2, get_object_url/3,
+         get_bucket_and_key/1
+        ]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -43,8 +43,8 @@
 
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{
-        access_key_id=AccessKeyID,
-        secret_access_key=SecretAccessKey
+       access_key_id=AccessKeyID,
+       secret_access_key=SecretAccessKey
     }.
 
 -spec new(string(), string(), string()) -> aws_config().
@@ -61,10 +61,10 @@ new(AccessKeyID, SecretAccessKey, Host) ->
 
 new(AccessKeyID, SecretAccessKey, Host, Port) ->
     #aws_config{
-        access_key_id=AccessKeyID,
-        secret_access_key=SecretAccessKey,
-        s3_host=Host,
-        s3_port=Port
+       access_key_id=AccessKeyID,
+       secret_access_key=SecretAccessKey,
+       s3_host=Host,
+       s3_port=Port
     }.
 
 -spec configure(string(), string()) -> ok.
@@ -86,29 +86,29 @@ configure(AccessKeyID, SecretAccessKey, Host, Port) ->
     ok.
 
 -type s3_bucket_attribute_name() :: acl
-| location
-| logging
-| request_payment
-| versioning.
+                                  | location
+                                  | logging
+                                  | request_payment
+                                  | versioning.
 
 -type s3_bucket_acl() :: private
-| public_read
-| public_read_write
-| authenticated_read
-| bucket_owner_read
-| bucket_owner_full_control.
+                       | public_read
+                       | public_read_write
+                       | authenticated_read
+                       | bucket_owner_read
+                       | bucket_owner_full_control.
 
 -type s3_location_constraint() :: none
-| us_west_1
-| eu
-| 'us-east-1'
-| 'us-west-1'
-| 'eu-west-1'
-| 'eu-central-1'
-| 'ap-southeast-1'
-| 'ap-southeast-2'
-| 'ap-northeast-1'
-| 'sa-east-1'.
+                                | us_west_1
+                                | eu
+                                | 'us-east-1'
+                                | 'us-west-1'
+                                | 'eu-west-1'
+                                | 'eu-central-1'
+                                | 'ap-southeast-1'
+                                | 'ap-southeast-2'
+                                | 'ap-northeast-1'
+                                | 'sa-east-1'.
 
 
 -define(XMLNS_S3, "http://s3.amazonaws.com/doc/2006-03-01/").
@@ -136,12 +136,12 @@ copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, Options, Con
                  end,
     RequestHeaders =
         [{"x-amz-copy-source", [SrcBucketName, $/, SrcKeyName, SrcVersion]},
-            {"x-amz-metadata-directive", proplists:get_value(metadata_directive, Options)},
-            {"x-amz-copy-source-if-match", proplists:get_value(if_match, Options)},
-            {"x-amz-copy-source-if-none-match", proplists:get_value(if_none_match, Options)},
-            {"x-amz-copy-source-if-unmodified-since", proplists:get_value(if_unmodified_since, Options)},
-            {"x-amz-copy-source-if-modified-since", proplists:get_value(if_modified_since, Options)},
-            {"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}],
+         {"x-amz-metadata-directive", proplists:get_value(metadata_directive, Options)},
+         {"x-amz-copy-source-if-match", proplists:get_value(if_match, Options)},
+         {"x-amz-copy-source-if-none-match", proplists:get_value(if_none_match, Options)},
+         {"x-amz-copy-source-if-unmodified-since", proplists:get_value(if_unmodified_since, Options)},
+         {"x-amz-copy-source-if-modified-since", proplists:get_value(if_modified_since, Options)},
+         {"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}],
     {Headers, _Body} = s3_request(Config, put, DestBucketName, [$/|DestKeyName],
         "", [], <<>>, RequestHeaders),
     [{copy_source_version_id, proplists:get_value("x-amz-copy-source-version-id", Headers, "false")},
@@ -344,12 +344,12 @@ get_bucket_policy(BucketName) ->
 -spec(get_bucket_policy/2 :: (BucketName::string(), Config::aws_config()) -> {ok, Policy::string()} | {error, Reason::term()}).
 get_bucket_policy(BucketName, Config)
     when is_record(Config, aws_config) ->
-    case s3_request2(Config, get, BucketName, "/", "policy", [], <<>>, []) of
-        {ok, {_Headers, Body}} ->
-            {ok, binary_to_list(Body)};
-        Error ->
-            Error
-    end.
+        case s3_request2(Config, get, BucketName, "/", "policy", [], <<>>, []) of
+            {ok, {_Headers, Body}} ->
+                {ok, binary_to_list(Body)};
+            Error ->
+                Error
+        end.
 
 -spec put_bucket_policy(string(), binary()) -> ok.
 put_bucket_policy(BucketName, Policy) ->
@@ -381,18 +381,18 @@ list_objects(BucketName, Options, Config)
     when is_list(BucketName),
     is_list(Options) ->
     Params = [{"delimiter", proplists:get_value(delimiter, Options)},
-        {"marker", proplists:get_value(marker, Options)},
-        {"max-keys", proplists:get_value(max_keys, Options)},
-        {"prefix", proplists:get_value(prefix, Options)}],
+              {"marker", proplists:get_value(marker, Options)},
+              {"max-keys", proplists:get_value(max_keys, Options)},
+              {"prefix", proplists:get_value(prefix, Options)}],
     Doc = s3_xml_request(Config, get, BucketName, "/", "", Params, <<>>, []),
     Attributes = [{name, "Name", text},
-        {prefix, "Prefix", text},
-        {marker, "Marker", text},
-        {delimiter, "Delimiter", text},
-        {max_keys, "MaxKeys", integer},
-        {is_truncated, "IsTruncated", boolean},
-        {common_prefixes, "CommonPrefixes", fun extract_prefixes/1},
-        {contents, "Contents", fun extract_contents/1}],
+                  {prefix, "Prefix", text},
+                  {marker, "Marker", text},
+                  {delimiter, "Delimiter", text},
+                  {max_keys, "MaxKeys", integer},
+                  {is_truncated, "IsTruncated", boolean},
+                  {common_prefixes, "CommonPrefixes", fun extract_prefixes/1},
+                  {contents, "Contents", fun extract_contents/1}],
     erlcloud_xml:decode(Attributes, Doc).
 
 extract_prefixes(Nodes) ->
@@ -401,11 +401,11 @@ extract_prefixes(Nodes) ->
 
 extract_contents(Nodes) ->
     Attributes = [{key, "Key", text},
-        {last_modified, "LastModified", time},
-        {etag, "ETag", text},
-        {size, "Size", integer},
-        {storage_class, "StorageClass", text},
-        {owner, "Owner", fun extract_user/1}],
+                  {last_modified, "LastModified", time},
+                  {etag, "ETag", text},
+                  {size, "Size", integer},
+                  {storage_class, "StorageClass", text},
+                  {owner, "Owner", fun extract_user/1}],
     [erlcloud_xml:decode(Attributes, Node) || Node <- Nodes].
 
 extract_user([]) ->
@@ -512,12 +512,12 @@ get_object(BucketName, Key, Options, Config) ->
                   end,
     {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders),
     [{etag, proplists:get_value("etag", Headers)},
-        {content_length, proplists:get_value("content-length", Headers)},
-        {content_type, proplists:get_value("content-type", Headers)},
-        {content_encoding, proplists:get_value("content-encoding", Headers)},
-        {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
-        {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
-        {content, Body}|
+     {content_length, proplists:get_value("content-length", Headers)},
+     {content_type, proplists:get_value("content-type", Headers)},
+     {content_encoding, proplists:get_value("content-encoding", Headers)},
+     {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
+     {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
+     {content, Body}|
         extract_metadata(Headers)].
 
 -spec get_object_acl(string(), string()) -> proplist().
@@ -575,12 +575,12 @@ get_object_metadata(BucketName, Key, Options, Config) ->
     {Headers, _Body} = s3_request(Config, head, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders),
 
     [{last_modified, proplists:get_value("last-modified", Headers)},
-        {etag, proplists:get_value("etag", Headers)},
-        {content_length, proplists:get_value("content-length", Headers)},
-        {content_type, proplists:get_value("content-type", Headers)},
-        {content_encoding, proplists:get_value("content-encoding", Headers)},
-        {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
-        {version_id, proplists:get_value("x-amz-version-id", Headers, "false")}|extract_metadata(Headers)].
+     {etag, proplists:get_value("etag", Headers)},
+     {content_length, proplists:get_value("content-length", Headers)},
+     {content_type, proplists:get_value("content-type", Headers)},
+     {content_encoding, proplists:get_value("content-encoding", Headers)},
+     {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
+     {version_id, proplists:get_value("x-amz-version-id", Headers, "false")}|extract_metadata(Headers)].
 
 extract_metadata(Headers) ->
     [{Key, Value} || {Key = "x-amz-meta-" ++ _, Value} <- Headers].
@@ -617,21 +617,21 @@ list_object_versions(BucketName, Options) ->
 list_object_versions(BucketName, Options, Config)
     when is_list(BucketName), is_list(Options) ->
     Params = [{"delimiter", proplists:get_value(delimiter, Options)},
-        {"key-marker", proplists:get_value(key_marker, Options)},
-        {"max-keys", proplists:get_value(max_keys, Options)},
-        {"prefix", proplists:get_value(prefix, Options)},
-        {"version-id-marker", proplists:get_value(version_id_marker, Options)}],
+              {"key-marker", proplists:get_value(key_marker, Options)},
+              {"max-keys", proplists:get_value(max_keys, Options)},
+              {"prefix", proplists:get_value(prefix, Options)},
+              {"version-id-marker", proplists:get_value(version_id_marker, Options)}],
     Doc = s3_xml_request(Config, get, BucketName, "/", "versions", Params, <<>>, []),
     Attributes = [{name, "Name", text},
-        {prefix, "Prefix", text},
-        {key_marker, "KeyMarker", text},
-        {next_key_marker, "NextKeyMarker", optional_text},
-        {version_id_marker, "VersionIdMarker", text},
-        {next_version_id_marker, "NextVersionIdMarker", optional_text},
-        {max_keys, "MaxKeys", integer},
-        {is_truncated, "Istruncated", boolean},
-        {versions, "Version", fun extract_versions/1},
-        {delete_markers, "DeleteMarker", fun extract_delete_markers/1}],
+                  {prefix, "Prefix", text},
+                  {key_marker, "KeyMarker", text},
+                  {next_key_marker, "NextKeyMarker", optional_text},
+                  {version_id_marker, "VersionIdMarker", text},
+                  {next_version_id_marker, "NextVersionIdMarker", optional_text},
+                  {max_keys, "MaxKeys", integer},
+                  {is_truncated, "Istruncated", boolean},
+                  {versions, "Version", fun extract_versions/1},
+                  {delete_markers, "DeleteMarker", fun extract_delete_markers/1}],
     erlcloud_xml:decode(Attributes, Doc).
 
 extract_versions(Nodes) ->
@@ -639,13 +639,13 @@ extract_versions(Nodes) ->
 
 extract_version(Node) ->
     Attributes = [{key, "Key", text},
-        {version_id, "VersionId", text},
-        {is_latest, "IsLatest", boolean},
-        {etag, "ETag", text},
-        {size, "Size", integer},
-        {owner, "Owner", fun extract_user/1},
-        {storage_class, "StorageClass", text},
-        {last_modified, "LastModified", time}],
+                  {version_id, "VersionId", text},
+                  {is_latest, "IsLatest", boolean},
+                  {etag, "ETag", text},
+                  {size, "Size", integer},
+                  {owner, "Owner", fun extract_user/1},
+                  {storage_class, "StorageClass", text},
+                  {last_modified, "LastModified", time}],
     erlcloud_xml:decode(Attributes, Node).
 
 extract_delete_markers(Nodes) ->
@@ -653,15 +653,15 @@ extract_delete_markers(Nodes) ->
 
 extract_delete_marker(Node) ->
     Attributes = [{key, "Key", text},
-        {version_id, "VersionId", text},
-        {is_latest, "IsLatest", boolean},
-        {owner, "Owner", fun extract_user/1}],
+                  {version_id, "VersionId", text},
+                  {is_latest, "IsLatest", boolean},
+                  {owner, "Owner", fun extract_user/1}],
     erlcloud_xml:decode(Attributes, Node).
 
 extract_bucket(Node) ->
     erlcloud_xml:decode([{name, "Name", text},
-        {creation_date, "CreationDate", time}],
-        Node).
+                         {creation_date, "CreationDate", time}],
+                        Node).
 
 -spec put_object(string(), string(), iolist()) -> proplist().
 
@@ -724,9 +724,9 @@ sign_get(Expire_time, BucketName, Key, Config)
     Datetime = (Mega * 1000000) + Sec,
     Expires = integer_to_list(Expire_time + Datetime),
     SecurityTokenToSign = case Config#aws_config.security_token of
-                              undefined -> "";
-                              SecurityToken -> "x-amz-security-token:" ++ SecurityToken ++ "\n"
-                          end,
+        undefined -> "";
+        SecurityToken -> "x-amz-security-token:" ++ SecurityToken ++ "\n"
+    end,
     To_sign = lists:flatten(["GET\n\n\n", Expires, "\n", SecurityTokenToSign, "/", BucketName, "/", Key]),
     Sig = base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, To_sign)),
     {Sig, Expires}.
@@ -743,9 +743,9 @@ make_link(Expire_time, BucketName, Key, Config) ->
     {Sig, Expires} = sign_get(Expire_time, BucketName, EncodedKey, Config),
     Host = lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config)]),
     SecurityTokenQS = case Config#aws_config.security_token of
-                          undefined -> "";
-                          SecurityToken -> "&x-amz-security-token=" ++ erlcloud_http:url_encode(SecurityToken)
-                      end,
+        undefined -> "";
+        SecurityToken -> "&x-amz-security-token=" ++ erlcloud_http:url_encode(SecurityToken)
+    end,
     URI = lists:flatten(["/", EncodedKey, "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id), "&Signature=", erlcloud_http:url_encode(Sig), "&Expires=", Expires, SecurityTokenQS]),
     {list_to_integer(Expires),
         binary_to_list(erlang:iolist_to_binary(Host)),
@@ -771,14 +771,14 @@ make_get_url(Expire_time, BucketName, Key) ->
 make_get_url(Expire_time, BucketName, Key, Config) ->
     {Sig, Expires} = sign_get(Expire_time, BucketName, erlcloud_http:url_encode_loose(Key), Config),
     SecurityTokenQS = case Config#aws_config.security_token of
-                          undefined -> "";
-                          SecurityToken -> "&x-amz-security-token=" ++ erlcloud_http:url_encode(SecurityToken)
-                      end,
+        undefined -> "";
+        SecurityToken -> "&x-amz-security-token=" ++ erlcloud_http:url_encode(SecurityToken)
+    end,
     lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key,
-        "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id),
-        "&Signature=", erlcloud_http:url_encode(Sig),
-        "&Expires=", Expires,
-        SecurityTokenQS]).
+     "?AWSAccessKeyId=", erlcloud_http:url_encode(Config#aws_config.access_key_id),
+     "&Signature=", erlcloud_http:url_encode(Sig),
+     "&Expires=", Expires,
+     SecurityTokenQS]).
 
 -spec start_multipart(string(), string()) -> {ok, proplist()} | {error, any()}.
 start_multipart(BucketName, Key)
@@ -832,9 +832,9 @@ complete_multipart(BucketName, Key, UploadId, ETags)
 complete_multipart(BucketName, Key, UploadId, ETags, HTTPHeaders, Config)
     when is_list(BucketName), is_list(Key), is_list(UploadId), is_list(ETags), is_list(HTTPHeaders), is_record(Config, aws_config) ->
     POSTData = list_to_binary(xmerl:export_simple([{'CompleteMultipartUpload',
-        [{'Part',
-            [{'PartNumber', [integer_to_list(Num)]},
-                {'ETag', [ETag]}] } || {Num, ETag} <- ETags]}], xmerl_xml)),
+                                                    [{'Part',
+                                                        [{'PartNumber', [integer_to_list(Num)]},
+                                                            {'ETag', [ETag]}] } || {Num, ETag} <- ETags]}], xmerl_xml)),
 
     case s3_request2(Config, post, BucketName, [$/|Key], [], [{"uploadId", UploadId}],
         POSTData, HTTPHeaders) of
@@ -880,18 +880,18 @@ list_multipart_uploads(BucketName, Options, HTTPHeaders, Config)
     is_list(HTTPHeaders), is_record(Config, aws_config) ->
 
     Params = [
-        {"uploads", ""},
-        {"delimiter", proplists:get_value(delimiter, Options)},
-        {"prefix", proplists:get_value(prefix, Options)},
-        {"max-uploads", proplists:get_value(max_uploads, Options)},
-        {"key-marker", proplists:get_value(key_marker, Options)},
-        {"upload-id-marker", proplists:get_value(upload_id_marker, Options)}
-    ],
+              {"uploads", ""},
+              {"delimiter", proplists:get_value(delimiter, Options)},
+              {"prefix", proplists:get_value(prefix, Options)},
+              {"max-uploads", proplists:get_value(max_uploads, Options)},
+              {"key-marker", proplists:get_value(key_marker, Options)},
+              {"upload-id-marker", proplists:get_value(upload_id_marker, Options)}
+          ],
 
     case s3_xml_request2(Config, get, BucketName, "/", "", Params, <<>>, HTTPHeaders) of
         {ok, Xml} ->
             Uploads = [erlcloud_xml:decode([{key, "Key", text},
-                {uploadId, "UploadId", text}], Node) || Node <- xmerl_xpath:string("/ListMultipartUploadsResult/Upload", Xml)],
+                                            {uploadId, "UploadId", text}], Node) || Node <- xmerl_xpath:string("/ListMultipartUploadsResult/Upload", Xml)],
 
             CommonPrefixes = [erlcloud_xml:get_text("Prefix", Node) || Node <- xmerl_xpath:string("/ListMultipartUploadsResult/CommonPrefixes", Xml)],
 
@@ -1120,8 +1120,8 @@ s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body, H
 s3_result_fun(#aws_request{response_type = ok} = Request) ->
     Request;
 s3_result_fun(#aws_request{response_type = error,
-    error_type = aws,
-    response_status = Status} = Request) when
+                           error_type = aws,
+                           response_status = Status} = Request) when
     Status >= 500 ->
     Request#aws_request{should_retry = true};
 s3_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
