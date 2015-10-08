@@ -187,7 +187,7 @@ headers(Config, Operation, _Params, Body, Service) ->
                 "us-east-1"
         end,
     
-    erlcloud_aws:sign_v4(Config, Headers, Body, Region, Service).
+    erlcloud_aws:sign_v4_headers(Config, Headers, Body, Region, Service).
 
 
 default_config() -> erlcloud_aws:default_config().

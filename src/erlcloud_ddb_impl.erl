@@ -263,7 +263,7 @@ headers(Config, Operation, Body) ->
             _ ->
                 "us-east-1"
         end,
-    erlcloud_aws:sign_v4(Config, Headers, Body, Region, "dynamodb").
+    erlcloud_aws:sign_v4_headers(Config, Headers, Body, Region, "dynamodb").
 
 url(#aws_config{ddb_scheme = Scheme, ddb_host = Host} = Config) ->
     lists:flatten([Scheme, Host, port_spec(Config)]).
