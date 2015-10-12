@@ -55,6 +55,13 @@ get_value(XPath, Type, Node) ->
                 [] -> undefined;
                 [SubNode] -> Fun(SubNode)
             end;
+        {map, Fun} when is_function(Fun, 1) ->
+            lists:map(Fun, xmerl_xpath:string(XPath, Node));
+        {optional_map, Fun} when is_function(Fun, 1) ->
+            case xmerl_xpath:string(XPath, Node) of
+                [] -> undefined;
+                List  -> lists:map(Fun, List)
+            end;
         {single, List} when is_list(List) ->
             case xmerl_xpath:string(XPath, Node) of
                 [] -> undefined;
