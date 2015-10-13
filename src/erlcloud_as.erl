@@ -12,7 +12,10 @@
 
          describe_instances/0, describe_instances/1, describe_instances/2, 
          describe_instances/4,
-         terminate_instance/1, terminate_instance/2, terminate_instance/3]).
+         terminate_instance/1, terminate_instance/2, terminate_instance/3,
+
+         suspend_processes/1, suspend_processes/2, suspend_processes/3,
+         resume_processes/1, resume_processes/2, resume_processes/3]).
 
 -define(API_VERSION, "2011-01-01").
 -define(DEFAULT_MAX_RECORDS, 20).
@@ -40,6 +43,12 @@
 %% xpath for terminate instance:
 -define(TERMINATE_INSTANCE_ACTIVITY, 
         "/TerminateInstanceInAutoScalingGroupResponse/TerminateInstanceInAutoScalingGroupResult/Activity").
+
+%% xpath for suspend and resume ScalingProcesses:
+-define(SUSPEND_PROCESSES_ACTIVITY, 
+        "/SuspendProcessesResponse/ResponseMetadata/RequestId").
+-define(RESUME_PROCESSES_ACTIVITY, 
+        "/ResumeProcessesResponse/ResponseMetadata/RequestId").
 
 %% --------------------------------------------------------------------
 %% @doc Calls describe_groups([], default_configuration())
@@ -290,7 +299,73 @@ priv_terminate_instance(Params, Config) ->
         {error, Reason} ->
             {error, Reason}
     end.
-    
+
+%% --------------------------------------------------------------------
+%% @doc Suspends Auto Scaling processes for the specified
+%% Auto Scaling group. To suspend specific processes, use the
+%% ScalingProcesses parameter. To suspend all processes, omit the
+%% ScalingProcesses parameter.
+%% @end
+%% --------------------------------------------------------------------
+-spec suspend_processes(string()) -> {ok, string()} | {error, term()}.
+suspend_processes(GroupName) ->
+    suspend_processes(GroupName, [], erlcloud_aws:default_config()).
+
+%% --------------------------------------------------------------------
+%% @doc Suspend the processes. The 2nd parameter can be used to specify
+%% a list of ScalingProcesses or [] to suspend all
+%% Config a supplied AWS configuration.
+%% @end
+%% --------------------------------------------------------------------
+suspend_processes(GroupName, Config) when is_record(Config, aws_config) ->
+    suspend_processes(GroupName, [], Config);
+suspend_processes(GroupName, ScalingProcesses) when is_list(ScalingProcesses) ->
+    suspend_processes(GroupName, ScalingProcesses, erlcloud_aws:default_config()).
+
+-spec suspend_processes(string(), list(string()), aws_config()) -> {ok, string()} | {error, term()}.
+suspend_processes(GroupName, ScalingProcesses, Config) ->
+    Params = [{"AutoScalingGroupName", GroupName} | member_params("ScalingProcesses.member.", ScalingProcesses)],
+    case as_query(Config, "SuspendProcesses", Params, ?API_VERSION) of
+        {ok, Doc} ->
+            [RequestId] = xmerl_xpath:string(?SUSPEND_PROCESSES_ACTIVITY, Doc),
+            {ok, erlcloud_xml:get_text(RequestId)};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+%% --------------------------------------------------------------------
+%% @doc Resumes Auto Scaling processes for the specified
+%% Auto Scaling group. To resume specific processes, use the
+%% ScalingProcesses parameter. To resume all processes, omit the
+%% ScalingProcesses parameter.
+%% @end
+%% --------------------------------------------------------------------
+-spec resume_processes(string()) -> {ok, string()} | {error, term()}.
+resume_processes(GroupName) ->
+    resume_processes(GroupName, [], erlcloud_aws:default_config()).
+
+%% --------------------------------------------------------------------
+%% @doc Resume the processes. The 2nd parameter can be used to specify
+%% a list of ScalingProcesses or [] to resume all
+%% Config a supplied AWS configuration.
+%% @end
+%% --------------------------------------------------------------------
+resume_processes(GroupName, Config) when is_record(Config, aws_config) ->
+    resume_processes(GroupName, [], Config);
+resume_processes(GroupName, ScalingProcesses) when is_list(ScalingProcesses) ->
+    resume_processes(GroupName, ScalingProcesses, erlcloud_aws:default_config()).
+
+-spec resume_processes(string(), list(string()), aws_config()) -> {ok, string()} | {error, term()}.
+resume_processes(GroupName, ScalingProcesses, Config) ->
+    Params = [{"AutoScalingGroupName", GroupName} | member_params("ScalingProcesses.member.", ScalingProcesses)],
+    case as_query(Config, "ResumeProcesses", Params, ?API_VERSION) of
+        {ok, Doc} ->
+            [RequestId] = xmerl_xpath:string(?RESUME_PROCESSES_ACTIVITY, Doc),
+            {ok, erlcloud_xml:get_text(RequestId)};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
 
 
 %% given a list of member identifiers, return a list of 
