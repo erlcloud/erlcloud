@@ -238,7 +238,7 @@ describe_stream(StreamName, Limit, ExcludeShard) when is_integer(Limit), Limit >
 
 describe_stream(StreamName, Limit, ExcludeShard, Config) when is_record(Config, aws_config), is_integer(Limit), Limit > 0, Limit =< 100 ->
    Json = [{<<"StreamName">>, StreamName}, {<<"Limit">>, Limit}, {<<"ExclusiveStartShardId">>, ExcludeShard}],
-   erlcloud_kinesis_impl:request(default_config(), "Kinesis_20131202.DescribeStream", Json).
+   erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.DescribeStream", Json).
 
 
 %%------------------------------------------------------------------------------
