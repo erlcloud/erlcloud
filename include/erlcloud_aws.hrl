@@ -34,6 +34,7 @@
           cloudtrail_scheme="https://"::string(),
           cloudtrail_host="cloudtrail.amazonaws.com"::string(),
           cloudtrail_port=80::non_neg_integer(),
+          cloudformation_host="cloudformation.us-east-1.amazonaws.com"::string(),
           access_key_id::string()|undefined|false,
           secret_access_key::string()|undefined|false,
           security_token=undefined::string()|undefined,
