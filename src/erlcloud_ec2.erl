@@ -122,13 +122,13 @@
          describe_subnets/0, describe_subnets/1, describe_subnets/2, describe_subnets/3,
          create_subnet/2, create_subnet/3, create_subnet/4,
          delete_subnet/1, delete_subnet/2,
-         describe_vpcs/0, describe_vpcs/1, describe_vpcs/2,
+         describe_vpcs/0, describe_vpcs/1, describe_vpcs/2, describe_vpcs/3,
          create_vpc/1, create_vpc/2, create_vpc/3,
          delete_vpc/1, delete_vpc/2,
          describe_dhcp_options/0, describe_dhcp_options/1, describe_dhcp_options/2,
          associate_dhcp_options/2, associate_dhcp_options/3,
          describe_internet_gateways/0, describe_internet_gateways/1,
-         describe_internet_gateways/2,
+         describe_internet_gateways/2, describe_internet_gateways/3,
          create_internet_gateway/0, create_internet_gateway/1,
          attach_internet_gateway/2, attach_internet_gateway/3,
          delete_internet_gateway/1, delete_internet_gateway/2,
@@ -157,11 +157,11 @@
          delete_tags/2, delete_tags/3,
         
          %% VPN gateways
-         describe_vpn_gateways/0, describe_vpn_gateways/1, describe_vpn_gateways/2,
-         describe_vpn_connections/0, describe_vpn_connections/1, describe_vpn_connections/2,
+         describe_vpn_gateways/0, describe_vpn_gateways/1, describe_vpn_gateways/2, describe_vpn_gateways/3,
+         describe_vpn_connections/0, describe_vpn_connections/1, describe_vpn_connections/2, describe_vpn_connections/3,
         
         %% Customer gateways
-         describe_customer_gateways/0, describe_customer_gateways/1, describe_customer_gateways/2
+         describe_customer_gateways/0, describe_customer_gateways/1, describe_customer_gateways/2, describe_customer_gateways/3
 
         ]).
 
@@ -1420,7 +1420,11 @@ describe_internet_gateways(Filter) ->
 
 -spec(describe_internet_gateways/2 :: (none | filter_list(), aws_config()) -> [proplist()]).
 describe_internet_gateways(Filter, Config) ->
-    Params = list_to_ec2_filter(Filter),
+    describe_internet_gateways([], Filter, Config).
+
+-spec(describe_internet_gateways/3 :: (list(), none | filter_list(), aws_config()) -> [proplist()]).
+describe_internet_gateways(IGWIds, Filter, Config) ->
+    Params = erlcloud_aws:param_list(IGWIds, "InternetGatewayId") ++ list_to_ec2_filter(Filter), %
     case ec2_query(Config, "DescribeInternetGateways", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             ResultPath = "/DescribeInternetGatewaysResponse/internetGatewaySet/item",
@@ -2122,7 +2126,11 @@ describe_vpcs(Filter) ->
 
 -spec(describe_vpcs/2 :: (filter_list() | none, aws_config()) -> proplist()).
 describe_vpcs(Filter, Config) ->
-    Params = list_to_ec2_filter(Filter),
+    describe_vpcs([], Filter, Config).
+
+-spec(describe_vpcs/3 :: (list(), filter_list() | none, aws_config()) -> proplist()).
+describe_vpcs(VpcIds, Filter, Config) ->
+    Params = erlcloud_aws:param_list(VpcIds, "VpcId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeVpcs", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             Items = xmerl_xpath:string("/DescribeVpcsResponse/vpcSet/item", Doc),
@@ -2883,7 +2891,11 @@ describe_vpn_gateways(Filter) ->
 
 -spec(describe_vpn_gateways/2 :: (none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
 describe_vpn_gateways(Filter, Config) ->
-    Params = list_to_ec2_filter(Filter),
+    describe_vpn_gateways([], Filter, Config).
+
+-spec(describe_vpn_gateways/3 :: (list(), none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
+describe_vpn_gateways(VGWIds, Filter, Config) ->
+    Params = erlcloud_aws:param_list(VGWIds, "VpnGatewayId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeVpnGateways", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             ResultPath = "/DescribeVpnGatewaysResponse/vpnGatewaySet/item",
@@ -2922,7 +2934,11 @@ describe_vpn_connections(Filter) ->
 
 -spec(describe_vpn_connections/2 :: (none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
 describe_vpn_connections(Filter, Config) ->
-    Params = list_to_ec2_filter(Filter),
+    describe_vpn_connections([], Filter, Config).
+
+-spec(describe_vpn_connections/3 :: (list(), none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
+describe_vpn_connections(VpnConnIds, Filter, Config) ->
+    Params = erlcloud_aws:param_list(VpnConnIds, "VpnConnectionId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeVpnConnections", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             ResultPath = "/DescribeVpnConnectionsResponse/vpnConnectionSet/item",
@@ -2957,7 +2973,11 @@ describe_customer_gateways(Filter) ->
 
 -spec(describe_customer_gateways/2 :: (none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
 describe_customer_gateways(Filter, Config) ->
-    Params = list_to_ec2_filter(Filter),
+    describe_customer_gateways([], Filter, Config).
+
+-spec(describe_customer_gateways/3 :: (list(), none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
+describe_customer_gateways(CGWIds, Filter, Config) ->
+    Params = erlcloud_aws:param_list(CGWIds, "CustomerGatewayId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeCustomerGateways", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             ResultPath = "/DescribeCustomerGatewaysResponse/customerGatewaySet/item",

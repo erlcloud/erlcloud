@@ -20,10 +20,12 @@
     list_attached_user_policies/1, list_attached_user_policies/2, list_attached_user_policies/3,
     get_user_policy/2, get_user_policy/3,
     get_login_profile/1, get_login_profile/2,
+    get_group/1, get_group/2, 
     list_groups/0, list_groups/1, list_groups/2,
     list_group_policies/1, list_group_policies/2,
     get_group_policy/2, get_group_policy/3,
     list_attached_group_policies/1, list_attached_group_policies/2, list_attached_group_policies/3,
+    get_role/1, get_role/2, 
     list_roles/0, list_roles/1, list_roles/2,
     list_role_policies/1, list_role_policies/2,
     list_attached_role_policies/1, list_attached_role_policies/2, list_attached_role_policies/3,
@@ -186,6 +188,21 @@ get_login_profile(UserName, #aws_config{} = Config) ->
 %
 % Groups API
 %
+-spec(get_group/1 :: (string()) -> proplist()).
+get_group(GroupName) when is_list(GroupName)->
+    get_group(GroupName, default_config()).
+
+-spec(get_group/2 :: (string(), aws_config()) -> proplist()).
+get_group(GroupName, Config) ->
+    get_group_impl([{"GroupName", GroupName}], Config).
+    
+get_group_impl(GroupNameParam, #aws_config{} = Config) ->
+    ItemPath = "/GetGroupResponse/GetGroupResult/Group",
+    case iam_query(Config, "GetGroup", GroupNameParam, ItemPath, data_type("Group")) of
+        {ok, [Group]} -> {ok, Group};
+        {error, _} = Error -> Error
+    end.
+
 -spec(list_groups/0 :: () -> proplist()).
 list_groups() -> list_groups([]).
 -spec(list_groups/1 :: (string() | aws_config()) -> proplist()).
@@ -241,6 +258,21 @@ list_attached_group_policies(GroupName, PathPrefix, #aws_config{} = Config)
 %
 % Roles API
 %
+-spec(get_role/1 :: (string()) -> proplist()).
+get_role(RoleName) when is_list(RoleName) ->
+    get_role(RoleName, default_config()).
+
+-spec(get_role/2 :: (string(), aws_config()) -> proplist()).
+get_role(RoleName, Config) ->
+    get_role_impl([{"RoleName", RoleName}], Config).
+    
+get_role_impl(RoleNameParam, #aws_config{} = Config) ->
+    ItemPath = "/GetRoleResponse/GetRoleResult/Role",
+    case iam_query(Config, "GetRole", RoleNameParam, ItemPath, data_type("Role")) of
+        {ok, [Role]} -> {ok, Role};
+        {error, _} = Error -> Error
+    end.
+
 -spec(list_roles/0 :: () -> proplist()).
 list_roles() -> list_roles([]).
 -spec(list_roles/1 :: (string() | aws_config()) -> proplist()).
