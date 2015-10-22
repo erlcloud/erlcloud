@@ -132,7 +132,7 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service, #aws
                                     Region, Service, []);
                         get ->
                             sign_v4(Method, Path, Config, [{"host", Host}],
-                                    [], Region, Service, Params)
+                                    <<>>, Region, Service, Params)
                     end,
 
     aws_request_form(Method, Protocol, Host, Port, Path, Query, SignedHeaders, Config).
