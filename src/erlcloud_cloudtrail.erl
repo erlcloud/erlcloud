@@ -179,15 +179,7 @@ headers(Config, Operation, _Params, Body, Service) ->
                {"host", Config#aws_config.cloudtrail_host},
                {"x-amz-target", Operation}
                ],
-    Region =
-        case string:tokens(Config#aws_config.cloudtrail_host, ".") of
-            [_, Value, _, _] ->
-                Value;
-            _ ->
-                "us-east-1"
-        end,
-    
-    erlcloud_aws:sign_v4(Config, Headers, Body, Region, Service).
+    erlcloud_aws:sign_v4_headers(Config, Headers, Body, erlcloud_aws:aws_region_from_host(Config#aws_config.cloudtrail_host), Service).
 
 
 default_config() -> erlcloud_aws:default_config().
