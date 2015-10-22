@@ -462,16 +462,16 @@ get_service_status(ServiceNames) when is_list(ServiceNames) ->
 
 get_filtered_statuses(ServiceNames, Statuses) ->
     lists:filter(
-        fun(S)-> 
+        fun(S)->
             lists:any(
-                fun(InputService)-> 
+                fun(InputService)->
                     ServiceNameBin = list_to_binary(InputService),
                     ServiceNameLen = byte_size(ServiceNameBin),
-                    case proplists:get_value(<<"service">>, S) of 
+                    case proplists:get_value(<<"service">>, S) of
                         <<ServiceNameBin:ServiceNameLen/binary, _/binary>> -> true;
                         _ -> false
                     end
-                end, 
-            ServiceNames)
+                end,
+                ServiceNames)
         end,
-    Statuses).
+        Statuses).
