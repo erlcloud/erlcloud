@@ -203,11 +203,11 @@ default_config() ->
     case get(aws_config) of
         undefined ->
             AccessKeyId = case os:getenv("AWS_ACCESS_KEY_ID") of
-                              false -> "";
+                              false -> undefined;
                               AKI -> AKI
                           end,
             SecretAccessKey = case os:getenv("AWS_SECRET_ACCESS_KEY") of
-                                  false -> "";
+                                  false -> undefined;
                                   SAC -> SAC
                               end,
             #aws_config{access_key_id = AccessKeyId,
