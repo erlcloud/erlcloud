@@ -1040,7 +1040,6 @@ s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Hea
     case s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
         {_Headers, <<>>} -> ok;
         {_Headers, Body} ->
-            io:format("~p", [Body]),
             XML = element(1,xmerl_scan:string(binary_to_list(Body))),
             case XML of
                 #xmlElement{name='Error'} ->
@@ -1109,28 +1108,52 @@ s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Heade
             Error
     end.
 
-s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body, Headers) ->
+%% http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#create-bucket-intro
+%% AccessMethod can be either 'vhost' - virtual-hosted–style or
+%% 'path' - older path-style URLs to access a bucket.
+s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body, 
+                      Headers) ->
     ContentType = proplists:get_value("content-type", Headers, ""),
     FParams = [Param || {_, Value} = Param <- Params, Value =/= undefined],
     FHeaders = [Header || {_, Val} = Header <- Headers, Val =/= undefined],
 
-    QueryParams = case Subresource of "" -> FParams; _ -> [{Subresource, ""} | FParams] end,
-    EscapedPath = erlcloud_http:url_encode_loose(Path),
-
-    HostName = lists:flatten(
-        [case Bucket of "" -> ""; _ -> [Bucket, $.] end,
-        Config#aws_config.s3_host]),
+    QueryParams = case Subresource of 
+        "" -> 
+            FParams; 
+        _ -> 
+            [{Subresource, ""} | FParams] 
+    end,
+    
+    S3Host = Config#aws_config.s3_host,
+    {EscapedPath, HostName} =  case Config#aws_config.s3_bucket_access_method of
+        vhost ->
+            %% Add bucket name to the front of hostname,
+            %% i.e. https://bucket.name.s3.amazonaws.com/<path>
+            VHostPath = erlcloud_http:url_encode_loose(Path),
+            VHostName = lists:flatten(
+                [case Bucket of "" -> ""; _ -> [Bucket, $.] end,
+                 S3Host]),
+            {VHostPath, VHostName};
+        path ->
+            %% Add bucket name into a URL path
+            %% i.e. https://s3.amazonaws.com/bucket/<path>
+            PathStyleUrl = erlcloud_http:url_encode_loose(
+                    lists:flatten(
+                        [case Bucket of "" -> ""; _ -> ["/", Bucket] end,
+                         Path])),
+            {PathStyleUrl, S3Host}
+    end,
 
     RequestHeaders = erlcloud_aws:sign_v4(
         Method, EscapedPath, Config,
         [{"host", HostName} | FHeaders ],
         Body,
-        aws_region_from_host(Config#aws_config.s3_host),
+        aws_region_from_host(S3Host),
         "s3", QueryParams),
 
     RequestURI = lists:flatten([
         Config#aws_config.s3_scheme,
-        Config#aws_config.s3_host, port_spec(Config),
+        S3Host, port_spec(Config),
         EscapedPath,
         case Subresource of "" -> ""; _ -> [$?, Subresource] end,
         if
@@ -1140,7 +1163,7 @@ s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body, H
             true ->
               [$&, erlcloud_http:make_query_string(FParams, no_assignment)]
         end]),
-
+    
     Request = #aws_request{service = s3, uri = RequestURI, method = Method},
     Request2 = case Method of
                    M when M =:= get orelse M =:= head orelse M =:= delete ->
@@ -1203,44 +1226,101 @@ aws_region_from_host(Host) ->
 %%
 %% http://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
 %% http://docs.aws.amazon.com/AmazonS3/latest/dev/Redirects.html
-%% Note: redirect response is handled only once.
-s3_follow_redirect({error, {http_error, StatusCode, StatusLine, ErrBody, ErrHeaders}} = _Response,
+%% http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAPI.html
+%% Note: Redirects are sequentially handled '#aws_config.s3_follow_redirect_count' times.
+%% This is needed for attempts to access a bucket in non-defaut region using 
+%% the path-style method. Such request is redirected to virtual-hosted bucket 
+%% endpointand then - to region specific one.
+%% For example: trying to get acl of "bucket-frankfurt" in eu-central-1 
+%%  region using path-style access method. 
+%%
+%%  The 1st request ("https://s3.amazonaws.com/bucket-frankfurt/?acl) is 
+%%  redirected to "bucket-frankfurt.s3.amazonaws.com" endpoint.
+%%
+%%  The 2nd ("https://s3.amazonaws.com/?acl" with 
+%%  {"host","bucket-frankfurt.s3.amazonaws.com"} header) is redirected 
+%%  to "bucket-frankfurt.s3.eu-central-1.amazonaws.com".
+%%
+%%  And finally the 3rd request succeeds -
+%%  ("https://s3.eu-central-1.amazonaws.com/?acl" with 
+%%   {"host","bucket-frankfurt.s3.eu-central-1.amazonaws.com""} header)
+s3_follow_redirect(
+    {error, {http_error, StatusCode, StatusLine, ErrBody, _ErrHeaders}} = Response,
     Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers) ->
     case Config#aws_config.s3_follow_redirect of
         true ->
-            S3RegionEndpoint = case {proplists:get_value("x-amz-bucket-region", ErrHeaders),
-                                     proplists:get_value("location", ErrHeaders)}
-            of
-                {undefined, undefined} ->
-                    %% Try to get redirect location from error message.
-                    XML = element(1,xmerl_scan:string(binary_to_list(ErrBody))),
-                    RedirectHostName = erlcloud_xml:get_text("/Error/Endpoint", XML),
-                    s3_endpoint_from_hostname(RedirectHostName, Bucket);
-                {undefined, RedirectUrl} ->
-                    %% Use "location" header value if there is no "x-amz-bucket-region" one.
-                    [_Scheme, HostName | _] =  string:tokens(RedirectUrl, "/"),
-                    s3_endpoint_from_hostname(HostName, Bucket);
-                {BucketRegion, _} ->
-                    %% Use "x-amz-bucket-region" header value if present.
-                    s3_endpoint_for_region(BucketRegion)
-            end,
-            case s3_request4_no_update(Config#aws_config{s3_host = S3RegionEndpoint},
-                Method, Bucket, Path, Subresource, Params, POSTData, Headers) of
-                {error, {http_error, ErrorCode, ErrorLine, ErrorBody, _ErrorHeaders}} ->
-                    {error, {http_error, ErrorCode, ErrorLine, ErrorBody}};
-                FinalResponse ->
-                    FinalResponse
-            end;
+            s3_follow_redirect_impl(Response, Config, Method, Bucket, Path,
+                Subresource, Params, POSTData, Headers, 
+                Config#aws_config.s3_follow_redirect_count);
         _ ->
             {error, {http_error, StatusCode, StatusLine, ErrBody}}
     end.
 
-%% Substract bucket name from a bucket virtual host name.
-%% Example: s3_endpoint_from_hostname(
+s3_follow_redirect_impl(
+    {error, {http_error, StatusCode, StatusLine, ErrBody, _ErrHeaders}} = _Response, 
+    _Config, _Method, _Bucket, _Path, _Subresource, _Params, _POSTData, _Headers, 0) ->
+    {error, {http_error, StatusCode, StatusLine, ErrBody}};
+
+s3_follow_redirect_impl(Response, Config, Method, Bucket, Path,
+        Subresource, Params, POSTData, Headers, RedirectCount) ->
+    {S3RegionEndpoint, AccessMethod} = s3_endpoint_from_response(Config, Bucket, Response),
+    case s3_request4_no_update(
+        Config#aws_config{s3_host = S3RegionEndpoint, s3_bucket_access_method = AccessMethod},
+        Method, Bucket, Path, Subresource, Params, POSTData, Headers)
+    of
+        {error, {http_error, RedirectCode, _, _, _}} = RedirectResponse
+            when RedirectCode >= 301 andalso RedirectCode < 400 ->
+                s3_follow_redirect_impl(RedirectResponse, Config, Method, Bucket, Path,
+                    Subresource, Params, POSTData, Headers, RedirectCount - 1);
+        {error, {http_error, ErrorCode, ErrorLine, ErrorBody, _ErrorHeaders}} ->
+            {error, {http_error, ErrorCode, ErrorLine, ErrorBody}};
+        FinalResponse ->
+            FinalResponse
+    end.
+
+s3_endpoint_from_response(Config, Bucket, 
+        {error, {http_error, _Code, _Msg, ErrBody, ErrHeaders}} = _Response) ->
+    case {proplists:get_value("x-amz-bucket-region", ErrHeaders),
+          proplists:get_value("location", ErrHeaders)}
+    of
+        {undefined, undefined} ->
+            %% Try to get redirect location from error message.
+            XML = element(1,xmerl_scan:string(binary_to_list(ErrBody))),
+            case erlcloud_xml:get_text("/Error/Endpoint", XML) of
+                [] ->
+                    {Config#aws_config.s3_host, 
+                     Config#aws_config.s3_bucket_access_method};
+                Name ->
+                    s3_endpoint_from_hostname(Name, Bucket)
+            end;
+        {undefined, RedirectUrl} ->
+            %% Use "location" header value if there is no "x-amz-bucket-region" one.
+            [_Scheme, HostName | _] =  string:tokens(RedirectUrl, "/"),
+            s3_endpoint_from_hostname(HostName, Bucket);
+        {BucketRegion, _} ->
+            %% Use "x-amz-bucket-region" header value if present.
+            {s3_endpoint_for_region(BucketRegion), 
+             Config#aws_config.s3_bucket_access_method}
+    end.
+
+%% If bucket name is a part of the input hostname then virtual hosted-style access
+%% should be used to access this bucket and bucket name should be subtracted 
+%% from the hostname. Otherwise send requests to provided endpoint as is
+%% using path-style method.
+%% Examples: 
+%%      s3_endpoint_from_hostname(
 %%              "test.bucket.s3.eu-central-1.amazonaws.com",
-%%              "test.bucket") -> "s3.eu-central-1.amazonaws.com"
+%%              "test.bucket") -> {"s3.eu-central-1.amazonaws.com", vhost}
+%%      s3_endpoint_from_hostname(
+%%              "s3.amazonaws.com",
+%%              "test.bucket") -> {"s3.amazonaws.com", path}
 s3_endpoint_from_hostname(HostName, Bucket) ->
-    HostName -- lists:flatten([Bucket, $.]).
+    case lists:prefix(Bucket, HostName) of
+        true ->
+            {HostName -- lists:flatten([Bucket, $.]), vhost};
+        false ->
+            {HostName, path}
+    end.
 
 s3_endpoint_for_region(RegionName) ->
     case RegionName of

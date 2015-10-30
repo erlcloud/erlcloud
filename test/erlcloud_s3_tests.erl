@@ -159,6 +159,13 @@ error_handling_redirect_error() ->
                      "yjPxn58opjPoTJNIm5sPRjFrRlg4c50Ef9hT1m2nPvamKnr7nePMzKN4gStUSTtf0yp6+b/dzrA="},
                     {"x-amz-request-id","5DE771B2AD75F413"}],
                     <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Error><Code>NoSuchBucketPolicy</Code><Message>The bu">>}},
+    Response3 = {ok, {{301,"Moved Permanently"}, [],
+        <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Error><Code>TemporaryRedirect</Code>"
+          "<Message>Please re-send this request to the specified temporary endpoint. Continue to use the original request endpoint for future requests.</Message>"
+          "<Bucket>bucket.name</Bucket>"
+          "<Endpoint>s3.amazonaws.com</Endpoint>"
+          "<RequestId>5B157C1FD7B351A9</RequestId>"
+          "<HostId>IbIGCfmLGzCxQ14C14VuqbjzLjWZ61M1xF3y9ovUu/j/Qj//BXsrbsAuYQJN//FARyvYtOmj8K0=</HostId></Error>">>}},
     meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2]),
     Result1 = erlcloud_s3:get_bucket_policy(
             "bucket.name",
@@ -169,7 +176,37 @@ error_handling_redirect_error() ->
     Result2 = erlcloud_s3:get_bucket_policy(
             "bucket.name",
             config(#aws_config{s3_follow_redirect = false})),
-    ?_assertMatch({error,{http_error,301,"Temporary Redirect",_}}, Result2).
+    ?_assertMatch({error,{http_error,301,"Temporary Redirect",_}}, Result2),
+
+    meck:sequence(erlcloud_httpc, request, 6, [Response3, Response2]),
+    Result3 = erlcloud_s3:get_bucket_policy(
+            "bucket.name",
+            config(#aws_config{s3_follow_redirect = true})),
+    ?_assertMatch({error,{http_error,404,"Not Found",_}}, Result3).
+
+%% Handle two sequential redirects.
+error_handling_double_redirect() ->
+    Response1 = {ok, {{301,"Moved Permanently"}, [],
+        <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Error><Code>TemporaryRedirect</Code>"
+          "<Message>Please re-send this request to the specified temporary endpoint. Continue to use the original request endpoint for future requests.</Message>"
+          "<Bucket>bucket.name</Bucket>"
+          "<Endpoint>s3.amazonaws.com</Endpoint>"
+          "<RequestId>5B157C1FD7B351A9</RequestId>"
+          "<HostId>IbIGCfmLGzCxQ14C14VuqbjzLjWZ61M1xF3y9ovUu/j/Qj//BXsrbsAuYQJN//FARyvYtOmj8K0=</HostId></Error>">>}},
+    Response2 = {ok, {{307,"Temporary Redirect"}, [],
+        <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Error><Code>TemporaryRedirect</Code>"
+          "<Message>Please re-send this request to the specified temporary endpoint. Continue to use the original request endpoint for future requests.</Message>"
+          "<Bucket>bucket.name</Bucket>"
+          "<Endpoint>bucket.name.s3.eu-central-1.amazonaws.com</Endpoint>"
+          "<RequestId>5B157C1FD7B351A9</RequestId>"
+          "<HostId>IbIGCfmLGzCxQ14C14VuqbjzLjWZ61M1xF3y9ovUu/j/Qj//BXsrbsAuYQJN//FARyvYtOmj8K0=</HostId></Error>">>}},
+    Response3 = {ok, {{200, "OK"}, [], <<"TestBody">>}},
+    meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2, Response3]),
+    Result = erlcloud_s3:get_bucket_policy(
+               "bucket.name", 
+               config()),
+    ?_assertEqual({ok, "TestBody"}, Result).
+
 
 error_handling_tests(_) ->
     [error_handling_no_retry(),
@@ -178,5 +215,6 @@ error_handling_tests(_) ->
      error_handling_redirect_message(),
      error_handling_redirect_location(),
      error_handling_redirect_bucket_region(),
-     error_handling_redirect_error()
+     error_handling_redirect_error(),
+     error_handling_double_redirect()
     ].
