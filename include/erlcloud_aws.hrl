@@ -9,6 +9,7 @@
           s3_bucket_after_host=false::boolean(),
           sdb_host="sdb.amazonaws.com"::string(),
           elb_host="elasticloadbalancing.amazonaws.com"::string(),
+          rds_host="rds.us-east-1.amazonaws.com"::string(),
           ses_host="email.us-east-1.amazonaws.com"::string(),
           sqs_host="queue.amazonaws.com"::string(),
           sqs_protocol=undefined::string()|undefined,
