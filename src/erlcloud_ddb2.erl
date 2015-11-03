@@ -834,64 +834,12 @@ conditional_op_opt() ->
 expected_opt() ->
     {expected, <<"Expected">>, fun dynamize_expected/1}.
 
--spec filter_expression_opt() -> opt_table_entry().
-
-filter_expression_opt() ->
-    {filter_expression, <<"FilterExpression">>, fun dynamize_expression/1}.
 
 % This matches the Java API, which asks the user to write their own expressions.
 
 -spec dynamize_expression(expression()) -> binary().
 dynamize_expression(Expression) when is_binary(Expression) ->
-    Expression;
-dynamize_expression(Expression) when is_list(Expression) ->
-    list_to_binary(Expression);
-
-% Or, some convenience functions for assembling expressions using lists of tuples.
-
-dynamize_expression({A, also, B}) ->
-    AA = dynamize_expression(A),
-    BB = dynamize_expression(B),
-    <<"(", AA/binary, ") AND (", BB/binary, ")">>;
-dynamize_expression({{A, B}, eq}) ->
-    <<A/binary, " = ", B/binary>>;
-dynamize_expression({{A, B}, ne}) ->
-    <<A/binary, " <> ", B/binary>>;
-dynamize_expression({{A, B}, lt}) ->
-    <<A/binary, " < ", B/binary>>;
-dynamize_expression({{A, B}, le}) ->
-    <<A/binary, " <= ", B/binary>>;
-dynamize_expression({{A, B}, gt}) ->
-    <<A/binary, " > ", B/binary>>;
-dynamize_expression({{A, B}, ge}) ->
-    <<A/binary, " >= ", B/binary>>;
-dynamize_expression({{A, {Low, High}}, between}) ->
-    <<A/binary, " BETWEEN ", Low/binary, " AND ", High/binary>>;
-dynamize_expression({{A, B}, in}) when is_binary(B) ->
-    <<A/binary, " IN ", B/binary>>;
-dynamize_expression({{A, B}, in}) when is_list(B) ->
-    % Convert everything to binaries.
-
-    InList = [to_binary(X) || X <- B],
-
-    % Join the list of binaries with commas.
-
-    Join = fun(Elem, Acc) when Acc =:= <<"">> ->
-                Elem;
-              (Elem, Acc) ->
-                <<Acc/binary, ",", Elem/binary>> end,
-
-    In = lists:foldl(Join, <<>>, InList),
-
-    <<A/binary, " IN (", In/binary, ")">>;
-dynamize_expression({attribute_exists, Path}) ->
-    <<"attribute_exists(", Path/binary, ")">>;
-dynamize_expression({attribute_not_exists, Path}) ->
-    <<"attribute_not_exists(", Path/binary, ")">>;
-dynamize_expression({begins_with, Path, Operand}) ->
-    <<"begins_with(", Path/binary, ",", Operand/binary, ")">>;
-dynamize_expression({contains, Path, Operand}) ->
-    <<"contains(", Path/binary, ",", Operand/binary, ")">>.
+    Expression.
 
 -type return_consumed_capacity_opt() :: {return_consumed_capacity, return_consumed_capacity()}.
 
@@ -2270,8 +2218,7 @@ update_table(Table, ReadUnits, WriteUnits) ->
 update_table(Table, ReadUnits, WriteUnits, Opts) ->
     update_table(Table, ReadUnits, WriteUnits, Opts, default_config()).
 
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), update_table_opts(), 
-                   aws_config()) 
+-spec update_table(table_name(), read_units(), write_units(), update_table_opts(), aws_config())
                   -> update_table_return().
 update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
     update_table(Table, [{provisioned_throughput, {ReadUnits, WriteUnits}} | Opts], Config).
