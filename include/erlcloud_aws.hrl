@@ -62,14 +62,17 @@
           %% Currently only affects S3, but intent is to change other services to use this as well.
           %% If you provide a custom function be aware of this anticipated change.
           %% See erlcloud_retry for full documentation.
-          retry=fun erlcloud_retry:no_retry/1::erlcloud_retry:retry_fun()
+          retry=fun erlcloud_retry:no_retry/1::erlcloud_retry:retry_fun(),
+          %% Currently matches DynamoDB retry
+          %% It's likely this is too many retries for other services
+          retry_num=10::non_neg_integer()
          }).
 -type(aws_config() :: #aws_config{}).
 
 -record(aws_request,
         {
           %% Provided by requesting service
-          service :: s3,
+          service :: atom(),
           uri :: string() | binary(),
           method :: atom(),
           request_headers :: [{string(), string()}],
