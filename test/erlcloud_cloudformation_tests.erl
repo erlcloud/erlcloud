@@ -261,7 +261,7 @@ list_stacks_all_output_tests(_) ->
         }),
 
     output_test(?_f(erlcloud_cloudformation:list_stacks_all(
-                [], Config = #aws_config{})), Test).
+                [], #aws_config{})), Test).
 
 
 list_stack_resources_output_tests(_) ->
@@ -300,7 +300,7 @@ list_stack_resources_output_tests(_) ->
         }),
 
     output_test(?_f(erlcloud_cloudformation:list_stack_resources_all([],
-                "Stack Name", Config = #aws_config{})), Test).
+                "Stack Name", #aws_config{})), Test).
 
 get_template_summary_output_tests(_) ->
 
@@ -340,7 +340,7 @@ get_template_summary_output_tests(_) ->
         }),
 
     output_test(?_f(erlcloud_cloudformation:get_template_summary([],
-                "Stack Name", Config = #aws_config{}
+                "Stack Name", #aws_config{}
             )), Test).
 
 get_template_output_tests(_) ->
@@ -363,7 +363,7 @@ get_template_output_tests(_) ->
         }),
 
     output_test(?_f(erlcloud_cloudformation:get_template(
-                "Some Stack Name", Config = #aws_config{}
+                "Some Stack Name", #aws_config{}
             )), Test).
 
 get_stack_policy_output_tests(_) ->
@@ -385,7 +385,7 @@ get_stack_policy_output_tests(_) ->
         }),
 
     output_test(?_f(erlcloud_cloudformation:get_stack_policy([],
-                "Stack Name", Config = #aws_config{}
+                "Stack Name", #aws_config{}
             )), Test).
 
 describe_stacks_output_tests(_) ->
@@ -432,7 +432,7 @@ describe_stacks_output_tests(_) ->
         }),
 
     output_test(?_f(erlcloud_cloudformation:describe_stacks_all(
-                [{stack_name, "Some Stack Name"}], Config = #aws_config{}
+                [{stack_name, "Some Stack Name"}], #aws_config{}
             )), Test).
 
 describe_stack_resources_output_tests(_) ->
@@ -471,7 +471,7 @@ describe_stack_resources_output_tests(_) ->
         }),
 
     output_test(?_f(erlcloud_cloudformation:describe_stack_resources([],
-                "Stack Name", Config = #aws_config{}
+                "Stack Name", #aws_config{}
             )), Test).
 
 describe_stack_resource_output_tests(_) ->
@@ -506,7 +506,7 @@ describe_stack_resource_output_tests(_) ->
         }),
 
     output_test(?_f(erlcloud_cloudformation:describe_stack_resource([],
-                "Stack Name", "Logical Id", Config = #aws_config{}
+                "Stack Name", "Logical Id", #aws_config{}
             )), Test).
 
 describe_stack_events_output_tests(_) ->
@@ -548,7 +548,7 @@ describe_stack_events_output_tests(_) ->
         }),
 
     output_test(?_f(erlcloud_cloudformation:describe_stack_events_all(
-                [{stack_name, "Some Stack Name"}], Config = #aws_config{}
+                [{stack_name, "Some Stack Name"}], #aws_config{}
             )), Test).
 
 describe_account_limits_output_tests(_) ->
@@ -579,5 +579,5 @@ describe_account_limits_output_tests(_) ->
         }),
 
     output_test(?_f(erlcloud_cloudformation:describe_account_limits_all(
-                Config = #aws_config{}
+                #aws_config{}
             )), Test).
