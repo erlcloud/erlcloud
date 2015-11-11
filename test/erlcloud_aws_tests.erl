@@ -1,11 +1,14 @@
 -module(erlcloud_aws_tests).
 -include_lib("eunit/include/eunit.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 
 request_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
      [fun request_default_test/1,
+      fun request_retry_test/1,
       fun request_prot_host_port_str_test/1,
       fun request_prot_host_port_int_test/1,
       fun get_service_status_test/1]}.
@@ -18,10 +21,48 @@ start() ->
 stop(_) ->
     meck:unload(erlcloud_httpc).
 
+config() ->
+    #aws_config{access_key_id = "id",
+                secret_access_key = "key",
+                retry = fun erlcloud_retry:default_retry/1,
+                retry_num = 3}.
+
 request_default_test(_) ->
     ok = erlcloud_aws:aws_request(get, "host", "/", [], "id", "key"),
     Url = get_url_from_history(meck:history(erlcloud_httpc)),
     test_url(https, "host", 443, "/", Url).
+
+request_retry_test(_) ->
+    Response400 = {ok, {{400, "Bad Request"}, [],
+        <<"<ErrorResponse xmlns=\"http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/\">\n"
+          "  <Error>\n"
+          "    <Type>Sender</Type>\n"
+          "    <Code>Throttling</Code>\n"
+          "    <Message>Rate exceeded</Message>\n"
+          "  </Error>\n"
+          "  <RequestId>d4af1389-87fc-11e5-b540-37851aabdff0</RequestId>\n"
+          "</ErrorResponse>\n">>}},
+    Response500 = {ok, {{500, "Internal Server Error"}, [],
+        <<"<?xml version=\"1.0\"?><ErrorResponse xmlns=\"http://queue.amazonaws.com/doc/2012-11-05/\">"
+            "<Error>"
+                "<Type>Receiver</Type>"
+                "<Code>InternalError</Code>"
+                "<Message>We encountered an internal error. Please try again.</Message>"
+                "<Detail/>"
+            "</Error>
+          <RequestId>87503803-73c7-5e4d-8619-76be476a7915</RequestId></ErrorResponse>">>}},
+    Response200 = {ok, {{200, "OK"}, [], <<"OkBody">>}},
+    meck:sequence(erlcloud_httpc, request, 6, [Response400, Response200]),
+    Result1 = erlcloud_aws:aws_request(get, "host", "/", [], config()),
+    ?_assertEqual(<<"OkBody">>, Result1),
+
+    meck:sequence(erlcloud_httpc, request, 6, [Response400, Response500, Response200]),
+    Result2 = erlcloud_aws:aws_request(get, "host", "/", [], config()),
+    ?_assertEqual(<<"OkBody">>, Result2),
+    
+    meck:sequence(erlcloud_httpc, request, 6, [Response400, Response500, Response400, Response200]),
+    Result3 = erlcloud_aws:aws_request_xml4(get, "host", "/", [], "any", config()),
+    ?_assertMatch({error, {http_error, 400, "Bad Request", _ErrorMsg}}, Result3).
 
 request_prot_host_port_str_test(_) ->
     ok = erlcloud_aws:aws_request(get, "http", "host1", "9999", "/path1", [], "id", "key"),
