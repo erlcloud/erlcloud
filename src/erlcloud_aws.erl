@@ -160,7 +160,8 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
                          response_status = Status} = Request) when
                 %% Retry for 400, Bad Request is needed due to Amazon 
                 %% returns it in case of throttling
-                    Status == 400; Status >= 500 ->
+                %% %% Also retry conflictin operations 409,Conflict.
+                    Status == 400; Status == 409; Status >= 500 ->
                 Request#aws_request{should_retry = true};
            (#aws_request{response_type = error} = Request) ->
                 Request#aws_request{should_retry = false}
