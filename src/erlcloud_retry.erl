@@ -20,18 +20,18 @@
 %% Helpers
 -export([backoff/1, 
          no_retry/1,
-         default_retry/1, default_retry/2
+         default_retry/1
         ]).
 -export_type([should_retry/0, retry_fun/0]).
 
 -type should_retry() :: {retry | error, #aws_request{}}.
--type retry_fun() :: fun((#aws_request{}) -> should_retry()).
+-type retry_fun() :: fun((#aws_request{}, non_neg_integer()) -> should_retry()).
 
 %% Internal impl api
 -export([request/3]).
 
 %% Error returns maintained for backwards compatibility
--spec no_retry(#aws_request{}) -> should_retry().
+-spec no_retry(#aws_request{}) -> {error, #aws_request{}}.
 no_retry(Request) ->
     {error, Request}.
 
@@ -41,30 +41,22 @@ backoff(1) -> ok;
 backoff(Attempt) ->
     timer:sleep(random:uniform((1 bsl (Attempt - 1)) * 100)).
 
-%% Currently matches DynamoDB retry
-%% It's likely this is too many retries for other services
--define(NUM_ATTEMPTS, 10).
-
 -spec default_retry(#aws_request{}) -> should_retry().
-default_retry(Request) ->
-    default_retry(Request, ?NUM_ATTEMPTS).
-
--spec default_retry(#aws_request{}, integer()) -> should_retry().
-default_retry(#aws_request{attempt = Attempt} = Request, MaxAttempts) 
-  when Attempt >= MaxAttempts ->
+default_retry(#aws_request{should_retry = false} = Request) ->
     {error, Request};
-default_retry(#aws_request{should_retry = false} = Request, _) ->
-    {error, Request};
-default_retry(#aws_request{attempt = Attempt} = Request, _) ->
+default_retry(#aws_request{attempt = Attempt} = Request) ->
     backoff(Attempt),
     {retry, Request}.
 
 request(Config, #aws_request{attempt = 0} = Request, ResultFun) ->
-    request_and_retry(Config, ResultFun, {retry, Request}).
+    MaxAttempts = Config#aws_config.retry_num,
+    request_and_retry(Config, ResultFun, {retry, Request}, MaxAttempts).
 
-request_and_retry(_, _, {error, Request}) ->
+request_and_retry(_, _, {_, Request}, 0) ->
     Request;
-request_and_retry(Config, ResultFun, {retry, Request}) ->
+request_and_retry(_, _, {error, Request}, _) ->
+    Request;
+request_and_retry(Config, ResultFun, {retry, Request}, MaxAttempts) ->
     #aws_request{
        attempt = Attempt,
        uri = URI,
@@ -77,23 +69,31 @@ request_and_retry(Config, ResultFun, {retry, Request}) ->
     case erlcloud_httpc:request(URI, Method, Headers, Body, Config#aws_config.timeout, Config) of
         {ok, {{Status, StatusLine}, ResponseHeaders, ResponseBody}} ->
             Request3 = Request2#aws_request{
-                         response_type = if Status >= 200, Status < 300 -> ok; true -> error end,
-                         error_type = aws,
-                         response_status = Status,
-                         response_status_line = StatusLine,
-                         response_headers = ResponseHeaders,
-                         response_body = ResponseBody},
+                 response_type = if Status >= 200, Status < 300 -> ok; true -> error end,
+                 error_type = aws,
+                 response_status = Status,
+                 response_status_line = StatusLine,
+                 response_headers = ResponseHeaders,
+                 response_body = ResponseBody},
             Request4 = ResultFun(Request3),
             case Request4#aws_request.response_type of
                 ok ->
                     Request4;
                 error ->
-                    request_and_retry(Config, ResultFun, RetryFun(Request4))
+                    request_and_retry(
+                        Config, 
+                        ResultFun, 
+                        RetryFun(Request4),
+                        MaxAttempts - 1)
             end;
         {error, Reason} ->
             Request4 = Request2#aws_request{
                          response_type = error,
                          error_type = httpc,
                          httpc_error_reason = Reason},
-            request_and_retry(Config, ResultFun, RetryFun(Request4))
+            request_and_retry(
+                Config, 
+                ResultFun, 
+                RetryFun(Request4),
+                MaxAttempts - 1)
     end.

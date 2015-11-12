@@ -126,14 +126,14 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service, #aws
     Region = aws_region_from_host(Host),
 
     SignedHeaders = case Method of
-                        post ->
-                            sign_v4(Method, Path, Config,
-                                    [{"host", Host}], list_to_binary(Query),
-                                    Region, Service, []);
-                        get ->
-                            sign_v4(Method, Path, Config, [{"host", Host}],
-                                    [], Region, Service, Params)
-                    end,
+        M when M =:= get orelse M =:= head orelse M =:= delete ->
+            sign_v4(M, Path, Config, [{"host", Host}],
+                    [], Region, Service, Params);
+        _ ->
+            sign_v4(Method, Path, Config,
+                    [{"host", Host}], list_to_binary(Query),
+                    Region, Service, [])
+    end,
 
     aws_request_form(Method, Protocol, Host, Port, Path, Query, SignedHeaders, Config).
 
@@ -151,24 +151,54 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
         undefined -> [UProtocol, Host, Path];
         _ -> [UProtocol, Host, $:, port_to_str(Port), Path]
     end,
-
+    
+    ResultFun = 
+        fun(#aws_request{response_type = ok} = Request) ->
+                Request;
+           (#aws_request{response_type = error,
+                         error_type = aws,
+                         response_status = Status} = Request) when
+                %% Retry for 400, Bad Request is needed due to Amazon 
+                %% returns it in case of throttling
+                %% %% Also retry conflictin operations 409,Conflict.
+                    Status == 400; Status == 409; Status >= 500 ->
+                Request#aws_request{should_retry = true};
+           (#aws_request{response_type = error} = Request) ->
+                Request#aws_request{should_retry = false}
+        end,
+    
     %% Note: httpc MUST be used with {timeout, timeout()} option
     %%       Many timeout related failures is observed at prod env
     %%       when library is used in 24/7 manner
     Response =
         case Method of
-            get ->
+            M when M =:= get orelse M =:= head orelse M =:= delete ->
                 Req = lists:flatten([URL, $?, Form]),
-                erlcloud_httpc:request(
-                  Req, get, Headers, <<>>, Config#aws_config.timeout, Config);
+                AwsRequest = #aws_request{uri = Req, 
+                                          method = M,
+                                          request_headers = Headers,
+                                          request_body = <<>>},
+                erlcloud_retry:request(Config, AwsRequest, ResultFun);
             _ ->
-                erlcloud_httpc:request(
-                  lists:flatten(URL), Method,
-                  [{<<"content-type">>, <<"application/x-www-form-urlencoded; charset=utf-8">>} | Headers],
-                  list_to_binary(Form), Config#aws_config.timeout, Config)
+                RequestHeaders = 
+                    [{"content-type", 
+                      "application/x-www-form-urlencoded; charset=utf-8"} | 
+                     Headers],
+                AwsRequest = #aws_request{uri = lists:flatten(URL), 
+                                          method = Method,
+                                          request_headers = RequestHeaders,
+                                          request_body = list_to_binary(Form)},
+                erlcloud_retry:request(Config, AwsRequest, ResultFun)
         end,
 
-    http_body(Response).
+    case request_to_return(Response) of
+        {ok, {_, Body}} ->
+            {ok, Body};
+        {error, {Error, StatusCode, StatusLine, Body, _Headers}} ->
+            {error, {Error, StatusCode, StatusLine, Body}};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 param_list([], _Key) -> [];
 param_list(Values, Key) when is_tuple(Key) ->
