@@ -1125,7 +1125,17 @@ s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body,
     end,
     
     S3Host = Config#aws_config.s3_host,
-    {EscapedPath, HostName} =  case Config#aws_config.s3_bucket_access_method of
+    AccessMethod = case Config#aws_config.s3_bucket_access_method of
+        auto ->
+            case is_dns_compliant_name(Bucket) orelse
+                 Bucket == [] of 
+                true -> vhost; 
+                _ -> path
+            end;
+        ManualMethod ->
+            ManualMethod
+    end,
+    {EscapedPath, HostName} =  case AccessMethod of
         vhost ->
             %% Add bucket name to the front of hostname,
             %% i.e. https://bucket.name.s3.amazonaws.com/<path>
@@ -1331,4 +1341,14 @@ s3_endpoint_for_region(RegionName) ->
             "s3-external-1.amazonaws.com";
         _ ->
             lists:flatten(["s3-", RegionName, ".amazonaws.com"])
+    end.
+
+-spec is_dns_compliant_name(string()) -> boolean().
+is_dns_compliant_name(Name) ->
+    RegExp = "^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$",
+    case re:run(Name, RegExp) of
+        nomatch ->
+            false;
+        _ ->
+            true
     end.
