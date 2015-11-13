@@ -17,7 +17,8 @@ operation_test_() ->
      fun stop/1,
      [fun get_bucket_policy_tests/1,
       fun put_object_tests/1,
-      fun error_handling_tests/1
+      fun error_handling_tests/1,
+      fun dns_compliant_name_tests/1
      ]}.
 
 start() ->
@@ -55,6 +56,33 @@ put_object_tests(_) ->
     meck:expect(erlcloud_httpc, request, httpc_expect(put, Response)),
     Result = erlcloud_s3:put_object("BucketName", "Key", "Data", config()),
     ?_assertEqual([{version_id, "version_id"}], Result).
+
+dns_compliant_name_tests(_) ->
+    ?_assertEqual( true, 
+            erlcloud_util:is_dns_compliant_name("goodname123")          
+    ),
+    ?_assertEqual( true, 
+            erlcloud_util:is_dns_compliant_name("good.name")          
+    ),
+    ?_assertEqual( true, 
+            erlcloud_util:is_dns_compliant_name("good-name")          
+    ),
+    ?_assertEqual( true, 
+            erlcloud_util:is_dns_compliant_name("good--name")          
+    ),
+    
+    ?_assertEqual( false, 
+            erlcloud_util:is_dns_compliant_name("Bad.name")          
+    ),
+    ?_assertEqual( false, 
+            erlcloud_util:is_dns_compliant_name("badname.")          
+    ),
+    ?_assertEqual( false, 
+            erlcloud_util:is_dns_compliant_name(".bad.name")          
+    ),
+    ?_assertEqual( false, 
+            erlcloud_util:is_dns_compliant_name("bad.name--")          
+    ).
 
 error_handling_no_retry() ->
     Response = {ok, {{500, "Internal Server Error"}, [], <<"TestBody">>}},

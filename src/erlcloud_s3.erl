@@ -1125,7 +1125,17 @@ s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body,
     end,
     
     S3Host = Config#aws_config.s3_host,
-    {EscapedPath, HostName} =  case Config#aws_config.s3_bucket_access_method of
+    AccessMethod = case Config#aws_config.s3_bucket_access_method of
+        auto ->
+            case erlcloud_util:is_dns_compliant_name(Bucket) orelse
+                 Bucket == [] of 
+                true -> vhost; 
+                _ -> path
+            end;
+        ManualMethod ->
+            ManualMethod
+    end,
+    {EscapedPath, HostName} =  case AccessMethod of
         vhost ->
             %% Add bucket name to the front of hostname,
             %% i.e. https://bucket.name.s3.amazonaws.com/<path>
