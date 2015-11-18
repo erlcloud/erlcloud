@@ -3,6 +3,9 @@
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
+%% Library initialization.
+-export([configure/2, configure/3, new/2, new/3]).
+
 %% EC2 API Functions
 -export([
     %% Users
@@ -23,6 +26,27 @@
 -type headers() :: [{string(), string()}].
 
 -type ct_return() :: {ok, proplist()} | {error, term()}.
+
+-spec(new/2 :: (string(), string()) -> aws_config()).
+new(AccessKeyID, SecretAccessKey) ->
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey}.
+
+-spec(new/3 :: (string(), string(), string()) -> aws_config()).
+new(AccessKeyID, SecretAccessKey, Host) ->
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey,
+                cloudtrail_host=Host}.
+
+-spec(configure/2 :: (string(), string()) -> ok).
+configure(AccessKeyID, SecretAccessKey) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey)),
+    ok.
+
+-spec(configure/3 :: (string(), string(), string()) -> ok).
+configure(AccessKeyID, SecretAccessKey, Host) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
+    ok.
 
 %%
 %% API
@@ -147,24 +171,26 @@ update_trail(Trail, S3BucketName, S3KeyPrefix, SnsTopicName, IncludeGlobalServic
     ct_request("UpdateTrail", Json, Config).
 
 % Json parameter must be a list of binary key/value tuples.
-ct_request(Operation, [], Config = #aws_config{cloudtrail_host = Host, cloudtrail_port = Port}) ->
-    request_impl(post, undefined, Host, Port, "/", Operation, [], <<"{}">>, Config);
+ct_request(Operation, [], Config) ->
+    #aws_config{cloudtrail_scheme = Scheme, 
+                cloudtrail_host = Host} = Config,
+    request_impl(post, Scheme, Host, port_spec(Config), "/", Operation, [], "{}", Config);
 
-ct_request(Operation, Body, Config = #aws_config{cloudtrail_host = Host, cloudtrail_port = Port}) ->
-    request_impl(post, undefined, Host, Port, "/", Operation, [], jsx:encode(Body), Config)
-.
+ct_request(Operation, Body, Config) ->
+    #aws_config{cloudtrail_scheme = Scheme, 
+                cloudtrail_host = Host} = Config,
+    request_impl(post, Scheme, Host, port_spec(Config), "/", Operation, [], jsx:encode(Body), Config).
  
-request_impl(Method, _Protocol, _Host, _Port, _Path, Operation, Params, Body, #aws_config{} = Config) ->
+request_impl(Method, Scheme, Host, Port, Path, Operation, Params, Body, #aws_config{} = Config) ->
     %% TODO: Make api prefix a part of aws_config
     Api_Operation = lists:flatten(?CLOUD_TRAIL_API_PREFIX, Operation),
     Headers = headers(Config, Api_Operation, Params, Body, ?SERVICE_NAME),
-    % ({ok, {{_HTTPVer, OKStatus, _StatusLine}, Headers, Body}})
-    case erlcloud_aws:http_headers_body(
-                erlcloud_httpc:request(
-                     url(Config), Method, 
-                     [{<<"content-type">>, <<"application/x-amz-json-1.1">>} | Headers],
-                     Body, Config#aws_config.timeout, Config)) of
-       {ok, {_RespHeader, RespBody}} ->
+    
+    case erlcloud_aws:aws_request_form_raw(
+        Method, Scheme, Host, Port, Path, Body, 
+        [{"content-type", "application/x-amz-json-1.1"} | Headers], 
+        Config) of
+       {ok, RespBody} ->
             case Config#aws_config.cloudtrail_raw_result of
                 true -> {ok, RespBody};
                 _ -> {ok, jsx:decode(RespBody)}
@@ -184,12 +210,9 @@ headers(Config, Operation, _Params, Body, Service) ->
 
 default_config() -> erlcloud_aws:default_config().
 
-url(#aws_config{cloudtrail_scheme = Scheme, cloudtrail_host = Host} = Config) ->
-    lists:flatten([Scheme, Host, port_spec(Config)]).
-
 port_spec(#aws_config{cloudtrail_port=80}) ->
-    "";
+    undefined;
 port_spec(#aws_config{cloudtrail_port=Port}) ->
-    [":", erlang:integer_to_list(Port)].
+    Port.
 
 

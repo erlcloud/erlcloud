@@ -8,6 +8,7 @@
          aws_request_xml4/6, aws_request_xml4/8,
          aws_region_from_host/1,
          aws_request_form/8,
+         aws_request_form_raw/8,
          param_list/2, default_config/0, update_config/1,
          configure/1, format_timestamp/1,
          http_headers_body/1,
@@ -139,17 +140,25 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service, #aws
 
 
 -spec aws_request_form(Method :: atom(), Protocol :: undefined | string(), Host :: string(),
-                        Port :: undefined | integer() | string(), Path :: string(), Form :: iodata(),
+                        Port :: undefined | integer() | string(), Path :: string(), Form :: string(),
                         Headers :: list(), Config :: aws_config()) -> {ok, binary()} | {error, tuple()}.
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
-    UProtocol = case Protocol of
+    RequestHeaders = [{"content-type", 
+                      "application/x-www-form-urlencoded; charset=utf-8"} | 
+                     Headers],
+    Scheme = case Protocol of
         undefined -> "https://";
         _ -> [Protocol, "://"]
     end,
+    aws_request_form_raw(Method, Scheme, Host, Port, Path, list_to_binary(Form), RequestHeaders, Config).
 
+-spec aws_request_form_raw(Method :: atom(), Scheme :: string(), Host :: string(),
+                        Port :: undefined | integer() | string(), Path :: string(), Form :: iodata(),
+                        Headers :: list(), Config :: aws_config()) -> {ok, binary()} | {error, tuple()}.
+aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config) ->
     URL = case Port of
-        undefined -> [UProtocol, Host, Path];
-        _ -> [UProtocol, Host, $:, port_to_str(Port), Path]
+        undefined -> [Scheme, Host, Path];
+        _ -> [Scheme, Host, $:, port_to_str(Port), Path]
     end,
     
     ResultFun = 
@@ -160,7 +169,7 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
                          response_status = Status} = Request) when
                 %% Retry for 400, Bad Request is needed due to Amazon 
                 %% returns it in case of throttling
-                %% %% Also retry conflictin operations 409,Conflict.
+                %% Also retry conflicting operations 409,Conflict.
                     Status == 400; Status == 409; Status >= 500 ->
                 Request#aws_request{should_retry = true};
            (#aws_request{response_type = error} = Request) ->
@@ -180,14 +189,10 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
                                           request_body = <<>>},
                 erlcloud_retry:request(Config, AwsRequest, ResultFun);
             _ ->
-                RequestHeaders = 
-                    [{"content-type", 
-                      "application/x-www-form-urlencoded; charset=utf-8"} | 
-                     Headers],
                 AwsRequest = #aws_request{uri = lists:flatten(URL), 
                                           method = Method,
-                                          request_headers = RequestHeaders,
-                                          request_body = list_to_binary(Form)},
+                                          request_headers = Headers,
+                                          request_body = Form},
                 erlcloud_retry:request(Config, AwsRequest, ResultFun)
         end,
 
