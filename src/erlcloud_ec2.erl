@@ -1736,6 +1736,8 @@ extract_route_set(Node) ->
      {destination_cidr_block, get_text("destinationCidrBlock", Node)},
      {gateway_id, get_text("gatewayId", Node)},
      {instance_id, get_text("instanceId", Node)},
+     {vpc_peering_conn_id, get_text("vpcPeeringConnectionId", Node)},
+     {network_interface_id, get_text("networkInterfaceId", Node)},
      {state, get_text("state", Node)},
      {origin, get_text("origin", Node)}
     ].
