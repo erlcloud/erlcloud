@@ -526,9 +526,9 @@ is_throttling_error_response(RequestResponse) ->
          error_type = aws,
          response_body = RespBody} = RequestResponse,
   
-    case re:run(RespBody, <<"Throttling">>) of
-        {match, _} ->
-            true;
+    case binary:match(RespBody, <<"Throttling">>) of
         nomatch ->
-            false
+            false;
+        _ ->
+            true
     end.

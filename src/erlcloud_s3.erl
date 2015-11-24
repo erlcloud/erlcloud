@@ -1200,17 +1200,10 @@ s3_result_fun(#aws_request{response_type = ok} = Request) ->
 s3_result_fun(#aws_request{response_type = error,
                            error_type = aws,
                            response_status = Status} = Request) when
-%% Retry conflicting operations 409,Conflict and 500s.
+%% Retry conflicting operations 409,Conflict and 500s 
+%% including 503, SlowDown, Reduce your request rate.
       Status =:= 409; Status >= 500 ->
     Request#aws_request{should_retry = true};
-s3_result_fun(#aws_request{response_type = error,
-                           error_type = aws,
-                           response_status = Status} = Request) when
-%% Retry for 400, Bad Request is needed due to Amazon 
-%% returns it in case of throttling.
-      Status =:= 400 ->
-    ShouldRetry = erlcloud_aws:is_throttling_error_response(Request),
-    Request#aws_request{should_retry = ShouldRetry};
 s3_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
     Request#aws_request{should_retry = false}.
 
