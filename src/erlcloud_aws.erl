@@ -15,7 +15,8 @@
          request_to_return/1,
          sign_v4_headers/5,
          sign_v4/8,
-         get_service_status/1]).
+         get_service_status/1,
+         is_throttling_error_response/1]).
 
 -include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -167,11 +168,17 @@ aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config) ->
            (#aws_request{response_type = error,
                          error_type = aws,
                          response_status = Status} = Request) when
+                %% Retry conflicting operations 409,Conflict and 500s.
+                    Status == 409; Status >= 500 ->
+                Request#aws_request{should_retry = true};
+           (#aws_request{response_type = error,
+                         error_type = aws,
+                         response_status = Status} = Request) when
                 %% Retry for 400, Bad Request is needed due to Amazon 
                 %% returns it in case of throttling
-                %% Also retry conflicting operations 409,Conflict.
-                    Status == 400; Status == 409; Status >= 500 ->
-                Request#aws_request{should_retry = true};
+                    Status == 400 ->
+                ShouldRetry = is_throttling_error_response(Request),
+                Request#aws_request{should_retry = ShouldRetry};
            (#aws_request{response_type = error} = Request) ->
                 Request#aws_request{should_retry = false}
         end,
@@ -511,3 +518,17 @@ get_filtered_statuses(ServiceNames, Statuses) ->
             ServiceNames)
         end,
     Statuses).
+
+-spec is_throttling_error_response(aws_request()) -> true | false.
+is_throttling_error_response(RequestResponse) ->
+    #aws_request{
+         response_type = error,
+         error_type = aws,
+         response_body = RespBody} = RequestResponse,
+  
+    case binary:match(RespBody, <<"Throttling">>) of
+        nomatch ->
+            false;
+        _ ->
+            true
+    end.
