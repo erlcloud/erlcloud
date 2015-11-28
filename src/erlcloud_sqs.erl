@@ -10,6 +10,7 @@
          create_queue/1, create_queue/2, create_queue/3,
          delete_message/2, delete_message/3,
          delete_queue/1, delete_queue/2,
+         purge_queue/1, purge_queue/2,
          get_queue_attributes/1, get_queue_attributes/2, get_queue_attributes/3,
          list_queues/0, list_queues/1, list_queues/2,
          receive_message/1, receive_message/2, receive_message/3, receive_message/4,
@@ -30,8 +31,8 @@
 -type(sqs_msg_attribute_name() :: all | sender_id | sent_timestamp |
                                   approximate_receive_count |
                                   approximate_first_receive_timestamp |
-				  wait_time_seconds |
-				  receive_message_wait_time_seconds).
+                                  wait_time_seconds |
+                                  receive_message_wait_time_seconds).
 -type(sqs_queue_attribute_name() :: all | approximate_number_of_messages |
                                     approximate_number_of_messages_not_visible | visibility_timeout |
                                     created_timestamp | last_modified_timestamp | policy |
@@ -142,6 +143,15 @@ delete_queue(QueueName) ->
 delete_queue(QueueName, Config)
   when is_list(QueueName) ->
     sqs_simple_request(Config, QueueName, "DeleteQueue", []).
+
+-spec purge_queue/1 :: (string()) -> ok.
+purge_queue(QueueName) ->
+    purge_queue(QueueName, default_config()).
+
+-spec purge_queue/2 :: (string(), aws_config()) -> ok.
+purge_queue(QueueName, Config)
+  when is_list(QueueName) ->
+    sqs_simple_request(Config, QueueName, "PurgeQueue", []).
 
 -spec get_queue_attributes/1 :: (string()) -> proplist().
 get_queue_attributes(QueueName) ->
@@ -261,7 +271,7 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
 -spec receive_message/6 :: (string(), [sqs_msg_attribute_name()] | all, 1..10,
                             0..43200 | none, 0..20 | none, aws_config()) -> proplist().
 receive_message(QueueName, all, MaxNumberOfMessages, VisibilityTimeout,
-			   WaitTimeoutSeconds, Config) ->
+                WaitTimeoutSeconds, Config) ->
     receive_message(QueueName, [all], MaxNumberOfMessages,
                     VisibilityTimeout, WaitTimeoutSeconds, Config);
 receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
@@ -354,7 +364,7 @@ send_message(QueueName, MessageBody, DelaySeconds, Config)
        DelaySeconds =:= none ->
     Doc = sqs_xml_request(Config, QueueName, "SendMessage",
                           [{"MessageBody", MessageBody},
-			   {"DelaySeconds", DelaySeconds}]),
+                           {"DelaySeconds", DelaySeconds}]),
     erlcloud_xml:decode(
       [
        {message_id, "SendMessageResult/MessageId", text},
