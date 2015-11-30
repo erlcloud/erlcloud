@@ -1951,7 +1951,7 @@ describe_spot_price_history(StartTime, EndTime, InstanceTypes,
     case ec2_query2(Config, "DescribeSpotPriceHistory",
                     [{"StartTime", StartTime}, {"EndTime", EndTime},
                      {"ProductDescription", ProductDescription}|
-                     erlcloud_aws:param_list(InstanceTypes, "InstanceType")]) of
+                     erlcloud_aws:param_list(InstanceTypes, "InstanceType")], ?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [extract_spot_price_history(Item) ||
                     Item <- xmerl_xpath:string("/DescribeSpotPriceHistoryResponse/spotPriceHistorySet/item", Doc)]};
@@ -1964,7 +1964,8 @@ extract_spot_price_history(Node) ->
      {instance_type, get_text("instanceType", Node)},
      {product_description, get_text("productDescription", Node)},
      {spot_price, get_text("spotPrice", Node)},
-     {timestamp, erlcloud_xml:get_time("timestamp", Node)}
+     {timestamp, erlcloud_xml:get_time("timestamp", Node)},
+     {availability_zone, get_text("availabilityZone", Node)}
     ].
 
 %%
