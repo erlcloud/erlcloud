@@ -10,6 +10,7 @@
          create_queue/1, create_queue/2, create_queue/3,
          delete_message/2, delete_message/3,
          delete_queue/1, delete_queue/2,
+         purge_queue/1, purge_queue/2,
          get_queue_attributes/1, get_queue_attributes/2, get_queue_attributes/3,
          list_queues/0, list_queues/1, list_queues/2,
          receive_message/1, receive_message/2, receive_message/3, receive_message/4,
@@ -30,8 +31,8 @@
 -type(sqs_msg_attribute_name() :: all | sender_id | sent_timestamp |
                                   approximate_receive_count |
                                   approximate_first_receive_timestamp |
-				  wait_time_seconds |
-				  receive_message_wait_time_seconds).
+                                  wait_time_seconds |
+                                  receive_message_wait_time_seconds).
 -type(sqs_queue_attribute_name() :: all | approximate_number_of_messages |
                                     approximate_number_of_messages_not_visible | visibility_timeout |
                                     created_timestamp | last_modified_timestamp | policy |
@@ -130,7 +131,7 @@ delete_message(QueueName, ReceiptHandle) ->
 
 -spec delete_message/3 :: (string(), string(), aws_config()) -> ok.
 delete_message(QueueName, ReceiptHandle, Config)
-  when is_list(QueueName), is_list(ReceiptHandle) ->
+  when is_list(QueueName), is_list(ReceiptHandle), is_record(Config, aws_config) ->
     sqs_simple_request(Config, QueueName, "DeleteMessage",
                        [{"ReceiptHandle", ReceiptHandle}]).
 
@@ -140,8 +141,17 @@ delete_queue(QueueName) ->
 
 -spec delete_queue/2 :: (string(), aws_config()) -> ok.
 delete_queue(QueueName, Config)
-  when is_list(QueueName) ->
+  when is_list(QueueName), is_record(Config, aws_config) ->
     sqs_simple_request(Config, QueueName, "DeleteQueue", []).
+
+-spec purge_queue/1 :: (string()) -> ok.
+purge_queue(QueueName) ->
+    purge_queue(QueueName, default_config()).
+
+-spec purge_queue/2 :: (string(), aws_config()) -> ok.
+purge_queue(QueueName, Config)
+  when is_list(QueueName), is_record(Config, aws_config) ->
+    sqs_simple_request(Config, QueueName, "PurgeQueue", []).
 
 -spec get_queue_attributes/1 :: (string()) -> proplist().
 get_queue_attributes(QueueName) ->
@@ -155,10 +165,10 @@ get_queue_attributes(QueueName, AttributeNames) ->
     get_queue_attributes(QueueName, AttributeNames, default_config()).
 
 -spec get_queue_attributes/3 :: (string(), all | [sqs_queue_attribute_name()], aws_config()) -> proplist().
-get_queue_attributes(QueueName, all, Config) ->
+get_queue_attributes(QueueName, all, Config) when is_record(Config, aws_config) ->
     get_queue_attributes(QueueName, [all], Config);
 get_queue_attributes(QueueName, AttributeNames, Config)
-  when is_list(QueueName), is_list(AttributeNames) ->
+  when is_list(QueueName), is_list(AttributeNames), is_record(Config, aws_config) ->
     Doc = sqs_xml_request(Config, QueueName, "GetQueueAttributes",
                           erlcloud_aws:param_list([encode_attribute_name(N) || N <- AttributeNames], "AttributeName")),
     Attrs = decode_attributes(xmerl_xpath:string("GetQueueAttributesResult/Attribute", Doc)),
@@ -215,7 +225,7 @@ list_queues(QueueNamePrefix) ->
 
 -spec list_queues/2 :: (string(), aws_config()) -> [string()].
 list_queues(QueueNamePrefix, Config)
-  when is_list(QueueNamePrefix) ->
+  when is_list(QueueNamePrefix), is_record(Config, aws_config) ->
     Doc = sqs_xml_request(Config, "/", "ListQueues",
                           [{"QueueNamePrefix", QueueNamePrefix}]),
     erlcloud_xml:get_list("ListQueuesResult/QueueUrl", Doc).
@@ -261,12 +271,12 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
 -spec receive_message/6 :: (string(), [sqs_msg_attribute_name()] | all, 1..10,
                             0..43200 | none, 0..20 | none, aws_config()) -> proplist().
 receive_message(QueueName, all, MaxNumberOfMessages, VisibilityTimeout,
-			   WaitTimeoutSeconds, Config) ->
+                WaitTimeoutSeconds, Config)  when is_record(Config, aws_config) ->
     receive_message(QueueName, [all], MaxNumberOfMessages,
                     VisibilityTimeout, WaitTimeoutSeconds, Config);
 receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
                 VisibilityTimeout, WaitTimeSeconds, Config)
-  when is_list(AttributeNames) orelse AttributeNames =:= all,
+  when is_record(Config, aws_config), (is_list(AttributeNames) orelse AttributeNames =:= all),
        MaxNumberOfMessages >= 1, MaxNumberOfMessages =< 10,
        (VisibilityTimeout >= 0 andalso VisibilityTimeout =< 43200) orelse
        VisibilityTimeout =:= none,
@@ -332,7 +342,7 @@ remove_permission(QueueName, Label) ->
 
 -spec remove_permission/3 :: (string(), string(), aws_config()) -> ok.
 remove_permission(QueueName, Label, Config)
-  when is_list(QueueName), is_list(Label) ->
+  when is_list(QueueName), is_list(Label), is_record(Config, aws_config) ->
     sqs_simple_request(Config, QueueName, "RemovePermission",
                        [{"Label", Label}]).
 
@@ -349,12 +359,12 @@ send_message(QueueName, MessageBody, DelaySeconds) ->
 
 -spec send_message/4 :: (string(), string(), 0..900 | none, aws_config()) -> proplist().
 send_message(QueueName, MessageBody, DelaySeconds, Config)
-  when is_list(QueueName), is_list(MessageBody),
+  when is_list(QueueName), is_list(MessageBody), is_record(Config, aws_config),
        (DelaySeconds >= 0 andalso DelaySeconds =< 900) orelse
        DelaySeconds =:= none ->
     Doc = sqs_xml_request(Config, QueueName, "SendMessage",
                           [{"MessageBody", MessageBody},
-			   {"DelaySeconds", DelaySeconds}]),
+                           {"DelaySeconds", DelaySeconds}]),
     erlcloud_xml:decode(
       [
        {message_id, "SendMessageResult/MessageId", text},
@@ -369,7 +379,7 @@ set_queue_attributes(QueueName, Attributes) ->
 
 -spec set_queue_attributes/3 :: (string(), [{visibility_timeout, integer()} | {policy, string()}], aws_config()) -> ok.
 set_queue_attributes(QueueName, Attributes, Config)
-  when is_list(QueueName), is_list(Attributes) ->
+  when is_list(QueueName), is_list(Attributes), is_record(Config, aws_config) ->
     Params = lists:flatten(erlcloud_aws:param_list([encode_attribute_name(Name) || {Name, _} <- Attributes], "Attribute.Name"),
                           erlcloud_aws:param_list([Value || {_, Value} <- Attributes], "Attribute.Value")),
 
