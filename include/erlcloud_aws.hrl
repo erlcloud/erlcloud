@@ -8,7 +8,7 @@
           s3_port=80::non_neg_integer(),
           s3_follow_redirect=false::boolean(),
           s3_follow_redirect_count=2::non_neg_integer(),
-          %% When set to 'auto' access method is chosen 
+          %% When set to 'auto' access method is chosen
           %% according to a bucket name:
           %%    * non-DNS-compliant name - 'path'
           %%    * DNS-compliant or empty name - 'vhost'
@@ -37,6 +37,9 @@
           route53_scheme="https://"::string(),
           route53_host="route53.amazonaws.com"::string(),
           route53_port="80"::string(),
+          lambda_scheme="https://"::string(),
+          lambda_host="lambda.us-east-1.amazonaws.com"::string(),
+          lambda_port=443::non_neg_integer(),
           kinesis_scheme="https://"::string(),
           kinesis_host="kinesis.us-east-1.amazonaws.com"::string(),
           kinesis_port=80::non_neg_integer(),
@@ -63,7 +66,7 @@
           hackney_pool=default::atom(), %% The name of the http request pool hackney should use.
           %% Default to not retry failures (for backwards compatability).
           %% Recommended to be set to default_retry to provide recommended retry behavior.
-          %% Currently only affects S3 and service modules which use erlcloud_aws 
+          %% Currently only affects S3 and service modules which use erlcloud_aws
           %% for issuing HTTP request to AWS, but intent is to change other services to use this as well.
           %% If you provide a custom function be aware of this anticipated change.
           %% See erlcloud_retry for full documentation.
