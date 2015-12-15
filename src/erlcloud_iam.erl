@@ -7,7 +7,7 @@
 -include_lib("xmerl/include/xmerl.hrl").
 
 %% Library initialization.
--export([configure/2, configure/3, new/2, new/3]).
+-export([configure/2, configure/3, new/2, new/3, iam_query/5]).
 
 %% IAM API Functions
 -export([
@@ -30,6 +30,7 @@
     list_role_policies/1, list_role_policies/2,
     list_attached_role_policies/1, list_attached_role_policies/2, list_attached_role_policies/3,
     get_role_policy/2, get_role_policy/3,
+    list_policies/0, list_policies/1, list_policies/2,list_policies/3,
     get_policy/1, get_policy/2,
     get_policy_version/2, get_policy_version/3,
     list_instance_profiles/0, list_instance_profiles/1, list_instance_profiles/2,
@@ -328,6 +329,26 @@ list_attached_role_policies(RoleName, PathPrefix, #aws_config{} = Config)
 %
 % Policies API
 %
+-spec(list_policies/0 :: () -> proplist()).
+list_policies() ->
+    list_policies("/").
+-spec(list_policies/1 :: (string() | aws_config()) -> proplist()).
+list_policies(#aws_config{} = Config) ->
+    list_policies("/", Config);
+list_policies(PathPrefix) ->
+    list_policies(PathPrefix, default_config()).
+
+-spec(list_policies/2 :: (string(), aws_config()) -> proplist()).
+list_policies(PathPrefix, #aws_config{} = Config) ->
+    list_policies(PathPrefix, false, default_config()).
+
+-spec(list_policies/3 :: (string(), boolean(), aws_config()) -> proplist()).
+list_policies(PathPrefix, OnlyAttached, #aws_config{} = Config)
+        when is_list(PathPrefix), is_boolean(OnlyAttached)->
+    ItemPath = "/ListPoliciesResponse/ListPoliciesResult/Policies/member",
+    iam_query(Config, "ListPolicies", [{"PathPrefix", PathPrefix}, {"OnlyAttached", OnlyAttached}], ItemPath, data_type("Policy")).
+
+
 -spec(get_policy/1 :: (string()) -> proplist()).
 get_policy(PolicyArn) -> get_policy(PolicyArn, default_config()).
 -spec(get_policy/2 :: (string(), aws_config()) -> proplist()).
