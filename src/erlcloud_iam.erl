@@ -30,7 +30,7 @@
     list_role_policies/1, list_role_policies/2,
     list_attached_role_policies/1, list_attached_role_policies/2, list_attached_role_policies/3,
     get_role_policy/2, get_role_policy/3,
-    list_policies/0, list_policies/1, list_policies/2,list_policies/3,
+    list_policies/0, list_policies/1, list_policies/2, list_policies/3,
     get_policy/1, get_policy/2,
     get_policy_version/2, get_policy_version/3,
     list_instance_profiles/0, list_instance_profiles/1, list_instance_profiles/2,
@@ -340,13 +340,13 @@ list_policies(PathPrefix) ->
 
 -spec(list_policies/2 :: (string(), aws_config()) -> proplist()).
 list_policies(PathPrefix, #aws_config{} = Config) ->
-    list_policies(PathPrefix, false, default_config()).
+    list_policies(PathPrefix, [], default_config()).
 
--spec(list_policies/3 :: (string(), boolean(), aws_config()) -> proplist()).
-list_policies(PathPrefix, OnlyAttached, #aws_config{} = Config)
-        when is_list(PathPrefix), is_boolean(OnlyAttached)->
+-spec(list_policies/3 :: (string(), list(), aws_config()) -> proplist()).
+list_policies(PathPrefix, ReqParams, #aws_config{} = Config)
+        when is_list(PathPrefix), is_list(ReqParams) ->
     ItemPath = "/ListPoliciesResponse/ListPoliciesResult/Policies/member",
-    iam_query(Config, "ListPolicies", [{"PathPrefix", PathPrefix}, {"OnlyAttached", OnlyAttached}], ItemPath, data_type("Policy")).
+    iam_query(Config, "ListPolicies", [{"PathPrefix", PathPrefix} | ReqParams], ItemPath, data_type("Policy")).
 
 
 -spec(get_policy/1 :: (string()) -> proplist()).

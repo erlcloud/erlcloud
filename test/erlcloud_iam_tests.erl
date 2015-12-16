@@ -1650,8 +1650,7 @@ list_polices_input_tests(_) ->
         ?_f(erlcloud_iam:list_policies("test")),
         [
           {"Action", "ListPolicies"},
-          {"PathPrefix", "test"},
-          {"OnlyAttached", "false"}
+          {"PathPrefix", "test"}
         ]})
     ],
 
