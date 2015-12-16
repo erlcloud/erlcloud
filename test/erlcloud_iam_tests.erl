@@ -73,6 +73,8 @@ iam_api_test_() ->
       fun list_attached_group_policies_output_tests/1,
       fun list_attached_role_policies_input_tests/1,
       fun list_attached_role_policies_output_tests/1,
+      fun list_polices_input_tests/1,
+      fun list_polices_output_tests/1,
       fun get_policy_input_tests/1,
       fun get_policy_output_tests/1,
       fun get_policy_version_input_tests/1,
@@ -1638,6 +1640,67 @@ list_attached_role_policies_output_tests(_) ->
             <RequestId>684f0917-3d22-11e4-a4a0-cffb9EXAMPLE</RequestId>
           </ResponseMetadata>
         </GetPolicyResponse>").
+
+%% ListUsers test based on the API examples:
+%% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListPolicies.html
+list_polices_input_tests(_) ->
+  Tests =
+    [?_iam_test(
+      {"Test returning all polices in an account.",
+        ?_f(erlcloud_iam:list_policies("test")),
+        [
+          {"Action", "ListPolicies"},
+          {"PathPrefix", "test"}
+        ]})
+    ],
+
+  Response = "
+      <ListPoliciesResponse>
+         <ResponseMetadata>
+            <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+         </ResponseMetadata>
+      </ListPoliciesResponse>",
+  input_tests(Response, Tests).
+
+list_polices_output_tests(_) ->
+  Tests = [?_iam_test(
+    {"This lists all policies in your account",
+        "<ListPoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+          <ListPoliciesResult>
+            <IsTruncated>true</IsTruncated>
+            <Marker>EXAMPLEkakv9BCuUNFDtxWSyfzetYwEx2ADc8dnzfvERF5S6YMvXKx41t6gCl/eeaCX3Jo94/bKqezEAg8TEVS
+            99EKFLxm3jtbpl25FDWEXAMPLE
+            </Marker>
+            <Policies>
+              <member>
+                <PolicyName>ExamplePolicy</PolicyName>
+                <DefaultVersionId>v1</DefaultVersionId>
+                <PolicyId>AGPACKCEVSQ6C2EXAMPLE</PolicyId>
+                <Path>/</Path>
+                <Arn>arn:aws:iam::123456789012:policy/ExamplePolicy</Arn>
+                <AttachmentCount>2</AttachmentCount>
+                <CreateDate>2014-09-15T17:36:14Z</CreateDate>
+                <UpdateDate>2014-09-15T20:31:47Z</UpdateDate>
+              </member>
+            </Policies>
+          </ListPoliciesResult>
+          <ResponseMetadata>
+            <RequestId>6207e832-3eb7-11e4-9d0d-6f969EXAMPLE</RequestId>
+          </ResponseMetadata>
+        </ListPoliciesResponse>",
+      {ok, [[{update_date, {{2014,9,15},{20,31,47}}},
+          {create_date, {{2014,9,15},{17,36,14}}},
+          {attachment_count, 2},
+          {arn, "arn:aws:iam::123456789012:policy/ExamplePolicy"},
+          {path, "/"},
+          {policy_id, "AGPACKCEVSQ6C2EXAMPLE"},
+          {default_version_id, "v1"},
+          {policy_name, "ExamplePolicy"}
+      ]]}
+    })
+  ],
+  output_tests(?_f(erlcloud_iam:list_policies("test")), Tests).
+
 get_policy_input_tests(_) ->
     Tests =
         [?_iam_test(
