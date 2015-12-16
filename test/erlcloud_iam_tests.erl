@@ -75,6 +75,8 @@ iam_api_test_() ->
       fun list_attached_role_policies_output_tests/1,
       fun list_polices_input_tests/1,
       fun list_polices_output_tests/1,
+      fun list_entities_for_policy_input_tests/1,
+      fun list_entities_for_policy_output_tests/1,
       fun get_policy_input_tests/1,
       fun get_policy_output_tests/1,
       fun get_policy_version_input_tests/1,
@@ -1700,6 +1702,65 @@ list_polices_output_tests(_) ->
     })
   ],
   output_tests(?_f(erlcloud_iam:list_policies("test")), Tests).
+
+%% ListUsers test based on the API examples:
+%% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListPolicies.html
+list_entities_for_policy_input_tests(_) ->
+  Tests =
+    [?_iam_test(
+      {"Test returning all entities linked to a policy",
+        ?_f(erlcloud_iam:list_entities_for_policy("test")),
+        [
+          {"Action", "ListEntitiesForPolicy"},
+          {"PathPrefix", http_uri:encode("/")},
+          {"PolicyArn", "test"}
+        ]})
+    ],
+
+  Response = "
+      <ListEntitiesForPolicyResponse>
+         <ResponseMetadata>
+            <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+         </ResponseMetadata>
+      </ListEntitiesForPolicyResponse>",
+  input_tests(Response, Tests).
+
+list_entities_for_policy_output_tests(_) ->
+  Tests = [?_iam_test(
+    {"Test lists all entities linked to a policy",
+      "<ListEntitiesForPolicyResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+          <ListEntitiesForPolicyResult>
+            <PolicyRoles>
+              <member>
+                <RoleName>DevRole</RoleName>
+              </member>
+            </PolicyRoles>
+            <PolicyGroups>
+              <member>
+                <GroupName>Dev</GroupName>
+              </member>
+            </PolicyGroups>
+            <IsTruncated>false</IsTruncated>
+            <PolicyUsers>
+              <member>
+                <UserName>Alice</UserName>
+              </member>
+              <member>
+                <UserName>Bob</UserName>
+              </member>
+            </PolicyUsers>
+          </ListEntitiesForPolicyResult>
+          <ResponseMetadata>
+            <RequestId>eb358e22-9d1f-11e4-93eb-190ecEXAMPLE</RequestId>
+          </ResponseMetadata>
+        </ListEntitiesForPolicyResponse>",
+      {ok,[[{users_list,[[{user_name,"Alice"}], [{user_name, "Bob"}]]},
+            {groups_list,[[{group_name,"Dev"}]]},
+            {roles_list,[[{role_name,"DevRole"}]]}
+      ]]}
+    })
+  ],
+  output_tests(?_f(erlcloud_iam:list_entities_for_policy("test")), Tests).
 
 get_policy_input_tests(_) ->
     Tests =
