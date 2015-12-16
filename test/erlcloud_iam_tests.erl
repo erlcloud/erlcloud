@@ -1704,7 +1704,7 @@ list_polices_output_tests(_) ->
   output_tests(?_f(erlcloud_iam:list_policies("test")), Tests).
 
 %% ListUsers test based on the API examples:
-%% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListPolicies.html
+%% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListEntitiesForPolicy.html
 list_entities_for_policy_input_tests(_) ->
   Tests =
     [?_iam_test(
