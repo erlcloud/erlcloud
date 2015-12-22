@@ -149,6 +149,7 @@
 
          %% Tagging. Uses different version of AWS API
          create_tags/2, create_tags/3,
+         delete_tags/2, delete_tags/3,
          describe_tags/0, describe_tags/1, describe_tags/2
         ]).
 
@@ -2543,6 +2544,27 @@ create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
                                          {[{TKey, ResourceId} | Acc], Index+1}
                                  end, {[], 1}, ResourceIds),
     ec2_query2(Config, "CreateTags", Resources ++ Tags, ?NEW_API_VERSION).
+
+%%
+%%
+-spec(delete_tags/2 :: ([string()], [{string(), string()}]) -> proplist()).
+delete_tags(ResourceIds, TagsList) when is_list(ResourceIds) ->
+    delete_tags(ResourceIds, TagsList, default_config()).
+
+-spec(delete_tags/3 :: ([string()], [{string(), string()}], aws_config()) -> proplist()).
+delete_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
+    {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
+                                    I = integer_to_list(Index),
+                                    TKKey = "Tag."++I++".Key",
+                                    TVKey = "Tag."++I++".Value",
+                                    {[{TKKey, Key}, {TVKey, Value} | Acc], Index+1}
+                            end, {[], 1}, TagsList),
+    {Resources, _} = lists:foldl(fun(ResourceId, {Acc, Index}) ->
+                                         I = integer_to_list(Index),
+                                         TKey = "ResourceId."++I,
+                                         {[{TKey, ResourceId} | Acc], Index+1}
+                                 end, {[], 1}, ResourceIds),
+    ec2_query2(Config, "DeleteTags", Resources ++ Tags, ?NEW_API_VERSION).
 
 %%------------------------------------------------------------------------------
 %% @doc
