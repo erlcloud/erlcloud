@@ -341,7 +341,7 @@ list_policies(PathPrefix) ->
 
 -spec(list_policies/2 :: (string(), aws_config()) -> proplist()).
 list_policies(PathPrefix, #aws_config{} = Config) ->
-    list_policies(PathPrefix, [], default_config()).
+    list_policies(PathPrefix, [], Config).
 
 -spec(list_policies/3 :: (string(), list(), aws_config()) -> proplist()).
 list_policies(PathPrefix, ReqParams, #aws_config{} = Config)
