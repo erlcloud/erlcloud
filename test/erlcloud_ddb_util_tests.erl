@@ -26,8 +26,10 @@ operation_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
-     [fun delete_hash_key_tests/1,
+     [fun delete_all_tests/1,
+      fun delete_hash_key_tests/1,
       fun get_all_tests/1,
+      fun put_all_tests/1,
       fun q_all_tests/1,
       fun scan_all_tests/1,
       fun write_all_tests/1
@@ -92,6 +94,33 @@ multi_call_tests(Tests) ->
 %%%===================================================================
 %%% Actual test specifiers
 %%%===================================================================
+
+delete_all_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"delete_all delete one item",
+             ?_f(erlcloud_ddb_util:delete_all(<<"tn">>, [{<<"hkn">>,<<"hkv">>}])),
+             [{"
+{
+    \"RequestItems\": {
+        \"tn\": [{
+            \"DeleteRequest\": {
+                \"Key\": {
+                    \"hkn\":{\"S\":\"hkv\"}
+                }
+            }
+        }]
+    }
+}"
+               , "
+{
+    \"UnprocessedItems\": {
+    }
+}"
+               }],
+             ok})
+         ],
+    multi_call_tests(Tests).
 
 delete_hash_key_tests(_) ->
     Tests =
@@ -374,6 +403,34 @@ get_all_tests(_) ->
              {ok, [[{<<"hkn">>, <<"hk2">>}],
                    [{<<"hkn">>, <<"hk1">>}]
                   ]}})
+         ],
+    multi_call_tests(Tests).
+
+put_all_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"put_all put one item",
+             ?_f(erlcloud_ddb_util:put_all(<<"tn">>, [[{<<"hkn">>,<<"hkv">>}, {<<"atn">>,<<"atv">>}]])),
+             [{"
+{
+    \"RequestItems\": {
+        \"tn\": [{
+            \"PutRequest\": {
+                \"Item\": {
+                    \"hkn\":{\"S\":\"hkv\"},
+                    \"atn\":{\"S\":\"atv\"}
+                }
+            }
+        }]
+    }
+}"
+               , "
+{
+    \"UnprocessedItems\": {
+    }
+}"
+               }],
+             ok})
          ],
     multi_call_tests(Tests).
 
