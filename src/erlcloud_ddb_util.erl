@@ -31,18 +31,14 @@
 -define(BATCH_WRITE_LIMIT, 25).
 -define(BATCH_GET_LIMIT, 100).
 
--type attr_name() :: erlcloud_ddb2:attr_name().
--type batch_get_item_request_item() :: erlcloud_ddb2:batch_get_item_request_item().
--type expression() :: erlcloud_ddb2:expression().
 -type conditions() :: erlcloud_ddb2:conditions().
 -type ddb_opts() :: erlcloud_ddb2:ddb_opts().
--type batch_get_item_request_item_opts() :: erlcloud_ddb2:batch_get_item_request_item_opts().
+-type expression() :: erlcloud_ddb2:expression().
+-type hash_key() :: erlcloud_ddb2:in_attr().
 -type in_item() :: erlcloud_ddb2:in_item().
 -type key() :: erlcloud_ddb2:key().
--type hash_key() :: erlcloud_ddb2:in_attr().
 -type out_item() :: erlcloud_ddb2:out_item().
--type q_opts() :: erlcloud_ddb2:q_opts().
--type scan_opts() :: erlcloud_ddb2:scan_opts().
+-type range_key_name() :: erlcloud_ddb2:range_key_name().
 -type table_name() :: erlcloud_ddb2:table_name().
 
 -type items_return() :: {ok, [out_item()]} | {error, term()}.
@@ -91,11 +87,11 @@ delete_all(Table, Keys, Opts, Config) ->
 %%% delete_hash_key
 %%%------------------------------------------------------------------------------
 
--spec delete_hash_key(table_name(), hash_key(), attr_name()) -> ok | {error, term()}.
+-spec delete_hash_key(table_name(), hash_key(), range_key_name()) -> ok | {error, term()}.
 delete_hash_key(Table, HashKey, RangeKeyName) ->
     delete_hash_key(Table, HashKey, RangeKeyName, [], default_config()).
 
--spec delete_hash_key(table_name(), hash_key(), attr_name(), ddb_opts()) -> ok | {error, term()}.
+-spec delete_hash_key(table_name(), hash_key(), range_key_name(), ddb_opts()) -> ok | {error, term()}.
 delete_hash_key(Table, HashKey, RangeKeyName, Opts) ->
     delete_hash_key(Table, HashKey, RangeKeyName, Opts, default_config()).
 
@@ -115,7 +111,7 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec delete_hash_key(table_name(), hash_key(), attr_name(), ddb_opts(), aws_config()) -> ok | {error, term()}.
+-spec delete_hash_key(table_name(), hash_key(), range_key_name(), ddb_opts(), aws_config()) -> ok | {error, term()}.
 delete_hash_key(Table, HashKey, RangeKeyName, Opts, Config) ->
     case erlcloud_ddb2:q(Table, HashKey,
                          [{consistent_read, true},
@@ -149,11 +145,13 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts, Config) ->
 %%% get_all
 %%%------------------------------------------------------------------------------
 
+-type get_all_opts() :: erlcloud_ddb2:batch_get_item_request_item_opts().
+
 -spec get_all(table_name(), [key()]) -> items_return().
 get_all(Table, Keys) ->
     get_all(Table, Keys, [], default_config()).
 
--spec get_all(table_name(), [key()], batch_get_item_request_item_opts()) -> items_return().
+-spec get_all(table_name(), [key()], get_all_opts()) -> items_return().
 get_all(Table, Keys, Opts) ->
     get_all(Table, Keys, Opts, default_config()).
 
@@ -179,7 +177,7 @@ get_all(Table, Keys, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_all(table_name(), [key()], batch_get_item_request_item_opts(), aws_config()) -> items_return().
+-spec get_all(table_name(), [key()], get_all_opts(), aws_config()) -> items_return().
 get_all(Table, Keys, Opts, Config) when length(Keys) =< ?BATCH_GET_LIMIT ->
     batch_get_retry([{Table, Keys, Opts}], Config, []);
 get_all(Table, Keys, Opts, Config) ->
@@ -197,7 +195,7 @@ get_all(Table, Keys, Opts, Config) ->
                 BatchList),
     lists:foldl(fun parfold/2, {ok, []}, Results).
 
--spec batch_get_retry([batch_get_item_request_item()], aws_config(), [out_item()]) -> items_return().
+-spec batch_get_retry([erlcloud_ddb2:batch_get_item_request_item()], aws_config(), [out_item()]) -> items_return().
 batch_get_retry(RequestItems, Config, Acc) ->
     case erlcloud_ddb2:batch_get_item(RequestItems, [{out, record}], Config) of
         {error, Reason} ->
@@ -256,11 +254,13 @@ put_all(Table, Items, Opts, Config) ->
 %%% q_all
 %%%------------------------------------------------------------------------------
 
+-type q_all_opts() :: erlcloud_ddb2:q_opts().
+
 -spec q_all(table_name(), conditions() | expression()) -> items_return().
 q_all(Table, KeyConditionsOrExpression) ->
     q_all(Table, KeyConditionsOrExpression, [], default_config()).
 
--spec q_all(table_name(), conditions() | expression(), q_opts()) -> items_return().
+-spec q_all(table_name(), conditions() | expression(), q_all_opts()) -> items_return().
 q_all(Table, KeyConditionsOrExpression, Opts) ->
     q_all(Table, KeyConditionsOrExpression, Opts, default_config()).
 
@@ -288,11 +288,11 @@ q_all(Table, KeyConditionsOrExpression, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec q_all(table_name(), conditions() | expression(), q_opts(), aws_config()) -> items_return().
+-spec q_all(table_name(), conditions() | expression(), q_all_opts(), aws_config()) -> items_return().
 q_all(Table, KeyConditionsOrExpression, Opts, Config) ->
     q_all(Table, KeyConditionsOrExpression, Opts, Config, [], undefined).
 
--spec q_all(table_name(), conditions() | expression(), q_opts(), aws_config(), [[out_item()]], key() | undefined)
+-spec q_all(table_name(), conditions() | expression(), q_all_opts(), aws_config(), [[out_item()]], key() | undefined)
            -> items_return().
 q_all(Table, KeyConditionsOrExpression, Opts, Config, Acc, StartKey) ->
     case erlcloud_ddb2:q(Table, KeyConditionsOrExpression,
@@ -310,11 +310,13 @@ q_all(Table, KeyConditionsOrExpression, Opts, Config, Acc, StartKey) ->
 %%% scan_all
 %%%------------------------------------------------------------------------------
 
+-type scan_all_opts() :: erlcloud_ddb2:scan_opts().
+
 -spec scan_all(table_name()) -> items_return().
 scan_all(Table) ->
     scan_all(Table, [], default_config()).
 
--spec scan_all(table_name(), scan_opts()) -> items_return().
+-spec scan_all(table_name(), scan_all_opts()) -> items_return().
 scan_all(Table, Opts) ->
     scan_all(Table, Opts, default_config()).
 
@@ -336,11 +338,11 @@ scan_all(Table, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec scan_all(table_name(), scan_opts(), aws_config()) -> items_return().
+-spec scan_all(table_name(), scan_all_opts(), aws_config()) -> items_return().
 scan_all(Table, Opts, Config) ->
     scan_all(Table, Opts, Config, [], undefined).
 
--spec scan_all(table_name(), scan_opts(), aws_config(), [[out_item()]], key() | undefined)
+-spec scan_all(table_name(), scan_all_opts(), aws_config(), [[out_item()]], key() | undefined)
         -> items_return().
 scan_all(Table, Opts, Config, Acc, StartKey) ->
     case erlcloud_ddb2:scan(Table,
