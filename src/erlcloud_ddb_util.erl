@@ -22,7 +22,8 @@
 -export([delete_hash_key/3, delete_hash_key/4, delete_hash_key/5,
          get_all/2, get_all/3, get_all/4,
          q_all/2, q_all/3, q_all/4,
-         scan_all/1, scan_all/2, scan_all/3
+         scan_all/1, scan_all/2, scan_all/3,
+         write_all/2, write_all/3, write_all/4
         ]).
 
 -define(BATCH_WRITE_LIMIT, 25).
@@ -269,6 +270,82 @@ scan_all(Table, Opts, Config, Acc, StartKey) ->
         {ok, #ddb2_scan{last_evaluated_key = LastKey, items = Items}} ->
             scan_all(Table, Opts, Config, [Items | Acc], LastKey)
     end.
+
+%%%------------------------------------------------------------------------------
+%%% write_all
+%%%------------------------------------------------------------------------------
+
+-type write_all_item() :: erlcloud_ddb2:batch_write_item_request().
+
+-spec write_all(table_name(), [write_all_item()]) -> ok | {error, term()}.
+write_all(Table, Items) ->
+    write_all(Table, Items, [], default_config()).
+
+-spec write_all(table_name(), [write_all_item()], ddb_opts()) -> ok | {error, term()}.
+write_all(Table, Items, Opts) ->
+    write_all(Table, Items, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% Perform one or more BatchWriteItem operations to put or delete all items.
+%% Operations are performed in parallel. Writing to only one table is supported.
+%%
+%% ===Example===
+%%
+%% `
+%% ok =
+%%     erlcloud_ddb_util:write_all(
+%%       [{<<"Forum">>,
+%%         [{put, [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
+%%                 {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+%%          {put, [{<<"Name">>, {s, <<"Amazon RDS">>}},
+%%                 {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+%%          {put, [{<<"Name">>, {s, <<"Amazon Redshift">>}},
+%%                 {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+%%          {put, [{<<"Name">>, {s, <<"Amazon ElastiCache">>}},
+%%                 {<<"Category">>, {s, <<"Amazon Web Services">>}}]}
+%%         ]}]),
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec write_all(table_name(), [write_all_item()], ddb_opts(), aws_config()) -> ok | {error, term()}.
+write_all(Table, Items, _Opts, Config) when length(Items) =< ?BATCH_WRITE_LIMIT ->
+    batch_write_retry([{Table, Items}], Config);
+write_all(Table, Items, _Opts, Config) ->
+    BatchList = chop(?BATCH_WRITE_LIMIT, Items),
+    Results = pmap_unordered(
+                fun(Batch) ->
+                        %% try/catch to prevent hang forever if there is an exception
+                        try
+                            batch_write_retry([{Table, Batch}], Config)
+                        catch
+                            Type:Ex ->
+                                {error, {Type, Ex}}
+                        end
+                end,
+                BatchList),
+    write_all_result(Results).
+
+-spec batch_write_retry([erlcloud_ddb2:batch_write_item_request_item()], aws_config()) -> ok | {error, term()}.
+batch_write_retry(RequestItems, Config) ->
+    case erlcloud_ddb2:batch_write_item(RequestItems, [{out, record}], Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, #ddb2_batch_write_item{unprocessed_items = []}} ->
+            ok;
+        {ok, #ddb2_batch_write_item{unprocessed_items = Unprocessed}} ->
+            batch_write_retry(Unprocessed, Config)
+    end.
+
+write_all_result([ok | T]) ->
+    write_all_result(T);
+write_all_result([{error, Reason} | _]) ->
+    {error, Reason};
+write_all_result([]) ->
+    ok.
 
 %%%------------------------------------------------------------------------------
 %%% Internal Functions
