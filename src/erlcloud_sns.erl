@@ -13,6 +13,12 @@
          delete_topic/1, delete_topic/2,
          list_topics/0, list_topics/1, list_topics/2,
          list_topics_all/0, list_topics_all/1,
+         list_subscriptions_by_topic/1,
+         list_subscriptions_by_topic/2,
+         list_subscriptions_by_topic/3,
+         list_subscriptions_by_topic_all/1,
+         list_subscriptions_by_topic_all/2,
+
          list_endpoints_by_platform_application/1,
          list_endpoints_by_platform_application/2,
          list_endpoints_by_platform_application/3,
@@ -30,7 +36,8 @@
          confirm_subscription/1, confirm_subscription/2, confirm_subscription/3,
          confirm_subscription2/2, confirm_subscription2/3, confirm_subscription2/4,
          set_topic_attributes/3, set_topic_attributes/4,
-         subscribe/3, subscribe/4
+         subscribe/3, subscribe/4,
+         unsubscribe/1, unsubscribe/2
          ]).
 -export([parse_event/1, get_event_type/1, parse_event_message/1,
          get_notification_attribute/2]).
@@ -315,6 +322,47 @@ list_topics_all(Config) ->
     list_all(fun list_topics/2, topics, Config, undefined, []).
 
 
+-spec list_subscriptions_by_topic/1 :: (string()) -> proplist().
+-spec list_subscriptions_by_topic/2 :: (string(), string() | aws_config()) -> proplist().
+-spec list_subscriptions_by_topic/3 :: (string(), undefined | string(), aws_config()) -> proplist().
+
+
+list_subscriptions_by_topic(TopicArn) when is_list(TopicArn) ->
+    list_subscriptions_by_topic(TopicArn, default_config()).
+
+list_subscriptions_by_topic(TopicArn, Config) when is_record(Config, aws_config) ->
+    list_subscriptions_by_topic(TopicArn, undefined, Config);
+
+list_subscriptions_by_topic(TopicArn, NextToken) when is_list(NextToken) ->
+    list_subscriptions_by_topic(TopicArn, NextToken, default_config()).
+
+list_subscriptions_by_topic(TopicArn, NextToken, Config) when is_record(Config, aws_config) ->
+    Params =
+        case NextToken of
+            undefined -> [];
+            NextToken -> [{"NextToken", NextToken}]
+        end,
+    Doc = sns_xml_request(Config, "ListSubscriptionsByTopic", [{"TopicArn", TopicArn}| Params]),
+    Decoded =
+        erlcloud_xml:decode(
+            [{subsriptions, "ListSubscriptionsByTopicResult/Subscriptions/member",
+                fun extract_subscription/1
+                },
+            {next_token, "ListSubscriptionsByTopicResult/NextToken", text}],
+            Doc),
+    Decoded.
+
+-spec list_subscriptions_by_topic_all/1 :: (string()) -> proplist().
+-spec list_subscriptions_by_topic_all/2 :: (string(), aws_config()) -> proplist().
+list_subscriptions_by_topic_all(TopicArn) ->
+    list_subscriptions_by_topic_all(TopicArn, default_config()).
+
+list_subscriptions_by_topic_all(TopicArn, Config) ->
+    list_all(fun (Token, Cfg) ->
+            list_subscriptions_by_topic(TopicArn, Token, Cfg) end,
+        subsriptions, Config, undefined, []).
+
+
 -spec list_platform_applications/0 :: () -> [sns_application()].
 list_platform_applications() ->
     list_platform_applications(undefined).
@@ -464,6 +512,17 @@ subscribe(Endpoint, Protocol, TopicArn, Config)
                 {"Protocol", atom_to_list(Protocol)},
                 {"TopicArn", TopicArn}]),
         erlcloud_xml:get_text("/SubscribeResponse/SubscribeResult/SubscriptionArn", Doc).
+
+-spec(unsubscribe/1 :: (string()) -> ok).
+unsubscribe(SubArn) ->
+    unsubscribe(SubArn, default_config()).
+
+-spec(unsubscribe/2 :: (string(), aws_config()) -> ok).
+unsubscribe(SubArn, Config)
+        when is_record(Config, aws_config) ->
+    sns_simple_request(Config, "Unsubscribe", [{"SubscriptionArn", SubArn}]).
+
+
 
 -spec new(string(), string()) -> aws_config().
 
@@ -616,6 +675,15 @@ extract_attribute(Nodes) ->
     [{parse_key(erlcloud_xml:get_text("key", Node)),
       erlcloud_xml:get_text("value", Node)}
      || Node <- Nodes].
+
+extract_subscription(Nodes) ->
+    [erlcloud_xml:decode(
+        [{topic_arn, "TopicArn", text},
+         {protocol, "Protocol", text},
+         {arn, "SubscriptionArn", text},
+         {owner, "Owner", text},
+         {endpoint, "Endpoint", text}
+      ], Node) || Node <- Nodes].
 
 extract_topic_arn(Nodes) ->
     [erlcloud_xml:decode([{arn, "TopicArn", text}], Node) || Node <- Nodes].
