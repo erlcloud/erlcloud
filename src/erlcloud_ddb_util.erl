@@ -19,26 +19,26 @@
 -include("erlcloud_aws.hrl").
 
 %%% DynamoDB Higher Layer API
--export([delete_hash_key/3, delete_hash_key/4, delete_hash_key/5,
+-export([delete_all/2, delete_all/3, delete_all/4,
+         delete_hash_key/3, delete_hash_key/4, delete_hash_key/5,
          get_all/2, get_all/3, get_all/4,
+         put_all/2, put_all/3, put_all/4,
          q_all/2, q_all/3, q_all/4,
-         scan_all/1, scan_all/2, scan_all/3
+         scan_all/1, scan_all/2, scan_all/3,
+         write_all/2, write_all/3, write_all/4
         ]).
 
 -define(BATCH_WRITE_LIMIT, 25).
 -define(BATCH_GET_LIMIT, 100).
 
--type attr_name() :: erlcloud_ddb2:attr_name().
--type batch_get_item_request_item() :: erlcloud_ddb2:batch_get_item_request_item().
--type expression() :: erlcloud_ddb2:expression().
 -type conditions() :: erlcloud_ddb2:conditions().
 -type ddb_opts() :: erlcloud_ddb2:ddb_opts().
--type batch_get_item_request_item_opts() :: erlcloud_ddb2:batch_get_item_request_item_opts().
--type key() :: erlcloud_ddb2:key().
+-type expression() :: erlcloud_ddb2:expression().
 -type hash_key() :: erlcloud_ddb2:in_attr().
+-type in_item() :: erlcloud_ddb2:in_item().
+-type key() :: erlcloud_ddb2:key().
 -type out_item() :: erlcloud_ddb2:out_item().
--type q_opts() :: erlcloud_ddb2:q_opts().
--type scan_opts() :: erlcloud_ddb2:scan_opts().
+-type range_key_name() :: erlcloud_ddb2:range_key_name().
 -type table_name() :: erlcloud_ddb2:table_name().
 
 -type items_return() :: {ok, [out_item()]} | {error, term()}.
@@ -46,14 +46,52 @@
 default_config() -> erlcloud_aws:default_config().
 
 %%%------------------------------------------------------------------------------
+%%% delete_all
+%%%------------------------------------------------------------------------------
+
+-spec delete_all(table_name(), [key()]) -> ok | {error, term()}.
+delete_all(Table, Keys) ->
+    delete_all(Table, Keys, [], default_config()).
+
+-spec delete_all(table_name(), [key()], ddb_opts()) -> ok | {error, term()}.
+delete_all(Table, Keys, Opts) ->
+    delete_all(Table, Keys, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% Perform one or more BatchWriteItem operations to delete all items.
+%% Operations are performed in parallel. Writing to only one table is supported.
+%%
+%% ===Example===
+%%
+%% `
+%% ok =
+%%     erlcloud_ddb_util:delete_all(
+%%       [{<<"Forum">>,
+%%         [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
+%%          {<<"Name">>, {s, <<"Amazon RDS">>}},
+%%          {<<"Name">>, {s, <<"Amazon Redshift">>}},
+%%          {<<"Name">>, {s, <<"Amazon ElastiCache">>}}
+%%         ]}]),
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec delete_all(table_name(), [key()], ddb_opts(), aws_config()) -> ok | {error, term()}.
+delete_all(Table, Keys, Opts, Config) ->
+    write_all(Table, [{delete, Key} || Key <- Keys], Opts, Config).
+
+%%%------------------------------------------------------------------------------
 %%% delete_hash_key
 %%%------------------------------------------------------------------------------
 
--spec delete_hash_key(table_name(), hash_key(), attr_name()) -> ok | {error, term()}.
+-spec delete_hash_key(table_name(), hash_key(), range_key_name()) -> ok | {error, term()}.
 delete_hash_key(Table, HashKey, RangeKeyName) ->
     delete_hash_key(Table, HashKey, RangeKeyName, [], default_config()).
 
--spec delete_hash_key(table_name(), hash_key(), attr_name(), ddb_opts()) -> ok | {error, term()}.
+-spec delete_hash_key(table_name(), hash_key(), range_key_name(), ddb_opts()) -> ok | {error, term()}.
 delete_hash_key(Table, HashKey, RangeKeyName, Opts) ->
     delete_hash_key(Table, HashKey, RangeKeyName, Opts, default_config()).
 
@@ -73,7 +111,7 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec delete_hash_key(table_name(), hash_key(), attr_name(), ddb_opts(), aws_config()) -> ok | {error, term()}.
+-spec delete_hash_key(table_name(), hash_key(), range_key_name(), ddb_opts(), aws_config()) -> ok | {error, term()}.
 delete_hash_key(Table, HashKey, RangeKeyName, Opts, Config) ->
     case erlcloud_ddb2:q(Table, HashKey,
                          [{consistent_read, true},
@@ -107,11 +145,13 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts, Config) ->
 %%% get_all
 %%%------------------------------------------------------------------------------
 
+-type get_all_opts() :: erlcloud_ddb2:batch_get_item_request_item_opts().
+
 -spec get_all(table_name(), [key()]) -> items_return().
 get_all(Table, Keys) ->
     get_all(Table, Keys, [], default_config()).
 
--spec get_all(table_name(), [key()], batch_get_item_request_item_opts()) -> items_return().
+-spec get_all(table_name(), [key()], get_all_opts()) -> items_return().
 get_all(Table, Keys, Opts) ->
     get_all(Table, Keys, Opts, default_config()).
 
@@ -137,7 +177,7 @@ get_all(Table, Keys, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_all(table_name(), [key()], batch_get_item_request_item_opts(), aws_config()) -> items_return().
+-spec get_all(table_name(), [key()], get_all_opts(), aws_config()) -> items_return().
 get_all(Table, Keys, Opts, Config) when length(Keys) =< ?BATCH_GET_LIMIT ->
     batch_get_retry([{Table, Keys, Opts}], Config, []);
 get_all(Table, Keys, Opts, Config) ->
@@ -155,7 +195,7 @@ get_all(Table, Keys, Opts, Config) ->
                 BatchList),
     lists:foldl(fun parfold/2, {ok, []}, Results).
 
--spec batch_get_retry([batch_get_item_request_item()], aws_config(), [out_item()]) -> items_return().
+-spec batch_get_retry([erlcloud_ddb2:batch_get_item_request_item()], aws_config(), [out_item()]) -> items_return().
 batch_get_retry(RequestItems, Config, Acc) ->
     case erlcloud_ddb2:batch_get_item(RequestItems, [{out, record}], Config) of
         {error, Reason} ->
@@ -169,14 +209,58 @@ batch_get_retry(RequestItems, Config, Acc) ->
     end.
 
 %%%------------------------------------------------------------------------------
+%%% put_all
+%%%------------------------------------------------------------------------------
+
+-spec put_all(table_name(), [in_item()]) -> ok | {error, term()}.
+put_all(Table, Items) ->
+    put_all(Table, Items, [], default_config()).
+
+-spec put_all(table_name(), [in_item()], ddb_opts()) -> ok | {error, term()}.
+put_all(Table, Items, Opts) ->
+    put_all(Table, Items, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% Perform one or more BatchWriteItem operations to put all items.
+%% Operations are performed in parallel. Writing to only one table is supported.
+%%
+%% ===Example===
+%%
+%% `
+%% ok =
+%%     erlcloud_ddb_util:put_all(
+%%       [{<<"Forum">>,
+%%         [[{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
+%%           {<<"Category">>, {s, <<"Amazon Web Services">>}}],
+%%          [{<<"Name">>, {s, <<"Amazon RDS">>}},
+%%           {<<"Category">>, {s, <<"Amazon Web Services">>}}],
+%%          [{<<"Name">>, {s, <<"Amazon Redshift">>}},
+%%           {<<"Category">>, {s, <<"Amazon Web Services">>}}],
+%%          [{<<"Name">>, {s, <<"Amazon ElastiCache">>}},
+%%           {<<"Category">>, {s, <<"Amazon Web Services">>}}]
+%%         ]}]),
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec put_all(table_name(), [in_item()], ddb_opts(), aws_config()) -> ok | {error, term()}.
+put_all(Table, Items, Opts, Config) ->
+    write_all(Table, [{put, Item} || Item <- Items], Opts, Config).
+
+%%%------------------------------------------------------------------------------
 %%% q_all
 %%%------------------------------------------------------------------------------
+
+-type q_all_opts() :: erlcloud_ddb2:q_opts().
 
 -spec q_all(table_name(), conditions() | expression()) -> items_return().
 q_all(Table, KeyConditionsOrExpression) ->
     q_all(Table, KeyConditionsOrExpression, [], default_config()).
 
--spec q_all(table_name(), conditions() | expression(), q_opts()) -> items_return().
+-spec q_all(table_name(), conditions() | expression(), q_all_opts()) -> items_return().
 q_all(Table, KeyConditionsOrExpression, Opts) ->
     q_all(Table, KeyConditionsOrExpression, Opts, default_config()).
 
@@ -204,11 +288,11 @@ q_all(Table, KeyConditionsOrExpression, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec q_all(table_name(), conditions() | expression(), q_opts(), aws_config()) -> items_return().
+-spec q_all(table_name(), conditions() | expression(), q_all_opts(), aws_config()) -> items_return().
 q_all(Table, KeyConditionsOrExpression, Opts, Config) ->
     q_all(Table, KeyConditionsOrExpression, Opts, Config, [], undefined).
 
--spec q_all(table_name(), conditions() | expression(), q_opts(), aws_config(), [[out_item()]], key() | undefined)
+-spec q_all(table_name(), conditions() | expression(), q_all_opts(), aws_config(), [[out_item()]], key() | undefined)
            -> items_return().
 q_all(Table, KeyConditionsOrExpression, Opts, Config, Acc, StartKey) ->
     case erlcloud_ddb2:q(Table, KeyConditionsOrExpression,
@@ -226,11 +310,13 @@ q_all(Table, KeyConditionsOrExpression, Opts, Config, Acc, StartKey) ->
 %%% scan_all
 %%%------------------------------------------------------------------------------
 
+-type scan_all_opts() :: erlcloud_ddb2:scan_opts().
+
 -spec scan_all(table_name()) -> items_return().
 scan_all(Table) ->
     scan_all(Table, [], default_config()).
 
--spec scan_all(table_name(), scan_opts()) -> items_return().
+-spec scan_all(table_name(), scan_all_opts()) -> items_return().
 scan_all(Table, Opts) ->
     scan_all(Table, Opts, default_config()).
 
@@ -252,11 +338,11 @@ scan_all(Table, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec scan_all(table_name(), scan_opts(), aws_config()) -> items_return().
+-spec scan_all(table_name(), scan_all_opts(), aws_config()) -> items_return().
 scan_all(Table, Opts, Config) ->
     scan_all(Table, Opts, Config, [], undefined).
 
--spec scan_all(table_name(), scan_opts(), aws_config(), [[out_item()]], key() | undefined)
+-spec scan_all(table_name(), scan_all_opts(), aws_config(), [[out_item()]], key() | undefined)
         -> items_return().
 scan_all(Table, Opts, Config, Acc, StartKey) ->
     case erlcloud_ddb2:scan(Table,
@@ -269,6 +355,82 @@ scan_all(Table, Opts, Config, Acc, StartKey) ->
         {ok, #ddb2_scan{last_evaluated_key = LastKey, items = Items}} ->
             scan_all(Table, Opts, Config, [Items | Acc], LastKey)
     end.
+
+%%%------------------------------------------------------------------------------
+%%% write_all
+%%%------------------------------------------------------------------------------
+
+-type write_all_item() :: erlcloud_ddb2:batch_write_item_request().
+
+-spec write_all(table_name(), [write_all_item()]) -> ok | {error, term()}.
+write_all(Table, Items) ->
+    write_all(Table, Items, [], default_config()).
+
+-spec write_all(table_name(), [write_all_item()], ddb_opts()) -> ok | {error, term()}.
+write_all(Table, Items, Opts) ->
+    write_all(Table, Items, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% Perform one or more BatchWriteItem operations to put or delete all items.
+%% Operations are performed in parallel. Writing to only one table is supported.
+%%
+%% ===Example===
+%%
+%% `
+%% ok =
+%%     erlcloud_ddb_util:write_all(
+%%       [{<<"Forum">>,
+%%         [{put, [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
+%%                 {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+%%          {put, [{<<"Name">>, {s, <<"Amazon RDS">>}},
+%%                 {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+%%          {put, [{<<"Name">>, {s, <<"Amazon Redshift">>}},
+%%                 {<<"Category">>, {s, <<"Amazon Web Services">>}}]},
+%%          {put, [{<<"Name">>, {s, <<"Amazon ElastiCache">>}},
+%%                 {<<"Category">>, {s, <<"Amazon Web Services">>}}]}
+%%         ]}]),
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec write_all(table_name(), [write_all_item()], ddb_opts(), aws_config()) -> ok | {error, term()}.
+write_all(Table, Items, _Opts, Config) when length(Items) =< ?BATCH_WRITE_LIMIT ->
+    batch_write_retry([{Table, Items}], Config);
+write_all(Table, Items, _Opts, Config) ->
+    BatchList = chop(?BATCH_WRITE_LIMIT, Items),
+    Results = pmap_unordered(
+                fun(Batch) ->
+                        %% try/catch to prevent hang forever if there is an exception
+                        try
+                            batch_write_retry([{Table, Batch}], Config)
+                        catch
+                            Type:Ex ->
+                                {error, {Type, Ex}}
+                        end
+                end,
+                BatchList),
+    write_all_result(Results).
+
+-spec batch_write_retry([erlcloud_ddb2:batch_write_item_request_item()], aws_config()) -> ok | {error, term()}.
+batch_write_retry(RequestItems, Config) ->
+    case erlcloud_ddb2:batch_write_item(RequestItems, [{out, record}], Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, #ddb2_batch_write_item{unprocessed_items = []}} ->
+            ok;
+        {ok, #ddb2_batch_write_item{unprocessed_items = Unprocessed}} ->
+            batch_write_retry(Unprocessed, Config)
+    end.
+
+write_all_result([ok | T]) ->
+    write_all_result(T);
+write_all_result([{error, Reason} | _]) ->
+    {error, Reason};
+write_all_result([]) ->
+    ok.
 
 %%%------------------------------------------------------------------------------
 %%% Internal Functions

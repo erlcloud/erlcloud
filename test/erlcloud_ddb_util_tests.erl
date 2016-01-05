@@ -26,10 +26,13 @@ operation_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
-     [fun delete_hash_key_tests/1,
+     [fun delete_all_tests/1,
+      fun delete_hash_key_tests/1,
       fun get_all_tests/1,
+      fun put_all_tests/1,
       fun q_all_tests/1,
-      fun scan_all_tests/1
+      fun scan_all_tests/1,
+      fun write_all_tests/1
      ]}.
 
 start() ->
@@ -91,6 +94,33 @@ multi_call_tests(Tests) ->
 %%%===================================================================
 %%% Actual test specifiers
 %%%===================================================================
+
+delete_all_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"delete_all delete one item",
+             ?_f(erlcloud_ddb_util:delete_all(<<"tn">>, [{<<"hkn">>,<<"hkv">>}])),
+             [{"
+{
+    \"RequestItems\": {
+        \"tn\": [{
+            \"DeleteRequest\": {
+                \"Key\": {
+                    \"hkn\":{\"S\":\"hkv\"}
+                }
+            }
+        }]
+    }
+}"
+               , "
+{
+    \"UnprocessedItems\": {
+    }
+}"
+               }],
+             ok})
+         ],
+    multi_call_tests(Tests).
 
 delete_hash_key_tests(_) ->
     Tests =
@@ -376,6 +406,34 @@ get_all_tests(_) ->
          ],
     multi_call_tests(Tests).
 
+put_all_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"put_all put one item",
+             ?_f(erlcloud_ddb_util:put_all(<<"tn">>, [[{<<"hkn">>,<<"hkv">>}, {<<"atn">>,<<"atv">>}]])),
+             [{"
+{
+    \"RequestItems\": {
+        \"tn\": [{
+            \"PutRequest\": {
+                \"Item\": {
+                    \"hkn\":{\"S\":\"hkv\"},
+                    \"atn\":{\"S\":\"atv\"}
+                }
+            }
+        }]
+    }
+}"
+               , "
+{
+    \"UnprocessedItems\": {
+    }
+}"
+               }],
+             ok})
+         ],
+    multi_call_tests(Tests).
+
 q_all_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -595,5 +653,109 @@ scan_all_tests(_) ->
                    [{<<"hkn">>, <<"hkv">>}, {<<"rkn">>, <<"rk2">>}],
                    [{<<"hkn">>, <<"hkv">>}, {<<"rkn">>, <<"rk3">>}]
                   ]}})
+         ],
+    multi_call_tests(Tests).
+
+%% Currently don't have tests for the parallel write (more than 25 items).
+write_all_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"write_all put one item",
+             ?_f(erlcloud_ddb_util:write_all(<<"tn">>, [{put, [{<<"hkn">>,<<"hkv">>}, {<<"atn">>,<<"atv">>}]}])),
+             [{"
+{
+    \"RequestItems\": {
+        \"tn\": [{
+            \"PutRequest\": {
+                \"Item\": {
+                    \"hkn\":{\"S\":\"hkv\"},
+                    \"atn\":{\"S\":\"atv\"}
+                }
+            }
+        }]
+    }
+}"
+               , "
+{
+    \"UnprocessedItems\": {
+    }
+}"
+               }],
+             ok}),
+         ?_ddb_test(
+            {"write_all delete one item",
+             ?_f(erlcloud_ddb_util:write_all(<<"tn">>, [{delete, {<<"hkn">>,<<"hkv">>}}])),
+             [{"
+{
+    \"RequestItems\": {
+        \"tn\": [{
+            \"DeleteRequest\": {
+                \"Key\": {
+                    \"hkn\":{\"S\":\"hkv\"}
+                }
+            }
+        }]
+    }
+}"
+               , "
+{
+    \"UnprocessedItems\": {
+    }
+}"
+               }],
+             ok}),
+         ?_ddb_test(
+            {"write_all unprocessed",
+             ?_f(erlcloud_ddb_util:write_all(<<"tn">>, [{put, [{<<"hkn">>,<<"hk1">>}, {<<"atn">>,<<"at1">>}]},{delete, {<<"hkn">>,<<"hk2">>}}])),
+             [{"
+{
+    \"RequestItems\": {
+        \"tn\": [{
+            \"PutRequest\": {
+                \"Item\": {
+                    \"hkn\":{\"S\":\"hk1\"},
+                    \"atn\":{\"S\":\"at1\"}
+                }
+            }
+        },{
+            \"DeleteRequest\": {
+                \"Key\": {
+                    \"hkn\":{\"S\":\"hk2\"}
+                }
+            }
+        }]
+    }
+}"
+               , "
+{
+    \"UnprocessedItems\": {
+        \"tn\": [{
+            \"DeleteRequest\": {
+                \"Key\": {
+                    \"hkn\":{\"S\":\"hk2\"}
+                }
+            }
+        }]
+    }
+}"
+               }, {"
+{
+    \"RequestItems\": {
+        \"tn\": [{
+            \"DeleteRequest\": {
+                \"Key\": {
+                    \"hkn\":{\"S\":\"hk2\"}
+                }
+            }
+        }]
+    }
+}"
+               , "
+{
+    \"UnprocessedItems\": {
+    }
+}"
+                  }],
+             ok})
          ],
     multi_call_tests(Tests).
