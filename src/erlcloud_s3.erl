@@ -649,12 +649,12 @@ extract_bucket(Node) ->
                          {creation_date, "CreationDate", time}],
                         Node).
 
--spec put_object(string(), string(), iolist()) -> proplist().
+-spec put_object(string(), string(), iodata()) -> proplist().
 
 put_object(BucketName, Key, Value) ->
     put_object(BucketName, Key, Value, []).
 
--spec put_object(string(), string(), iolist(), proplist() | aws_config()) -> proplist().
+-spec put_object(string(), string(), iodata(), proplist() | aws_config()) -> proplist().
 
 put_object(BucketName, Key, Value, Config)
   when is_record(Config, aws_config) ->
@@ -663,7 +663,7 @@ put_object(BucketName, Key, Value, Config)
 put_object(BucketName, Key, Value, Options) ->
     put_object(BucketName, Key, Value, Options, default_config()).
 
--spec put_object(string(), string(), iolist(), proplist(), [{string(), string()}] | aws_config()) -> proplist().
+-spec put_object(string(), string(), iodata(), proplist(), [{string(), string()}] | aws_config()) -> proplist().
 
 put_object(BucketName, Key, Value, Options, Config)
   when is_record(Config, aws_config) ->
@@ -672,7 +672,7 @@ put_object(BucketName, Key, Value, Options, Config)
 put_object(BucketName, Key, Value, Options, HTTPHeaders) ->
     put_object(BucketName, Key, Value, Options, HTTPHeaders, default_config()).
 
--spec put_object(string(), string(), iolist(), proplist(), [{string(), string()}], aws_config()) -> proplist().
+-spec put_object(string(), string(), iodata(), proplist(), [{string(), string()}], aws_config()) -> proplist().
 
 put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
   when is_list(BucketName), is_list(Key), is_list(Value) orelse is_binary(Value),
@@ -792,11 +792,11 @@ start_multipart(BucketName, Key, Options, HTTPHeaders, Config)
             Error
     end.
 
--spec upload_part(string(), string(), string(), integer(), iolist()) -> {ok, proplist()} | {error, any()}.
+-spec upload_part(string(), string(), string(), integer(), iodata()) -> {ok, proplist()} | {error, any()}.
 upload_part(BucketName, Key, UploadId, PartNumber, Value) ->
     upload_part(BucketName, Key, UploadId, PartNumber, Value, [], default_config()).
 
--spec upload_part(string(), string(), string(), integer(), iolist(), [{string(), string()}], aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec upload_part(string(), string(), string(), integer(), iodata(), [{string(), string()}], aws_config()) -> {ok, proplist()} | {error, any()}.
 upload_part(BucketName, Key, UploadId, PartNumber, Value, HTTPHeaders, Config)
   when is_list(BucketName), is_list(Key), is_list(UploadId), is_integer(PartNumber),
        is_list(Value) orelse is_binary(Value),
