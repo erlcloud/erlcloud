@@ -16,7 +16,8 @@
          sign_v4_headers/5,
          sign_v4/8,
          get_service_status/1,
-         is_throttling_error_response/1]).
+         is_throttling_error_response/1
+]).
 
 -include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -182,7 +183,7 @@ aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config) ->
            (#aws_request{response_type = error} = Request) ->
                 Request#aws_request{should_retry = false}
         end,
-    
+
     %% Note: httpc MUST be used with {timeout, timeout()} option
     %%       Many timeout related failures is observed at prod env
     %%       when library is used in 24/7 manner

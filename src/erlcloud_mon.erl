@@ -260,7 +260,7 @@ mon_query(Config, Action, Params, ApiVersion) ->
                                  Config#aws_config.mon_port,
                                  "/",
                                  QParams,
-                                 "cloudwatch",
+                                 "monitoring",
                                  Config)
     of
         {ok, Body} ->

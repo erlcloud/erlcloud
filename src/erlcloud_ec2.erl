@@ -26,7 +26,7 @@
          %% Elastic Block Store
          attach_volume/3, attach_volume/4,
          create_snapshot/1, create_snapshot/2, create_snapshot/3,
-         create_volume/3, create_volume/4,
+         create_volume/3, create_volume/4, create_volume/5,
          delete_snapshot/1, delete_snapshot/2,
          delete_volume/1, delete_volume/2,
          describe_snapshot_attribute/2, describe_snapshot_attribute/3,
@@ -798,19 +798,26 @@ extract_spot_datafeed_subscription([Node]) ->
 %%
 -spec(create_volume/3 :: (ec2_volume_size(), string(), string()) -> {ok, proplist()} | {error, any()}).
 create_volume(Size, SnapshotID, AvailabilityZone) ->
-    create_volume(Size, SnapshotID, AvailabilityZone, default_config()).
+    create_volume(Size, SnapshotID, AvailabilityZone,"standard", default_config()).
 
--spec(create_volume/4 :: (ec2_volume_size(), string(), string(), aws_config()) -> {ok, proplist()} | {error, any()}).
-create_volume(Size, SnapshotID, AvailabilityZone, Config)
-  when Size >= 1, Size =< 1024,
+-spec(create_volume/4 :: (ec2_volume_size(), string(), string(), string()) -> {ok, proplist()} | {error, any()}).
+create_volume(Size, SnapshotID, AvailabilityZone, VolumeType) ->
+    create_volume(Size, SnapshotID, AvailabilityZone,VolumeType, default_config()).
+
+-spec(create_volume/5 :: (ec2_volume_size(), string(), string(), string(), aws_config()) -> {ok, proplist()} | {error, any()}).
+create_volume(Size, SnapshotID, AvailabilityZone, VolumeType, Config)
+  when ((VolumeType == "standard" andalso Size >= 1 andalso Size =< 1024) orelse
+        (VolumeType == "gp2" andalso Size >= 1 andalso Size =< 16384) orelse
+        (VolumeType == "io1" andalso Size >= 4 andalso Size =< 16384)),
        is_list(SnapshotID) orelse SnapshotID =:= none,
        is_list(AvailabilityZone) ->
     Params = [
               {"Size", integer_to_list(Size)},
               {"AvailabilityZone", AvailabilityZone},
-              {"SnapshotId", SnapshotID}
+              {"SnapshotId", SnapshotID},
+              {"VolumeType",VolumeType}
              ],
-    case ec2_query(Config, "CreateVolume", Params) of
+    case ec2_query(Config, "CreateVolume", Params,?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [
                 {volume_id, get_text("volumeId", Doc)},
@@ -818,7 +825,8 @@ create_volume(Size, SnapshotID, AvailabilityZone, Config)
                 {snapshot_id, get_text("snapshotId", Doc, none)},
                 {availability_zone, get_text("availabilityZone", Doc, none)},
                 {status, get_text("status", Doc, none)},
-                {create_time, erlcloud_xml:get_time("createTime", Doc)}
+                {create_time, erlcloud_xml:get_time("createTime", Doc)},
+                {volumeType, get_text("volumeType", Doc, none)}
             ]};
         {error, _} = Error ->
             Error
@@ -2017,7 +2025,7 @@ describe_spot_price_history(StartTime, EndTime, InstanceTypes,
     case ec2_query(Config, "DescribeSpotPriceHistory",
                     [{"StartTime", StartTime}, {"EndTime", EndTime},
                      {"ProductDescription", ProductDescription}|
-                     erlcloud_aws:param_list(InstanceTypes, "InstanceType")]) of
+                     erlcloud_aws:param_list(InstanceTypes, "InstanceType")], ?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [extract_spot_price_history(Item) ||
                     Item <- xmerl_xpath:string("/DescribeSpotPriceHistoryResponse/spotPriceHistorySet/item", Doc)]};
@@ -2030,7 +2038,8 @@ extract_spot_price_history(Node) ->
      {instance_type, get_text("instanceType", Node)},
      {product_description, get_text("productDescription", Node)},
      {spot_price, get_text("spotPrice", Node)},
-     {timestamp, erlcloud_xml:get_time("timestamp", Node)}
+     {timestamp, erlcloud_xml:get_time("timestamp", Node)},
+     {availability_zone, get_text("availabilityZone", Node)}
     ].
 
 %%
@@ -2088,7 +2097,7 @@ describe_volumes(VolumeIDs) ->
 -spec(describe_volumes/2 :: ([string()], aws_config()) -> {ok, proplist()} | {error, any()}).
 describe_volumes(VolumeIDs, Config)
   when is_list(VolumeIDs) ->
-    case ec2_query(Config, "DescribeVolumes", erlcloud_aws:param_list(VolumeIDs, "VolumeId")) of
+    case ec2_query(Config, "DescribeVolumes", erlcloud_aws:param_list(VolumeIDs, "VolumeId"), ?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [extract_volume(Item) || Item <- xmerl_xpath:string("/DescribeVolumesResponse/volumeSet/item", Doc)]};
         {error, Reason} ->
@@ -2102,6 +2111,7 @@ extract_volume(Node) ->
      {availability_zone, get_text("availabilityZone", Node, none)},
      {status, get_text("status", Node, none)},
      {create_time, erlcloud_xml:get_time("createTime", Node)},
+     {volumeType, get_text("volumeType", Node)},
      {attachment_set,
       [[{volume_id, get_text("volumeId", Item)},
         {instance_id, get_text("instanceId",Item)},
