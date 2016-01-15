@@ -110,6 +110,7 @@ configure(AccessKeyID, SecretAccessKey, Host, Port) ->
                                 | 'ap-southeast-1'
                                 | 'ap-southeast-2'
                                 | 'ap-northeast-1'
+                                | 'ap-northeast-2'
                                 | 'sa-east-1'.
 
 
@@ -199,6 +200,7 @@ encode_location_constraint('eu-central-1') -> "eu-central-1";
 encode_location_constraint('ap-southeast-1') -> "ap-southeast-1";
 encode_location_constraint('ap-southeast-2') -> "ap-southeast-2";
 encode_location_constraint('ap-northeast-1') -> "ap-northeast-1";
+encode_location_constraint('ap-northeast-2') -> "ap-northeast-2";
 encode_location_constraint('sa-east-1') -> "sa-east-1";
 encode_location_constraint(_) -> undefined.
 
