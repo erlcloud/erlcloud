@@ -311,12 +311,16 @@ get_shard_iterator(StreamName, ShardId, ShardIteratorType, StartingSequenceNumbe
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_records/1 :: (string()) -> proplist().
+-type get_records_limit() :: 1..10000.
+
+-spec get_records/1 :: (binary()) ->
+    {ok, [proplist()]} | {error, any()}.
 get_records(ShardIterator) ->
     Json = [{<<"ShardIterator">>, ShardIterator}],
     get_normalized_records(default_config(), Json).
 
--spec get_records/2 :: (string(), 1..10000 | aws_config()) -> proplist().
+-spec get_records/2 :: (binary(), get_records_limit() | aws_config()) ->
+    {ok, [proplist()]} | {error, any()}.
 get_records(ShardIterator, Config) when is_record(Config, aws_config) ->
     Json = [{<<"ShardIterator">>, ShardIterator}],
     get_normalized_records(Config, Json);
@@ -324,11 +328,12 @@ get_records(ShardIterator, Limit)
   when is_integer(Limit), Limit > 0, Limit =< 10000 ->
     get_records(ShardIterator, Limit, default_config()).
 
--spec get_records/3 :: (string(), 1..10000, aws_config()) -> proplist().
+-spec get_records/3 :: (binary(), get_records_limit(), aws_config()) ->
+    {ok, [proplist()]} | {error, any()}.
 get_records(ShardIterator, Limit, Config) ->
     get_records(ShardIterator, Limit, [], Config).
 
--spec get_records/4 :: (binary(), 1..10000, proplist(), aws_config()) ->
+-spec get_records/4 :: (binary(), get_records_limit(), proplist(), aws_config()) ->
     {ok, [proplist()] | binary()} | {error, any()}.
 get_records(ShardIterator, Limit, Options, Config)
   when is_record(Config, aws_config),
