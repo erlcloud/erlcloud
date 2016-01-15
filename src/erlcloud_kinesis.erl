@@ -10,7 +10,7 @@
          list_streams/0, list_streams/1, list_streams/2, list_streams/3,
          describe_stream/1, describe_stream/2, describe_stream/3, describe_stream/4,
          get_shard_iterator/3, get_shard_iterator/4, get_shard_iterator/5,
-         get_records/1, get_records/2, get_records/3,
+         get_records/1, get_records/2, get_records/3, get_records/4,
          put_record/3, put_record/4, put_record/5, put_record/6,
          merge_shards/3, merge_shards/4,
          split_shards/3, split_shards/4
@@ -311,12 +311,16 @@ get_shard_iterator(StreamName, ShardId, ShardIteratorType, StartingSequenceNumbe
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_records/1 :: (string()) -> proplist().
+-type get_records_limit() :: 1..10000.
+
+-spec get_records/1 :: (binary()) ->
+    {ok, [proplist()]} | {error, any()}.
 get_records(ShardIterator) ->
     Json = [{<<"ShardIterator">>, ShardIterator}],
     get_normalized_records(default_config(), Json).
 
--spec get_records/2 :: (string(), 1..10000 | aws_config()) -> proplist().
+-spec get_records/2 :: (binary(), get_records_limit() | aws_config()) ->
+    {ok, [proplist()]} | {error, any()}.
 get_records(ShardIterator, Config) when is_record(Config, aws_config) ->
     Json = [{<<"ShardIterator">>, ShardIterator}],
     get_normalized_records(Config, Json);
@@ -324,21 +328,33 @@ get_records(ShardIterator, Limit)
   when is_integer(Limit), Limit > 0, Limit =< 10000 ->
     get_records(ShardIterator, Limit, default_config()).
 
--spec get_records/3 :: (string(), 1..10000, aws_config()) -> proplist().
-get_records(ShardIterator, Limit, Config) when is_record(Config, aws_config),
-                                               is_integer(Limit),
-                                               Limit > 0,
-                                               Limit =< 10000 ->
-    Json = [{<<"ShardIterator">>, ShardIterator}, {<<"Limit">>, Limit}],
-    get_normalized_records(Config, Json).
+-spec get_records/3 :: (binary(), get_records_limit(), aws_config()) ->
+    {ok, [proplist()]} | {error, any()}.
+get_records(ShardIterator, Limit, Config) ->
+    get_records(ShardIterator, Limit, [], Config).
 
-%% Normalize records from Kinesis
+-spec get_records/4 :: (binary(), get_records_limit(), proplist(), aws_config()) ->
+    {ok, [proplist()] | binary()} | {error, any()}.
+get_records(ShardIterator, Limit, Options, Config)
+  when is_record(Config, aws_config),
+       is_integer(Limit),
+       Limit > 0, Limit =< 10000 ->
+    Json = [{<<"ShardIterator">>, ShardIterator},
+            {<<"Limit">>, Limit}],
+    ShouldDecode = proplists:get_value(decode, Options, true),
+    get_normalized_records(Config, Json, ShouldDecode).
 
-get_normalized_records(Config, Json) when is_record(Config, aws_config) ->
-  case erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.GetRecords", Json) of
-    {ok, Response} -> {ok, normalize_response(Response)};
-    {error, Msg} -> {error, Msg}
-  end.
+get_normalized_records(Config, Json) ->
+    get_normalized_records(Config, Json, true).
+
+get_normalized_records(Config, Json, ShouldDecode)
+  when is_record(Config, aws_config) ->
+    Request = "Kinesis_20131202.GetRecords",
+    case erlcloud_kinesis_impl:request(Config, Request, Json, ShouldDecode) of
+        {ok, Resp} when is_binary(Resp) -> {ok, Resp};
+        {ok, Resp} -> {ok, normalize_response(Resp)};
+        {error, Reason} -> {error, Reason}
+    end.
 
 
 normalize_record([{K,V} | T]) when K == <<"Data">> -> [ {K, base64:decode(V)} | normalize_record(T) ];

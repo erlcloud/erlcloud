@@ -41,15 +41,20 @@
 -export([backoff/1, retry/2]).
 
 %% Internal impl api
--export([request/3]).
+-export([request/3, request/4]).
 
 -export_type([json_return/0, attempt/0, retry_fun/0]).
 
--type json_return() :: {ok, jsx:json_term()} | {error, term()}.
+-type json_return() :: {ok, jsx:json_term() | binary()} | {error, term()}.
 
 -type operation() :: string().
 -spec request(aws_config(), operation(), jsx:json_term()) -> json_return().
-request(Config0, Operation, Json) ->
+request(Config, Operation, Json) ->
+    request(Config, Operation, Json, true).
+
+-spec request(aws_config(), operation(), jsx:json_term(), boolean()) ->
+    json_return().
+request(Config0, Operation, Json, ShouldDecode) ->
     Body = case Json of
                [] -> <<"{}">>;
                _ -> jsx:encode(Json)
@@ -57,7 +62,7 @@ request(Config0, Operation, Json) ->
     case erlcloud_aws:update_config(Config0) of
         {ok, Config} ->
             Headers = headers(Config, Operation, Body),
-            request_and_retry(Config, Headers, Body, {attempt, 1});
+            request_and_retry(Config, Headers, Body, ShouldDecode, {attempt, 1});
         {error, Reason} ->
             {error, Reason}
     end.
@@ -93,11 +98,15 @@ retry(Attempt, _) ->
     {attempt, Attempt + 1}.
 
 -type headers() :: [{string(), string()}].
--spec request_and_retry(aws_config(), headers(), jsx:json_text(), attempt()) ->
-                               {ok, jsx:json_term()} | {error, term()}.
-request_and_retry(_, _, _, {error, Reason}) ->
+-spec request_and_retry(aws_config(),
+                        headers(),
+                        jsx:json_text(),
+                        boolean(),
+                        attempt()) ->
+    {ok, jsx:json_term() | binary()} | {error, term()}.
+request_and_retry(_, _, _, _, {error, Reason}) ->
     {error, Reason};
-request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
+request_and_retry(Config, Headers, Body, ShouldDecode, {attempt, Attempt}) ->
     RetryFun = Config#aws_config.kinesis_retry,
     case erlcloud_httpc:request(
            url(Config), post,
@@ -105,25 +114,29 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
            Body, Config#aws_config.timeout, Config) of
 
         {ok, {{200, _}, _, RespBody}} ->
-            {ok, decode(RespBody)};
+            Result = case ShouldDecode of
+                         true  -> decode(RespBody);
+                         false -> RespBody
+                     end,
+            {ok, Result};
 
         {ok, {{Status, StatusLine}, _, RespBody}} when Status >= 400 andalso Status < 500 ->
             case client_error(Status, StatusLine, RespBody) of
                 {retry, Reason} ->
-                    request_and_retry(Config, Headers, Body, RetryFun(Attempt, Reason));
+                    request_and_retry(Config, Headers, Body, ShouldDecode, RetryFun(Attempt, Reason));
                 {error, Reason} ->
                     {error, Reason}
             end;
 
         {ok, {{Status, StatusLine}, _, RespBody}} when Status >= 500 ->
-            request_and_retry(Config, Headers, Body, RetryFun(Attempt, {http_error, Status, StatusLine, RespBody}));
+            request_and_retry(Config, Headers, Body, ShouldDecode, RetryFun(Attempt, {http_error, Status, StatusLine, RespBody}));
 
         {ok, {{Status, StatusLine}, _, RespBody}} ->
             {error, {http_error, Status, StatusLine, RespBody}};
 
         {error, Reason} ->
             %% TODO there may be some http errors, such as certificate error, that we don't want to retry
-            request_and_retry(Config, Headers, Body, RetryFun(Attempt, Reason))
+            request_and_retry(Config, Headers, Body, ShouldDecode, RetryFun(Attempt, Reason))
     end.
 
 -spec client_error(pos_integer(), string(), binary()) -> {retry, term()} | {error, term()}.
