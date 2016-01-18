@@ -2,6 +2,7 @@
 -module(erlcloud_kinesis_tests).
 -include_lib("eunit/include/eunit.hrl").
 -include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 %%-include("erlcloud_kinesis.hrl").
 
 %% Unit tests for kinesis.
@@ -59,6 +60,11 @@ stop(_) ->
 %%%===================================================================
 %%% Input test helpers
 %%%===================================================================
+
+config() ->
+    #aws_config{
+      access_key_id = string:copies("A", 20),
+      secret_access_key = string:copies("a", 40)}.
 
 -type expected_body() :: string().
 
@@ -468,7 +474,7 @@ get_records_no_decode_output_tests(_) ->
                         {ok, list_to_binary(Input)}})
     ],
     ShardIterator = <<"AAAAAAAAAAEuncwaAk+GTC2TIdmdg5w6dIuZ4Scu6vaMGPtaPUfopvw9cBm2NM3Rlj9WyI5JFJr2ahuSh3Z187AdW4Lug86E">>,
-    Config = erlcloud_aws:default_config(),
+    Config = config(),
     output_tests(?_f(erlcloud_kinesis:get_records(ShardIterator, 10000, [{decode, false}], Config)), Tests).
 
 %% PutRecord test based on the API examples:
