@@ -2420,15 +2420,6 @@ request_spot_instances(Request, Config) ->
             {error, Reason}
     end.
 
-
-decode_spot_fleet_state("submitted") -> submitted;
-decode_spot_fleet_state("active") -> active;
-decode_spot_fleet_state("cancelled") -> cancelled;
-decode_spot_fleet_state("failed") -> failed;
-decode_spot_fleet_state("cancelled_running") -> cancelled_running;
-decode_spot_fleet_state("cancelled_terminating") -> cancelled_terminating;
-decode_spot_fleet_state("modifying") -> modifying.
-
 encode_termination_policy(default) -> "Default";
 encode_termination_policy(no_termination) -> "noTermination".
 
@@ -2494,10 +2485,8 @@ extract_unsuccessful_fleet_request(Doc) ->
 extract_successful_fleet_request(Doc) ->
     [
      {spot_fleet_request_id, get_text("spotFleetRequestId", Doc)},
-     {current_spot_fleet_request_state,
-         decode_spot_fleet_state(get_text("currentSpotFleetRequestState", Doc))},
-     {previous_spot_fleet_request_state,
-         decode_spot_fleet_state(get_text("previousSpotFleetRequestState", Doc))}
+     {current_spot_fleet_request_state, get_text("currentSpotFleetRequestState", Doc)},
+     {previous_spot_fleet_request_state, get_text("previousSpotFleetRequestState", Doc)}
     ].
 extract_cancel_spot_fleet_response(Doc) ->
     [
