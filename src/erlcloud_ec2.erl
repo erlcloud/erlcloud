@@ -2430,7 +2430,7 @@ decode_spot_fleet_state("cancelled_terminating") -> cancelled_terminating;
 decode_spot_fleet_state("modifying") -> modifying.
 
 encode_termination_policy(default) -> "Default";
-encode_termination_policy(no_termincation) -> "noTermination".
+encode_termination_policy(no_termination) -> "noTermination".
 
 encode_allocation_strategy(lowest_price) -> "lowestPrice";
 encode_allocation_strategy(diversified) -> "diversified".
@@ -2468,12 +2468,12 @@ describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults, Config)
         {error, _} = E -> E
     end.
 
--spec(modify_spot_fleet_request/3 :: (string(), non_neg_integer(), default | no_termincation) -> ok | {error, term()}).
+-spec(modify_spot_fleet_request/3 :: (string(), non_neg_integer(), default | no_termination) -> ok | {error, term()}).
 modify_spot_fleet_request(SpotFleetRequestId, TargetCapacity, ExcessCapacityTerminationPolicy) ->
     modify_spot_fleet_request(SpotFleetRequestId, TargetCapacity,
         ExcessCapacityTerminationPolicy, default_config()).
 
--spec(modify_spot_fleet_request/4 :: (string(), non_neg_integer(), default | no_termincation, aws_config()) -> ok | {error, term()}).
+-spec(modify_spot_fleet_request/4 :: (string(), non_neg_integer(), default | no_termination, aws_config()) -> ok | {error, term()}).
 modify_spot_fleet_request(SpotFleetRequestId, TargetCapacity, ExcessCapacityTerminationPolicy, Config) ->
     Params = [
         {"ExcessCapacityTerminationPolicy", encode_termination_policy(ExcessCapacityTerminationPolicy)},
