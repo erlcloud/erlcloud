@@ -104,6 +104,7 @@
          create_spot_datafeed_subscription/3,
          delete_spot_datafeed_subscription/0, delete_spot_datafeed_subscription/1,
          describe_spot_datafeed_subscription/0, describe_spot_datafeed_subscription/1,
+         describe_spot_fleet_instances_all/1, describe_spot_fleet_instances_all/2,
          describe_spot_fleet_instances/1, describe_spot_fleet_instances/2,
          describe_spot_fleet_instances/3, describe_spot_fleet_instances/4,
          describe_spot_instance_requests/0, describe_spot_instance_requests/1,
@@ -2433,19 +2434,42 @@ extract_describe_spot_fleet_request(Doc) ->
      {instance_type, get_text("instanceType", Doc)}
     ].
 
--spec(describe_spot_fleet_instances/1 :: (string()) -> {ok, [proplist()]} | {error, term()}).
+-spec(describe_spot_fleet_instances_all/1 :: (string()) ->
+    {ok, [{instances, [proplist()]}]} | {error, term()}).
+describe_spot_fleet_instances_all(SpotFleetRequestId) ->
+    describe_spot_fleet_instances_all(SpotFleetRequestId, default_config()).
+
+-spec(describe_spot_fleet_instances_all/2 :: (string(), aws_config()) ->
+    {ok, [{instances, [proplist()]}]} | {error, term()}).
+describe_spot_fleet_instances_all(SpotFleetRequestId, Config) ->
+    ListAll = fun(Fun, NextToken, Acc) ->
+        case describe_spot_fleet_instances(SpotFleetRequestId, NextToken, undefined, Config) of
+            {ok, Res} ->
+                List = proplists:get_value(instances, Res),
+                case proplists:get_value(next_token, Res) of
+                    undefined -> {ok, lists:foldl(fun erlang:'++'/2, [], [List | Acc])};
+                    NT -> Fun(Fun, NT, [List | Acc])
+                end;
+            {error, _} = E -> E
+        end
+    end,
+    ListAll(ListAll, undefined, []).
+
+-type(describe_spot_fleet_instances_return() :: {ok, [{instances, [proplist()]} | {next_token, string()}]} | {error, term()}).
+
+-spec(describe_spot_fleet_instances/1 :: (string()) -> describe_spot_fleet_instances_return()).
 describe_spot_fleet_instances(SpotFleetRequestId) ->
     describe_spot_fleet_instances(SpotFleetRequestId, default_config()).
 
--spec(describe_spot_fleet_instances/2 :: (string(), string()) -> {ok, [proplist()]} | {error, term()}).
+-spec(describe_spot_fleet_instances/2 :: (string(), string()) -> describe_spot_fleet_instances_return()).
 describe_spot_fleet_instances(SpotFleetRequestId, NextToken) ->
     describe_spot_fleet_instances(SpotFleetRequestId, NextToken, undefined, default_config()).
 
--spec(describe_spot_fleet_instances/3 :: (string(), string(), pos_integer()) -> {ok, [proplist()]} | {error, term()}).
+-spec(describe_spot_fleet_instances/3 :: (string(), string(), pos_integer()) -> describe_spot_fleet_instances_return()).
 describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults) ->
     describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults, default_config()).
 
--spec(describe_spot_fleet_instances/4 :: (string(), string(), pos_integer(), aws_config()) -> {ok, [proplist()]} | {error, term()}).
+-spec(describe_spot_fleet_instances/4 :: (string(), string(), pos_integer(), aws_config()) -> describe_spot_fleet_instances_return()).
 describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults, Config) ->
     Params = [
         {"SpotFleetRequestId", SpotFleetRequestId},
@@ -2454,8 +2478,10 @@ describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults, Config)
     ],
     case ec2_query2(Config, "DescribeSpotFleetInstances", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
-            {ok, [extract_describe_spot_fleet_request(Item) ||
-                Item <- xmerl_xpath:string("/DescribeSpotFleetInstancesResponse/activeInstanceSet/item", Doc)]};
+            Instances = [extract_describe_spot_fleet_request(Item) ||
+                Item <- xmerl_xpath:string("/DescribeSpotFleetInstancesResponse/activeInstanceSet/item", Doc)],
+            NT = get_text("/DescribeSpotFleetInstancesResponse/nextToken", Doc, undefined),
+            {ok, [{instances, Instances}, {next_token, NT}]};
         {error, _} = E -> E
     end.
 
