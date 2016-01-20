@@ -63,9 +63,9 @@
           launch_specification::#ec2_instance_spec{}
          }).
 -record(spot_fleet_request_config_spec, {
-          allocation_strategy=lowest_price::lowest_price|diversified,
+          allocation_strategy::lowest_price|diversified,
           client_token::string(),
-          excess_capacity_termination_policy=default::no_termination|default,
+          excess_capacity_termination_policy::no_termination|default,
           iam_fleet_role::string(),
           launch_specification=[]::[#ec2_instance_spec{}],
           spot_price::string(),

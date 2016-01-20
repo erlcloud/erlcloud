@@ -2422,10 +2422,12 @@ request_spot_instances(Request, Config) ->
     end.
 
 encode_termination_policy(default) -> "Default";
-encode_termination_policy(no_termination) -> "noTermination".
+encode_termination_policy(no_termination) -> "noTermination";
+encode_termination_policy(undefined) -> undefined.
 
 encode_allocation_strategy(lowest_price) -> "lowestPrice";
-encode_allocation_strategy(diversified) -> "diversified".
+encode_allocation_strategy(diversified) -> "diversified";
+encode_allocation_strategy(undefined) -> undefined.
 
 extract_describe_spot_fleet_request(Doc) ->
     [
@@ -2459,7 +2461,7 @@ describe_spot_fleet_instances_all(SpotFleetRequestId, Config) ->
 
 -spec(describe_spot_fleet_instances/1 :: (string()) -> describe_spot_fleet_instances_return()).
 describe_spot_fleet_instances(SpotFleetRequestId) ->
-    describe_spot_fleet_instances(SpotFleetRequestId, default_config()).
+    describe_spot_fleet_instances(SpotFleetRequestId, undefined, undefined, default_config()).
 
 -spec(describe_spot_fleet_instances/2 :: (string(), string()) -> describe_spot_fleet_instances_return()).
 describe_spot_fleet_instances(SpotFleetRequestId, NextToken) ->
@@ -2549,9 +2551,9 @@ request_spot_fleet(Request) ->
 -spec(request_spot_fleet/2 :: (ec2_spot_fleet_request(), aws_config()) -> {ok, string()} | {error, term()}).
 request_spot_fleet(Request, Config) ->
     LConf = Request#ec2_spot_fleet_request.spot_fleet_request_config,
-    LSpecs = lists:foldl(
-        fun(InstanceSpec, Acc) ->
-            Prefix = "SpotFleetRequestConfig.LaunchSpecifications." ++ integer_to_list(length(Acc) + 1) ++ ".",
+    {LSpecs, _} = lists:foldl(
+        fun(InstanceSpec, {Acc, Idx}) ->
+            Prefix = "SpotFleetRequestConfig.LaunchSpecifications." ++ integer_to_list(Idx) ++ ".",
 
             NetParams = case InstanceSpec#ec2_instance_spec.net_if of
                 [] ->
@@ -2564,7 +2566,7 @@ request_spot_fleet(Request, Config) ->
             BDParams = [
                 {Prefix ++ Key, Value} ||
                    {Key, Value} <- block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping)],
-            [
+            {[
                 {Prefix ++ "ImageId", InstanceSpec#ec2_instance_spec.image_id},
                 {Prefix ++ "KeyName", InstanceSpec#ec2_instance_spec.key_name},
                 {Prefix ++ "UserData",
@@ -2582,9 +2584,9 @@ request_spot_fleet(Request, Config) ->
                 {Prefix ++ "IamInstanceProfile.Name", InstanceSpec#ec2_instance_spec.iam_instance_profile_name},
                 {Prefix ++ "WeightedCapacity", InstanceSpec#ec2_instance_spec.weighted_capacity},
                 {Prefix ++ "SportPrice", InstanceSpec#ec2_instance_spec.spot_price}
-            ] ++ NetParams ++ BDParams ++ Acc
+            ] ++ NetParams ++ BDParams ++ Acc, Idx + 1}
         end,
-        [],
+        {[], 1},
         Request#ec2_spot_fleet_request.spot_fleet_request_config#spot_fleet_request_config_spec.launch_specification),
     Params = [
         {"SpotFleetRequestConfig.AllocationStrategy",
