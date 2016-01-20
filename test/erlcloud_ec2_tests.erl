@@ -17,7 +17,7 @@
 -define(_ec2_test(T), {?LINE, T}).
 %% The _f macro is a terse way to wrap code in a fun. Similar to _test but doesn't annotate with a line number
 -define(_f(F), fun() -> F end).
-                            
+
 %%%===================================================================
 %%% Test entry points
 %%%===================================================================
@@ -26,8 +26,18 @@ describe_tags_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
-     [fun describe_tags_input_tests/1,
-      fun describe_tags_output_tests/1]}.
+     [
+      fun describe_tags_input_tests/1,
+      fun describe_tags_output_tests/1,
+      fun request_spot_fleet_input_tests/1,
+      fun request_spot_fleet_output_tests/1,
+      fun cancel_spot_fleet_requests_input_tests/1,
+      fun cancel_spot_fleet_requests_output_tests/1,
+      fun modify_spot_fleet_request_input_tests/1,
+      fun modify_spot_fleet_request_output_tests/1,
+      fun describe_spot_fleet_request_input_tests/1,
+      fun describe_spot_fleet_request_output_tests/1
+     ]}.
 
 start() ->
     meck:new(erlcloud_httpc),
@@ -57,12 +67,9 @@ common_params() ->
 -type expected_param() :: {string(), string()}.
 -spec validate_param(string(), [expected_param()]) -> [expected_param()].
 validate_param(Param, Expected) ->
-    case string:tokens(Param, "=") of
-        [Key, Value] -> 
-            ok;
-        [Key] ->
-            Value = "",
-            ok
+    {Key, Value} = case string:tokens(Param, "=") of
+        [K, V] -> {K, V};
+        [K] -> {K, ""}
     end,
     case lists:member(Key, common_params()) of
         true ->
@@ -72,7 +79,7 @@ validate_param(Param, Expected) ->
             %?debugFmt("EXPECTED ~p~nEXPECTED1 ~p", [Expected, Expected1]),
             case length(Expected) - 1 =:= length(Expected1) of
                 true -> ok;
-                false -> 
+                false ->
                     ?debugFmt("Parameter not expected: ~p", [{Key, Value}])
             end,
             ?assertEqual(length(Expected) - 1, length(Expected1)),
@@ -90,9 +97,9 @@ validate_params(Body, Expected) ->
 %% Validates the query body and responds with the provided response.
 -spec input_expect(string(), [expected_param()]) -> fun().
 input_expect(Response, Expected) ->
-    fun(_Url, post, _Headers, Body, _Timeout, _Config) -> 
+    fun(_Url, post, _Headers, Body, _Timeout, _Config) ->
             validate_params(Body, Expected),
-            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% input_test converts an input_test specifier into an eunit test generator
@@ -100,7 +107,7 @@ input_expect(Response, Expected) ->
 -spec input_test(string(), input_test_spec()) -> tuple().
 input_test(Response, {Line, {Description, Fun, Params}}) when
       is_list(Description) ->
-    {Description, 
+    {Description,
      {Line,
       fun() ->
               meck:expect(erlcloud_httpc, request, input_expect(Response, Params)),
@@ -124,8 +131,8 @@ input_tests(Response, Tests) ->
 %% returns the mock of the erlcloud_httpc function output tests expect to be called.
 -spec output_expect(string()) -> fun().
 output_expect(Response) ->
-    fun(_Url, post, _Headers, _Body, _Timeout, _Config) -> 
-            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
+    fun(_Url, post, _Headers, _Body, _Timeout, _Config) ->
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% output_test converts an output_test specifier into an eunit test generator
@@ -142,9 +149,9 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
       end}}.
 %% output_test(Fun, {Line, {Response, Result}}) ->
 %%     output_test(Fun, {Line, {"", Response, Result}}).
-      
+
 %% output_tests converts a list of output_test specifiers into an eunit test generator
--spec output_tests(fun(), [output_test_spec()]) -> [term()].       
+-spec output_tests(fun(), [output_test_spec()]) -> [term()].
 output_tests(Fun, Tests) ->
     [output_test(Fun, Test) || Test <- Tests].
 
@@ -210,7 +217,7 @@ describe_tags_input_tests(_) ->
     input_tests(Response, Tests).
 
 describe_tags_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ec2_test(
             {"This example describes all the tags in your account.", "
 <DescribeTagsResponse xmlns=\"http://ec2.amazonaws.com/doc/2012-12-01/\">
@@ -246,7 +253,7 @@ describe_tags_output_tests(_) ->
          <key>database_server</key>
          <value/>
       </item>
-       <item> 
+       <item>
          <resourceId>i-12345678</resourceId>
          <resourceType>instance</resourceType>
          <key>stack</key>
@@ -281,6 +288,246 @@ describe_tags_output_tests(_) ->
 </DescribeTagsResponse>",
              {ok, [#ec2_tag{resource_id="ami-1a2b3c4d", resource_type="image", key="webserver", value=""},
                    #ec2_tag{resource_id="ami-1a2b3c4d", resource_type="image", key="stack", value="Production"}]}})],
-    
+
     %% Remaining AWS API examples return subsets of the same data
     output_tests(?_f(erlcloud_ec2:describe_tags()), Tests).
+
+%% RequestSpotFleet test based on the API examples:
+%% http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RequestSpotFleet.html
+request_spot_fleet_input_tests(_) ->
+    Tests =
+        [?_ec2_test(
+            {"This example creates a Spot fleet request with 2 launch specifications.",
+             ?_f(erlcloud_ec2:request_spot_fleet(
+                #ec2_spot_fleet_request{
+                  spot_fleet_request_config = #spot_fleet_request_config_spec {
+                    iam_fleet_role = "arn:aws:iam::123456789011:role/spot-fleet-role",
+                    spot_price = "0.0153",
+                    target_capacity = 5,
+                    launch_specification = [
+                      #ec2_instance_spec {
+                        image_id = "ami-1ecae776",
+                        instance_type = "m4.large",
+                        subnet_id = "subnet-1a2b3c4d"
+                      },
+                      #ec2_instance_spec {
+                        image_id = "ami-1ecae776",
+                        instance_type = "m4.medium",
+                        subnet_id = "subnet-1a2b3c4d"
+                      }
+                    ]
+                  }
+                }
+              )),
+             [{"Action", "RequestSpotFleet"},
+              {"SpotFleetRequestConfig.IamFleetRole", "arn%3Aaws%3Aiam%3A%3A123456789011%3Arole%2Fspot-fleet-role"},
+              {"SpotFleetRequestConfig.SpotPrice", "0.0153"},
+              {"SpotFleetRequestConfig.TargetCapacity", "5"},
+              {"SpotFleetRequestConfig.LaunchSpecifications.1.ImageId", "ami-1ecae776"},
+              {"SpotFleetRequestConfig.LaunchSpecifications.1.InstanceType", "m4.large"},
+              {"SpotFleetRequestConfig.LaunchSpecifications.1.SubnetId", "subnet-1a2b3c4d"},
+              {"SpotFleetRequestConfig.LaunchSpecifications.1.Monitoring.Enabled", "false"},
+              {"SpotFleetRequestConfig.LaunchSpecifications.1.EbsOptimized", "false"},
+              {"SpotFleetRequestConfig.LaunchSpecifications.1.SecurityGroup.1", "default"},
+              {"SpotFleetRequestConfig.LaunchSpecifications.2.ImageId", "ami-1ecae776"},
+              {"SpotFleetRequestConfig.LaunchSpecifications.2.InstanceType", "m4.medium"},
+              {"SpotFleetRequestConfig.LaunchSpecifications.2.SubnetId", "subnet-1a2b3c4d"},
+              {"SpotFleetRequestConfig.LaunchSpecifications.2.Monitoring.Enabled", "false"},
+              {"SpotFleetRequestConfig.LaunchSpecifications.2.EbsOptimized", "false"},
+              {"SpotFleetRequestConfig.LaunchSpecifications.2.SecurityGroup.1", "default"}
+             ]})],
+
+    Response = "
+<RequestSpotFleetResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-10-01/\">
+    <requestId>60262cc5-2bd4-4c8d-98ed-example</requestId>
+    <spotFleetRequestId>sfr-123f8fc2-cb31-425e-abcd-example2710</spotFleetRequestId>
+</RequestSpotFleetResponse>",
+    input_tests(Response, Tests).
+
+request_spot_fleet_output_tests(_) ->
+    Tests =
+        [?_ec2_test(
+            {"This example creates a Spot fleet request with 2 launch specifications.", "
+<RequestSpotFleetResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-10-01/\">
+    <requestId>60262cc5-2bd4-4c8d-98ed-example</requestId>
+    <spotFleetRequestId>sfr-123f8fc2-cb31-425e-abcd-example2710</spotFleetRequestId>
+</RequestSpotFleetResponse>",
+             {ok, "sfr-123f8fc2-cb31-425e-abcd-example2710"}})],
+
+    output_tests(?_f(erlcloud_ec2:request_spot_fleet(
+                #ec2_spot_fleet_request{
+                  spot_fleet_request_config = #spot_fleet_request_config_spec {
+                    iam_fleet_role = "arn:aws:iam::123456789011:role/spot-fleet-role",
+                    spot_price = "0.0153",
+                    target_capacity = 5,
+                    launch_specification = [
+                      #ec2_instance_spec {
+                        image_id = "ami-1ecae776",
+                        instance_type = "m4.large",
+                        subnet_id = "subnet-1a2b3c4d"
+                      },
+                      #ec2_instance_spec {
+                        image_id = "ami-1ecae776",
+                        instance_type = "m4.medium",
+                        subnet_id = "subnet-1a2b3c4d"
+                      }
+                    ]
+                  }
+                }
+              )), Tests).
+
+%% CancelSpotFleetRequests test based on the API examples:
+%% http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CancelSpotFleetRequests.html
+cancel_spot_fleet_requests_input_tests(_) ->
+    Tests =
+        [?_ec2_test(
+            {"This example cancels Spot fleet request sfr-123f8fc2-cb31-425e-abcd-example2710 and terminates all instances that were launched by the request.",
+             ?_f(erlcloud_ec2:cancel_spot_fleet_requests(["sfr-123f8fc2-cb31-425e-abcd-example2710"], true)),
+             [{"Action", "CancelSpotFleetRequests"},
+              {"SpotFleetRequestId.1", "sfr-123f8fc2-cb31-425e-abcd-example2710"},
+              {"TerminateInstances", "true"}
+             ]})],
+
+    Response = "
+<CancelSpotFleetRequestsResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-10-01/\">
+    <requestId>e12d2fe5-6503-4b4b-911c-example</requestId>
+    <unsuccessfulFleetRequestSet/>
+    <successfulFleetRequestSet>
+        <item>
+            <spotFleetRequestId>sfr-123f8fc2-cb31-425e-abcd-example2710</spotFleetRequestId>
+            <currentSpotFleetRequestState>cancelled_terminating</currentSpotFleetRequestState>
+            <previousSpotFleetRequestState>active</previousSpotFleetRequestState>
+        </item>
+    </successfulFleetRequestSet>
+</CancelSpotFleetRequestsResponse>",
+    input_tests(Response, Tests).
+
+
+cancel_spot_fleet_requests_output_tests(_) ->
+    Tests =
+        [?_ec2_test(
+            {"This example cancels Spot fleet request sfr-123f8fc2-cb31-425e-abcd-example2710 and terminates all instances that were launched by the request.", "
+<CancelSpotFleetRequestsResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-10-01/\">
+    <requestId>e12d2fe5-6503-4b4b-911c-example</requestId>
+    <unsuccessfulFleetRequestSet/>
+    <successfulFleetRequestSet>
+        <item>
+            <spotFleetRequestId>sfr-123f8fc2-cb31-425e-abcd-example2710</spotFleetRequestId>
+            <currentSpotFleetRequestState>cancelled_terminating</currentSpotFleetRequestState>
+            <previousSpotFleetRequestState>active</previousSpotFleetRequestState>
+        </item>
+    </successfulFleetRequestSet>
+</CancelSpotFleetRequestsResponse>",
+               {ok, [
+                      {unsuccessful_fleet_request_set,[]},
+                      {successful_fleet_request_set,[
+                        [
+                          {spot_fleet_request_id,"sfr-123f8fc2-cb31-425e-abcd-example2710"},
+                          {current_spot_fleet_request_state, "cancelled_terminating"},
+                          {previous_spot_fleet_request_state, "active"}
+                        ]
+                      ]}
+                    ]
+                }
+                })],
+    output_tests(?_f(erlcloud_ec2:cancel_spot_fleet_requests(["sfr-123f8fc2-cb31-425e-abcd-example2710"], true)), Tests).
+
+%% ModifySpotFleetRequest test based on the API examples:
+%% http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ModifySpotFleetRequest.html
+modify_spot_fleet_request_input_tests(_) ->
+    Tests =
+        [?_ec2_test(
+            {"This example modifies the fleet request capacity.",
+             ?_f(erlcloud_ec2:modify_spot_fleet_request("sfr-123f8fc2-cb31-425e-abcd-example2710", 10, default)),
+             [{"Action", "ModifySpotFleetRequest"},
+              {"SpotFleetRequestId", "sfr-123f8fc2-cb31-425e-abcd-example2710"},
+              {"ExcessCapacityTerminationPolicy", "Default"},
+              {"TargetCapacity", "10"}
+             ]})],
+
+    Response = "
+<ModifySpotFleetRequestResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-10-01/\">
+    <requestId>e12d2fe5-6503-4b4b-911c-example</requestId>
+    <return>true</return>
+</ModifySpotFleetRequestResponse>",
+    input_tests(Response, Tests).
+
+modify_spot_fleet_request_output_tests(_) ->
+    Tests =
+        [?_ec2_test(
+            {"This example modifies the fleet request capacity.", "
+<ModifySpotFleetRequestResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-10-01/\">
+    <requestId>e12d2fe5-6503-4b4b-911c-example</requestId>
+    <return>true</return>
+</ModifySpotFleetRequestResponse>", ok})],
+    output_tests(?_f(erlcloud_ec2:modify_spot_fleet_request("sfr-123f8fc2-cb31-425e-abcd-example2710", 10, default)), Tests).
+
+%% DescribeSpotFleetInstances test based on the API examples:
+%% http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSpotFleetInstances.html
+describe_spot_fleet_request_input_tests(_) ->
+    Tests =
+        [?_ec2_test(
+            {"This example describes the spot fleet.",
+             ?_f(erlcloud_ec2:describe_spot_fleet_instances("sfr-123f8fc2-cb31-425e-abcd-example2710")),
+             [{"Action", "DescribeSpotFleetInstances"},
+              {"SpotFleetRequestId", "sfr-123f8fc2-cb31-425e-abcd-example2710"}
+             ]})],
+
+    Response = "
+<DescribeSpotFleetInstancesResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-10-01/\">
+    <requestId>cfb09950-45e2-472d-a6a9-example</requestId>
+    <spotFleetRequestId>sfr-123f8fc2-cb31-425e-abcd-example2710</spotFleetRequestId>
+    <activeInstanceSet>
+        <item>
+            <instanceId>i-1a1a1a1a</instanceId>
+            <spotInstanceRequestId>sir-1a1a1a1a</spotInstanceRequestId>
+            <instanceType>m3.medium</instanceType>
+        </item>
+        <item>
+            <instanceId>i-2b2b2b2b</instanceId>
+            <spotInstanceRequestId>sir-2b2b2b2b</spotInstanceRequestId>
+            <instanceType>m3.medium</instanceType>
+        </item>
+    </activeInstanceSet>
+</DescribeSpotFleetInstancesResponse>",
+    input_tests(Response, Tests).
+
+describe_spot_fleet_request_output_tests(_) ->
+    Tests =
+        [?_ec2_test(
+            {"This example describes the spot fleet.", "
+<DescribeSpotFleetInstancesResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-10-01/\">
+    <requestId>cfb09950-45e2-472d-a6a9-example</requestId>
+    <spotFleetRequestId>sfr-123f8fc2-cb31-425e-abcd-example2710</spotFleetRequestId>
+    <activeInstanceSet>
+        <item>
+            <instanceId>i-1a1a1a1a</instanceId>
+            <spotInstanceRequestId>sir-1a1a1a1a</spotInstanceRequestId>
+            <instanceType>m3.medium</instanceType>
+        </item>
+        <item>
+            <instanceId>i-2b2b2b2b</instanceId>
+            <spotInstanceRequestId>sir-2b2b2b2b</spotInstanceRequestId>
+            <instanceType>m3.medium</instanceType>
+        </item>
+    </activeInstanceSet>
+</DescribeSpotFleetInstancesResponse>",
+      {ok,[
+        {instances,[
+          [
+            {instance_id,"i-1a1a1a1a"},
+            {spot_instance_request_id,"sir-1a1a1a1a"},
+            {instance_type,"m3.medium"}
+          ],
+          [
+            {instance_id,"i-2b2b2b2b"},
+            {spot_instance_request_id,"sir-2b2b2b2b"},
+            {instance_type,"m3.medium"}
+          ]
+        ]},
+        {next_token, undefined}
+      ]}
+
+    })],
+    output_tests(?_f(erlcloud_ec2:describe_spot_fleet_instances("sfr-123f8fc2-cb31-425e-abcd-example2710")), Tests).
+

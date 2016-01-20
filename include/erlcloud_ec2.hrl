@@ -36,9 +36,11 @@
           subnet_id::string(),
           disable_api_termination=false::boolean(),
           instance_initiated_shutdown_behavior::ec2_shutdown_behavior(),
-          net_if=[] :: [#ec2_net_if{}], 
+          net_if=[] :: [#ec2_net_if{}],
           ebs_optimized = false :: boolean(),
-          iam_instance_profile_name = undefined :: string()
+          iam_instance_profile_name = undefined :: string(),
+          spot_price::string(),
+          weighted_capacity::number()
          }).
 -record(ec2_image_spec, {
           image_location::string(),
@@ -59,6 +61,21 @@
           launch_group::string(),
           availability_zone_group::string(),
           launch_specification::#ec2_instance_spec{}
+         }).
+-record(spot_fleet_request_config_spec, {
+          allocation_strategy::lowest_price|diversified,
+          client_token::string(),
+          excess_capacity_termination_policy::no_termination|default,
+          iam_fleet_role::string(),
+          launch_specification=[]::[#ec2_instance_spec{}],
+          spot_price::string(),
+          target_capacity::pos_integer(),
+          terminate_instances_with_expiration::true|false,
+          valid_from::datetime(),
+          valid_until::datetime()
+         }).
+-record(ec2_spot_fleet_request, {
+          spot_fleet_request_config::#spot_fleet_request_config_spec{}
          }).
 -record(ec2_ingress_spec, {
           ip_protocol::tcp|udp|icmp,
@@ -95,6 +112,7 @@
 -type(ec2_instance_spec() :: #ec2_instance_spec{}).
 -type(ec2_ingress_spec() :: #ec2_ingress_spec{}).
 -type(ec2_spot_instance_request() :: #ec2_spot_instance_request{}).
+-type(ec2_spot_fleet_request() :: #ec2_spot_fleet_request{}).
 -type(vpc_ingress_spec() :: #vpc_ingress_spec{}).
 -type(ec2_network_acl_spec() :: #ec2_network_acl_spec{}).
 
