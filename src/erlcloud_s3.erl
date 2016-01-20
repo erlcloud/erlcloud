@@ -12,6 +12,7 @@
          put_bucket_policy/2, put_bucket_policy/3,
          get_bucket_lifecycle/1, get_bucket_lifecycle/2,
          put_bucket_lifecycle/2, put_bucket_lifecycle/3,
+         delete_bucket_lifecycle/1, delete_bucket_lifecycle/2,
          list_objects/1, list_objects/2, list_objects/3,
          list_object_versions/1, list_object_versions/2, list_object_versions/3,
          copy_object/4, copy_object/5, copy_object/6,
@@ -397,8 +398,18 @@ put_bucket_lifecycle(BucketName, Policy, Config)
 put_bucket_lifecycle(BucketName, XmlPolicy, Config)
   when is_list(BucketName), is_binary(XmlPolicy), is_record(Config, aws_config) ->
     Md5 = base64:encode(crypto:hash(md5, XmlPolicy)),
-    s3_simple_request(Config, put, BucketName, "/", "lifecycle", [], XmlPolicy, [{"Content-MD5", Md5}]).
+    s3_simple_request(Config, put, BucketName, "/", "lifecycle",
+                      [], XmlPolicy, [{"Content-MD5", Md5}]).
 
+-spec delete_bucket_lifecycle(string()) -> ok | {error, Reason::term()}.
+delete_bucket_lifecycle(BucketName) ->
+delete_bucket_lifecycle(BucketName, default_config()).
+
+-spec delete_bucket_lifecycle(string(), #aws_config{})
+    -> ok | {error, Reason::term()}.
+delete_bucket_lifecycle(BucketName, AwsConfig) ->
+    s3_simple_request(AwsConfig, delete, BucketName,
+                      "/", "lifecycle", [], <<>>, []).
 
 -spec list_objects(string()) -> proplist().
 

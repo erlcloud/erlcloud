@@ -21,6 +21,7 @@ operation_test_() ->
       fun dns_compliant_name_tests/1,
       fun get_bucket_lifecycle_tests/1,
       fun put_bucket_lifecycle_tests/1,
+      fun delete_bucket_lifecycle_tests/1,
       fun encode_bucket_lifecycle_tests/1
      ]}.
 
@@ -98,6 +99,12 @@ put_bucket_lifecycle_tests(_) ->
     ?_assertEqual(ok, Result),
     Result1 = erlcloud_s3:put_bucket_lifecycle("BucketName", <<"Policy">>, config()),
     ?_assertEqual(ok, Result1).
+
+delete_bucket_lifecycle_tests(_) ->
+    Response = {ok, {{200, "OK"}, [], <<>>}},
+    meck:expect(erlcloud_httpc, request, httpc_expect(delete, Response)),
+    Result = erlcloud_s3:delete_bucket_lifecycle("BucketName", config()),
+    ?_assertEqual(ok, Result).
 
 encode_bucket_lifecycle_tests(_) ->
     Expected = "<?xml version=\"1.0\"?><LifecycleConfiguration><Rule><Expiration><Days>3650</Days></Expiration><ID>Archive and then delete rule</ID><Prefix>projectdocs/</Prefix><Status>Enabled</Status><Transition><Days>30</Days><StorageClass>STANDARD_IA</StorageClass></Transition><Transition><Days>365</Days><StorageClass>GLACIER</StorageClass></Transition></Rule></LifecycleConfiguration>",

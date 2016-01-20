@@ -100,4 +100,4 @@ get_items(ItemPath, Xml) ->
 
 -spec to_string(string() | integer()) -> string().
 to_string(X) when is_list(X)              -> X;
-to_string(to_string(X) when is_integer(X) -> integer_to_list(X).
+to_string(X) when is_integer(X) -> integer_to_list(X).
