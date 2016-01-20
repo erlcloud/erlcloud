@@ -53,7 +53,7 @@ url_encode_loose([Char|String], Accum)
        Char >= $0, Char =< $9;
        Char =:= $-; Char =:= $_;
        Char =:= $.; Char =:= $~;
-       Char =:= $/; Char =:= $: ->
+       Char =:= $/ ->
     url_encode_loose(String, [Char|Accum]);
 url_encode_loose([Char|String], Accum)
   when Char >=0, Char =< 255 ->
