@@ -1,6 +1,6 @@
 -module(erlcloud_util).
--export([sha_mac/2, sha256_mac/2, md5/1, sha256/1,is_dns_compliant_name/1, 
-         query_all/4, query_all/5, make_response/2, get_items/2]).
+-export([sha_mac/2, sha256_mac/2, md5/1, sha256/1,is_dns_compliant_name/1,
+         query_all/4, query_all/5, make_response/2, get_items/2, to_string/1]).
 
 -define(MAX_ITEMS, 1000).
 
@@ -98,3 +98,6 @@ get_items(ItemPath, Xmls) when is_list(Xmls) ->
 get_items(ItemPath, Xml) ->
     xmerl_xpath:string(ItemPath, Xml).
 
+-spec to_string(string() | integer()) -> string().
+to_string(X) when is_list(X)              -> X;
+to_string(X) when is_integer(X) -> integer_to_list(X).

@@ -10,6 +10,9 @@
          set_bucket_attribute/3, set_bucket_attribute/4,
          get_bucket_policy/1, get_bucket_policy/2,
          put_bucket_policy/2, put_bucket_policy/3,
+         get_bucket_lifecycle/1, get_bucket_lifecycle/2,
+         put_bucket_lifecycle/2, put_bucket_lifecycle/3,
+         delete_bucket_lifecycle/1, delete_bucket_lifecycle/2,
          list_objects/1, list_objects/2, list_objects/3,
          list_object_versions/1, list_object_versions/2, list_object_versions/3,
          copy_object/4, copy_object/5, copy_object/6,
@@ -33,6 +36,10 @@
          get_object_url/2, get_object_url/3,
          get_bucket_and_key/1
         ]).
+
+-ifdef(TEST).
+-export([encode_lifecycle/1]).
+-endif.
 
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
@@ -365,12 +372,49 @@ put_bucket_policy(BucketName, Policy, Config)
   when is_list(BucketName), is_binary(Policy), is_record(Config, aws_config) ->
     s3_simple_request(Config, put, BucketName, "/", "policy", [], Policy, []).
 
+-spec(get_bucket_lifecycle/1 :: (BucketName::string()) -> ok | {error, Reason::term()}).
+get_bucket_lifecycle(BucketName) ->
+    get_bucket_lifecycle(BucketName, default_config()).
+
+-spec(get_bucket_lifecycle/2 :: (BucketName::string(), Config::aws_config()) -> {ok, Policy::string()} | {error, Reason::term()}).
+get_bucket_lifecycle(BucketName, Config)
+    when is_record(Config, aws_config) ->
+        case s3_request2(Config, get, BucketName, "/", "lifecycle", [], <<>>, []) of
+            {ok, {_Headers, Body}} ->
+                {ok, parse_lifecycle(element(1, xmerl_scan:string(binary_to_list(Body))))};
+            Error ->
+                Error
+        end.
+
+-spec put_bucket_lifecycle(string(), binary()) -> ok | {error, Reason::term()}.
+put_bucket_lifecycle(BucketName, Policy) ->
+    put_bucket_lifecycle(BucketName, Policy, default_config()).
+
+-spec put_bucket_lifecycle(string(), list() | binary(), aws_config()) -> ok | {error, Reason::term()}.
+put_bucket_lifecycle(BucketName, Policy, Config)
+  when is_list(BucketName), is_list(Policy), is_record(Config, aws_config) ->
+    XmlPolicy = encode_lifecycle(Policy),
+    put_bucket_lifecycle(BucketName, list_to_binary(XmlPolicy), Config);
+put_bucket_lifecycle(BucketName, XmlPolicy, Config)
+  when is_list(BucketName), is_binary(XmlPolicy), is_record(Config, aws_config) ->
+    Md5 = base64:encode(crypto:hash(md5, XmlPolicy)),
+    s3_simple_request(Config, put, BucketName, "/", "lifecycle",
+                      [], XmlPolicy, [{"Content-MD5", Md5}]).
+
+-spec delete_bucket_lifecycle(string()) -> ok | {error, Reason::term()}.
+delete_bucket_lifecycle(BucketName) ->
+delete_bucket_lifecycle(BucketName, default_config()).
+
+-spec delete_bucket_lifecycle(string(), #aws_config{})
+    -> ok | {error, Reason::term()}.
+delete_bucket_lifecycle(BucketName, AwsConfig) ->
+    s3_simple_request(AwsConfig, delete, BucketName,
+                      "/", "lifecycle", [], <<>>, []).
 
 -spec list_objects(string()) -> proplist().
 
 list_objects(BucketName) ->
     list_objects(BucketName, []).
-
 -spec list_objects(string(), proplist() | aws_config()) -> proplist().
 
 list_objects(BucketName, Config)
@@ -475,6 +519,90 @@ get_bucket_attribute(BucketName, AttributeName, Config)
                 _           -> disabled
             end
     end.
+
+parse_lifecycle(Xml) ->
+    Rules = xmerl_xpath:string("/LifecycleConfiguration/Rule", Xml),
+    [extract_rule(X) || X <- Rules].
+
+extract_rule(Xml) ->
+    erlcloud_xml:decode(
+      [
+       {expiration, "Expiration", {single, fun extract_expiration/1}},
+       {id, "ID", text},
+       {noncurrent_version_expiration, "NoncurrentVersionExpiration",
+        {optional_map, fun extract_noncurrent_version_expiration/1}},
+       {noncurrent_version_transition, "NoncurrentVersionTransition",
+        {optional_map, fun extract_noncurrent_version_transition/1}},
+       {prefix, "Prefix", text},
+       {status, "Status", text},
+       {transition, "Transition", {optional_map, fun extract_transition/1}}
+      ], Xml).
+
+encode_lifecycle(Lifecycle) ->
+    lists:flatten(xmerl:export_simple(
+                    [{'LifecycleConfiguration',
+                      lists:map(fun(Rule) ->
+                                        {'Rule', encode_rule(Rule)}
+                                end, Lifecycle)}], xmerl_xml)).
+
+encode_rule(Rule) ->
+    lists:flatten(lists:map(
+                    fun({Key, [{_, _} | _] = Proplist}) ->
+                            {key_to_name(Key), encode_subtype(Proplist)};
+                       ({Key, [[{_, _} | _], _] = ListOfProplist}) ->
+                            lists:map(fun(List) ->
+                                              {key_to_name(Key),
+                                               encode_subtype(List)}
+                                      end, ListOfProplist);
+                       ({Key, [[{_, _}, _] = List]}) ->
+                               {key_to_name(Key), encode_subtype(List)};
+                       ({Key, Value}) ->
+                               {key_to_name(Key), encode_subtype(Value)}
+                       end, Rule)).
+
+encode_subtype(List) ->
+    case List of
+        [{_, _} | _] ->
+            lists:map(fun({Key, Value}) ->
+                              {key_to_name(Key),
+                               [erlcloud_util:to_string(Value)]}
+                      end, List);
+        Value ->
+            [erlcloud_util:to_string(Value)]
+    end.
+
+extract_transition(Xml) ->
+    erlcloud_xml:decode(
+      [
+       {date, "Date", optional_text},
+       {days, "Days", optional_integer},
+       {storage_class, "StorageClass", text}
+       ], Xml).
+
+extract_noncurrent_version_transition(Xml) ->
+    erlcloud_xml:decode(
+      [{noncurrent_days, "NoncurrentDays", integer},
+       {storage_class, "StorageClass", text}], Xml).
+
+extract_noncurrent_version_expiration(Xml) ->
+    erlcloud_xml:decode([{noncurrent_days, "NoncurrentDays", integer}], Xml).
+
+extract_expiration(Xml) ->
+    erlcloud_xml:decode(
+      [{date, "Date", optional_text},
+       {days, "Days", optional_integer}], Xml).
+
+key_to_name(expiration) -> 'Expiration';
+key_to_name(id)         -> 'ID';
+key_to_name(prefix) -> 'Prefix';
+key_to_name(status) -> 'Status';
+key_to_name(transition) -> 'Transition';
+key_to_name(date) -> 'Date';
+key_to_name(days) -> 'Days';
+key_to_name('noncurrent_version_expiration') -> 'NoncurrentVersionExpiration';
+key_to_name('noncurrent_version_transition') -> 'NoncurrentVersionTransition';
+key_to_name('storage_class') -> 'StorageClass';
+key_to_name('noncurrent_days') -> 'NoncurrentDays'.
 
 extract_acl(ACL) ->
     [extract_grant(Item) || Item <- ACL].
@@ -1113,25 +1241,25 @@ s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Heade
 %% http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#create-bucket-intro
 %% AccessMethod can be either 'vhost' - virtual-hosted–style or
 %% 'path' - older path-style URLs to access a bucket.
-s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body, 
+s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body,
                       Headers) ->
     ContentType = proplists:get_value("content-type", Headers, ""),
     FParams = [Param || {_, Value} = Param <- Params, Value =/= undefined],
     FHeaders = [Header || {_, Val} = Header <- Headers, Val =/= undefined],
 
-    QueryParams = case Subresource of 
-        "" -> 
-            FParams; 
-        _ -> 
-            [{Subresource, ""} | FParams] 
+    QueryParams = case Subresource of
+        "" ->
+            FParams;
+        _ ->
+            [{Subresource, ""} | FParams]
     end,
-    
+
     S3Host = Config#aws_config.s3_host,
     AccessMethod = case Config#aws_config.s3_bucket_access_method of
         auto ->
             case erlcloud_util:is_dns_compliant_name(Bucket) orelse
-                 Bucket == [] of 
-                true -> vhost; 
+                 Bucket == [] of
+                true -> vhost;
                 _ -> path
             end;
         ManualMethod ->
@@ -1175,7 +1303,7 @@ s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body,
             true ->
               [$&, erlcloud_http:make_query_string(FParams, no_assignment)]
         end]),
-    
+
     Request = #aws_request{service = s3, uri = RequestURI, method = Method},
     Request2 = case Method of
                    M when M =:= get orelse M =:= head orelse M =:= delete ->
@@ -1202,7 +1330,7 @@ s3_result_fun(#aws_request{response_type = ok} = Request) ->
 s3_result_fun(#aws_request{response_type = error,
                            error_type = aws,
                            response_status = Status} = Request) when
-%% Retry conflicting operations 409,Conflict and 500s 
+%% Retry conflicting operations 409,Conflict and 500s
 %% including 503, SlowDown, Reduce your request rate.
       Status =:= 409; Status >= 500 ->
     Request#aws_request{should_retry = true};
@@ -1242,21 +1370,21 @@ aws_region_from_host(Host) ->
 %% http://docs.aws.amazon.com/AmazonS3/latest/dev/Redirects.html
 %% http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAPI.html
 %% Note: Redirects are sequentially handled '#aws_config.s3_follow_redirect_count' times.
-%% This is needed for attempts to access a bucket in non-defaut region using 
-%% the path-style method. Such request is redirected to virtual-hosted bucket 
+%% This is needed for attempts to access a bucket in non-defaut region using
+%% the path-style method. Such request is redirected to virtual-hosted bucket
 %% endpointand then - to region specific one.
-%% For example: trying to get acl of "bucket-frankfurt" in eu-central-1 
-%%  region using path-style access method. 
+%% For example: trying to get acl of "bucket-frankfurt" in eu-central-1
+%%  region using path-style access method.
 %%
-%%  The 1st request ("https://s3.amazonaws.com/bucket-frankfurt/?acl) is 
+%%  The 1st request ("https://s3.amazonaws.com/bucket-frankfurt/?acl) is
 %%  redirected to "bucket-frankfurt.s3.amazonaws.com" endpoint.
 %%
-%%  The 2nd ("https://s3.amazonaws.com/?acl" with 
-%%  {"host","bucket-frankfurt.s3.amazonaws.com"} header) is redirected 
+%%  The 2nd ("https://s3.amazonaws.com/?acl" with
+%%  {"host","bucket-frankfurt.s3.amazonaws.com"} header) is redirected
 %%  to "bucket-frankfurt.s3.eu-central-1.amazonaws.com".
 %%
 %%  And finally the 3rd request succeeds -
-%%  ("https://s3.eu-central-1.amazonaws.com/?acl" with 
+%%  ("https://s3.eu-central-1.amazonaws.com/?acl" with
 %%   {"host","bucket-frankfurt.s3.eu-central-1.amazonaws.com""} header)
 s3_follow_redirect(
     {error, {http_error, StatusCode, StatusLine, ErrBody, _ErrHeaders}} = Response,
@@ -1264,14 +1392,14 @@ s3_follow_redirect(
     case Config#aws_config.s3_follow_redirect of
         true ->
             s3_follow_redirect_impl(Response, Config, Method, Bucket, Path,
-                Subresource, Params, POSTData, Headers, 
+                Subresource, Params, POSTData, Headers,
                 Config#aws_config.s3_follow_redirect_count);
         _ ->
             {error, {http_error, StatusCode, StatusLine, ErrBody}}
     end.
 
 s3_follow_redirect_impl(
-    {error, {http_error, StatusCode, StatusLine, ErrBody, _ErrHeaders}} = _Response, 
+    {error, {http_error, StatusCode, StatusLine, ErrBody, _ErrHeaders}} = _Response,
     _Config, _Method, _Bucket, _Path, _Subresource, _Params, _POSTData, _Headers, 0) ->
     {error, {http_error, StatusCode, StatusLine, ErrBody}};
 
@@ -1292,7 +1420,7 @@ s3_follow_redirect_impl(Response, Config, Method, Bucket, Path,
             FinalResponse
     end.
 
-s3_endpoint_from_response(Config, Bucket, 
+s3_endpoint_from_response(Config, Bucket,
         {error, {http_error, _Code, _Msg, ErrBody, ErrHeaders}} = _Response) ->
     case {proplists:get_value("x-amz-bucket-region", ErrHeaders),
           proplists:get_value("location", ErrHeaders)}
@@ -1302,7 +1430,7 @@ s3_endpoint_from_response(Config, Bucket,
             XML = element(1,xmerl_scan:string(binary_to_list(ErrBody))),
             case erlcloud_xml:get_text("/Error/Endpoint", XML) of
                 [] ->
-                    {Config#aws_config.s3_host, 
+                    {Config#aws_config.s3_host,
                      Config#aws_config.s3_bucket_access_method};
                 Name ->
                     s3_endpoint_from_hostname(Name, Bucket)
@@ -1313,15 +1441,15 @@ s3_endpoint_from_response(Config, Bucket,
             s3_endpoint_from_hostname(HostName, Bucket);
         {BucketRegion, _} ->
             %% Use "x-amz-bucket-region" header value if present.
-            {s3_endpoint_for_region(BucketRegion), 
+            {s3_endpoint_for_region(BucketRegion),
              Config#aws_config.s3_bucket_access_method}
     end.
 
 %% If bucket name is a part of the input hostname then virtual hosted-style access
-%% should be used to access this bucket and bucket name should be subtracted 
+%% should be used to access this bucket and bucket name should be subtracted
 %% from the hostname. Otherwise send requests to provided endpoint as is
 %% using path-style method.
-%% Examples: 
+%% Examples:
 %%      s3_endpoint_from_hostname(
 %%              "test.bucket.s3.eu-central-1.amazonaws.com",
 %%              "test.bucket") -> {"s3.eu-central-1.amazonaws.com", vhost}

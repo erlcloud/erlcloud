@@ -18,7 +18,11 @@ operation_test_() ->
      [fun get_bucket_policy_tests/1,
       fun put_object_tests/1,
       fun error_handling_tests/1,
-      fun dns_compliant_name_tests/1
+      fun dns_compliant_name_tests/1,
+      fun get_bucket_lifecycle_tests/1,
+      fun put_bucket_lifecycle_tests/1,
+      fun delete_bucket_lifecycle_tests/1,
+      fun encode_bucket_lifecycle_tests/1
      ]}.
 
 start() ->
@@ -38,13 +42,96 @@ config(Config) ->
 
 httpc_expect(Response) ->
     httpc_expect(get, Response).
-    
+
 httpc_expect(Method, Response) ->
-    fun(_Url, Method2, _Headers, _Body, _Timeout, _Config) -> 
+    fun(_Url, Method2, _Headers, _Body, _Timeout, _Config) ->
             Method = Method2,
             Response
     end.
-    
+
+get_bucket_lifecycle_tests(_) ->
+    Response = {ok, {{200, "OK"}, [], <<"
+<LifecycleConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">
+    <Rule>
+        <ID>Archive and then delete rule</ID>
+        <Prefix>projectdocs/</Prefix>
+        <Status>Enabled</Status>
+       <Transition>
+           <Days>30</Days>
+           <StorageClass>STANDARD_IA</StorageClass>
+        </Transition>
+        <Transition>
+           <Days>365</Days>
+           <StorageClass>GLACIER</StorageClass>
+        </Transition>
+        <Expiration>
+           <Days>3650</Days>
+        </Expiration>
+    </Rule></LifecycleConfiguration>">>}},
+    meck:expect(erlcloud_httpc, request, httpc_expect(Response)),
+    Result = erlcloud_s3:get_bucket_lifecycle("BucketName", config()),
+    ?_assertEqual({ok,
+                   [[{expiration,[{days,3650}]},
+                     {id,"Archive and then delete rule"},
+                     {prefix,"projectdocs/"},
+                     {status,"Enabled"},
+                     {transition,[[{days,30},{storage_class,"STANDARD_IA"}],
+                                  [{days,365},{storage_class,"GLACIER"}]]}]]},
+                  Result).
+
+put_bucket_lifecycle_tests(_) ->
+    Response = {ok, {{200,"OK"},
+                     [{"server","AmazonS3"},
+                      {"content-length","0"},
+                      {"date","Mon, 18 Jan 2016 09:14:29 GMT"},
+                      {"x-amz-request-id","911850E447C20DE3"},
+                      {"x-amz-id-2",
+                       "lzs7n4Z/9iwJ9Xd+s5s2nnwT6XIp2uhfkRMWvgqTeTXRr9JXl91s/kDnzLnA5eZQYvUVA7vyxLY="}],
+                     <<>>}},
+    meck:expect(erlcloud_httpc, request, httpc_expect(put, Response)),
+    Policy = [[{expiration,[{days,3650}]},
+               {id,"Archive and then delete rule"},
+               {prefix,"projectdocs/"},
+               {status,"Enabled"},
+               {transition,[[{days,30},{storage_class,"STANDARD_IA"}],
+                            [{days,365},{storage_class,"GLACIER"}]]}]],
+    Result = erlcloud_s3:put_bucket_lifecycle("BucketName", Policy, config()),
+    ?_assertEqual(ok, Result),
+    Result1 = erlcloud_s3:put_bucket_lifecycle("BucketName", <<"Policy">>, config()),
+    ?_assertEqual(ok, Result1).
+
+delete_bucket_lifecycle_tests(_) ->
+    Response = {ok, {{200, "OK"}, [], <<>>}},
+    meck:expect(erlcloud_httpc, request, httpc_expect(delete, Response)),
+    Result = erlcloud_s3:delete_bucket_lifecycle("BucketName", config()),
+    ?_assertEqual(ok, Result).
+
+encode_bucket_lifecycle_tests(_) ->
+    Expected = "<?xml version=\"1.0\"?><LifecycleConfiguration><Rule><Expiration><Days>3650</Days></Expiration><ID>Archive and then delete rule</ID><Prefix>projectdocs/</Prefix><Status>Enabled</Status><Transition><Days>30</Days><StorageClass>STANDARD_IA</StorageClass></Transition><Transition><Days>365</Days><StorageClass>GLACIER</StorageClass></Transition></Rule></LifecycleConfiguration>",
+    Policy   = [
+                [{expiration,[{days,3650}]},
+                 {id,"Archive and then delete rule"},
+                 {prefix,"projectdocs/"},
+                 {status,"Enabled"},
+                 {transition,[[{days,30},{storage_class,"STANDARD_IA"}],
+                              [{days,365},{storage_class,"GLACIER"}]]}
+                ]
+               ],
+    Expected2 = "<?xml version=\"1.0\"?><LifecycleConfiguration><Rule><ID>al_s3--GLACIER-policy</ID><Prefix></Prefix><Status>Enabled</Status><Transition><Days>10</Days><StorageClass>GLACIER</StorageClass></Transition></Rule><Rule><ID>ed-test-console</ID><Prefix></Prefix><Status>Enabled</Status><Transition><Days>20</Days><StorageClass>GLACIER</StorageClass></Transition></Rule></LifecycleConfiguration>",
+    Policy2   = [[{id,"al_s3--GLACIER-policy"},
+                  {prefix,[]},
+                  {status,"Enabled"},
+                  {transition,[[{days,"10"}, {storage_class,"GLACIER"}]]}],
+                 [{id,"ed-test-console"},
+                  {prefix,[]},
+                  {status,"Enabled"},
+                  {transition,[[{days,20},{storage_class,"GLACIER"}]]}]],
+    Result  = erlcloud_s3:encode_lifecycle(Policy),
+    Result2 = erlcloud_s3:encode_lifecycle(Policy2),
+    ?_assertEqual(Expected, Result),
+    ?_assertEqual(Expected2, Result2).
+
+
 get_bucket_policy_tests(_) ->
     Response = {ok, {{200, "OK"}, [], <<"TestBody">>}},
     meck:expect(erlcloud_httpc, request, httpc_expect(Response)),
@@ -58,30 +145,30 @@ put_object_tests(_) ->
     ?_assertEqual([{version_id, "version_id"}], Result).
 
 dns_compliant_name_tests(_) ->
-    ?_assertEqual( true, 
-            erlcloud_util:is_dns_compliant_name("goodname123")          
+    ?_assertEqual( true,
+            erlcloud_util:is_dns_compliant_name("goodname123")
     ),
-    ?_assertEqual( true, 
-            erlcloud_util:is_dns_compliant_name("good.name")          
+    ?_assertEqual( true,
+            erlcloud_util:is_dns_compliant_name("good.name")
     ),
-    ?_assertEqual( true, 
-            erlcloud_util:is_dns_compliant_name("good-name")          
+    ?_assertEqual( true,
+            erlcloud_util:is_dns_compliant_name("good-name")
     ),
-    ?_assertEqual( true, 
-            erlcloud_util:is_dns_compliant_name("good--name")          
+    ?_assertEqual( true,
+            erlcloud_util:is_dns_compliant_name("good--name")
     ),
-    
-    ?_assertEqual( false, 
-            erlcloud_util:is_dns_compliant_name("Bad.name")          
+
+    ?_assertEqual( false,
+            erlcloud_util:is_dns_compliant_name("Bad.name")
     ),
-    ?_assertEqual( false, 
-            erlcloud_util:is_dns_compliant_name("badname.")          
+    ?_assertEqual( false,
+            erlcloud_util:is_dns_compliant_name("badname.")
     ),
-    ?_assertEqual( false, 
-            erlcloud_util:is_dns_compliant_name(".bad.name")          
+    ?_assertEqual( false,
+            erlcloud_util:is_dns_compliant_name(".bad.name")
     ),
-    ?_assertEqual( false, 
-            erlcloud_util:is_dns_compliant_name("bad.name--")          
+    ?_assertEqual( false,
+            erlcloud_util:is_dns_compliant_name("bad.name--")
     ).
 
 error_handling_no_retry() ->
@@ -95,7 +182,7 @@ error_handling_default_retry() ->
     Response2 = {ok, {{200, "OK"}, [], <<"TestBody">>}},
     meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2]),
     Result = erlcloud_s3:get_bucket_policy(
-               "BucketName", 
+               "BucketName",
                config(#aws_config{retry = fun erlcloud_retry:default_retry/1})),
     ?_assertEqual({ok, "TestBody"}, Result).
 
@@ -104,7 +191,7 @@ error_handling_httpc_error() ->
     Response2 = {ok, {{200, "OK"}, [], <<"TestBody">>}},
     meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2]),
     Result = erlcloud_s3:get_bucket_policy(
-               "BucketName", 
+               "BucketName",
                config(#aws_config{retry = fun erlcloud_retry:default_retry/1})),
     ?_assertEqual({ok, "TestBody"}, Result).
 
@@ -120,13 +207,13 @@ error_handling_redirect_message() ->
     Response2 = {ok, {{200, "OK"}, [], <<"TestBody">>}},
     meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2]),
     Result = erlcloud_s3:get_bucket_policy(
-               "bucket.name", 
+               "bucket.name",
                config()),
     ?_assertEqual({ok, "TestBody"}, Result).
 
 %% Handle redirect by using url from location header.
 error_handling_redirect_location() ->
-    Response1 = {ok, {{301,"Temporary Redirect"},  
+    Response1 = {ok, {{301,"Temporary Redirect"},
         [{"server","AmazonS3"},
          {"date","Wed, 22 Jul 2015 09:58:03 GMT"},
          {"transfer-encoding","chunked"},
@@ -147,7 +234,7 @@ error_handling_redirect_location() ->
 
 %% Handle redirect by using bucket region from "x-amz-bucket-region" header.
 error_handling_redirect_bucket_region() ->
-    Response1 = {ok, {{301,"Temporary Redirect"},  
+    Response1 = {ok, {{301,"Temporary Redirect"},
         [{"server","AmazonS3"},
          {"date","Wed, 22 Jul 2015 09:58:03 GMT"},
          {"transfer-encoding","chunked"},
@@ -167,7 +254,7 @@ error_handling_redirect_bucket_region() ->
 
 %% Handle redirect by using bucket region from "x-amz-bucket-region" header.
 error_handling_redirect_error() ->
-    Response1 = {ok, {{301,"Temporary Redirect"}, 
+    Response1 = {ok, {{301,"Temporary Redirect"},
         [{"server","AmazonS3"},
          {"date","Wed, 22 Jul 2015 09:58:03 GMT"},
          {"transfer-encoding","chunked"},
@@ -199,7 +286,7 @@ error_handling_redirect_error() ->
             "bucket.name",
             config()),
     ?_assertMatch({error,{http_error,404,"Not Found",_}}, Result1),
-    
+
     meck:sequence(erlcloud_httpc, request, 6, [Response1]),
     Result2 = erlcloud_s3:get_bucket_policy(
             "bucket.name",
@@ -231,7 +318,7 @@ error_handling_double_redirect() ->
     Response3 = {ok, {{200, "OK"}, [], <<"TestBody">>}},
     meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2, Response3]),
     Result = erlcloud_s3:get_bucket_policy(
-               "bucket.name", 
+               "bucket.name",
                config()),
     ?_assertEqual({ok, "TestBody"}, Result).
 
