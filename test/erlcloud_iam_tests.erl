@@ -47,36 +47,50 @@ iam_api_test_() ->
       fun generate_credential_report_output_tests/1,
       fun list_access_keys_input_tests/1,
       fun list_access_keys_output_tests/1,
+      fun list_access_keys_all_output_tests/1,
       fun list_users_input_tests/1,
       fun list_users_output_tests/1,
+      fun list_users_all_output_tests/1,
       fun list_groups_input_tests/1,
       fun list_groups_output_tests/1,
+      fun list_groups_all_output_tests/1,
       fun list_roles_input_tests/1,
       fun list_roles_output_tests/1,
+      fun list_roles_all_output_tests/1,
       fun list_groups_for_user_input_tests/1,
       fun list_groups_for_user_output_tests/1,
+      fun list_groups_for_user_all_output_tests/1,
       fun list_user_policies_input_tests/1,
       fun list_user_policies_output_tests/1,
+      fun list_user_policies_all_output_tests/1,
       fun list_group_policies_input_tests/1,
       fun list_group_policies_output_tests/1,
+      fun list_group_policies_all_output_tests/1,
       fun list_role_policies_input_tests/1,
       fun list_role_policies_output_tests/1,
+      fun list_role_policies_all_output_tests/1,
       fun list_instance_profiles_input_tests/1,
       fun list_instance_profiles_output_tests/1,
+      fun list_instance_profiles_all_output_tests/1,
       fun get_instance_profile_input_tests/1,
       fun get_instance_profile_output_tests/1,
       fun get_credential_report_input_tests/1,
       fun get_credential_report_output_tests/1,
       fun list_attached_user_policies_input_tests/1,
       fun list_attached_user_policies_output_tests/1,
+      fun list_attached_user_policies_all_output_tests/1,
       fun list_attached_group_policies_input_tests/1,
       fun list_attached_group_policies_output_tests/1,
+      fun list_attached_group_policies_all_output_tests/1,
       fun list_attached_role_policies_input_tests/1,
       fun list_attached_role_policies_output_tests/1,
+      fun list_attached_role_policies_all_output_tests/1,
       fun list_polices_input_tests/1,
       fun list_polices_output_tests/1,
+      fun list_polices_all_output_tests/1,
       fun list_entities_for_policy_input_tests/1,
       fun list_entities_for_policy_output_tests/1,
+      fun list_entities_for_policy_output_all_tests/1,
       fun get_policy_input_tests/1,
       fun get_policy_output_tests/1,
       fun get_policy_version_input_tests/1,
@@ -180,18 +194,20 @@ input_tests(Response, Tests) ->
 %% returns the mock of the erlcloud_httpc function output tests expect to be called.
 -spec output_expect(string()) -> fun().
 output_expect(Response) ->
-    fun(_Url, post, _Headers, _Body, _Timeout, _Config) -> 
-            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
-    end.
+    meck:val({ok, {{200, "OK"}, [], list_to_binary(Response)}}).
+
+-spec output_expect_seq([string()]) -> meck:ret_spec().
+output_expect_seq(Responses) ->
+    meck:seq([{ok, {{200, "OK"}, [], list_to_binary(Response)}} || Response <- Responses]).
 
 %% output_test converts an output_test specifier into an eunit test generator
 -type output_test_spec() :: {pos_integer(), {string(), term()} | {string(), string(), term()}}.
--spec output_test(fun(), output_test_spec()) -> tuple().
-output_test(Fun, {Line, {Description, Response, Result}}) ->
+-spec output_test(fun(), output_test_spec(), fun()) -> tuple().
+output_test(Fun, {Line, {Description, Response, Result}}, OutputFun) ->
     {Description,
      {Line,
       fun() ->
-              meck:expect(erlcloud_httpc, request, output_expect(Response)),
+              meck:expect(erlcloud_httpc, request, 6, OutputFun(Response)),
               erlcloud_ec2:configure(string:copies("A", 20), string:copies("a", 40)),
               Actual = Fun(),
               io:format("Actual: ~p~n", [Actual]),
@@ -202,7 +218,12 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
 %% output_tests converts a list of output_test specifiers into an eunit test generator
 -spec output_tests(fun(), [output_test_spec()]) -> [term()].       
 output_tests(Fun, Tests) ->
-    [output_test(Fun, Test) || Test <- Tests].
+    [output_test(Fun, Test, fun output_expect/1) || Test <- Tests].
+
+%% output_tests converts a list of output_test specifiers into an eunit test generator
+-spec output_tests_seq(fun(), [output_test_spec()]) -> [term()].       
+output_tests_seq(Fun, Tests) ->
+    [output_test(Fun, Test, fun output_expect_seq/1) || Test <- Tests].
 
 get_account_summary_input_tests(_) ->
     Tests = 
@@ -691,6 +712,77 @@ list_access_keys_output_tests(_) ->
             ],
     output_tests(?_f(erlcloud_iam:list_access_keys("test")), Tests). 
 
+list_access_keys_all_output_tests(_) ->
+    Tests = [?_iam_test(
+                {"This lists all access keys for a user",
+                 ["<ListAccessKeysResponse>
+                      <ListAccessKeysResult>
+                         <UserName>Bob</UserName>
+                         <AccessKeyMetadata>
+                            <member>
+                               <UserName>Bob</UserName>
+                               <AccessKeyId>AKIAIOSFODNN7EXAMPLE</AccessKeyId>
+                               <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+                               <Status>Active</Status>
+                            </member>
+                            <member>
+                               <UserName>Bob</UserName>
+                               <AccessKeyId>AKIAI44QH8DHBEXAMPLE</AccessKeyId>
+                               <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+                               <Status>Inactive</Status>
+                            </member>
+                         </AccessKeyMetadata>
+                         <IsTruncated>true</IsTruncated>
+                         <Marker>foobar</Marker>
+                      </ListAccessKeysResult>
+                      <ResponseMetadata>
+                         <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                      </ResponseMetadata>
+                     </ListAccessKeysResponse>",
+                  "<ListAccessKeysResponse>
+                      <ListAccessKeysResult>
+                         <UserName>Bob</UserName>
+                         <AccessKeyMetadata>
+                            <member>
+                               <UserName>Bob</UserName>
+                               <AccessKeyId>AKIAIOSFODNN7EXAMPLE</AccessKeyId>
+                               <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+                               <Status>Active</Status>
+                            </member>
+                            <member>
+                              <UserName>Bob</UserName>
+                               <AccessKeyId>AKIAI44QH8DHBEXAMPLE</AccessKeyId>
+                               <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+                               <Status>Inactive</Status>
+                            </member>
+                         </AccessKeyMetadata>
+                         <IsTruncated>false</IsTruncated>
+                      </ListAccessKeysResult>
+                      <ResponseMetadata>
+                         <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                      </ResponseMetadata>
+                     </ListAccessKeysResponse>"],
+                 {ok, [
+                       [{user_name, "Bob"},
+                        {access_key_id, "AKIAIOSFODNN7EXAMPLE"},
+                        {create_date, {{2012,5,8},{23,34,1}}},
+                        {status, "Active"}],
+                       [{user_name, "Bob"},
+                        {access_key_id, "AKIAI44QH8DHBEXAMPLE"},
+                        {create_date, {{2012,5,8},{23,34,1}}},
+                        {status, "Inactive"}],
+                       [{user_name, "Bob"},
+                        {access_key_id, "AKIAIOSFODNN7EXAMPLE"},
+                        {create_date, {{2012,5,8},{23,34,1}}},
+                        {status, "Active"}],
+                       [{user_name, "Bob"},
+                        {access_key_id, "AKIAI44QH8DHBEXAMPLE"},
+                        {create_date, {{2012,5,8},{23,34,1}}},
+                        {status, "Inactive"}]
+                      ]}})
+            ],
+    output_tests_seq(?_f(erlcloud_iam:list_access_keys_all("test")), Tests). 
+
 %% ListUsers test based on the API examples:
 %% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListUsers.html
 list_users_input_tests(_) ->
@@ -758,6 +850,91 @@ list_users_output_tests(_) ->
     output_tests(?_f(erlcloud_iam:list_users("test")), Tests). 
 
 
+list_users_all_output_tests(_) ->
+    Tests = [?_iam_test(
+                {"This lists all users in your account",
+                 ["<ListUsersResponse>
+                      <ListUsersResult>
+                         <Users>
+                            <member>
+                               <UserId>AID2MAB8DPLSRHEXAMPLE</UserId>
+                               <Path>/division_abc/subdivision_xyz/engineering/</Path>
+                               <UserName>Andrew</UserName>
+                               <Arn>arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/engineering/Andrew</Arn>
+                               <CreateDate>2012-09-05T19:38:48Z</CreateDate>
+                               <PasswordLastUsed>2014-09-08T21:47:36Z</PasswordLastUsed>
+                            </member>
+                            <member>
+                               <UserId>AIDIODR4TAW7CSEXAMPLE</UserId>
+                               <Path>/division_abc/subdivision_xyz/engineering/</Path>
+                               <UserName>Jackie</UserName>
+                               <Arn>arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/engineering/Jackie</Arn>
+                               <CreateDate>2014-04-09T15:43:45Z</CreateDate>
+                               <PasswordLastUsed>2014-09-24T16:18:07Z</PasswordLastUsed>
+                            </member>
+                         </Users>
+                         <IsTruncated>true</IsTruncated>
+                         <Marker>foobar</Marker>
+                      </ListUsersResult>
+                      <ResponseMetadata>
+                         <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                      </ResponseMetadata>
+                     </ListUsersResponse>",
+                  "<ListUsersResponse>
+                      <ListUsersResult>
+                         <Users>
+                            <member>
+                               <UserId>AID2MAB8DPLSRHEXAMPLE</UserId>
+                               <Path>/division_abc/subdivision_xyz/engineering/</Path>
+                               <UserName>Andrew</UserName>
+                               <Arn>arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/engineering/Andrew</Arn>
+                               <CreateDate>2012-09-05T19:38:48Z</CreateDate>
+                               <PasswordLastUsed>2014-09-08T21:47:36Z</PasswordLastUsed>
+                            </member>
+                            <member>
+                               <UserId>AIDIODR4TAW7CSEXAMPLE</UserId>
+                               <Path>/division_abc/subdivision_xyz/engineering/</Path>
+                               <UserName>Jackie</UserName>
+                               <Arn>arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/engineering/Jackie</Arn>
+                               <CreateDate>2014-04-09T15:43:45Z</CreateDate>
+                               <PasswordLastUsed>2014-09-24T16:18:07Z</PasswordLastUsed>
+                            </member>
+                         </Users>
+                         <IsTruncated>false</IsTruncated>
+                      </ListUsersResult>
+                      <ResponseMetadata>
+                         <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                      </ResponseMetadata>
+                     </ListUsersResponse>"],
+                 {ok,[[{path,"/division_abc/subdivision_xyz/engineering/"},
+                       {user_name,"Andrew"},
+                       {user_id,"AID2MAB8DPLSRHEXAMPLE"},
+                       {arn,"arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/engineering/Andrew"},
+                       {create_date,{{2012,9,5},{19,38,48}}},
+                       {password_last_used,{{2014,9,8},{21,47,36}}}],
+                      [{path,"/division_abc/subdivision_xyz/engineering/"},
+                       {user_name,"Jackie"},
+                       {user_id,"AIDIODR4TAW7CSEXAMPLE"},
+                       {arn,"arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/engineering/Jackie"},
+                       {create_date,{{2014,4,9},{15,43,45}}},
+                       {password_last_used,{{2014,9,24},{16,18,7}}}],
+                      [{path,"/division_abc/subdivision_xyz/engineering/"},
+                       {user_name,"Andrew"},
+                       {user_id,"AID2MAB8DPLSRHEXAMPLE"},
+                       {arn,"arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/engineering/Andrew"},
+                       {create_date,{{2012,9,5},{19,38,48}}},
+                       {password_last_used,{{2014,9,8},{21,47,36}}}],
+                      [{path,"/division_abc/subdivision_xyz/engineering/"},
+                       {user_name,"Jackie"},
+                       {user_id,"AIDIODR4TAW7CSEXAMPLE"},
+                       {arn,"arn:aws:iam::123456789012:user/division_abc/subdivision_xyz/engineering/Jackie"},
+                       {create_date,{{2014,4,9},{15,43,45}}},
+                       {password_last_used,{{2014,9,24},{16,18,7}}}]]}
+                })
+                ],
+    output_tests_seq(?_f(erlcloud_iam:list_users_all("test")), Tests). 
+
+
 %% ListGroups test based on the API examples:
 %% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListGroups.html
 list_groups_input_tests(_) ->
@@ -789,7 +966,7 @@ list_groups_output_tests(_) ->
                                 <Path>/division_abc/</Path>
                                 <GroupName>Admins</GroupName>
                                 <GroupId>AGPACKCEVSQ6C2EXAMPLE</GroupId>
-                                <Arn>arn:aws:iam::123456789012:group/Admins</Arn>
+                                <Arn>arn:aws:iam::123456789012:group/Admins</Arn> 
                                 <CreateDate>2012-05-08T23:34:01Z</CreateDate>
                              </member>
                              <member>
@@ -831,6 +1008,105 @@ list_groups_output_tests(_) ->
                       ]}})
                 ],
     output_tests(?_f(erlcloud_iam:list_groups("test")), Tests).
+
+list_groups_all_output_tests(_) ->
+    Tests = [?_iam_test(
+                {"This lists all groups in your account",
+                 ["<ListGroupsResponse>
+                        <ListGroupsResult>
+                           <Groups>
+                              <member>
+                                 <Path>/division_abc/</Path>
+                                 <GroupName>Admins</GroupName>
+                                 <GroupId>AGPACKCEVSQ6C2EXAMPLE</GroupId>
+                                 <Arn>arn:aws:iam::123456789012:group/Admins</Arn> 
+                                 <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+                              </member>
+                              <member>
+                                 <Path>/division_abc/subdivision_xyz/</Path>
+                                 <GroupName>Test</GroupName>
+                                 <GroupId>AGP2MAB8DPLSRHEXAMPLE</GroupId>
+                                 <Arn>arn:aws:iam::123456789012:group/division_abc/subdivision_xyz/Test</Arn>
+                                 <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+                              </member>
+                              <member>
+                                 <Path>/division_abc/subdivision_xyz/product_1234/</Path>
+                                 <GroupName>Managers</GroupName>
+                                 <GroupId>AGPIODR4TAW7CSEXAMPLE</GroupId>
+                                 <Arn>arn:aws:iam::123456789012:group/division_abc/subdivision_xyz/product_1234/Managers</Arn>
+                                 <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+                              </member>
+                           </Groups>
+                           <IsTruncated>true</IsTruncated>
+                           <Marker>foobar</Marker>
+                        </ListGroupsResult>
+                        <ResponseMetadata>
+                           <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                        </ResponseMetadata>
+                    </ListGroupsResponse>",
+                  "<ListGroupsResponse>
+                        <ListGroupsResult>
+                           <Groups>
+                              <member>
+                                 <Path>/division_abc/</Path>
+                                 <GroupName>Admins</GroupName>
+                                 <GroupId>AGPACKCEVSQ6C2EXAMPLE</GroupId>
+                                 <Arn>arn:aws:iam::123456789012:group/Admins</Arn> 
+                                 <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+                              </member>
+                              <member>
+                                 <Path>/division_abc/subdivision_xyz/</Path>
+                                 <GroupName>Test</GroupName>
+                                 <GroupId>AGP2MAB8DPLSRHEXAMPLE</GroupId>
+                                 <Arn>arn:aws:iam::123456789012:group/division_abc/subdivision_xyz/Test</Arn>
+                                 <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+                              </member>
+                              <member>
+                                 <Path>/division_abc/subdivision_xyz/product_1234/</Path>
+                                 <GroupName>Managers</GroupName>
+                                 <GroupId>AGPIODR4TAW7CSEXAMPLE</GroupId>
+                                 <Arn>arn:aws:iam::123456789012:group/division_abc/subdivision_xyz/product_1234/Managers</Arn>
+                                 <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+                              </member>
+                           </Groups>
+                           <IsTruncated>false</IsTruncated>
+                        </ListGroupsResult>
+                        <ResponseMetadata>
+                           <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                        </ResponseMetadata>
+                     </ListGroupsResponse>"],
+                 {ok,[[{arn,"arn:aws:iam::123456789012:group/Admins"},
+                       {create_date,{{2012,5,8},{23,34,1}}},
+                       {group_id,"AGPACKCEVSQ6C2EXAMPLE"},
+                       {group_name,"Admins"},
+                       {path,"/division_abc/"}],
+                      [{arn,"arn:aws:iam::123456789012:group/division_abc/subdivision_xyz/Test"},
+                       {create_date,{{2012,5,8},{23,34,1}}},
+                       {group_id,"AGP2MAB8DPLSRHEXAMPLE"},
+                       {group_name,"Test"},
+                       {path,"/division_abc/subdivision_xyz/"}],
+                      [{arn,"arn:aws:iam::123456789012:group/division_abc/subdivision_xyz/product_1234/Managers"},
+                       {create_date,{{2012,5,8},{23,34,1}}},
+                       {group_id,"AGPIODR4TAW7CSEXAMPLE"},
+                       {group_name,"Managers"},
+                       {path,"/division_abc/subdivision_xyz/product_1234/"}],
+                      [{arn,"arn:aws:iam::123456789012:group/Admins"},
+                       {create_date,{{2012,5,8},{23,34,1}}},
+                       {group_id,"AGPACKCEVSQ6C2EXAMPLE"},
+                       {group_name,"Admins"},
+                       {path,"/division_abc/"}],
+                      [{arn,"arn:aws:iam::123456789012:group/division_abc/subdivision_xyz/Test"},
+                       {create_date,{{2012,5,8},{23,34,1}}},
+                       {group_id,"AGP2MAB8DPLSRHEXAMPLE"},
+                       {group_name,"Test"},
+                       {path,"/division_abc/subdivision_xyz/"}],
+                      [{arn,"arn:aws:iam::123456789012:group/division_abc/subdivision_xyz/product_1234/Managers"},
+                       {create_date,{{2012,5,8},{23,34,1}}},
+                       {group_id,"AGPIODR4TAW7CSEXAMPLE"},
+                       {group_name,"Managers"},
+                       {path,"/division_abc/subdivision_xyz/product_1234/"}]]}})
+                ],
+    output_tests_seq(?_f(erlcloud_iam:list_groups_all("test")), Tests).
 
 %% ListRoles test based on the API examples:
 %% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListRoles.html
@@ -899,6 +1175,91 @@ list_roles_output_tests(_) ->
                 ],
     output_tests(?_f(erlcloud_iam:list_roles("test")), Tests). 
 
+list_roles_all_output_tests(_) ->
+    Tests = [?_iam_test(
+                {"This lists all roles in your account",
+                 ["<ListRolesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+                  <ListRolesResult>
+                    <Marker>foobar</Marker>
+                    <IsTruncated>true</IsTruncated>
+                    <Roles>
+                      <member>
+                        <Path>/application_abc/component_xyz/</Path>
+                        <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+                        <RoleName>S3Access</RoleName>
+                        <AssumeRolePolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}</AssumeRolePolicyDocument>
+                        <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+                        <RoleId>AROACVSVTSZYEXAMPLEYK</RoleId>
+                      </member>
+                      <member>
+                        <Path>/application_abc/component_xyz/</Path>
+                        <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/SDBAccess</Arn>
+                        <RoleName>SDBAccess</RoleName>
+                        <AssumeRolePolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}</AssumeRolePolicyDocument>
+                        <CreateDate>2012-05-09T15:45:45Z</CreateDate>
+                        <RoleId>AROAC2ICXG32EXAMPLEWK</RoleId>
+                      </member>
+                    </Roles>
+                  </ListRolesResult>
+                  <ResponseMetadata>
+                    <RequestId>20f7279f-99ee-11e1-a4c3-27EXAMPLE804</RequestId>
+                  </ResponseMetadata>
+                </ListRolesResponse>",
+                 "<ListRolesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+                  <ListRolesResult>
+                    <IsTruncated>false</IsTruncated>
+                    <Roles>
+                      <member>
+                        <Path>/application_abc/component_xyz/</Path>
+                        <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+                        <RoleName>S3Access</RoleName>
+                        <AssumeRolePolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}</AssumeRolePolicyDocument>
+                        <CreateDate>2012-05-09T15:45:35Z</CreateDate>
+                        <RoleId>AROACVSVTSZYEXAMPLEYK</RoleId>
+                      </member>
+                      <member>
+                        <Path>/application_abc/component_xyz/</Path>
+                        <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/SDBAccess</Arn>
+                        <RoleName>SDBAccess</RoleName>
+                        <AssumeRolePolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}</AssumeRolePolicyDocument>
+                        <CreateDate>2012-05-09T15:45:45Z</CreateDate>
+                        <RoleId>AROAC2ICXG32EXAMPLEWK</RoleId>
+                      </member>
+                    </Roles>
+                  </ListRolesResult>
+                  <ResponseMetadata>
+                    <RequestId>20f7279f-99ee-11e1-a4c3-27EXAMPLE804</RequestId>
+                  </ResponseMetadata>
+                </ListRolesResponse>"],
+                    {ok, [
+                            [{path, "/application_abc/component_xyz/"},
+                             {role_name, "S3Access"},
+                             {role_id, "AROACVSVTSZYEXAMPLEYK"},
+                             {assume_role_policy_doc, "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"},
+                             {create_date, {{2012,5,9},{15,45,35}}},
+                             {arn, "arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access"}],
+                             [{path, "/application_abc/component_xyz/"},
+                             {role_name, "SDBAccess"},
+                             {role_id, "AROAC2ICXG32EXAMPLEWK"},
+                             {assume_role_policy_doc, "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"},
+                             {create_date, {{2012,5,9},{15,45,45}}},
+                             {arn, "arn:aws:iam::123456789012:role/application_abc/component_xyz/SDBAccess"}],
+                            [{path, "/application_abc/component_xyz/"},
+                             {role_name, "S3Access"},
+                             {role_id, "AROACVSVTSZYEXAMPLEYK"},
+                             {assume_role_policy_doc, "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"},
+                             {create_date, {{2012,5,9},{15,45,35}}},
+                             {arn, "arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access"}],
+                             [{path, "/application_abc/component_xyz/"},
+                             {role_name, "SDBAccess"},
+                             {role_id, "AROAC2ICXG32EXAMPLEWK"},
+                             {assume_role_policy_doc, "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"},
+                             {create_date, {{2012,5,9},{15,45,45}}},
+                             {arn, "arn:aws:iam::123456789012:role/application_abc/component_xyz/SDBAccess"}]
+                         ]}})
+                ],
+    output_tests_seq(?_f(erlcloud_iam:list_roles_all("test")), Tests). 
+
 -define(LIST_GROUPS_FOR_USER_RESP,
         "<ListGroupsForUserResponse>
            <ListGroupsForUserResult>
@@ -943,6 +1304,41 @@ list_groups_for_user_output_tests(_) ->
             ],
     output_tests(?_f(erlcloud_iam:list_groups_for_user("Bob")), Tests).
 
+list_groups_for_user_all_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the groups for a user",
+              ["<ListGroupsForUserResponse>
+                  <ListGroupsForUserResult>
+                    <Groups>
+                      <member>
+                        <Path>/</Path>
+                        <GroupName>Admins</GroupName>
+                        <GroupId>AGPACKCEVSQ6C2EXAMPLE</GroupId>
+                        <Arn>arn:aws:iam::123456789012:group/Admins</Arn>
+                      </member>
+                    </Groups>
+                    <IsTruncated>true</IsTruncated>
+                    <Marker>foobar</Marker>
+                  </ListGroupsForUserResult>
+                  <ResponseMetadata>
+                    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                  </ResponseMetadata>
+                </ListGroupsForUserResponse>",
+               ?LIST_GROUPS_FOR_USER_RESP],
+              {ok,[[{arn,"arn:aws:iam::123456789012:group/Admins"},
+                    {create_date,undefined},
+                    {group_id,"AGPACKCEVSQ6C2EXAMPLE"},
+                    {group_name,"Admins"},
+                    {path,"/"}],
+                   [{arn,"arn:aws:iam::123456789012:group/Admins"},
+                    {create_date,undefined},
+                    {group_id,"AGPACKCEVSQ6C2EXAMPLE"},
+                    {group_name,"Admins"},
+                    {path,"/"}]]}
+             })
+            ],
+    output_tests_seq(?_f(erlcloud_iam:list_groups_for_user_all("Bob")), Tests).
+
 -define(LIST_USER_POLICIES_RESP,
         "<ListUserPoliciesResponse>
            <ListUserPoliciesResult>
@@ -979,6 +1375,31 @@ list_user_policies_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:list_user_policies("Bob")), Tests).
+
+list_user_policies_all_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the policies for a user",
+              ["<ListUserPoliciesResponse>
+                   <ListUserPoliciesResult>
+                     <PolicyNames>
+                       <member>AllAccessPolicy</member>
+                       <member>KeyPolicy</member>
+                     </PolicyNames>
+                     <IsTruncated>true</IsTruncated>
+                     <Marker>foobar</Marker>
+                   </ListUserPoliciesResult>
+                   <ResponseMetadata>
+                     <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                   </ResponseMetadata>
+                 </ListUserPoliciesResponse>",
+               ?LIST_USER_POLICIES_RESP],
+              {ok,[[{policy_name,"AllAccessPolicy"}],
+                   [{policy_name,"KeyPolicy"}],
+                   [{policy_name,"AllAccessPolicy"}],
+                   [{policy_name,"KeyPolicy"}]]}
+             })
+            ],
+    output_tests_seq(?_f(erlcloud_iam:list_user_policies_all("Bob")), Tests).
 
 -define(LIST_GROUP_POLICIES_RESP,
         "<ListGroupPoliciesResponse>
@@ -1017,6 +1438,31 @@ list_group_policies_output_tests(_) ->
             ],
     output_tests(?_f(erlcloud_iam:list_group_policies("Admins")), Tests).
 
+list_group_policies_all_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the policies for a group",
+              ["<ListGroupPoliciesResponse>
+                  <ListGroupPoliciesResult>
+                    <PolicyNames>
+                      <member>AdminRoot</member>
+                      <member>KeyPolicy</member>
+                    </PolicyNames>
+                    <IsTruncated>true</IsTruncated>
+                    <Marker>foobar</Marker>
+                  </ListGroupPoliciesResult>
+                <ResponseMetadata>
+                  <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                </ResponseMetadata>
+              </ListGroupPoliciesResponse>",
+               ?LIST_GROUP_POLICIES_RESP],
+              {ok,[[{policy_name,"AdminRoot"}],
+                   [{policy_name,"KeyPolicy"}],
+                   [{policy_name,"AdminRoot"}],
+                   [{policy_name,"KeyPolicy"}]]}
+             })
+            ],
+    output_tests_seq(?_f(erlcloud_iam:list_group_policies_all("Admins")), Tests).
+
 -define(LIST_ROLE_POLICIES_RESP,
         "<ListRolePoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
            <ListRolePoliciesResult>
@@ -1053,6 +1499,31 @@ list_role_policies_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:list_role_policies("S3Access")), Tests).
+
+list_role_policies_all_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the policies for a role",
+              ["<ListRolePoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+                  <ListRolePoliciesResult>
+                    <PolicyNames>
+                      <member>CloudwatchPutMetricPolicy</member>
+                      <member>S3AccessPolicy</member>
+                    </PolicyNames>
+                    <IsTruncated>true</IsTruncated>
+                    <Marker>foobar</Marker>
+                  </ListRolePoliciesResult>
+                  <ResponseMetadata>
+                    <RequestId>8c7e1816-99f0-11e1-a4c3-27EXAMPLE804</RequestId>
+                  </ResponseMetadata>
+                </ListRolePoliciesResponse>",
+               ?LIST_ROLE_POLICIES_RESP],
+              {ok,[[{policy_name,"CloudwatchPutMetricPolicy"}],
+                   [{policy_name,"S3AccessPolicy"}],
+                   [{policy_name,"CloudwatchPutMetricPolicy"}],
+                   [{policy_name,"S3AccessPolicy"}]]}
+             })
+            ],
+    output_tests_seq(?_f(erlcloud_iam:list_role_policies_all("S3Access")), Tests).
 
 -define(LIST_INSTANCE_PROFILES_RESP,
         "<ListInstanceProfilesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
@@ -1114,6 +1585,65 @@ list_instance_profiles_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:list_instance_profiles()), Tests).
+
+list_instance_profiles_all_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the instance profiles",
+              ["<ListInstanceProfilesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+                  <ListInstanceProfilesResult>
+                    <IsTruncated>true</IsTruncated>
+                    <Marker>foobar</Marker>
+                    <InstanceProfiles>
+                      <member>
+                        <InstanceProfileId>AIPACIFN4OZXG7EXAMPLE</InstanceProfileId>
+                        <Roles/>
+                        <InstanceProfileName>Database</InstanceProfileName>
+                        <Path>/application_abc/component_xyz/</Path>
+                        <Arn>arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Database</Arn>
+                        <CreateDate>2012-05-09T16:27:03Z</CreateDate>
+                      </member>
+                      <member>
+                        <InstanceProfileId>AIPACZLSXM2EYYEXAMPLE</InstanceProfileId>
+                        <Roles/>
+                        <InstanceProfileName>Webserver</InstanceProfileName>
+                        <Path>/application_abc/component_xyz/</Path>
+                        <Arn>arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Webserver</Arn>
+                        <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+                      </member>
+                    </InstanceProfiles>
+                  </ListInstanceProfilesResult>
+                  <ResponseMetadata>
+                    <RequestId>fd74fa8d-99f3-11e1-a4c3-27EXAMPLE804</RequestId>
+                  </ResponseMetadata>
+                </ListInstanceProfilesResponse>",
+               ?LIST_INSTANCE_PROFILES_RESP],
+              {ok,[[{instance_profile_id,"AIPACIFN4OZXG7EXAMPLE"},
+                    {roles,[]},
+                    {instance_profile_name,"Database"},
+                    {path,"/application_abc/component_xyz/"},
+                    {arn,"arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Database"},
+                    {create_date,{{2012,5,9},{16,27,3}}}],
+                   [{instance_profile_id,"AIPACZLSXM2EYYEXAMPLE"},
+                    {roles,[]},
+                    {instance_profile_name,"Webserver"},
+                    {path,"/application_abc/component_xyz/"},
+                    {arn,"arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Webserver"},
+                    {create_date,{{2012,5,9},{16,27,11}}}],
+                   [{instance_profile_id,"AIPACIFN4OZXG7EXAMPLE"},
+                    {roles,[]},
+                    {instance_profile_name,"Database"},
+                    {path,"/application_abc/component_xyz/"},
+                    {arn,"arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Database"},
+                    {create_date,{{2012,5,9},{16,27,3}}}],
+                   [{instance_profile_id,"AIPACZLSXM2EYYEXAMPLE"},
+                    {roles,[]},
+                    {instance_profile_name,"Webserver"},
+                    {path,"/application_abc/component_xyz/"},
+                    {arn,"arn:aws:iam::123456789012:instance-profile/application_abc/component_xyz/Webserver"},
+                    {create_date,{{2012,5,9},{16,27,11}}}]]}
+             })
+            ],
+    output_tests_seq(?_f(erlcloud_iam:list_instance_profiles_all()), Tests).
 
 -define(GET_INSTANCE_PROFILE_RESP,
         "<GetInstanceProfileResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
@@ -1542,6 +2072,34 @@ list_attached_user_policies_output_tests(_) ->
         ],
     output_tests(?_f(erlcloud_iam:list_attached_user_policies("Alice", "/")), Tests).
 
+list_attached_user_policies_all_output_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"This returns the list of user attached policies.",
+            ["<ListAttachedUserPoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+                <ListAttachedUserPoliciesResult>
+                  <AttachedPolicies>
+                    <member>
+                      <PolicyName>AdministratorAccess</PolicyName>
+                      <PolicyArn>arn:aws:iam::aws:policy/AdministratorAccess</PolicyArn>
+                    </member>
+                  </AttachedPolicies>
+                  <IsTruncated>true</IsTruncated>
+                  <Marker>foobar</Marker>
+                </ListAttachedUserPoliciesResult>
+                <ResponseMetadata>
+                  <RequestId>75980e78-3ea6-11e4-9d0d-6f969EXAMPLE</RequestId>
+                </ResponseMetadata>
+              </ListAttachedUserPoliciesResponse>",
+             ?LIST_ATTACHED_USER_POLICIES_RESP],
+            {ok, [[{arn, "arn:aws:iam::aws:policy/AdministratorAccess"},
+                   {policy_name, "AdministratorAccess"}],
+                  [{arn, "arn:aws:iam::aws:policy/AdministratorAccess"},
+                   {policy_name, "AdministratorAccess"}]]}
+            })
+        ],
+    output_tests_seq(?_f(erlcloud_iam:list_attached_user_policies_all("Alice", "/")), Tests).
+
 -define(LIST_ATTACHED_GROUP_POLICIES_RESP,
         "<ListAttachedGroupPoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
           <ListAttachedGroupPoliciesResult>
@@ -1583,6 +2141,34 @@ list_attached_group_policies_output_tests(_) ->
         ],
     output_tests(?_f(erlcloud_iam:list_attached_group_policies("ReadOnlyUsers", "/")), Tests).
 
+list_attached_group_policies_all_output_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"This returns the list of group attached policies.",
+            ["<ListAttachedGroupPoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+                <ListAttachedGroupPoliciesResult>
+                  <AttachedPolicies>
+                    <member>
+                      <PolicyName>ReadOnlyAccess</PolicyName>
+                      <PolicyArn>arn:aws:iam::aws:policy/ReadOnlyAccess</PolicyArn>
+                    </member>
+                  </AttachedPolicies>
+                  <IsTruncated>true</IsTruncated>
+                  <Marker>foobar</Marker>
+                </ListAttachedGroupPoliciesResult>
+                <ResponseMetadata>
+                  <RequestId>710f2d3f-3df1-11e4-9d0d-6f969EXAMPLE</RequestId>
+                </ResponseMetadata>
+              </ListAttachedGroupPoliciesResponse>",
+             ?LIST_ATTACHED_GROUP_POLICIES_RESP],
+            {ok, [[{arn, "arn:aws:iam::aws:policy/ReadOnlyAccess"},
+                   {policy_name, "ReadOnlyAccess"}],
+                  [{arn, "arn:aws:iam::aws:policy/ReadOnlyAccess"},
+                   {policy_name, "ReadOnlyAccess"}]]}
+            })
+        ],
+    output_tests_seq(?_f(erlcloud_iam:list_attached_group_policies_all("ReadOnlyUsers", "/")), Tests).
+
 -define(LIST_ATTACHED_ROLE_POLICIES_RESP,
         "<ListAttachedRolePoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
           <ListAttachedRolePoliciesResult>
@@ -1623,6 +2209,34 @@ list_attached_role_policies_output_tests(_) ->
             })
         ],
     output_tests(?_f(erlcloud_iam:list_attached_role_policies("ReadOnlyRole", "/")), Tests).
+
+list_attached_role_policies_all_output_tests(_) ->
+    Tests = 
+        [?_iam_test(
+            {"This returns the list of role attached policies.",
+            ["<ListAttachedRolePoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+                <ListAttachedRolePoliciesResult>
+                  <AttachedPolicies>
+                    <member>
+                      <PolicyName>ReadOnlyAccess</PolicyName>
+                      <PolicyArn>arn:aws:iam::aws:policy/ReadOnlyAccess</PolicyArn>
+                    </member>
+                  </AttachedPolicies>
+                  <IsTruncated>true</IsTruncated>
+                  <Marker>foobar</Marker>
+                </ListAttachedRolePoliciesResult>
+                <ResponseMetadata>
+                  <RequestId>9a3b490d-3ea5-11e4-9d0d-6f969EXAMPLE</RequestId>
+                </ResponseMetadata>
+              </ListAttachedRolePoliciesResponse>",
+             ?LIST_ATTACHED_ROLE_POLICIES_RESP],
+            {ok, [[{arn, "arn:aws:iam::aws:policy/ReadOnlyAccess"},
+                   {policy_name, "ReadOnlyAccess"}],
+                  [{arn, "arn:aws:iam::aws:policy/ReadOnlyAccess"},
+                   {policy_name, "ReadOnlyAccess"}]]}
+            })
+        ],
+    output_tests_seq(?_f(erlcloud_iam:list_attached_role_policies_all("ReadOnlyRole", "/")), Tests).
 
 -define(GET_POLICY_RESP, 
         "<GetPolicyResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
@@ -1670,9 +2284,7 @@ list_polices_output_tests(_) ->
         "<ListPoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
           <ListPoliciesResult>
             <IsTruncated>true</IsTruncated>
-            <Marker>EXAMPLEkakv9BCuUNFDtxWSyfzetYwEx2ADc8dnzfvERF5S6YMvXKx41t6gCl/eeaCX3Jo94/bKqezEAg8TEVS
-            99EKFLxm3jtbpl25FDWEXAMPLE
-            </Marker>
+            <Marker>EXAMPLEkakv9BCuUNFDtxWSyfzetYwEx2ADc8dnzfvERF5S6YMvXKx41t6gCl/eeaCX3Jo94/bKqezEAg8TEVS99EKFLxm3jtbpl25FDWEXAMPLE</Marker>
             <Policies>
               <member>
                 <PolicyName>ExamplePolicy</PolicyName>
@@ -1698,10 +2310,78 @@ list_polices_output_tests(_) ->
           {policy_id, "AGPACKCEVSQ6C2EXAMPLE"},
           {default_version_id, "v1"},
           {policy_name, "ExamplePolicy"}
-      ]]}
+      ]],
+      "EXAMPLEkakv9BCuUNFDtxWSyfzetYwEx2ADc8dnzfvERF5S6YMvXKx41t6gCl/eeaCX3Jo94/bKqezEAg8TEVS99EKFLxm3jtbpl25FDWEXAMPLE"}
     })
   ],
   output_tests(?_f(erlcloud_iam:list_policies("test")), Tests).
+
+list_polices_all_output_tests(_) ->
+  Tests = [?_iam_test(
+    {"This lists all policies in your account",
+        ["<ListPoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+           <ListPoliciesResult>
+             <IsTruncated>true</IsTruncated>
+             <Marker>EXAMPLEkakv9BCuUNFDtxWSyfzetYwEx2ADc8dnzfvERF5S6YMvXKx41t6gCl/eeaCX3Jo94/bKqezEAg8TEVS99EKFLxm3jtbpl25FDWEXAMPLE</Marker>
+              <Policies>
+               <member>
+                 <PolicyName>ExamplePolicy</PolicyName>
+                  <DefaultVersionId>v1</DefaultVersionId>
+                 <PolicyId>AGPACKCEVSQ6C2EXAMPLE</PolicyId>
+                 <Path>/</Path>
+                 <Arn>arn:aws:iam::123456789012:policy/ExamplePolicy</Arn>
+                 <AttachmentCount>2</AttachmentCount>
+                  <CreateDate>2014-09-15T17:36:14Z</CreateDate>
+                 <UpdateDate>2014-09-15T20:31:47Z</UpdateDate>
+               </member>
+             </Policies>
+            </ListPoliciesResult>
+           <ResponseMetadata>
+             <RequestId>6207e832-3eb7-11e4-9d0d-6f969EXAMPLE</RequestId>
+           </ResponseMetadata>
+         </ListPoliciesResponse>",
+         "<ListPoliciesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+          <ListPoliciesResult>
+            <IsTruncated>false</IsTruncated>
+            <Policies>
+              <member>
+                <PolicyName>ExamplePolicy</PolicyName>
+                <DefaultVersionId>v1</DefaultVersionId>
+                <PolicyId>AGPACKCEVSQ6C2EXAMPLE</PolicyId>
+                <Path>/</Path>
+                <Arn>arn:aws:iam::123456789012:policy/ExamplePolicy</Arn>
+                <AttachmentCount>2</AttachmentCount>
+                <CreateDate>2014-09-15T17:36:14Z</CreateDate>
+                <UpdateDate>2014-09-15T20:31:47Z</UpdateDate>
+              </member>
+            </Policies>
+          </ListPoliciesResult>
+          <ResponseMetadata>
+            <RequestId>6207e832-3eb7-11e4-9d0d-6f969EXAMPLE</RequestId>
+          </ResponseMetadata>
+        </ListPoliciesResponse>"],
+
+      {ok, [[{update_date, {{2014,9,15},{20,31,47}}},
+             {create_date, {{2014,9,15},{17,36,14}}},
+             {attachment_count, 2},
+             {arn, "arn:aws:iam::123456789012:policy/ExamplePolicy"},
+             {path, "/"},
+             {policy_id, "AGPACKCEVSQ6C2EXAMPLE"},
+             {default_version_id, "v1"},
+             {policy_name, "ExamplePolicy"}
+            ],
+            [{update_date, {{2014,9,15},{20,31,47}}},
+             {create_date, {{2014,9,15},{17,36,14}}},
+             {attachment_count, 2},
+             {arn, "arn:aws:iam::123456789012:policy/ExamplePolicy"},
+             {path, "/"},
+             {policy_id, "AGPACKCEVSQ6C2EXAMPLE"},
+             {default_version_id, "v1"},
+             {policy_name, "ExamplePolicy"}
+            ]]}
+    })
+  ],
+  output_tests_seq(?_f(erlcloud_iam:list_policies_all("test")), Tests).
 
 %% ListUsers test based on the API examples:
 %% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListEntitiesForPolicy.html
@@ -1761,6 +2441,73 @@ list_entities_for_policy_output_tests(_) ->
     })
   ],
   output_tests(?_f(erlcloud_iam:list_entities_for_policy("test")), Tests).
+
+list_entities_for_policy_output_all_tests(_) ->
+  Tests = [?_iam_test(
+    {"Test lists all entities linked to a policy",
+      ["<ListEntitiesForPolicyResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+          <ListEntitiesForPolicyResult>
+            <PolicyRoles>
+              <member>
+                <RoleName>DevRole</RoleName>
+              </member>
+            </PolicyRoles>
+            <PolicyGroups>
+              <member>
+                <GroupName>Dev</GroupName>
+              </member>
+            </PolicyGroups>
+            <IsTruncated>true</IsTruncated>
+            <Marker>foobar</Marker>
+            <PolicyUsers>
+              <member>
+                <UserName>Alice</UserName>
+              </member>
+              <member>
+                <UserName>Bob</UserName>
+              </member>
+            </PolicyUsers>
+          </ListEntitiesForPolicyResult>
+          <ResponseMetadata>
+            <RequestId>eb358e22-9d1f-11e4-93eb-190ecEXAMPLE</RequestId>
+          </ResponseMetadata>
+        </ListEntitiesForPolicyResponse>",
+       "<ListEntitiesForPolicyResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+          <ListEntitiesForPolicyResult>
+            <PolicyRoles>
+              <member>
+                <RoleName>DevRole</RoleName>
+              </member>
+            </PolicyRoles>
+            <PolicyGroups>
+              <member>
+                <GroupName>Dev</GroupName>
+              </member>
+            </PolicyGroups>
+            <IsTruncated>false</IsTruncated>
+            <PolicyUsers>
+              <member>
+                <UserName>Alice</UserName>
+              </member>
+              <member>
+                <UserName>Bob</UserName>
+              </member>
+            </PolicyUsers>
+          </ListEntitiesForPolicyResult>
+          <ResponseMetadata>
+            <RequestId>eb358e22-9d1f-11e4-93eb-190ecEXAMPLE</RequestId>
+          </ResponseMetadata>
+        </ListEntitiesForPolicyResponse>"],
+      {ok,[[{users_list,[[{user_name,"Alice"}], [{user_name, "Bob"}]]},
+            {groups_list,[[{group_name,"Dev"}]]},
+            {roles_list,[[{role_name,"DevRole"}]]}
+      ],[{users_list,[[{user_name,"Alice"}], [{user_name, "Bob"}]]},
+            {groups_list,[[{group_name,"Dev"}]]},
+            {roles_list,[[{role_name,"DevRole"}]]}
+      ]]}
+    })
+  ],
+  output_tests_seq(?_f(erlcloud_iam:list_entities_for_policy_all("test")), Tests).
 
 get_policy_input_tests(_) ->
     Tests =
