@@ -11,7 +11,7 @@
          describe_stream/1, describe_stream/2, describe_stream/3, describe_stream/4,
          get_shard_iterator/3, get_shard_iterator/4, get_shard_iterator/5,
          get_records/1, get_records/2, get_records/3, get_records/4,
-         put_record/3, put_record/4, put_record/5, put_record/6,
+         put_record/3, put_record/4, put_record/5, put_record/6, put_record/7,
          merge_shards/3, merge_shards/4,
          split_shards/3, split_shards/4
         ]).
@@ -392,36 +392,51 @@ normalize_response([]) -> [].
 %% @end
 %%------------------------------------------------------------------------------
 
--spec put_record/3 :: (string(), string(), string()) -> proplist().
+-type partition_key()     :: binary().
+-type payload()           :: binary() | string().
+-type explicit_hash_key() :: binary() | undefined.
+-type ordering()          :: binary() | undefined.
 
+-spec put_record/3 :: (binary(), partition_key(), payload()) ->
+    {ok, proplist()} | {error, any()}.
 put_record(StreamName, PartitionKey, Data) ->
-  Json = [{<<"StreamName">>, StreamName}, {<<"PartitionKey">>, PartitionKey}, {<<"Data">>, base64:encode(Data)}],
-  erlcloud_kinesis_impl:request(default_config(), "Kinesis_20131202.PutRecord", Json).
+    put_record(StreamName, PartitionKey, Data, undefined).
 
--spec put_record/4 :: (string(), string(), string(), string() | aws_config()) -> proplist().
-
+-spec put_record/4 :: (binary(), partition_key(), payload(), explicit_hash_key() | aws_config()) ->
+    {ok, proplist()} | {error, any()}.
 put_record(StreamName, PartitionKey, Data, Config) when is_record(Config, aws_config) ->
-  Json = [{<<"StreamName">>, StreamName}, {<<"PartitionKey">>, PartitionKey}, {<<"Data">>, base64:encode(Data)}],
-  erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.PutRecord", Json);
+    put_record(StreamName, PartitionKey, Data, undefined, Config);
 put_record(StreamName, PartitionKey, Data, ExplicitHashKey) ->
-  Json = [{<<"StreamName">>, StreamName}, {<<"PartitionKey">>, PartitionKey}, {<<"Data">>, base64:encode(Data)}, {<<"ExplicitHashKey">>, ExplicitHashKey}],
-  erlcloud_kinesis_impl:request(default_config(), "Kinesis_20131202.PutRecord", Json).
+    put_record(StreamName, PartitionKey, Data, ExplicitHashKey, undefined).
 
--spec put_record/5 :: (string(), string(), string(), string(), string() | aws_config()) -> proplist().
-
+-spec put_record/5 :: (binary(), partition_key(), payload(), explicit_hash_key(), ordering() | aws_config()) ->
+    {ok, proplist()} | {error, any()}.
 put_record(StreamName, PartitionKey, Data, ExplicitHashKey, Config) when is_record(Config, aws_config) ->
-  Json = [{<<"StreamName">>, StreamName}, {<<"PartitionKey">>, PartitionKey}, {<<"Data">>, base64:encode(Data)}, {<<"ExplicitHashKey">>, ExplicitHashKey}],
-  erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.PutRecord", Json);
+    put_record(StreamName, PartitionKey, Data, ExplicitHashKey, undefined, Config);
 put_record(StreamName, PartitionKey, Data, ExplicitHashKey, Ordering) ->
-  Json = [{<<"StreamName">>, StreamName}, {<<"PartitionKey">>, PartitionKey}, {<<"Data">>, base64:encode(Data)}, {<<"ExplicitHashKey">>, ExplicitHashKey}, {<<"SequenceNumberForOrdering">>, Ordering}],
-  erlcloud_kinesis_impl:request(default_config(), "Kinesis_20131202.PutRecord", Json).
+    put_record(StreamName, PartitionKey, Data, ExplicitHashKey, Ordering, []).
 
--spec put_record/6 :: (string(), string(), string(), string(), string(), aws_config()) -> proplist().
-
+-spec put_record/6 :: (binary(), partition_key(), payload(), explicit_hash_key(), ordering(), proplist() | aws_config()) ->
+    {ok, proplist()} | {error, any()}.
 put_record(StreamName, PartitionKey, Data, ExplicitHashKey, Ordering, Config) when is_record(Config, aws_config) ->
-  Json = [{<<"StreamName">>, StreamName}, {<<"PartitionKey">>, PartitionKey}, {<<"Data">>, base64:encode(Data)}, {<<"ExplicitHashKey">>, ExplicitHashKey}, {<<"SequenceNumberForOrdering">>, Ordering}],
-  erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.PutRecord", Json).
+    put_record(StreamName, PartitionKey, Data, ExplicitHashKey, Ordering, [], Config);
+put_record(StreamName, PartitionKey, Data, ExplicitHashKey, Ordering, Options) ->
+    put_record(StreamName, PartitionKey, Data, ExplicitHashKey, Ordering, Options, default_config()).
 
+-spec put_record/7 :: (binary(), partition_key(), payload(), explicit_hash_key(), ordering(), proplist(), aws_config()) ->
+    {ok, proplist()} | {error, any()}.
+put_record(StreamName, PartitionKey, Data, ExplicitHashKey, Ordering, Options, Config) when is_record(Config, aws_config) ->
+    Encoded  = case proplists:get_value(encode, Options, true) of
+                   true  -> base64:encode(Data);
+                   false -> Data
+               end,
+    Optional = [{<<"ExplicitHashKey">>, ExplicitHashKey},
+                {<<"SequenceNumberForOrdering">>, Ordering}],
+    Json = [{<<"StreamName">>, StreamName},
+            {<<"PartitionKey">>, PartitionKey},
+            {<<"Data">>, Encoded}
+           |[ KV || {_, V} = KV <- Optional, V /= undefined ]],
+    erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.PutRecord", Json).
 
 %%------------------------------------------------------------------------------
 %% @doc
