@@ -490,6 +490,15 @@ put_record_input_tests(_) ->
   \"PartitionKey\": \"key\"
 }"
             }),
+         ?_kinesis_test(
+             {"PutRecord example request",
+              ?_f(erlcloud_kinesis:put_record(<<"test">>, <<"key">>, <<"abcdef">>, undefined, undefined, [{encode, false}])), "
+{
+  \"Data\": \"abcdef\",
+  \"StreamName\": \"test\",
+  \"PartitionKey\": \"key\"
+}"
+             }),
         ?_kinesis_test(
             {"PutRecord example request",
              ?_f(erlcloud_kinesis:put_record(<<"test">>, <<"key1">>, <<"asdasd 213123123">>)), "
