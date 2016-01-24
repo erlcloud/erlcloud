@@ -53,9 +53,9 @@
 %%%------------------------------------------------------------------------------
 -type inspector_opts() :: list().
 
--type return_val() :: {ok, proplists:proplist()} | {error, term()}.
+-type inspector_return_val() :: {ok, proplists:proplist()} | {error, term()}.
 
--export_type([return_val/0]).
+-export_type([inspector_return_val/0]).
 
 %%%------------------------------------------------------------------------------
 %%% Library initialization.
@@ -136,7 +136,7 @@ inspector_result_fun(#aws_request{response_type = error, error_type = aws} = Req
 -spec add_attributes_to_findings/2 ::
           (Attributes :: [attribute()],
            FindingArns :: [string()]) ->
-          return_val().
+          inspector_return_val().
 add_attributes_to_findings(Attributes, FindingArns) ->
     add_attributes_to_findings(Attributes, FindingArns, default_config()).
 
@@ -145,7 +145,7 @@ add_attributes_to_findings(Attributes, FindingArns) ->
           (Attributes :: [attribute()],
            FindingArns :: [string()],
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 add_attributes_to_findings(Attributes, FindingArns, Config) ->
     Json = [{<<"attributes">>, Attributes},
             {<<"findingArns">>, [to_binary(A) || A <- FindingArns]}],
@@ -161,7 +161,7 @@ add_attributes_to_findings(Attributes, FindingArns, Config) ->
 -spec attach_assessment_and_rules_package/2 ::
           (AssessmentArn :: string(),
            RulesPackageArn :: string()) ->
-          return_val().
+          inspector_return_val().
 attach_assessment_and_rules_package(AssessmentArn, RulesPackageArn) ->
     attach_assessment_and_rules_package(AssessmentArn, RulesPackageArn, default_config()).
 
@@ -170,7 +170,7 @@ attach_assessment_and_rules_package(AssessmentArn, RulesPackageArn) ->
           (AssessmentArn :: string(),
            RulesPackageArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 attach_assessment_and_rules_package(AssessmentArn, RulesPackageArn, Config) ->
     Json = [{<<"assessmentArn">>, to_binary(AssessmentArn)},
             {<<"rulesPackageArn">>, to_binary(RulesPackageArn)}],
@@ -186,7 +186,7 @@ attach_assessment_and_rules_package(AssessmentArn, RulesPackageArn, Config) ->
 -spec create_application/2 ::
           (ApplicationName :: string(),
            ResourceGroupArn :: string()) ->
-          return_val().
+          inspector_return_val().
 create_application(ApplicationName, ResourceGroupArn) ->
     create_application(ApplicationName, ResourceGroupArn, default_config()).
 
@@ -195,7 +195,7 @@ create_application(ApplicationName, ResourceGroupArn) ->
           (ApplicationName :: string(),
            ResourceGroupArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 create_application(ApplicationName, ResourceGroupArn, Config) ->
     Json = [{<<"applicationName">>, to_binary(ApplicationName)},
             {<<"resourceGroupArn">>, to_binary(ResourceGroupArn)}],
@@ -212,7 +212,7 @@ create_application(ApplicationName, ResourceGroupArn, Config) ->
           (ApplicationArn :: string(),
            AssessmentName :: string(),
            DurationInSeconds :: integer()) ->
-          return_val().
+          inspector_return_val().
 create_assessment(ApplicationArn, AssessmentName, DurationInSeconds) ->
     create_assessment(ApplicationArn, AssessmentName, DurationInSeconds, []).
 
@@ -222,7 +222,7 @@ create_assessment(ApplicationArn, AssessmentName, DurationInSeconds) ->
            AssessmentName :: string(),
            DurationInSeconds :: integer(),
            Options :: inspector_opts()) ->
-          return_val().
+          inspector_return_val().
 create_assessment(ApplicationArn, AssessmentName, DurationInSeconds, Options) ->
     create_assessment(ApplicationArn, AssessmentName, DurationInSeconds, Options, default_config()).
 
@@ -233,7 +233,7 @@ create_assessment(ApplicationArn, AssessmentName, DurationInSeconds, Options) ->
            DurationInSeconds :: integer(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 create_assessment(ApplicationArn, AssessmentName, DurationInSeconds, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"applicationArn">>, to_binary(ApplicationArn)},
@@ -250,7 +250,7 @@ create_assessment(ApplicationArn, AssessmentName, DurationInSeconds, Options, Co
 
 -spec create_resource_group/1 ::
           (ResourceGroupTags :: term()) ->
-          return_val().
+          inspector_return_val().
 create_resource_group(ResourceGroupTags) ->
     create_resource_group(ResourceGroupTags, default_config()).
 
@@ -258,7 +258,7 @@ create_resource_group(ResourceGroupTags) ->
 -spec create_resource_group/2 ::
           (ResourceGroupTags :: term(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 create_resource_group(ResourceGroupTags, Config) ->
     Json = [{<<"resourceGroupTags">>, jsx:encode(ResourceGroupTags)}],
     inspector_request(Config, "InspectorService.CreateResourceGroup", Json).
@@ -272,7 +272,7 @@ create_resource_group(ResourceGroupTags, Config) ->
 
 -spec delete_application/1 ::
           (ApplicationArn :: string()) ->
-          return_val().
+          inspector_return_val().
 delete_application(ApplicationArn) ->
     delete_application(ApplicationArn, default_config()).
 
@@ -280,7 +280,7 @@ delete_application(ApplicationArn) ->
 -spec delete_application/2 ::
           (ApplicationArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 delete_application(ApplicationArn, Config) ->
     Json = [{<<"applicationArn">>, to_binary(ApplicationArn)}],
     inspector_request(Config, "InspectorService.DeleteApplication", Json).
@@ -294,7 +294,7 @@ delete_application(ApplicationArn, Config) ->
 
 -spec delete_assessment/1 ::
           (AssessmentArn :: string()) ->
-          return_val().
+          inspector_return_val().
 delete_assessment(AssessmentArn) ->
     delete_assessment(AssessmentArn, default_config()).
 
@@ -302,7 +302,7 @@ delete_assessment(AssessmentArn) ->
 -spec delete_assessment/2 ::
           (AssessmentArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 delete_assessment(AssessmentArn, Config) ->
     Json = [{<<"assessmentArn">>, to_binary(AssessmentArn)}],
     inspector_request(Config, "InspectorService.DeleteAssessment", Json).
@@ -316,7 +316,7 @@ delete_assessment(AssessmentArn, Config) ->
 
 -spec delete_run/1 ::
           (RunArn :: string()) ->
-          return_val().
+          inspector_return_val().
 delete_run(RunArn) ->
     delete_run(RunArn, default_config()).
 
@@ -324,7 +324,7 @@ delete_run(RunArn) ->
 -spec delete_run/2 ::
           (RunArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 delete_run(RunArn, Config) ->
     Json = [{<<"runArn">>, to_binary(RunArn)}],
     inspector_request(Config, "InspectorService.DeleteRun", Json).
@@ -338,7 +338,7 @@ delete_run(RunArn, Config) ->
 
 -spec describe_application/1 ::
           (ApplicationArn :: string()) ->
-          return_val().
+          inspector_return_val().
 describe_application(ApplicationArn) ->
     describe_application(ApplicationArn, default_config()).
 
@@ -346,7 +346,7 @@ describe_application(ApplicationArn) ->
 -spec describe_application/2 ::
           (ApplicationArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 describe_application(ApplicationArn, Config) ->
     Json = [{<<"applicationArn">>, to_binary(ApplicationArn)}],
     inspector_request(Config, "InspectorService.DescribeApplication", Json).
@@ -360,7 +360,7 @@ describe_application(ApplicationArn, Config) ->
 
 -spec describe_assessment/1 ::
           (AssessmentArn :: string()) ->
-          return_val().
+          inspector_return_val().
 describe_assessment(AssessmentArn) ->
     describe_assessment(AssessmentArn, default_config()).
 
@@ -368,7 +368,7 @@ describe_assessment(AssessmentArn) ->
 -spec describe_assessment/2 ::
           (AssessmentArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 describe_assessment(AssessmentArn, Config) ->
     Json = [{<<"assessmentArn">>, to_binary(AssessmentArn)}],
     inspector_request(Config, "InspectorService.DescribeAssessment", Json).
@@ -382,14 +382,14 @@ describe_assessment(AssessmentArn, Config) ->
 
 -spec describe_cross_account_access_role/0 ::
           () ->
-          return_val().
+          inspector_return_val().
 describe_cross_account_access_role() ->
     describe_cross_account_access_role(default_config()).
 
 
 -spec describe_cross_account_access_role/1 ::
           (Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 describe_cross_account_access_role(Config) ->
     inspector_request(Config, "InspectorService.DescribeCrossAccountAccessRole", <<>>).
 
@@ -402,7 +402,7 @@ describe_cross_account_access_role(Config) ->
 
 -spec describe_finding/1 ::
           (FindingArn :: string()) ->
-          return_val().
+          inspector_return_val().
 describe_finding(FindingArn) ->
     describe_finding(FindingArn, default_config()).
 
@@ -410,7 +410,7 @@ describe_finding(FindingArn) ->
 -spec describe_finding/2 ::
           (FindingArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 describe_finding(FindingArn, Config) ->
     Json = [{<<"findingArn">>, to_binary(FindingArn)}],
     inspector_request(Config, "InspectorService.DescribeFinding", Json).
@@ -424,7 +424,7 @@ describe_finding(FindingArn, Config) ->
 
 -spec describe_resource_group/1 ::
           (ResourceGroupArn :: string()) ->
-          return_val().
+          inspector_return_val().
 describe_resource_group(ResourceGroupArn) ->
     describe_resource_group(ResourceGroupArn, default_config()).
 
@@ -432,7 +432,7 @@ describe_resource_group(ResourceGroupArn) ->
 -spec describe_resource_group/2 ::
           (ResourceGroupArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 describe_resource_group(ResourceGroupArn, Config) ->
     Json = [{<<"resourceGroupArn">>, to_binary(ResourceGroupArn)}],
     inspector_request(Config, "InspectorService.DescribeResourceGroup", Json).
@@ -446,7 +446,7 @@ describe_resource_group(ResourceGroupArn, Config) ->
 
 -spec describe_rules_package/1 ::
           (RulesPackageArn :: string()) ->
-          return_val().
+          inspector_return_val().
 describe_rules_package(RulesPackageArn) ->
     describe_rules_package(RulesPackageArn, default_config()).
 
@@ -454,7 +454,7 @@ describe_rules_package(RulesPackageArn) ->
 -spec describe_rules_package/2 ::
           (RulesPackageArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 describe_rules_package(RulesPackageArn, Config) ->
     Json = [{<<"rulesPackageArn">>, to_binary(RulesPackageArn)}],
     inspector_request(Config, "InspectorService.DescribeRulesPackage", Json).
@@ -468,7 +468,7 @@ describe_rules_package(RulesPackageArn, Config) ->
 
 -spec describe_run/1 ::
           (RunArn :: string()) ->
-          return_val().
+          inspector_return_val().
 describe_run(RunArn) ->
     describe_run(RunArn, default_config()).
 
@@ -476,7 +476,7 @@ describe_run(RunArn) ->
 -spec describe_run/2 ::
           (RunArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 describe_run(RunArn, Config) ->
     Json = [{<<"runArn">>, to_binary(RunArn)}],
     inspector_request(Config, "InspectorService.DescribeRun", Json).
@@ -491,7 +491,7 @@ describe_run(RunArn, Config) ->
 -spec detach_assessment_and_rules_package/2 ::
           (AssessmentArn :: string(),
            RulesPackageArn :: string()) ->
-          return_val().
+          inspector_return_val().
 detach_assessment_and_rules_package(AssessmentArn, RulesPackageArn) ->
     detach_assessment_and_rules_package(AssessmentArn, RulesPackageArn, default_config()).
 
@@ -500,7 +500,7 @@ detach_assessment_and_rules_package(AssessmentArn, RulesPackageArn) ->
           (AssessmentArn :: string(),
            RulesPackageArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 detach_assessment_and_rules_package(AssessmentArn, RulesPackageArn, Config) ->
     Json = [{<<"assessmentArn">>, to_binary(AssessmentArn)},
             {<<"rulesPackageArn">>, to_binary(RulesPackageArn)}],
@@ -515,7 +515,7 @@ detach_assessment_and_rules_package(AssessmentArn, RulesPackageArn, Config) ->
 
 -spec get_assessment_telemetry/1 ::
           (AssessmentArn :: string()) ->
-          return_val().
+          inspector_return_val().
 get_assessment_telemetry(AssessmentArn) ->
     get_assessment_telemetry(AssessmentArn, default_config()).
 
@@ -523,7 +523,7 @@ get_assessment_telemetry(AssessmentArn) ->
 -spec get_assessment_telemetry/2 ::
           (AssessmentArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 get_assessment_telemetry(AssessmentArn, Config) ->
     Json = [{<<"assessmentArn">>, to_binary(AssessmentArn)}],
     inspector_request(Config, "InspectorService.GetAssessmentTelemetry", Json).
@@ -537,14 +537,14 @@ get_assessment_telemetry(AssessmentArn, Config) ->
 
 -spec list_applications/0 ::
           () ->
-          return_val().
+          inspector_return_val().
 list_applications() ->
     list_applications([]).
 
 
 -spec list_applications/1 ::
           (Options :: inspector_opts()) ->
-          return_val().
+          inspector_return_val().
 list_applications(Options) ->
     list_applications(Options, default_config()).
 
@@ -552,7 +552,7 @@ list_applications(Options) ->
 -spec list_applications/2 ::
           (Options :: inspector_opts(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 list_applications(Options, Config) ->
     OptJson = dynamize_options(Options),
     inspector_request(Config, "InspectorService.ListApplications", OptJson).
@@ -566,7 +566,7 @@ list_applications(Options, Config) ->
 
 -spec list_assessment_agents/1 ::
           (AssessmentArn :: string()) ->
-          return_val().
+          inspector_return_val().
 list_assessment_agents(AssessmentArn) ->
     list_assessment_agents(AssessmentArn, []).
 
@@ -574,7 +574,7 @@ list_assessment_agents(AssessmentArn) ->
 -spec list_assessment_agents/2 ::
           (AssessmentArn :: string(),
            Options :: inspector_opts()) ->
-          return_val().
+          inspector_return_val().
 list_assessment_agents(AssessmentArn, Options) ->
     list_assessment_agents(AssessmentArn, Options, default_config()).
 
@@ -583,7 +583,7 @@ list_assessment_agents(AssessmentArn, Options) ->
           (AssessmentArn :: string(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 list_assessment_agents(AssessmentArn, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{assessmentArn, to_binary(AssessmentArn)}|OptJson],
@@ -598,14 +598,14 @@ list_assessment_agents(AssessmentArn, Options, Config) ->
 
 -spec list_assessments/0 ::
           () ->
-          return_val().
+          inspector_return_val().
 list_assessments() ->
     list_assessments([]).
 
 
 -spec list_assessments/1 ::
           (Options :: inspector_opts()) ->
-          return_val().
+          inspector_return_val().
 list_assessments(Options) ->
     list_assessments(Options, default_config()).
 
@@ -613,7 +613,7 @@ list_assessments(Options) ->
 -spec list_assessments/2 ::
           (Options :: inspector_opts(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 list_assessments(Options, Config) ->
     OptJson = dynamize_options(Options),
     inspector_request(Config, "InspectorService.ListAssessments", OptJson).
@@ -627,7 +627,7 @@ list_assessments(Options, Config) ->
 
 -spec list_attached_assessments/1 ::
           (RulesPackageArn :: string()) ->
-          return_val().
+          inspector_return_val().
 list_attached_assessments(RulesPackageArn) ->
     list_attached_assessments(RulesPackageArn, []).
 
@@ -635,7 +635,7 @@ list_attached_assessments(RulesPackageArn) ->
 -spec list_attached_assessments/2 ::
           (RulesPackageArn :: string(),
            Options :: inspector_opts()) ->
-          return_val().
+          inspector_return_val().
 list_attached_assessments(RulesPackageArn, Options) ->
     list_attached_assessments(RulesPackageArn, Options, default_config()).
 
@@ -644,7 +644,7 @@ list_attached_assessments(RulesPackageArn, Options) ->
           (RulesPackageArn :: string(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 list_attached_assessments(RulesPackageArn, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"rulesPackageArn">>, to_binary(RulesPackageArn)}|OptJson],
@@ -659,7 +659,7 @@ list_attached_assessments(RulesPackageArn, Options, Config) ->
 
 -spec list_attached_rules_packages/1 ::
           (AssessmentArn :: string()) ->
-          return_val().
+          inspector_return_val().
 list_attached_rules_packages(AssessmentArn) ->
     list_attached_rules_packages(AssessmentArn, []).
 
@@ -667,7 +667,7 @@ list_attached_rules_packages(AssessmentArn) ->
 -spec list_attached_rules_packages/2 ::
           (AssessmentArn :: string(),
            Options :: inspector_opts()) ->
-          return_val().
+          inspector_return_val().
 list_attached_rules_packages(AssessmentArn, Options) ->
     list_attached_rules_packages(AssessmentArn, Options, default_config()).
 
@@ -676,7 +676,7 @@ list_attached_rules_packages(AssessmentArn, Options) ->
           (AssessmentArn :: string(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 list_attached_rules_packages(AssessmentArn, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"assessmentArn">>, to_binary(AssessmentArn)}|OptJson],
@@ -691,14 +691,14 @@ list_attached_rules_packages(AssessmentArn, Options, Config) ->
 
 -spec list_findings/0 ::
           () ->
-          return_val().
+          inspector_return_val().
 list_findings() ->
     list_findings([]).
 
 
 -spec list_findings/1 ::
           (Options :: inspector_opts()) ->
-          return_val().
+          inspector_return_val().
 list_findings(Options) ->
     list_findings(Options, default_config()).
 
@@ -706,7 +706,7 @@ list_findings(Options) ->
 -spec list_findings/2 ::
           (Options :: inspector_opts(), 
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 list_findings(Options, Config) ->
     OptJson = dynamize_options(Options),
     inspector_request(Config, "InspectorService.ListFindings", OptJson).
@@ -720,14 +720,14 @@ list_findings(Options, Config) ->
 
 -spec list_rules_packages/0 ::
           () ->
-          return_val().
+          inspector_return_val().
 list_rules_packages() ->
     list_rules_packages([]).
 
 
 -spec list_rules_packages/1 ::
           (Options :: inspector_opts()) ->
-          return_val().
+          inspector_return_val().
 list_rules_packages(Options) ->
     list_rules_packages(Options, default_config()).
 
@@ -735,7 +735,7 @@ list_rules_packages(Options) ->
 -spec list_rules_packages/2 ::
           (Options :: inspector_opts(), 
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 list_rules_packages(Options, Config) ->
     OptJson = dynamize_options(Options),
     inspector_request(Config, "InspectorService.ListRulesPackages", OptJson).
@@ -749,14 +749,14 @@ list_rules_packages(Options, Config) ->
 
 -spec list_runs/0 ::
           () ->
-          return_val().
+          inspector_return_val().
 list_runs() ->
     list_runs([]).
 
 
 -spec list_runs/1 ::
           (Options :: inspector_opts()) ->
-          return_val().
+          inspector_return_val().
 list_runs(Options) ->
     list_runs(Options, default_config()).
 
@@ -764,7 +764,7 @@ list_runs(Options) ->
 -spec list_runs/2 ::
           (Options :: inspector_opts(), 
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 list_runs(Options, Config) ->
     OptJson = dynamize_options(Options),
     inspector_request(Config, "InspectorService.ListRuns", OptJson).
@@ -778,7 +778,7 @@ list_runs(Options, Config) ->
 
 -spec list_tags_for_resource/1 ::
           (ResourceArn :: string()) ->
-          return_val().
+          inspector_return_val().
 list_tags_for_resource(ResourceArn) ->
     list_tags_for_resource(ResourceArn, []).
 
@@ -786,7 +786,7 @@ list_tags_for_resource(ResourceArn) ->
 -spec list_tags_for_resource/2 ::
           (ResourceArn :: string(),
            Options :: inspector_opts()) ->
-          return_val().
+          inspector_return_val().
 list_tags_for_resource(ResourceArn, Options) ->
     list_tags_for_resource(ResourceArn, Options, default_config()).
 
@@ -795,7 +795,7 @@ list_tags_for_resource(ResourceArn, Options) ->
           (ResourceArn :: string(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 list_tags_for_resource(ResourceArn, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"resourceArn">>, to_binary(ResourceArn)}|OptJson],
@@ -819,7 +819,7 @@ list_tags_for_resource(ResourceArn, Options, Config) ->
 
 -spec localize_text/1 ::
           (LocalizedTexts :: [localized_text()]) ->
-          return_val().
+          inspector_return_val().
 localize_text(LocalizedTexts) ->
     localize_text(LocalizedTexts, <<"en_US">>).
 
@@ -827,7 +827,7 @@ localize_text(LocalizedTexts) ->
 -spec localize_text/2 ::
           (LocalizedTexts :: [localized_text()],
            Locale :: string()) ->
-          return_val().
+          inspector_return_val().
 localize_text(LocalizedTexts, Locale) ->
     localize_text(LocalizedTexts, Locale, default_config()).
 
@@ -836,7 +836,7 @@ localize_text(LocalizedTexts, Locale) ->
           (LocalizedTexts :: [localized_text()],
            Locale :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 localize_text(LocalizedTexts, Locale, Config) ->
     Json = [{<<"locale">>, to_binary(Locale)},
             {<<"localizedTexts">>, [LocalizedTexts]}],
@@ -851,7 +851,7 @@ localize_text(LocalizedTexts, Locale, Config) ->
 
 -spec preview_agents_for_resource_group/1 ::
           (ResourceGroupArn :: string()) ->
-          return_val().
+          inspector_return_val().
 preview_agents_for_resource_group(ResourceGroupArn) ->
     preview_agents_for_resource_group(ResourceGroupArn, []).
 
@@ -859,7 +859,7 @@ preview_agents_for_resource_group(ResourceGroupArn) ->
 -spec preview_agents_for_resource_group/2 ::
           (ResourceGroupArn :: string(),
            Options :: inspector_opts()) ->
-          return_val().
+          inspector_return_val().
 preview_agents_for_resource_group(ResourceGroupArn, Options) ->
     preview_agents_for_resource_group(ResourceGroupArn, Options, default_config()).
 
@@ -868,7 +868,7 @@ preview_agents_for_resource_group(ResourceGroupArn, Options) ->
           (ResourceGroupArn :: string(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 preview_agents_for_resource_group(ResourceGroupArn, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"resourceGroupArn">>, to_binary(ResourceGroupArn)}|OptJson],
@@ -883,7 +883,7 @@ preview_agents_for_resource_group(ResourceGroupArn, Options, Config) ->
 
 -spec register_cross_account_access_role/1 ::
           (RoleArn :: string()) ->
-          return_val().
+          inspector_return_val().
 register_cross_account_access_role(RoleArn) ->
     register_cross_account_access_role(RoleArn, []).
 
@@ -891,7 +891,7 @@ register_cross_account_access_role(RoleArn) ->
 -spec register_cross_account_access_role/2 ::
           (RoleArn :: string(),
            Options :: inspector_opts()) ->
-          return_val().
+          inspector_return_val().
 register_cross_account_access_role(RoleArn, Options) ->
     register_cross_account_access_role(RoleArn, Options, default_config()).
 
@@ -900,7 +900,7 @@ register_cross_account_access_role(RoleArn, Options) ->
           (RoleArn :: string(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 register_cross_account_access_role(RoleArn, Options, Config) ->
     OptJson = dynamize_options(Options),
     Json = [{<<"roleArn">>, to_binary(RoleArn)}|OptJson],
@@ -916,7 +916,7 @@ register_cross_account_access_role(RoleArn, Options, Config) ->
 -spec remove_attributes_from_findings/2 ::
           (AttributeKeys :: [string()],
            FindingArns :: [string()]) ->
-          return_val().
+          inspector_return_val().
 remove_attributes_from_findings(AttributeKeys, FindingArns) ->
     remove_attributes_from_findings(AttributeKeys, FindingArns, default_config()).
 
@@ -925,7 +925,7 @@ remove_attributes_from_findings(AttributeKeys, FindingArns) ->
           (AttributeKeys :: [string()],
            FindingArns :: [string()],
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 remove_attributes_from_findings(AttributeKeys, FindingArns, Config) ->
     Json = [{<<"attributeKeys">>, [to_binary(A) || A <- AttributeKeys]},
             {<<"findingArns">>, [to_binary(F) || F <- FindingArns]}],
@@ -941,7 +941,7 @@ remove_attributes_from_findings(AttributeKeys, FindingArns, Config) ->
 -spec run_assessment/2 ::
           (AssessmentArn :: string(),
            RunName :: string()) ->
-          return_val().
+          inspector_return_val().
 run_assessment(AssessmentArn, RunName) ->
     run_assessment(AssessmentArn, RunName, default_config()).
 
@@ -950,7 +950,7 @@ run_assessment(AssessmentArn, RunName) ->
           (AssessmentArn :: string(),
            RunName :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 run_assessment(AssessmentArn, RunName, Config) ->
     Json = [{<<"assessmentArn">>, to_binary(AssessmentArn)},
             {<<"runName">>, to_binary(RunName)}],
@@ -966,7 +966,7 @@ run_assessment(AssessmentArn, RunName, Config) ->
 -spec set_tags_for_resource/2 ::
           (ResourceArn :: string(),
            Tags :: term()) ->
-          return_val().
+          inspector_return_val().
 set_tags_for_resource(ResourceArn, Tags) ->
     set_tags_for_resource(ResourceArn, Tags, default_config()).
 
@@ -975,7 +975,7 @@ set_tags_for_resource(ResourceArn, Tags) ->
           (ResourceArn :: string(),
            Tags :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 set_tags_for_resource(ResourceArn, Tags, Config) ->
     Json = [{<<"resourceArn">>, to_binary(ResourceArn)},
             {<<"tags">>, Tags}],
@@ -990,7 +990,7 @@ set_tags_for_resource(ResourceArn, Tags, Config) ->
 
 -spec start_data_collection/1 ::
           (AssessmentArn :: string()) ->
-          return_val().
+          inspector_return_val().
 start_data_collection(RunArn) ->
     start_data_collection(RunArn, default_config()).
 
@@ -998,7 +998,7 @@ start_data_collection(RunArn) ->
 -spec start_data_collection/2 ::
           (AssessmentArn :: term(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 start_data_collection(AssessmentArn, Config) ->
     Json = [{<<"assessmentArn">>, to_binary(AssessmentArn)}],
     inspector_request(Config, "InspectorService.StartDataCollection", Json).
@@ -1012,7 +1012,7 @@ start_data_collection(AssessmentArn, Config) ->
 
 -spec stop_data_collection/1 ::
           (AssessmentArn :: string()) ->
-          return_val().
+          inspector_return_val().
 stop_data_collection(RunArn) ->
     stop_data_collection(RunArn, default_config()).
 
@@ -1020,7 +1020,7 @@ stop_data_collection(RunArn) ->
 -spec stop_data_collection/2 ::
           (AssessmentArn :: term(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 stop_data_collection(AssessmentArn, Config) ->
     Json = [{<<"assessmentArn">>, to_binary(AssessmentArn)}],
     inspector_request(Config, "InspectorService.StopDataCollection", Json).
@@ -1036,7 +1036,7 @@ stop_data_collection(AssessmentArn, Config) ->
           (ApplicationArn :: string(),
            ApplicationName :: string(),
            ResourceGroupArn :: string()) ->
-          return_val().
+          inspector_return_val().
 update_application(ApplicationArn, ApplicationName, ResourceGroupArn) ->
     update_application(ApplicationArn, ApplicationName, ResourceGroupArn, default_config()).
 
@@ -1046,7 +1046,7 @@ update_application(ApplicationArn, ApplicationName, ResourceGroupArn) ->
            ApplicationName :: string(),
            ResourceGroupArn :: string(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 update_application(ApplicationArn, ApplicationName, ResourceGroupArn, Config) ->
     Json = [{<<"applicationArn">>, to_binary(ApplicationArn)},
             {<<"applicationName">>, to_binary(ApplicationName)},
@@ -1064,7 +1064,7 @@ update_application(ApplicationArn, ApplicationName, ResourceGroupArn, Config) ->
           (AssessmentArn :: string(),
            AssessmentName :: string(),
            DurationInSeconds :: integer()) ->
-          return_val().
+          inspector_return_val().
 update_assessment(AssessmentArn, AssessmentName, DurationInSeconds) ->
     update_assessment(AssessmentArn, AssessmentName, DurationInSeconds, default_config()).
 
@@ -1074,7 +1074,7 @@ update_assessment(AssessmentArn, AssessmentName, DurationInSeconds) ->
            AssessmentName :: string(),
            DurationInSeconds :: integer(),
            Config :: aws_config()) ->
-          return_val().
+          inspector_return_val().
 update_assessment(AssessmentArn, AssessmentName, DurationInSeconds, Config) ->
     Json = [{<<"assessmentArn">>, to_binary(AssessmentArn)},
             {<<"assessmentName">>, to_binary(AssessmentName)},
