@@ -1144,7 +1144,10 @@ dynamize_options([], Acc) ->
 
 
 dynamize_option_key(Key) when is_atom(Key) ->
-    F = fun([A|B], Acc) ->
+    F = fun([A|B], <<>>) ->
+                C = list_to_binary([A|B]),
+                C;
+            ([A|B], Acc) ->
                 C = list_to_binary([string:to_upper(A)|B]),
                 <<Acc/binary, C/binary>>
         end,
