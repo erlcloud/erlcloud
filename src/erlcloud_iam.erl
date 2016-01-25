@@ -711,22 +711,24 @@ simulate_principal_policy(PolicySourceArn, ActionNames) ->
 
 simulate_principal_policy(PolicySourceArn, ActionNames, #aws_config{} = Config)
   when is_list(PolicySourceArn) andalso is_list(ActionNames) ->
-    ItemPath = "/SimulatePrincipalPolicyResponse/SimulatePrincipalPolicyResult",
+    ItemPath = "/SimulatePrincipalPolicyResponse/SimulatePrincipalPolicyResult/"
+               "EvaluationResults/member",
     Params = [{"PolicySourceArn", PolicySourceArn} |
               erlcloud_util:encode_list("ActionNames", ActionNames)],
     iam_query_all(Config, "SimulatePrincipalPolicy", Params,
-                  ItemPath, data_type("EvaluationResults")).
+                  ItemPath, data_type("EvaluationResult")).
 
 simulate_custom_policy(ActionNames, PolicyInputList) ->
     simulate_custom_policy(ActionNames, PolicyInputList, default_config()).
 
 simulate_custom_policy(ActionNames, PolicyInputList, #aws_config{} = Config)
   when is_list(ActionNames), is_list(PolicyInputList) ->
-    ItemPath = "/SimulateCustomPolicyResponse/SimulateCustomPolicyResult",
+    ItemPath = "/SimulateCustomPolicyResponse/SimulateCustomPolicyResult/"
+               "EvaluationResults/member",
     Params = erlcloud_util:encode_list("ActionNames", ActionNames) ++ 
              erlcloud_util:encode_list("PolicyInputList", PolicyInputList),
     iam_query_all(Config, "SimulateCustomPolicy", Params,
-                  ItemPath, data_type("EvaluationResults")).
+                  ItemPath, data_type("EvaluationResult")).
 
 %
 % Utils
@@ -925,9 +927,6 @@ data_type("UserPolicyList") ->
     [{"PolicyDocument", policy_document, "Uri"},
      {"UserName", user_name, "String"},
      {"PolicyName", policy_name, "String"}];
-data_type("EvaluationResults") ->
-    [{"EvaluationResults/member",
-      evaluation_result_list, data_type("EvaluationResult")}];
 data_type("EvaluationResult") ->
     [{"MatchedStatements/member", matched_statements_list,
       data_type("MatchedStatement")},
