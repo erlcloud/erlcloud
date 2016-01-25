@@ -2677,12 +2677,11 @@ simulate_custom_policy_output_test(_) ->
         [?_iam_test(
             {"SimulateCustomPolicy output",
             ?SIMULATE_CUSTOM_POLICY_RESP,
-            {ok, [[{evaluation_result_list,
-                    [[{eval_action_name, "s3:ListBucket"},
-                      {eval_decision, "allowed"},
-                      {eval_resource_name, "arn:aws:s3:::teambucket"},
-                      {matched_statements_list,
-                       [[{source_policy_id, "PolicyInputList.1"}]]}]]}]]}})
+            {ok, [[{eval_action_name, "s3:ListBucket"},
+                   {eval_decision, "allowed"},
+                   {eval_resource_name, "arn:aws:s3:::teambucket"},
+                   {matched_statements_list,
+                    [[{source_policy_id, "PolicyInputList.1"}]]}]]}})
         ],
     output_tests(?_f(erlcloud_iam:simulate_custom_policy(["s3:ListBucket"],
                                                          ["policy_doc1",
@@ -2711,12 +2710,11 @@ simulate_principal_policy_output_test(_) ->
         [?_iam_test(
             {"SimulatePrincipalPolicy output",
             ?SIMULATE_PRINCIPAL_POLICY_RESP,
-            {ok, [[{evaluation_result_list,
-                    [[{eval_action_name, "s3:ListBucket"},
-                      {eval_decision, "allowed"},
-                      {eval_resource_name, "arn:aws:s3:::teambucket"},
-                      {matched_statements_list,
-                       [[{source_policy_id, "PolicyInputList.1"}]]}]]}]]}})
+            {ok, [[{eval_action_name, "s3:ListBucket"},
+                   {eval_decision, "allowed"},
+                   {eval_resource_name, "arn:aws:s3:::teambucket"},
+                   {matched_statements_list,
+                    [[{source_policy_id, "PolicyInputList.1"}]]}]]}})
         ],
     output_tests(?_f(erlcloud_iam:simulate_principal_policy(["arn:aws:iam:::user/Jill"],
                                                             ["s3:ListBucket"])),
