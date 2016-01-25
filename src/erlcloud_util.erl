@@ -1,6 +1,7 @@
 -module(erlcloud_util).
 -export([sha_mac/2, sha256_mac/2, md5/1, sha256/1,is_dns_compliant_name/1,
-         query_all/4, query_all/5, make_response/2, get_items/2, to_string/1]).
+         query_all/4, query_all/5, make_response/2, get_items/2, to_string/1,
+         encode_list/2]).
 
 -define(MAX_ITEMS, 1000).
 
@@ -50,7 +51,6 @@ is_dns_compliant_name(Name) ->
             true
     end.
 
-
 query_all(QueryFun, Config, Action, Params) ->
     query_all(QueryFun, Config, Action, Params, ?MAX_ITEMS, undefined, []).
 
@@ -81,6 +81,10 @@ query_all(QueryFun, Config, Action, Params, MaxItems, Marker, Acc) ->
             Error
     end.
 
+encode_list(ElementName, Elements) ->
+    Numbered = lists:zip(lists:seq(1, length(Elements)), Elements),
+    [{ElementName ++ ".member." ++ integer_to_list(N), Element} ||
+        {N, Element} <- Numbered].
 
 make_response(Xml, Result) ->
     IsTruncated = erlcloud_xml:get_bool("/*/*/IsTruncated", Xml),

@@ -54,7 +54,9 @@
     get_account_summary/0, get_account_summary/1,
     get_account_password_policy/0, get_account_password_policy/1,
     generate_credential_report/0, generate_credential_report/1,
-    get_credential_report/0, get_credential_report/1
+    get_credential_report/0, get_credential_report/1,
+    simulate_principal_policy/2, simulate_principal_policy/3,
+    simulate_custom_policy/2, simulate_custom_policy/3
 ]).
 
 -export([get_uri/2]).
@@ -704,6 +706,28 @@ get_credential_report(Config) ->
                    {"Content", content, "String"}],
     iam_query(Config, "GetCredentialReport", [], ItemPath, DataTypeDef).
 
+simulate_principal_policy(PolicySourceArn, ActionNames) ->
+    simulate_principal_policy(PolicySourceArn, ActionNames, default_config()).
+
+simulate_principal_policy(PolicySourceArn, ActionNames, #aws_config{} = Config)
+  when is_list(PolicySourceArn) andalso is_list(ActionNames) ->
+    ItemPath = "/SimulatePrincipalPolicyResponse/SimulatePrincipalPolicyResult",
+    Params = [{"PolicySourceArn", PolicySourceArn} |
+              erlcloud_util:encode_list("ActionNames", ActionNames)],
+    iam_query_all(Config, "SimulatePrincipalPolicy", Params,
+                  ItemPath, data_type("EvaluationResults")).
+
+simulate_custom_policy(ActionNames, PolicyInputList) ->
+    simulate_custom_policy(ActionNames, PolicyInputList, default_config()).
+
+simulate_custom_policy(ActionNames, PolicyInputList, #aws_config{} = Config)
+  when is_list(ActionNames), is_list(PolicyInputList) ->
+    ItemPath = "/SimulateCustomPolicyResponse/SimulateCustomPolicyResult",
+    Params = erlcloud_util:encode_list("ActionNames", ActionNames) ++ 
+             erlcloud_util:encode_list("PolicyInputList", PolicyInputList),
+    iam_query_all(Config, "SimulateCustomPolicy", Params,
+                  ItemPath, data_type("EvaluationResults")).
+
 %
 % Utils
 %
@@ -900,7 +924,18 @@ data_type("UserDetail") ->
 data_type("UserPolicyList") ->
     [{"PolicyDocument", policy_document, "Uri"},
      {"UserName", user_name, "String"},
-     {"PolicyName", policy_name, "String"}].
+     {"PolicyName", policy_name, "String"}];
+data_type("EvaluationResults") ->
+    [{"EvaluationResults/member",
+      evaluation_result_list, data_type("EvaluationResult")}];
+data_type("EvaluationResult") ->
+    [{"MatchedStatements/member", matched_statements_list,
+      data_type("MatchedStatement")},
+     {"EvalResourceName", eval_resource_name, "String"},
+     {"EvalDecision", eval_decision, "String"},
+     {"EvalActionName", eval_action_name, "String"}];
+data_type("MatchedStatement") ->
+    [{"SourcePolicyId", source_policy_id, "String"}].
 
 data_fun("String") -> {erlcloud_xml, get_text};
 data_fun("DateTime") -> {erlcloud_xml, get_time};

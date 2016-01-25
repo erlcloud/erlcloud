@@ -94,7 +94,11 @@ iam_api_test_() ->
       fun get_policy_input_tests/1,
       fun get_policy_output_tests/1,
       fun get_policy_version_input_tests/1,
-      fun get_policy_version_output_tests/1
+      fun get_policy_version_output_tests/1,
+      fun simulate_custom_policy_input_test/1,
+      fun simulate_custom_policy_output_test/1,
+      fun simulate_principal_policy_input_test/1,
+      fun simulate_principal_policy_output_test/1
     ]}.
 
 start() ->
@@ -2586,4 +2590,134 @@ get_policy_version_output_tests(_) ->
         ],
     output_tests(?_f(erlcloud_iam:get_policy_version("arn:aws:iam::123456789012:policy/S3-read-only-example-bucket", "v1")), Tests).
 
+-define(SIMULATE_CUSTOM_POLICY_RESP, "
+<SimulateCustomPolicyResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+  <SimulateCustomPolicyResult>
+    <IsTruncated>false</IsTruncated>
+    <EvaluationResults>
+      <member>
+        <MatchedStatements>
+          <member>
+            <SourcePolicyId>PolicyInputList.1</SourcePolicyId>
+            <EndPosition>
+              <Column>4</Column>
+              <Line>11</Line>
+            </EndPosition>
+            <StartPosition>
+              <Column>16</Column>
+              <Line>4</Line>
+            </StartPosition>
+          </member>
+        </MatchedStatements>
+        <MissingContextValues/>
+        <EvalResourceName>arn:aws:s3:::teambucket</EvalResourceName>
+        <EvalDecision>allowed</EvalDecision>
+        <EvalActionName>s3:ListBucket</EvalActionName>
+      </member>
+    </EvaluationResults>
+  </SimulateCustomPolicyResult>
+  <ResponseMetadata>
+    <RequestId>1cdb5b0a-4c15-11e5-b121-bd8c7EXAMPLE</RequestId>
+  </ResponseMetadata>
+</SimulateCustomPolicyResponse>").
 
+-define(SIMULATE_PRINCIPAL_POLICY_RESP, "
+<SimulatePrincipalPolicyResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+  <SimulatePrincipalPolicyResult>
+    <IsTruncated>false</IsTruncated>
+    <EvaluationResults>
+      <member>
+        <MatchedStatements>
+          <member>
+            <SourcePolicyId>PolicyInputList.1</SourcePolicyId>
+            <EndPosition>
+              <Column>4</Column>
+              <Line>11</Line>
+            </EndPosition>
+            <StartPosition>
+              <Column>16</Column>
+              <Line>4</Line>
+            </StartPosition>
+          </member>
+        </MatchedStatements>
+        <MissingContextValues/>
+        <EvalResourceName>arn:aws:s3:::teambucket</EvalResourceName>
+        <EvalDecision>allowed</EvalDecision>
+        <EvalActionName>s3:ListBucket</EvalActionName>
+      </member>
+    </EvaluationResults>
+  </SimulatePrincipalPolicyResult>
+  <ResponseMetadata>
+    <RequestId>1cdb5b0a-4c15-11e5-b121-bd8c7EXAMPLE</RequestId>
+  </ResponseMetadata>
+</SimulatePrincipalPolicyResponse>").
+
+simulate_custom_policy_input_test(_) ->
+    PolicyDoc1 = "policy_doc1",
+    PolicyDoc2 = "policy_doc2",
+    Action = "s3:ListBucket",
+    Tests =
+        [?_iam_test(
+            {"SimulateCustomPolicy input",
+             ?_f(erlcloud_iam:simulate_custom_policy([Action],
+                                                     [PolicyDoc1,
+                                                      PolicyDoc2])),
+             [
+              {"Action", "SimulateCustomPolicy"},
+              {"ActionNames.member.1", http_uri:encode(Action)},
+              {"PolicyInputList.member.1", PolicyDoc1},
+              {"PolicyInputList.member.2", PolicyDoc2},
+              {"MaxItems", "1000"}
+              ]})
+        ],
+    input_tests(?SIMULATE_CUSTOM_POLICY_RESP, Tests).
+
+simulate_custom_policy_output_test(_) ->
+    Tests =
+        [?_iam_test(
+            {"SimulateCustomPolicy output",
+            ?SIMULATE_CUSTOM_POLICY_RESP,
+            {ok, [[{evaluation_result_list,
+                    [[{eval_action_name, "s3:ListBucket"},
+                      {eval_decision, "allowed"},
+                      {eval_resource_name, "arn:aws:s3:::teambucket"},
+                      {matched_statements_list,
+                       [[{source_policy_id, "PolicyInputList.1"}]]}]]}]]}})
+        ],
+    output_tests(?_f(erlcloud_iam:simulate_custom_policy(["s3:ListBucket"],
+                                                         ["policy_doc1",
+                                                          "policy_doc2"])),
+                 Tests).
+
+simulate_principal_policy_input_test(_) ->
+    Principal = "arn:aws:iam:::user/Jill",
+    Action = "s3:PutObject",
+    Tests =
+        [?_iam_test(
+            {"SimulatePrincipalPolicy input",
+             ?_f(erlcloud_iam:simulate_principal_policy(Principal,
+                                                        [Action])),
+             [
+              {"Action", "SimulatePrincipalPolicy"},
+              {"ActionNames.member.1", http_uri:encode(Action)},
+              {"PolicySourceArn", http_uri:encode(Principal)},
+              {"MaxItems", "1000"}
+              ]})
+        ],
+    input_tests(?SIMULATE_PRINCIPAL_POLICY_RESP, Tests).
+
+simulate_principal_policy_output_test(_) ->
+    Tests =
+        [?_iam_test(
+            {"SimulatePrincipalPolicy output",
+            ?SIMULATE_PRINCIPAL_POLICY_RESP,
+            {ok, [[{evaluation_result_list,
+                    [[{eval_action_name, "s3:ListBucket"},
+                      {eval_decision, "allowed"},
+                      {eval_resource_name, "arn:aws:s3:::teambucket"},
+                      {matched_statements_list,
+                       [[{source_policy_id, "PolicyInputList.1"}]]}]]}]]}})
+        ],
+    output_tests(?_f(erlcloud_iam:simulate_principal_policy(["arn:aws:iam:::user/Jill"],
+                                                            ["s3:ListBucket"])),
+                 Tests).
