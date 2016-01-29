@@ -15,7 +15,8 @@
          terminate_instance/1, terminate_instance/2, terminate_instance/3,
 
          suspend_processes/1, suspend_processes/2, suspend_processes/3,
-         resume_processes/1, resume_processes/2, resume_processes/3]).
+         resume_processes/1, resume_processes/2, resume_processes/3,
+         detach_instances/2, detach_instances/3, detach_instances/4]).
 
 -define(API_VERSION, "2011-01-01").
 -define(DEFAULT_MAX_RECORDS, 20).
@@ -49,6 +50,11 @@
         "/SuspendProcessesResponse/ResponseMetadata/RequestId").
 -define(RESUME_PROCESSES_ACTIVITY, 
         "/ResumeProcessesResponse/ResponseMetadata/RequestId").
+
+%% xpath for detach instances:
+-define(DETACH_INSTANCES_ACTIVITY, 
+        "/DetachInstancesResponse/DetachInstancesResult/Activities/member").
+
 
 %% --------------------------------------------------------------------
 %% @doc Calls describe_groups([], default_configuration())
@@ -366,6 +372,44 @@ resume_processes(GroupName, ScalingProcesses, Config) ->
             {error, Reason}
     end.
 
+
+%% --------------------------------------------------------------------
+%% @doc Detach the given instances from the group using the default configuration
+%% without decrementing the desired capacity of the group.
+%% @end
+%% --------------------------------------------------------------------
+-spec detach_instances(list(string()),string()) -> aws_autoscaling_activity().
+detach_instances(InstanceIds, GroupName) ->
+    detach_instances(InstanceIds, GroupName, erlcloud_aws:default_config()).
+
+%% --------------------------------------------------------------------
+%% @doc Detach the given instances from the group.  The 3rd parameter can be:
+%% 'false' to not decrement the desired capacity of the group
+%% 'true' to decrement the desired capacity of the group
+%% Config a supplied AWS configuration.
+%% @end
+%% --------------------------------------------------------------------
+detach_instances(InstanceIds, GroupName, false) ->
+    detach_instances(InstanceIds, GroupName, false, erlcloud_aws:default_config());
+detach_instances(InstanceIds, GroupName, true) ->
+    detach_instances(InstanceIds, GroupName, true, erlcloud_aws:default_config());
+detach_instances(InstanceIds, GroupName, Config) ->
+    detach_instances(InstanceIds, GroupName, false, Config).
+
+detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity, Config) ->
+    P = case ShouldDecrementDesiredCapacity of
+            true ->
+                [{"ShouldDecrementDesiredCapacity", "true"}, {"AutoScalingGroupName", GroupName} | member_params("InstanceIds.member.", InstanceIds)];
+            false ->
+                [{"ShouldDecrementDesiredCapacity", "true"}, {"AutoScalingGroupName", GroupName} | member_params("InstanceIds.member.", InstanceIds)]
+    end,
+    case as_query(Config, "DetachInstances", P, ?API_VERSION) of
+        {ok, Doc} ->
+            Activities = [extract_as_activity(A) || A <- xmerl_xpath:string(?DETACH_INSTANCES_ACTIVITY, Doc)],
+            {ok, Activities};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 
 %% given a list of member identifiers, return a list of 
