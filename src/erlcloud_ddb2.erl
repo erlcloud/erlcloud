@@ -83,7 +83,8 @@
 -include("erlcloud_ddb2.hrl").
 
 %%% Library initialization.
--export([configure/2, configure/3, new/2, new/3]).
+-export([configure/2, configure/3, configure/4, configure/5,
+         new/2, new/3, new/4, new/5]).
 
 %%% DynamoDB API
 -export([batch_get_item/1, batch_get_item/2, batch_get_item/3,
@@ -211,6 +212,21 @@ new(AccessKeyID, SecretAccessKey, Host) ->
                 secret_access_key=SecretAccessKey,
                 ddb_host=Host}.
 
+-spec(new/4 :: (string(), string(), string(), non_neg_integer()) -> aws_config()).
+new(AccessKeyID, SecretAccessKey, Host, Port) ->
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey,
+                ddb_host=Host,
+                ddb_port=Port}.
+
+-spec(new/5 :: (string(), string(), string(), non_neg_integer(), string()) -> aws_config()).
+new(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
+    #aws_config{access_key_id=AccessKeyID,
+                secret_access_key=SecretAccessKey,
+                ddb_host=Host,
+                ddb_port=Port,
+                ddb_scheme=Scheme}.
+
 -spec(configure/2 :: (string(), string()) -> ok).
 configure(AccessKeyID, SecretAccessKey) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey)),
@@ -219,6 +235,16 @@ configure(AccessKeyID, SecretAccessKey) ->
 -spec(configure/3 :: (string(), string(), string()) -> ok).
 configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
+    ok.
+
+-spec(configure/4 :: (string(), string(), string(), non_neg_integer()) -> ok).
+configure(AccessKeyID, SecretAccessKey, Host, Port) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port)),
+    ok.
+
+-spec(configure/5 :: (string(), string(), string(), non_neg_integer(), string()) -> ok).
+configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port, Scheme)),
     ok.
 
 default_config() -> erlcloud_aws:default_config().
