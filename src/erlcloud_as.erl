@@ -248,7 +248,7 @@ describe_instances(I, MaxRecords, none, Config) ->
 describe_instances(I, MaxRecords, NextToken, Config) ->
     describe_instances(I, [{"MaxRecords", MaxRecords}, {"NextToken", NextToken}], Config).
 
--spec describe_instances(list(string()), list({string(), string()}), aws_config()) -> 
+-spec describe_instances(list(string()), list({string(), term()}), aws_config()) -> 
                                 {ok, list(aws_launch_config())} | 
                                 {{paged, string()}, list(aws_launch_config)} | 
                                 {error, term()}.                       
@@ -372,7 +372,7 @@ resume_processes(GroupName, ScalingProcesses, Config) ->
 %% {key with prefix, member identifier} for use in autoscaling calls.
 %% Example pair that could be returned in a list is 
 %% {"LaunchConfigurationNames.member.1", "my-launch-config}.
--spec member_params(string(), list(string())) -> list({string(), string()}).
+-spec member_params(string(), list(string())) -> list({string(), term()}).
 member_params(Prefix, MemberIdentifiers) ->
     MemberKeys = [Prefix ++ integer_to_list(I) || I <- lists:seq(1, length(MemberIdentifiers))],
     [{K, V} || {K, V} <- lists:zip(MemberKeys, MemberIdentifiers)].
@@ -405,7 +405,7 @@ get_text(Label, Doc) ->
 
 %% Based on erlcoud_ec2:ec2_query2()
 %% @TODO:  spec is too general with terms I think
--spec as_query(aws_config(), string(), list({string(), string()}), string()) -> {ok, term()} | {error, term}.
+-spec as_query(aws_config(), string(), list({string(), term()}), string()) -> {ok, term()} | {error, term()}.
 as_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml4(post, Config#aws_config.as_host, 
