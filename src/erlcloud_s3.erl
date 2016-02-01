@@ -1,7 +1,8 @@
 %% Amazon Simple Storage Service (S3)
 
 -module(erlcloud_s3).
--export([new/2, new/3, new/4, configure/2, configure/3, configure/4,
+-export([new/2, new/3, new/4, new/5,
+         configure/2, configure/3, configure/4, configure/5,
          create_bucket/1, create_bucket/2, create_bucket/3,
          delete_bucket/1, delete_bucket/2,
          get_bucket_attribute/2, get_bucket_attribute/3,
@@ -68,6 +69,17 @@ new(AccessKeyID, SecretAccessKey, Host, Port) ->
        s3_port=Port
       }.
 
+-spec new(string(), string(), string(), non_neg_integer(), string()) -> aws_config().
+
+new(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
+    #aws_config{
+       access_key_id=AccessKeyID,
+       secret_access_key=SecretAccessKey,
+       s3_host=Host,
+       s3_port=Port,
+       s3_scheme=Scheme
+      }.
+
 -spec configure(string(), string()) -> ok.
 
 configure(AccessKeyID, SecretAccessKey) ->
@@ -84,6 +96,12 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 
 configure(AccessKeyID, SecretAccessKey, Host, Port) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port)),
+    ok.
+
+-spec configure(string(), string(), string(), non_neg_integer(), string()) -> ok.
+
+configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port, Scheme)),
     ok.
 
 -type s3_bucket_attribute_name() :: acl
