@@ -3,7 +3,7 @@
 -module(erlcloud_s3).
 -export([new/2, new/3, new/4, new/5,
          configure/2, configure/3, configure/4, configure/5,
-         create_bucket/1, create_bucket/2, create_bucket/3,
+         create_bucket/1, create_bucket/2, create_bucket/3, create_bucket/4,
          delete_bucket/1, delete_bucket/2,
          get_bucket_attribute/2, get_bucket_attribute/3,
          list_buckets/0, list_buckets/1,
