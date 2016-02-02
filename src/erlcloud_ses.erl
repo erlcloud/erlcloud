@@ -17,7 +17,6 @@
 %%
 %% @end
 
-
 -module(erlcloud_ses).
 
 -export([configure/2, configure/3, new/2, new/3]).
@@ -98,7 +97,6 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 
 default_config() -> erlcloud_aws:default_config().
 
-
 %%%------------------------------------------------------------------------------
 %%% DeleteIdentity
 %%%------------------------------------------------------------------------------
@@ -131,7 +129,6 @@ delete_identity(Identity, Config) ->
         {ok, _Doc} -> ok;
         {error, Reason} -> {error, Reason}
     end.
-
 
 %%%------------------------------------------------------------------------------
 %%% GetIdentityDkimAttributes
@@ -175,11 +172,11 @@ get_identity_dkim_attributes(Identities, Config) ->
     Params = encode_params([{identities, Identities}]),
     case ses_request(Config, "GetIdentityDkimAttributes", Params) of
         {ok, Doc} ->
-            {ok, erlcloud_xml:decode([{dkim_attributes, "GetIdentityDkimAttributesResult/DkimAttributes/entry", fun decode_dkim_attributes/1}],
-                                     Doc)};
+            {ok, erlcloud_xml:decode([{dkim_attributes,
+                                       "GetIdentityDkimAttributesResult/DkimAttributes/entry",
+                                       fun decode_dkim_attributes/1}], Doc)};
         {error, Reason} -> {error, Reason}
     end.
-
 
 %%%------------------------------------------------------------------------------
 %%% GetIdentityNotificationAttributes
@@ -211,7 +208,7 @@ get_identity_notification_attributes(Identities) ->
 %%                                    [{forwarding_enabled, true},
 %%                                     {bounce_topic, "arn:aws:sns:us-east-1:123456789012:example"},
 %%                                     {complaint_topic, "arn:aws:sns:us-east-1:123456789012:example"},
-%%                                     {delivery_topic, "arn:aws:sns:us-east-1:123456789012:example"}]}]}]} = 
+%%                                     {delivery_topic, "arn:aws:sns:us-east-1:123456789012:example"}]}]}]} =
 %% erlcloud_ses:get_identity_notification_attributes(["user@example.com"]).
 %% '
 %%
@@ -224,11 +221,12 @@ get_identity_notification_attributes(Identities, Config) ->
     Params = encode_params([{identities, Identities}]),
     case ses_request(Config, "GetIdentityNotificationAttributes", Params) of
         {ok, Doc} ->
-            {ok, erlcloud_xml:decode([{notification_attributes, "GetIdentityNotificationAttributesResult/NotificationAttributes/entry", fun decode_notification_attributes/1}],
+            {ok, erlcloud_xml:decode([{notification_attributes,
+                                       "GetIdentityNotificationAttributesResult/NotificationAttributes/entry",
+                                       fun decode_notification_attributes/1}],
                                      Doc)};
         {error, Reason} -> {error, Reason}
     end.
-
 
 %%%------------------------------------------------------------------------------
 %%% GetIdentityVerificationAttributes
@@ -271,11 +269,12 @@ get_identity_verification_attributes(Identities, Config) ->
     Params = encode_params([{identities, Identities}]),
     case ses_request(Config, "GetIdentityVerificationAttributes", Params) of
         {ok, Doc} ->
-            {ok, erlcloud_xml:decode([{verification_attributes, "GetIdentityVerificationAttributesResult/VerificationAttributes/entry", fun decode_verification_attributes/1}],
+            {ok, erlcloud_xml:decode([{verification_attributes,
+                                       "GetIdentityVerificationAttributesResult/VerificationAttributes/entry",
+                                       fun decode_verification_attributes/1}],
                                      Doc)};
         {error, Reason} -> {error, Reason}
     end.
-
 
 %%%------------------------------------------------------------------------------
 %%% GetSendQuota
@@ -301,7 +300,7 @@ get_send_quota() ->
 %% `
 %%  {ok, [{sent_last_24_hours, 127.0},
 %%        {max_24_hour_send, 200.0},
-%%        {max_send_rate, 1.0}]} = 
+%%        {max_send_rate, 1.0}]} =
 %% erlcloud_ses:get_send_quota().
 %% '
 %%
@@ -318,7 +317,6 @@ get_send_quota(Config) ->
                                      Doc)};
         {error, Reason} -> {error, Reason}
     end.
-
 
 %%%------------------------------------------------------------------------------
 %%% GetSendStatistics
@@ -352,7 +350,7 @@ get_send_statistics() ->
 %%                            {bounces,0},
 %%                            {complaints,0}],
 %%                           ...
-%%                          ]}]} = 
+%%                          ]}]} =
 %% erlcloud_ses:get_send_statistics().
 %% '
 %%
@@ -363,11 +361,12 @@ get_send_statistics() ->
 get_send_statistics(Config) ->
     case ses_request(Config, "GetSendStatistics", []) of
         {ok, Doc} ->
-            {ok, erlcloud_xml:decode([{send_data_points, "GetSendStatisticsResult/SendDataPoints/member", fun decode_send_data_points/1}],
+            {ok, erlcloud_xml:decode([{send_data_points,
+                                       "GetSendStatisticsResult/SendDataPoints/member",
+                                       fun decode_send_data_points/1}],
                                      Doc)};
         {error, Reason} -> {error, Reason}
     end.
-
 
 %%%------------------------------------------------------------------------------
 %%% ListIdentities
@@ -410,7 +409,7 @@ list_identities(Opts) ->
 %%
 %% `
 %%  {ok, [{identities, ["example.com"]},
-%%        {next_token, "..."}]} = 
+%%        {next_token, "..."}]} =
 %% erlcloud_ses:list_identities([{identity_type, domain},
 %%                               {max_items, 1},
 %%                               {next_token, "..."}]).
@@ -430,7 +429,6 @@ list_identities(Opts, Config) ->
                                      Doc)};
         {error, Reason} -> {error, Reason}
     end.
-
 
 %%%------------------------------------------------------------------------------
 %%% SendEmail
@@ -459,10 +457,9 @@ list_identities(Opts, Config) ->
 
 -type send_email_result() :: {ok, [{message_id, string()}]} | {error, term()}.
 
-
 send_email(Destination, Body, Subject, Source) ->
     send_email(Destination, Body, Subject, Source, [], default_config()).
-                                                       
+
 send_email(Destination, Body, Subject, Source, #aws_config{} = Config) ->
     send_email(Destination, Body, Subject, Source, [], Config);
 send_email(Destination, Body, Subject, Source, Opts) ->
@@ -522,13 +519,11 @@ send_email(Destination, Body, Subject, Source, Opts, Config) ->
         {error, Reason} -> {error, Reason}
     end.
 
-
 %%%------------------------------------------------------------------------------
 %%% SetIdentityDkimEnabled
 %%%------------------------------------------------------------------------------
 
 -type set_identity_dkim_enabled_result() :: ok | {error, term()}.
-
 
 set_identity_dkim_enabled(Identity, DkimEnabled) ->
     set_identity_dkim_enabled(Identity, DkimEnabled, default_config()).
@@ -559,13 +554,11 @@ set_identity_dkim_enabled(Identity, DkimEnabled, Config) ->
         {error, Reason} -> {error, Reason}
     end.
 
-
 %%%------------------------------------------------------------------------------
 %%% SetIdentityFeedbackForwardingEnabled
 %%%------------------------------------------------------------------------------
 
 -type set_identity_feedback_forwarding_enabled_result() :: ok | {error, term()}.
-
 
 set_identity_feedback_forwarding_enabled(Identity, ForwardingEnabled) ->
     set_identity_feedback_forwarding_enabled(Identity, ForwardingEnabled, default_config()).
@@ -595,7 +588,6 @@ set_identity_feedback_forwarding_enabled(Identity, ForwardingEnabled, Config) ->
         {ok, _Doc} -> ok;
         {error, Reason} -> {error, Reason}
     end.
-
 
 %%%------------------------------------------------------------------------------
 %%% SetIdentityNotificationTopic
@@ -642,12 +634,11 @@ set_identity_notification_topic(Identity, NotificationType, SnsTopic, Config) ->
         {error, Reason} -> {error, Reason}
     end.
 
-
 %%%------------------------------------------------------------------------------
 %%% VerifyDomainDkim
 %%%------------------------------------------------------------------------------
 
--type verify_domain_dkim_result() :: {ok, [{dkim_tokens, [string()]}]} | 
+-type verify_domain_dkim_result() :: {ok, [{dkim_tokens, [string()]}]} |
                                      {error, term()}.
 
 verify_domain_dkim(Domain) ->
@@ -677,16 +668,18 @@ verify_domain_dkim(Domain, Config) ->
     Params = encode_params([{domain, Domain}]),
     case ses_request(Config, "VerifyDomainDkim", Params) of
         {ok, Doc} ->
-            {ok, erlcloud_xml:decode([{dkim_tokens, "VerifyDomainDkimResult/DkimTokens/member", list}], Doc)};
+            {ok, erlcloud_xml:decode([{dkim_tokens,
+                                       "VerifyDomainDkimResult/DkimTokens/member",
+                                       list}],
+                                     Doc)};
         {error, Reason} -> {error, Reason}
     end.
-
 
 %%%------------------------------------------------------------------------------
 %%% VerifyDomainIdentity
 %%%------------------------------------------------------------------------------
 
--type verify_domain_identity_result() :: {ok, [{verification_token, string()}]} | 
+-type verify_domain_identity_result() :: {ok, [{verification_token, string()}]} |
                                          {error, term()}.
 
 verify_domain_identity(Domain) ->
@@ -714,10 +707,12 @@ verify_domain_identity(Domain, Config) ->
     Params = encode_params([{domain, Domain}]),
     case ses_request(Config, "VerifyDomainIdentity", Params) of
         {ok, Doc} ->
-            {ok, erlcloud_xml:decode([{verification_token, "VerifyDomainIdentityResult/VerificationToken", text}], Doc)};
+            {ok, erlcloud_xml:decode([{verification_token,
+                                       "VerifyDomainIdentityResult/VerificationToken",
+                                       text}],
+                                     Doc)};
         {error, Reason} -> {error, Reason}
     end.
-
 
 %%%------------------------------------------------------------------------------
 %%% VerifyEmailIdentity
@@ -751,7 +746,6 @@ verify_email_identity(EmailAddress, Config) ->
         {ok, _Doc} -> ok;
         {error, Reason} -> {error, Reason}
     end.
-
 
 %%%------------------------------------------------------------------------------
 %%% Encoders
@@ -853,14 +847,13 @@ encode_body([{_,_} | _] = Body, Acc) ->
 encode_body(Body, Acc) when is_list(Body); is_binary(Body) ->
     %% Single entry
     encode_body_pairs([{text, Body}], Acc).
-    
+
 encode_opts([], Acc) ->
     Acc;
 encode_opts([{reply_to_addresses, List} | T], Acc) ->
     encode_opts(T, encode_list("ReplyToAddresses", List, Acc));
 encode_opts([{return_path, ReturnPath} | T], Acc) ->
     encode_opts(T, [{"ReturnPath", ReturnPath} | Acc]).
-
 
 encode_identity_type(email_address, Acc) ->
     [{"IdentityType", "EmailAddress"} | Acc];
@@ -883,21 +876,20 @@ encode_notification_type(NotificationType, _Acc) ->
 %%%------------------------------------------------------------------------------
 
 -spec decode_verification_status(string()) -> verification_status().
-decode_verification_status("Pending") -> pending; 
-decode_verification_status("Success") -> success; 
-decode_verification_status("Failed") -> failed; 
-decode_verification_status("TemporaryFailure") -> temporary_failure; 
+decode_verification_status("Pending") -> pending;
+decode_verification_status("Success") -> success;
+decode_verification_status("Failed") -> failed;
+decode_verification_status("TemporaryFailure") -> temporary_failure;
 decode_verification_status("NotStarted") -> not_started.
-
 
 decode_dkim_attributes(DkimAttributesDoc) ->
     [{erlcloud_xml:get_text("key", Entry),
       erlcloud_xml:decode([{dkim_enabled, "value/DkimEnabled", boolean},
-                           {dkim_verification_status, "value/DkimVerificationStatus", {value, fun decode_verification_status/1}},
+                           {dkim_verification_status, "value/DkimVerificationStatus",
+                            {value, fun decode_verification_status/1}},
                            {dkim_tokens, "value/DkimTokens/member", list}],
                           Entry)}
         || Entry <- DkimAttributesDoc].
-
 
 decode_notification_attributes(NotificationAttributesDoc) ->
     [{erlcloud_xml:get_text("key", Entry),
@@ -908,14 +900,13 @@ decode_notification_attributes(NotificationAttributesDoc) ->
                           Entry)}
         || Entry <- NotificationAttributesDoc].
 
-
 decode_verification_attributes(VerificationAttributesDoc) ->
     [{erlcloud_xml:get_text("key", Entry),
-      erlcloud_xml:decode([{verification_status, "value/VerificationStatus", {value, fun decode_verification_status/1}},
+      erlcloud_xml:decode([{verification_status, "value/VerificationStatus",
+                            {value, fun decode_verification_status/1}},
                            {verification_token, "value/VerificationToken", optional_text}],
                           Entry)}
         || Entry <- VerificationAttributesDoc].
-
 
 decode_send_data_points(SendDataPointsDoc) ->
     [erlcloud_xml:decode([{delivery_attempts, "DeliveryAttempts", integer},
@@ -925,7 +916,6 @@ decode_send_data_points(SendDataPointsDoc) ->
                           {complaints, "Complaints", integer}],
                          Entry)
         || Entry <- SendDataPointsDoc].
-
 
 decode_error_code("IncompleteSignature") -> incomplete_signature;
 decode_error_code("InternalFailure") -> internal_failure;
@@ -945,11 +935,9 @@ decode_error_code("ServiceUnavailable") -> service_unavailable;
 decode_error_code("Throttling") -> throttling;
 decode_error_code("ValidationError") -> validation_error.
 
-
 decode_error(Doc) ->
     {erlcloud_ses, {decode_error_code(erlcloud_xml:get_text("Error/Code", Doc)),
                     erlcloud_xml:get_text("Error/Message", Doc)}}.
-
 
 %%%------------------------------------------------------------------------------
 %%% Internal Functions
@@ -969,10 +957,10 @@ ses_request_no_update(Config, Action, Params) ->
                   erlcloud_util:sha256_mac(Config#aws_config.secret_access_key, Date)),
     Auth = lists:flatten(
              ["AWS3-HTTPS AWSAccessKeyId=",
-              Config#aws_config.access_key_id, 
+              Config#aws_config.access_key_id,
               ",Algorithm=HmacSHA256,Signature=",
               Signature]),
-             
+
     Headers = [{"Date", Date},
                {"X-Amzn-Authorization", Auth}],
     Headers2 = case Config#aws_config.security_token of
@@ -981,8 +969,8 @@ ses_request_no_update(Config, Action, Params) ->
                    Token ->
                        [{"x-amz-security-token", Token} | Headers]
                end,
-    QParams = [{"Action", Action}, 
-               {"Version", ?API_VERSION} | 
+    QParams = [{"Action", Action},
+               {"Version", ?API_VERSION} |
                Params],
     Query = erlcloud_http:make_query_string(QParams),
 
@@ -993,6 +981,6 @@ ses_request_no_update(Config, Action, Params) ->
         {error, {http_error, Code, _, ErrBody}} when Code >= 400; Code =< 599 ->
             ErrDoc = element(1, xmerl_scan:string(binary_to_list(ErrBody))),
             {error, decode_error(ErrDoc)};
-        {error, Reason} -> 
+        {error, Reason} ->
             {error, Reason}
     end.

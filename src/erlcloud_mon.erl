@@ -16,8 +16,7 @@
 
 -export([
          list_metrics/4,
-         put_metric_data/2,
-         put_metric_data/5,
+         put_metric_data/2, put_metric_data/5,
          get_metric_statistics/8,
          configure_host/3,
          test/0,

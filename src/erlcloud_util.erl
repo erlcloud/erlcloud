@@ -1,6 +1,8 @@
 -module(erlcloud_util).
+
 -export([sha_mac/2, sha256_mac/2,
-         md5/1, sha256/1]).
+         md5/1,
+         sha256/1]).
 
 sha_mac(K, S) ->
     try
@@ -11,7 +13,7 @@ sha_mac(K, S) ->
             R1 = crypto:hmac_update(R0, S),
             crypto:hmac_final(R1)
     end.
-        
+
 sha256_mac(K, S) ->
     try
         crypto:hmac(sha256, K, S)
@@ -37,4 +39,3 @@ md5(V) ->
         _:_ ->
             crypto:md5(V)
     end.
-     

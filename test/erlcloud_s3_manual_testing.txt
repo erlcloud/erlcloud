@@ -1,6 +1,6 @@
 This is manual test for the following functions :
-    'erlcloud_s3:delete_objects_batch' 
-    'erlcloud_s3:explore_dirstructure' 
+    'erlcloud_s3:delete_objects_batch'
+    'erlcloud_s3:explore_dirstructure'
 
 
 1) run erlcloud:
@@ -30,12 +30,12 @@ This is manual test for the following functions :
      "sailfish/deleteme/deep/ZZZ_0.txt",
      "sailfish/deleteme/Germany.png",
      "sailfish/deleteme/AppIcon57x57.png"]
-  
+
 5) change files policy on AWS :  s3:DeleteObject: "Allow"
     Paths = "[\"arn:aws:s3:::xmppfiledev/sailfish/deleteme/deep/deep1/*\",\"arn:aws:s3:::xmppfiledev/sailfish/deleteme/deep/deep1/deep4/*\",\"arn:aws:s3:::xmppfiledev/sailfish/deleteme/*\",\"arn:aws:s3:::xmppfiledev/sailfish/deleteme/deep/*\"]",
     MsgID = "123456",
-    Msg = "{\"Id\":\"Policy" ++ MsgID ++ "\",\"Statement\":[{\"Sid\":\"Stmt" ++ 
-            MsgID ++ "\",\"Action\":[\"s3:DeleteObject\"],\"Effect\":\"Allow\",\"Resource\":"++ 
+    Msg = "{\"Id\":\"Policy" ++ MsgID ++ "\",\"Statement\":[{\"Sid\":\"Stmt" ++
+            MsgID ++ "\",\"Action\":[\"s3:DeleteObject\"],\"Effect\":\"Allow\",\"Resource\":"++
                 Paths ++ ",\"Principal\":\"*\"}]}",
     erlcloud_s3:put_bucket_policy("xmppfiledev", list_to_binary(Msg)).
 

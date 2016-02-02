@@ -122,14 +122,16 @@ delete_attributes(DomainName, ItemName, Config)
 delete_attributes(DomainName, ItemName, Attributes) ->
     delete_attributes(DomainName, ItemName, Attributes, []).
 
--spec delete_attributes/4 :: (string(), string(), sdb_delete_attributes(), sdb_conditionals() | aws_config()) -> proplist().
+-spec delete_attributes/4 :: (string(), string(), sdb_delete_attributes(), sdb_conditionals() | aws_config()) ->
+    proplist().
 delete_attributes(DomainName, ItemName, Attributes, Config)
   when is_record(Config, aws_config) ->
     delete_attributes(DomainName, ItemName, Attributes, [], Config);
 delete_attributes(DomainName, ItemName, Attributes, Conditionals) ->
     delete_attributes(DomainName, ItemName, Attributes, Conditionals, default_config()).
 
--spec delete_attributes/5 :: (string(), string(), sdb_delete_attributes(), sdb_conditionals(), aws_config()) -> proplist().
+-spec delete_attributes/5 :: (string(), string(), sdb_delete_attributes(), sdb_conditionals(), aws_config()) ->
+    proplist().
 delete_attributes(DomainName, ItemName, Attributes, Conditionals, Config)
   when is_list(DomainName), is_list(ItemName), is_list(Attributes),
        is_list(Conditionals) ->
@@ -208,8 +210,8 @@ list_domains(FirstToken, MaxDomains, Config)
   when is_list(FirstToken),
        is_integer(MaxDomains) orelse MaxDomains =:= none ->
 
-    Params = 
-    maybe_add_nexttoken(FirstToken, 
+    Params =
+    maybe_add_nexttoken(FirstToken,
     maybe_add_maxdomains(MaxDomains, [])),
 
     {Doc, Result} = sdb_request(Config, "ListDomains", Params),
@@ -221,14 +223,16 @@ list_domains(FirstToken, MaxDomains, Config)
 put_attributes(DomainName, ItemName, Attributes) ->
     put_attributes(DomainName, ItemName, Attributes, []).
 
--spec put_attributes/4 :: (string(), string(), sdb_attributes(), sdb_conditionals() | aws_config()) -> proplist().
+-spec put_attributes/4 :: (string(), string(), sdb_attributes(), sdb_conditionals() | aws_config()) ->
+    proplist().
 put_attributes(DomainName, ItemName, Attributes, Config)
   when is_record(Config, aws_config) ->
     put_attributes(DomainName, ItemName, Attributes, [], Config);
 put_attributes(DomainName, ItemName, Attributes, Conditionals) ->
     put_attributes(DomainName, ItemName, Attributes, Conditionals, default_config()).
 
--spec put_attributes/5 :: (string(), string(), sdb_attributes(), sdb_conditionals(), aws_config()) -> proplist().
+-spec put_attributes/5 :: (string(), string(), sdb_attributes(), sdb_conditionals(), aws_config()) ->
+    proplist().
 put_attributes(DomainName, ItemName, Attributes, Conditionals, Config)
   when is_list(DomainName), is_list(ItemName), is_list(Attributes),
        is_list(Conditionals) ->

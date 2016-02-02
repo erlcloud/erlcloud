@@ -48,6 +48,7 @@
 -type json_return() :: {ok, jsx:json_term()} | {error, term()}.
 
 -type operation() :: string().
+
 -spec request(aws_config(), operation(), jsx:json_term()) -> json_return().
 request(Config0, Operation, Json) ->
     Body = case Json of
@@ -156,7 +157,9 @@ client_error(Status, StatusLine, Body) ->
 headers(Config, Operation, Body) ->
     Headers = [{"host", Config#aws_config.kinesis_host},
                {"x-amz-target", Operation}],
-    erlcloud_aws:sign_v4_headers(Config, Headers, Body, erlcloud_aws:aws_region_from_host(Config#aws_config.kinesis_host), "kinesis").
+    erlcloud_aws:sign_v4_headers(Config, Headers, Body,
+                                 erlcloud_aws:aws_region_from_host(Config#aws_config.kinesis_host),
+                                 "kinesis").
 
 url(#aws_config{kinesis_scheme = Scheme, kinesis_host = Host} = Config) ->
     lists:flatten([Scheme, Host, port_spec(Config)]).
@@ -165,4 +168,3 @@ port_spec(#aws_config{kinesis_port=80}) ->
     "";
 port_spec(#aws_config{kinesis_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
-

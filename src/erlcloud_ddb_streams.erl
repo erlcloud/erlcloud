@@ -199,7 +199,7 @@ undynamize_number(Value, _) ->
         false ->
             list_to_integer(String)
     end.
-            
+
 -spec undynamize_value_untyped(json_pair(), undynamize_opts()) -> untyped_attr_value().
 undynamize_value_untyped({<<"S">>, Value}, _) when is_binary(Value) ->
     Value;
@@ -226,7 +226,7 @@ undynamize_value_untyped({<<"M">>, Map}, Opts) ->
 undynamize_attr_untyped({Name, [ValueJson]}, Opts) ->
     {Name, undynamize_value_untyped(ValueJson, Opts)}.
 
--spec undynamize_object(fun((json_pair(), undynamize_opts()) -> A), 
+-spec undynamize_object(fun((json_pair(), undynamize_opts()) -> A),
                         [json_pair()] | [{}], undynamize_opts()) -> [A].
 undynamize_object(_, [{}], _) ->
     %% jsx returns [{}] for empty objects
@@ -502,7 +502,7 @@ describe_stream_opts() ->
     [{exclusive_start_shard_id, <<"ExclusiveStartShardId">>, fun id/1},
      {limit, <<"Limit">>, fun id/1}].
 
--spec describe_stream_record() -> record_desc().    
+-spec describe_stream_record() -> record_desc().
 describe_stream_record() ->
     {#ddb_streams_describe_stream{},
      [{<<"StreamDescription">>, #ddb_streams_describe_stream.stream_description,
@@ -520,7 +520,7 @@ describe_stream(StreamArn, Opts) ->
     describe_stream(StreamArn, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %% DynamoDB Streams API:
 %% [http://docs.aws.amazon.com/dynamodbstreams/latest/APIReference/API_DescribeStream.html]
 %%

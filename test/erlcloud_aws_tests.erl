@@ -94,7 +94,7 @@ get_service_status_test(_) ->
     OKStatusEmpty = erlcloud_aws:get_service_status(["sqs", "sns"]),
     meck:expect(erlcloud_httpc, request, fun(_,_,_,_,_,_) -> {ok, {{200, "OK"}, [], StatusJsonS3}} end),
     OKStatus = erlcloud_aws:get_service_status(["cloudformation", "sns", "vpc"]),
-    
+
     [?_assertEqual(proplists:get_value(<<"status">>, S3Status), 0),
      ?_assertEqual(proplists:get_value(<<"service">>, S3Status), <<"s3-eu-central-1">>),
      ?_assertEqual(proplists:get_value(<<"status">>, EC2Status), 2),

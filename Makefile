@@ -61,4 +61,3 @@ check-eunit: eunit
 
 doc:
 	@$(REBAR) doc skip_deps=true
-

@@ -1,7 +1,7 @@
 {"src/*", [
-   report, 
-   verbose, 
-   {i, "include"}, 
+   report,
+   verbose,
+   {i, "include"},
    {outdir, "ebin"},
-   debug_info 
+   debug_info
 ]}.

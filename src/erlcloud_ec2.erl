@@ -1,6 +1,9 @@
 -module(erlcloud_ec2).
 
 -include_lib("xmerl/include/xmerl.hrl").
+-include_lib("erlcloud/include/erlcloud.hrl").
+-include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include_lib("erlcloud/include/erlcloud_ec2.hrl").
 
 %% Library initialization.
 -export([configure/2, configure/3, new/2, new/3]).
@@ -166,9 +169,6 @@
 % -define(NEW_API_VERSION, "2013-10-15").
 % -define(NEW_API_VERSION, "2014-02-01").
 -define(NEW_API_VERSION, "2015-10-01").
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
--include_lib("erlcloud/include/erlcloud_ec2.hrl").
 
 -type(filter_list() :: [{string(),[string()]}]).
 
@@ -244,8 +244,8 @@ associate_address(PublicIP, InstanceID, AllocationID, Config) ->
                           ID -> [{ "AllocationId", ID }]
                       end,
     ec2_simple_query2(Config, "AssociateAddress",
-                     [{"InstanceId", InstanceID} | AllocationParam],
-                     ?NEW_API_VERSION).
+                      [{"InstanceId", InstanceID} | AllocationParam],
+                      ?NEW_API_VERSION).
 
 %%
 %%
@@ -256,7 +256,7 @@ associate_dhcp_options(OptionsID, VpcID) ->
 -spec(associate_dhcp_options/3 :: (string(), string(), aws_config()) -> ok | {error, any()}).
 associate_dhcp_options(OptionsID, VpcID, Config) ->
     ec2_simple_query2(Config, "AssociateDhcpOptions",
-                     [{"DhcpOptionsId", OptionsID}, {"VpcId", VpcID}]).
+                      [{"DhcpOptionsId", OptionsID}, {"VpcId", VpcID}]).
 
 %%
 %%
@@ -283,9 +283,8 @@ attach_internet_gateway(GatewayID, VpcID) ->
 -spec(attach_internet_gateway/3 :: (string(), string(), aws_config()) -> {ok, proplist()} | {error, any()}).
 attach_internet_gateway(GatewayID, VpcID, Config) ->
     ec2_simple_query2(Config, "AttachInternetGateway",
-                     [{"InternetGatewayId", GatewayID},
-                      {"VpcId", VpcID}], ?NEW_API_VERSION).
-
+                      [{"InternetGatewayId", GatewayID},
+                       {"VpcId", VpcID}], ?NEW_API_VERSION).
 
 %%
 %%
@@ -630,7 +629,6 @@ create_route(RouteTableID, DestCidrBl, Attachment, Val, Config) ->
               {"DestinationCidrBlock", DestCidrBl}],
     ec2_simple_query2(Config, "CreateRoute", Params, ?NEW_API_VERSION).
 
-
 %%
 %%
 -spec(create_route_table/1 :: (string()) -> {ok, [proplist()]} | {error, any()}).
@@ -646,7 +644,6 @@ create_route_table(VpcID, Config) ->
         {error, _} = Error ->
             Error
     end.
-
 
 %%
 %%
@@ -1251,7 +1248,6 @@ attribute_xpath(block_device_mapping, AttributeName) ->
     "/DescribeInstanceAttributeResponse/" ++ AttributeName;
 attribute_xpath(_, AttributeName) ->
     "/DescribeInstanceAttributeResponse/" ++ AttributeName ++ "/value".
-
 
 %%
 %%

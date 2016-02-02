@@ -5,13 +5,13 @@
 -include("erlcloud_ddb_streams.hrl").
 
 %% Unit tests for ddb streams.
-%% These tests work by using meck to mock erlcloud_httpc. 
+%% These tests work by using meck to mock erlcloud_httpc.
 
 %% The _ddb_test macro provides line number annotation to a test, similar to _test, but doesn't wrap in a fun
 -define(_ddb_streams_test(T), {?LINE, T}).
 %% The _f macro is a terse way to wrap code in a fun. Similar to _test but doesn't annotate with a line number
 -define(_f(F), fun() -> F end).
-                            
+
 %%%===================================================================
 %%% Test entry points
 %%%===================================================================
@@ -69,9 +69,9 @@ validate_body(Body, Expected) ->
 %% Validates the request body and responds with the provided response.
 -spec input_expect(string(), expected_body()) -> fun().
 input_expect(Response, Expected) ->
-    fun(_Url, post, _Headers, Body, _Timeout, _Config) -> 
+    fun(_Url, post, _Headers, Body, _Timeout, _Config) ->
             validate_body(Body, Expected),
-            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% input_test converts an input_test specifier into an eunit test generator
@@ -79,7 +79,7 @@ input_expect(Response, Expected) ->
 -spec input_test(string(), input_test_spec()) -> tuple().
 input_test(Response, {Line, {Description, Fun, Expected}}) when
       is_list(Description) ->
-    {Description, 
+    {Description,
      {Line,
       fun() ->
               meck:expect(erlcloud_httpc, request, input_expect(Response, Expected)),
@@ -99,8 +99,8 @@ input_tests(Response, Tests) ->
 %% returns the mock of the erlcloud_httpc function output tests expect to be called.
 -spec output_expect(string()) -> fun().
 output_expect(Response) ->
-    fun(_Url, post, _Headers, _Body, _Timeout, _Config) -> 
-            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
+    fun(_Url, post, _Headers, _Body, _Timeout, _Config) ->
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% output_test converts an output_test specifier into an eunit test generator
@@ -122,7 +122,7 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
       end}}.
 
 %% output_tests converts a list of output_test specifiers into an eunit test generator
--spec output_tests(fun(), [output_test_spec()]) -> [term()].       
+-spec output_tests(fun(), [output_test_spec()]) -> [term()].
 output_tests(Fun, Tests) ->
     [output_test(Fun, Test) || Test <- Tests].
 
@@ -202,7 +202,7 @@ describe_stream_input_tests(_) ->
     input_tests(Response, Tests).
 
 describe_stream_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_streams_test(
             {"DescribeStream example response", "
 {
@@ -360,7 +360,7 @@ get_records_input_tests(_) ->
     input_tests(Response, Tests).
 
 get_records_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_streams_test(
             {"GetRecords example response", "
 {
@@ -491,16 +491,16 @@ get_shard_iterator_input_tests(_) ->
             })
         ],
     Response = "
-{         
+{
     \"ShardIterator\": \"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-20T20:51:10.252|1|AAAAAAAAAAEvJp6D+zaQ...  <remaining characters omitted> ...\"
 }",
     input_tests(Response, Tests).
 
 get_shard_iterator_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_streams_test(
             {"GetShardIterator example response", "
-{         
+{
     \"ShardIterator\": \"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-20T20:51:10.252|1|AAAAAAAAAAEvJp6D+zaQ...  <remaining characters omitted> ...\"
 }",
              {ok, <<"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-20T20:51:10.252|1|AAAAAAAAAAEvJp6D+zaQ...  <remaining characters omitted> ...">>}})
@@ -543,13 +543,13 @@ list_streams_input_tests(_) ->
             \"StreamArn\": \"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-19T23:03:50.641\",
             \"TableName\": \"Forum\",
             \"StreamLabel\": \"2015-05-19T23:03:50.641\"
-        } 
+        }
     ]
 }",
     input_tests(Response, Tests).
 
 list_streams_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_streams_test(
             {"ListStreams example response", "
 {
@@ -566,7 +566,7 @@ list_streams_output_tests(_) ->
             \"StreamArn\": \"arn:aws:dynamodb:us-west-2:111122223333:table/Forum/stream/2015-05-19T23:03:50.641\",
             \"TableName\": \"Forum\",
             \"StreamLabel\": \"2015-05-19T23:03:50.641\"
-        } 
+        }
     ]
 }",
              {ok, [#ddb_streams_stream{

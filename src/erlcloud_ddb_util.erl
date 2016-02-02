@@ -96,7 +96,7 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts) ->
     delete_hash_key(Table, HashKey, RangeKeyName, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% Delete all items with the specified table. Table must be a
 %% hash-and-range primary key table. Opts is currently ignored and is
@@ -111,13 +111,14 @@ delete_hash_key(Table, HashKey, RangeKeyName, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec delete_hash_key(table_name(), hash_key(), range_key_name(), ddb_opts(), aws_config()) -> ok | {error, term()}.
+-spec delete_hash_key(table_name(), hash_key(), range_key_name(), ddb_opts(), aws_config()) ->
+    ok | {error, term()}.
 delete_hash_key(Table, HashKey, RangeKeyName, Opts, Config) ->
     case erlcloud_ddb2:q(Table, HashKey,
                          [{consistent_read, true},
                           {limit, ?BATCH_WRITE_LIMIT},
                           {attributes_to_get, [RangeKeyName]},
-                          {out, typed_record}], 
+                          {out, typed_record}],
                          Config) of
         {error, Reason} ->
             {error, Reason};
@@ -156,7 +157,7 @@ get_all(Table, Keys, Opts) ->
     get_all(Table, Keys, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% Perform one or more BatchGetItem operations to get all matching
 %% items. Operations are performed in parallel. Order may not be preserved.
@@ -167,9 +168,9 @@ get_all(Table, Keys, Opts) ->
 %% `
 %% {ok, Items} =
 %%     erlcloud_ddb_util:get_all(
-%%       <<"Forum">>, 
+%%       <<"Forum">>,
 %%       [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
-%%        {<<"Name">>, {s, <<"Amazon RDS">>}}, 
+%%        {<<"Name">>, {s, <<"Amazon RDS">>}},
 %%        {<<"Name">>, {s, <<"Amazon Redshift">>}}],
 %%       [{projection_expression, <<"Name, Threads, Messages, Views">>}]),
 %% '
@@ -200,10 +201,10 @@ batch_get_retry(RequestItems, Config, Acc) ->
     case erlcloud_ddb2:batch_get_item(RequestItems, [{out, record}], Config) of
         {error, Reason} ->
             {error, Reason};
-        {ok, #ddb2_batch_get_item{unprocessed_keys = [], 
+        {ok, #ddb2_batch_get_item{unprocessed_keys = [],
                                   responses = [#ddb2_batch_get_item_response{items = Items}]}} ->
             {ok, Items ++ Acc};
-        {ok, #ddb2_batch_get_item{unprocessed_keys = Unprocessed, 
+        {ok, #ddb2_batch_get_item{unprocessed_keys = Unprocessed,
                                   responses = [#ddb2_batch_get_item_response{items = Items}]}} ->
             batch_get_retry(Unprocessed, Config, Items ++ Acc)
     end.
@@ -265,7 +266,7 @@ q_all(Table, KeyConditionsOrExpression, Opts) ->
     q_all(Table, KeyConditionsOrExpression, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% Perform one or more Query operations to get all matching items.
 %%
@@ -296,7 +297,7 @@ q_all(Table, KeyConditionsOrExpression, Opts, Config) ->
            -> items_return().
 q_all(Table, KeyConditionsOrExpression, Opts, Config, Acc, StartKey) ->
     case erlcloud_ddb2:q(Table, KeyConditionsOrExpression,
-                         [{exclusive_start_key, StartKey}, {out, record} | Opts], 
+                         [{exclusive_start_key, StartKey}, {out, record} | Opts],
                          Config) of
         {error, Reason} ->
             {error, Reason};
@@ -476,4 +477,3 @@ safe_split(_, [], Acc) ->
     {lists:reverse(Acc), []};
 safe_split(N, [H|T], Acc) ->
     safe_split(N - 1, T, [H | Acc]).
-

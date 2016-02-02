@@ -10,14 +10,19 @@ Service APIs implemented:
 - Amazon SimpleDB
 - Amazon Mechanical Turk
 - Amazon CloudWatch (MON)
-- Amazon DynamoDB (ddb2) 
+- Amazon DynamoDB (ddb2)
 
-All API functions have been implemented.  Not all functions have been thoroughly tested, so exercise care when integrating this library into production code.  Please send bug reports and patches.
+All API functions have been implemented.  Not all functions have been
+thoroughly tested, so exercise care when integrating this library into
+production code.  Please send bug reports and patches.
 
-The libraries can be used two ways: either you can specify configuration parameters in the process dictionary, or you can create a configuration object and pass that to each request as the final parameter.
+The libraries can be used two ways: either you can specify configuration
+parameters in the process dictionary, or you can create a configuration object
+and pass that to each request as the final parameter.
 
 ## Getting started ##
-You need to clone the repository and download rebar (if it's not already available in your path).
+You need to clone the repository and download rebar (if it's not already
+available in your path).
 
 ```
 git clone https://github.com/erlcloud/erlcloud.git
@@ -37,22 +42,23 @@ make
 make run
 ```
 
-If you're using erlcloud in your application, add it as a dependency in your application's configuration file.  To use erlcloud in the shell, you can start it by calling:
+If you're using erlcloud in your application, add it as a dependency in your
+application's configuration file.  To use erlcloud in the shell, you can start
+it by calling:
 
 ```
 ssl:start().
 erlcloud:start().
 ```
 
-
-If you did not provide your amazon credentials in the environmental variables, then you need to provide the per-process configuration:
+If you did not provide your amazon credentials in the environmental variables,
+then you need to provide the per-process configuration:
 
 ```
 erlcloud_ec2:configure(AccessKeyId, SecretAccessKey [, Hostname]).
 ```
 
 Hostname defaults to "ec2.amazonaws.com".
-
 
 Then you can start making api calls, like:
 
@@ -69,6 +75,7 @@ erlcloud_ec2:describe_images(EC2).
 ```
 
 Creating an EC2 instance may look like this:
+
 ```
 start_instance(Ami, KeyPair, UserData, Type, Zone) ->
     Config = #aws_config{
@@ -103,4 +110,6 @@ v1.0.0
 
 ## Notes ##
 
-Indentation in contributions should follow indentation style of surrounding text. In general it follows default indentation rules of official erlang-mode as provided by OTP team.
+Indentation in contributions should follow indentation style of surrounding
+text. In general it follows default indentation rules of official erlang-mode
+as provided by OTP team.
