@@ -17,7 +17,7 @@
 -define(_ddb_test(T), {?LINE, T}).
 %% The _f macro is a terse way to wrap code in a fun. Similar to _test but doesn't annotate with a line number
 -define(_f(F), fun() -> F end).
-                            
+
 %%%===================================================================
 %%% Test entry points
 %%%===================================================================
@@ -54,7 +54,7 @@ stop(_) ->
 %% returns the mock of the erlcloud_httpc function multi-call tests expect to be called.
 -spec multi_call_expect([http_call(),...]) -> fun().
 multi_call_expect([{Expected, Response} | TCalls]) ->
-    fun(_Url, post, _Headers, Body, _Timeout, _Config) -> 
+    fun(_Url, post, _Headers, Body, _Timeout, _Config) ->
             erlcloud_ddb2_tests:validate_body(Body, Expected),
             case TCalls of
                 [] ->
@@ -64,9 +64,9 @@ multi_call_expect([{Expected, Response} | TCalls]) ->
                     %% Set up the expectation for the next call
                     meck:expect(erlcloud_httpc, request, multi_call_expect(TCalls))
             end,
-            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
-    
+
 
 %% mutil_call_test converts a multi_call_test specifier into an eunit test generator
 -type multi_call_test_spec() :: {pos_integer(), {description(), fun(), [http_call()], term()}}.
@@ -85,9 +85,9 @@ multi_call_test({Line, {Description, Fun, Calls, Result}}) ->
               end,
               ?assertEqual(Result, Actual)
       end}}.
-      
+
 %% multi_call_tests converts a list of multi_call_test specifiers into an eunit test generator
--spec multi_call_tests([multi_call_test_spec()]) -> [term()].       
+-spec multi_call_tests([multi_call_test_spec()]) -> [term()].
 multi_call_tests(Tests) ->
     [multi_call_test(Test) || Test <- Tests].
 
@@ -515,7 +515,7 @@ q_all_tests(_) ->
             \"S\": \"rk2\"
         }
     }
-}"}, 
+}"},
               {"
 {
     \"TableName\": \"tn\",

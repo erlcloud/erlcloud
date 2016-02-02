@@ -530,4 +530,3 @@ describe_spot_fleet_request_output_tests(_) ->
 
     })],
     output_tests(?_f(erlcloud_ec2:describe_spot_fleet_instances("sfr-123f8fc2-cb31-425e-abcd-example2710")), Tests).
-

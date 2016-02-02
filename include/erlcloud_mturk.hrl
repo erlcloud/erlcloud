@@ -5,6 +5,7 @@
           data_url=""::string(),
           alt_text=""::string()
          }).
+
 -record(mturk_selection, {
           selection_identifier::string(),
           text::string(),
@@ -36,7 +37,6 @@
           min_file_size_in_bytes=0::0..2000000000,
           max_file_size_in_bytes=2000000000::0..2000000000
          }).
-
 -type mturk_answer_specification() ::
         #mturk_free_text_answer{} | #mturk_selection_answer{} |
         #mturk_file_upload_answer{}.
@@ -48,14 +48,12 @@
           height::non_neg_integer(),
           application_parameters::[{string(), string()}]
          }).
-
 -record(mturk_flash, {
           flash_movie_url::string(),
           width::non_neg_integer(),
           height::non_neg_integer(),
           application_parameters::[{string(), string()}]
          }).
-
 -type mturk_application() :: #mturk_java_applet{} | #mturk_flash{}.
 
 -record(mturk_embedded_binary, {
@@ -66,7 +64,6 @@
           height::non_neg_integer(),
           application_parameters::[{string(), string()}]
          }).
-
 -type mturk_question_content() ::
         {title, string()} | {text, string()} | {list, [string()]} | #mturk_binary{} |
         mturk_application() | #mturk_embedded_binary{} |
@@ -95,7 +92,6 @@
           selection_identifier::string(),
           answer_score::integer()
          }).
-
 -record(mturk_test_answer, {
           question_identifier::string(),
           answer_options=[]::[#mturk_answer_option{}],
@@ -110,7 +106,6 @@
           answers=[]::[#mturk_test_answer{}],
           qualification_value_mapping::mturk_qualification_value_mapping()
          }).
-
 -type(mturk_qualification_type_status() :: active | inactive).
 -record(mturk_qualification_type, {
           qualification_type_id::string(),

@@ -42,6 +42,7 @@
           spot_price::string(),
           weighted_capacity::number()
          }).
+
 -record(ec2_image_spec, {
           image_location::string(),
           name::string(),
@@ -52,6 +53,7 @@
           root_device_name::string(),
           block_device_mapping=[]::[ec2_block_device_mapping()]
          }).
+
 -record(ec2_spot_instance_request, {
           spot_price::string(),
           instance_count=1::pos_integer(),
@@ -62,6 +64,7 @@
           availability_zone_group::string(),
           launch_specification::#ec2_instance_spec{}
          }).
+
 -record(spot_fleet_request_config_spec, {
           allocation_strategy::lowest_price|diversified,
           client_token::string(),
@@ -74,9 +77,11 @@
           valid_from::datetime(),
           valid_until::datetime()
          }).
+
 -record(ec2_spot_fleet_request, {
           spot_fleet_request_config::#spot_fleet_request_config_spec{}
          }).
+
 -record(ec2_ingress_spec, {
           ip_protocol::tcp|udp|icmp,
           from_port::-1 | 0..65535,
@@ -85,6 +90,7 @@
           source_security_group_name::string(),
           cidr_ip::string()
          }).
+
 -record(vpc_ingress_spec, {
           ip_protocol::tcp|udp|icmp,
           from_port::-1 | 0..65535,
@@ -122,5 +128,3 @@
           key :: string(),
           value :: string()
          }).
-
-

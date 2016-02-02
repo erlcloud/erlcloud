@@ -37,13 +37,13 @@ config(Config) ->
 
 httpc_expect(Response) ->
     httpc_expect(get, Response).
-    
+
 httpc_expect(Method, Response) ->
-    fun(_Url, Method2, _Headers, _Body, _Timeout, _Config) -> 
+    fun(_Url, Method2, _Headers, _Body, _Timeout, _Config) ->
             Method = Method2,
             Response
     end.
-    
+
 get_bucket_policy_tests(_) ->
     Response = {ok, {{200, "OK"}, [], <<"TestBody">>}},
     meck:expect(erlcloud_httpc, request, httpc_expect(Response)),
@@ -67,7 +67,7 @@ error_handling_default_retry() ->
     Response2 = {ok, {{200, "OK"}, [], <<"TestBody">>}},
     meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2]),
     Result = erlcloud_s3:get_bucket_policy(
-               "BucketName", 
+               "BucketName",
                config(#aws_config{retry = fun erlcloud_retry:default_retry/1})),
     ?_assertEqual({ok, "TestBody"}, Result).
 
@@ -76,7 +76,7 @@ error_handling_httpc_error() ->
     Response2 = {ok, {{200, "OK"}, [], <<"TestBody">>}},
     meck:sequence(erlcloud_httpc, request, 6, [Response1, Response2]),
     Result = erlcloud_s3:get_bucket_policy(
-               "BucketName", 
+               "BucketName",
                config(#aws_config{retry = fun erlcloud_retry:default_retry/1})),
     ?_assertEqual({ok, "TestBody"}, Result).
 

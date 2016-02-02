@@ -19,7 +19,7 @@
 -define(_f(F), fun() -> F end).
 
 -export([validate_body/2]).
-                            
+
 %%%===================================================================
 %%% Test entry points
 %%%===================================================================
@@ -97,9 +97,9 @@ validate_body(Body, Expected) ->
 %% Validates the request body and responds with the provided response.
 -spec input_expect(string(), expected_body()) -> fun().
 input_expect(Response, Expected) ->
-    fun(_Url, post, _Headers, Body, _Timeout, _Config) -> 
+    fun(_Url, post, _Headers, Body, _Timeout, _Config) ->
             validate_body(Body, Expected),
-            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% input_test converts an input_test specifier into an eunit test generator
@@ -107,7 +107,7 @@ input_expect(Response, Expected) ->
 -spec input_test(string(), input_test_spec()) -> tuple().
 input_test(Response, {Line, {Description, Fun, Expected}}) when
       is_list(Description) ->
-    {Description, 
+    {Description,
      {Line,
       fun() ->
               meck:expect(erlcloud_httpc, request, input_expect(Response, Expected)),
@@ -129,8 +129,8 @@ input_tests(Response, Tests) ->
 %% returns the mock of the erlcloud_httpc function output tests expect to be called.
 -spec output_expect(string()) -> fun().
 output_expect(Response) ->
-    fun(_Url, post, _Headers, _Body, _Timeout, _Config) -> 
-            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
+    fun(_Url, post, _Headers, _Body, _Timeout, _Config) ->
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% output_test converts an output_test specifier into an eunit test generator
@@ -152,9 +152,9 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
       end}}.
 %% output_test(Fun, {Line, {Response, Result}}) ->
 %%     output_test(Fun, {Line, {"", Response, Result}}).
-      
+
 %% output_tests converts a list of output_test specifiers into an eunit test generator
--spec output_tests(fun(), [output_test_spec()]) -> [term()].       
+-spec output_tests(fun(), [output_test_spec()]) -> [term()].
 output_tests(Fun, Tests) ->
     [output_test(Fun, Test) || Test <- Tests].
 
@@ -166,7 +166,7 @@ output_tests(Fun, Tests) ->
 -spec httpc_response(pos_integer(), string()) -> tuple().
 httpc_response(Code, Body) ->
     {ok, {{Code, ""}, [], list_to_binary(Body)}}.
-    
+
 -type error_test_spec() :: {pos_integer(), {string(), list(), term()}}.
 -spec error_test(fun(), error_test_spec()) -> tuple().
 error_test(Fun, {Line, {Description, Responses, Result}}) ->
@@ -180,7 +180,7 @@ error_test(Fun, {Line, {Description, Responses, Result}}) ->
               Actual = Fun(),
               ?assertEqual(Result, Actual)
       end}}.
-      
+
 -spec error_tests(fun(), [error_test_spec()]) -> [term()].
 error_tests(Fun, Tests) ->
     [error_test(Fun, Test) || Test <- Tests].
@@ -208,12 +208,12 @@ error_handling_tests(_) ->
 	 \"status\":{\"S\":\"online\"}
 	},
 \"ConsumedCapacityUnits\": 1
-}"                                   
+}"
                                   ),
     OkResult = {ok, [{<<"friends">>, [<<"Lynda">>, <<"Aaron">>]},
                      {<<"status">>, <<"online">>}]},
 
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"Test retry after ProvisionedThroughputExceededException",
              [httpc_response(400, "
@@ -235,7 +235,7 @@ error_handling_tests(_) ->
               OkResponse],
              OkResult})
         ],
-    
+
     error_tests(?_f(erlcloud_ddb2:get_item(<<"table">>, {<<"k">>, <<"v">>})), Tests).
 
 
@@ -246,13 +246,13 @@ batch_get_item_input_tests(_) ->
         [?_ddb_test(
             {"BatchGetItem example request",
              ?_f(erlcloud_ddb2:batch_get_item(
-                   [{<<"Forum">>, 
+                   [{<<"Forum">>,
                      [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
-                      {<<"Name">>, {s, <<"Amazon RDS">>}}, 
+                      {<<"Name">>, {s, <<"Amazon RDS">>}},
                       {<<"Name">>, {s, <<"Amazon Redshift">>}}],
                      [{attributes_to_get, [<<"Name">>, <<"Threads">>, <<"Messages">>, <<"Views">>]}]},
-                    {<<"Thread">>, 
-                     [[{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
+                    {<<"Thread">>,
+                     [[{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                        {<<"Subject">>, {s, <<"Concurrent reads">>}}]],
                      [{attributes_to_get, [<<"Tags">>, <<"Message">>]}]}],
                    [{return_consumed_capacity, total}])), "
@@ -407,7 +407,7 @@ batch_get_item_input_tests(_) ->
     input_tests(Response, Tests).
 
 batch_get_item_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"BatchGetItem example response", "
 {
@@ -481,10 +481,10 @@ batch_get_item_output_tests(_) ->
     ]
 }",
              {ok, #ddb2_batch_get_item
-              {consumed_capacity = 
+              {consumed_capacity =
                    [#ddb2_consumed_capacity{table_name = <<"Forum">>, capacity_units = 3},
                     #ddb2_consumed_capacity{table_name = <<"Thread">>, capacity_units = 1}],
-               responses = 
+               responses =
                    [#ddb2_batch_get_item_response
                     {table = <<"Forum">>,
                      items = [[{<<"Name">>, <<"Amazon DynamoDB">>},
@@ -539,19 +539,19 @@ batch_get_item_output_tests(_) ->
     }
 }",
              {ok, #ddb2_batch_get_item
-              {responses = [], 
-               unprocessed_keys = 
-                   [{<<"Forum">>, 
+              {responses = [],
+               unprocessed_keys =
+                   [{<<"Forum">>,
                      [[{<<"Name">>, {s, <<"Amazon DynamoDB">>}}],
-                      [{<<"Name">>, {s, <<"Amazon RDS">>}}], 
+                      [{<<"Name">>, {s, <<"Amazon RDS">>}}],
                       [{<<"Name">>, {s, <<"Amazon Redshift">>}}]],
                      [{attributes_to_get, [<<"Name">>, <<"Threads">>, <<"Messages">>, <<"Views">>]}]},
-                    {<<"Thread">>, 
-                     [[{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
+                    {<<"Thread">>,
+                     [[{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                        {<<"Subject">>, {s, <<"Concurrent reads">>}}]],
                      [{attributes_to_get, [<<"Tags">>, <<"Message">>]}]}]}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb2:batch_get_item([{<<"table">>, [{<<"k">>, <<"v">>}]}], [{out, record}])), Tests).
 
 %% BatchWriteItem test based on the API examples:
@@ -694,7 +694,7 @@ batch_write_item_input_tests(_) ->
     input_tests(Response, Tests).
 
 batch_write_item_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"BatchWriteItem example response", "
 {
@@ -724,7 +724,7 @@ batch_write_item_output_tests(_) ->
              {ok, #ddb2_batch_write_item
               {consumed_capacity = [#ddb2_consumed_capacity{table_name = <<"Forum">>, capacity_units = 3}],
                item_collection_metrics = undefined,
-               unprocessed_items = [{<<"Forum">>, 
+               unprocessed_items = [{<<"Forum">>,
                                      [{put, [{<<"Name">>, {s, <<"Amazon ElastiCache">>}},
                                              {<<"Category">>, {s, <<"Amazon Web Services">>}}]}]}]}}}),
          ?_ddb_test(
@@ -757,7 +757,7 @@ batch_write_item_output_tests(_) ->
     }
 }",
              {ok, #ddb2_batch_write_item
-              {consumed_capacity = undefined, 
+              {consumed_capacity = undefined,
                item_collection_metrics = undefined,
                unprocessed_items =
                    [{<<"Forum">>, [{put, [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
@@ -808,8 +808,8 @@ batch_write_item_output_tests(_) ->
     }
 }",
              {ok, #ddb2_batch_write_item
-              {consumed_capacity = undefined, 
-               item_collection_metrics = 
+              {consumed_capacity = undefined,
+               item_collection_metrics =
                    [{<<"Table1">>,
                      [#ddb2_item_collection_metrics
                       {item_collection_key = <<"value1">>,
@@ -825,7 +825,7 @@ batch_write_item_output_tests(_) ->
                      ]}],
                unprocessed_items = []}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb2:batch_write_item([], [{out, record}])), Tests).
 
 %% CreateTable test based on the API examples:
@@ -840,7 +840,7 @@ create_table_input_tests(_) ->
                     {<<"Subject">>, s},
                     {<<"LastPostDateTime">>, s}],
                    {<<"ForumName">>, <<"Subject">>},
-                   5, 
+                   5,
                    5,
                    [{local_secondary_indexes,
                      [{<<"LastPostIndex">>, <<"LastPostDateTime">>, keys_only}]},
@@ -883,7 +883,7 @@ create_table_input_tests(_) ->
                 \"WriteCapacityUnits\": 5
             }
         }
-    ],    
+    ],
     \"TableName\": \"Thread\",
     \"KeySchema\": [
         {
@@ -927,12 +927,12 @@ create_table_input_tests(_) ->
                     {<<"Subject">>, s},
                     {<<"LastPostDateTime">>, s}],
                    {<<"ForumName">>, <<"Subject">>},
-                   5, 
+                   5,
                    5,
                    [{local_secondary_indexes,
                      [{<<"LastPostIndex">>, <<"LastPostDateTime">>, {include, [<<"Author">>, <<"Body">>]}}]},
                     {global_secondary_indexes,
-                     [{<<"SubjectIndex">>, {<<"Subject">>, <<"LastPostDateTime">>}, {include, [<<"Author">>]}, 10, 5}]}]  
+                     [{<<"SubjectIndex">>, {<<"Subject">>, <<"LastPostDateTime">>}, {include, [<<"Author">>]}, 10, 5}]}]
                   )), "
 {
     \"AttributeDefinitions\": [
@@ -973,7 +973,7 @@ create_table_input_tests(_) ->
                 \"WriteCapacityUnits\": 5
             }
         }
-    ],  
+    ],
     \"TableName\": \"Thread\",
     \"KeySchema\": [
         {
@@ -1016,7 +1016,7 @@ create_table_input_tests(_) ->
                    <<"Thread">>,
                    {<<"ForumName">>, s},
                    <<"ForumName">>,
-                   1, 
+                   1,
                    1
                   )), "
 {
@@ -1103,7 +1103,7 @@ create_table_input_tests(_) ->
     input_tests(Response, Tests).
 
 create_table_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"CreateTable example response", "
 {
@@ -1206,7 +1206,7 @@ create_table_output_tests(_) ->
                        item_count = 0,
                        key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
                        projection = keys_only}],
-               global_secondary_indexes = 
+               global_secondary_indexes =
                    [#ddb2_global_secondary_index_description{
                        index_name = <<"SubjectIndex">>,
                        index_size_bytes = 2048,
@@ -1221,7 +1221,7 @@ create_table_output_tests(_) ->
                           read_capacity_units = 3,
                           write_capacity_units = 4}
                     }],
-               provisioned_throughput = 
+               provisioned_throughput =
                    #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
                       last_increase_date_time = undefined,
@@ -1279,7 +1279,7 @@ create_table_output_tests(_) ->
                     \"WriteCapacityUnits\": 4
                 }
             }
-        ],        
+        ],
         \"CreationDateTime\": 1.36372808007E9,
         \"ItemCount\": 0,
         \"KeySchema\": [
@@ -1337,7 +1337,7 @@ create_table_output_tests(_) ->
                        item_count = 0,
                        key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
                        projection = {include, [<<"Author">>, <<"Body">>]}}],
-               global_secondary_indexes = 
+               global_secondary_indexes =
                    [#ddb2_global_secondary_index_description{
                        index_name = <<"SubjectIndex">>,
                        index_size_bytes = 2048,
@@ -1352,7 +1352,7 @@ create_table_output_tests(_) ->
                           read_capacity_units = 3,
                           write_capacity_units = 4}
                     }],
-               provisioned_throughput = 
+               provisioned_throughput =
                    #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
                       last_increase_date_time = undefined,
@@ -1396,7 +1396,7 @@ create_table_output_tests(_) ->
                item_count = 0,
                key_schema = <<"ForumName">>,
                local_secondary_indexes = undefined,
-               provisioned_throughput = 
+               provisioned_throughput =
                    #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
                       last_increase_date_time = undefined,
@@ -1407,7 +1407,7 @@ create_table_output_tests(_) ->
                table_size_bytes = 0,
                table_status = creating}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb2:create_table(<<"name">>, [{<<"key">>, s}], <<"key">>, 5, 10)), Tests).
 
 %% DeleteItem test based on the API examples:
@@ -1416,7 +1416,7 @@ delete_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"DeleteItem example request",
-             ?_f(erlcloud_ddb2:delete_item(<<"Thread">>, 
+             ?_f(erlcloud_ddb2:delete_item(<<"Thread">>,
                                           [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                            {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
                                           [{return_values, all_old},
@@ -1462,7 +1462,7 @@ delete_item_input_tests(_) ->
             }),
          ?_ddb_test(
             {"DeleteItem return metrics",
-             ?_f(erlcloud_ddb2:delete_item(<<"Thread">>, 
+             ?_f(erlcloud_ddb2:delete_item(<<"Thread">>,
                                           {<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                           [{return_consumed_capacity, total},
                                            {return_item_collection_metrics, size}])), "
@@ -1505,7 +1505,7 @@ delete_item_input_tests(_) ->
     input_tests(Response, Tests).
 
 delete_item_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"DeleteItem example response", "
 {
@@ -1565,7 +1565,7 @@ delete_item_output_tests(_) ->
                             size_estimate_range_gb = {1,2}}
                      }}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb2:delete_item(<<"table">>, {<<"k">>, <<"v">>}, [{out, record}])), Tests).
 
 %% DeleteTable test based on the API examples:
@@ -1598,7 +1598,7 @@ delete_table_input_tests(_) ->
     input_tests(Response, Tests).
 
 delete_table_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"DeleteTable example response", "
 {
@@ -1624,7 +1624,7 @@ delete_table_output_tests(_) ->
                table_size_bytes = 0,
                table_status = deleting}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb2:delete_table(<<"name">>)), Tests).
 
 %% DescribeTable test based on the API examples:
@@ -1702,7 +1702,7 @@ describe_table_input_tests(_) ->
     input_tests(Response, Tests).
 
 describe_table_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"DescribeTable example response", "
 {
@@ -1751,7 +1751,7 @@ describe_table_output_tests(_) ->
                     \"WriteCapacityUnits\": 4
                 }
             }
-        ],          
+        ],
         \"CreationDateTime\": 1.363729002358E9,
         \"ItemCount\": 0,
         \"KeySchema\": [
@@ -1808,7 +1808,7 @@ describe_table_output_tests(_) ->
                        item_count = 0,
                        key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
                        projection = keys_only}],
-               global_secondary_indexes = 
+               global_secondary_indexes =
                    [#ddb2_global_secondary_index_description{
                        index_name = <<"SubjectIndex">>,
                        index_size_bytes = 2048,
@@ -1822,8 +1822,8 @@ describe_table_output_tests(_) ->
                           number_of_decreases_today = 2,
                           read_capacity_units = 3,
                           write_capacity_units = 4}
-                    }],                       
-               provisioned_throughput = 
+                    }],
+               provisioned_throughput =
                    #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
                       last_increase_date_time = undefined,
@@ -1834,7 +1834,7 @@ describe_table_output_tests(_) ->
                table_size_bytes = 0,
                table_status = active}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb2:describe_table(<<"name">>)), Tests).
 
 %% GetItem test based on the API examples:
@@ -1860,7 +1860,7 @@ get_item_input_tests(_) ->
         [?_ddb_test(
             {"GetItem example request, with fully specified keys",
              ?_f(erlcloud_ddb2:get_item(<<"Thread">>,
-                                       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
+                                       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                         {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
                                        [{attributes_to_get, [<<"LastPostDateTime">>, <<"Message">>, <<"Tags">>]},
                                         consistent_read,
@@ -1871,7 +1871,7 @@ get_item_input_tests(_) ->
              Example1Response}),
          ?_ddb_test(
             {"GetItem example request, with inferred key types",
-             ?_f(erlcloud_ddb2:get_item(<<"Thread">>, 
+             ?_f(erlcloud_ddb2:get_item(<<"Thread">>,
                                        [{<<"ForumName">>, "Amazon DynamoDB"},
                                         {<<"Subject">>, <<"How do I update multiple items?">>}],
                                        [{attributes_to_get, [<<"LastPostDateTime">>, <<"Message">>, <<"Tags">>]},
@@ -1933,7 +1933,7 @@ get_item_input_tests(_) ->
     input_tests(Response, Tests).
 
 get_item_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"GetItem example response", "
 {
@@ -1986,19 +1986,19 @@ get_item_output_tests(_) ->
                              {<<"empty">>, <<>>}],
                     consumed_capacity = undefined}}}),
          ?_ddb_test(
-            {"GetItem item not found", 
+            {"GetItem item not found",
              "{}",
              {ok, #ddb2_get_item{item = undefined}}}),
          ?_ddb_test(
-            {"GetItem no attributes returned", 
+            {"GetItem no attributes returned",
              "{\"Item\":{}}",
              {ok, #ddb2_get_item{item = []}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb2:get_item(<<"table">>, {<<"k">>, <<"v">>}, [{out, record}])), Tests).
 
 get_item_output_typed_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"GetItem typed test all attribute types", "
 {\"Item\":
@@ -2025,7 +2025,7 @@ get_item_output_typed_tests(_) ->
                              {<<"empty">>, {s, <<>>}}],
                     consumed_capacity = undefined}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb2:get_item(
                        <<"table">>, {<<"k">>, <<"v">>}, [{out, typed_record}])), Tests).
 
@@ -2043,7 +2043,7 @@ list_tables_input_tests(_) ->
             }),
          ?_ddb_test(
             {"ListTables empty request",
-             ?_f(erlcloud_ddb2:list_tables()), 
+             ?_f(erlcloud_ddb2:list_tables()),
              "{}"
             })
 
@@ -2057,7 +2057,7 @@ list_tables_input_tests(_) ->
     input_tests(Response, Tests).
 
 list_tables_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"ListTables example response", "
 {
@@ -2068,7 +2068,7 @@ list_tables_output_tests(_) ->
               {last_evaluated_table_name = <<"Thread">>,
                table_names = [<<"Forum">>, <<"Reply">>, <<"Thread">>]}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb2:list_tables([{out, record}])), Tests).
 
 %% PutItem test based on the API examples:
@@ -2077,7 +2077,7 @@ put_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"PutItem example request",
-             ?_f(erlcloud_ddb2:put_item(<<"Thread">>, 
+             ?_f(erlcloud_ddb2:put_item(<<"Thread">>,
                                        [{<<"LastPostedBy">>, <<"fred@example.com">>},
                                         {<<"ForumName">>, <<"Amazon DynamoDB">>},
                                         {<<"LastPostDateTime">>, <<"201303190422">>},
@@ -2119,7 +2119,7 @@ put_item_input_tests(_) ->
             }),
          ?_ddb_test(
             {"PutItem float inputs",
-             ?_f(erlcloud_ddb2:put_item(<<"Thread">>, 
+             ?_f(erlcloud_ddb2:put_item(<<"Thread">>,
                                        [{<<"typed float">>, {n, 1.2}},
                                         {<<"untyped float">>, 3.456},
                                         {<<"mixed set">>, {ns, [7.8, 9.0, 10]}}],
@@ -2228,7 +2228,7 @@ put_item_input_tests(_) ->
     input_tests(Response, Tests).
 
 put_item_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"PutItem example response", "
 {
@@ -2323,7 +2323,7 @@ put_item_output_tests(_) ->
                                   ]
                      }}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb2:put_item(<<"table">>, [], [{out, record}])), Tests).
 
 %% Query test based on the API examples:
@@ -2463,7 +2463,7 @@ q_input_tests(_) ->
     input_tests(Response, Tests).
 
 q_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"Query example 1 response", "
 {
@@ -2559,12 +2559,12 @@ q_output_tests(_) ->
     }
 }",
              {ok, #ddb2_q{count = 17,
-                         last_evaluated_key = 
+                         last_evaluated_key =
                              [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                               {<<"Subject">>, {s, <<"Exclusive key can have 3 parts">>}},                                                        {<<"LastPostDateTime">>, {s, <<"20130102054211">>}}]
                          }}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb2:q(<<"table">>, [{<<"k">>, <<"v">>, eq}], [{out, record}])), Tests).
 
 %% Scan test based on the API examples:
@@ -2581,7 +2581,7 @@ scan_input_tests(_) ->
             }),
          ?_ddb_test(
             {"Scan example 2 request",
-             ?_f(erlcloud_ddb2:scan(<<"Reply">>, 
+             ?_f(erlcloud_ddb2:scan(<<"Reply">>,
                                    [{scan_filter, [{<<"PostedBy">>, <<"joe@example.com">>, eq}]},
                                     {return_consumed_capacity, total}])), "
 {
@@ -2610,7 +2610,7 @@ scan_input_tests(_) ->
             }),
          ?_ddb_test(
             {"Scan exclusive start key",
-             ?_f(erlcloud_ddb2:scan(<<"Reply">>, 
+             ?_f(erlcloud_ddb2:scan(<<"Reply">>,
                                    [{exclusive_start_key, [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                                            {<<"LastPostDateTime">>, {n, 20130102054211}}]}])), "
 {
@@ -2722,7 +2722,7 @@ scan_input_tests(_) ->
     input_tests(Response, Tests).
 
 scan_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"Scan example 1 response", "
 {
@@ -2926,7 +2926,7 @@ scan_output_tests(_) ->
                                      {<<"LastPostDateTime">>, {n, 20130102054211}}],
                scanned_count = 4}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb2:scan(<<"name">>, [{out, record}])), Tests).
 
 %% UpdateItem test based on the API examples:
@@ -2935,7 +2935,7 @@ update_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"UpdateItem example request",
-             ?_f(erlcloud_ddb2:update_item(<<"Thread">>, 
+             ?_f(erlcloud_ddb2:update_item(<<"Thread">>,
                                           [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                            {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
                                           [{<<"LastPostedBy">>, {s, <<"alice@example.com">>}, put}],
@@ -3052,7 +3052,7 @@ update_item_input_tests(_) ->
     input_tests(Response, Tests).
 
 update_item_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"UpdateItem example response", "
 {
@@ -3093,7 +3093,7 @@ update_item_output_tests(_) ->
 }",
              {ok, []}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb2:update_item(<<"table">>, {<<"k">>, <<"v">>}, [])), Tests).
 
 %% UpdateTable test based on the API examples:
@@ -3102,7 +3102,7 @@ update_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"UpdateTable example request",
-             ?_f(erlcloud_ddb2:update_table(<<"Thread">>, 10, 10, 
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>, 10, 10,
                                             [{global_secondary_index_updates, [{<<"SubjectIdx">>, 30, 40}, {<<"AnotherIdx">>, 50, 60}]}])), "
 {
     \"TableName\": \"Thread\",
@@ -3189,7 +3189,7 @@ update_table_input_tests(_) ->
         ],
 
     Response = "
-{          
+{
     \"TableDescription\": {
         \"AttributeDefinitions\": [
             {
@@ -3251,10 +3251,10 @@ update_table_input_tests(_) ->
     input_tests(Response, Tests).
 
 update_table_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"UpdateTable example response", "
-{          
+{
     \"TableDescription\": {
         \"AttributeDefinitions\": [
             {
@@ -3300,7 +3300,7 @@ update_table_output_tests(_) ->
                     \"WriteCapacityUnits\": 4
                 }
             }
-        ],          
+        ],
         \"CreationDateTime\": 1.363801528686E9,
         \"ItemCount\": 0,
         \"KeySchema\": [
@@ -3358,7 +3358,7 @@ update_table_output_tests(_) ->
                        item_count = 0,
                        key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
                        projection = keys_only}],
-               global_secondary_indexes = 
+               global_secondary_indexes =
                    [#ddb2_global_secondary_index_description{
                        index_name = <<"SubjectIndex">>,
                        index_size_bytes = 2048,
@@ -3372,8 +3372,8 @@ update_table_output_tests(_) ->
                           number_of_decreases_today = 2,
                           read_capacity_units = 3,
                           write_capacity_units = 4}
-                    }],                        
-               provisioned_throughput = 
+                    }],
+               provisioned_throughput =
                    #ddb2_provisioned_throughput_description{
                       last_decrease_date_time = undefined,
                       last_increase_date_time = 1363801701.282,
@@ -3384,6 +3384,5 @@ update_table_output_tests(_) ->
                table_size_bytes = 0,
                table_status = updating}}})
         ],
-    
-    output_tests(?_f(erlcloud_ddb2:update_table(<<"name">>, 5, 15)), Tests).
 
+    output_tests(?_f(erlcloud_ddb2:update_table(<<"name">>, 5, 15)), Tests).

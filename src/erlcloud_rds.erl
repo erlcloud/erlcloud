@@ -607,4 +607,3 @@ extract_ip_range(XmlNode) ->
          "Status",
          optional_text}
     ], XmlNode).
-

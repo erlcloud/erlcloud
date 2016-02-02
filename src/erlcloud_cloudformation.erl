@@ -11,7 +11,6 @@
 -type params() :: proplists:proplist().
 -type cloudformation_list() :: proplists:proplist().
 
-
 %% lhttpc possible error reasons for lhttpc:request()
 -type error_reason() :: connection_closed | connect_timeout | timeout.
 
@@ -21,39 +20,22 @@
     new/2
 ]).
 
-
 %% Cloud Formation API Functions
--export ([
-          list_stacks_all/1,
-          list_stacks_all/2,
-          list_stacks/2,
-          list_stacks/1,
-          list_stack_resources_all/2,
-          list_stack_resources_all/3,
-          list_stack_resources/2,
-          list_stack_resources/1,
-          describe_stack_resources/2,
-          describe_stack_resources/3,
-          describe_stack_resource/3,
-          describe_stack_resource/4,
-          describe_stacks_all/1,
-          describe_stacks_all/2,
-          describe_stacks/2,
-          describe_stacks/1,
-          get_stack_policy/2,
-          get_stack_policy/3,
-          get_template/2,
-          get_template/1,
-          get_template_summary/2,
-          get_template_summary/3,
-          describe_account_limits_all/0,
-          describe_account_limits_all/1,
-          describe_account_limits/2,
-          describe_account_limits/1,
-          describe_stack_events_all/1,
-          describe_stack_events_all/2,
-          describe_stack_events/2,
-          describe_stack_events/1]).
+-export ([list_stacks_all/1, list_stacks_all/2,
+          list_stacks/2, list_stacks/1,
+          list_stack_resources_all/2, list_stack_resources_all/3,
+          list_stack_resources/2, list_stack_resources/1,
+          describe_stack_resources/2, describe_stack_resources/3,
+          describe_stack_resource/3, describe_stack_resource/4,
+          describe_stacks_all/1, describe_stacks_all/2,
+          describe_stacks/2, describe_stacks/1,
+          get_stack_policy/2, get_stack_policy/3,
+          get_template/2, get_template/1,
+          get_template_summary/2, get_template_summary/3,
+          describe_account_limits_all/0, describe_account_limits_all/1,
+          describe_account_limits/2, describe_account_limits/1,
+          describe_stack_events_all/1, describe_stack_events_all/2,
+          describe_stack_events/2, describe_stack_events/1]).
 
 
 %%==============================================================================
@@ -85,14 +67,13 @@ list_stacks_all(Params, Config = #aws_config{}) ->
     list_all(fun list_stacks/2, Params, Config, []).
 
 -spec list_stacks(params()) -> {ok, cloudformation_list()}
-| {error, error_reason()}.
+                               | {error, error_reason()}.
 list_stacks(Params) ->
     list_stacks(Params, default_config()).
 
 -spec list_stacks(params(), aws_config()) -> {ok, cloudformation_list()}
-    | {error, error_reason()}.
+                                             | {error, error_reason()}.
 list_stacks(Params, Config = #aws_config{}) ->
-
      ExtraParams= lists:map(fun(T) ->
             case T of
                 {stack_status_filter, N, Filter} ->
@@ -168,7 +149,6 @@ describe_stack_resources(Params, StackName) ->
 -spec describe_stack_resources(params(), string(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 describe_stack_resources(Params, StackName, Config = #aws_config{}) ->
-
     FullParams = [{"StackName", StackName}
         | lists:map(
             fun(T) ->
@@ -194,8 +174,7 @@ describe_stack_resource(Params, StackName, LogicalResourceId) ->
 -spec describe_stack_resource(params(), string(), string(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 describe_stack_resource(Params, StackName, LogicalResourceId,
-    Config = #aws_config{}) ->
-
+                        Config = #aws_config{}) ->
     FullParams = [{"StackName", StackName},
         {"LogicalResourceId", LogicalResourceId}
             | lists:map(
@@ -221,7 +200,6 @@ describe_stacks_all(Params) ->
 -spec describe_stacks_all(params(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 describe_stacks_all(Params, Config = #aws_config{}) ->
-
     RequestParams = lists:map(fun(T) -> convert_param(T) end, Params),
 
     list_all(fun describe_stacks/2, RequestParams, Config, []).
@@ -234,7 +212,6 @@ describe_stacks(Params) ->
 -spec describe_stacks(params(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 describe_stacks(Params, Config = #aws_config{}) ->
-
     case cloudformation_request(Config, "DescribeStacks", Params) of
         {ok, XmlNode} ->
             NextToken = erlcloud_xml:get_text(
@@ -261,7 +238,6 @@ get_stack_policy(Params, StackName) ->
 -spec get_stack_policy(params(), string(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 get_stack_policy(Params, StackName, Config = #aws_config{}) ->
-
     FullParams = [{"StackName", StackName}
         | lists:map(
             fun(T) ->
@@ -286,7 +262,6 @@ describe_stack_events_all(Params) ->
 -spec describe_stack_events_all(params(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 describe_stack_events_all(Params, Config = #aws_config{}) ->
-
     RequestParams = lists:map(
         fun(T) ->
             convert_param(T)
@@ -302,7 +277,6 @@ describe_stack_events(Params) ->
 -spec describe_stack_events(params(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 describe_stack_events(Params, Config = #aws_config{}) ->
-
     case cloudformation_request(Config, "DescribeStackEvents", Params) of
         {ok, XmlNode} ->
             NextToken = erlcloud_xml:get_text(
@@ -326,7 +300,6 @@ get_template(StackName) ->
 -spec get_template(string(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 get_template(StackName, Config = #aws_config{}) ->
-
     case cloudformation_request(Config, "GetTemplate",
             [{"StackName", StackName}]) of
         {ok, XmlNode} ->
@@ -343,7 +316,6 @@ get_template_summary(Params, StackName) ->
 -spec get_template_summary(params(), string(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 get_template_summary(Params, StackName, Config = #aws_config{}) ->
-
     FullParams = [{"StackName", StackName}
         | lists:map(
             fun(T) ->
@@ -375,7 +347,6 @@ describe_account_limits(Params) ->
 -spec describe_account_limits(params, aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 describe_account_limits(Params, Config = #aws_config{}) ->
-
     RequestParams = lists:map(fun(T) -> convert_param(T) end, Params),
 
     case cloudformation_request(Config, "DescribeAccountLimits",
@@ -412,7 +383,6 @@ default_config() ->
     erlcloud_aws:default_config().
 
 cloudformation_request(Config = #aws_config{}, Action, ExtraParams) ->
-
     QParams = [
         {"Action", Action},
         {"Version", ?API_VERSION}
@@ -648,7 +618,3 @@ extract_account_limit(XmlNode) ->
             {name, "Name", optional_text},
             {value, "Value", optional_text}
         ], XmlNode).
-
-
-
-

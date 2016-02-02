@@ -8,7 +8,7 @@
 %% I thought that this would be at least somewhat useful for whenever I or
 %% someone else wants to expand the various records to capture more of the
 %% information provided by the AWS autoscaling APIs.
-%% 
+%%
 %% I've taken a bit of a shortcut here in mocking only the function
 %% erlcloud_aws:aws_request_xml2 as I figured the other tests cover
 %% the underlying HTTP well enough.
@@ -33,7 +33,7 @@ extract_result({ok, Res}) ->
 description_tests(_) ->
     [
      fun() ->
-             ?assertEqual(extract_result(erlcloud_as:describe_groups()), 
+             ?assertEqual(extract_result(erlcloud_as:describe_groups()),
                           expected_groups()) end,
      fun() ->
              ?assertEqual(extract_result(erlcloud_as:describe_instances()),
@@ -46,11 +46,11 @@ terminate_tests(_) ->
      [fun() ->
              Res = extract_result(erlcloud_as:terminate_instance("i-bdae7a84", true)),
              ?assertEqual(Res, expected_activity()) end].
-    
+
 mocked_aws_xml() ->
     meck:expect(erlcloud_aws, default_config, [{[], #aws_config{}}]),
     meck:expect(erlcloud_aws, aws_request_xml4, [
-                                                 mocked_groups(), 
+                                                 mocked_groups(),
                                                  mocked_instances(),
                                                  mocked_launch_configs(),
                                                  mocked_activity()]).
@@ -60,9 +60,9 @@ parsed_mock_response(Text) ->
 
 mocked_groups() ->
     {[post, '_', "/", [
-                       {"Action", "DescribeAutoScalingGroups"}, 
-                       {"Version", '_'}, 
-                       {"MaxRecords", '_'}], 
+                       {"Action", "DescribeAutoScalingGroups"},
+                       {"Version", '_'},
+                       {"MaxRecords", '_'}],
       "autoscaling", '_'], parsed_mock_response("
 <DescribeAutoScalingGroupsResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
 <DescribeAutoScalingGroupsResult>
@@ -115,9 +115,9 @@ expected_groups() ->
 
 mocked_instances() ->
     {[post, '_', "/", [
-                       {"Action", "DescribeAutoScalingInstances"}, 
-                       {"Version", '_'}, 
-                       {"MaxRecords", '_'}], 
+                       {"Action", "DescribeAutoScalingInstances"},
+                       {"Version", '_'},
+                       {"MaxRecords", '_'}],
       "autoscaling", '_'], {ok, element(1, xmerl_scan:string("
 <DescribeAutoScalingInstancesResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
   <DescribeAutoScalingInstancesResult>
@@ -148,9 +148,9 @@ expected_instances() ->
 
 mocked_launch_configs() ->
     {[post, '_', "/", [
-                       {"Action", "DescribeLaunchConfigurations"}, 
-                       {"Version", '_'}, 
-                       {"MaxRecords", '_'}], 
+                       {"Action", "DescribeLaunchConfigurations"},
+                       {"Version", '_'},
+                       {"MaxRecords", '_'}],
       "autoscaling", '_'], parsed_mock_response("
 <DescribeLaunchConfigurationsResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
   <DescribeLaunchConfigurationsResult>
@@ -191,9 +191,9 @@ expected_launch_configs() ->
 
 mocked_activity() ->
     {[post, '_', "/", [
-                       {"Action", "TerminateInstanceInAutoScalingGroup"}, 
-                       {"Version", "2011-01-01"}, 
-                       {"InstanceId", "i-bdae7a84"}, 
+                       {"Action", "TerminateInstanceInAutoScalingGroup"},
+                       {"Version", "2011-01-01"},
+                       {"InstanceId", "i-bdae7a84"},
                        {"ShouldDecrementDesiredCapacity", "true"}],
       "autoscaling", '_'], parsed_mock_response("
 <TerminateInstanceInAutoScalingGroupResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">

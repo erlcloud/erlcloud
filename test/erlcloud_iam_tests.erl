@@ -65,7 +65,7 @@ common_params() ->
 -spec validate_param(string(), [expected_param()]) -> [expected_param()].
 validate_param(Param, Expected) ->
     case string:tokens(Param, "=") of
-        [Key, Value] -> 
+        [Key, Value] ->
             ok;
         [Key] ->
             Value = "",
@@ -78,7 +78,7 @@ validate_param(Param, Expected) ->
             Expected1 = lists:delete({Key, Value}, Expected),
             case length(Expected) - 1 =:= length(Expected1) of
                 true -> ok;
-                false -> 
+                false ->
                     ?debugFmt("Parameter not expected: ~p", [{Key, Value}])
             end,
             ?assertEqual(length(Expected) - 1, length(Expected1)),
@@ -97,9 +97,9 @@ validate_params(Body, Expected) ->
 %% Validates the query body and responds with the provided response.
 -spec input_expect(string(), [expected_param()]) -> fun().
 input_expect(Response, Expected) ->
-    fun(_Url, post, _Headers, Body, _Timeout, _Config) -> 
+    fun(_Url, post, _Headers, Body, _Timeout, _Config) ->
             validate_params(Body, Expected),
-            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% input_test converts an input_test specifier into an eunit test generator
@@ -107,7 +107,7 @@ input_expect(Response, Expected) ->
 -spec input_test(string(), input_test_spec()) -> tuple().
 input_test(Response, {Line, {Description, Fun, Params}}) when
       is_list(Description) ->
-    {Description, 
+    {Description,
      {Line,
       fun() ->
               meck:expect(erlcloud_httpc, request, input_expect(Response, Params)),
@@ -131,8 +131,8 @@ input_tests(Response, Tests) ->
 %% returns the mock of the erlcloud_httpc function output tests expect to be called.
 -spec output_expect(string()) -> fun().
 output_expect(Response) ->
-    fun(_Url, post, _Headers, _Body, _Timeout, _Config) -> 
-            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
+    fun(_Url, post, _Headers, _Body, _Timeout, _Config) ->
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% output_test converts an output_test specifier into an eunit test generator
@@ -149,9 +149,9 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
               io:format("Result: ~p~n", [Result]),
               ?assertEqual(Result, Actual)
       end}}.
-      
+
 %% output_tests converts a list of output_test specifiers into an eunit test generator
--spec output_tests(fun(), [output_test_spec()]) -> [term()].       
+-spec output_tests(fun(), [output_test_spec()]) -> [term()].
 output_tests(Fun, Tests) ->
     [output_test(Fun, Test) || Test <- Tests].
 
@@ -159,7 +159,7 @@ output_tests(Fun, Tests) ->
 %% ListUsers test based on the API examples:
 %% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListUsers.html
 list_users_input_tests(_) ->
-    Tests = 
+    Tests =
         [?_iam_test(
             {"Test returning all users in an account.",
              ?_f(erlcloud_iam:list_users("test")),
@@ -176,7 +176,7 @@ list_users_input_tests(_) ->
    </ResponseMetadata>
 </ListUsersResponse>",
     input_tests(Response, Tests).
- 
+
 list_users_output_tests(_) ->
     Tests = [?_iam_test(
                 {"This lists all users in your account",
@@ -217,13 +217,13 @@ list_users_output_tests(_) ->
                              {create_date, {{2012,5,8},{23,34,1}}}]
                          ]}})
                 ],
-    output_tests(?_f(erlcloud_iam:list_users("test")), Tests). 
+    output_tests(?_f(erlcloud_iam:list_users("test")), Tests).
 
 
 %% ListGroups test based on the API examples:
 %% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListGroups.html
 list_groups_input_tests(_) ->
-    Tests = 
+    Tests =
         [?_iam_test(
             {"Test returning all groups in an account.",
              ?_f(erlcloud_iam:list_groups("test")),
@@ -240,7 +240,7 @@ list_groups_input_tests(_) ->
    </ResponseMetadata>
 </ListGroupsResponse>",
     input_tests(Response, Tests).
- 
+
 list_groups_output_tests(_) ->
     Tests = [?_iam_test(
                 {"This lists all groups in your account",
@@ -293,12 +293,12 @@ list_groups_output_tests(_) ->
                              {create_date, {{2012,5,8},{23,34,1}}}]
                          ]}})
                 ],
-    output_tests(?_f(erlcloud_iam:list_groups("test")), Tests). 
+    output_tests(?_f(erlcloud_iam:list_groups("test")), Tests).
 
 %% ListRoles test based on the API examples:
 %% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListRoles.html
 list_roles_input_tests(_) ->
-    Tests = 
+    Tests =
         [?_iam_test(
             {"Test returning all roles in an account.",
              ?_f(erlcloud_iam:list_roles("test")),
@@ -315,7 +315,7 @@ list_roles_input_tests(_) ->
            </ResponseMetadata>
         </ListRolesResponse>",
     input_tests(Response, Tests).
- 
+
 list_roles_output_tests(_) ->
     Tests = [?_iam_test(
                 {"This lists all roles in your account",
@@ -360,6 +360,4 @@ list_roles_output_tests(_) ->
                              {arn, "arn:aws:iam::123456789012:role/application_abc/component_xyz/SDBAccess"}]
                          ]}})
                 ],
-    output_tests(?_f(erlcloud_iam:list_roles("test")), Tests). 
-
-
+    output_tests(?_f(erlcloud_iam:list_roles("test")), Tests).

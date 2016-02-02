@@ -32,7 +32,7 @@
 %%
 %% Output is in the form of `{ok, Value}' or `{error, Reason}'. The
 %% format of `Value' is controlled by the `out' option, which defaults
-%% to `simple'. The possible values are: 
+%% to `simple'. The possible values are:
 %%
 %% * `simple' - The most interesting part of the output. For example
 %% `get_item' will return the item.
@@ -236,7 +236,7 @@ default_config() -> erlcloud_aws:default_config().
 
 -type return_value() :: none | all_old | updated_old | all_new | updated_new.
 
--type comparison_op() :: eq | ne | le | lt | ge | gt | not_null | null | contains | not_contains | 
+-type comparison_op() :: eq | ne | le | lt | ge | gt | not_null | null | contains | not_contains |
                          begins_with | in | between.
 
 -type out_attr_value() :: binary() | number() | [binary()] | [number()].
@@ -409,7 +409,7 @@ undynamize_number(Value) ->
         false ->
             list_to_integer(String)
     end.
-            
+
 -spec undynamize_value(json_attr_value()) -> out_attr_value().
 undynamize_value({<<"S">>, Value}) when is_binary(Value) ->
     Value;
@@ -532,7 +532,7 @@ opts(Table, Opts) when is_list(Opts) ->
 opts(_, _) ->
     error({erlcloud_ddb, opts_not_list}).
 
--type get_item_opt() :: {attributes_to_get, [binary()]} | 
+-type get_item_opt() :: {attributes_to_get, [binary()]} |
                         boolean_opt(consistent_read) |
                         out_opt().
 -type get_item_opts() :: [get_item_opt()].
@@ -549,7 +549,7 @@ get_item_opts() ->
 -type item_return() :: ok_return(out_item()).
 -type undynamize_fun() :: fun((jsx:json_term()) -> tuple()).
 
--spec out(erlcloud_ddb1:json_return(), undynamize_fun(), ddb_opts()) 
+-spec out(erlcloud_ddb1:json_return(), undynamize_fun(), ddb_opts())
          -> {ok, jsx:json_term() | tuple()} |
             {simple, term()} |
             {error, term()}.
@@ -566,12 +566,12 @@ out({ok, Json}, Undynamize, Opts) ->
     end.
 
 %% Returns specified field of tuple for simple return
--spec out(erlcloud_ddb1:json_return(), undynamize_fun(), ddb_opts(), pos_integer()) 
+-spec out(erlcloud_ddb1:json_return(), undynamize_fun(), ddb_opts(), pos_integer())
          -> ok_return(term()).
 out(Result, Undynamize, Opts, Index) ->
     out(Result, Undynamize, Opts, Index, {error, no_return}).
 
--spec out(erlcloud_ddb1:json_return(), undynamize_fun(), ddb_opts(), pos_integer(), ok_return(term())) 
+-spec out(erlcloud_ddb1:json_return(), undynamize_fun(), ddb_opts(), pos_integer(), ok_return(term()))
          -> ok_return(term()).
 out(Result, Undynamize, Opts, Index, Default) ->
     case out(Result, Undynamize, Opts) of
@@ -616,7 +616,7 @@ table_description_record() ->
 
 -type batch_get_item_request_item() :: {table_name(), [key(),...], get_item_opts()} | {table_name(), [key(),...]}.
 
--spec dynamize_batch_get_item_request_item(batch_get_item_request_item()) 
+-spec dynamize_batch_get_item_request_item(batch_get_item_request_item())
                                           -> {binary(), jsx:json_term(), jsx:json_term()}.
 dynamize_batch_get_item_request_item({Table, Keys}) ->
     dynamize_batch_get_item_request_item({Table, Keys, []});
@@ -636,7 +636,7 @@ batch_get_item_response_record(Table) ->
       {<<"ConsumedCapacityUnits">>, #ddb_batch_get_item_response.consumed_capacity_units, fun id/1}
      ]}.
 
--spec batch_get_item_request_item_folder({binary(), term()}, batch_get_item_request_item()) 
+-spec batch_get_item_request_item_folder({binary(), term()}, batch_get_item_request_item())
                                         -> batch_get_item_request_item().
 batch_get_item_request_item_folder({<<"Keys">>, Keys}, {Table, _, Opts}) ->
     {Table, [undynamize_key(K) || K <- Keys], Opts};
@@ -649,10 +649,10 @@ batch_get_item_request_item_folder({<<"ConsistentRead">>, Value}, {Table, Keys, 
 undynamize_batch_get_item_request_item(Table, Json) ->
     lists:foldl(fun batch_get_item_request_item_folder/2, {Table, [], []}, Json).
 
--spec batch_get_item_record() -> record_desc().    
+-spec batch_get_item_record() -> record_desc().
 batch_get_item_record() ->
     {#ddb_batch_get_item{},
-     [{<<"Responses">>, #ddb_batch_get_item.responses, 
+     [{<<"Responses">>, #ddb_batch_get_item.responses,
        fun(V) -> undynamize_object(fun({Table, Json}) ->
                                            undynamize_record(batch_get_item_response_record(Table), Json)
                                    end, V)
@@ -675,7 +675,7 @@ batch_get_item(RequestItems, Opts) ->
     batch_get_item(RequestItems, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% ===Example===
 %%
@@ -685,8 +685,8 @@ batch_get_item(RequestItems, Opts) ->
 %%
 %% `
 %% {ok, Items} = erlcloud_ddb:batch_get_item(
-%%                    [{<<"comp2">>, [<<"Julie">>, 
-%%                                    <<"Mingus">>], 
+%%                    [{<<"comp2">>, [<<"Julie">>,
+%%                                    <<"Mingus">>],
 %%                      [{attributes_to_get, [<<"user">>, <<"friends">>]}]},
 %%                     {<<"comp1">>, [{<<"Casey">>, 1319509152},
 %%                                    {<<"Dave">>, 1319509155},
@@ -701,7 +701,7 @@ batch_get_item(RequestItems, Opts, Config) ->
     Return = erlcloud_ddb1:batch_get_item(dynamize_batch_get_item_request_items(RequestItems), Config),
     case out(Return, fun(Json) -> undynamize_record(batch_get_item_record(), Json) end, DdbOpts) of
         {simple, #ddb_batch_get_item{unprocessed_keys = [_|_]}} ->
-            %% TODO resend unprocessed keys automatically (or controlled by option). 
+            %% TODO resend unprocessed keys automatically (or controlled by option).
             %% For now return an error - you can handle manually if you don't use simple.
             {error, unprocessed};
         {simple, #ddb_batch_get_item{unprocessed_keys = [], responses = Responses}} ->
@@ -726,7 +726,7 @@ dynamize_batch_write_item_request({put, Item}) ->
 dynamize_batch_write_item_request({delete, Key}) ->
     {delete, dynamize_key(Key)}.
 
--spec dynamize_batch_write_item_request_item(batch_write_item_request_item()) 
+-spec dynamize_batch_write_item_request_item(batch_write_item_request_item())
                                           -> json_pair().
 dynamize_batch_write_item_request_item({Table, Requests}) ->
     {Table, [dynamize_batch_write_item_request(R) || R <- Requests]}.
@@ -750,7 +750,7 @@ undynamize_attr_typed({Name, [ValueJson]}) ->
 undynamize_item_typed(Json) ->
     undynamize_object(fun undynamize_attr_typed/1, Json).
 
--spec batch_write_item_request_folder([{binary(), term()}], batch_write_item_request_item()) 
+-spec batch_write_item_request_folder([{binary(), term()}], batch_write_item_request_item())
                                      -> batch_write_item_request_item().
 batch_write_item_request_folder([{<<"PutRequest">>, [{<<"Item">>, Item}]}], {Table, Requests}) ->
     {Table, [{put, undynamize_item_typed(Item)} | Requests]};
@@ -765,7 +765,7 @@ undynamize_batch_write_item_request_item(Table, Json) ->
 -spec batch_write_item_record() -> record_desc().
 batch_write_item_record() ->
     {#ddb_batch_write_item{},
-     [{<<"Responses">>, #ddb_batch_write_item.responses, 
+     [{<<"Responses">>, #ddb_batch_write_item.responses,
        fun(V) -> undynamize_object(fun({Table, Json}) ->
                                            undynamize_record(batch_write_item_response_record(Table), Json)
                                    end, V)
@@ -788,7 +788,7 @@ batch_write_item(RequestItems, Opts) ->
     batch_write_item(RequestItems, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% ===Example===
 %%
@@ -811,7 +811,7 @@ batch_write_item(RequestItems, Opts, Config) ->
     Return = erlcloud_ddb1:batch_write_item(dynamize_batch_write_item_request_items(RequestItems), Config),
     case out(Return, fun(Json) -> undynamize_record(batch_write_item_record(), Json) end, DdbOpts) of
         {simple, #ddb_batch_write_item{unprocessed_items = [_|_]}} ->
-            %% TODO resend unprocessed items automatically (or controlled by option). 
+            %% TODO resend unprocessed items automatically (or controlled by option).
             %% For now return an error - you can handle manually if you don't use simple.
             {error, unprocessed};
         {simple, Record} -> {ok, Record};
@@ -826,9 +826,9 @@ batch_write_item(RequestItems, Opts, Config) ->
 -spec create_table_record() -> record_desc().
 create_table_record() ->
     {#ddb_create_table{},
-     [{<<"TableDescription">>, #ddb_create_table.table_description, 
+     [{<<"TableDescription">>, #ddb_create_table.table_description,
        fun(V) -> undynamize_record(table_description_record(), V) end}
-     ]}. 
+     ]}.
 
 -type create_table_return() :: ddb_return(#ddb_create_table{}, #ddb_table_description{}).
 
@@ -842,7 +842,7 @@ create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts) ->
     create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% ===Example===
 %%
@@ -855,19 +855,19 @@ create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), ddb_opts(), aws_config()) 
+-spec create_table(table_name(), key_schema(), non_neg_integer(), non_neg_integer(), ddb_opts(), aws_config())
                   -> create_table_return().
 create_table(Table, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
     Return = erlcloud_ddb1:create_table(Table, dynamize_key_schema(KeySchema), ReadUnits, WriteUnits, Config),
-    out(Return, fun(Json) -> undynamize_record(create_table_record(), Json) end, DdbOpts, 
+    out(Return, fun(Json) -> undynamize_record(create_table_record(), Json) end, DdbOpts,
         #ddb_create_table.table_description).
 
 %%%------------------------------------------------------------------------------
 %%% DeleteItem
 %%%------------------------------------------------------------------------------
 
--type delete_item_opt() :: {expected, in_expected()} | 
+-type delete_item_opt() :: {expected, in_expected()} |
                            {return_values, none | all_old} |
                            out_opt().
 -type delete_item_opts() :: [delete_item_opt()].
@@ -895,7 +895,7 @@ delete_item(Table, Key, Opts) ->
     delete_item(Table, Key, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% ===Example===
 %%
@@ -914,7 +914,7 @@ delete_item(Table, Key, Opts) ->
 delete_item(Table, Key, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(delete_item_opts(), Opts),
     Return = erlcloud_ddb1:delete_item(Table, dynamize_key(Key), AwsOpts, Config),
-    out(Return, fun(Json) -> undynamize_record(delete_item_record(), Json) end, DdbOpts, 
+    out(Return, fun(Json) -> undynamize_record(delete_item_record(), Json) end, DdbOpts,
         #ddb_delete_item.attributes, {ok, []}).
 
 %%%------------------------------------------------------------------------------
@@ -924,9 +924,9 @@ delete_item(Table, Key, Opts, Config) ->
 -spec delete_table_record() -> record_desc().
 delete_table_record() ->
     {#ddb_delete_table{},
-     [{<<"TableDescription">>, #ddb_create_table.table_description, 
+     [{<<"TableDescription">>, #ddb_create_table.table_description,
        fun(V) -> undynamize_record(table_description_record(), V) end}
-     ]}. 
+     ]}.
 
 -type delete_table_return() :: ddb_return(#ddb_delete_table{}, #ddb_table_description{}).
 
@@ -939,7 +939,7 @@ delete_table(Table, Opts) ->
     delete_table(Table, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% ===Example===
 %%
@@ -954,7 +954,7 @@ delete_table(Table, Opts) ->
 delete_table(Table, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
     Return = erlcloud_ddb1:delete_table(Table, Config),
-    out(Return, fun(Json) -> undynamize_record(delete_table_record(), Json) end, DdbOpts, 
+    out(Return, fun(Json) -> undynamize_record(delete_table_record(), Json) end, DdbOpts,
         #ddb_delete_table.table_description).
 
 %%%------------------------------------------------------------------------------
@@ -978,7 +978,7 @@ table_record() ->
 describe_table_record() ->
     {#ddb_describe_table{},
      [{<<"Table">>, #ddb_describe_table.table, fun(V) -> undynamize_record(table_record(), V) end}
-     ]}. 
+     ]}.
 
 -type describe_table_return() :: ddb_return(#ddb_describe_table{}, #ddb_table{}).
 
@@ -991,7 +991,7 @@ describe_table(Table, Opts) ->
     describe_table(Table, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% ===Example===
 %%
@@ -1006,7 +1006,7 @@ describe_table(Table, Opts) ->
 describe_table(Table, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
     Return = erlcloud_ddb1:describe_table(Table, Config),
-    out(Return, fun(Json) -> undynamize_record(describe_table_record(), Json) end, DdbOpts, 
+    out(Return, fun(Json) -> undynamize_record(describe_table_record(), Json) end, DdbOpts,
         #ddb_describe_table.table).
 
 %%%------------------------------------------------------------------------------
@@ -1029,7 +1029,7 @@ get_item(Table, Key, Opts) ->
     get_item(Table, Key, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% ===Example===
 %%
@@ -1038,8 +1038,8 @@ get_item(Table, Key, Opts) ->
 %% consistent read.
 %%
 %% `
-%% {ok, Item} = erlcloud_ddb:get_item(<<"comptable">>, {"Julie", 1307654345}, 
-%%                                        [consistent_read, 
+%% {ok, Item} = erlcloud_ddb:get_item(<<"comptable">>, {"Julie", 1307654345},
+%%                                        [consistent_read,
 %%                                         {attributes_to_get, [<<"status">>, <<"friends">>]}])
 %% '
 %% @end
@@ -1048,14 +1048,14 @@ get_item(Table, Key, Opts) ->
 get_item(Table, Key, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(get_item_opts(), Opts),
     Return = erlcloud_ddb1:get_item(Table, dynamize_key(Key), AwsOpts, Config),
-    out(Return, fun(Json) -> undynamize_record(get_item_record(), Json) end, DdbOpts, 
+    out(Return, fun(Json) -> undynamize_record(get_item_record(), Json) end, DdbOpts,
         #ddb_get_item.item, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% ListTables
 %%%------------------------------------------------------------------------------
 
--type list_tables_opt() :: {limit, pos_integer()} | 
+-type list_tables_opt() :: {limit, pos_integer()} |
                            {exclusive_start_table_name, binary()} |
                            out_opt().
 -type list_tables_opts() :: [list_tables_opt()].
@@ -1083,7 +1083,7 @@ list_tables(Opts) ->
     list_tables(Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% ===Example===
 %%
@@ -1098,14 +1098,14 @@ list_tables(Opts) ->
 list_tables(Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(list_tables_opts(), Opts),
     Return = erlcloud_ddb1:list_tables(AwsOpts, Config),
-    out(Return, fun(Json) -> undynamize_record(list_tables_record(), Json) end, DdbOpts, 
+    out(Return, fun(Json) -> undynamize_record(list_tables_record(), Json) end, DdbOpts,
         #ddb_list_tables.table_names, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% PutItem
 %%%------------------------------------------------------------------------------
 
--type put_item_opt() :: {expected, in_expected()} | 
+-type put_item_opt() :: {expected, in_expected()} |
                         {return_values, none | all_old} |
                         out_opt().
 -type put_item_opts() :: [put_item_opt()].
@@ -1133,7 +1133,7 @@ put_item(Table, Item, Opts) ->
     put_item(Table, Item, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% ===Example===
 %%
@@ -1143,8 +1143,8 @@ put_item(Table, Item, Opts) ->
 %% "surprised". Return all the old attributes.
 %%
 %% `
-%% {ok, OldItem} = erlcloud_ddb:put_item(<<"comp5">>, 
-%%                                        [{<<"time">>, 300}, 
+%% {ok, OldItem} = erlcloud_ddb:put_item(<<"comp5">>,
+%%                                        [{<<"time">>, 300},
 %%                                         {<<"feeling">>, <<"not surprised">>},
 %%                                         {<<"user">>, <<"Riley">>}],
 %%                                        [{return_values, all_old},
@@ -1156,7 +1156,7 @@ put_item(Table, Item, Opts) ->
 put_item(Table, Item, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(put_item_opts(), Opts),
     Return = erlcloud_ddb1:put_item(Table, dynamize_item(Item), AwsOpts, Config),
-    out(Return, fun(Json) -> undynamize_record(put_item_record(), Json) end, DdbOpts, 
+    out(Return, fun(Json) -> undynamize_record(put_item_record(), Json) end, DdbOpts,
         #ddb_put_item.attributes, {ok, []}).
 
 %%%------------------------------------------------------------------------------
@@ -1164,7 +1164,7 @@ put_item(Table, Item, Opts, Config) ->
 %%%------------------------------------------------------------------------------
 
 -type json_range_key_condition() :: jsx:json_term().
--type range_key_condition() :: {in_attr_value(), comparison_op()} | 
+-type range_key_condition() :: {in_attr_value(), comparison_op()} |
                                {{in_attr_value(), in_attr_value()}, between}.
 
 -spec dynamize_range_key_condition(range_key_condition()) -> json_range_key_condition().
@@ -1174,9 +1174,9 @@ dynamize_range_key_condition({{Value1, Value2}, between}) ->
 dynamize_range_key_condition({Value, Comparison}) ->
     [{<<"AttributeValueList">>, [[dynamize_value(Value)]]}, dynamize_comparison(Comparison)].
 
--type q_opt() :: {attributes_to_get, [binary()]} | 
+-type q_opt() :: {attributes_to_get, [binary()]} |
                  {limit, pos_integer()} |
-                 boolean_opt(consistent_read) | 
+                 boolean_opt(consistent_read) |
                  boolean_opt(count) |
                  {range_key_condition, range_key_condition()} |
                  boolean_opt(scan_index_forward) |
@@ -1214,7 +1214,7 @@ q(Table, HashKey, Opts) ->
     q(Table, HashKey, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% ===Example===
 %%
@@ -1233,7 +1233,7 @@ q(Table, HashKey, Opts) ->
 q(Table, HashKey, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(q_opts(), Opts),
     Return = erlcloud_ddb1:q(Table, dynamize_key(HashKey), AwsOpts, Config),
-    out(Return, fun(Json) -> undynamize_record(q_record(), Json) end, DdbOpts, 
+    out(Return, fun(Json) -> undynamize_record(q_record(), Json) end, DdbOpts,
         #ddb_q.items, {ok, []}).
 
 %%%------------------------------------------------------------------------------
@@ -1260,7 +1260,7 @@ dynamize_scan_filter_item({Name, AttrValue, Op}) ->
 dynamize_scan_filter(Filter) ->
     dynamize_maybe_list(fun dynamize_scan_filter_item/1, Filter).
 
--type scan_opt() :: {attributes_to_get, [binary()]} | 
+-type scan_opt() :: {attributes_to_get, [binary()]} |
                     {limit, pos_integer()} |
                     boolean_opt(count) |
                     {scan_filter, scan_filter()} |
@@ -1297,7 +1297,7 @@ scan(Table, Opts) ->
     scan(Table, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% ===Example===
 %%
@@ -1312,7 +1312,7 @@ scan(Table, Opts) ->
 scan(Table, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(scan_opts(), Opts),
     Return = erlcloud_ddb1:scan(Table, AwsOpts, Config),
-    out(Return, fun(Json) -> undynamize_record(scan_record(), Json) end, DdbOpts, 
+    out(Return, fun(Json) -> undynamize_record(scan_record(), Json) end, DdbOpts,
         #ddb_scan.items, {ok, []}).
 
 %%%------------------------------------------------------------------------------
@@ -1345,7 +1345,7 @@ dynamize_update({Name, Value}) ->
 dynamize_updates(Updates) ->
     dynamize_maybe_list(fun dynamize_update/1, Updates).
 
--type update_item_opt() :: {expected, in_expected()} | 
+-type update_item_opt() :: {expected, in_expected()} |
                            {return_values, return_value()} |
                            out_opt().
 -type update_item_opts() :: [update_item_opt()].
@@ -1373,7 +1373,7 @@ update_item(Table, Key, Updates, Opts) ->
     update_item(Table, Key, Updates, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% ===Example===
 %%
@@ -1394,7 +1394,7 @@ update_item(Table, Key, Updates, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(update_item_opts(), Opts),
     Return = erlcloud_ddb1:update_item(Table, dynamize_key(Key), dynamize_updates(Updates),
                                        AwsOpts, Config),
-    out(Return, fun(Json) -> undynamize_record(update_item_record(), Json) end, DdbOpts, 
+    out(Return, fun(Json) -> undynamize_record(update_item_record(), Json) end, DdbOpts,
         #ddb_update_item.attributes, {ok, []}).
 
 %%%------------------------------------------------------------------------------
@@ -1404,9 +1404,9 @@ update_item(Table, Key, Updates, Opts, Config) ->
 -spec update_table_record() -> record_desc().
 update_table_record() ->
     {#ddb_update_table{},
-     [{<<"TableDescription">>, #ddb_create_table.table_description, 
+     [{<<"TableDescription">>, #ddb_create_table.table_description,
        fun(V) -> undynamize_record(table_description_record(), V) end}
-     ]}. 
+     ]}.
 
 -type update_table_return() :: ddb_return(#ddb_update_table{}, #ddb_table_description{}).
 
@@ -1419,7 +1419,7 @@ update_table(Table, ReadUnits, WriteUnits, Opts) ->
     update_table(Table, ReadUnits, WriteUnits, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %%
 %% ===Example===
 %%
@@ -1430,10 +1430,10 @@ update_table(Table, ReadUnits, WriteUnits, Opts) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--spec update_table(table_name(), non_neg_integer(), non_neg_integer(), ddb_opts(), aws_config()) 
+-spec update_table(table_name(), non_neg_integer(), non_neg_integer(), ddb_opts(), aws_config())
                   -> update_table_return().
 update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
     Return = erlcloud_ddb1:update_table(Table, ReadUnits, WriteUnits, Config),
-    out(Return, fun(Json) -> undynamize_record(update_table_record(), Json) end, DdbOpts, 
+    out(Return, fun(Json) -> undynamize_record(update_table_record(), Json) end, DdbOpts,
         #ddb_update_table.table_description).

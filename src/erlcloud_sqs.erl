@@ -37,8 +37,6 @@
                                     created_timestamp | last_modified_timestamp | policy |
                                     queue_arn).
 
-
-
 -spec(new/2 :: (string(), string()) -> aws_config()).
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id=AccessKeyID,
@@ -60,7 +58,6 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
 
-
 -spec add_permission/3 :: (string(), string(), sqs_acl()) -> ok.
 add_permission(QueueName, Label, Permissions) ->
     add_permission(QueueName, Label, Permissions, default_config()).
@@ -71,7 +68,9 @@ add_permission(QueueName, Label, Permissions, Config)
        is_list(Label), length(Label) =< 80,
        is_list(Permissions) ->
     sqs_simple_request(Config, QueueName, "AddPermission",
-                       [{"Label", Label}|erlcloud_aws:param_list(encode_permissions(Permissions), {"AWSAccountId", "ActionName"})]).
+                       [{"Label", Label}
+                        | erlcloud_aws:param_list(encode_permissions(Permissions),
+                                                  {"AWSAccountId", "ActionName"})]).
 
 encode_permissions(Permissions) ->
     [encode_permission(P) || P <- Permissions].
@@ -116,7 +115,8 @@ create_queue(QueueName, DefaultVisibilityTimeout, Config)
         DefaultVisibilityTimeout =< 43200) orelse
        DefaultVisibilityTimeout =:= none ->
     Doc = sqs_xml_request(Config, "/", "CreateQueue",
-                          [{"QueueName", QueueName}, {"DefaultVisibilityTimeout", DefaultVisibilityTimeout}]),
+                          [{"QueueName", QueueName},
+                           {"DefaultVisibilityTimeout", DefaultVisibilityTimeout}]),
     erlcloud_xml:decode(
       [
        {queue_url, "CreateQueueResult/QueueUrl", text}
@@ -164,7 +164,6 @@ get_queue_attributes(QueueName, AttributeNames, Config)
     Attrs = decode_attributes(xmerl_xpath:string("GetQueueAttributesResult/Attribute", Doc)),
     [{decode_attribute_name(Name), decode_attribute_value(Name, Value)} || {Name, Value} <- Attrs].
 
-
 encode_attribute_name(message_retention_period) -> "MessageRetentionPeriod";
 encode_attribute_name(queue_arn) -> "QueueArn";
 encode_attribute_name(maximum_message_size) -> "MaximumMessageSize";
@@ -180,7 +179,6 @@ encode_attribute_name(policy) -> "Policy";
 encode_attribute_name(redrive_policy) -> "RedrivePolicy";
 encode_attribute_name(all) -> "All".
 
-
 decode_attribute_name("MessageRetentionPeriod") -> message_retention_period;
 decode_attribute_name("QueueArn") -> queue_arn;
 decode_attribute_name("MaximumMessageSize") -> maximum_message_size;
@@ -195,12 +193,10 @@ decode_attribute_name("ReceiveMessageWaitTimeSeconds") -> receive_message_wait_t
 decode_attribute_name("Policy") -> policy;
 decode_attribute_name("RedrivePolicy") -> redrive_policy.
 
-
 decode_attribute_value("Policy", Value) -> Value;
 decode_attribute_value("QueueArn", Value) -> Value;
 decode_attribute_value("RedrivePolicy", Value) -> Value;
 decode_attribute_value(_, Value) -> list_to_integer(Value).
-
 
 -spec list_queues/0 :: () -> [string()].
 list_queues() ->
@@ -272,15 +268,18 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
        VisibilityTimeout =:= none,
        (WaitTimeSeconds >= 0 andalso WaitTimeSeconds =< 20) orelse
        WaitTimeSeconds =:= none ->
-    TotalTimeout = if (WaitTimeSeconds =/= none andalso WaitTimeSeconds >= 0) -> Config#aws_config.timeout + (WaitTimeSeconds * 1000) ;
-       true -> Config#aws_config.timeout
-    end,
+    TotalTimeout = if (WaitTimeSeconds =/= none andalso WaitTimeSeconds >= 0) ->
+                          Config#aws_config.timeout + (WaitTimeSeconds * 1000) ;
+                      true ->
+                          Config#aws_config.timeout
+                   end,
     Doc = sqs_xml_request(Config#aws_config{timeout=TotalTimeout}, QueueName, "ReceiveMessage",
                           [
                            {"MaxNumberOfMessages", MaxNumberOfMessages},
                            {"VisibilityTimeout", VisibilityTimeout},
                            {"WaitTimeSeconds", WaitTimeSeconds}|
-                           erlcloud_aws:param_list([encode_msg_attribute_name(N) || N <- AttributeNames], "AttributeName")
+                           erlcloud_aws:param_list([encode_msg_attribute_name(N) || N <- AttributeNames],
+                                                   "AttributeName")
                           ]
                          ),
     erlcloud_xml:decode(
@@ -289,7 +288,6 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
       ],
       Doc
      ).
-
 
 encode_msg_attribute_name(all) -> "All";
 encode_msg_attribute_name(sender_id) -> "SenderId";
@@ -370,7 +368,8 @@ set_queue_attributes(QueueName, Attributes) ->
 -spec set_queue_attributes/3 :: (string(), [{visibility_timeout, integer()} | {policy, string()}], aws_config()) -> ok.
 set_queue_attributes(QueueName, Attributes, Config)
   when is_list(QueueName), is_list(Attributes) ->
-    Params = lists:flatten(erlcloud_aws:param_list([encode_attribute_name(Name) || {Name, _} <- Attributes], "Attribute.Name"),
+    Params = lists:flatten(erlcloud_aws:param_list([encode_attribute_name(Name) || {Name, _} <- Attributes],
+                                                   "Attribute.Name"),
                           erlcloud_aws:param_list([Value || {_, Value} <- Attributes], "Attribute.Value")),
 
     sqs_simple_request(Config, QueueName, "SetQueueAttributes", Params).

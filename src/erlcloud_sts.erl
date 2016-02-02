@@ -10,10 +10,8 @@
 
 -define(API_VERSION, "2011-06-15").
 
-
 assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds) ->
     assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds, undefined).
-
 
 % See http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html
 -spec assume_role/5 :: (#aws_config{}, string(), string(), 900..3600, undefined | string()) -> {#aws_config{}, proplist()}.
@@ -53,7 +51,6 @@ assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds, ExternalId)
         },
 
     {AssumedConfig, Creds}.
-
 
 get_federation_token(AwsConfig, DurationSeconds, Name) ->
         get_federation_token(AwsConfig, DurationSeconds, Name, undefined).
@@ -98,7 +95,6 @@ get_federation_token(AwsConfig, DurationSeconds, Name, Policy)
 
 sts_query(AwsConfig, Action, Params) ->
     sts_query(AwsConfig, Action, Params, ?API_VERSION).
-
 
 sts_query(AwsConfig, Action, Params, ApiVersion) ->
     erlcloud_aws:aws_request_xml(post,

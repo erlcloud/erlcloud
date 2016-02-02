@@ -32,9 +32,14 @@
          set_topic_attributes/3, set_topic_attributes/4,
          subscribe/3, subscribe/4
          ]).
--export([parse_event/1, get_event_type/1, parse_event_message/1,
+
+-export([parse_event/1,
+         get_event_type/1,
+         parse_event_message/1,
          get_notification_attribute/2]).
--export([new/2, new/3, configure/2, configure/3]).
+
+-export([new/2, new/3,
+         configure/2, configure/3]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -95,7 +100,6 @@
               sns_message/0, sns_application/0, sns_endpoint/0]).
 
 -spec add_permission/3 :: (string(), string(), sns_acl()) -> ok.
-
 add_permission(TopicArn, Label, Permissions) ->
     add_permission(TopicArn, Label, Permissions, default_config()).
 
@@ -109,8 +113,6 @@ add_permission(TopicArn, Label, Permissions, Config)
                        | erlcloud_aws:param_list(
                             encode_permissions(Permissions),
                             {"AWSAccountId.member", "ActionName.member"})]).
-
-
 
 -spec create_platform_endpoint/2 :: (string(), string()) -> string().
 create_platform_endpoint(PlatformApplicationArn, Token) ->
@@ -141,7 +143,6 @@ create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attribut
 create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, AccessKeyID, SecretAccessKey) ->
     create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, new_config(AccessKeyID, SecretAccessKey)).
 
-
 -spec(create_topic/1 :: (string()) -> Arn::string()).
 -spec(create_topic/2 :: (string(), aws_config()) -> Arn::string()).
 
@@ -152,7 +153,6 @@ create_topic(TopicName, Config)
     when is_record(Config, aws_config) ->
         Doc = sns_xml_request(Config, "CreateTopic", [{"Name", TopicName}]),
         erlcloud_xml:get_text("/CreateTopicResponse/CreateTopicResult/TopicArn", Doc).
-
 
 -spec confirm_subscription/1 :: (sns_event()) -> string().
 confirm_subscription(SnsEvent) ->
@@ -167,8 +167,6 @@ confirm_subscription(SnsEvent, Config) ->
 -spec confirm_subscription/3 :: (sns_event(), string(), string()) -> string().
 confirm_subscription(SnsEvent, AccessKeyID, SecretAccessKey) ->
     confirm_subscription(SnsEvent, new_config(AccessKeyID, SecretAccessKey)).
-
-
 
 -spec confirm_subscription2/2 :: (string(), string()) -> string().
 confirm_subscription2(Token, TopicArn) ->
@@ -189,8 +187,6 @@ confirm_subscription2(Token, TopicArn, Config) ->
 confirm_subscription2(Token, TopicArn, AccessKeyID, SecretAccessKey) ->
     confirm_subscription2(Token, TopicArn, new_config(AccessKeyID, SecretAccessKey)).
 
-
-
 -spec delete_endpoint/1 :: (string()) -> ok.
 delete_endpoint(EndpointArn) ->
     delete_endpoint(EndpointArn, default_config()).
@@ -203,8 +199,6 @@ delete_endpoint(EndpointArn, Config) ->
 delete_endpoint(EndpointArn, AccessKeyID, SecretAccessKey) ->
     delete_endpoint(EndpointArn, new_config(AccessKeyID, SecretAccessKey)).
 
-
-
 -spec delete_topic/1 :: (string()) -> ok.
 -spec delete_topic/2 :: (string(), aws_config()) -> ok.
 
@@ -214,8 +208,6 @@ delete_topic(TopicArn) ->
 delete_topic(TopicArn, Config)
     when is_record(Config, aws_config) ->
         sns_simple_request(Config, "DeleteTopic", [{"TopicArn", TopicArn}]).
-
-
 
 -spec get_endpoint_attributes/1 :: (string()) -> sns_endpoint().
 get_endpoint_attributes(EndpointArn) ->
@@ -237,8 +229,6 @@ get_endpoint_attributes(EndpointArn, Config) ->
 get_endpoint_attributes(EndpointArn, AccessKeyID, SecretAccessKey) ->
     get_endpoint_attributes(EndpointArn, new_config(AccessKeyID, SecretAccessKey)).
 
-
-
 -spec set_endpoint_attributes/2 :: (string(), [{sns_endpoint_attribute(), string()}]) -> string().
 -spec set_endpoint_attributes/3 :: (string(), [{sns_endpoint_attribute(), string()}], aws_config()) -> string().
 
@@ -248,8 +238,6 @@ set_endpoint_attributes(EndpointArn, Attributes, Config) ->
     Doc = sns_xml_request(Config, "SetEndpointAttributes", [{"EndpointArn", EndpointArn} |
                                                             encode_attributes(Attributes)]),
     erlcloud_xml:get_text("ResponseMetadata/RequestId", Doc).
-
-
 
 -spec list_endpoints_by_platform_application/1 :: (string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
 -spec list_endpoints_by_platform_application/2 :: (string(), undefined|string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
@@ -314,7 +302,6 @@ list_topics_all() ->
 list_topics_all(Config) ->
     list_all(fun list_topics/2, topics, Config, undefined, []).
 
-
 -spec list_platform_applications/0 :: () -> [sns_application()].
 list_platform_applications() ->
     list_platform_applications(undefined).
@@ -342,8 +329,6 @@ list_platform_applications(NextToken, Config) ->
 -spec list_platform_applications/3 :: (undefined|string(), string(), string()) -> [sns_application()].
 list_platform_applications(NextToken, AccessKeyID, SecretAccessKey) ->
     list_platform_applications(NextToken, new_config(AccessKeyID, SecretAccessKey)).
-
-
 
 -spec publish_to_topic/2 :: (string(), sns_message()) -> string().
 publish_to_topic(TopicArn, Message) ->
@@ -405,8 +390,6 @@ publish(Type, RecipientArn, Message, Subject, Config) ->
     erlcloud_xml:get_text(
         "PublishResult/MessageId", Doc).
 
-
-
 -spec parse_event/1 :: (iodata()) -> sns_event().
 parse_event(EventSource) ->
     jsx:decode(EventSource).
@@ -437,8 +420,6 @@ get_notification_attribute(<<"EventType">>, Notification) ->
 get_notification_attribute(Attribute, Notification) ->
     proplists:get_value(Attribute, Notification).
 
-
-
 -spec(set_topic_attributes/3 :: (sns_topic_attribute_name(), string(), string()) -> ok).
 set_topic_attributes(AttributeName, AttributeValue, TopicArn) ->
     set_topic_attributes(AttributeName, AttributeValue, TopicArn, default_config()).
@@ -450,7 +431,6 @@ set_topic_attributes(AttributeName, AttributeValue, TopicArn, Config)
             {"AttributeName", AttributeName},
             {"AttributeValue", AttributeValue},
             {"TopicArn", TopicArn}]).
-
 
 -spec(subscribe/3 :: (string(), sns_subscribe_protocol_type(), string()) -> Arn::string()).
 subscribe(Endpoint, Protocol, TopicArn) ->
@@ -543,8 +523,6 @@ encode_permission({AccountId, Permission}) ->
          subscribe -> "Subscribe";
          unsubscribe -> "Unsubscribe"
       end}.
-
-
 
 default_config() -> erlcloud_aws:default_config().
 

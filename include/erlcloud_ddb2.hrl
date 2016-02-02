@@ -22,6 +22,7 @@
          read_capacity_units :: pos_integer(),
          write_capacity_units :: pos_integer()
         }).
+
 -record(ddb2_global_secondary_index_description,
         {backfilling :: boolean(),
          index_arn :: binary(),
@@ -33,6 +34,7 @@
          projection :: erlcloud_ddb2:projection(),
          provisioned_throughput :: #ddb2_provisioned_throughput_description{}
         }).
+
 -record(ddb2_local_secondary_index_description,
         {index_arn :: binary(),
          index_name :: erlcloud_ddb2:index_name(),
@@ -41,6 +43,7 @@
          key_schema :: erlcloud_ddb2:key_schema(),
          projection :: erlcloud_ddb2:projection()
         }).
+
 -record(ddb2_table_description,
         {attribute_definitions :: erlcloud_ddb2:attr_defs(),
          creation_date_time :: number(),
@@ -57,6 +60,7 @@
          table_size_bytes :: integer(),
          table_status :: table_status()
         }).
+
 -record(ddb2_consumed_capacity,
         {capacity_units :: number(),
          global_secondary_indexes :: [{erlcloud_ddb2:index_name(), number()}],
@@ -64,6 +68,7 @@
          table :: number(),
          table_name :: erlcloud_ddb2:table_name()
         }).
+
 -record(ddb2_item_collection_metrics,
         {item_collection_key :: erlcloud_ddb2:out_attr_value(),
          size_estimate_range_gb :: {number(), number()}
@@ -119,7 +124,7 @@
          item_collection_metrics :: #ddb2_item_collection_metrics{}
         }).
 
--record(ddb2_q, 
+-record(ddb2_q,
         {consumed_capacity :: #ddb2_consumed_capacity{},
          count :: non_neg_integer(),
          items :: [erlcloud_ddb2:out_item()],
@@ -127,7 +132,7 @@
          scanned_count :: non_neg_integer()
         }).
 
--record(ddb2_scan, 
+-record(ddb2_scan,
         {consumed_capacity :: #ddb2_consumed_capacity{},
          count :: non_neg_integer(),
          items :: [erlcloud_ddb2:out_item()],
@@ -144,4 +149,3 @@
 -record(ddb2_update_table,
         {table_description :: #ddb2_table_description{}
         }).
-

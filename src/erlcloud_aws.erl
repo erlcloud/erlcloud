@@ -1,5 +1,10 @@
 -module(erlcloud_aws).
 
+-include("erlcloud.hrl").
+-include_lib("erlcloud/include/erlcloud_aws.hrl").
+
+-type headers() :: [{string(), string()}].
+
 -export([aws_request/5, aws_request/6, aws_request/7, aws_request/8,
          aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
          aws_request2/7,
@@ -15,9 +20,6 @@
          sign_v4_headers/5,
          sign_v4/8,
          get_service_status/1]).
-
--include("erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
 
 -record(metadata_credentials,
         {access_key_id :: string(),
@@ -137,10 +139,9 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service, #aws
 
     aws_request_form(Method, Protocol, Host, Port, Path, Query, SignedHeaders, Config).
 
-
 -spec aws_request_form(Method :: atom(), Protocol :: undefined | string(), Host :: string(),
-                        Port :: undefined | integer() | string(), Path :: string(), Form :: iodata(),
-                        Headers :: list(), Config :: aws_config()) -> {ok, binary()} | {error, tuple()}.
+                       Port :: undefined | integer() | string(), Path :: string(), Form :: iodata(),
+                       Headers :: list(), Config :: aws_config()) -> {ok, binary()} | {error, tuple()}.
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
     UProtocol = case Protocol of
         undefined -> "https://";
@@ -236,7 +237,6 @@ update_config(#aws_config{} = Config) ->
     end.
 
 -spec configure(aws_config()) -> {ok, aws_config()}.
-
 configure(#aws_config{} = Config) ->
     put(aws_config, Config),
     {ok, default_config()}.
@@ -260,8 +260,8 @@ timestamp_to_gregorian_seconds(Timestamp) ->
     {ok, [Yr, Mo, Da, H, M, S], []} = io_lib:fread("~d-~d-~dT~d:~d:~dZ", binary_to_list(Timestamp)),
     calendar:datetime_to_gregorian_seconds({{Yr, Mo, Da}, {H, M, S}}).
 
--spec get_credentials_from_metadata(aws_config())
-                                   -> {ok, #metadata_credentials{}} | {error, term()}.
+-spec get_credentials_from_metadata(aws_config()) ->
+                                    {ok, #metadata_credentials{}} | {error, term()}.
 get_credentials_from_metadata(Config) ->
     %% TODO this function should retry on errors getting credentials
     %% First get the list of roles
@@ -299,8 +299,8 @@ port_to_str(Port) when is_integer(Port) ->
 port_to_str(Port) when is_list(Port) ->
     Port.
 
--spec http_body({ok, tuple()} | {error, term()})
-               -> {ok, binary()} | {error, tuple()}.
+-spec http_body({ok, tuple()} | {error, term()}) ->
+                                    {ok, binary()} | {error, tuple()}.
 %% Extract the body and do error handling on the return of a httpc:request call.
 http_body(Return) ->
     case http_headers_body(Return) of
@@ -310,9 +310,8 @@ http_body(Return) ->
             {error, Reason}
     end.
 
--type headers() :: [{string(), string()}].
--spec http_headers_body({ok, tuple()} | {error, term()})
-                       -> {ok, {headers(), binary()}} | {error, tuple()}.
+-spec http_headers_body({ok, tuple()} | {error, term()}) ->
+                                    {ok, {headers(), binary()}} | {error, tuple()}.
 %% Extract the headers and body and do error handling on the return of a httpc:request call.
 http_headers_body({ok, {{OKStatus, _StatusLine}, Headers, Body}})
   when OKStatus >= 200, OKStatus =< 299 ->
@@ -326,7 +325,7 @@ http_headers_body({error, Reason}) ->
 request_to_return(#aws_request{response_type = ok,
                                response_headers = Headers,
                                response_body = Body}) ->
-    {ok, {[ {string:to_lower(H), V} || {H, V} <- Headers ], Body}};
+    {ok, {[{string:to_lower(H), V} || {H, V} <- Headers ], Body}};
 request_to_return(#aws_request{response_type = error,
                                error_type = httpc,
                                httpc_error_reason = Reason}) ->
@@ -343,7 +342,8 @@ request_to_return(#aws_request{response_type = error,
 sign_v4_headers(Config, Headers, Payload, Region, Service) ->
     sign_v4(post, "/", Config, Headers, Payload, Region, Service, []).
 
--spec sign_v4(atom(), list(), aws_config(), headers(), binary(), string(), string(), list()) -> headers().
+-spec sign_v4(atom(), list(), aws_config(), headers(), binary(), string(), string(), list()) ->
+                                    headers().
 sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams) ->
     Date = iso_8601_basic_time(),
     PayloadHash = hash_encode(Payload),
@@ -450,10 +450,10 @@ authorization(Config, CredentialScope, SignedHeaders, Signature) ->
 %%  2 - service disruption.
 -spec get_service_status(list(string())) -> ok | list().
 get_service_status(ServiceNames) when is_list(ServiceNames) ->
-    {ok, Json} = aws_request_form(get, "http", "status.aws.amazon.com", undefined, 
+    {ok, Json} = aws_request_form(get, "http", "status.aws.amazon.com", undefined,
         "/data.json", "", [], default_config()),
 
-    case get_filtered_statuses(ServiceNames, 
+    case get_filtered_statuses(ServiceNames,
             proplists:get_value(<<"current">>, jsx:decode(Json)))
     of
         [] -> ok;

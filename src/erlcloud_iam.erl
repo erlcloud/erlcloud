@@ -12,7 +12,7 @@
 %% IAM API Functions
 -export([
     %% Users
-    get_user/0, get_user/1, get_user/2, 
+    get_user/0, get_user/1, get_user/2,
     list_users/0, list_users/1, list_users/2,
     list_groups_for_user/1, list_groups_for_user/2,
     list_user_policies/1, list_user_policies/2,
@@ -53,7 +53,6 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
 
-
 %
 % Users API
 %
@@ -71,7 +70,7 @@ get_user("", Config) ->
     get_user_impl([], Config);
 get_user(UserName, Config) ->
     get_user_impl([{"UserName", UserName}], Config).
-    
+
 get_user_impl(UserNameParam, Config)
   when is_record(Config, aws_config) ->
     case iam_query(Config, "GetUser", UserNameParam) of
@@ -137,7 +136,7 @@ get_user_policy(UserName, PolicyName) ->
     get_user_policy(UserName, PolicyName, default_config()).
 
 -spec(get_user_policy/3 :: (string(), string(), aws_config()) -> proplist()).
-get_user_policy(UserName, PolicyName, Config) 
+get_user_policy(UserName, PolicyName, Config)
   when is_record(Config, aws_config) ->
      case iam_query(Config, "GetUserPolicy", [{"UserName", UserName}, {"PolicyName", PolicyName}]) of
         {ok, Doc} ->
@@ -149,7 +148,6 @@ get_user_policy(UserName, PolicyName, Config)
         {error, _} = Error ->
             Error
     end.
-
 
 -spec(get_login_profile/1 :: (string()) -> proplist()).
 get_login_profile(UserName) ->
@@ -208,7 +206,7 @@ get_group_policy(GroupName, PolicyName) ->
     get_group_policy(GroupName, PolicyName, default_config()).
 
 -spec(get_group_policy/3 :: (string(), string(), aws_config()) -> proplist()).
-get_group_policy(GroupName, PolicyName, Config) 
+get_group_policy(GroupName, PolicyName, Config)
   when is_record(Config, aws_config) ->
      case iam_query(Config, "GetGroupPolicy", [{"GroupName", GroupName}, {"PolicyName", PolicyName}]) of
         {ok, Doc} ->
@@ -220,7 +218,6 @@ get_group_policy(GroupName, PolicyName, Config)
         {error, _} = Error ->
             Error
     end.
-
 
 
 %
@@ -266,7 +263,7 @@ get_role_policy(RoleName, PolicyName) ->
     get_role_policy(RoleName, PolicyName, default_config()).
 
 -spec(get_role_policy/3 :: (string(), string(), aws_config()) -> proplist()).
-get_role_policy(RoleName, PolicyName, Config) 
+get_role_policy(RoleName, PolicyName, Config)
   when is_record(Config, aws_config) ->
      case iam_query(Config, "GetRolePolicy", [{"RoleName", RoleName}, {"PolicyName", PolicyName}]) of
         {ok, Doc} ->
@@ -279,12 +276,11 @@ get_role_policy(RoleName, PolicyName, Config)
             Error
     end.
 
-
 %
 % InstanceProfile
 %
 -spec(list_instance_profiles/1 :: (string() | aws_config()) -> proplist()).
-list_instance_profiles(Config) 
+list_instance_profiles(Config)
   when is_record(Config, aws_config) ->
     list_instance_profiles("/", Config);
 
@@ -307,7 +303,6 @@ list_instance_profiles(PathPrefix, Config)
         {error, _} = Error ->
             Error
     end.
-
 
 %
 % Account APIs
@@ -371,4 +366,3 @@ extract_role_item(Item) ->
      {create_date, erlcloud_xml:get_time("CreateDate", Item)},
      {arn, get_text("Arn", Item)}
     ].
-

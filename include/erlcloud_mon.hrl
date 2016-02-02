@@ -10,12 +10,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%------------------------------------------------------------------------------
-%% @doc date time
-%% @end
-%%------------------------------------------------------------------------------
-                                                %-type datetime() :: string().
-
-%%------------------------------------------------------------------------------
 %% @doc The unit of the metric.
 %% Valid Values: Seconds | Microseconds | Milliseconds
 %%  | Bytes | Kilobytes | Megabytes | Gigabytes | Terabytes | Bits | Kilobits | Megabits | Gigabits | Terabits
@@ -57,7 +51,7 @@
 %% @end
 %%------------------------------------------------------------------------------
 -record(metric_datum, {
-          metric_name       ::string(),         %% The name of the metric.
+          metric_name     ::string(),         %% The name of the metric.
           %% Length constraints: Minimum value of 1. Maximum value of 255.
           dimensions      ::[dimension()],    %% A list of dimensions associated with the metric.
           %% Length constraints: Minimum of 0 item(s) in the list. Maximum of 10 item(s) in the list.
