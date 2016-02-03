@@ -389,19 +389,19 @@ detach_instances(InstanceIds, GroupName) ->
 %% Config a supplied AWS configuration.
 %% @end
 %% --------------------------------------------------------------------
-detach_instances(InstanceIds, GroupName, false) ->
-    detach_instances(InstanceIds, GroupName, false, erlcloud_aws:default_config());
-detach_instances(InstanceIds, GroupName, true) ->
-    detach_instances(InstanceIds, GroupName, true, erlcloud_aws:default_config());
+-spec detach_instances(list(string()),string(), boolean() | aws_config()) -> aws_autoscaling_activity().
+detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity) when is_boolean(ShouldDecrementDesiredCapacity) ->
+    detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity, erlcloud_aws:default_config());
 detach_instances(InstanceIds, GroupName, Config) ->
     detach_instances(InstanceIds, GroupName, false, Config).
 
+-spec detach_instances(list(string()),string(), boolean(), aws_config()) -> aws_autoscaling_activity().
 detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity, Config) ->
     P = case ShouldDecrementDesiredCapacity of
             true ->
                 [{"ShouldDecrementDesiredCapacity", "true"}, {"AutoScalingGroupName", GroupName} | member_params("InstanceIds.member.", InstanceIds)];
             false ->
-                [{"ShouldDecrementDesiredCapacity", "true"}, {"AutoScalingGroupName", GroupName} | member_params("InstanceIds.member.", InstanceIds)]
+                [{"ShouldDecrementDesiredCapacity", "false"}, {"AutoScalingGroupName", GroupName} | member_params("InstanceIds.member.", InstanceIds)]
     end,
     case as_query(Config, "DetachInstances", P, ?API_VERSION) of
         {ok, Doc} ->
