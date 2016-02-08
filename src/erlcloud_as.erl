@@ -114,22 +114,11 @@ describe_groups(GN, Params, Config) ->
     case as_query(Config, "DescribeAutoScalingGroups", P, ?API_VERSION) of
         {ok, Doc} ->
             Groups = xmerl_xpath:string(?DESCRIBE_GROUPS_PATH, Doc),            
-            {next_token(?DESCRIBE_GROUPS_NEXT_TOKEN, Doc), [extract_group(G) || G <- Groups]};
+            {erlcloud_util:next_token(?DESCRIBE_GROUPS_NEXT_TOKEN, Doc), [extract_group(G) || G <- Groups]};
         {error, Reason} ->
             {error, Reason}
     end.
     
-
-%% retrieve NextToken from the XML at Path location.  Path is expected to lead to a 
-%% single occurrence and if it does not exist as such, this just returns ok.
--spec next_token(string(), term()) -> ok | {paged, string()}.
-next_token(Path, XML) ->
-    case xmerl_xpath:string(Path, XML) of
-        [Next] ->
-            {paged, erlcloud_xml:get_text(Next)};
-        _ ->
-            ok
-    end.
 
 extract_instance(I) ->
     extract_instance(I, erlcloud_xml:get_text("AutoScalingGroupName", I)).
@@ -231,7 +220,7 @@ describe_launch_configs(LN, Params, Config) ->
     P = member_params("LaunchConfigurationNames.member.", LN) ++ Params,
     case as_query(Config, "DescribeLaunchConfigurations", P, ?API_VERSION) of
         {ok, Doc} ->
-            Status = next_token(?LAUNCH_CONFIG_NEXT_TOKEN, Doc),
+            Status = erlcloud_util:next_token(?LAUNCH_CONFIG_NEXT_TOKEN, Doc),
             Configs = [extract_config(C) || C <- xmerl_xpath:string(?DESCRIBE_LAUNCH_CONFIG_PATH, Doc)],
             {Status, Configs};
         {error, Reason} ->
@@ -256,8 +245,9 @@ describe_scaling_activities(GroupName, Count, Config) ->
 describe_scaling_activities(Params, Config) ->
     case as_query(Config, "DescribeScalingActivities", Params, ?API_VERSION) of
         {ok, Doc} ->
+            Status = erlcloud_util:next_token(?LAUNCH_CONFIG_NEXT_TOKEN, Doc),
             Activities = [ extract_as_activity(A) || A <- xmerl_xpath:string(?DESCRIBE_SCALING_ACTIVITIES, Doc) ],
-            {ok, Activities};
+            {Status, Activities};
         {error, Reason} ->
             {error, Reason}
     end.
@@ -423,7 +413,7 @@ describe_instances(I, Params, Config) ->
     P = member_params("InstanceIds.member.", I) ++ Params,
     case as_query(Config, "DescribeAutoScalingInstances", P, ?API_VERSION) of
         {ok, Doc} ->
-            Status = next_token(?DESCRIBE_INSTANCES_NEXT_TOKEN, Doc),
+            Status = erlcloud_util:next_token(?DESCRIBE_INSTANCES_NEXT_TOKEN, Doc),
             Instances = [extract_instance(ID) || ID <- xmerl_xpath:string(?DESCRIBE_INSTANCES, Doc)],
             {Status, Instances};
         {error, Reason} ->
