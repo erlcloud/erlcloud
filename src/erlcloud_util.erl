@@ -1,7 +1,7 @@
 -module(erlcloud_util).
 -export([sha_mac/2, sha256_mac/2, md5/1, sha256/1,is_dns_compliant_name/1,
-         query_all/4, query_all/5, make_response/2, get_items/2, to_string/1,
-         encode_list/2]).
+         query_all/4, query_all/5, query_all_token/4, make_response/2, 
+         get_items/2, to_string/1, encode_list/2, next_token/2]).
 
 -define(MAX_ITEMS, 1000).
 
@@ -50,6 +50,33 @@ is_dns_compliant_name(Name) ->
         _ ->
             true
     end.
+
+
+query_all_token(QueryFun, Config, Action, Params) ->
+    query_all_token(QueryFun, Config, Action, Params, undefined, []).
+
+query_all_token(QueryFun, Config, Action, Params, Token, Acc) ->
+    NewParams = case Token of
+                    undefined ->
+                        Params;
+                    _ ->
+                        [{"Token", Token} | Params]
+                end,
+    case QueryFun(Config, Action, NewParams) of
+        {ok, Doc} ->
+            NewToken = next_token("/*/*/NextToken", Doc),
+            Queried = [Doc | Acc],
+            case NewToken of
+                ok ->
+                    {ok, lists:reverse(Queried)};
+                {paged, NewTokenValue} ->
+                    query_all_token(QueryFun, Config, Action, Params,
+                              NewTokenValue, Queried)
+            end;
+        Error ->
+            Error
+    end.
+
 
 query_all(QueryFun, Config, Action, Params) ->
     query_all(QueryFun, Config, Action, Params, ?MAX_ITEMS, undefined, []).
@@ -105,3 +132,12 @@ get_items(ItemPath, Xml) ->
 -spec to_string(string() | integer()) -> string().
 to_string(X) when is_list(X)              -> X;
 to_string(X) when is_integer(X) -> integer_to_list(X).
+
+-spec next_token(string(), term()) -> ok | {paged, string()}.
+next_token(Path, XML) ->
+    case xmerl_xpath:string(Path, XML) of
+        [Next] ->
+            {paged, erlcloud_xml:get_text(Next)};
+        _ ->
+            ok
+    end.

@@ -87,6 +87,9 @@
          describe_reserved_instances_offerings/0,
          describe_reserved_instances_offerings/1,
          describe_reserved_instances_offerings/2,
+         describe_reserved_instances_offerings_all/0,
+         describe_reserved_instances_offerings_all/1,
+         describe_reserved_instances_offerings_all/2,
          purchase_reserved_instances_offering/1,
          purchase_reserved_instances_offering/2,
 
@@ -1676,13 +1679,47 @@ describe_reserved_instances_offerings(Selector, Config)
     InstanceTypes = [Value || {Key, Value} <- Selector, Key =:= instance_type],
     AvailabilityZones = [Value || {Key, Value} <- Selector, Key =:= availability_zone],
     Descs = [Value || {Key, Value} <- Selector, Key =:= product_description],
+    Token = [Value || {Key, Value} <- Selector, Key =:= token],
     Params = erlcloud_aws:param_list(InstanceTypes, "InstanceType") ++
         erlcloud_aws:param_list(AvailabilityZones, "AvailabilityZone") ++
-        erlcloud_aws:param_list(Descs, "ProductDescription"),
+        erlcloud_aws:param_list(Descs, "ProductDescription") ++
+        erlcloud_aws:param_list(Token, "NextToken"),
     case ec2_query(Config, "DescribeReservedInstancesOfferings", Params) of
         {ok, Doc} ->
-            {ok, [extract_reserved_instances_offering(Node) ||
-                Node <- xmerl_xpath:string("/DescribeReservedInstancesOfferingsResponse/reservedInstancesOfferingsSet/item", Doc)]};
+            Res = [extract_reserved_instances_offering(Node) ||
+                      Node <- xmerl_xpath:string("/DescribeReservedInstancesOfferingsResponse/reservedInstancesOfferingsSet/item", Doc)],
+            case erlcloud_util:next_token("/DescribeReservedInstancesOfferingsResponse/nextToken", Doc) of
+                ok ->
+                    {ok, Res};
+                {paged, NextToken} ->
+                    {ok, Res, NextToken}
+            end;
+        {error, _} = Error ->
+            Error
+    end.
+
+-spec(describe_reserved_instances_offerings_all/0 :: () -> proplist()).
+describe_reserved_instances_offerings_all() -> describe_reserved_instances_offerings_all([]).
+
+-spec(describe_reserved_instances_offerings_all/1 :: ([{atom(), string()}] | aws_config()) -> proplist()).
+describe_reserved_instances_offerings_all(Config)
+  when is_record(Config, aws_config) ->
+    describe_reserved_instances_offerings_all([], Config);
+describe_reserved_instances_offerings_all(Selector) ->
+    describe_reserved_instances_offerings_all(Selector, default_config()).
+
+-spec(describe_reserved_instances_offerings_all/2 :: ([{atom(), string()}], aws_config()) -> proplist()).
+describe_reserved_instances_offerings_all(Selector, Config) ->
+    describe_reserved_instances_offerings_all(Selector, Config, []).
+
+describe_reserved_instances_offerings_all(Selector, Config, Acc)
+  when is_list(Selector) ->
+    case describe_reserved_instances_offerings(Selector, Config) of
+        {ok, Res} ->
+            {ok, lists:append(Acc, Res)};
+        {ok, Res, NextToken} ->
+            NewSelector = [{token, NextToken} | proplists:delete(token, Selector)],
+            describe_reserved_instances_offerings_all(NewSelector, Config, lists:append(Acc, Res));
         {error, _} = Error ->
             Error
     end.

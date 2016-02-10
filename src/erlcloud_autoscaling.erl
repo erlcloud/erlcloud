@@ -8,7 +8,9 @@
 -export([configure/2, configure/3, new/2, new/3]).
 
 -export([describe_autoscaling_groups/0, describe_autoscaling_groups/1, describe_autoscaling_groups/2,
-         describe_launch_configurations/0, describe_launch_configurations/1, describe_launch_configurations/2
+         describe_launch_configurations/0, describe_launch_configurations/1, describe_launch_configurations/2,
+         describe_autoscaling_groups_all/0, describe_autoscaling_groups_all/1, describe_autoscaling_groups_all/2,
+         describe_launch_configurations_all/0, describe_launch_configurations_all/1, describe_launch_configurations_all/2
         ]).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
@@ -57,9 +59,30 @@ describe_autoscaling_groups(GroupNames, Config)
     case autoscaling_query(Config, "DescribeAutoScalingGroups", erlcloud_aws:param_list(GroupNames, "AutoScalingGroupNames.member")) of
         {ok, Doc} ->
             Groups = xmerl_xpath:string("/DescribeAutoScalingGroupsResponse/DescribeAutoScalingGroupsResult/AutoScalingGroups/member", Doc),
+            {erlcloud_util:next_token("/DescribeAutoScalingGroupsResponse/DescribeAutoScalingGroupsResult/NextToken", Doc), [extract_autoscaling_group(Group) || Group <- Groups]};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+-spec(describe_autoscaling_groups_all/0 :: () -> proplist()).
+describe_autoscaling_groups_all() -> describe_autoscaling_groups_all([]).
+
+-spec(describe_autoscaling_groups_all/1 :: ([string()] | aws_config()) -> proplist()).
+describe_autoscaling_groups_all(Config) when is_record(Config, aws_config) -> 
+    describe_autoscaling_groups_all([], Config);
+describe_autoscaling_groups_all(GroupNames) ->
+    describe_autoscaling_groups_all(GroupNames, default_config()).
+
+-spec(describe_autoscaling_groups_all/2 :: ([string()], aws_config()) -> proplist()).
+describe_autoscaling_groups_all(GroupNames, Config)
+  when is_list(GroupNames), is_record(Config, aws_config) -> 
+    %case autoscaling_query(Config, "DescribeAutoScalingGroups", []) of % erlcloud_aws:param_list(GroupNames, "AutoScalingGroupNames.member")) of
+    case erlcloud_util:query_all_token(fun autoscaling_query/3, Config, "DescribeAutoScalingGroups", erlcloud_aws:param_list(GroupNames, "AutoScalingGroupNames.member")) of
+        {ok, Docs} ->
+            Groups = lists:append([xmerl_xpath:string("/DescribeAutoScalingGroupsResponse/DescribeAutoScalingGroupsResult/AutoScalingGroups/member", Doc) || Doc <- Docs]),
             {ok, [extract_autoscaling_group(Group) || Group <- Groups]};
         {error, Reason} ->
-            {error, Reason}  
+            {error, Reason}
     end.
 
 -spec(describe_launch_configurations/0 :: () -> proplist()).
@@ -76,7 +99,27 @@ describe_launch_configurations(ConfiguratoinNames, Config)
   when is_list(ConfiguratoinNames), is_record(Config, aws_config) -> 
     case autoscaling_query(Config, "DescribeLaunchConfigurations", erlcloud_aws:param_list(ConfiguratoinNames, "LaunchConfigurationNames.member")) of
         {ok, Doc} ->
-            Configurations= xmerl_xpath:string("/DescribeLaunchConfigurationsResponse/DescribeLaunchConfigurationsResult/LaunchConfigurations/member", Doc),
+            Configurations = xmerl_xpath:string("/DescribeLaunchConfigurationsResponse/DescribeLaunchConfigurationsResult/LaunchConfigurations/member", Doc),
+            {erlcloud_util:next_token("/DescribeLaunchConfigurationsResponse/DescribeLaunchConfigurationsResult/NextToken", Doc), [extract_launch_configuration(Configuration) || Configuration <- Configurations]};
+        {error, Reason} ->
+            {error, Reason}  
+    end.
+
+-spec(describe_launch_configurations_all/0 :: () -> proplist()).
+describe_launch_configurations_all() -> describe_launch_configurations_all([]).
+
+-spec(describe_launch_configurations_all/1 :: ([string()] | aws_config()) -> proplist()).
+describe_launch_configurations_all(Config) when is_record(Config, aws_config) -> 
+    describe_launch_configurations_all([], Config);
+describe_launch_configurations_all(ConfiguratoinNames) ->
+    describe_launch_configurations_all(ConfiguratoinNames, default_config()).
+
+-spec(describe_launch_configurations_all/2 :: ([string()], aws_config()) -> proplist()).
+describe_launch_configurations_all(ConfiguratoinNames, Config)
+  when is_list(ConfiguratoinNames), is_record(Config, aws_config) -> 
+    case erlcloud_util:query_all_token(fun autoscaling_query/3, Config, "DescribeLaunchConfigurations", erlcloud_aws:param_list(ConfiguratoinNames, "LaunchConfigurationNames.member")) of
+        {ok, Docs} ->
+            Configurations = lists:append([xmerl_xpath:string("/DescribeLaunchConfigurationsResponse/DescribeLaunchConfigurationsResult/LaunchConfigurations/member", Doc) || Doc <- Docs]),
             {ok, [extract_launch_configuration(Configuration) || Configuration <- Configurations]};
         {error, Reason} ->
             {error, Reason}  

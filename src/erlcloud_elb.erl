@@ -200,7 +200,7 @@ describe_load_balancers(Names, Params, Config) ->
     case elb_query(Config, "DescribeLoadBalancers", P) of
         {ok, Doc} ->
             Elbs = xmerl_xpath:string(?DESCRIBE_ELBS_PATH, Doc),            
-            {next_token(?DESCRIBE_ELBS_NEXT_TOKEN, Doc), [extract_elb(Elb) || Elb <- Elbs]};
+            {erlcloud_util:next_token(?DESCRIBE_ELBS_NEXT_TOKEN, Doc), [extract_elb(Elb) || Elb <- Elbs]};
         {error, Reason} ->
             {error, Reason}
     end.
@@ -262,17 +262,6 @@ extract_listener(Item) ->
         {ssl_certificate_id, get_text("Listener/SSLCertificateId", Item)},
         {policy_names, get_list("PolicyNames/member", Item)}
     ].
-
-%% retrieve NextToken from the XML at Path location.  Path is expected to lead to a 
-%% single occurrence and if it does not exist as such, this just returns ok.
--spec next_token(string(), term()) -> ok | {paged, string()}.
-next_token(Path, XML) ->
-    case xmerl_xpath:string(Path, XML) of
-        [Next] ->
-            {paged, erlcloud_xml:get_text(Next)};
-        _ ->
-            ok
-    end.
 
 %% --------------------------------------------------------------------
 %% @doc Calls describe_load_balancer_policies([], 
