@@ -60,7 +60,7 @@ query_all_token(QueryFun, Config, Action, Params, Token, Acc) ->
                     undefined ->
                         Params;
                     _ ->
-                        [{"Token", Token} | Params]
+                        [{"NextToken", Token} | Params]
                 end,
     case QueryFun(Config, Action, NewParams) of
         {ok, Doc} ->
@@ -141,3 +141,4 @@ next_token(Path, XML) ->
         _ ->
             ok
     end.
+
