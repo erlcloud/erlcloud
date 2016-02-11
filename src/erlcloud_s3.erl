@@ -123,12 +123,12 @@ configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
 
 -define(XMLNS_S3, "http://s3.amazonaws.com/doc/2006-03-01/").
 
--spec copy_object(string(), string(), string(), string()) -> proplist().
+-spec copy_object(string(), string(), string(), string()) -> proplist() | {error, any()}.
 
 copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName) ->
     copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, []).
 
--spec copy_object(string(), string(), string(), string(), proplist() | aws_config()) -> proplist().
+-spec copy_object(string(), string(), string(), string(), proplist() | aws_config()) -> proplist() | {error, any()}.
 
 copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, Config)
   when is_record(Config, aws_config) ->
@@ -138,7 +138,7 @@ copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, Options) ->
     copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName,
                 Options, default_config()).
 
--spec copy_object(string(), string(), string(), string(), proplist(), aws_config()) -> proplist().
+-spec copy_object(string(), string(), string(), string(), proplist(), aws_config()) -> proplist() | {error, any()}.
 copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, Options, Config) ->
     SrcVersion = case proplists:get_value(version_id, Options) of
                      undefined -> "";
@@ -152,17 +152,21 @@ copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, Options, Con
          {"x-amz-copy-source-if-unmodified-since", proplists:get_value(if_unmodified_since, Options)},
          {"x-amz-copy-source-if-modified-since", proplists:get_value(if_modified_since, Options)},
          {"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}],
-    {Headers, _Body} = s3_request(Config, put, DestBucketName, [$/|DestKeyName],
-                                  "", [], <<>>, RequestHeaders),
-    [{copy_source_version_id, proplists:get_value("x-amz-copy-source-version-id", Headers, "false")},
-     {version_id, proplists:get_value("x-amz-version-id", Headers, "null")}].
 
--spec create_bucket(string()) -> ok.
+    case s3_request(Config, put, DestBucketName, [$/|DestKeyName],
+                    "", [], <<>>, RequestHeaders) of
+        {error, Reason} -> {error, Reason};
+        {Headers, _Body} ->
+            [{copy_source_version_id, proplists:get_value("x-amz-copy-source-version-id", Headers, "false")},
+             {version_id, proplists:get_value("x-amz-version-id", Headers, "null")}]
+    end.
+
+-spec create_bucket(string()) -> ok | {error, any()}.
 
 create_bucket(BucketName) ->
     create_bucket(BucketName, private).
 
--spec create_bucket(string(), s3_bucket_acl() | aws_config()) -> ok.
+-spec create_bucket(string(), s3_bucket_acl() | aws_config()) -> ok | {error, any()}.
 
 create_bucket(BucketName, Config)
   when is_record(Config, aws_config) ->
@@ -171,7 +175,7 @@ create_bucket(BucketName, Config)
 create_bucket(BucketName, ACL) ->
     create_bucket(BucketName, ACL, none).
 
--spec create_bucket(string(), s3_bucket_acl(), s3_location_constraint() | aws_config()) -> ok.
+-spec create_bucket(string(), s3_bucket_acl(), s3_location_constraint() | aws_config()) -> ok | {error, any()}.
 
 create_bucket(BucketName, ACL, Config)
   when is_record(Config, aws_config) ->
@@ -180,7 +184,7 @@ create_bucket(BucketName, ACL, Config)
 create_bucket(BucketName, ACL, LocationConstraint) ->
     create_bucket(BucketName, ACL, LocationConstraint, default_config()).
 
--spec create_bucket(string(), s3_bucket_acl(), s3_location_constraint(), aws_config()) -> ok.
+-spec create_bucket(string(), s3_bucket_acl(), s3_location_constraint(), aws_config()) -> ok | {error, any()}.
 
 create_bucket(BucketName, ACL, LocationConstraint, Config)
   when is_list(BucketName), is_atom(ACL), is_atom(LocationConstraint) ->
@@ -206,12 +210,12 @@ encode_acl(authenticated_read)        -> "authenticated-read";
 encode_acl(bucket_owner_read)         -> "bucket-owner-read";
 encode_acl(bucket_owner_full_control) -> "bucket-owner-full-control".
 
--spec delete_bucket(string()) -> ok.
+-spec delete_bucket(string()) -> ok | {error, any()}.
 
 delete_bucket(BucketName) ->
     delete_bucket(BucketName, default_config()).
 
--spec delete_bucket(string(), aws_config()) -> ok.
+-spec delete_bucket(string(), aws_config()) -> ok | {error, any()}.
 
 delete_bucket(BucketName, Config)
   when is_list(BucketName) ->
@@ -274,50 +278,59 @@ explore_dirstructure(Bucketname, [Branch|Tail], Accum) ->
             explore_dirstructure(Bucketname, Tail, [Result, Files|Accum])
     end.
 
--spec delete_object(string(), string()) -> proplist().
+-spec delete_object(string(), string()) -> proplist() | {error, any()}.
 
 delete_object(BucketName, Key) ->
     delete_object(BucketName, Key, default_config()).
 
--spec delete_object(string(), string(), aws_config()) -> proplist().
+-spec delete_object(string(), string(), aws_config()) -> proplist() | {error, any()}.
 
 delete_object(BucketName, Key, Config)
   when is_list(BucketName), is_list(Key) ->
-    {Headers, _Body} = s3_request(Config, delete, BucketName, [$/|Key], "", [], <<>>, []),
-    Marker = proplists:get_value("x-amz-delete-marker", Headers, "false"),
-    Id = proplists:get_value("x-amz-version-id", Headers, "null"),
-    [{delete_marker, list_to_existing_atom(Marker)},
-     {version_id, Id}].
+    case s3_request(Config, delete, BucketName, [$/|Key], "", [], <<>>, []) of
+        {error, Reason} -> {error, Reason};
+        {Headers, _Body} ->
+            Marker = proplists:get_value("x-amz-delete-marker", Headers, "false"),
+            Id = proplists:get_value("x-amz-version-id", Headers, "null"),
+            [{delete_marker, list_to_existing_atom(Marker)},
+             {version_id, Id}]
+    end.
 
--spec delete_object_version(string(), string(), string()) -> proplist().
+-spec delete_object_version(string(), string(), string()) -> proplist() | {error, any()}.
 
 delete_object_version(BucketName, Key, Version) ->
     delete_object_version(BucketName, Key, Version, default_config()).
 
--spec delete_object_version(string(), string(), string(), aws_config()) -> proplist().
+-spec delete_object_version(string(), string(), string(), aws_config()) -> proplist() | {error, any()}.
 
 delete_object_version(BucketName, Key, Version, Config)
   when is_list(BucketName),
        is_list(Key),
        is_list(Version)->
-    {Headers, _Body} = s3_request(Config, delete, BucketName, [$/|Key],
-                                  ["versionId=", Version], [], <<>>, []),
-    Marker = proplists:get_value("x-amz-delete-marker", Headers, "false"),
-    Id = proplists:get_value("x-amz-version-id", Headers, "null"),
-    [{delete_marker, list_to_existing_atom(Marker)},
-     {version_id, Id}].
+        case s3_request(Config, delete, BucketName, [$/|Key],
+                        ["versionId=", Version], [], <<>>, []) of
+            {error, Reason} -> {error, Reason};
+            {Headers, _Body} ->
+                Marker = proplists:get_value("x-amz-delete-marker", Headers, "false"),
+                Id = proplists:get_value("x-amz-version-id", Headers, "null"),
+                [{delete_marker, list_to_existing_atom(Marker)},
+                 {version_id, Id}]
+        end.
 
--spec list_buckets() -> proplist().
+-spec list_buckets() -> proplist() | {error, any()}.
 
 list_buckets() ->
     list_buckets(default_config()).
 
--spec list_buckets(aws_config()) -> proplist().
+-spec list_buckets(aws_config()) -> proplist() | {error, any()}.
 
 list_buckets(Config) ->
-    Doc = s3_xml_request(Config, get, "", "/", "", [], <<>>, []),
-    Buckets = [extract_bucket(Node) || Node <- xmerl_xpath:string("/*/Buckets/Bucket", Doc)],
-    [{buckets, Buckets}].
+    case s3_xml_request(Config, get, "", "/", "", [], <<>>, []) of
+        {error, Reason} -> {error, Reason};
+        Doc ->
+            Buckets = [extract_bucket(Node) || Node <- xmerl_xpath:string("/*/Buckets/Bucket", Doc)],
+            [{buckets, Buckets}]
+    end.
 
 %
 % @doc Get S3 bucket policy JSON object
@@ -349,22 +362,22 @@ get_bucket_policy(BucketName, Config)
                 Error
         end.
 
--spec put_bucket_policy(string(), binary()) -> ok.
+-spec put_bucket_policy(string(), binary()) -> ok | {error, any()}.
 put_bucket_policy(BucketName, Policy) ->
     put_bucket_policy(BucketName, Policy, default_config()).
 
--spec put_bucket_policy(string(), binary(), aws_config()) -> ok.
+-spec put_bucket_policy(string(), binary(), aws_config()) -> ok | {error, any()}.
 put_bucket_policy(BucketName, Policy, Config)
   when is_list(BucketName), is_binary(Policy), is_record(Config, aws_config) ->
     s3_simple_request(Config, put, BucketName, "/", "policy", [], Policy, []).
 
 
--spec list_objects(string()) -> proplist().
+-spec list_objects(string()) -> proplist() | {error, any()}.
 
 list_objects(BucketName) ->
     list_objects(BucketName, []).
 
--spec list_objects(string(), proplist() | aws_config()) -> proplist().
+-spec list_objects(string(), proplist() | aws_config()) -> proplist() | {error, any()}.
 
 list_objects(BucketName, Config)
   when is_record(Config, aws_config) ->
@@ -373,7 +386,7 @@ list_objects(BucketName, Config)
 list_objects(BucketName, Options) ->
     list_objects(BucketName, Options, default_config()).
 
--spec list_objects(string(), proplist(), aws_config()) -> proplist().
+-spec list_objects(string(), proplist(), aws_config()) -> proplist() | {error, any()}.
 
 list_objects(BucketName, Options, Config)
   when is_list(BucketName),
@@ -382,16 +395,19 @@ list_objects(BucketName, Options, Config)
               {"marker", proplists:get_value(marker, Options)},
               {"max-keys", proplists:get_value(max_keys, Options)},
               {"prefix", proplists:get_value(prefix, Options)}],
-    Doc = s3_xml_request(Config, get, BucketName, "/", "", Params, <<>>, []),
-    Attributes = [{name, "Name", text},
-                  {prefix, "Prefix", text},
-                  {marker, "Marker", text},
-                  {delimiter, "Delimiter", text},
-                  {max_keys, "MaxKeys", integer},
-                  {is_truncated, "IsTruncated", boolean},
-                  {common_prefixes, "CommonPrefixes", fun extract_prefixes/1},
-                  {contents, "Contents", fun extract_contents/1}],
-    erlcloud_xml:decode(Attributes, Doc).
+    case s3_xml_request(Config, get, BucketName, "/", "", Params, <<>>, []) of
+        {error, Reason} -> {error, Reason};
+        Doc ->
+            Attributes = [{name, "Name", text},
+                          {prefix, "Prefix", text},
+                          {marker, "Marker", text},
+                          {delimiter, "Delimiter", text},
+                          {max_keys, "MaxKeys", integer},
+                          {is_truncated, "IsTruncated", boolean},
+                          {common_prefixes, "CommonPrefixes", fun extract_prefixes/1},
+                          {contents, "Contents", fun extract_contents/1}],
+            erlcloud_xml:decode(Attributes, Doc)
+    end.
 
 extract_prefixes(Nodes) ->
     Attributes = [{prefix, "Prefix", text}],
@@ -415,12 +431,12 @@ extract_user([Node]) ->
                  ],
     erlcloud_xml:decode(Attributes, Node).
 
--spec get_bucket_attribute(string(), s3_bucket_attribute_name()) -> term().
+-spec get_bucket_attribute(string(), s3_bucket_attribute_name()) -> term() | {error, any()}.
 
 get_bucket_attribute(BucketName, AttributeName) ->
     get_bucket_attribute(BucketName, AttributeName, default_config()).
 
--spec get_bucket_attribute(string(), s3_bucket_attribute_name(), aws_config()) -> term().
+-spec get_bucket_attribute(string(), s3_bucket_attribute_name(), aws_config()) -> term() | {error, any()}.
 
 get_bucket_attribute(BucketName, AttributeName, Config)
   when is_list(BucketName), is_atom(AttributeName) ->
@@ -431,41 +447,44 @@ get_bucket_attribute(BucketName, AttributeName, Config)
                request_payment -> "requestPayment";
                versioning      -> "versioning"
            end,
-    Doc = s3_xml_request(Config, get, BucketName, "/", Attr, [], <<>>, []),
-    case AttributeName of
-        acl ->
-            Attributes = [{owner, "Owner", fun extract_user/1},
-                          {access_control_list, "AccessControlList/Grant", fun extract_acl/1}],
-            erlcloud_xml:decode(Attributes, Doc);
-        location ->
-            case erlcloud_xml:get_text("/LocationConstraint", Doc) of
-                %% logic according to http://s3tools.org/s3cmd
-                %% s3cmd-1.5.2/S3/S3.py : line 342 (function get_bucket_location)
-                [] -> "us-east-1";
-                ["US"] -> "us-east-1";
-                ["EU"] -> "eu-west-1";
-                Loc -> Loc
-            end;
-        logging ->
-            case xmerl_xpath:string("/BucketLoggingStatus/LoggingEnabled", Doc) of
-                [] ->
-                    {enabled, false};
-                [LoggingEnabled] ->
-                    Attributes = [{target_bucket, "TargetBucket", text},
-                                  {target_prefix, "TargetPrefix", text},
-                                  {target_trants, "TargetGrants/Grant", fun extract_acl/1}],
-                    [{enabled, true}|erlcloud_xml:decode(Attributes, LoggingEnabled)]
-            end;
-        request_payment ->
-            case erlcloud_xml:get_text("/RequestPaymentConfiguration/Payer", Doc) of
-                "Requester" -> requester;
-                _           -> bucket_owner
-            end;
-        versioning ->
-            case erlcloud_xml:get_text("/VersioningConfiguration/Status", Doc) of
-                "Enabled"   -> enabled;
-                "Suspended" -> suspended;
-                _           -> disabled
+    case s3_xml_request(Config, get, BucketName, "/", Attr, [], <<>>, []) of
+        {error, Reason} -> {error, Reason};
+        Doc ->
+            case AttributeName of
+                acl ->
+                    Attributes = [{owner, "Owner", fun extract_user/1},
+                                  {access_control_list, "AccessControlList/Grant", fun extract_acl/1}],
+                    erlcloud_xml:decode(Attributes, Doc);
+                location ->
+                    case erlcloud_xml:get_text("/LocationConstraint", Doc) of
+                        %% logic according to http://s3tools.org/s3cmd
+                        %% s3cmd-1.5.2/S3/S3.py : line 342 (function get_bucket_location)
+                        [] -> "us-east-1";
+                        ["US"] -> "us-east-1";
+                        ["EU"] -> "eu-west-1";
+                        Loc -> Loc
+                    end;
+                logging ->
+                    case xmerl_xpath:string("/BucketLoggingStatus/LoggingEnabled", Doc) of
+                        [] ->
+                            {enabled, false};
+                        [LoggingEnabled] ->
+                            Attributes = [{target_bucket, "TargetBucket", text},
+                                          {target_prefix, "TargetPrefix", text},
+                                          {target_trants, "TargetGrants/Grant", fun extract_acl/1}],
+                            [{enabled, true}|erlcloud_xml:decode(Attributes, LoggingEnabled)]
+                    end;
+                request_payment ->
+                    case erlcloud_xml:get_text("/RequestPaymentConfiguration/Payer", Doc) of
+                        "Requester" -> requester;
+                        _           -> bucket_owner
+                    end;
+                versioning ->
+                    case erlcloud_xml:get_text("/VersioningConfiguration/Status", Doc) of
+                        "Enabled"   -> enabled;
+                        "Suspended" -> suspended;
+                        _           -> disabled
+                    end
             end
     end.
 
@@ -488,12 +507,12 @@ decode_permission("WRITE_ACP")    -> write_acp;
 decode_permission("READ")         -> read;
 decode_permission("READ_ACP")     -> read_acp.
 
--spec get_object(string(), string()) -> proplist().
+-spec get_object(string(), string()) -> proplist() | {error, any()}.
 
 get_object(BucketName, Key) ->
     get_object(BucketName, Key, []).
 
--spec get_object(string(), string(), proplist() | aws_config()) -> proplist().
+-spec get_object(string(), string(), proplist() | aws_config()) -> proplist() | {error, any()}.
 
 get_object(BucketName, Key, Config)
   when is_record(Config, aws_config) ->
@@ -502,7 +521,7 @@ get_object(BucketName, Key, Config)
 get_object(BucketName, Key, Options) ->
     get_object(BucketName, Key, Options, default_config()).
 
--spec get_object(string(), string(), proplist(), aws_config()) -> proplist().
+-spec get_object(string(), string(), proplist(), aws_config()) -> proplist() | {error, any()}.
 
 get_object(BucketName, Key, Options, Config) ->
     RequestHeaders = [{"Range", proplists:get_value(range, Options)},
@@ -514,22 +533,25 @@ get_object(BucketName, Key, Options, Config) ->
                       undefined -> "";
                       Version   -> ["versionId=", Version]
                   end,
-    {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders),
-    [{etag, proplists:get_value("etag", Headers)},
-     {content_length, proplists:get_value("content-length", Headers)},
-     {content_type, proplists:get_value("content-type", Headers)},
-     {content_encoding, proplists:get_value("content-encoding", Headers)},
-     {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
-     {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
-     {content, Body}|
-     extract_metadata(Headers)].
+    case s3_request(Config, get, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders) of
+        {error, Reason} -> {error, Reason};
+        {Headers, Body} ->
+            [{etag, proplists:get_value("etag", Headers)},
+             {content_length, proplists:get_value("content-length", Headers)},
+             {content_type, proplists:get_value("content-type", Headers)},
+             {content_encoding, proplists:get_value("content-encoding", Headers)},
+             {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
+             {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
+             {content, Body}|
+             extract_metadata(Headers)]
+    end.
 
 -spec get_object_acl(string(), string()) -> proplist().
 
 get_object_acl(BucketName, Key) ->
     get_object_acl(BucketName, Key, default_config()).
 
--spec get_object_acl(string(), string(), proplist() | aws_config()) -> proplist().
+-spec get_object_acl(string(), string(), proplist() | aws_config()) -> proplist() | {error, any()}.
 
 get_object_acl(BucketName, Key, Config)
   when is_record(Config, aws_config) ->
@@ -538,7 +560,7 @@ get_object_acl(BucketName, Key, Config)
 get_object_acl(BucketName, Key, Options) ->
     get_object_acl(BucketName, Key, Options, default_config()).
 
--spec get_object_acl(string(), string(), proplist(), aws_config()) -> proplist().
+-spec get_object_acl(string(), string(), proplist(), aws_config()) -> proplist() | {error, any()}.
 
 get_object_acl(BucketName, Key, Options, Config)
   when is_list(BucketName), is_list(Key), is_list(Options) ->
@@ -546,17 +568,20 @@ get_object_acl(BucketName, Key, Options, Config)
                       undefined -> "";
                       Version   -> ["&versionId=", Version]
                   end,
-    Doc = s3_xml_request(Config, get, BucketName, [$/|Key], "acl" ++ Subresource, [], <<>>, []),
-    Attributes = [{owner, "Owner", fun extract_user/1},
-                  {access_control_list, "AccessControlList/Grant", fun extract_acl/1}],
-    erlcloud_xml:decode(Attributes, Doc).
+    case s3_xml_request(Config, get, BucketName, [$/|Key], "acl" ++ Subresource, [], <<>>, []) of
+        {error, Reason} -> {error, Reason};
+        Doc ->
+            Attributes = [{owner, "Owner", fun extract_user/1},
+                          {access_control_list, "AccessControlList/Grant", fun extract_acl/1}],
+            erlcloud_xml:decode(Attributes, Doc)
+    end.
 
--spec get_object_metadata(string(), string()) -> proplist().
+-spec get_object_metadata(string(), string()) -> proplist() | {error, any()}.
 
 get_object_metadata(BucketName, Key) ->
     get_object_metadata(BucketName, Key, []).
 
--spec get_object_metadata(string(), string(), proplist() | aws_config()) -> proplist().
+-spec get_object_metadata(string(), string(), proplist() | aws_config()) -> proplist() | {error, any()}.
 
 get_object_metadata(BucketName, Key, Config)
   when is_record(Config, aws_config) ->
@@ -565,7 +590,7 @@ get_object_metadata(BucketName, Key, Config)
 get_object_metadata(BucketName, Key, Options) ->
     get_object_metadata(BucketName, Key, Options, default_config()).
 
--spec get_object_metadata(string(), string(), proplist(), proplist() | aws_config()) -> proplist().
+-spec get_object_metadata(string(), string(), proplist(), proplist() | aws_config()) -> proplist() | {error, any()}.
 
 get_object_metadata(BucketName, Key, Options, Config) ->
     RequestHeaders = [{"If-Modified-Since", proplists:get_value(if_modified_since, Options)},
@@ -576,38 +601,43 @@ get_object_metadata(BucketName, Key, Options, Config) ->
                       undefined -> "";
                       Version   -> ["versionId=", Version]
                   end,
-    {Headers, _Body} = s3_request(Config, head, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders),
-
-    [{last_modified, proplists:get_value("last-modified", Headers)},
-     {etag, proplists:get_value("etag", Headers)},
-     {content_length, proplists:get_value("content-length", Headers)},
-     {content_type, proplists:get_value("content-type", Headers)},
-     {content_encoding, proplists:get_value("content-encoding", Headers)},
-     {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
-     {version_id, proplists:get_value("x-amz-version-id", Headers, "false")}|extract_metadata(Headers)].
+    case s3_request(Config, head, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders) of
+        {error, Reason} -> {error, Reason};
+        {Headers, _Body} ->
+            [{last_modified, proplists:get_value("last-modified", Headers)},
+             {etag, proplists:get_value("etag", Headers)},
+             {content_length, proplists:get_value("content-length", Headers)},
+             {content_type, proplists:get_value("content-type", Headers)},
+             {content_encoding, proplists:get_value("content-encoding", Headers)},
+             {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
+             {version_id, proplists:get_value("x-amz-version-id", Headers, "false")}|extract_metadata(Headers)]
+    end.
 
 extract_metadata(Headers) ->
     [{Key, Value} || {Key = "x-amz-meta-" ++ _, Value} <- Headers].
 
--spec get_object_torrent(string(), string()) -> proplist().
+-spec get_object_torrent(string(), string()) -> proplist() | {error, any()}.
 
 get_object_torrent(BucketName, Key) ->
     get_object_torrent(BucketName, Key, default_config()).
 
--spec get_object_torrent(string(), string(), aws_config()) -> proplist().
+-spec get_object_torrent(string(), string(), aws_config()) -> proplist() | {error, any()}.
 
 get_object_torrent(BucketName, Key, Config) ->
-    {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], "torrent", [], <<>>, []),
-    [{delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
-     {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
-     {torrent, Body}].
+    case s3_request(Config, get, BucketName, [$/|Key], "torrent", [], <<>>, []) of
+        {error, Reason} -> {error, Reason};
+        {Headers, Body} ->
+            [{delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
+             {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
+             {torrent, Body}]
+    end.
 
--spec list_object_versions(string()) -> proplist().
+-spec list_object_versions(string()) -> proplist() | {error, any()}.
 
 list_object_versions(BucketName) ->
     list_object_versions(BucketName, []).
 
--spec list_object_versions(string(), proplist() | aws_config()) -> proplist().
+-spec list_object_versions(string(), proplist() | aws_config()) -> proplist() | {error, any()}.
 
 list_object_versions(BucketName, Config)
   when is_record(Config, aws_config) ->
@@ -616,7 +646,7 @@ list_object_versions(BucketName, Config)
 list_object_versions(BucketName, Options) ->
     list_object_versions(BucketName, Options, default_config()).
 
--spec list_object_versions(string(), proplist(), aws_config()) -> proplist().
+-spec list_object_versions(string(), proplist(), aws_config()) -> proplist() | {error, any()}.
 
 list_object_versions(BucketName, Options, Config)
   when is_list(BucketName), is_list(Options) ->
@@ -625,18 +655,21 @@ list_object_versions(BucketName, Options, Config)
               {"max-keys", proplists:get_value(max_keys, Options)},
               {"prefix", proplists:get_value(prefix, Options)},
               {"version-id-marker", proplists:get_value(version_id_marker, Options)}],
-    Doc = s3_xml_request(Config, get, BucketName, "/", "versions", Params, <<>>, []),
-    Attributes = [{name, "Name", text},
-                  {prefix, "Prefix", text},
-                  {key_marker, "KeyMarker", text},
-                  {next_key_marker, "NextKeyMarker", optional_text},
-                  {version_id_marker, "VersionIdMarker", text},
-                  {next_version_id_marker, "NextVersionIdMarker", optional_text},
-                  {max_keys, "MaxKeys", integer},
-                  {is_truncated, "Istruncated", boolean},
-                  {versions, "Version", fun extract_versions/1},
-                  {delete_markers, "DeleteMarker", fun extract_delete_markers/1}],
-    erlcloud_xml:decode(Attributes, Doc).
+    case s3_xml_request(Config, get, BucketName, "/", "versions", Params, <<>>, []) of
+        {error, Reason} -> {error, Reason};
+        Doc ->
+            Attributes = [{name, "Name", text},
+                          {prefix, "Prefix", text},
+                          {key_marker, "KeyMarker", text},
+                          {next_key_marker, "NextKeyMarker", optional_text},
+                          {version_id_marker, "VersionIdMarker", text},
+                          {next_version_id_marker, "NextVersionIdMarker", optional_text},
+                          {max_keys, "MaxKeys", integer},
+                          {is_truncated, "Istruncated", boolean},
+                          {versions, "Version", fun extract_versions/1},
+                          {delete_markers, "DeleteMarker", fun extract_delete_markers/1}],
+            erlcloud_xml:decode(Attributes, Doc)
+    end.
 
 extract_versions(Nodes) ->
     [extract_version(Node) || Node <- Nodes].
@@ -667,12 +700,12 @@ extract_bucket(Node) ->
                          {creation_date, "CreationDate", time}],
                         Node).
 
--spec put_object(string(), string(), iodata()) -> proplist().
+-spec put_object(string(), string(), iodata()) -> proplist() | {error, any()}.
 
 put_object(BucketName, Key, Value) ->
     put_object(BucketName, Key, Value, []).
 
--spec put_object(string(), string(), iodata(), proplist() | aws_config()) -> proplist().
+-spec put_object(string(), string(), iodata(), proplist() | aws_config()) -> proplist() | {error, any()}.
 
 put_object(BucketName, Key, Value, Config)
   when is_record(Config, aws_config) ->
@@ -681,7 +714,7 @@ put_object(BucketName, Key, Value, Config)
 put_object(BucketName, Key, Value, Options) ->
     put_object(BucketName, Key, Value, Options, default_config()).
 
--spec put_object(string(), string(), iodata(), proplist(), [{string(), string()}] | aws_config()) -> proplist().
+-spec put_object(string(), string(), iodata(), proplist(), [{string(), string()}] | aws_config()) -> proplist() | {error, any()}.
 
 put_object(BucketName, Key, Value, Options, Config)
   when is_record(Config, aws_config) ->
@@ -690,7 +723,7 @@ put_object(BucketName, Key, Value, Options, Config)
 put_object(BucketName, Key, Value, Options, HTTPHeaders) ->
     put_object(BucketName, Key, Value, Options, HTTPHeaders, default_config()).
 
--spec put_object(string(), string(), iodata(), proplist(), [{string(), string()}], aws_config()) -> proplist().
+-spec put_object(string(), string(), iodata(), proplist(), [{string(), string()}], aws_config()) -> proplist() | {error, any()}.
 
 put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
   when is_list(BucketName), is_list(Key), is_list(Value) orelse is_binary(Value),
@@ -699,16 +732,19 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
         ++ [{"x-amz-meta-" ++ string:to_lower(MKey), MValue} ||
                {MKey, MValue} <- proplists:get_value(meta, Options, [])],
     POSTData = iolist_to_binary(Value),
-    {Headers, _Body} = s3_request(Config, put, BucketName, [$/|Key], "", [],
-                                  POSTData, RequestHeaders),
-    [{version_id, proplists:get_value("x-amz-version-id", Headers, "null")}].
+    case s3_request(Config, put, BucketName, [$/|Key], "", [],
+                    POSTData, RequestHeaders) of
+        {error, Reason} -> {error, Reason};
+        {Headers, _Body} ->
+            [{version_id, proplists:get_value("x-amz-version-id", Headers, "null")}]
+    end.
 
--spec set_object_acl(string(), string(), proplist()) -> ok.
+-spec set_object_acl(string(), string(), proplist()) -> ok | {error, any()}.
 
 set_object_acl(BucketName, Key, ACL) ->
     set_object_acl(BucketName, Key, ACL, default_config()).
 
--spec set_object_acl(string(), string(), proplist(), aws_config()) -> ok.
+-spec set_object_acl(string(), string(), proplist(), aws_config()) -> ok | {error, any()}.
 
 set_object_acl(BucketName, Key, ACL, Config)
   when is_list(BucketName), is_list(Key), is_list(ACL) ->
@@ -909,12 +945,12 @@ list_multipart_uploads(BucketName, Options, HTTPHeaders, Config)
     end.
 
 
--spec set_bucket_attribute(string(), atom(), term()) -> ok.
+-spec set_bucket_attribute(string(), atom(), term()) -> ok | {error, any()}.
 
 set_bucket_attribute(BucketName, AttributeName, Value) ->
     set_bucket_attribute(BucketName, AttributeName, Value, default_config()).
 
--spec set_bucket_attribute(string(), atom(), term(), aws_config()) -> ok.
+-spec set_bucket_attribute(string(), atom(), term(), aws_config()) -> ok | {error, any()}.
 
 set_bucket_attribute(BucketName, AttributeName, Value, Config)
   when is_list(BucketName) ->
@@ -1021,6 +1057,7 @@ encode_grantee(Grantee) ->
 
 s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
+        {error, Reason} -> {error, Reason};
         {_Headers, <<>>} -> ok;
         {_Headers, Body} ->
             XML = element(1,xmerl_scan:string(binary_to_list(Body))),
@@ -1028,22 +1065,25 @@ s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Hea
                 #xmlElement{name='Error'} ->
                     ErrCode = erlcloud_xml:get_text("/Error/Code", XML),
                     ErrMsg = erlcloud_xml:get_text("/Error/Message", XML),
-                    erlang:error({s3_error, ErrCode, ErrMsg});
+                    {error, {s3_error, ErrCode, ErrMsg}};
                 _ ->
                     ok
             end
     end.
 
 s3_xml_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
-    {_Headers, Body} = s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers),
-    XML = element(1,xmerl_scan:string(binary_to_list(Body))),
-    case XML of
-        #xmlElement{name='Error'} ->
-            ErrCode = erlcloud_xml:get_text("/Error/Code", XML),
-            ErrMsg = erlcloud_xml:get_text("/Error/Message", XML),
-            erlang:error({s3_error, ErrCode, ErrMsg});
-        _ ->
-            XML
+    case s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
+        {error, Reason} -> {error, Reason};
+        {_Headers, Body} ->
+            XML = element(1,xmerl_scan:string(binary_to_list(Body))),
+            case XML of
+                #xmlElement{name='Error'} ->
+                    ErrCode = erlcloud_xml:get_text("/Error/Code", XML),
+                    ErrMsg = erlcloud_xml:get_text("/Error/Message", XML),
+                    {error, {s3_error, ErrCode, ErrMsg}};
+                _ ->
+                    XML
+            end
     end.
 
 s3_request(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) ->
@@ -1051,7 +1091,7 @@ s3_request(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) 
         {ok, Result} ->
             Result;
         {error, Reason} ->
-            erlang:error({aws_error, Reason})
+            {error, {aws_error, Reason}}
     end.
 
 %% s3_request2 returns {ok, Body} or {error, Reason} instead of throwing as s3_request does
