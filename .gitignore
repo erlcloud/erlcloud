@@ -1,3 +1,7 @@
+# IntelliJ IDEA
+/.idea
+/*.iml
+
 *.beam
 *.tmproj
 _build
