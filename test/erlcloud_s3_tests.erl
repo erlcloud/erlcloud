@@ -96,9 +96,8 @@ put_bucket_lifecycle_tests(_) ->
                {transition,[[{days,30},{storage_class,"STANDARD_IA"}],
                             [{days,365},{storage_class,"GLACIER"}]]}]],
     Result = erlcloud_s3:put_bucket_lifecycle("BucketName", Policy, config()),
-    ?_assertEqual(ok, Result),
     Result1 = erlcloud_s3:put_bucket_lifecycle("BucketName", <<"Policy">>, config()),
-    ?_assertEqual(ok, Result1).
+    [?_assertEqual(ok, Result), ?_assertEqual(ok, Result1)].
 
 delete_bucket_lifecycle_tests(_) ->
     Response = {ok, {{200, "OK"}, [], <<>>}},
@@ -128,8 +127,7 @@ encode_bucket_lifecycle_tests(_) ->
                   {transition,[[{days,20},{storage_class,"GLACIER"}]]}]],
     Result  = erlcloud_s3:encode_lifecycle(Policy),
     Result2 = erlcloud_s3:encode_lifecycle(Policy2),
-    ?_assertEqual(Expected, Result),
-    ?_assertEqual(Expected2, Result2).
+    [?_assertEqual(Expected, Result), ?_assertEqual(Expected2, Result2)].
 
 
 get_bucket_policy_tests(_) ->
@@ -145,31 +143,14 @@ put_object_tests(_) ->
     ?_assertEqual([{version_id, "version_id"}], Result).
 
 dns_compliant_name_tests(_) ->
-    ?_assertEqual( true,
-            erlcloud_util:is_dns_compliant_name("goodname123")
-    ),
-    ?_assertEqual( true,
-            erlcloud_util:is_dns_compliant_name("good.name")
-    ),
-    ?_assertEqual( true,
-            erlcloud_util:is_dns_compliant_name("good-name")
-    ),
-    ?_assertEqual( true,
-            erlcloud_util:is_dns_compliant_name("good--name")
-    ),
-
-    ?_assertEqual( false,
-            erlcloud_util:is_dns_compliant_name("Bad.name")
-    ),
-    ?_assertEqual( false,
-            erlcloud_util:is_dns_compliant_name("badname.")
-    ),
-    ?_assertEqual( false,
-            erlcloud_util:is_dns_compliant_name(".bad.name")
-    ),
-    ?_assertEqual( false,
-            erlcloud_util:is_dns_compliant_name("bad.name--")
-    ).
+    [?_assertEqual(true,  erlcloud_util:is_dns_compliant_name("goodname123")),
+     ?_assertEqual(true,  erlcloud_util:is_dns_compliant_name("good.name")),
+     ?_assertEqual(true,  erlcloud_util:is_dns_compliant_name("good-name")),
+     ?_assertEqual(true,  erlcloud_util:is_dns_compliant_name("good--name")),
+     ?_assertEqual(false, erlcloud_util:is_dns_compliant_name("Bad.name")),
+     ?_assertEqual(false, erlcloud_util:is_dns_compliant_name("badname.")),
+     ?_assertEqual(false, erlcloud_util:is_dns_compliant_name(".bad.name")),
+     ?_assertEqual(false, erlcloud_util:is_dns_compliant_name("bad.name--"))].
 
 error_handling_no_retry() ->
     Response = {ok, {{500, "Internal Server Error"}, [], <<"TestBody">>}},
@@ -285,19 +266,17 @@ error_handling_redirect_error() ->
     Result1 = erlcloud_s3:get_bucket_policy(
             "bucket.name",
             config()),
-    ?_assertMatch({error,{http_error,404,"Not Found",_}}, Result1),
-
     meck:sequence(erlcloud_httpc, request, 6, [Response1]),
     Result2 = erlcloud_s3:get_bucket_policy(
             "bucket.name",
             config(#aws_config{s3_follow_redirect = false})),
-    ?_assertMatch({error,{http_error,301,"Temporary Redirect",_}}, Result2),
-
     meck:sequence(erlcloud_httpc, request, 6, [Response3, Response2]),
     Result3 = erlcloud_s3:get_bucket_policy(
             "bucket.name",
             config(#aws_config{s3_follow_redirect = true})),
-    ?_assertMatch({error,{http_error,404,"Not Found",_}}, Result3).
+    [?_assertMatch({error,{http_error,404,"Not Found",_}}, Result1),
+     ?_assertMatch({error,{http_error,301,"Temporary Redirect",_}}, Result2),
+     ?_assertMatch({error,{http_error,404,"Not Found",_}}, Result3)].
 
 %% Handle two sequential redirects.
 error_handling_double_redirect() ->
