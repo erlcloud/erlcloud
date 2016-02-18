@@ -16,6 +16,9 @@
                   %% hackney,
                   lhttpc]},
   {modules, []},
-  {env, []}
+  {env, []},
+  {licenses, ["MIT"]},
+  {links, [{"Github", "https://github.com/erlcloud/erlcloud"}]},
+  {maintainers, []}
  ]
 }.
