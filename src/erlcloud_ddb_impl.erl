@@ -64,13 +64,14 @@
 -export([backoff/1, 
          retry/1, retry/2,
          request_id_from_error/1,
-         error_reason2/1
+         error_reason2/1,
+         timeout/2
         ]).
 
 %% Internal impl api
 -export([request/3]).
 
--export_type([json_return/0, attempt/0, retry_fun/0]).
+-export_type([json_return/0, attempt/0, retry_fun/0, timeout_fun/0]).
 
 -type json_return() :: {ok, jsx:json_term()} | {error, term()}.
 
@@ -109,6 +110,9 @@ backoff(1) -> ok;
 backoff(Attempt) ->
     timer:sleep(random:uniform((1 bsl (Attempt - 1)) * 100)).
 
+-type timeout_fun() :: fun((pos_integer(), #aws_config{}) -> non_neg_integer()).
+
+-spec timeout(pos_integer(), #aws_config{}) -> non_neg_integer().
 %% HTTPC timeout for a request
 timeout(1, _) ->
     %% Shorter timeout on first request. This is to avoid long (5s) failover when first DDB
@@ -183,12 +187,12 @@ retry_v1_wrap(Error, RetryFun) ->
                                {ok, jsx:json_term()} | {error, term()}.
 request_and_retry(_, _, _, {error, Reason}) ->
     {error, Reason};
-request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
+request_and_retry(#aws_config{ddb_timeout = TimeoutFun} = Config, Headers, Body, {attempt, Attempt}) ->
     RetryFun = retry_fun(Config),
     case erlcloud_httpc:request(
            url(Config), post,
            [{<<"content-type">>, <<"application/x-amz-json-1.0">>} | Headers],
-           Body, timeout(Attempt, Config), Config) of
+           Body, TimeoutFun(Attempt, Config), Config) of
 
         {ok, {{200, _}, _, RespBody}} ->
             %% TODO check crc
