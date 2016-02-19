@@ -39,6 +39,8 @@
 
 -ifdef(TEST).
 -export([encode_lifecycle/1]).
+-export([get_bucket_notification/1]).
+-export([create_notification_xml/1]).
 -endif.
 
 -include_lib("erlcloud/include/erlcloud.hrl").
@@ -480,7 +482,8 @@ get_bucket_attribute(BucketName, AttributeName, Config)
                location        -> "location";
                logging         -> "logging";
                request_payment -> "requestPayment";
-               versioning      -> "versioning"
+               versioning      -> "versioning";
+               notification    -> "notification"
            end,
     Doc = s3_xml_request(Config, get, BucketName, "/", Attr, [], <<>>, []),
     case AttributeName of
@@ -517,8 +520,56 @@ get_bucket_attribute(BucketName, AttributeName, Config)
                 "Enabled"   -> enabled;
                 "Suspended" -> suspended;
                 _           -> disabled
-            end
+            end;
+        notification ->
+            get_bucket_notification(Doc)
     end.
+
+%% gets the notifications configuration of an S3 bucket.
+%% for an example of the returned data, see tests.
+-spec get_bucket_notification(#xmlElement{}) -> proplist().
+get_bucket_notification(Doc) ->
+    SNSNotifications =
+        get_notifications_config(topic_configuration, topic,
+                                 "Topic", "TopicConfiguration", Doc),
+    SQSNotifications =
+        get_notifications_config(queue_configuration, queue,
+                                 "Queue", "QueueConfiguration", Doc),
+    LambdaNotifications =
+        get_notifications_config(cloud_function_configuration, cloud_function,
+                                 "CloudFunction", "CloudFunctionConfiguration", Doc),
+    SNSNotifications ++ SQSNotifications ++ LambdaNotifications.
+
+get_notifications_config(ConfType, AttributeName, Attr, Path, Doc) ->
+    case xmerl_xpath:string("/NotificationConfiguration/" ++ Path, Doc) of
+        [] -> [];
+        Configs when is_list(Configs) ->
+            [decode_notification_config(ConfType, AttributeName, Attr, Path, Config)
+                || Config <- Configs]
+    end.
+
+decode_notification_config(ConfType, AttributeName, Attr, Path, Config) ->
+    Attributes = s3_notification_attrs(AttributeName, Attr),
+    Configurations = [get_notification_filter(Path, Config) |
+                      erlcloud_xml:decode(Attributes, Config)],
+    [{ConfType, Configurations}].
+
+get_notification_filter(Path, Config) ->
+    get_notification_filter_do(xmerl_xpath:string("/" ++ Path ++ "/Filter/S3Key", Config)).
+
+get_notification_filter_do([]) -> [];
+get_notification_filter_do(S3Key) ->
+    #xmlElement{content = Content} = hd(S3Key),
+    [[{name, "Prefix"}, {value, Prefix}],
+     [{name, "Suffix"}, {value, Suffix}]] =
+    [erlcloud_xml:decode([{name, "Name", text}, {value, "Value", text}], C)
+     || C <- Content],
+    {filter, [{prefix, Prefix}, {suffix, Suffix}]}.
+
+s3_notification_attrs(AttributeName, Attr) ->
+    [ {AttributeName, Attr,    text} |
+     [{id,            "Id",    optional_text},
+      {event,         "Event", list}]].
 
 parse_lifecycle(Xml) ->
     Rules = xmerl_xpath:string("/LifecycleConfiguration/Rule", Xml),
@@ -1113,11 +1164,41 @@ set_bucket_attribute(BucketName, AttributeName, Value, Config)
                 VersioningXML = {'VersioningConfiguration', [{'xmlns:xsi', ?XMLNS_S3}],
                                  [{'Status', [Status]},
                                   {'MfaDelete', [MFADelete]}]},
-                {"versioning", VersioningXML}
+                {"versioning", VersioningXML};
+            notification ->
+                {"notification", create_notification_xml(Value)}
         end,
     POSTData = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
     Headers = [{"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, "/", Subresource, [], POSTData, Headers).
+
+%% takes an S3 bucket notification configuration and creates an xmerl simple
+%% form out of it.
+%% for the examples of input / output of this function, see tests.
+-spec create_notification_xml(proplist()) -> tuple().
+create_notification_xml(Confs) ->
+    {'NotificationConfiguration', [create_notification_xml(ConfName, Params)
+        || [{ConfName, Params}] <- Confs]}.
+-spec create_notification_xml(atom(), proplist()) -> tuple().
+create_notification_xml(ConfName, Params) ->
+    {conf_name_in_xml(ConfName),
+        lists:foldr(fun create_notification_param_xml/2, [], Params)}.
+
+conf_name_in_xml(queue_configuration) -> 'QueueConfiguration';
+conf_name_in_xml(topic_configuration) -> 'TopicConfiguration';
+conf_name_in_xml(cloud_function_configuration) -> 'CloudFunctionConfiguration'.
+
+create_notification_param_xml({filter, [{prefix, Prefix}, {suffix, Suffix}]}, Acc) ->
+    [{'Filter', [{'S3Key', [{'FilterRule', [{'Name', ["Prefix"]},
+                                            {'Value', [Prefix]}]},
+                            {'FilterRule', [{'Name', ["Suffix"]},
+                                            {'Value', [Suffix]}]}]}]} | Acc];
+create_notification_param_xml({event, Events}, Acc) ->
+    [{'Event', [Event]} || Event <- Events] ++ Acc;
+create_notification_param_xml({queue, Queue}, Acc) -> [{'Queue', [Queue]} | Acc];
+create_notification_param_xml({topic, Topic}, Acc) -> [{'Topic', [Topic]} | Acc];
+create_notification_param_xml({id, Id}, Acc) -> [{'Id', [Id]} | Acc];
+create_notification_param_xml({cloud_function, CF}, Acc) -> [{'CloudFunction', [CF]} | Acc].
 
 %%% See http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html and
 %%%   http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAPI.html for info on

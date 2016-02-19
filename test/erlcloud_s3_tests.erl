@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
+-include("erlcloud_s3_test_data.hrl").
 
 %% Unit tests for s3.
 %% Currently only test error handling and retries.
@@ -16,6 +17,7 @@ operation_test_() ->
      fun start/0,
      fun stop/1,
      [fun get_bucket_policy_tests/1,
+         fun get_bucket_notification_test/1,
       fun put_object_tests/1,
       fun error_handling_tests/1,
       fun dns_compliant_name_tests/1,
@@ -129,6 +131,18 @@ encode_bucket_lifecycle_tests(_) ->
     Result2 = erlcloud_s3:encode_lifecycle(Policy2),
     [?_assertEqual(Expected, Result), ?_assertEqual(Expected2, Result2)].
 
+set_bucket_notification_test_() ->
+    [?_assertEqual({'NotificationConfiguration',[]},
+                   erlcloud_s3:create_notification_xml([])),
+     ?_assertEqual(?S3_BUCKET_EVENTS_SIMPLE_XML_FORM,
+                   erlcloud_s3:create_notification_xml(?S3_BUCKET_EVENTS_LIST))].
+
+get_bucket_notification_test(_) ->
+    Response = {ok, {{200, "OK"}, [], ?S3_BUCKET_EVENT_XML_CONFIG}},
+    meck:expect(erlcloud_httpc, request,
+        fun("https://s3.amazonaws.com/?notification", _, _, _, _, _) -> Response end),
+    ?_assertEqual(?S3_BUCKET_EVENTS_LIST,
+                  erlcloud_s3:get_bucket_attribute("BucketName", notification, config())).
 
 get_bucket_policy_tests(_) ->
     Response = {ok, {{200, "OK"}, [], <<"TestBody">>}},
