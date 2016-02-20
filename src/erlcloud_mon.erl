@@ -77,7 +77,7 @@ list_metrics(
   MetricName,
   DimensionFilter,
   NextToken,
-  Config
+  #aws_config{} = Config
  ) ->
 
     Params =
@@ -150,7 +150,7 @@ put_metric_data(Namespace, MetricData) ->
         Config      ::aws_config()
                       ) -> term().
 
-put_metric_data(Namespace, MetricData, Config) ->
+put_metric_data(Namespace, MetricData, #aws_config{} = Config) ->
 
     Params =
         [
@@ -239,7 +239,7 @@ put_metric_data(Namespace, MetricName, Value, Unit, Timestamp) ->
         Config      ::aws_config()
                       ) -> term().
 
-put_metric_data(Namespace, MetricName, Value, Unit, Timestamp, Config) ->
+put_metric_data(Namespace, MetricName, Value, Unit, Timestamp, #aws_config{} = Config) ->
     Params =
         lists:flatten(
           [
@@ -311,7 +311,7 @@ get_metric_statistics(
   _Unit,
   _Statistics,
   _Dimensions,
-  _Config
+  #aws_config{} = _Config
  ) ->
     todo.
 
