@@ -895,13 +895,7 @@ headers(Config, Operation, Body) ->
     Headers = [{"host", Config#aws_config.ddb_streams_host},
                {"x-amz-target", Operation},
                {"content-type", "application/x-amz-json-1.0"}],
-    Region =
-        case string:tokens(Config#aws_config.ddb_streams_host, ".") of
-            [_, _, Value, _, _] ->
-                Value;
-            _ ->
-                "us-east-1"
-        end,
+    Region = erlcloud_aws:aws_region_from_host(Config#aws_config.ddb_streams_host),
     erlcloud_aws:sign_v4_headers(Config, Headers, Body, Region, "dynamodb").
 
 uri(#aws_config{ddb_streams_scheme = Scheme, ddb_streams_host = Host} = Config) ->
