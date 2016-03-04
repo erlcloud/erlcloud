@@ -107,7 +107,17 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
 
 aws_region_from_host(Host) ->
     case string:tokens(Host, ".") of
-        [_, Value, _, _] ->
+        %% the aws endpoint can vary depending on the region
+        %% we need to account for that:
+        %%  us-west-2: s3.us-west-2.amazonaws.com
+        %%  cn-north-1 (AWS China): s3.cn-north-1.amazonaws.com.cn
+        %% it's assumed that the first element is the aws service (s3, ec2, etc),
+        %% the second is the region identifier, the rest is ignored
+        %% the exception (of course) is the dynamodb streams which follows a different
+        %% format
+        ["streams", "dynamodb", Value | _Rest] ->
+            Value;
+        [_, Value, _, _ | _Rest] ->
             Value;
         _ ->
             "us-east-1"
