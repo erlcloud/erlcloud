@@ -38,7 +38,11 @@
           access_key_id::string()|undefined|false,
           secret_access_key::string()|undefined|false,
           security_token=undefined::string()|undefined,
-          timeout=10000::timeout(),
+          %% Network request timeout; if not specifed, the default timeout will be used:
+          %% ddb: 1s for initial call, 10s for subsequence;
+          %% s3:delete_objects_batch/{2,3}, cloudtrail: 1s;
+          %% other services: 10s.
+          timeout=undefined::timeout()|undefined,
           cloudtrail_raw_result=false::boolean(),
           http_client=lhttpc::erlcloud_httpc:request_fun(), %% If using hackney, ensure that it is started.
           hackney_pool=default::atom(), %% The name of the http request pool hackney should use.
@@ -50,6 +54,8 @@
           retry=fun erlcloud_retry:no_retry/1::erlcloud_retry:retry_fun()
          }).
 -type(aws_config() :: #aws_config{}).
+
+-define(DEFAULT_TIMEOUT, 10000).
 
 -record(aws_request,
         {
