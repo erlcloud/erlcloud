@@ -102,7 +102,7 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
     case erlcloud_httpc:request(
            url(Config), post,
            [{<<"content-type">>, <<"application/x-amz-json-1.1">>} | Headers],
-           Body, Config#aws_config.timeout, Config) of
+           Body, timeout(Config), Config) of
 
         {ok, {{200, _}, _, RespBody}} ->
             %% TODO check crc
@@ -166,3 +166,7 @@ port_spec(#aws_config{kinesis_port=80}) ->
 port_spec(#aws_config{kinesis_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
 
+timeout(#aws_config{timeout = undefined}) ->
+    ?DEFAULT_TIMEOUT;
+timeout(#aws_config{timeout = Timeout}) ->
+    Timeout.

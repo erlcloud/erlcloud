@@ -240,8 +240,13 @@ delete_objects_batch(Bucket, KeyList, Config) ->
                {"content-md5", binary_to_list(ContentMD5)},
                {"content-length", Len}],
     Result = erlcloud_httpc:request(
-        Url, "POST", Headers, Payload, 1000, Config),
+        Url, "POST", Headers, Payload, delete_objects_batch_timeout(Config), Config),
     erlcloud_aws:http_headers_body(Result).
+
+delete_objects_batch_timeout(#aws_config{timeout = undefined}) ->
+    1000;
+delete_objects_batch_timeout(#aws_config{timeout = Timeout}) ->
+    Timeout.
 
 % returns paths list from AWS S3 root directory, used as input to delete_objects_batch
 % example : 

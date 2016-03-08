@@ -163,7 +163,7 @@ request_impl(Method, _Protocol, _Host, _Port, _Path, Operation, Params, Body, #a
                 erlcloud_httpc:request(
                      url(Config), Method, 
                      [{<<"content-type">>, <<"application/x-amz-json-1.1">>} | Headers],
-                     Body, 1000, Config)) of
+                     Body, timeout(Config), Config)) of
        {ok, {_RespHeader, RespBody}} ->
             case Config#aws_config.cloudtrail_raw_result of
                 true -> {ok, RespBody};
@@ -193,3 +193,7 @@ port_spec(#aws_config{cloudtrail_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
 
 
+timeout(#aws_config{timeout = undefined}) ->
+    1000;
+timeout(#aws_config{timeout = Timeout}) ->
+    Timeout.

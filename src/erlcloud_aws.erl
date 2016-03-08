@@ -170,12 +170,12 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
             get ->
                 Req = lists:flatten([URL, $?, Form]),
                 erlcloud_httpc:request(
-                  Req, get, Headers, <<>>, Config#aws_config.timeout, Config);
+                  Req, get, Headers, <<>>, timeout(Config), Config);
             _ ->
                 erlcloud_httpc:request(
                   lists:flatten(URL), Method,
                   [{<<"content-type">>, <<"application/x-www-form-urlencoded; charset=utf-8">>} | Headers],
-                  list_to_binary(Form), Config#aws_config.timeout, Config)
+                  list_to_binary(Form), timeout(Config), Config)
         end,
 
     http_body(Response).
@@ -278,7 +278,7 @@ get_credentials_from_metadata(Config) ->
     case http_body(
            erlcloud_httpc:request(
              "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
-             get, [], <<>>, Config#aws_config.timeout, Config)) of
+             get, [], <<>>, timeout(Config), Config)) of
         {error, Reason} ->
             {error, Reason};
         {ok, Body} ->
@@ -288,7 +288,7 @@ get_credentials_from_metadata(Config) ->
                    erlcloud_httpc:request(
                      "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++
                          binary_to_list(Role),
-                     get, [], <<>>, Config#aws_config.timeout, Config)) of
+                     get, [], <<>>, timeout(Config), Config)) of
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
@@ -331,6 +331,11 @@ http_headers_body({ok, {{Status, StatusLine}, _Headers, Body}}) ->
     {error, {http_error, Status, StatusLine, Body}};
 http_headers_body({error, Reason}) ->
     {error, {socket_error, Reason}}.
+
+timeout(#aws_config{timeout = undefined}) ->
+    ?DEFAULT_TIMEOUT;
+timeout(#aws_config{timeout = Timeout}) ->
+    Timeout.
 
 %% Convert an aws_request record to return value as returned by http_headers_body
 request_to_return(#aws_request{response_type = ok,
