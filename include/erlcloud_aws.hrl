@@ -27,6 +27,7 @@
           ddb_streams_scheme="https://"::string(),
           ddb_streams_host="streams.dynamodb.us-east-1.amazonaws.com"::string(),
           ddb_streams_port=80::non_neg_integer(),
+          ddb_timeout=fun erlcloud_ddb_impl:timeout/2::erlcloud_ddb_impl:timeout_fun(),
           kinesis_scheme="https://"::string(),
           kinesis_host="kinesis.us-east-1.amazonaws.com"::string(),
           kinesis_port=80::non_neg_integer(),
