@@ -28,12 +28,12 @@
         get_size_constraint_set/1, get_size_constraint_set/2,
         get_sql_injection_match_set/1, get_sql_injection_match_set/2,
         get_web_acl/1, get_web_acl/2,
-        list_byte_match_sets/1, list_byte_match_sets/2, list_byte_match_sets/3,
-        list_ip_sets/1, list_ip_sets/2, list_ip_sets/3,
-        list_rules/1, list_rules/2, list_rules/3,
-        list_size_constraint_sets/1, list_size_constraint_sets/2, list_size_constraint_sets/3,
-        list_sql_injection_match_sets/1, list_sql_injection_match_sets/2, list_sql_injection_match_sets/3,
-        list_web_acls/1, list_web_acls/2, list_web_acls/3,
+        list_byte_match_sets/0, list_byte_match_sets/1, list_byte_match_sets/2, list_byte_match_sets/3,
+        list_ip_sets/0, list_ip_sets/1, list_ip_sets/2, list_ip_sets/3,
+        list_rules/0, list_rules/1, list_rules/2, list_rules/3,
+        list_size_constraint_sets/0, list_size_constraint_sets/1, list_size_constraint_sets/2, list_size_constraint_sets/3,
+        list_sql_injection_match_sets/0, list_sql_injection_match_sets/1, list_sql_injection_match_sets/2, list_sql_injection_match_sets/3,
+        list_web_acls/0, list_web_acls/1, list_web_acls/2, list_web_acls/3,
         update_byte_match_set/3, update_byte_match_set/4,
         update_ip_set/3, update_ip_set/4,
         update_rule/3, update_rule/4,
@@ -43,6 +43,9 @@
         update_web_acl/3, update_web_acl/4
         ]).
 
+
+-define(API_VERSION, "20150824").
+-define(LIMIT_MAX, 100).
 
 %%%------------------------------------------------------------------------------
 %%% Shared types
@@ -141,7 +144,7 @@ create_byte_match_set(ChangeToken, Name) ->
 create_byte_match_set(ChangeToken, Name, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"Name">>, to_binary(Name)}],
-    waf_request(Config, "AWSWAF_20150824.CreateByteMatchSet", Json).
+    waf_request(Config, "CreateByteMatchSet", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -164,7 +167,7 @@ create_ip_set(ChangeToken, Name) ->
 create_ip_set(ChangeToken, Name, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"Name">>, to_binary(Name)}],
-    waf_request(Config, "AWSWAF_20150824.CreateIPSet", Json).
+    waf_request(Config, "CreateIPSet", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -190,7 +193,7 @@ create_rule(ChangeToken, MetricName, Name, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"MetricName">>, to_binary(MetricName)},
             {<<"Name">>, to_binary(Name)}],
-    waf_request(Config, "AWSWAF_20150824.CreateRule", Json).
+    waf_request(Config, "CreateRule", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -213,7 +216,7 @@ create_size_constraint_set(ChangeToken, Name) ->
 create_size_constraint_set(ChangeToken, Name, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"Name">>, to_binary(Name)}],
-    waf_request(Config, "AWSWAF_20150824.CreateSizeConstraintSet", Json).
+    waf_request(Config, "CreateSizeConstraintSet", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -236,7 +239,7 @@ create_sql_injection_match_set(ChangeToken, Name) ->
 create_sql_injection_match_set(ChangeToken, Name, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"Name">>, to_binary(Name)}],
-    waf_request(Config, "AWSWAF_20150824.CreateSqlInjectionMatchSet", Json).
+    waf_request(Config, "CreateSqlInjectionMatchSet", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -265,7 +268,7 @@ create_web_acl(ChangeToken, DefaultActionType, MetricName, Name, Config) ->
             {<<"DefaultAction">>, [{<<"Type">>, get_default_action_type(DefaultActionType)}]},
             {<<"MetricName">>, to_binary(MetricName)},
             {<<"Name">>, to_binary(Name)}],
-    waf_request(Config, "AWSWAF_20150824.CreateWebACL", Json).
+    waf_request(Config, "CreateWebACL", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -288,7 +291,7 @@ delete_byte_match_set(ChangeToken, ByteMatchSetId) ->
 delete_byte_match_set(ChangeToken, ByteMatchSetId, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"ByteMatchSetId">>, to_binary(ByteMatchSetId)}],
-    waf_request(Config, "AWSWAF_20150824.DeleteByteMatchSet", Json).
+    waf_request(Config, "DeleteByteMatchSet", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -311,7 +314,7 @@ delete_ip_set(ChangeToken, IPSetId) ->
 delete_ip_set(ChangeToken, IPSetId, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"IPSetId">>, to_binary(IPSetId)}],
-    waf_request(Config, "AWSWAF_20150824.DeleteIPSet", Json).
+    waf_request(Config, "DeleteIPSet", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -334,7 +337,7 @@ delete_rule(ChangeToken, RuleId) ->
 delete_rule(ChangeToken, RuleId, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"RuleId">>, to_binary(RuleId)}],
-    waf_request(Config, "AWSWAF_20150824.DeleteRule", Json).
+    waf_request(Config, "DeleteRule", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -357,7 +360,7 @@ delete_size_constraint_set(ChangeToken, SizeConstraintSetId) ->
 delete_size_constraint_set(ChangeToken, SizeConstraintSetId, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"SizeConstraintSetId">>, to_binary(SizeConstraintSetId)}],
-    waf_request(Config, "AWSWAF_20150824.DeleteSizeConstraintSet", Json).
+    waf_request(Config, "DeleteSizeConstraintSet", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -380,7 +383,7 @@ delete_sql_injection_match_set(ChangeToken, SqlInjectionMatchSetId) ->
 delete_sql_injection_match_set(ChangeToken, SqlInjectionMatchSetId, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)}, 
             {<<"SqlInjectionMatchSetId">>, to_binary(SqlInjectionMatchSetId)}],
-    waf_request(Config, "AWSWAF_20150824.DeleteSqlInjectionMatchSet", Json).
+    waf_request(Config, "DeleteSqlInjectionMatchSet", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -403,7 +406,7 @@ delete_web_acl(ChangeToken, WebACLId) ->
 delete_web_acl(ChangeToken, WebACLId, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)}, 
             {<<"WebACLId">>, to_binary(WebACLId)}],
-    waf_request(Config, "AWSWAF_20150824.DeleteWebACL", Json).
+    waf_request(Config, "DeleteWebACL", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -423,7 +426,7 @@ get_byte_match_set(ByteMatchSetId) ->
         waf_return_val().
 get_byte_match_set(ByteMatchSetId, Config) ->
     Json = [{<<"ByteMatchSetId">>, to_binary(ByteMatchSetId)}],
-    waf_request(Config, "AWSWAF_20150824.GetByteMatchSet", Json).
+    waf_request(Config, "GetByteMatchSet", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -441,7 +444,7 @@ get_change_token() ->
         (Config :: aws_config()) ->
         waf_return_val().
 get_change_token(Config) ->
-    waf_request(Config, "AWSWAF_20150824.GetChangeToken", []).
+    waf_request(Config, "GetChangeToken", []).
 
 
 %%%------------------------------------------------------------------------------
@@ -461,7 +464,7 @@ get_change_token_status(ChangeToken) ->
         waf_return_val().
 get_change_token_status(ChangeToken, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)}],
-    waf_request(Config, "AWSWAF_20150824.GetChangeTokenStatus", Json).
+    waf_request(Config, "GetChangeTokenStatus", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -481,7 +484,7 @@ get_ip_set(IPSetId) ->
         waf_return_val().
 get_ip_set(IPSetId, Config) ->
     Json = [{<<"IPSetId">>, to_binary(IPSetId)}],
-    waf_request(Config, "AWSWAF_20150824.GetIPSet", Json).
+    waf_request(Config, "GetIPSet", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -501,7 +504,7 @@ get_rule(RuleId) ->
         waf_return_val().
 get_rule(RuleId, Config) ->
     Json = [{<<"RuleId">>, to_binary(RuleId)}],
-    waf_request(Config, "AWSWAF_20150824.GetRule", Json).
+    waf_request(Config, "GetRule", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -532,7 +535,7 @@ get_sampled_requests(MaxItems, RuleId, StartTime, EndTime, WebAclId, Config) ->
             {<<"RuleId">>, to_binary(RuleId)},
             {<<"TimeWindow">>, [{<<"StartTime">>, StartTime}, {<<"EndTime">>, EndTime}]},
             {<<"WebAclId">>, to_binary(WebAclId)}],
-    waf_request(Config, "AWSWAF_20150824.GetSampledRequests", Json).
+    waf_request(Config, "GetSampledRequests", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -552,7 +555,7 @@ get_size_constraint_set(SizeConstraintSetId) ->
         waf_return_val().
 get_size_constraint_set(SizeConstraintSetId, Config) ->
     Json = [{<<"SizeConstraintSetId">>, to_binary(SizeConstraintSetId)}],
-    waf_request(Config, "AWSWAF_20150824.GetSizeConstraintSet", Json).
+    waf_request(Config, "GetSizeConstraintSet", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -572,7 +575,7 @@ get_sql_injection_match_set(SqlInjectionMatchSetId) ->
         waf_return_val().
 get_sql_injection_match_set(SqlInjectionMatchSetId, Config) ->
     Json = [{<<"SqlInjectionMatchSetId">>, to_binary(SqlInjectionMatchSetId)}],
-    waf_request(Config, "AWSWAF_20150824.GetSqlInjectionMatchSet", Json).
+    waf_request(Config, "GetSqlInjectionMatchSet", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -592,7 +595,7 @@ get_web_acl(WebACLId) ->
         waf_return_val().
 get_web_acl(WebACLId, Config) ->
     Json = [{<<"WebACLId">>, to_binary(WebACLId)}],
-    waf_request(Config, "AWSWAF_20150824.GetWebACL", Json).
+    waf_request(Config, "GetWebACL", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -600,6 +603,12 @@ get_web_acl(WebACLId, Config) ->
 %%
 %% http://docs.aws.amazon.com/waf/latest/APIReference/API_ListByteMatchSets.html
 %%%------------------------------------------------------------------------------
+-spec list_byte_match_sets/0 ::
+        () ->
+       waf_return_val().
+list_byte_match_sets() ->
+    list_byte_match_sets(?LIMIT_MAX, default_config()).
+
 -spec list_byte_match_sets/1 ::
        (Limit :: pos_integer()) ->
        waf_return_val().
@@ -613,19 +622,19 @@ list_byte_match_sets(Limit) when is_number(Limit) ->
 list_byte_match_sets(Limit, NextMarker) when is_binary(NextMarker) ->
     list_byte_match_sets(Limit, NextMarker, default_config());
 
-list_byte_match_sets(Limit, Config) when is_record(Config, aws_config) ->
+list_byte_match_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
     Json = [{<<"Limit">>, Limit}],
-    waf_request(Config, "AWSWAF_20150824.ListByteMatchSets", Json).
+    waf_request(Config, "ListByteMatchSets", Json).
 
 -spec list_byte_match_sets/3 ::
        (Limit :: pos_integer(), 
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_byte_match_sets(Limit, NextMarker, Config) ->
+list_byte_match_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
-    waf_request(Config, "AWSWAF_20150824.ListByteMatchSets", Json).
+    waf_request(Config, "ListByteMatchSets", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -633,6 +642,12 @@ list_byte_match_sets(Limit, NextMarker, Config) ->
 %%
 %% http://docs.aws.amazon.com/waf/latest/APIReference/API_ListIPSets.html
 %%%------------------------------------------------------------------------------
+-spec list_ip_sets/0 ::
+        () ->
+       waf_return_val().
+list_ip_sets() ->
+    list_ip_sets(?LIMIT_MAX, default_config()).
+
 -spec list_ip_sets/1 ::
        (Limit :: pos_integer()) ->
        waf_return_val().
@@ -646,19 +661,19 @@ list_ip_sets(Limit) when is_number(Limit) ->
 list_ip_sets(Limit, NextMarker) when is_binary(NextMarker) ->
     list_ip_sets(Limit, NextMarker, default_config());
 
-list_ip_sets(Limit, Config) when is_record(Config, aws_config) ->
+list_ip_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
     Json = [{<<"Limit">>, Limit}],
-    waf_request(Config, "AWSWAF_20150824.ListIPSets", Json).
+    waf_request(Config, "ListIPSets", Json).
 
 -spec list_ip_sets/3 ::
        (Limit :: pos_integer(), 
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_ip_sets(Limit, NextMarker, Config) ->
+list_ip_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
-    waf_request(Config, "AWSWAF_20150824.ListIPSets", Json).
+    waf_request(Config, "ListIPSets", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -666,6 +681,12 @@ list_ip_sets(Limit, NextMarker, Config) ->
 %%
 %% http://docs.aws.amazon.com/waf/latest/APIReference/API_ListRules.html
 %%%------------------------------------------------------------------------------
+-spec list_rules/0 ::
+        () ->
+       waf_return_val().
+list_rules() ->
+    list_rules(?LIMIT_MAX, default_config()).
+
 -spec list_rules/1 ::
        (Limit :: pos_integer()) ->
        waf_return_val().
@@ -679,19 +700,19 @@ list_rules(Limit) when is_number(Limit) ->
 list_rules(Limit, NextMarker) when is_binary(NextMarker) ->
     list_rules(Limit, NextMarker, default_config());
 
-list_rules(Limit, Config) when is_record(Config, aws_config) ->
+list_rules(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
     Json = [{<<"Limit">>, Limit}],
-    waf_request(Config, "AWSWAF_20150824.ListRules", Json).
+    waf_request(Config, "ListRules", Json).
 
 -spec list_rules/3 ::
        (Limit :: pos_integer(), 
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_rules(Limit, NextMarker, Config) ->
+list_rules(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
-    waf_request(Config, "AWSWAF_20150824.ListRules", Json).
+    waf_request(Config, "ListRules", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -699,6 +720,12 @@ list_rules(Limit, NextMarker, Config) ->
 %%
 %% http://docs.aws.amazon.com/waf/latest/APIReference/API_ListSizeConstraintSets.html
 %%%------------------------------------------------------------------------------
+-spec list_size_constraint_sets/0 ::
+        () ->
+       waf_return_val().
+list_size_constraint_sets() ->
+    list_size_constraint_sets(?LIMIT_MAX, default_config()).
+
 -spec list_size_constraint_sets/1 ::
        (Limit :: pos_integer()) ->
        waf_return_val().
@@ -712,19 +739,19 @@ list_size_constraint_sets(Limit) when is_number(Limit) ->
 list_size_constraint_sets(Limit, NextMarker) when is_binary(NextMarker) ->
     list_size_constraint_sets(Limit, NextMarker, default_config());
 
-list_size_constraint_sets(Limit, Config) when is_record(Config, aws_config) ->
+list_size_constraint_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
     Json = [{<<"Limit">>, Limit}],
-    waf_request(Config, "AWSWAF_20150824.ListSizeConstraintSets", Json).
+    waf_request(Config, "ListSizeConstraintSets", Json).
 
 -spec list_size_constraint_sets/3 ::
        (Limit :: pos_integer(), 
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_size_constraint_sets(Limit, NextMarker, Config) ->
+list_size_constraint_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
-    waf_request(Config, "AWSWAF_20150824.ListSizeConstraintSets", Json).
+    waf_request(Config, "ListSizeConstraintSets", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -732,6 +759,12 @@ list_size_constraint_sets(Limit, NextMarker, Config) ->
 %%
 %% http://docs.aws.amazon.com/waf/latest/APIReference/API_ListSqlInjectionMatchSets.html
 %%%------------------------------------------------------------------------------
+-spec list_sql_injection_match_sets/0 ::
+        () ->
+       waf_return_val().
+list_sql_injection_match_sets() ->
+    list_sql_injection_match_sets(?LIMIT_MAX, default_config()).
+
 -spec list_sql_injection_match_sets/1 ::
        (Limit :: pos_integer()) ->
        waf_return_val().
@@ -745,19 +778,19 @@ list_sql_injection_match_sets(Limit) when is_number(Limit) ->
 list_sql_injection_match_sets(Limit, NextMarker) when is_binary(NextMarker) ->
     list_sql_injection_match_sets(Limit, NextMarker, default_config());
 
-list_sql_injection_match_sets(Limit, Config) when is_record(Config, aws_config) ->
+list_sql_injection_match_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
     Json = [{<<"Limit">>, Limit}],
-    waf_request(Config, "AWSWAF_20150824.ListSqlInjectionMatchSets", Json).
+    waf_request(Config, "ListSqlInjectionMatchSets", Json).
 
 -spec list_sql_injection_match_sets/3 ::
        (Limit :: pos_integer(), 
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_sql_injection_match_sets(Limit, NextMarker, Config) ->
+list_sql_injection_match_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
-    waf_request(Config, "AWSWAF_20150824.ListSqlInjectionMatchSets", Json).
+    waf_request(Config, "ListSqlInjectionMatchSets", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -765,6 +798,12 @@ list_sql_injection_match_sets(Limit, NextMarker, Config) ->
 %%
 %% http://docs.aws.amazon.com/waf/latest/APIReference/API_ListWebACLs.html
 %%%------------------------------------------------------------------------------
+-spec list_web_acls/0 ::
+        () ->
+       waf_return_val().
+list_web_acls() ->
+    list_web_acls(?LIMIT_MAX, default_config()).
+
 -spec list_web_acls/1 ::
        (Limit :: pos_integer()) ->
        waf_return_val().
@@ -778,19 +817,19 @@ list_web_acls(Limit) when is_number(Limit) ->
 list_web_acls(Limit, NextMarker) when is_binary(NextMarker) ->
     list_web_acls(Limit, NextMarker, default_config());
 
-list_web_acls(Limit, Config) when is_record(Config, aws_config) ->
+list_web_acls(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
     Json = [{<<"Limit">>, Limit}],
-    waf_request(Config, "AWSWAF_20150824.ListWebACLs", Json).
+    waf_request(Config, "ListWebACLs", Json).
 
 -spec list_web_acls/3 ::
        (Limit :: pos_integer(), 
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_web_acls(Limit, NextMarker, Config) ->
+list_web_acls(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
-    waf_request(Config, "AWSWAF_20150824.ListWebACLs", Json).
+    waf_request(Config, "ListWebACLs", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -816,7 +855,7 @@ update_byte_match_set(ChangeToken, ByteMatchSetId, Updates, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"ByteMatchSetId">>, to_binary(ByteMatchSetId)},
             {<<"Updates">>, [transform_to_proplist(Update) || Update <- Updates]}],
-    waf_request(Config, "AWSWAF_20150824.UpdateByteMatchSet", Json).
+    waf_request(Config, "UpdateByteMatchSet", Json).
  
 
 %%%------------------------------------------------------------------------------
@@ -842,7 +881,7 @@ update_ip_set(ChangeToken, IPSetId, Updates, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"IPSetId">>, to_binary(IPSetId)},
             {<<"Updates">>, [transform_to_proplist(Update) || Update <- Updates]}],
-    waf_request(Config, "AWSWAF_20150824.UpdateIPSet", Json).
+    waf_request(Config, "UpdateIPSet", Json).
  
 
 %%%------------------------------------------------------------------------------
@@ -868,7 +907,7 @@ update_rule(ChangeToken, RuleId, Updates, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"RuleId">>, to_binary(RuleId)},
             {<<"Updates">>, [transform_to_proplist(Update) || Update <- Updates]}],
-    waf_request(Config, "AWSWAF_20150824.UpdateRule", Json).
+    waf_request(Config, "UpdateRule", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -894,7 +933,7 @@ update_size_constraint_set(ChangeToken, SizeConstraintSetId, Updates, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"SizeConstraintSetId">>, to_binary(SizeConstraintSetId)},
             {<<"Updates">>, [transform_to_proplist(Update) || Update <- Updates]}],
-    waf_request(Config, "AWSWAF_20150824.UpdateSizeConstraintSet", Json).
+    waf_request(Config, "UpdateSizeConstraintSet", Json).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateSqlInjectionMatchSet
@@ -919,7 +958,7 @@ update_sql_injection_match_set(ChangeToken, SqlInjectionMatchSetId, Updates, Con
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"SqlInjectionMatchSetId">>, to_binary(SqlInjectionMatchSetId)},
             {<<"Updates">>, [transform_to_proplist(Update) || Update <- Updates]}],
-    waf_request(Config, "AWSWAF_20150824.UpdateSqlInjectionMatchSet", Json).
+    waf_request(Config, "UpdateSqlInjectionMatchSet", Json).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateWebACL 
@@ -944,7 +983,7 @@ update_web_acl_default_action(ChangeToken, WebAclId, DefaultAction, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"WebACLId">>, to_binary(WebAclId)},
             {<<"DefaultAction">>, [{<<"Type">>, get_acl_action_type(DefaultAction)}]}],
-    waf_request(Config, "AWSWAF_20150824.UpdateWebACL", Json).
+    waf_request(Config, "UpdateWebACL", Json).
 
 -spec update_web_acl/3 ::
        (ChangeToken :: string() | binary(),
@@ -964,7 +1003,7 @@ update_web_acl(ChangeToken, WebAclId, Updates, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"WebACLId">>, to_binary(WebAclId)},
             {<<"Updates">>, [transform_to_proplist(Update) || Update <- Updates]}],
-    waf_request(Config, "AWSWAF_20150824.UpdateWebACL", Json).
+    waf_request(Config, "UpdateWebACL", Json).
 
 
 %%%------------------------------------------------------------------------------
@@ -1127,7 +1166,7 @@ waf_request_no_update(Config, Operation, Body) ->
 
 headers(Config, Operation, Body) ->
     Headers = [{"host", Config#aws_config.waf_host},
-               {"x-amz-target", Operation},
+               {"x-amz-target", lists:append(["AWSWAF_", ?API_VERSION, ".", Operation])},
                {"content-type", "application/x-amz-json-1.1"}],
     Region = erlcloud_aws:aws_region_from_host(Config#aws_config.waf_host),
     erlcloud_aws:sign_v4_headers(Config, Headers, Body, Region, "waf").

@@ -33,6 +33,7 @@
 -define(START_TIME, 1457024400).
 -define(END_TIME, 1457033216).
 -define(LIMIT_SIZE, 10).
+-define(LIMIT_MAX, 100).
 
 -define(UPDATE_BYTE_MATCH_SET,
     #waf_byte_match_set_update{
@@ -365,8 +366,8 @@ list_byte_match_sets_tests(_) ->
 
 list_ip_sets_tests(_) ->
     Action = "ListIPSets",
-    Function = ?_f(erlcloud_waf:list_ip_sets(?LIMIT_SIZE)),
-    PostData = jsx:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
+    Function = ?_f(erlcloud_waf:list_ip_sets()),
+    PostData = jsx:encode([{<<"Limit">>, ?LIMIT_MAX}]),
     Response = [{<<"IPSets">>,
                 [[{<<"IPSetId">>, ?CREATE_ID},
                   {<<"Name">>, ?NAME_PARAM}]]},
