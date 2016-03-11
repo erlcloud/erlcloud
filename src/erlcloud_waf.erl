@@ -1,11 +1,11 @@
 -module(erlcloud_waf).
 -author('pavel@alertlogic.com').
 
--include_lib("erlcloud_aws.hrl").
--include_lib("include/erlcloud_waf.hrl").
+-include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include_lib("erlcloud/include/erlcloud_waf.hrl").
 
 %%% Library initialization.
--export([configure/2, configure/3, configure/4, new/2, new/3, new/4, waf_result_fun/1]).
+-export([configure/2, configure/3, configure/4, new/2, new/3, new/4]).
 
 -export([create_byte_match_set/2, create_byte_match_set/3,
         create_ip_set/2, create_ip_set/3,
@@ -107,18 +107,6 @@ configure(AccessKeyID, SecretAccessKey, Host, Port) ->
 
 default_config() ->
     erlcloud_aws:default_config().
-
-
--spec waf_result_fun/1 ::
-          (Request :: aws_request()) -> aws_request().
-waf_result_fun(#aws_request{response_type = ok} = Request) ->
-    Request;
-waf_result_fun(#aws_request{response_type = error,
-                                  error_type = aws,
-                                  response_status = Status} = Request) when Status >= 500 ->
-    Request#aws_request{should_retry = true};
-waf_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
-    Request#aws_request{should_retry = false}.
 
 %%%------------------------------------------------------------------------------
 %%% AWS WAF API Functions
@@ -1016,7 +1004,7 @@ update_web_acl(ChangeToken, WebAclId, Updates, Config) ->
          waf_size_constraint_update() |
          waf_sql_injection_match_set_update() |
          waf_web_acl_update()) ->
-       proplists:proplists(). 
+       proplists:proplist().
 transform_to_proplist(#waf_byte_match_set_update{action = Action, byte_match_tuple = ByteMatchTuple}) ->
     [{<<"Action">>, get_update_action(Action)},
      {<<"ByteMatchTuple">>, record_to_proplist(ByteMatchTuple)}];
@@ -1049,7 +1037,7 @@ transform_to_proplist(#waf_web_acl_update{action = Action, activated_rule = Acti
          waf_size_constraint() |
          waf_sql_injection_match_tuple() |
          waf_activated_rule()) ->
-        proplists:proplists().
+        proplists:proplist().
 record_to_proplist(#waf_rule_predicate{data_id = DataId, negated = Negated, type = Type}) ->
     [{<<"DataId">>, to_binary(DataId)},
      {<<"Negated">>, to_binary(Negated)},
@@ -1156,13 +1144,22 @@ waf_request_no_update(Config, Operation, Body) ->
                            method = post,
                            request_headers = Headers,
                            request_body = Payload},
-    io:format("~p~n", [Request]),
     case erlcloud_aws:request_to_return(erlcloud_retry:request(Config, Request, fun waf_result_fun/1)) of
         {ok, {_RespHeaders, <<>>}} -> {ok, []};
         {ok, {_RespHeaders, RespBody}} -> {ok, jsx:decode(RespBody)};
         {error, _} = Error-> Error
     end.
 
+-spec waf_result_fun/1 ::
+          (Request :: aws_request()) -> aws_request().
+waf_result_fun(#aws_request{response_type = ok} = Request) ->
+    Request;
+waf_result_fun(#aws_request{response_type = error,
+                                  error_type = aws,
+                                  response_status = Status} = Request) when Status >= 500 ->
+    Request#aws_request{should_retry = true};
+waf_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
+    Request#aws_request{should_retry = false}.
 
 headers(Config, Operation, Body) ->
     Headers = [{"host", Config#aws_config.waf_host},
