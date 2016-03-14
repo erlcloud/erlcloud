@@ -39,6 +39,8 @@ operation_test_() ->
       fun delete_item_output_tests/1,
       fun delete_table_input_tests/1,
       fun delete_table_output_tests/1,
+      fun describe_limits_input_tests/1,
+      fun describe_limits_output_tests/1,
       fun describe_table_input_tests/1,
       fun describe_table_output_tests/1,
       fun get_item_input_tests/1,
@@ -240,7 +242,7 @@ error_handling_tests(_) ->
 
 
 %% BatchGetItem test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchGetItems.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchGetItem.html
 batch_get_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -555,7 +557,7 @@ batch_get_item_output_tests(_) ->
     output_tests(?_f(erlcloud_ddb2:batch_get_item([{<<"table">>, [{<<"k">>, <<"v">>}]}], [{out, record}])), Tests).
 
 %% BatchWriteItem test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchWriteItem.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
 batch_write_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -829,7 +831,7 @@ batch_write_item_output_tests(_) ->
     output_tests(?_f(erlcloud_ddb2:batch_write_item([], [{out, record}])), Tests).
 
 %% CreateTable test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_CreateTable.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html
 create_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -1411,7 +1413,7 @@ create_table_output_tests(_) ->
     output_tests(?_f(erlcloud_ddb2:create_table(<<"name">>, [{<<"key">>, s}], <<"key">>, 5, 10)), Tests).
 
 %% DeleteItem test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteItem.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DeleteItem.html
 delete_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -1569,7 +1571,7 @@ delete_item_output_tests(_) ->
     output_tests(?_f(erlcloud_ddb2:delete_item(<<"table">>, {<<"k">>, <<"v">>}, [{out, record}])), Tests).
 
 %% DeleteTable test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteTable.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DeleteTable.html
 delete_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -1627,8 +1629,48 @@ delete_table_output_tests(_) ->
     
     output_tests(?_f(erlcloud_ddb2:delete_table(<<"name">>)), Tests).
 
+%% DescribeLimits test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeLimits.html
+describe_limits_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"DescribeLimits example request",
+             ?_f(erlcloud_ddb2:describe_limits()), "
+{
+}"
+            })
+        ],
+
+    Response = "
+{
+    \"AccountMaxReadCapacityUnits\": 20000,
+    \"AccountMaxWriteCapacityUnits\": 20000,
+    \"TableMaxReadCapacityUnits\": 10000,
+    \"TableMaxWriteCapacityUnits\": 10000
+}",
+    input_tests(Response, Tests).
+
+describe_limits_output_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"DescribeLimits example response", "
+{
+    \"AccountMaxReadCapacityUnits\": 20000,
+    \"AccountMaxWriteCapacityUnits\": 20000,
+    \"TableMaxReadCapacityUnits\": 10000,
+    \"TableMaxWriteCapacityUnits\": 10000
+}",
+             {ok, #ddb2_describe_limits
+              {account_max_read_capacity_units = 20000,
+               account_max_write_capacity_units = 20000,
+               table_max_read_capacity_units = 10000,
+               table_max_write_capacity_units = 10000}}})
+        ],
+
+    output_tests(?_f(erlcloud_ddb2:describe_limits()), Tests).
+
 %% DescribeTable test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DescribeTables.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeTable.html
 describe_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -1838,7 +1880,7 @@ describe_table_output_tests(_) ->
     output_tests(?_f(erlcloud_ddb2:describe_table(<<"name">>)), Tests).
 
 %% GetItem test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_GetItem.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_GetItem.html
 get_item_input_tests(_) ->
     Example1Response = "
 {
@@ -2030,7 +2072,7 @@ get_item_output_typed_tests(_) ->
                        <<"table">>, {<<"k">>, <<"v">>}, [{out, typed_record}])), Tests).
 
 %% ListTables test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_ListTables.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_ListTables.html
 list_tables_input_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -2072,7 +2114,7 @@ list_tables_output_tests(_) ->
     output_tests(?_f(erlcloud_ddb2:list_tables([{out, record}])), Tests).
 
 %% PutItem test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_PutItem.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html
 put_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -2327,7 +2369,7 @@ put_item_output_tests(_) ->
     output_tests(?_f(erlcloud_ddb2:put_item(<<"table">>, [], [{out, record}])), Tests).
 
 %% Query test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Query.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html
 q_input_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -2568,7 +2610,7 @@ q_output_tests(_) ->
     output_tests(?_f(erlcloud_ddb2:q(<<"table">>, [{<<"k">>, <<"v">>, eq}], [{out, record}])), Tests).
 
 %% Scan test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Scan.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Scan.html
 scan_input_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -2930,7 +2972,7 @@ scan_output_tests(_) ->
     output_tests(?_f(erlcloud_ddb2:scan(<<"name">>, [{out, record}])), Tests).
 
 %% UpdateItem test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateItem.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateItem.html
 update_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -3097,7 +3139,7 @@ update_item_output_tests(_) ->
     output_tests(?_f(erlcloud_ddb2:update_item(<<"table">>, {<<"k">>, <<"v">>}, [])), Tests).
 
 %% UpdateTable test based on the API examples:
-%% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateTable.html
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTable.html
 update_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
