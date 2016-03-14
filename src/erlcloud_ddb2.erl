@@ -1139,7 +1139,7 @@ batch_get_item(RequestItems, Opts) ->
 %%------------------------------------------------------------------------------
 %% @doc 
 %% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchGetItems.html]
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchGetItem.html]
 %%
 %% ===Example===
 %%
@@ -1266,7 +1266,7 @@ batch_write_item(RequestItems, Opts) ->
 %%------------------------------------------------------------------------------
 %% @doc 
 %% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_BatchWriteItem.html]
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html]
 %%
 %% ===Example===
 %%
@@ -1369,7 +1369,7 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
 %%------------------------------------------------------------------------------
 %% @doc 
 %% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_CreateTable.html]
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html]
 %%
 %% ===Example===
 %%
@@ -1461,7 +1461,7 @@ delete_item(Table, Key, Opts) ->
 %%------------------------------------------------------------------------------
 %% @doc 
 %% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteItem.html]
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DeleteItem.html]
 %%
 %% ===Example===
 %%
@@ -1515,7 +1515,7 @@ delete_table(Table, Opts) ->
 %%------------------------------------------------------------------------------
 %% @doc 
 %% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DeleteTable.html]
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DeleteTable.html]
 %%
 %% ===Example===
 %%
@@ -1613,7 +1613,7 @@ describe_table(Table, Opts) ->
 %%------------------------------------------------------------------------------
 %% @doc 
 %% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DescribeTables.html]
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeTable.html]
 %%
 %% ===Example===
 %%
@@ -1675,7 +1675,7 @@ get_item(Table, Key, Opts) ->
 %%------------------------------------------------------------------------------
 %% @doc 
 %% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_GetItem.html]
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_GetItem.html]
 %%
 %% ===Example===
 %%
@@ -1739,7 +1739,7 @@ list_tables(Opts) ->
 %%------------------------------------------------------------------------------
 %% @doc 
 %% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_ListTables.html]
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_ListTables.html]
 %%
 %% ===Example===
 %%
@@ -1811,7 +1811,7 @@ put_item(Table, Item, Opts) ->
 %%------------------------------------------------------------------------------
 %% @doc 
 %% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_PutItem.html]
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html]
 %%
 %% ===Example===
 %%
@@ -1915,7 +1915,7 @@ q(Table, KeyConditionsOrExpression, Opts) ->
 %%------------------------------------------------------------------------------
 %% @doc 
 %% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Query.html]
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html]
 %%
 %% KeyConditions are treated as a required parameter, which appears to
 %% be the case despite what the documentation says.
@@ -2018,7 +2018,7 @@ scan(Table, Opts) ->
 %%------------------------------------------------------------------------------
 %% @doc 
 %% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_Scan.html]
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Scan.html]
 %%
 %% ===Example===
 %%
@@ -2127,7 +2127,7 @@ update_item(Table, Key, UpdatesOrExpression, Opts) ->
 %%------------------------------------------------------------------------------
 %% @doc 
 %% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateItem.html]
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateItem.html]
 %%
 %% AttributeUpdates is treated as a required parameter because callers
 %% will almost always provide it. If no updates are desired, You can
@@ -2224,7 +2224,7 @@ update_table(Table, Opts) ->
 %%------------------------------------------------------------------------------
 %% @doc 
 %% DynamoDB API:
-%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_UpdateTable.html]
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTable.html]
 %%
 %% ===Example===
 %%
