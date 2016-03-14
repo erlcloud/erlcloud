@@ -99,6 +99,13 @@
         {table_description :: #ddb2_table_description{}
         }).
 
+-record(ddb2_describe_limits,
+        {account_max_read_capacity_units :: pos_integer(),
+         account_max_write_capacity_units :: pos_integer(),
+         table_max_read_capacity_units :: pos_integer(),
+         table_max_write_capacity_units :: pos_integer()
+        }).
+
 -record(ddb2_describe_table,
         {table :: #ddb2_table_description{}
         }).

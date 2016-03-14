@@ -39,6 +39,8 @@ operation_test_() ->
       fun delete_item_output_tests/1,
       fun delete_table_input_tests/1,
       fun delete_table_output_tests/1,
+      fun describe_limits_input_tests/1,
+      fun describe_limits_output_tests/1,
       fun describe_table_input_tests/1,
       fun describe_table_output_tests/1,
       fun get_item_input_tests/1,
@@ -1626,6 +1628,46 @@ delete_table_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb2:delete_table(<<"name">>)), Tests).
+
+%% DescribeLimits test based on the API examples:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeLimits.html
+describe_limits_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"DescribeLimits example request",
+             ?_f(erlcloud_ddb2:describe_limits()), "
+{
+}"
+            })
+        ],
+
+    Response = "
+{
+    \"AccountMaxReadCapacityUnits\": 20000,
+    \"AccountMaxWriteCapacityUnits\": 20000,
+    \"TableMaxReadCapacityUnits\": 10000,
+    \"TableMaxWriteCapacityUnits\": 10000
+}",
+    input_tests(Response, Tests).
+
+describe_limits_output_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"DescribeLimits example response", "
+{
+    \"AccountMaxReadCapacityUnits\": 20000,
+    \"AccountMaxWriteCapacityUnits\": 20000,
+    \"TableMaxReadCapacityUnits\": 10000,
+    \"TableMaxWriteCapacityUnits\": 10000
+}",
+             {ok, #ddb2_describe_limits
+              {account_max_read_capacity_units = 20000,
+               account_max_write_capacity_units = 20000,
+               table_max_read_capacity_units = 10000,
+               table_max_write_capacity_units = 10000}}})
+        ],
+
+    output_tests(?_f(erlcloud_ddb2:describe_limits()), Tests).
 
 %% DescribeTable test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_DescribeTables.html

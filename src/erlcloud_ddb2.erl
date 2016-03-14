@@ -92,6 +92,7 @@
          create_table/5, create_table/6, create_table/7,
          delete_item/2, delete_item/3, delete_item/4,
          delete_table/1, delete_table/2, delete_table/3,
+         describe_limits/0, describe_limits/1, describe_limits/2,
          describe_table/1, describe_table/2, describe_table/3,
          get_item/2, get_item/3, get_item/4,
          list_tables/0, list_tables/1, list_tables/2,
@@ -1535,6 +1536,58 @@ delete_table(Table, Opts, Config) ->
                [{<<"TableName">>, Table}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(delete_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_delete_table.table_description).
+
+%%%------------------------------------------------------------------------------
+%%% DescribeLimits
+%%%------------------------------------------------------------------------------
+
+-spec describe_limits_record() -> record_desc().
+describe_limits_record() ->
+    {#ddb2_describe_limits{},
+     [{<<"AccountMaxReadCapacityUnits">>, #ddb2_describe_limits.account_max_read_capacity_units, fun id/2},
+      {<<"AccountMaxWriteCapacityUnits">>, #ddb2_describe_limits.account_max_write_capacity_units, fun id/2},
+      {<<"TableMaxReadCapacityUnits">>, #ddb2_describe_limits.table_max_read_capacity_units, fun id/2},
+      {<<"TableMaxWriteCapacityUnits">>, #ddb2_describe_limits.table_max_write_capacity_units, fun id/2}
+     ]}.
+
+-type describe_limits_return() :: ddb_return(#ddb2_describe_limits{}, #ddb2_describe_limits{}).
+
+-spec describe_limits() -> describe_limits_return().
+describe_limits() ->
+    describe_limits([], default_config()).
+
+-spec describe_limits(ddb_opts()) -> describe_limits_return().
+describe_limits(Opts) ->
+    describe_limits(Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeLimits.html]
+%%
+%% ===Example===
+%%
+%% Describe the current provisioned-capacity limits for your AWS account.
+%%
+%% `
+%% {ok, Limits} =
+%%     erlcloud_ddb2:describe_limits(),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+-spec describe_limits(ddb_opts(), aws_config()) -> describe_limits_return().
+describe_limits(Opts, Config) ->
+    {[], DdbOpts} = opts([], Opts),
+    Return = erlcloud_ddb_impl:request(
+               Config,
+               "DynamoDB_20120810.DescribeLimits",
+               []),
+    case out(Return, fun(Json, UOpts) -> undynamize_record(describe_limits_record(), Json, UOpts) end,
+             DdbOpts) of
+        {simple, Record} -> {ok, Record};
+        {ok, _} = Out -> Out;
+        {error, _} = Out -> Out
+    end.
 
 %%%------------------------------------------------------------------------------
 %%% DescribeTable
