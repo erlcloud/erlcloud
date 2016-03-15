@@ -505,10 +505,6 @@ dynamize_item(Item) when is_list(Item) ->
 dynamize_item(Item) ->
     error({erlcloud_ddb, {invalid_item, Item}}).
 
--spec dynamize_expression(expression()) -> binary().
-dynamize_expression(Expression) ->
-    Expression.
-
 -spec dynamize_expression_attribute_names(expression_attribute_names()) -> [json_pair()].
 dynamize_expression_attribute_names(Names) ->
     Names.
@@ -864,6 +860,13 @@ conditional_op_opt() ->
 -spec expected_opt() -> opt_table_entry().
 expected_opt() ->
     {expected, <<"Expected">>, fun dynamize_expected/1}.
+
+
+% This matches the Java API, which asks the user to write their own expressions.
+
+-spec dynamize_expression(expression()) -> binary().
+dynamize_expression(Expression) when is_binary(Expression) ->
+    Expression.
 
 -type return_consumed_capacity_opt() :: {return_consumed_capacity, return_consumed_capacity()}.
 
@@ -1477,6 +1480,21 @@ delete_item(Table, Key, Opts) ->
 %%       [{return_values, all_old},
 %%        {condition_expression, <<"attribute_not_exists(Replies)">>}]),
 %% '
+%%
+%% The ConditionExpression option can also be used in place of the legacy
+%% ConditionalOperator or Expected parameters.
+%%
+%% `
+%% {ok, Item} = 
+%%     erlcloud_ddb2:delete_item(
+%%       <<"Thread">>, 
+%%       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+%%        {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
+%%       [{return_values, all_old},
+%%        {condition_expression, <<"attribute_not_exists(#replies)">>},
+%%        {expression_attribute_names, [{<<"#replies">>, <<"Replies">>}]}]),
+%% '
+%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec delete_item(table_name(), key(), delete_item_opts(), aws_config()) -> delete_item_return().
@@ -1833,6 +1851,25 @@ put_item(Table, Item, Opts) ->
 %%         [{<<":f">>, <<"Amazon DynamoDB">>},
 %%          {<<":s">>, <<"How do I update multiple items?">>}]}]),
 %% '
+%%
+%% The ConditionExpression option can be used in place of the legacy Expected parameter.
+%%
+%% `
+%% {ok, []} = 
+%%     erlcloud_ddb2:put_item(
+%%       <<"Thread">>, 
+%%       [{<<"LastPostedBy">>, <<"fred@example.com">>},
+%%        {<<"ForumName">>, <<"Amazon DynamoDB">>},
+%%        {<<"LastPostDateTime">>, <<"201303190422">>},
+%%        {<<"Tags">>, {ss, [<<"Update">>, <<"Multiple Items">>, <<"HelpMe">>]}},
+%%        {<<"Subject">>, <<"How do I update multiple items?">>},
+%%        {<<"Message">>, 
+%%         <<"I want to update multiple items in a single API call. What is the best way to do that?">>}],
+%%       [{condition_expression, <<"#forum <> :forum AND attribute_not_exists(#subject)">>},
+%%        {expression_attribute_names, [{<<"#forum">>, <<"ForumName">>}, {<<"#subject">>, <<"Subject">>}]},
+%%        {expression_attribute_values, [{<<":forum">>, <<"Amazon DynamoDB">>}]}]),
+%% '
+%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec put_item(table_name(), in_item(), put_item_opts(), aws_config()) -> put_item_return().
@@ -1938,8 +1975,12 @@ q(Table, KeyConditionsOrExpression, Opts) ->
 %%        {index_name, <<"LastPostIndex">>},
 %%        {select, all_attributes},
 %%        {limit, 3},
-%%        {consistent_read, true}]),
+%%        {consistent_read, true},
+%%        {filter_expression, <<"#user = :user">>},
+%%        {expression_attribute_names, [{<<"#user">>, <<"User">>}]},
+%%        {expression_attribute_values, [{<<":user">>, <<"User A">>}]}]),
 %% '
+%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec q(table_name(), conditions() | expression(), q_opts(), aws_config()) -> q_return().
@@ -2215,7 +2256,7 @@ update_table_record() ->
     {#ddb2_update_table{},
      [{<<"TableDescription">>, #ddb2_update_table.table_description,
        fun(V, Opts) -> undynamize_record(table_description_record(), V, Opts) end}
-     ]}. 
+     ]}.
 
 -spec update_table(table_name(), update_table_opts()) -> update_table_return().
 update_table(Table, Opts) ->
@@ -2229,7 +2270,7 @@ update_table(Table, Opts) ->
 %% ===Example===
 %%
 %% Update table "Thread" to have 10 units of read and write capacity.
-%% Update secondary index <<"SubjectIdx">> to have 10 units of read write capacity 
+%% Update secondary index `<<"SubjectIdx">>' to have 10 units of read write capacity
 %% `
 %% erlcloud_ddb2:update_table(
 %%   <<"Thread">>,
@@ -2245,14 +2286,14 @@ update_table(Table, Opts, Config) when is_list(Opts) ->
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.UpdateTable",
-               [{<<"TableName">>, Table}]
-                ++ AwsOpts),
+               [{<<"TableName">>, Table} | AwsOpts]),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_update_table.table_description);
 update_table(Table, ReadUnits, WriteUnits) ->
     update_table(Table, ReadUnits, WriteUnits, [], default_config()).
 
--spec update_table(table_name(), read_units(), write_units(), update_table_opts()) -> update_table_return().
+-spec update_table(table_name(), read_units(), write_units(), update_table_opts()) 
+                  -> update_table_return().
 update_table(Table, ReadUnits, WriteUnits, Opts) ->
     update_table(Table, ReadUnits, WriteUnits, Opts, default_config()).
 
@@ -2260,3 +2301,11 @@ update_table(Table, ReadUnits, WriteUnits, Opts) ->
                   -> update_table_return().
 update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
     update_table(Table, [{provisioned_throughput, {ReadUnits, WriteUnits}} | Opts], Config).
+
+
+to_binary(X) when is_binary(X) ->
+    X;
+to_binary(X) when is_list(X) ->
+    list_to_binary(X);
+to_binary(X) when is_integer(X) ->
+    integer_to_binary(X).
