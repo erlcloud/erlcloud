@@ -22,7 +22,8 @@
          describe_scaling_activities/3,
 
          suspend_processes/1, suspend_processes/2, suspend_processes/3,
-         resume_processes/1, resume_processes/2, resume_processes/3
+         resume_processes/1, resume_processes/2, resume_processes/3,
+         detach_instances/2, detach_instances/3, detach_instances/4
 ]).
 
 
@@ -62,6 +63,11 @@
         "/SuspendProcessesResponse/ResponseMetadata/RequestId").
 -define(RESUME_PROCESSES_ACTIVITY, 
         "/ResumeProcessesResponse/ResponseMetadata/RequestId").
+
+%% xpath for detach instances:
+-define(DETACH_INSTANCES_ACTIVITY, 
+        "/DetachInstancesResponse/DetachInstancesResult/Activities/member").
+
 
 %% --------------------------------------------------------------------
 %% @doc Calls describe_groups([], default_configuration())
@@ -405,7 +411,7 @@ describe_instances(I, MaxRecords, none, Config) ->
 describe_instances(I, MaxRecords, NextToken, Config) ->
     describe_instances(I, [{"MaxRecords", MaxRecords}, {"NextToken", NextToken}], Config).
 
--spec describe_instances(list(string()), list({string(), string()}), aws_config()) -> 
+-spec describe_instances(list(string()), list({string(), term()}), aws_config()) -> 
                                 {ok, list(aws_launch_config())} | 
                                 {{paged, string()}, list(aws_launch_config)} | 
                                 {error, term()}.                       
@@ -524,12 +530,50 @@ resume_processes(GroupName, ScalingProcesses, Config) ->
     end.
 
 
+%% --------------------------------------------------------------------
+%% @doc Detach the given instances from the group using the default configuration
+%% without decrementing the desired capacity of the group.
+%% @end
+%% --------------------------------------------------------------------
+-spec detach_instances(list(string()),string()) -> aws_autoscaling_activity().
+detach_instances(InstanceIds, GroupName) ->
+    detach_instances(InstanceIds, GroupName, erlcloud_aws:default_config()).
+
+%% --------------------------------------------------------------------
+%% @doc Detach the given instances from the group.  The 3rd parameter can be:
+%% 'false' to not decrement the desired capacity of the group
+%% 'true' to decrement the desired capacity of the group
+%% Config a supplied AWS configuration.
+%% @end
+%% --------------------------------------------------------------------
+-spec detach_instances(list(string()),string(), boolean() | aws_config()) -> aws_autoscaling_activity().
+detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity) when is_boolean(ShouldDecrementDesiredCapacity) ->
+    detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity, erlcloud_aws:default_config());
+detach_instances(InstanceIds, GroupName, Config) ->
+    detach_instances(InstanceIds, GroupName, false, Config).
+
+-spec detach_instances(list(string()),string(), boolean(), aws_config()) -> aws_autoscaling_activity().
+detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity, Config) ->
+    P = case ShouldDecrementDesiredCapacity of
+            true ->
+                [{"ShouldDecrementDesiredCapacity", "true"}, {"AutoScalingGroupName", GroupName} | member_params("InstanceIds.member.", InstanceIds)];
+            false ->
+                [{"ShouldDecrementDesiredCapacity", "false"}, {"AutoScalingGroupName", GroupName} | member_params("InstanceIds.member.", InstanceIds)]
+    end,
+    case as_query(Config, "DetachInstances", P, ?API_VERSION) of
+        {ok, Doc} ->
+            Activities = [extract_as_activity(A) || A <- xmerl_xpath:string(?DETACH_INSTANCES_ACTIVITY, Doc)],
+            {ok, Activities};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
 
 %% given a list of member identifiers, return a list of 
 %% {key with prefix, member identifier} for use in autoscaling calls.
 %% Example pair that could be returned in a list is 
 %% {"LaunchConfigurationNames.member.1", "my-launch-config}.
--spec member_params(string(), list(string())) -> list({string(), string()}).
+-spec member_params(string(), list(string())) -> list({string(), term()}).
 member_params(Prefix, MemberIdentifiers) ->
     MemberKeys = [Prefix ++ integer_to_list(I) || I <- lists:seq(1, length(MemberIdentifiers))],
     [{K, V} || {K, V} <- lists:zip(MemberKeys, MemberIdentifiers)].
@@ -565,7 +609,7 @@ get_text(Label, Doc) ->
     erlcloud_xml:get_text(Label, Doc).
 
 %% @TODO:  spec is too general with terms I think
--spec as_query(aws_config(), string(), list({string(), string()}), string()) -> {ok, term()} | {error, term}.
+-spec as_query(aws_config(), string(), list({string(), term()}), string()) -> {ok, term()} | {error, term()}.
 as_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml4(post, Config#aws_config.as_host,

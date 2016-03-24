@@ -4,7 +4,12 @@ otp_release:
   - R16B03-1
   - 17.5
   - 18.1
+env:
+  - FORCE_REBAR2=true
+  - FORCE_REBAR2=false PATH=$PATH:$PWD
 branches:
   only:
     - master
+install:
+  - make travis-install
 script: make eunit

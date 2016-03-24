@@ -22,7 +22,7 @@ The libraries can be used two ways: either you can specify configuration paramet
 You need to clone the repository and download rebar (if it's not already available in your path).
 
 ```
-git clone https://github.com/gleber/erlcloud.git
+git clone https://github.com/alertlogic/erlcloud.git
 cd erlcloud
 wget http://cloud.github.com/downloads/basho/rebar/rebar && chmod u+x rebar
 ```

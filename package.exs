@@ -1,5 +1,5 @@
 Expm.Package.new(name: "erlcloud", description: "Cloud Computing library for Erlang (Amazon EC2, S3, SQS, SimpleDB, Mechanical Turk, ELB) ",
-                 version: "0.8.0", keywords: ["cloud", "api", "amazon", "ec2", "s3", "sqs"], 
-                 maintainers: [[name: "Gleb Peregud", 
-                                email: "gleber.p@gmail.com"]],
-                 repositories: [[github: "gleber/erlcloud"]])
+                 version: "v1.0.7", keywords: ["cloud", "api", "amazon", "ec2", "s3", "sqs"],
+                 maintainers: [[name: "Evgeny Bob",
+                                email: "ebob@alertloigic.com"]],
+                 repositories: [[github: "alertligic/erlcloud"]])

@@ -110,14 +110,16 @@ backoff(Attempt) ->
     timer:sleep(random:uniform((1 bsl (Attempt - 1)) * 100)).
 
 %% HTTPC timeout for a request
-timeout(1, _) ->
+timeout(1, #aws_config{timeout = undefined}) ->
     %% Shorter timeout on first request. This is to avoid long (5s) failover when first DDB
     %% endpoint doesn't respond
     1000;
-timeout(_, Config) ->
+timeout(_, #aws_config{timeout = undefined}) ->
     %% Longer timeout on subsequent requsets - results in less timeouts when system is
     %% under heavy load
-    Config#aws_config.timeout.
+    ?DEFAULT_TIMEOUT;
+timeout(_, #aws_config{timeout = Timeout}) ->
+    Timeout.
 
 -type attempt() :: {attempt, pos_integer()} | {error, term()}.
 

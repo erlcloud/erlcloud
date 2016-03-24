@@ -19,8 +19,8 @@ autoscaling_test_() ->
      fun stop/1,
      [fun description_tests/1,
       fun terminate_tests/1,
-      fun create_tests/1
-     ]}.
+      fun create_tests/1,
+      fun detach_instances_tests/1]}.
 
 start() ->
     meck:new(erlcloud_aws, [non_strict]),
@@ -83,6 +83,11 @@ create_tests(_) ->
                           
                           
     
+detach_instances_tests(_) ->
+     [fun() ->
+             Res = extract_result(erlcloud_as:detach_instances(["i-bdae7a84"], "my-test-asg-lbs", false)),
+             ?assertEqual(Res, expected_detach_activities()) end].
+    
 mocked_aws_xml() ->
     meck:expect(erlcloud_aws, default_config, [{[], #aws_config{}}]),
     meck:expect(erlcloud_aws, aws_request_xml4, [
@@ -92,8 +97,8 @@ mocked_aws_xml() ->
                                                  mocked_activity(),
                                                  mocked_scaling_activity(),
                                                  mocked_create_launch_config(),
-                                                 mocked_create_asg()
-                                                ]).
+                                                 mocked_create_asg(),
+                                                 mocked_detach_instances()]).
 
 parsed_mock_response(Text) ->
     {ok, element(1, xmerl_scan:string(Text))}.
@@ -357,3 +362,41 @@ expected_scaling_activity() ->
         end_time = {{2012,04,12}, {17,32,08}},
         progress = 0
       }].
+mocked_detach_instances() ->
+    {[post, '_', "/", [
+                       {"Action", "DetachInstances"},
+                       {"Version", "2011-01-01"},
+                       {"ShouldDecrementDesiredCapacity", "false"},
+                       {"AutoScalingGroupName", "my-test-asg-lbs"},
+                       {"InstanceIds.member.1", "i-bdae7a84"}],
+      "autoscaling", '_'], parsed_mock_response("
+<DetachInstancesResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
+  <DetachInstancesResult>
+      <Activities>
+            <member>
+                    <ActivityId>b8bd9d0c-194c-4b9a-a3e7-de6b960b4ea5</ActivityId>
+                            <AutoScalingGroupName>my-test-asg-lbs</AutoScalingGroupName>
+                                    <Description>Detaching EC2 instance: i-bdae7a84</Description>
+                                            <Progress>50</Progress>
+                                                    <Cause>At 2016-02-03T16:10:03Z instance i-bdae7a84 was detached in response to a user request, shrinking the capacity from 2 to 1.</Cause>
+        <StartTime>2016-02-03T16:10:03.901Z</StartTime>
+        <Details>{&quot;Availability Zone&quot;:&quot;eu-west-1a&quot;}</Details>
+        <StatusCode>InProgress</StatusCode>
+      </member>
+    </Activities>
+  </DetachInstancesResult>
+  <ResponseMetadata>
+    <RequestId>959cc9dc-ca90-11e5-b1ab-619935a1f6db</RequestId>
+  </ResponseMetadata>
+</DetachInstancesResponse>")}.
+
+expected_detach_activities() ->
+    [#aws_autoscaling_activity{
+        id = "b8bd9d0c-194c-4b9a-a3e7-de6b960b4ea5",
+        group_name = "my-test-asg-lbs",
+        cause = "At 2016-02-03T16:10:03Z instance i-bdae7a84 was detached in response to a user request, shrinking the capacity from 2 to 1.",
+        description = "Detaching EC2 instance: i-bdae7a84",
+        details = "{\"Availability Zone\":\"eu-west-1a\"}",
+        status_code = "InProgress",status_msg = [],
+        start_time = {{2016,2,3},{16,10,3}},
+        end_time = undefined,progress = 50}].

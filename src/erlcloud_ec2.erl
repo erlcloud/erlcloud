@@ -77,7 +77,7 @@
          unmonitor_instances/1, unmonitor_instances/2,
 
          %% Network Interfaces
-         describe_network_interfaces/0, describe_network_interfaces/1, 
+         describe_network_interfaces/0, describe_network_interfaces/1,
          describe_network_interfaces/2,
          describe_network_interfaces_filtered/3,
 
@@ -104,16 +104,22 @@
 
          %% Spot Instances
          cancel_spot_instance_requests/1, cancel_spot_instance_requests/2,
+         cancel_spot_fleet_requests/2, cancel_spot_fleet_requests/3,
          create_spot_datafeed_subscription/1, create_spot_datafeed_subscription/2,
          create_spot_datafeed_subscription/3,
          delete_spot_datafeed_subscription/0, delete_spot_datafeed_subscription/1,
          describe_spot_datafeed_subscription/0, describe_spot_datafeed_subscription/1,
+         describe_spot_fleet_instances_all/1, describe_spot_fleet_instances_all/2,
+         describe_spot_fleet_instances/1, describe_spot_fleet_instances/2,
+         describe_spot_fleet_instances/3, describe_spot_fleet_instances/4,
          describe_spot_instance_requests/0, describe_spot_instance_requests/1,
          describe_spot_instance_requests/2,
          describe_spot_price_history/0, describe_spot_price_history/1,
          describe_spot_price_history/2, describe_spot_price_history/3,
          describe_spot_price_history/5,
+         modify_spot_fleet_request/3, modify_spot_fleet_request/4,
          request_spot_instances/1, request_spot_instances/2,
+         request_spot_fleet/1, request_spot_fleet/2,
 
          %% Windows
          bundle_instance/6, bundle_instance/7,
@@ -591,7 +597,7 @@ extract_acl_response(Node) ->
                          || Item <- xmerl_xpath:string("associationSet/item", Node)]},
      {entry_set, [ extract_acl_entry_item(Item)
                    || Item <- xmerl_xpath:string("entrySet/item", Node)]},
-     {tag_set, 
+     {tag_set,
       [extract_tag_item(Item)
        || Item <- xmerl_xpath:string("tagSet/item", Node)]}
 ].
@@ -747,7 +753,7 @@ create_snapshot(VolumeID, Description) ->
 create_snapshot(VolumeID, Description, Config)
   when is_list(VolumeID), is_list(Description) ->
     case ec2_query(Config, "CreateSnapshot", [{"VolumeId", VolumeID}, {"Description", Description}]) of
-        {ok, Doc} -> 
+        {ok, Doc} ->
             {ok, [
                  {snapshot_id, get_text("/CreateSnapshotResponse/snapshotId", Doc)},
                  {volume_id, get_text("/CreateSnapshotResponse/volumeId", Doc)},
@@ -958,7 +964,7 @@ delete_security_group(Param, GroupName, Config) ->
     ec2_simple_query(Config, "DeleteSecurityGroup", [{Key, GroupName}], ?NEW_API_VERSION).
 
 %%
-%%    
+%%
 -spec(delete_snapshot/1 :: (string()) -> ok | {error, any()}).
 delete_snapshot(SnapshotID) -> delete_snapshot(SnapshotID, default_config()).
 
@@ -1369,7 +1375,7 @@ extract_instance(Node) ->
                              {arn, get_text("iamInstanceProfile/arn", Node)},
                              {id, get_text("iamInstanceProfile/id", Node)}
                             ]},
-     {tag_set, 
+     {tag_set,
       [extract_tag_item(Item)
        || Item <- xmerl_xpath:string("tagSet/item", Node)]},
      {network_interface_set, [extract_network_interface(Item) || Item <- xmerl_xpath:string("networkInterfaceSet/item", Node)]}
@@ -1448,7 +1454,7 @@ extract_igw(Node) ->
     Items = xmerl_xpath:string("attachmentSet/item", Node),
     [ {internet_gateway_id, get_text("internetGatewayId", Node)},
       {attachment_set, [ extract_igw_attachments(Item) || Item <- Items]},
-      {tag_set, 
+      {tag_set,
        [extract_tag_item(Item)
         || Item <- xmerl_xpath:string("tagSet/item", Node)]}
  ].
@@ -1561,7 +1567,7 @@ describe_network_interfaces(NetworkInterfacesIds, Config)
 %%
 %% Example: describe_network_interfaces_filtered([], [{"subnet-id", ["subnet-e11e11e1"]}], Config)
 %%
-describe_network_interfaces_filtered(NetworkInterfacesIds, Filter, Config) 
+describe_network_interfaces_filtered(NetworkInterfacesIds, Filter, Config)
     when is_record(Config, aws_config) ->
        Params = lists:append(erlcloud_aws:param_list(NetworkInterfacesIds, "NetworkInterfaceId") ,
                               list_to_ec2_filter(Filter)),
@@ -1591,7 +1597,7 @@ extract_network_interface(Node) ->
      {attachment, extract_attachment(Node)},
      {association, extract_association(Node)},
      {tag_set, [extract_tag_item(Item) || Item <- xmerl_xpath:string("tagSet/item", Node)]},
-     {private_ip_addresses_set, 
+     {private_ip_addresses_set,
             [extract_private_ip_address(Item) || Item <- xmerl_xpath:string("privateIpAddressesSet/item", Node)]}
     ].
 
@@ -1612,7 +1618,7 @@ extract_private_ip_address(Node) ->
     [
      {private_ip_address, get_text("privateIpAddress", Node)},
      {primary, get_bool("primary", Node)}
-    ]. 
+    ].
 
 -spec(extract_association/1 :: (Node::list()) -> proplist()).
 extract_association(Node) ->
@@ -1771,7 +1777,7 @@ extract_route(Node) ->
      {association_set,
       [extract_route_assn(Item)
        || Item <-xmerl_xpath:string("associationSet/item", Node)]},
-     {tag_set, 
+     {tag_set,
       [extract_tag_item(Item)
        || Item <- xmerl_xpath:string("tagSet/item", Node)]}
     ].
@@ -1851,7 +1857,7 @@ extract_security_group(Node) ->
       [extract_ip_permissions(Item) || Item <- xmerl_xpath:string("ipPermissions/item", Node)]},
      {ip_permissions_egress,
       [extract_ip_permissions(Item) || Item <- xmerl_xpath:string("ipPermissionsEgress/item", Node)]},
-     {tag_set, 
+     {tag_set,
       [extract_tag_item(Item)
        || Item <- xmerl_xpath:string("tagSet/item", Node)]}
     ].
@@ -1978,7 +1984,7 @@ describe_spot_instance_requests(SpotInstanceRequestIDs, Config)
         {ok, Doc} ->
             {ok, [extract_spot_instance_request(Item) ||
                     Item <- xmerl_xpath:string("/DescribeSpotInstanceRequestsResponse/spotInstanceRequestSet/item", Doc)]};
-        {error, Reason} -> 
+        {error, Reason} ->
             {error, Reason}
     end.
 
@@ -2114,7 +2120,7 @@ extract_subnet(Node) ->
      {available_ip_address_count, get_text("availableIpAddressCount", Node)},
      {availability_zone, get_text("availabilityZone", Node)},
      {cidr_block, get_text("cidrBlock", Node)},
-     {tag_set, 
+     {tag_set,
       [extract_tag_item(Item)
        || Item <- xmerl_xpath:string("tagSet/item", Node)]}
 ].
@@ -2515,7 +2521,7 @@ request_spot_instances(Request, Config) ->
             ] ++ erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, "LaunchSpecification.SecurityGroup");
         List      ->
             net_if_params(List, "LaunchSpecification.NetworkInterface")
-    end,         
+    end,
     BDParams = [
                 {"LaunchSpecification." ++ Key, Value} ||
                    {Key, Value} <- block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping)],
@@ -2526,6 +2532,194 @@ request_spot_instances(Request, Config) ->
                     Item <- xmerl_xpath:string("/RequestSpotInstancesResponse/spotInstanceRequestSet/item", Doc)]};
         {error, Reason} ->
             {error, Reason}
+    end.
+
+encode_termination_policy(default) -> "Default";
+encode_termination_policy(no_termination) -> "noTermination";
+encode_termination_policy(undefined) -> undefined.
+
+encode_allocation_strategy(lowest_price) -> "lowestPrice";
+encode_allocation_strategy(diversified) -> "diversified";
+encode_allocation_strategy(undefined) -> undefined.
+
+extract_describe_spot_fleet_request(Doc) ->
+    [
+     {instance_id, get_text("instanceId", Doc)},
+     {spot_instance_request_id, get_text("spotInstanceRequestId", Doc)},
+     {instance_type, get_text("instanceType", Doc)}
+    ].
+
+-spec(describe_spot_fleet_instances_all/1 :: (string()) ->
+    {ok, [{instances, [proplist()]}]} | {error, term()}).
+describe_spot_fleet_instances_all(SpotFleetRequestId) ->
+    describe_spot_fleet_instances_all(SpotFleetRequestId, default_config()).
+
+-spec(describe_spot_fleet_instances_all/2 :: (string(), aws_config()) ->
+    {ok, [{instances, [proplist()]}]} | {error, term()}).
+describe_spot_fleet_instances_all(SpotFleetRequestId, Config) ->
+    ListAll = fun(Fun, NextToken, Acc) ->
+        case describe_spot_fleet_instances(SpotFleetRequestId, NextToken, undefined, Config) of
+            {ok, Res} ->
+                List = proplists:get_value(instances, Res),
+                case proplists:get_value(next_token, Res) of
+                    undefined -> {ok, lists:foldl(fun erlang:'++'/2, [], [List | Acc])};
+                    NT -> Fun(Fun, NT, [List | Acc])
+                end;
+            {error, _} = E -> E
+        end
+    end,
+    ListAll(ListAll, undefined, []).
+
+-type(describe_spot_fleet_instances_return() :: {ok, [{instances, [proplist()]} | {next_token, string()}]} | {error, term()}).
+
+-spec(describe_spot_fleet_instances/1 :: (string()) -> describe_spot_fleet_instances_return()).
+describe_spot_fleet_instances(SpotFleetRequestId) ->
+    describe_spot_fleet_instances(SpotFleetRequestId, undefined, undefined, default_config()).
+
+-spec(describe_spot_fleet_instances/2 :: (string(), string()) -> describe_spot_fleet_instances_return()).
+describe_spot_fleet_instances(SpotFleetRequestId, NextToken) ->
+    describe_spot_fleet_instances(SpotFleetRequestId, NextToken, undefined, default_config()).
+
+-spec(describe_spot_fleet_instances/3 :: (string(), string(), pos_integer()) -> describe_spot_fleet_instances_return()).
+describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults) ->
+    describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults, default_config()).
+
+-spec(describe_spot_fleet_instances/4 :: (string(), string(), pos_integer(), aws_config()) -> describe_spot_fleet_instances_return()).
+describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults, Config) ->
+    Params = [
+        {"SpotFleetRequestId", SpotFleetRequestId},
+        {"NextToken", NextToken},
+        {"MaxResults", MaxResults}
+    ],
+    case ec2_query(Config, "DescribeSpotFleetInstances", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            Instances = [extract_describe_spot_fleet_request(Item) ||
+                Item <- xmerl_xpath:string("/DescribeSpotFleetInstancesResponse/activeInstanceSet/item", Doc)],
+            NT = get_text("/DescribeSpotFleetInstancesResponse/nextToken", Doc, undefined),
+            {ok, [{instances, Instances}, {next_token, NT}]};
+        {error, _} = E -> E
+    end.
+
+-spec(modify_spot_fleet_request/3 :: (string(), non_neg_integer(), default | no_termination) -> ok | {error, term()}).
+modify_spot_fleet_request(SpotFleetRequestId, TargetCapacity, ExcessCapacityTerminationPolicy) ->
+    modify_spot_fleet_request(SpotFleetRequestId, TargetCapacity,
+        ExcessCapacityTerminationPolicy, default_config()).
+
+-spec(modify_spot_fleet_request/4 :: (string(), non_neg_integer(), default | no_termination, aws_config()) -> ok | {error, term()}).
+modify_spot_fleet_request(SpotFleetRequestId, TargetCapacity, ExcessCapacityTerminationPolicy, Config) ->
+    Params = [
+        {"ExcessCapacityTerminationPolicy", encode_termination_policy(ExcessCapacityTerminationPolicy)},
+        {"SpotFleetRequestId", SpotFleetRequestId},
+        {"TargetCapacity", TargetCapacity}],
+
+    case ec2_query(Config, "ModifySpotFleetRequest", Params, ?NEW_API_VERSION) of
+        {ok, _Doc} -> ok;
+        {error, _} = E -> E
+    end.
+
+extract_unsuccessful_fleet_request(Doc) ->
+    [
+     {spot_fleet_request_id, get_text("spotFleetRequestId", Doc)},
+     {error_code, get_text("error/code", Doc)},
+     {error_message, get_text("error/message", Doc)}
+    ].
+extract_successful_fleet_request(Doc) ->
+    [
+     {spot_fleet_request_id, get_text("spotFleetRequestId", Doc)},
+     {current_spot_fleet_request_state, get_text("currentSpotFleetRequestState", Doc)},
+     {previous_spot_fleet_request_state, get_text("previousSpotFleetRequestState", Doc)}
+    ].
+extract_cancel_spot_fleet_response(Doc) ->
+    [
+     {unsuccessful_fleet_request_set, [ extract_unsuccessful_fleet_request(Item) ||
+         Item <- xmerl_xpath:string("/CancelSpotFleetRequestsResponse/unsuccessfulFleetRequestSet/item", Doc)]},
+     {successful_fleet_request_set, [ extract_successful_fleet_request(Item) ||
+         Item <- xmerl_xpath:string("/CancelSpotFleetRequestsResponse/successfulFleetRequestSet/item", Doc)]}
+    ].
+
+-spec(cancel_spot_fleet_requests/2 :: ([string()], boolean()) -> {ok, proplist()} | {error, term()}).
+cancel_spot_fleet_requests(SpotFleetRequestIds, TerminateInstances) ->
+    cancel_spot_fleet_requests(SpotFleetRequestIds, TerminateInstances, default_config()).
+
+-spec(cancel_spot_fleet_requests/3 :: ([string()], boolean(), aws_config()) -> {ok, proplist()} | {error, term()}).
+cancel_spot_fleet_requests(SpotFleetRequestIds, TerminateInstances, Config) ->
+    Params = [
+        {"TerminateInstances", TerminateInstances} |
+        lists:foldl(
+            fun(Req, Acc) ->
+                [{"SpotFleetRequestId." ++ integer_to_list(length(Acc) + 1), Req} | Acc]
+            end, [],
+            SpotFleetRequestIds)
+    ],
+    case ec2_query(Config, "CancelSpotFleetRequests", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            {ok, extract_cancel_spot_fleet_response(Doc)};
+        {error, _} = E -> E
+    end.
+
+-spec(request_spot_fleet/1 :: (ec2_spot_fleet_request()) -> {ok, string()} | {error, term()}).
+request_spot_fleet(Request) ->
+    request_spot_fleet(Request, default_config()).
+
+-spec(request_spot_fleet/2 :: (ec2_spot_fleet_request(), aws_config()) -> {ok, string()} | {error, term()}).
+request_spot_fleet(Request, Config) ->
+    LConf = Request#ec2_spot_fleet_request.spot_fleet_request_config,
+    {LSpecs, _} = lists:foldl(
+        fun(InstanceSpec, {Acc, Idx}) ->
+            Prefix = "SpotFleetRequestConfig.LaunchSpecifications." ++ integer_to_list(Idx) ++ ".",
+
+            NetParams = case InstanceSpec#ec2_instance_spec.net_if of
+                [] ->
+                    [
+                        {Prefix ++ "SubnetId", InstanceSpec#ec2_instance_spec.subnet_id}
+                    ] ++ erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, Prefix ++ "SecurityGroup");
+                List      ->
+                    net_if_params(List, Prefix ++ "NetworkInterface")
+            end,
+            BDParams = [
+                {Prefix ++ Key, Value} ||
+                   {Key, Value} <- block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping)],
+            {[
+                {Prefix ++ "ImageId", InstanceSpec#ec2_instance_spec.image_id},
+                {Prefix ++ "KeyName", InstanceSpec#ec2_instance_spec.key_name},
+                {Prefix ++ "UserData",
+                    case InstanceSpec#ec2_instance_spec.user_data of
+                        undefined -> undefined;
+                        Data -> base64:encode(Data)
+                    end},
+                {Prefix ++ "InstanceType", InstanceSpec#ec2_instance_spec.instance_type},
+                {Prefix ++ "KernelId", InstanceSpec#ec2_instance_spec.kernel_id},
+                {Prefix ++ "RamdiskId", InstanceSpec#ec2_instance_spec.ramdisk_id},
+                {Prefix ++ "Monitoring.Enabled", InstanceSpec#ec2_instance_spec.monitoring_enabled},
+                {Prefix ++ "Placement.AvailabilityZone", InstanceSpec#ec2_instance_spec.availability_zone},
+                {Prefix ++ "Placement.GroupName", InstanceSpec#ec2_instance_spec.placement_group},
+                {Prefix ++ "EbsOptimized", InstanceSpec#ec2_instance_spec.ebs_optimized},
+                {Prefix ++ "IamInstanceProfile.Name", InstanceSpec#ec2_instance_spec.iam_instance_profile_name},
+                {Prefix ++ "WeightedCapacity", InstanceSpec#ec2_instance_spec.weighted_capacity},
+                {Prefix ++ "SportPrice", InstanceSpec#ec2_instance_spec.spot_price}
+            ] ++ NetParams ++ BDParams ++ Acc, Idx + 1}
+        end,
+        {[], 1},
+        Request#ec2_spot_fleet_request.spot_fleet_request_config#spot_fleet_request_config_spec.launch_specification),
+    Params = [
+        {"SpotFleetRequestConfig.AllocationStrategy",
+            encode_allocation_strategy(LConf#spot_fleet_request_config_spec.allocation_strategy)},
+        {"SpotFleetRequestConfig.ClientToken", LConf#spot_fleet_request_config_spec.client_token},
+        {"SpotFleetRequestConfig.ExcessCapacityTerminationPolicy",
+            encode_termination_policy(LConf#spot_fleet_request_config_spec.excess_capacity_termination_policy)},
+        {"SpotFleetRequestConfig.IamFleetRole", LConf#spot_fleet_request_config_spec.iam_fleet_role},
+        {"SpotFleetRequestConfig.SpotPrice", LConf#spot_fleet_request_config_spec.spot_price},
+        {"SpotFleetRequestConfig.TargetCapacity", LConf#spot_fleet_request_config_spec.target_capacity},
+        {"SpotFleetRequestConfig.TerminateInstancesWithExpiration",
+            LConf#spot_fleet_request_config_spec.terminate_instances_with_expiration},
+        {"SpotFleetRequestConfig.ValidFrom", LConf#spot_fleet_request_config_spec.valid_from},
+        {"SpotFleetRequestConfig.ValidUntil", LConf#spot_fleet_request_config_spec.valid_until}
+    ] ++ LSpecs,
+
+    case ec2_query(Config, "RequestSpotFleet", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            {ok, get_text("/RequestSpotFleetResponse/spotFleetRequestId", Doc)};
+        {error, _} = E -> E
     end.
 
 %%
@@ -2615,11 +2809,11 @@ run_instances(InstanceSpec, Config)
     NetParams = case InstanceSpec#ec2_instance_spec.net_if of
         [] ->
             [
-                {"SubnetId", InstanceSpec#ec2_instance_spec.subnet_id} 
+                {"SubnetId", InstanceSpec#ec2_instance_spec.subnet_id}
             ] ++ erlcloud_aws:param_list(InstanceSpec#ec2_instance_spec.group_set, "SecurityGroupId");
         List      ->
             net_if_params(List, "NetworkInterface")
-    end,         
+    end,
     BDParams  = block_device_params(InstanceSpec#ec2_instance_spec.block_device_mapping),
     case ec2_query(Config, "RunInstances", Params ++ NetParams ++ BDParams, ?NEW_API_VERSION) of
         {ok, Doc} ->
@@ -2883,7 +3077,7 @@ unmonitor_instances(InstanceIDs, Config) ->
 
 ec2_simple_query(Config, Action, Params) ->
     case ec2_query(Config, Action, Params) of
-        {ok,    _} -> 
+        {ok,    _} ->
             ok;
         {error, _} = Error ->
             Error
@@ -2895,7 +3089,7 @@ ec2_simple_query(Config, Action, Params, ApiVersion) ->
             ok;
         {error, _} = Error ->
             Error
-    end. 
+    end.
 
 ec2_query(Config, Action, Params) ->
     ec2_query(Config, Action, Params, ?API_VERSION).
