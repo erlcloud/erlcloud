@@ -1166,7 +1166,7 @@ describe_images(ImageIDs, Owner, ExecutableBy, Config)
               {"ExecutableBy", ExecutableBy}, {"Owner", Owner}|
               erlcloud_aws:param_list(ImageIDs, "ImageId")
              ],
-    case ec2_query2(Config, "DescribeImages", Params) of
+    case ec2_query2(Config, "DescribeImages", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [extract_image(Item) || Item <- xmerl_xpath:string("/DescribeImagesResponse/imagesSet/item", Doc)]};
         {error, _} = Error ->
@@ -1188,6 +1188,7 @@ extract_image(Node) ->
      {description, get_text("description", Node)},
      {root_device_type, get_text("rootDeviceType", Node)},
      {root_device_name, get_text("rootDeviceName", Node)},
+     {creation_date, erlcloud_xml:get_time("creationDate", Node)},
      {platform, get_text("platform", Node)},
      {block_device_mapping, [extract_block_device_mapping(Item) || Item <- xmerl_xpath:string("blockDeviceMapping/item", Node)]},
      {product_codes, [extract_product_code(Item) || Item <- xmerl_xpath:string("productCodes/item", Node)]}
