@@ -36,7 +36,8 @@ describe_tags_test_() ->
       fun modify_spot_fleet_request_input_tests/1,
       fun modify_spot_fleet_request_output_tests/1,
       fun describe_spot_fleet_request_input_tests/1,
-      fun describe_spot_fleet_request_output_tests/1
+      fun describe_spot_fleet_request_output_tests/1,
+      fun describe_images_tests/1
      ]}.
 
 start() ->
@@ -531,3 +532,54 @@ describe_spot_fleet_request_output_tests(_) ->
     })],
     output_tests(?_f(erlcloud_ec2:describe_spot_fleet_instances("sfr-123f8fc2-cb31-425e-abcd-example2710")), Tests).
 
+describe_images_tests(_) ->
+  Tests =
+    [?_ec2_test(
+      {"This example describes AMIs.", "
+<DescribeImagesResponse xmlns=\"http://ec2.amazonaws.com/doc/2015-04-15/\">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <imagesSet>
+      <item>
+         <imageId>ami-1a2b3c4d</imageId>
+         <kernelId/>
+         <ramdiskId/>
+         <imageLocation>ec2-public-windows-images/Server2003r2-x86_64-Win-v1.07.manifest.xml</imageLocation>
+         <imageState>available</imageState>
+         <imageOwnerId>123456789012</imageOwnerId>
+         <isPublic>true</isPublic>
+         <architecture>x86_64</architecture>
+         <imageType>machine</imageType>
+         <platform>windows</platform>
+         <imageOwnerAlias>amazon</imageOwnerAlias>
+         <rootDeviceName>/dev/sda1</rootDeviceName>
+         <rootDeviceType>instance-store</rootDeviceType>
+         <creationDate>2016-03-26T12:00:13Z</creationDate>
+         <blockDeviceMapping/>
+         <virtualizationType>hvm</virtualizationType>
+         <tagSet/>
+         <hypervisor>xen</hypervisor>
+      </item>
+   </imagesSet>
+</DescribeImagesResponse>",
+        {ok, [[ {image_id, "ami-1a2b3c4d"},
+          {image_location, "ec2-public-windows-images/Server2003r2-x86_64-Win-v1.07.manifest.xml"},
+          {image_state, "available"},
+          {image_owner_id, "123456789012"},
+          {is_public, true},
+          {architecture, "x86_64"},
+          {image_type, "machine"},
+          {kernel_id, []},
+          {ramdisk_id, []},
+          {image_owner_alias, "amazon"},
+          {name, []},
+          {description, []},
+          {root_device_type, "instance-store"},
+          {root_device_name, "/dev/sda1"},
+          {creation_date, {{2016,3,26},{12,0,13}}},
+          {platform, "windows"},
+          {block_device_mapping, []},
+          {product_codes, []}
+        ]]}})],
+
+  %% Remaining AWS API examples return subsets of the same data
+  output_tests(?_f(erlcloud_ec2:describe_images()), Tests).

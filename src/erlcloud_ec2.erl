@@ -1130,33 +1130,78 @@ extract_permissions([_|Nodes], Accum) ->
     extract_permissions(Nodes, Accum).
 
 %%
+%% Returns a list of all images Executable by the current user.
+%% Responses in the form:
+%% [[
+%%    image_id: 'ami-001af160',
+%%    image_location: '<accountid>/<image-name>',
+%%    image_state: 'available',
+%%    image_owner_id: '<accountid>',
+%%    is_public: false, architecture: 'x86_64',
+%%    image_type: 'machine',
+%%    kernel_id: [],
+%%    ramdisk_id: [],
+%%    image_owner_alias: :none,
+%%    name: '<image-name>',
+%%    description: [],
+%%    root_device_type: 'ebs', root_device_name: '/dev/sda1',
+%%    creation_date: {{2016, 3, 26}, {12, 14, 20}},
+%%    platform: [],
+%%    block_device_mapping: [
+%%      {:ec2_block_device_mapping, '/dev/sda1', [], 'snap-1a1a1a1a', 16, true},
+%%      {:ec2_block_device_mapping, '/dev/sdg', [], 'snap-1b1b1b1b', 1000, false},
+%%      {:ec2_block_device_mapping, '/dev/sdb', 'ephemeral0', :none, 0, false},
+%%      {:ec2_block_device_mapping, '/dev/sdc', 'ephemeral1', :none, 0, false}
+%%    ],
+%%    product_codes: []
+%% ]]
 %%
 -spec(describe_images/0 :: () -> proplist()).
 describe_images() -> describe_images([], "self").
 
+%% Uses an config other than the one set for the current process.
+%% See describe_images/0 for return term
 -spec(describe_images/1 :: ([string()] | aws_config()) -> proplist()).
 describe_images(Config)
   when is_record(Config, aws_config) ->
     describe_images([], "self", none, Config);
+
+%% Describes images with ImageIDs owned by the current user using a "self"s Config.
+%% See describe_images/0 for return term
 describe_images(ImageIDs) ->
     describe_images(ImageIDs, none, none, default_config()).
 
+%% Describes images with ImageIDs if owned by current user using an alternate Config.
+%% See describe_images/0 for return term
 -spec(describe_images/2 :: ([string()], aws_config()) -> proplist() ;
                            ([string()], string() | none) -> proplist()).
 describe_images(ImageIDs, Config)
   when is_record(Config, aws_config) ->
     describe_images(ImageIDs, none, none, Config);
+
+%% Describes images with ImageIDs if owned by Owner (useful for corporate accounts) using "self"s Config.
+%% use [] for all images owned by Owner
+%% Owner is a numeric id. It can be found on the AMIs page of the web console
+%% See describe_images/0 for return term
 describe_images(ImageIDs, Owner) ->
     describe_images(ImageIDs, Owner, none, default_config()).
 
 -spec(describe_images/3 :: ([string()], string() | none, aws_config()) -> proplist() ;
                            ([string()], string() | none, string() | none) -> proplist()).
+
+%% Describes images with ImageIDs if Owned by Owner (useful for corporate accounts) using an alternate Config.
+%% See describe_images/0 for return term
 describe_images(ImageIDs, Owner, Config)
   when is_record(Config, aws_config) ->
     describe_images(ImageIDs, Owner, none, Config);
+
+%% Describes images with ImageIDs if owned by Owner and executable by ExecutableBy
+%% See describe_images/0 for return term
 describe_images(ImageIDs, Owner, ExecutableBy) ->
     describe_images(ImageIDs, Owner, ExecutableBy, default_config()).
 
+%% Describes images with ImageIDs if owned by Owner and executable by ExecutableBy using an alternate Config
+%% See describe_images/0 for return term
 -spec(describe_images/4 :: ([string()], string() | none, string() | none, aws_config()) -> proplist  ()).
 describe_images(ImageIDs, Owner, ExecutableBy, Config)
   when is_list(ImageIDs),
@@ -1166,7 +1211,7 @@ describe_images(ImageIDs, Owner, ExecutableBy, Config)
               {"ExecutableBy", ExecutableBy}, {"Owner", Owner}|
               erlcloud_aws:param_list(ImageIDs, "ImageId")
              ],
-    case ec2_query2(Config, "DescribeImages", Params) of
+    case ec2_query2(Config, "DescribeImages", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [extract_image(Item) || Item <- xmerl_xpath:string("/DescribeImagesResponse/imagesSet/item", Doc)]};
         {error, _} = Error ->
@@ -1188,6 +1233,7 @@ extract_image(Node) ->
      {description, get_text("description", Node)},
      {root_device_type, get_text("rootDeviceType", Node)},
      {root_device_name, get_text("rootDeviceName", Node)},
+     {creation_date, erlcloud_xml:get_time("creationDate", Node)},
      {platform, get_text("platform", Node)},
      {block_device_mapping, [extract_block_device_mapping(Item) || Item <- xmerl_xpath:string("blockDeviceMapping/item", Node)]},
      {product_codes, [extract_product_code(Item) || Item <- xmerl_xpath:string("productCodes/item", Node)]}
