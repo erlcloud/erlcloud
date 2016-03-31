@@ -560,11 +560,10 @@ get_notification_filter(Path, Config) ->
 get_notification_filter_do([]) -> [];
 get_notification_filter_do(S3Key) ->
     #xmlElement{content = Content} = hd(S3Key),
-    [[{name, "Prefix"}, {value, Prefix}],
-     [{name, "Suffix"}, {value, Suffix}]] =
-    [erlcloud_xml:decode([{name, "Name", text}, {value, "Value", text}], C)
-     || C <- Content],
-    {filter, [{prefix, Prefix}, {suffix, Suffix}]}.
+    GV = fun(Key, PL) -> proplists:get_value(Key, PL) end,
+    Filter0 = [erlcloud_xml:decode([{name, "Name", text}, {value, "Value", text}], C) || C <- Content],
+    Filter = [{list_to_atom(string:to_lower(GV(name, E))), GV(value, E)} || E <- Filter0],
+    {filter, Filter}.
 
 s3_notification_attrs(AttributeName, Attr) ->
     [ {AttributeName, Attr,    text} |

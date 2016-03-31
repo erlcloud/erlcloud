@@ -14,18 +14,21 @@
 
 operation_test_() ->
     {foreach,
-     fun start/0,
-     fun stop/1,
-     [fun get_bucket_policy_tests/1,
-         fun get_bucket_notification_test/1,
-      fun put_object_tests/1,
-      fun error_handling_tests/1,
-      fun dns_compliant_name_tests/1,
-      fun get_bucket_lifecycle_tests/1,
-      fun put_bucket_lifecycle_tests/1,
-      fun delete_bucket_lifecycle_tests/1,
-      fun encode_bucket_lifecycle_tests/1
-     ]}.
+        fun start/0,
+        fun stop/1,
+        [
+            fun get_bucket_policy_tests/1,
+            fun get_bucket_notification_test/1,
+            fun get_bucket_notification_no_prefix_test/1,
+            fun get_bucket_notification_no_suffix_test/1,
+            fun put_object_tests/1,
+            fun error_handling_tests/1,
+            fun dns_compliant_name_tests/1,
+            fun get_bucket_lifecycle_tests/1,
+            fun put_bucket_lifecycle_tests/1,
+            fun delete_bucket_lifecycle_tests/1,
+            fun encode_bucket_lifecycle_tests/1
+        ]}.
 
 start() ->
     meck:new(erlcloud_httpc),
@@ -142,6 +145,20 @@ get_bucket_notification_test(_) ->
     meck:expect(erlcloud_httpc, request,
         fun("https://s3.amazonaws.com/?notification", _, _, _, _, _) -> Response end),
     ?_assertEqual(?S3_BUCKET_EVENTS_LIST,
+        erlcloud_s3:get_bucket_attribute("BucketName", notification, config())).
+
+get_bucket_notification_no_prefix_test(_) ->
+    Response = {ok, {{200, "OK"}, [], ?S3_BUCKET_EVENT_XML_CONFIG_NO_PREFIX}},
+    meck:expect(erlcloud_httpc, request,
+        fun("https://s3.amazonaws.com/?notification", _, _, _, _, _) -> Response end),
+    ?_assertEqual(?S3_BUCKET_EVENTS_LIST_NO_PREFIX,
+        erlcloud_s3:get_bucket_attribute("BucketName", notification, config())).
+
+get_bucket_notification_no_suffix_test(_) ->
+    Response = {ok, {{200, "OK"}, [], ?S3_BUCKET_EVENT_XML_CONFIG_NO_SUFFIX}},
+    meck:expect(erlcloud_httpc, request,
+        fun("https://s3.amazonaws.com/?notification", _, _, _, _, _) -> Response end),
+    ?_assertEqual(?S3_BUCKET_EVENTS_LIST_NO_SUFFIX,
                   erlcloud_s3:get_bucket_attribute("BucketName", notification, config())).
 
 get_bucket_policy_tests(_) ->
