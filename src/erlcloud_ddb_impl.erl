@@ -114,12 +114,8 @@ timeout(1, #aws_config{timeout = undefined}) ->
     %% Shorter timeout on first request. This is to avoid long (5s) failover when first DDB
     %% endpoint doesn't respond
     1000;
-timeout(_, #aws_config{timeout = undefined}) ->
-    %% Longer timeout on subsequent requsets - results in less timeouts when system is
-    %% under heavy load
-    ?DEFAULT_TIMEOUT;
-timeout(_, #aws_config{timeout = Timeout}) ->
-    Timeout.
+timeout(_, #aws_config{} = Cfg) ->
+    erlcloud_aws:get_timeout(Cfg).
 
 -type attempt() :: {attempt, pos_integer()} | {error, term()}.
 
