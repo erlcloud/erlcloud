@@ -16,11 +16,14 @@
          sign_v4_headers/5,
          sign_v4/8,
          get_service_status/1,
-         is_throttling_error_response/1
+         is_throttling_error_response/1,
+         get_timeout/1
 ]).
 
 -include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
+
+-define(ERLCLOUD_RETRY_TIMEOUT, 10000).
 
 -record(metadata_credentials,
         {access_key_id :: string(),
@@ -321,7 +324,7 @@ get_credentials_from_metadata(Config) ->
     case http_body(
            erlcloud_httpc:request(
              "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
-             get, [], <<>>, timeout(Config), Config)) of
+             get, [], <<>>, get_timeout(Config), Config)) of
         {error, Reason} ->
             {error, Reason};
         {ok, Body} ->
@@ -331,7 +334,7 @@ get_credentials_from_metadata(Config) ->
                    erlcloud_httpc:request(
                      "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++
                          binary_to_list(Role),
-                     get, [], <<>>, timeout(Config), Config)) of
+                     get, [], <<>>, get_timeout(Config), Config)) of
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
@@ -375,9 +378,9 @@ http_headers_body({ok, {{Status, StatusLine}, _Headers, Body}}) ->
 http_headers_body({error, Reason}) ->
     {error, {socket_error, Reason}}.
 
-timeout(#aws_config{timeout = undefined}) ->
-    ?DEFAULT_TIMEOUT;
-timeout(#aws_config{timeout = Timeout}) ->
+get_timeout(#aws_config{timeout = undefined}) ->
+    ?ERLCLOUD_RETRY_TIMEOUT;
+get_timeout(#aws_config{timeout = Timeout}) ->
     Timeout.
 
 %% Convert an aws_request record to return value as returned by http_headers_body

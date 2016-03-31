@@ -87,8 +87,6 @@
          }).
 -type(aws_config() :: #aws_config{}).
 
--define(DEFAULT_TIMEOUT, 10000).
-
 -record(aws_request,
         {
           %% Provided by requesting service
