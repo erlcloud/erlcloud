@@ -74,7 +74,9 @@ request_and_retry(Config, ResultFun, {retry, Request}) ->
       } = Request,
     Request2 = Request#aws_request{attempt = Attempt + 1},
     RetryFun = Config#aws_config.retry,
-    case erlcloud_httpc:request(URI, Method, Headers, Body, timeout(Config), Config) of
+    Rsp = erlcloud_httpc:request(URI, Method, Headers, Body,
+        erlcloud_aws:get_timeout(Config), Config),
+    case Rsp of
         {ok, {{Status, StatusLine}, ResponseHeaders, ResponseBody}} ->
             Request3 = Request2#aws_request{
                          response_type = if Status >= 200, Status < 300 -> ok; true -> error end,
@@ -97,8 +99,3 @@ request_and_retry(Config, ResultFun, {retry, Request}) ->
                          httpc_error_reason = Reason},
             request_and_retry(Config, ResultFun, RetryFun(Request4))
     end.
-
-timeout(#aws_config{timeout = undefined}) ->
-    ?DEFAULT_TIMEOUT;
-timeout(#aws_config{timeout = Timeout}) ->
-    Timeout.

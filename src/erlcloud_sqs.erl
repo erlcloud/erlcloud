@@ -272,10 +272,7 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
        VisibilityTimeout =:= none,
        (WaitTimeSeconds >= 0 andalso WaitTimeSeconds =< 20) orelse
        WaitTimeSeconds =:= none ->
-    InitialTimeout = case Config#aws_config.timeout of
-        undefined -> ?DEFAULT_TIMEOUT;
-        _ -> Config#aws_config.timeout
-    end,
+    InitialTimeout = erlcloud_aws:get_timeout(Config),
     TotalTimeout = if
        (WaitTimeSeconds =/= none andalso WaitTimeSeconds >= 0 andalso InitialTimeout =/= infinity) ->
            InitialTimeout + (WaitTimeSeconds * 1000) ;
