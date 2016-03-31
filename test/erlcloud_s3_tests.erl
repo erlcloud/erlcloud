@@ -137,6 +137,24 @@ encode_bucket_lifecycle_tests(_) ->
 set_bucket_notification_test_() ->
     [?_assertEqual({'NotificationConfiguration',[]},
                    erlcloud_s3:create_notification_xml([])),
+     ?_assertError(
+            function_clause,
+            erlcloud_s3:create_notification_param_xml({filter,[{foo, "bar"}]}, [])),
+     ?_assertEqual(
+            [{'Filter',[{'S3Key',
+                [{'FilterRule',[{'Name',["Prefix"]}, {'Value',["images/"]}]}]}]}],
+            erlcloud_s3:create_notification_param_xml({filter,[{prefix, "images/"}]}, [])),
+     ?_assertEqual(
+            [{'Filter',[{'S3Key',
+                [{'FilterRule',[{'Name',["Suffix"]}, {'Value',["jpg"]}]}]}]}],
+            erlcloud_s3:create_notification_param_xml({filter,[{suffix, "jpg"}]}, [])),
+     ?_assertEqual(
+         [{'Filter',[{'S3Key',
+             [{'FilterRule',[{'Name',["Prefix"]}, {'Value',["images/"]}]},
+              {'FilterRule',[{'Name',["Suffix"]}, {'Value',["jpg"]}]}]}]}],
+         erlcloud_s3:create_notification_param_xml({filter,[{prefix, "images/"},
+                                                            {suffix, "jpg"}]},
+                                                   [])),
      ?_assertEqual(?S3_BUCKET_EVENTS_SIMPLE_XML_FORM,
                    erlcloud_s3:create_notification_xml(?S3_BUCKET_EVENTS_LIST))].
 
