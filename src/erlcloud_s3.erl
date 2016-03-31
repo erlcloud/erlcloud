@@ -42,6 +42,7 @@
 -export([encode_lifecycle/1]).
 -export([get_bucket_notification/1]).
 -export([create_notification_xml/1]).
+-export([create_notification_param_xml/2]).
 -endif.
 
 -include_lib("erlcloud/include/erlcloud.hrl").
@@ -1210,11 +1211,17 @@ conf_name_in_xml(queue_configuration) -> 'QueueConfiguration';
 conf_name_in_xml(topic_configuration) -> 'TopicConfiguration';
 conf_name_in_xml(cloud_function_configuration) -> 'CloudFunctionConfiguration'.
 
-create_notification_param_xml({filter, [{prefix, Prefix}, {suffix, Suffix}]}, Acc) ->
-    [{'Filter', [{'S3Key', [{'FilterRule', [{'Name', ["Prefix"]},
-                                            {'Value', [Prefix]}]},
-                            {'FilterRule', [{'Name', ["Suffix"]},
-                                            {'Value', [Suffix]}]}]}]} | Acc];
+filter_rule_tuple(Name, Value) -> {'FilterRule', [{'Name', [Name]}, {'Value', [Value]}]}.
+
+filter_rule({prefix, Value}) -> filter_rule_tuple("Prefix", Value);
+filter_rule({suffix, Value}) -> filter_rule_tuple("Suffix", Value).
+
+-spec create_notification_param_xml({atom(), term()}, proplist()) -> proplist().
+%% Filter example: [{prefix, "images/"}, {suffix, "jpg"}]
+%% both prefix and suffix are optional
+create_notification_param_xml({filter, Filter}, Acc) ->
+    FilterRules = [filter_rule({Name, Value}) || {Name, Value} <- Filter],
+    [{'Filter', [{'S3Key', FilterRules}]} | Acc];
 create_notification_param_xml({event, Events}, Acc) ->
     [{'Event', [Event]} || Event <- Events] ++ Acc;
 create_notification_param_xml({queue, Queue}, Acc) -> [{'Queue', [Queue]} | Acc];
