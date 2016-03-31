@@ -2,7 +2,8 @@
 
 -module(erlcloud_s3).
 
--export([new/2, new/3, new/4, configure/2, configure/3, configure/4,
+-export([new/2, new/3, new/4,
+         configure/2, configure/3, configure/4, configure/5,
          create_bucket/1, create_bucket/2, create_bucket/3, create_bucket/4,
          delete_bucket/1, delete_bucket/2,
          get_bucket_attribute/2, get_bucket_attribute/3,
@@ -78,6 +79,17 @@ new(AccessKeyID, SecretAccessKey, Host, Port) ->
        s3_port=Port
       }.
 
+-spec new(string(), string(), string(), non_neg_integer(), string()) -> aws_config().
+
+new(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
+    #aws_config{
+       access_key_id=AccessKeyID,
+       secret_access_key=SecretAccessKey,
+       s3_host=Host,
+       s3_port=Port,
+       s3_scheme=Scheme
+      }.
+
 -spec configure(string(), string()) -> ok.
 
 configure(AccessKeyID, SecretAccessKey) ->
@@ -94,6 +106,12 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 
 configure(AccessKeyID, SecretAccessKey, Host, Port) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port)),
+    ok.
+
+-spec configure(string(), string(), string(), non_neg_integer(), string()) -> ok.
+
+configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
+    put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port, Scheme)),
     ok.
 
 -type s3_bucket_attribute_name() :: acl
@@ -255,8 +273,13 @@ delete_objects_batch(Bucket, KeyList, Config) ->
                {"content-md5", binary_to_list(ContentMD5)},
                {"content-length", Len}],
     Result = erlcloud_httpc:request(
-        Url, "POST", Headers, Payload, 1000, Config),
+        Url, "POST", Headers, Payload, delete_objects_batch_timeout(Config), Config),
     erlcloud_aws:http_headers_body(Result).
+
+delete_objects_batch_timeout(#aws_config{timeout = undefined}) ->
+    1000;
+delete_objects_batch_timeout(#aws_config{timeout = Timeout}) ->
+    Timeout.
 
 % returns paths list from AWS S3 root directory, used as input to delete_objects_batch
 % example :
@@ -864,12 +887,12 @@ extract_bucket(Node) ->
                          {creation_date, "CreationDate", time}],
                         Node).
 
--spec put_object(string(), string(), iolist()) -> proplist().
+-spec put_object(string(), string(), iodata()) -> proplist().
 
 put_object(BucketName, Key, Value) ->
     put_object(BucketName, Key, Value, []).
 
--spec put_object(string(), string(), iolist(), proplist() | aws_config()) -> proplist().
+-spec put_object(string(), string(), iodata(), proplist() | aws_config()) -> proplist().
 
 put_object(BucketName, Key, Value, Config)
   when is_record(Config, aws_config) ->
@@ -878,7 +901,7 @@ put_object(BucketName, Key, Value, Config)
 put_object(BucketName, Key, Value, Options) ->
     put_object(BucketName, Key, Value, Options, default_config()).
 
--spec put_object(string(), string(), iolist(), proplist(), [{string(), string()}] | aws_config()) -> proplist().
+-spec put_object(string(), string(), iodata(), proplist(), [{string(), string()}] | aws_config()) -> proplist().
 
 put_object(BucketName, Key, Value, Options, Config)
   when is_record(Config, aws_config) ->
@@ -887,7 +910,7 @@ put_object(BucketName, Key, Value, Options, Config)
 put_object(BucketName, Key, Value, Options, HTTPHeaders) ->
     put_object(BucketName, Key, Value, Options, HTTPHeaders, default_config()).
 
--spec put_object(string(), string(), iolist(), proplist(), [{string(), string()}], aws_config()) -> proplist().
+-spec put_object(string(), string(), iodata(), proplist(), [{string(), string()}], aws_config()) -> proplist().
 
 put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
   when is_list(BucketName), is_list(Key), is_list(Value) orelse is_binary(Value),
@@ -1007,11 +1030,11 @@ start_multipart(BucketName, Key, Options, HTTPHeaders, Config)
             Error
     end.
 
--spec upload_part(string(), string(), string(), integer(), iolist()) -> {ok, proplist()} | {error, any()}.
+-spec upload_part(string(), string(), string(), integer(), iodata()) -> {ok, proplist()} | {error, any()}.
 upload_part(BucketName, Key, UploadId, PartNumber, Value) ->
     upload_part(BucketName, Key, UploadId, PartNumber, Value, [], default_config()).
 
--spec upload_part(string(), string(), string(), integer(), iolist(), [{string(), string()}], aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec upload_part(string(), string(), string(), integer(), iodata(), [{string(), string()}], aws_config()) -> {ok, proplist()} | {error, any()}.
 upload_part(BucketName, Key, UploadId, PartNumber, Value, HTTPHeaders, Config)
   when is_list(BucketName), is_list(Key), is_list(UploadId), is_integer(PartNumber),
        is_list(Value) orelse is_binary(Value),

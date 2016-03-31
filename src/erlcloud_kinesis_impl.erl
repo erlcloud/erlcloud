@@ -111,7 +111,7 @@ request_and_retry(Config, Headers, Body, ShouldDecode, {attempt, Attempt}) ->
     case erlcloud_httpc:request(
            url(Config), post,
            [{<<"content-type">>, <<"application/x-amz-json-1.1">>} | Headers],
-           Body, Config#aws_config.timeout, Config) of
+           Body, timeout(Config), Config) of
 
         {ok, {{200, _}, _, RespBody}} ->
             Result = case ShouldDecode of
@@ -175,3 +175,8 @@ port_spec(#aws_config{kinesis_port=Port}) ->
 
 decode(<<>>) -> [];
 decode(JSON) -> jsx:decode(JSON).
+
+timeout(#aws_config{timeout = undefined}) ->
+    ?DEFAULT_TIMEOUT;
+timeout(#aws_config{timeout = Timeout}) ->
+    Timeout.

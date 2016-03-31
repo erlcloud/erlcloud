@@ -214,5 +214,3 @@ port_spec(#aws_config{cloudtrail_port=80}) ->
     undefined;
 port_spec(#aws_config{cloudtrail_port=Port}) ->
     Port.
-
-

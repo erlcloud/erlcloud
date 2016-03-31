@@ -1613,7 +1613,7 @@ mturk_request(Config, Operation, Params) ->
                  post,
                  [{<<"content-type">>, <<"application/x-www-form-urlencoded">>}],
                  list_to_binary(erlcloud_http:make_query_string(QParams)),
-                 Config#aws_config.timeout, Config),
+                 timeout(Config), Config),
 
     case Response of
         {ok, {{200, _StatusLine}, _Headers, Body}} ->
@@ -1623,3 +1623,8 @@ mturk_request(Config, Operation, Params) ->
         {error, Error} ->
             erlang:error({aws_error, {socket_error, Error}})
     end.
+
+timeout(#aws_config{timeout = undefined}) ->
+    ?DEFAULT_TIMEOUT;
+timeout(#aws_config{timeout = Timeout}) ->
+    Timeout.

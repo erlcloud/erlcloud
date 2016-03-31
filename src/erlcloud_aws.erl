@@ -110,7 +110,17 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
 
 aws_region_from_host(Host) ->
     case string:tokens(Host, ".") of
-        [_, Value, _, _] ->
+        %% the aws endpoint can vary depending on the region
+        %% we need to account for that:
+        %%  us-west-2: s3.us-west-2.amazonaws.com
+        %%  cn-north-1 (AWS China): s3.cn-north-1.amazonaws.com.cn
+        %% it's assumed that the first element is the aws service (s3, ec2, etc),
+        %% the second is the region identifier, the rest is ignored
+        %% the exception (of course) is the dynamodb streams which follows a different
+        %% format
+        ["streams", "dynamodb", Value | _Rest] ->
+            Value;
+        [_, Value, _, _ | _Rest] ->
             Value;
         _ ->
             "us-east-1"
@@ -311,7 +321,7 @@ get_credentials_from_metadata(Config) ->
     case http_body(
            erlcloud_httpc:request(
              "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
-             get, [], <<>>, Config#aws_config.timeout, Config)) of
+             get, [], <<>>, timeout(Config), Config)) of
         {error, Reason} ->
             {error, Reason};
         {ok, Body} ->
@@ -321,7 +331,7 @@ get_credentials_from_metadata(Config) ->
                    erlcloud_httpc:request(
                      "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++
                          binary_to_list(Role),
-                     get, [], <<>>, Config#aws_config.timeout, Config)) of
+                     get, [], <<>>, timeout(Config), Config)) of
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
@@ -364,6 +374,11 @@ http_headers_body({ok, {{Status, StatusLine}, _Headers, Body}}) ->
     {error, {http_error, Status, StatusLine, Body}};
 http_headers_body({error, Reason}) ->
     {error, {socket_error, Reason}}.
+
+timeout(#aws_config{timeout = undefined}) ->
+    ?DEFAULT_TIMEOUT;
+timeout(#aws_config{timeout = Timeout}) ->
+    Timeout.
 
 %% Convert an aws_request record to return value as returned by http_headers_body
 request_to_return(#aws_request{response_type = ok,
