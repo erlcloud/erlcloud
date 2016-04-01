@@ -192,7 +192,7 @@ port_spec(#aws_config{cloudtrail_port=80}) ->
 port_spec(#aws_config{cloudtrail_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
 
-
+%CT have less default timeout
 timeout(#aws_config{timeout = undefined}) ->
     1000;
 timeout(#aws_config{timeout = Timeout}) ->
