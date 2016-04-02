@@ -1,0 +1,2 @@
+%{"jsx": {:hex, :jsx, "2.8.0"},
+  "lhttpc": {:hex, :lhttpc, "1.4.0"}}
