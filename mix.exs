@@ -32,6 +32,7 @@ use Mix.Project
         [
             {:jsx, "2.8.0"},
             {:lhttpc, "1.4.0"},
+            {:meck, "0.8.4", only: :test},
         ]
     end
 end
