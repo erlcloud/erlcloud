@@ -39,7 +39,6 @@
         update_rule/3, update_rule/4,
         update_size_constraint_set/3, update_size_constraint_set/4,
         update_sql_injection_match_set/3, update_sql_injection_match_set/4,
-        update_web_acl_default_action/3, update_web_acl_default_action/4,
         update_web_acl/3, update_web_acl/4
         ]).
 
@@ -165,19 +164,19 @@ create_ip_set(ChangeToken, Name, Config) ->
 %%%------------------------------------------------------------------------------
 -spec create_rule/3 ::
         (ChangeToken :: string() | binary(),
-         MetricName :: string() | binary(),
-         Name :: string() | binary()) ->
+         Name :: string() | binary(),
+         MetricName :: string() | binary()) ->
         waf_return_val().
-create_rule(ChangeToken, MetricName, Name) ->
-    create_rule(ChangeToken, MetricName, Name, default_config()).
+create_rule(ChangeToken, Name, MetricName) ->
+    create_rule(ChangeToken, Name, MetricName, default_config()).
 
 -spec create_rule/4 ::
         (ChangeToken :: string() | binary(),
-         MetricName :: string() | binary(),
          Name :: string() | binary(),
+         MetricName :: string() | binary(),
          Config :: aws_config()) ->
         waf_return_val().
-create_rule(ChangeToken, MetricName, Name, Config) ->
+create_rule(ChangeToken, Name, MetricName, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
             {<<"MetricName">>, to_binary(MetricName)},
             {<<"Name">>, to_binary(Name)}],
@@ -237,23 +236,23 @@ create_sql_injection_match_set(ChangeToken, Name, Config) ->
 %%%------------------------------------------------------------------------------
 -spec create_web_acl/4 ::
         (ChangeToken :: string() | binary(),
-         DefaultActionType :: block | allow | count,
+         Name :: string() | binary(),
          MetricName :: string() | binary(),
-         Name :: string() | binary()) ->
+         DefaultAction:: waf_acl_action_type()) ->
         waf_return_val().
-create_web_acl(ChangeToken, DefaultActionType, MetricName, Name) ->
-    create_web_acl(ChangeToken, DefaultActionType, MetricName, Name, default_config()).
+create_web_acl(ChangeToken, Name, MetricName, DefaultAction) ->
+    create_web_acl(ChangeToken, Name, MetricName, DefaultAction, default_config()).
 
 -spec create_web_acl/5 ::
         (ChangeToken :: string() | binary(),
-         DefaultActionType :: block | allow | count,
-         MetricName :: string() | binary(),
          Name :: string() | binary(),
+         MetricName :: string() | binary(),
+         DefaultAction:: waf_acl_action_type(),
          Config :: aws_config()) ->
         waf_return_val().
-create_web_acl(ChangeToken, DefaultActionType, MetricName, Name, Config) ->
+create_web_acl(ChangeToken, Name, MetricName, DefaultAction, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
-            {<<"DefaultAction">>, [{<<"Type">>, get_default_action_type(DefaultActionType)}]},
+            {<<"DefaultAction">>, [{<<"Type">>, get_default_action_type(DefaultAction)}]},
             {<<"MetricName">>, to_binary(MetricName)},
             {<<"Name">>, to_binary(Name)}],
     waf_request(Config, "CreateWebACL", Json).
@@ -501,24 +500,24 @@ get_rule(RuleId, Config) ->
 %% http://docs.aws.amazon.com/waf/latest/APIReference/API_GetSampledRequests.html
 %%%------------------------------------------------------------------------------
 -spec get_sampled_requests/5 ::
-        (MaxItems :: pos_integer(),
-         RuleId :: string() | binary(),
+        (RuleId :: string() | binary(),
          StartTime :: pos_integer(),
          EndTime :: pos_integer(),
+         MaxItems :: 1..100,
          WebAclId :: string() | binary()) ->
         waf_return_val().
-get_sampled_requests(MaxItems, RuleId, StartTime, EndTime, WebAclId) ->
-    get_sampled_requests(MaxItems, RuleId, StartTime, EndTime, WebAclId, default_config()).
+get_sampled_requests(RuleId, StartTime, EndTime, MaxItems, WebAclId) ->
+    get_sampled_requests(RuleId, StartTime, EndTime, MaxItems, WebAclId, default_config()).
 
 -spec get_sampled_requests/6 ::
-        (MaxItems :: pos_integer(),
-         RuleId :: string() | binary(),
+        (RuleId :: string() | binary(),
          StartTime :: pos_integer(),
          EndTime :: pos_integer(),
+         MaxItems :: 1..100,
          WebAclId :: string() | binary(),
          Config :: aws_config()) ->
         waf_return_val().
-get_sampled_requests(MaxItems, RuleId, StartTime, EndTime, WebAclId, Config) ->
+get_sampled_requests(RuleId, StartTime, EndTime, MaxItems, WebAclId, Config) when MaxItems > 0, MaxItems =< 100->
     Json = [{<<"MaxItems">>, MaxItems},
             {<<"RuleId">>, to_binary(RuleId)},
             {<<"TimeWindow">>, [{<<"StartTime">>, StartTime}, {<<"EndTime">>, EndTime}]},
@@ -598,13 +597,13 @@ list_byte_match_sets() ->
     list_byte_match_sets(?LIMIT_MAX, default_config()).
 
 -spec list_byte_match_sets/1 ::
-       (Limit :: pos_integer()) ->
+       (Limit :: 1..100) ->
        waf_return_val().
-list_byte_match_sets(Limit) when is_number(Limit) ->
+list_byte_match_sets(Limit) when Limit > 0, Limit =< 100 ->
     list_byte_match_sets(Limit, default_config()).
 
 -spec list_byte_match_sets/2 ::
-       (Limit :: pos_integer(), 
+       (Limit :: 1..100,
         binary() | aws_config()) ->
        waf_return_val().
 list_byte_match_sets(Limit, NextMarker) when is_binary(NextMarker) ->
@@ -615,11 +614,11 @@ list_byte_match_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Conf
     waf_request(Config, "ListByteMatchSets", Json).
 
 -spec list_byte_match_sets/3 ::
-       (Limit :: pos_integer(), 
+       (Limit :: 1..100,
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_byte_match_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
+list_byte_match_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100, is_binary(NextMarker) ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
     waf_request(Config, "ListByteMatchSets", Json).
@@ -637,13 +636,13 @@ list_ip_sets() ->
     list_ip_sets(?LIMIT_MAX, default_config()).
 
 -spec list_ip_sets/1 ::
-       (Limit :: pos_integer()) ->
+       (Limit :: 1..100) ->
        waf_return_val().
-list_ip_sets(Limit) when is_number(Limit) ->
+list_ip_sets(Limit) when Limit > 0, Limit =< 100 ->
     list_ip_sets(Limit, default_config()).
 
 -spec list_ip_sets/2 ::
-       (Limit :: pos_integer(), 
+       (Limit :: 1..100,
         binary() | aws_config()) ->
        waf_return_val().
 list_ip_sets(Limit, NextMarker) when is_binary(NextMarker) ->
@@ -654,11 +653,11 @@ list_ip_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_
     waf_request(Config, "ListIPSets", Json).
 
 -spec list_ip_sets/3 ::
-       (Limit :: pos_integer(), 
+       (Limit :: 1..100,
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_ip_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
+list_ip_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100, is_binary(NextMarker) ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
     waf_request(Config, "ListIPSets", Json).
@@ -676,13 +675,13 @@ list_rules() ->
     list_rules(?LIMIT_MAX, default_config()).
 
 -spec list_rules/1 ::
-       (Limit :: pos_integer()) ->
+       (Limit :: 1..100) ->
        waf_return_val().
-list_rules(Limit) when is_number(Limit) ->
+list_rules(Limit) when Limit > 0, Limit =< 100 ->
     list_rules(Limit, default_config()).
 
 -spec list_rules/2 ::
-       (Limit :: pos_integer(), 
+       (Limit :: 1..100,
         binary() | aws_config()) ->
        waf_return_val().
 list_rules(Limit, NextMarker) when is_binary(NextMarker) ->
@@ -693,7 +692,7 @@ list_rules(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_co
     waf_request(Config, "ListRules", Json).
 
 -spec list_rules/3 ::
-       (Limit :: pos_integer(), 
+       (Limit :: 1..100,
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
@@ -715,13 +714,13 @@ list_size_constraint_sets() ->
     list_size_constraint_sets(?LIMIT_MAX, default_config()).
 
 -spec list_size_constraint_sets/1 ::
-       (Limit :: pos_integer()) ->
+       (Limit :: 1..100) ->
        waf_return_val().
-list_size_constraint_sets(Limit) when is_number(Limit) ->
+list_size_constraint_sets(Limit) when Limit > 0, Limit =< 100 ->
     list_size_constraint_sets(Limit, default_config()).
 
 -spec list_size_constraint_sets/2 ::
-       (Limit :: pos_integer(), 
+       (Limit :: 1..100,
         binary() | aws_config()) ->
        waf_return_val().
 list_size_constraint_sets(Limit, NextMarker) when is_binary(NextMarker) ->
@@ -732,7 +731,7 @@ list_size_constraint_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record
     waf_request(Config, "ListSizeConstraintSets", Json).
 
 -spec list_size_constraint_sets/3 ::
-       (Limit :: pos_integer(), 
+       (Limit :: 1..100,
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
@@ -754,13 +753,13 @@ list_sql_injection_match_sets() ->
     list_sql_injection_match_sets(?LIMIT_MAX, default_config()).
 
 -spec list_sql_injection_match_sets/1 ::
-       (Limit :: pos_integer()) ->
+       (Limit :: 1..100) ->
        waf_return_val().
-list_sql_injection_match_sets(Limit) when is_number(Limit) ->
+list_sql_injection_match_sets(Limit) when Limit > 0, Limit =< 100 ->
     list_sql_injection_match_sets(Limit, default_config()).
 
 -spec list_sql_injection_match_sets/2 ::
-       (Limit :: pos_integer(), 
+       (Limit :: 1..100,
         binary() | aws_config()) ->
        waf_return_val().
 list_sql_injection_match_sets(Limit, NextMarker) when is_binary(NextMarker) ->
@@ -771,7 +770,7 @@ list_sql_injection_match_sets(Limit, Config) when Limit > 0, Limit =< 100, is_re
     waf_request(Config, "ListSqlInjectionMatchSets", Json).
 
 -spec list_sql_injection_match_sets/3 ::
-       (Limit :: pos_integer(), 
+       (Limit :: 1..100,
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
@@ -793,13 +792,13 @@ list_web_acls() ->
     list_web_acls(?LIMIT_MAX, default_config()).
 
 -spec list_web_acls/1 ::
-       (Limit :: pos_integer()) ->
+       (Limit :: 1..100) ->
        waf_return_val().
-list_web_acls(Limit) when is_number(Limit) ->
+list_web_acls(Limit) when Limit > 0, Limit =< 100 ->
     list_web_acls(Limit, default_config()).
 
 -spec list_web_acls/2 ::
-       (Limit :: pos_integer(), 
+       (Limit :: 1..100,
         binary() | aws_config()) ->
        waf_return_val().
 list_web_acls(Limit, NextMarker) when is_binary(NextMarker) ->
@@ -810,7 +809,7 @@ list_web_acls(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws
     waf_request(Config, "ListWebACLs", Json).
 
 -spec list_web_acls/3 ::
-       (Limit :: pos_integer(), 
+       (Limit :: 1..100,
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
@@ -953,46 +952,41 @@ update_sql_injection_match_set(ChangeToken, SqlInjectionMatchSetId, Updates, Con
 %%
 %% http://docs.aws.amazon.com/waf/latest/APIReference/API_UpdateWebACL.html
 %%%------------------------------------------------------------------------------
--spec update_web_acl_default_action/3 ::
-       (ChangeToken :: string() | binary(),
-        WebAclId :: string() | binary(),
-        DefaultAction:: waf_acl_action_type()) ->
-       waf_return_val().
-update_web_acl_default_action(ChangeToken, WebAclId, DefaultAction) ->
-    update_web_acl_default_action(ChangeToken, WebAclId, DefaultAction, default_config()).
-    
--spec update_web_acl_default_action/4 ::
-       (ChangeToken :: string() | binary(),
-        WebAclId :: string() | binary(),
-        DefaultAction:: waf_acl_action_type(),
-        Config :: aws_config()) ->
-       waf_return_val().
-update_web_acl_default_action(ChangeToken, WebAclId, DefaultAction, Config) ->
-    Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
-            {<<"WebACLId">>, to_binary(WebAclId)},
-            {<<"DefaultAction">>, [{<<"Type">>, get_acl_action_type(DefaultAction)}]}],
-    waf_request(Config, "UpdateWebACL", Json).
+-type update_web_acl_opt() :: {default_action, waf_acl_action_type()} |
+                              {updates, [waf_web_acl_update()]}.
+-type update_web_acl_opts() :: [update_web_acl_opt()].
+
+get_web_acl_opts(Opts) ->
+    get_web_acl_opts(Opts, []).
+
+get_web_acl_opts([], Res) -> Res;
+
+get_web_acl_opts([{default_action, DefaultAction} | T], Res) ->
+    get_web_acl_opts(T, [{<<"DefaultAction">>, [{<<"Type">>, get_acl_action_type(DefaultAction)}]} | Res]);
+
+get_web_acl_opts([{updates, Updates} | T], Res) ->
+    get_web_acl_opts(T, [{<<"Updates">>, [transform_to_proplist(Update) || Update <- Updates]} | Res]);
+
+get_web_acl_opts([_ | T], Res) -> get_web_acl_opts(T, Res).
 
 -spec update_web_acl/3 ::
        (ChangeToken :: string() | binary(),
-        WebAclId :: string() | binary(),
-        Updates :: [waf_web_acl_update()]) ->
+        WebACLId :: string() | binary(),
+        Opts :: update_web_acl_opts()) ->
        waf_return_val().
-update_web_acl(ChangeToken, WebAclId, Updates) ->
-    update_web_acl(ChangeToken, WebAclId, Updates, default_config()).
+update_web_acl(ChangeToken, WebACLId, Opts) ->
+    update_web_acl(ChangeToken, WebACLId, Opts, default_config()).
 
 -spec update_web_acl/4 ::
        (ChangeToken :: string() | binary(),
-        WebAclId :: string() | binary(),
-        Updates :: [waf_web_acl_update()],
+        WebACLId :: string() | binary(),
+        Opts :: update_web_acl_opts(),
         Config :: aws_config()) ->
        waf_return_val().
-update_web_acl(ChangeToken, WebAclId, Updates, Config) ->
+update_web_acl(ChangeToken, WebACLId, Opts, Config) ->
     Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
-            {<<"WebACLId">>, to_binary(WebAclId)},
-            {<<"Updates">>, [transform_to_proplist(Update) || Update <- Updates]}],
+            {<<"WebACLId">>, to_binary(WebACLId)} | get_web_acl_opts(Opts)],
     waf_request(Config, "UpdateWebACL", Json).
-
 
 %%%------------------------------------------------------------------------------
 %%% Internal Functions

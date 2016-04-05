@@ -79,12 +79,13 @@
                                         text_transformation = cmd_line}}).
 
 -define(UPDATE_WEB_ACL,
-    #waf_web_acl_update{
+    [{updates,
+      [#waf_web_acl_update{
         action = insert,
         activated_rule = #waf_activated_rule{
             action = block,
             priority = 1,
-            rule_id = ?RULE_ID}}).
+            rule_id = ?RULE_ID}}]}]).
  
 %%%===================================================================
 %%% Test entry points
@@ -128,7 +129,6 @@ operation_test_() ->
       fun update_rule_tests/1,
       fun update_size_constraint_set_tests/1,
       fun update_sql_injection_match_set_tests/1,
-      fun update_web_acl_default_action_tests/1,
       fun update_web_acl_tests/1
      ]
     }.
@@ -171,7 +171,7 @@ create_ip_set_tests(_) ->
 
 create_rule_tests(_) ->
     Action = "CreateRule",
-    Function = ?_f(erlcloud_waf:create_rule(?CHANGE_TOKEN, ?METRIC_NAME_PARAM, ?NAME_PARAM)),
+    Function = ?_f(erlcloud_waf:create_rule(?CHANGE_TOKEN, ?NAME_PARAM, ?METRIC_NAME_PARAM)),
     PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"MetricName">>, ?METRIC_NAME_PARAM},
                            {<<"Name">>, ?NAME_PARAM}]),
@@ -257,7 +257,7 @@ delete_web_acls_tests(_) ->
 
 create_web_acl_tests(_) ->
     Action = "CreateWebACL",
-    Function = ?_f(erlcloud_waf:create_web_acl(?CHANGE_TOKEN, ?DEFAULT_ACTION_TYPE, ?METRIC_NAME_PARAM, ?NAME_PARAM)),
+    Function = ?_f(erlcloud_waf:create_web_acl(?CHANGE_TOKEN, ?NAME_PARAM, ?METRIC_NAME_PARAM, ?DEFAULT_ACTION_TYPE)),
     PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"DefaultAction">>, [{<<"Type">>, <<"BLOCK">>}]},
                            {<<"MetricName">>, ?METRIC_NAME_PARAM},
@@ -342,7 +342,7 @@ get_web_acl_tests(_) ->
 
 get_sampled_requests_tests(_) ->
     Action = "GetSampledRequests",
-    Function = ?_f(erlcloud_waf:get_sampled_requests(?LIMIT_SIZE, ?RULE_ID, ?START_TIME, ?END_TIME, ?WEB_ACL_ID)),
+    Function = ?_f(erlcloud_waf:get_sampled_requests(?RULE_ID, ?START_TIME, ?END_TIME, ?LIMIT_SIZE, ?WEB_ACL_ID)),
     PostData = jsx:encode([{<<"MaxItems">>, ?LIMIT_SIZE},
                            {<<"RuleId">>, ?RULE_ID},
                            {<<"TimeWindow">>, [{<<"StartTime">>, ?START_TIME}, {<<"EndTime">>, ?END_TIME}]},
@@ -496,19 +496,9 @@ update_sql_injection_match_set_tests(_) ->
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN}],
     all_tests(Action, Function, PostData, Response).
 
-update_web_acl_default_action_tests(_) ->
-    Action = "UpdateWebACL",
-    Function = ?_f(erlcloud_waf:update_web_acl_default_action(?CHANGE_TOKEN, ?CREATE_ID, block)),
-    PostData = jsx:encode(
-        [{<<"ChangeToken">>, ?CHANGE_TOKEN},
-         {<<"WebACLId">>, ?CREATE_ID},
-         {<<"DefaultAction">>, [{<<"Type">>, <<"BLOCK">>}]}]),
-    Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN}],
-    all_tests(Action, Function, PostData, Response).
-
 update_web_acl_tests(_) ->
     Action = "UpdateWebACL",
-    Function = ?_f(erlcloud_waf:update_web_acl(?CHANGE_TOKEN, ?CREATE_ID, [?UPDATE_WEB_ACL])),
+    Function = ?_f(erlcloud_waf:update_web_acl(?CHANGE_TOKEN, ?CREATE_ID, ?UPDATE_WEB_ACL)),
     PostData = jsx:encode(
         [{<<"ChangeToken">>, ?CHANGE_TOKEN},
          {<<"WebACLId">>, ?CREATE_ID},
