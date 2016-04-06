@@ -13,12 +13,14 @@
         create_size_constraint_set/2, create_size_constraint_set/3,
         create_sql_injection_match_set/2, create_sql_injection_match_set/3,
         create_web_acl/4, create_web_acl/5,
+        create_xss_match_set/2, create_xss_match_set/3,
         delete_byte_match_set/2, delete_byte_match_set/3,
         delete_ip_set/2, delete_ip_set/3,
         delete_rule/2, delete_rule/3,
         delete_size_constraint_set/2, delete_size_constraint_set/3,
         delete_sql_injection_match_set/2, delete_sql_injection_match_set/3,
         delete_web_acl/2, delete_web_acl/3,
+        delete_xss_match_set/2, delete_xss_match_set/3,
         get_byte_match_set/1, get_byte_match_set/2,
         get_change_token/0, get_change_token/1,
         get_change_token_status/1, get_change_token_status/2,
@@ -28,18 +30,21 @@
         get_size_constraint_set/1, get_size_constraint_set/2,
         get_sql_injection_match_set/1, get_sql_injection_match_set/2,
         get_web_acl/1, get_web_acl/2,
+        get_xss_match_set/1, get_xss_match_set/2,
         list_byte_match_sets/0, list_byte_match_sets/1, list_byte_match_sets/2, list_byte_match_sets/3,
         list_ip_sets/0, list_ip_sets/1, list_ip_sets/2, list_ip_sets/3,
         list_rules/0, list_rules/1, list_rules/2, list_rules/3,
         list_size_constraint_sets/0, list_size_constraint_sets/1, list_size_constraint_sets/2, list_size_constraint_sets/3,
         list_sql_injection_match_sets/0, list_sql_injection_match_sets/1, list_sql_injection_match_sets/2, list_sql_injection_match_sets/3,
         list_web_acls/0, list_web_acls/1, list_web_acls/2, list_web_acls/3,
+        list_xss_match_sets/0, list_xss_match_sets/1, list_xss_match_sets/2, list_xss_match_sets/3,
         update_byte_match_set/3, update_byte_match_set/4,
         update_ip_set/3, update_ip_set/4,
         update_rule/3, update_rule/4,
         update_size_constraint_set/3, update_size_constraint_set/4,
         update_sql_injection_match_set/3, update_sql_injection_match_set/4,
-        update_web_acl/3, update_web_acl/4
+        update_web_acl/3, update_web_acl/4,
+        update_xss_match_set/3, update_xss_match_set/4
         ]).
 
 
@@ -257,6 +262,29 @@ create_web_acl(ChangeToken, Name, MetricName, DefaultAction, Config) ->
             {<<"Name">>, to_binary(Name)}],
     waf_request(Config, "CreateWebACL", Json).
 
+%%%------------------------------------------------------------------------------
+%%% CreateXssMatchSet
+%%
+%% http://docs.aws.amazon.com/waf/latest/APIReference/API_CreateXssMatchSet.html
+%%%------------------------------------------------------------------------------
+-spec create_xss_match_set/2 ::
+        (ChangeToken :: string() | binary(),
+         Name :: string() | binary()) ->
+        waf_return_val().
+create_xss_match_set(ChangeToken, Name) ->
+    create_xss_match_set(ChangeToken, Name, default_config()).
+
+-spec create_xss_match_set/3 ::
+        (ChangeToken :: string() | binary(),
+         Name :: string() | binary(),
+         Config :: aws_config()) ->
+        waf_return_val().
+create_xss_match_set(ChangeToken, Name, Config) ->
+    Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
+            {<<"Name">>, to_binary(Name)}],
+    waf_request(Config, "CreateXssMatchSet", Json).
+
+
 
 %%%------------------------------------------------------------------------------
 %%% DeleteByteMatchSet
@@ -372,7 +400,6 @@ delete_sql_injection_match_set(ChangeToken, SqlInjectionMatchSetId, Config) ->
             {<<"SqlInjectionMatchSetId">>, to_binary(SqlInjectionMatchSetId)}],
     waf_request(Config, "DeleteSqlInjectionMatchSet", Json).
 
-
 %%%------------------------------------------------------------------------------
 %%% DeleteWebACL
 %%
@@ -395,6 +422,28 @@ delete_web_acl(ChangeToken, WebACLId, Config) ->
             {<<"WebACLId">>, to_binary(WebACLId)}],
     waf_request(Config, "DeleteWebACL", Json).
 
+
+%%%------------------------------------------------------------------------------
+%%% DeleteXssMatchSet
+%%
+%% http://docs.aws.amazon.com/waf/latest/APIReference/API_DeleteXssMatchSet.html
+%%%------------------------------------------------------------------------------
+-spec delete_xss_match_set/2 ::
+        (ChangeToken :: string() | binary(),
+         XssMatchSetId :: string() | binary()) ->
+        waf_return_val().
+delete_xss_match_set(ChangeToken, XssMatchSetId) ->
+    delete_xss_match_set(ChangeToken, XssMatchSetId, default_config()).
+
+-spec delete_xss_match_set/3 ::
+        (ChangeToken:: string() | binary(),
+         XssMatchSetId :: string() | binary(),
+         Config :: aws_config()) ->
+        waf_return_val().
+delete_xss_match_set(ChangeToken, XssMatchSetId, Config) ->
+    Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
+            {<<"XssMatchSetId">>, to_binary(XssMatchSetId)}],
+    waf_request(Config, "DeleteXssMatchSet", Json).
 
 %%%------------------------------------------------------------------------------
 %%% GetByteMatchSet
@@ -583,6 +632,27 @@ get_web_acl(WebACLId) ->
 get_web_acl(WebACLId, Config) ->
     Json = [{<<"WebACLId">>, to_binary(WebACLId)}],
     waf_request(Config, "GetWebACL", Json).
+
+
+%%%------------------------------------------------------------------------------
+%%% GetXssMatchSet
+%%
+%% http://docs.aws.amazon.com/waf/latest/APIReference/API_GetXssMatchSet.html
+%%%------------------------------------------------------------------------------
+-spec get_xss_match_set/1 ::
+        (XssMatchSetId :: string() | binary()) ->
+        waf_return_val().
+get_xss_match_set(XssMatchSetId) ->
+    get_xss_match_set(XssMatchSetId, default_config()).
+
+-spec get_xss_match_set/2 ::
+        (XssMatchSetId :: string() | binary(),
+         Config :: aws_config()) ->
+        waf_return_val().
+get_xss_match_set(XssMatchSetId, Config) ->
+    Json = [{<<"XssMatchSetId">>, to_binary(XssMatchSetId)}],
+    waf_request(Config, "GetXssMatchSet", Json).
+
 
 
 %%%------------------------------------------------------------------------------
@@ -820,6 +890,46 @@ list_web_acls(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
 
 
 %%%------------------------------------------------------------------------------
+%%% ListXssMatchSets
+%%
+%% http://docs.aws.amazon.com/waf/latest/APIReference/API_ListXssMatchSets.html
+%%%------------------------------------------------------------------------------
+-spec list_xss_match_sets/0 ::
+        () ->
+       waf_return_val().
+list_xss_match_sets() ->
+    list_xss_match_sets(?LIMIT_MAX, default_config()).
+
+
+-spec list_xss_match_sets/1 ::
+       (Limit :: 1..100) ->
+       waf_return_val().
+list_xss_match_sets(Limit) when Limit > 0, Limit =< 100 ->
+    list_xss_match_sets(Limit, default_config()).
+
+-spec list_xss_match_sets/2 ::
+       (Limit :: 1..100,
+        binary() | aws_config()) ->
+       waf_return_val().
+list_xss_match_sets(Limit, NextMarker) when is_binary(NextMarker) ->
+    list_xss_match_sets(Limit, NextMarker, default_config());
+
+list_xss_match_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
+    Json = [{<<"Limit">>, Limit}],
+    waf_request(Config, "ListXssMatchSets", Json).
+
+-spec list_xss_match_sets/3 ::
+       (Limit :: 1..100,
+        NextMarker :: binary(),
+        Config :: aws_config()) ->
+       waf_return_val().
+list_xss_match_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
+    Json = [{<<"Limit">>, Limit},
+            {<<"NextMarker">>, NextMarker}],
+    waf_request(Config, "ListXssMatchSets", Json).
+
+
+%%%------------------------------------------------------------------------------
 %%% UpdateByteMatchSet
 %%
 %% http://docs.aws.amazon.com/waf/latest/APIReference/API_UpdateByteMatchSet.html
@@ -988,6 +1098,32 @@ update_web_acl(ChangeToken, WebACLId, Opts, Config) ->
             {<<"WebACLId">>, to_binary(WebACLId)} | get_web_acl_opts(Opts)],
     waf_request(Config, "UpdateWebACL", Json).
 
+
+%%%------------------------------------------------------------------------------
+%%% UpdateXssMatchSet
+%%
+%% http://docs.aws.amazon.com/waf/latest/APIReference/API_UpdateXssMatchSet.html
+%%%------------------------------------------------------------------------------
+-spec update_xss_match_set/3 ::
+       (ChangeToken :: string() | binary(),
+        XssMatchSetId :: string() | binary(),
+        Updates :: [waf_xss_match_set_update()]) ->
+       waf_return_val().
+update_xss_match_set(ChangeToken, XssMatchSetId, Updates) ->
+    update_xss_match_set(ChangeToken, XssMatchSetId, Updates, default_config()).
+
+-spec update_xss_match_set/4 ::
+       (ChangeToken :: string() | binary(),
+        XssMatchSetId :: string() | binary(),
+        Updates :: [waf_xss_match_set_update()],
+        Config :: aws_config()) ->
+       waf_return_val().
+update_xss_match_set(ChangeToken, XssMatchSetId, Updates, Config) ->
+    Json = [{<<"ChangeToken">>, to_binary(ChangeToken)},
+            {<<"XssMatchSetId">>, to_binary(XssMatchSetId)},
+            {<<"Updates">>, [transform_to_proplist(Update) || Update <- Updates]}],
+    waf_request(Config, "UpdateByteMatchSet", Json).
+
 %%%------------------------------------------------------------------------------
 %%% Internal Functions
 %%%------------------------------------------------------------------------------
@@ -1021,8 +1157,11 @@ transform_to_proplist(#waf_sql_injection_match_set_update{action = Action, sql_i
 
 transform_to_proplist(#waf_web_acl_update{action = Action, activated_rule = ActivatedRule}) ->
     [{<<"Action">>, get_update_action(Action)},
-     {<<"ActivatedRule">>, record_to_proplist(ActivatedRule)}].
+     {<<"ActivatedRule">>, record_to_proplist(ActivatedRule)}];
     
+transform_to_proplist(#waf_xss_match_set_update{action = Action, xss_match_tuple = XssMatchTuple}) ->
+    [{<<"Action">>, get_update_action(Action)},
+     {<<"XssMatchTuple">>, record_to_proplist(XssMatchTuple)}].
 
 -spec record_to_proplist/1 ::
         (waf_rule_predicate() |
@@ -1030,7 +1169,8 @@ transform_to_proplist(#waf_web_acl_update{action = Action, activated_rule = Acti
          waf_byte_match_tuple() |
          waf_size_constraint() |
          waf_sql_injection_match_tuple() |
-         waf_activated_rule()) ->
+         waf_activated_rule() |
+         waf_xss_match_tuple()) ->
         proplists:proplist().
 record_to_proplist(#waf_rule_predicate{data_id = DataId, negated = Negated, type = Type}) ->
     [{<<"DataId">>, to_binary(DataId)},
@@ -1068,7 +1208,11 @@ record_to_proplist(#waf_sql_injection_match_tuple{field_to_match = FieldToMatch,
 record_to_proplist(#waf_activated_rule{action = Action, priority = Priority, rule_id = RuleId}) ->
     [{<<"Action">>, [{<<"Type">>, get_acl_action_type(Action)}]},
      {<<"Priority">>, Priority},
-     {<<"RuleId">>, to_binary(RuleId)}].
+     {<<"RuleId">>, to_binary(RuleId)}];
+
+record_to_proplist(#waf_xss_match_tuple{field_to_match = FieldToMatch, text_transformation = TextTransformation}) ->
+    [{<<"FieldToMatch">>, get_field_to_match(FieldToMatch)},
+     {<<"TextTransformation">>, get_text_transformation(TextTransformation)}].
 
 get_update_action(insert) -> <<"INSERT">>;
 get_update_action(delete) -> <<"DELETE">>.

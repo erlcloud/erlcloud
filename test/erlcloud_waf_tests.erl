@@ -87,6 +87,13 @@
             priority = 1,
             rule_id = ?RULE_ID}}]}]).
  
+-define(UPDATE_XSS_MATCH_SET,
+    #waf_xss_match_set_update{
+        action = insert,
+        xss_match_tuple = #waf_xss_match_tuple{
+            field_to_match = #waf_field_to_match{type = query_string},
+            text_transformation = none}}).
+
 %%%===================================================================
 %%% Test entry points
 %%%===================================================================
@@ -100,6 +107,7 @@ operation_test_() ->
       fun create_size_constraint_set_tests/1,
       fun create_sql_injection_match_set_tests/1,
       fun create_web_acl_tests/1,
+      fun create_xss_match_set_tests/1,
 
       fun delete_byte_match_set_tests/1,
       fun delete_ip_set_tests/1,
@@ -107,6 +115,7 @@ operation_test_() ->
       fun delete_size_constraint_set_tests/1,
       fun delete_sql_injection_match_set_tests/1,
       fun delete_web_acls_tests/1,
+      fun delete_xss_match_set_tests/1,
 
       fun get_change_token_status_tests/1,
       fun get_byte_match_set_tests/1,
@@ -116,6 +125,7 @@ operation_test_() ->
       fun get_sql_injection_match_set_tests/1,
       fun get_web_acl_tests/1,
       fun get_sampled_requests_tests/1,
+      fun get_xss_match_set_tests/1,
       
       fun list_byte_match_sets_tests/1,
       fun list_ip_sets_tests/1,
@@ -123,13 +133,15 @@ operation_test_() ->
       fun list_size_constraint_sets_tests/1,
       fun list_sql_injection_match_sets_tests/1,
       fun list_web_acls_tests/1,
+      fun list_xss_match_sets_tests/1,
 
       fun update_byte_match_set_tests/1,
       fun update_ip_set_tests/1,
       fun update_rule_tests/1,
       fun update_size_constraint_set_tests/1,
       fun update_sql_injection_match_set_tests/1,
-      fun update_web_acl_tests/1
+      fun update_web_acl_tests/1,
+      fun update_xss_match_set_tests/1
      ]
     }.
 
@@ -207,6 +219,35 @@ create_sql_injection_match_set_tests(_) ->
                   {<<"SqlInjectionMatchTuples">>,[]}]}],
     all_tests(Action, Function, PostData, Response).
 
+create_web_acl_tests(_) ->
+    Action = "CreateWebACL",
+    Function = ?_f(erlcloud_waf:create_web_acl(?CHANGE_TOKEN, ?NAME_PARAM, ?METRIC_NAME_PARAM, ?DEFAULT_ACTION_TYPE)),
+    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+                           {<<"DefaultAction">>, [{<<"Type">>, <<"BLOCK">>}]},
+                           {<<"MetricName">>, ?METRIC_NAME_PARAM},
+                           {<<"Name">>, ?NAME_PARAM}]),
+    Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN},
+                {<<"WebACL">>,
+                 [{<<"DefaultAction">>, [{<<"Type">>, <<"BLOCK">>}]},
+                  {<<"MetricName">>, ?METRIC_NAME_PARAM},
+                  {<<"Name">>, ?NAME_PARAM},
+                  {<<"Rules">>,[]},
+                  {<<"WebACLId">>, ?CREATE_ID}]}],
+    all_tests(Action, Function, PostData, Response).
+
+create_xss_match_set_tests(_) ->
+    Action = "CreateXssMatchSet",
+    Function = ?_f(erlcloud_waf:create_xss_match_set(?CHANGE_TOKEN, ?NAME_PARAM)),
+    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+                           {<<"Name">>, ?NAME_PARAM}]),
+    Response = [{<<"XssMatchSet">>,
+                 [{<<"XssMatchSetId">>, ?CREATE_ID},
+                  {<<"XssMatchTuples">>,[]},
+                  {<<"Name">>, ?NAME_PARAM}]},
+                {<<"ChangeToken">>, ?CHANGE_TOKEN}],
+    all_tests(Action, Function, PostData, Response).
+
+
 delete_byte_match_set_tests(_) ->
     Action = "DeleteByteMatchSet",
     Function = ?_f(erlcloud_waf:delete_byte_match_set(?CHANGE_TOKEN, ?CREATE_ID)),
@@ -255,21 +296,14 @@ delete_web_acls_tests(_) ->
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN}],
     all_tests(Action, Function, PostData, Response).
 
-create_web_acl_tests(_) ->
-    Action = "CreateWebACL",
-    Function = ?_f(erlcloud_waf:create_web_acl(?CHANGE_TOKEN, ?NAME_PARAM, ?METRIC_NAME_PARAM, ?DEFAULT_ACTION_TYPE)),
+delete_xss_match_set_tests(_) ->
+    Action = "DeleteXssMatchSet",
+    Function = ?_f(erlcloud_waf:delete_xss_match_set(?CHANGE_TOKEN, ?CREATE_ID)),
     PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
-                           {<<"DefaultAction">>, [{<<"Type">>, <<"BLOCK">>}]},
-                           {<<"MetricName">>, ?METRIC_NAME_PARAM},
-                           {<<"Name">>, ?NAME_PARAM}]),
-    Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN},
-                {<<"WebACL">>,
-                 [{<<"DefaultAction">>, [{<<"Type">>, <<"BLOCK">>}]},
-                  {<<"MetricName">>, ?METRIC_NAME_PARAM},
-                  {<<"Name">>, ?NAME_PARAM},
-                  {<<"Rules">>,[]},
-                  {<<"WebACLId">>, ?CREATE_ID}]}],
+                           {<<"XssMatchSetId">>, ?CREATE_ID}]),
+    Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN}],
     all_tests(Action, Function, PostData, Response).
+
 
 get_change_token_status_tests(_) ->
     Action = "GetChangeTokenStatus",
@@ -340,6 +374,17 @@ get_web_acl_tests(_) ->
                  {<<"WebACLId">>, ?CREATE_ID}]}],
     all_tests(Action, Function, PostData, Response).
 
+get_xss_match_set_tests(_) ->
+    Action = "GetXssMatchSet",
+    Function = ?_f(erlcloud_waf:get_xss_match_set(?CREATE_ID)),
+    PostData = jsx:encode([{<<"XssMatchSetId">>, ?CREATE_ID}]),
+    Response = [{<<"XssMatchSet">>,
+                [{<<"XssMatchSetId">>, ?CREATE_ID},
+                 {<<"XssMatchTuples">>,[]},
+                 {<<"Name">>, ?NAME_PARAM}]}],
+    all_tests(Action, Function, PostData, Response).
+
+
 get_sampled_requests_tests(_) ->
     Action = "GetSampledRequests",
     Function = ?_f(erlcloud_waf:get_sampled_requests(?RULE_ID, ?START_TIME, ?END_TIME, ?LIMIT_SIZE, ?WEB_ACL_ID)),
@@ -353,6 +398,7 @@ get_sampled_requests_tests(_) ->
                     [{<<"EndTime">>, 1457033216.0},
                      {<<"StartTime">>, 1.4570244e9}]}],
     all_tests(Action, Function, PostData, Response).
+
 
 list_byte_match_sets_tests(_) ->
     Action = "ListByteMatchSets",
@@ -413,6 +459,17 @@ list_web_acls_tests(_) ->
                   {<<"Name">>, ?NAME_PARAM}]]},
                 {<<"NextMarker">>, ?NEXT_MARKER}],
     all_tests(Action, Function, PostData, Response).
+
+list_xss_match_sets_tests(_) ->
+    Action = "ListXssMatchSets",
+    Function = ?_f(erlcloud_waf:list_xss_match_sets(?LIMIT_SIZE)),
+    PostData = jsx:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
+    Response = [{<<"XssMatchSets">>,
+                [[{<<"XssMatchSetId">>, ?CREATE_ID},
+                  {<<"Name">>, ?NAME_PARAM}]]},
+                {<<"NextMarker">>, ?NEXT_MARKER}],
+    all_tests(Action, Function, PostData, Response).
+
 
 update_byte_match_set_tests(_) ->
     Action = "UpdateByteMatchSet",
@@ -511,6 +568,27 @@ update_web_acl_tests(_) ->
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN}],
     all_tests(Action, Function, PostData, Response).
    
+update_xss_match_set_tests(_) ->
+    Action = "UpdateXssMatchSet",
+    Function = ?_f(erlcloud_waf:update_xss_match_set(?CHANGE_TOKEN, ?CREATE_ID, [?UPDATE_XSS_MATCH_SET])),
+    PostData = jsx:encode(
+        [{<<"ChangeToken">>, ?CHANGE_TOKEN},
+         {<<"XssMatchSetId">>, ?CREATE_ID},
+         {<<"Updates">>,
+            [[{<<"Action">>, <<"INSERT">>},
+             {<<"XssMatchTuple">>,
+                [{<<"FieldToMatch">>, [{<<"Type">>, <<"QUERY_STRING">>}]},
+                 {<<"TextTransformation">>, <<"NONE">>}]}]]}]),
+    Response = [{<<"XssMatchSet">>,
+                [{<<"XssMatchSetId">>, ?CREATE_ID},
+                 {<<"XssMatchTuples">>,
+                  [[{<<"FieldToMatch">>, [{<<"Type">>, <<"QUERY_STRING">>}]},
+                    {<<"TextTransformation">>,<<"NONE">>}]]},
+                  {<<"Name">>,<<"TestXssMatchSet">>}]}],
+    all_tests(Action, Function, PostData, Response).
+
+
+
 %%%===================================================================
 %%% Input test helpers
 %%%===================================================================

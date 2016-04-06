@@ -124,3 +124,21 @@
         activated_rule :: waf_activated_rule()
 }).
 -type(waf_web_acl_update() :: #waf_web_acl_update{}).
+
+%%%------------------------------------------------------------------------------
+%%
+%% update_xss_match_set data types
+%%
+%%%------------------------------------------------------------------------------
+-record(waf_xss_match_tuple, {
+        field_to_match :: waf_field_to_match(),
+        text_transformation :: waf_text_transformation()
+}).
+-type(waf_xss_match_tuple() :: #waf_xss_match_tuple{}).
+
+-record(waf_xss_match_set_update, {
+        action :: waf_update_action(),
+        xss_match_tuple :: waf_xss_match_tuple()
+}).
+-type(waf_xss_match_set_update() :: #waf_xss_match_set_update{}).
+
