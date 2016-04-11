@@ -35,6 +35,9 @@
           cloudtrail_host="cloudtrail.amazonaws.com"::string(),
           cloudtrail_port=80::non_neg_integer(),
           cloudformation_host="cloudformation.us-east-1.amazonaws.com"::string(),
+          waf_scheme="https://"::string(),
+          waf_host="waf.amazonaws.com"::string(),
+          waf_port=443::non_neg_integer(),
           access_key_id::string()|undefined|false,
           secret_access_key::string()|undefined|false,
           security_token=undefined::string()|undefined,
@@ -77,3 +80,5 @@
           %% Service specific error information
           should_retry :: boolean()
         }).
+
+-type(aws_request() :: #aws_request{}).
