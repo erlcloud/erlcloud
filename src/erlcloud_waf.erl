@@ -547,24 +547,24 @@ get_rule(RuleId, Config) ->
 %% http://docs.aws.amazon.com/waf/latest/APIReference/API_GetSampledRequests.html
 %%%------------------------------------------------------------------------------
 -spec get_sampled_requests/5 ::
-        (RuleId :: string() | binary(),
+        (WebAclId :: string() | binary(),
+         RuleId :: string() | binary(),
          StartTime :: pos_integer(),
          EndTime :: pos_integer(),
-         MaxItems :: 1..100,
-         WebAclId :: string() | binary()) ->
+         MaxItems :: 1..100) ->
         waf_return_val().
-get_sampled_requests(RuleId, StartTime, EndTime, MaxItems, WebAclId) ->
-    get_sampled_requests(RuleId, StartTime, EndTime, MaxItems, WebAclId, default_config()).
+get_sampled_requests(WebAclId, RuleId, StartTime, EndTime, MaxItems) ->
+    get_sampled_requests(WebAclId, RuleId, StartTime, EndTime, MaxItems, default_config()).
 
 -spec get_sampled_requests/6 ::
-        (RuleId :: string() | binary(),
+        (WebAclId :: string() | binary(),
+         RuleId :: string() | binary(),
          StartTime :: pos_integer(),
          EndTime :: pos_integer(),
          MaxItems :: 1..100,
-         WebAclId :: string() | binary(),
          Config :: aws_config()) ->
         waf_return_val().
-get_sampled_requests(RuleId, StartTime, EndTime, MaxItems, WebAclId, Config) when MaxItems > 0, MaxItems =< 100->
+get_sampled_requests(WebAclId, RuleId, StartTime, EndTime, MaxItems, Config) when is_integer(MaxItems) ->
     Json = [{<<"MaxItems">>, MaxItems},
             {<<"RuleId">>, to_binary(RuleId)},
             {<<"TimeWindow">>, [{<<"StartTime">>, StartTime}, {<<"EndTime">>, EndTime}]},
@@ -667,7 +667,7 @@ list_byte_match_sets() ->
 -spec list_byte_match_sets/1 ::
        (Limit :: 1..100) ->
        waf_return_val().
-list_byte_match_sets(Limit) when Limit > 0, Limit =< 100 ->
+list_byte_match_sets(Limit) when is_integer(Limit) ->
     list_byte_match_sets(Limit, default_config()).
 
 -spec list_byte_match_sets/2 ::
@@ -677,7 +677,7 @@ list_byte_match_sets(Limit) when Limit > 0, Limit =< 100 ->
 list_byte_match_sets(Limit, NextMarker) when is_binary(NextMarker) ->
     list_byte_match_sets(Limit, NextMarker, default_config());
 
-list_byte_match_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
+list_byte_match_sets(Limit, Config) when is_integer(Limit), is_record(Config, aws_config) ->
     Json = [{<<"Limit">>, Limit}],
     waf_request(Config, "ListByteMatchSets", Json).
 
@@ -686,7 +686,7 @@ list_byte_match_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Conf
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_byte_match_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100, is_binary(NextMarker) ->
+list_byte_match_sets(Limit, NextMarker, Config) when is_integer(Limit), is_binary(NextMarker) ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
     waf_request(Config, "ListByteMatchSets", Json).
@@ -706,7 +706,7 @@ list_ip_sets() ->
 -spec list_ip_sets/1 ::
        (Limit :: 1..100) ->
        waf_return_val().
-list_ip_sets(Limit) when Limit > 0, Limit =< 100 ->
+list_ip_sets(Limit) when is_integer(Limit) ->
     list_ip_sets(Limit, default_config()).
 
 -spec list_ip_sets/2 ::
@@ -716,7 +716,7 @@ list_ip_sets(Limit) when Limit > 0, Limit =< 100 ->
 list_ip_sets(Limit, NextMarker) when is_binary(NextMarker) ->
     list_ip_sets(Limit, NextMarker, default_config());
 
-list_ip_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
+list_ip_sets(Limit, Config) when is_integer(Limit), is_record(Config, aws_config) ->
     Json = [{<<"Limit">>, Limit}],
     waf_request(Config, "ListIPSets", Json).
 
@@ -725,7 +725,7 @@ list_ip_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_ip_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100, is_binary(NextMarker) ->
+list_ip_sets(Limit, NextMarker, Config) when is_integer(Limit), is_binary(NextMarker) ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
     waf_request(Config, "ListIPSets", Json).
@@ -755,7 +755,7 @@ list_rules(Limit) when Limit > 0, Limit =< 100 ->
 list_rules(Limit, NextMarker) when is_binary(NextMarker) ->
     list_rules(Limit, NextMarker, default_config());
 
-list_rules(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
+list_rules(Limit, Config) when is_integer(Limit), is_record(Config, aws_config) ->
     Json = [{<<"Limit">>, Limit}],
     waf_request(Config, "ListRules", Json).
 
@@ -764,7 +764,7 @@ list_rules(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_co
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_rules(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
+list_rules(Limit, NextMarker, Config) when is_integer(Limit) ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
     waf_request(Config, "ListRules", Json).
@@ -784,7 +784,7 @@ list_size_constraint_sets() ->
 -spec list_size_constraint_sets/1 ::
        (Limit :: 1..100) ->
        waf_return_val().
-list_size_constraint_sets(Limit) when Limit > 0, Limit =< 100 ->
+list_size_constraint_sets(Limit) when is_integer(Limit) ->
     list_size_constraint_sets(Limit, default_config()).
 
 -spec list_size_constraint_sets/2 ::
@@ -794,7 +794,7 @@ list_size_constraint_sets(Limit) when Limit > 0, Limit =< 100 ->
 list_size_constraint_sets(Limit, NextMarker) when is_binary(NextMarker) ->
     list_size_constraint_sets(Limit, NextMarker, default_config());
 
-list_size_constraint_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
+list_size_constraint_sets(Limit, Config) when is_integer(Limit), is_record(Config, aws_config) ->
     Json = [{<<"Limit">>, Limit}],
     waf_request(Config, "ListSizeConstraintSets", Json).
 
@@ -803,7 +803,7 @@ list_size_constraint_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_size_constraint_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
+list_size_constraint_sets(Limit, NextMarker, Config) when is_integer(Limit) ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
     waf_request(Config, "ListSizeConstraintSets", Json).
@@ -823,7 +823,7 @@ list_sql_injection_match_sets() ->
 -spec list_sql_injection_match_sets/1 ::
        (Limit :: 1..100) ->
        waf_return_val().
-list_sql_injection_match_sets(Limit) when Limit > 0, Limit =< 100 ->
+list_sql_injection_match_sets(Limit) when is_integer(Limit) ->
     list_sql_injection_match_sets(Limit, default_config()).
 
 -spec list_sql_injection_match_sets/2 ::
@@ -833,7 +833,7 @@ list_sql_injection_match_sets(Limit) when Limit > 0, Limit =< 100 ->
 list_sql_injection_match_sets(Limit, NextMarker) when is_binary(NextMarker) ->
     list_sql_injection_match_sets(Limit, NextMarker, default_config());
 
-list_sql_injection_match_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
+list_sql_injection_match_sets(Limit, Config) when is_integer(Limit), is_record(Config, aws_config) ->
     Json = [{<<"Limit">>, Limit}],
     waf_request(Config, "ListSqlInjectionMatchSets", Json).
 
@@ -842,7 +842,7 @@ list_sql_injection_match_sets(Limit, Config) when Limit > 0, Limit =< 100, is_re
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_sql_injection_match_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
+list_sql_injection_match_sets(Limit, NextMarker, Config) when is_integer(Limit) ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
     waf_request(Config, "ListSqlInjectionMatchSets", Json).
@@ -862,7 +862,7 @@ list_web_acls() ->
 -spec list_web_acls/1 ::
        (Limit :: 1..100) ->
        waf_return_val().
-list_web_acls(Limit) when Limit > 0, Limit =< 100 ->
+list_web_acls(Limit) when is_integer(Limit) ->
     list_web_acls(Limit, default_config()).
 
 -spec list_web_acls/2 ::
@@ -872,7 +872,7 @@ list_web_acls(Limit) when Limit > 0, Limit =< 100 ->
 list_web_acls(Limit, NextMarker) when is_binary(NextMarker) ->
     list_web_acls(Limit, NextMarker, default_config());
 
-list_web_acls(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
+list_web_acls(Limit, Config) when is_integer(Limit), is_record(Config, aws_config) ->
     Json = [{<<"Limit">>, Limit}],
     waf_request(Config, "ListWebACLs", Json).
 
@@ -881,7 +881,7 @@ list_web_acls(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_web_acls(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
+list_web_acls(Limit, NextMarker, Config) when is_integer(Limit) ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
     waf_request(Config, "ListWebACLs", Json).
@@ -902,7 +902,7 @@ list_xss_match_sets() ->
 -spec list_xss_match_sets/1 ::
        (Limit :: 1..100) ->
        waf_return_val().
-list_xss_match_sets(Limit) when Limit > 0, Limit =< 100 ->
+list_xss_match_sets(Limit) when is_integer(Limit) ->
     list_xss_match_sets(Limit, default_config()).
 
 -spec list_xss_match_sets/2 ::
@@ -912,7 +912,7 @@ list_xss_match_sets(Limit) when Limit > 0, Limit =< 100 ->
 list_xss_match_sets(Limit, NextMarker) when is_binary(NextMarker) ->
     list_xss_match_sets(Limit, NextMarker, default_config());
 
-list_xss_match_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Config, aws_config) ->
+list_xss_match_sets(Limit, Config) when is_integer(Limit), is_record(Config, aws_config) ->
     Json = [{<<"Limit">>, Limit}],
     waf_request(Config, "ListXssMatchSets", Json).
 
@@ -921,7 +921,7 @@ list_xss_match_sets(Limit, Config) when Limit > 0, Limit =< 100, is_record(Confi
         NextMarker :: binary(),
         Config :: aws_config()) ->
        waf_return_val().
-list_xss_match_sets(Limit, NextMarker, Config) when Limit > 0, Limit =< 100 ->
+list_xss_match_sets(Limit, NextMarker, Config) when is_integer(Limit) ->
     Json = [{<<"Limit">>, Limit},
             {<<"NextMarker">>, NextMarker}],
     waf_request(Config, "ListXssMatchSets", Json).

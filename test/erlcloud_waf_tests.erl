@@ -387,7 +387,7 @@ get_xss_match_set_tests(_) ->
 
 get_sampled_requests_tests(_) ->
     Action = "GetSampledRequests",
-    Function = ?_f(erlcloud_waf:get_sampled_requests(?RULE_ID, ?START_TIME, ?END_TIME, ?LIMIT_SIZE, ?WEB_ACL_ID)),
+    Function = ?_f(erlcloud_waf:get_sampled_requests(?WEB_ACL_ID, ?RULE_ID, ?START_TIME, ?END_TIME, ?LIMIT_SIZE)),
     PostData = jsx:encode([{<<"MaxItems">>, ?LIMIT_SIZE},
                            {<<"RuleId">>, ?RULE_ID},
                            {<<"TimeWindow">>, [{<<"StartTime">>, ?START_TIME}, {<<"EndTime">>, ?END_TIME}]},
