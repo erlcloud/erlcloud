@@ -38,7 +38,7 @@
 %%
 %% Here is an example retry function that provides logging and an updated error reason:
 %%
-%% `
+%% ```
 %% retry(Error) ->
 %%     RequestId = erlcloud_ddb_impl:request_id_from_error(Error),
 %%     {_, Operation} = lists:keyfind("x-amz-target", 1, Error#ddb2_error.request_headers),
@@ -50,7 +50,7 @@
 %%                   Error#ddb2_error.request_body]),
 %%     Error2 = erlcloud_ddb_impl:error_reason2(Error),
 %%     erlcloud_ddb_impl:retry(Error2).
-%% `
+%% '''
 %%
 %% @end
 
