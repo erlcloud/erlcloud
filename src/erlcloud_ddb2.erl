@@ -2229,13 +2229,13 @@ update_table(Table, Opts) ->
 %% ===Example===
 %%
 %% Update table "Thread" to have 10 units of read and write capacity.
-%% Update secondary index <<"SubjectIdx">> to have 10 units of read write capacity 
-%% `
+%% Update secondary index `<<"SubjectIdx">>' to have 10 units of read write capacity
+%% ```
 %% erlcloud_ddb2:update_table(
 %%   <<"Thread">>,
 %%   [{provisioned_throughput, {10, 10}},
 %%    {global_secondary_index_updates, [{<<"SubjectIdx">>, 10, 10}]}])
-%% '
+%% '''
 %% @end
 %%------------------------------------------------------------------------------
 -spec update_table(table_name(), update_table_opts(), aws_config()) -> update_table_return();
