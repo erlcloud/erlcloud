@@ -9,6 +9,7 @@
          aws_region_from_host/1,
          aws_request_form/8,
          param_list/2, default_config/0, update_config/1,
+         service_config/3,
          configure/1, format_timestamp/1,
          http_headers_body/1,
          request_to_return/1,
@@ -256,6 +257,111 @@ update_config(#aws_config{} = Config) ->
                    secret_access_key = Credentials#metadata_credentials.secret_access_key,
                    security_token = Credentials#metadata_credentials.security_token}}
     end.
+
+
+%%%---------------------------------------------------------------------------
+-spec service_config( Service :: atom() | string() | binary(),
+                      Region :: atom() | string() | binary(),
+                      Config :: #aws_config{} ) -> #aws_config{}.
+%%%---------------------------------------------------------------------------
+%% @doc Generate config updated to work with specified AWS service & region
+%%
+%% This function will generate a new configuration, based on the one
+%% provided, and configured to access the specified AWS service in the
+%% specified region.  If called for a service without a region based
+%% endpoint, the config provided will be returned unaltered.
+%%
+%% If an invalid service name is provided, then this will throw an error,
+%% presuming that this is just a coding error.  This behavior allows the
+%% chaining of calls to this interface to allow concise configuraiton of a
+%% config for multiple services.
+%%
+service_config( Service, Region, Config ) when is_list(Service) ->
+    service_config( list_to_binary(Service), Region, Config );
+service_config( Service, Region, Config ) when is_list(Region) ->
+    service_config( Service, list_to_binary(Region), Config );
+service_config( Service, Region, Config ) when is_atom(Service) ->
+    service_config( atom_to_binary(Service, latin1), Region, Config );
+service_config( Service, Region, Config ) when is_atom(Region) ->
+    service_config( Service, atom_to_binary(Region, latin1), Config );
+service_config( <<"autoscaling">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ as_host = Host };
+service_config( <<"cloudformation">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ cloudformation_host = Host };
+service_config( <<"cfn">>, Region, Config ) ->
+    service_config( <<"cloudformation">>, Region, Config );
+service_config( <<"cloudtrail">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ cloudtrail_host = Host };
+service_config( <<"dynamodb">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ ddb_host = Host };
+service_config( <<"ddb">>, Region, Config ) ->
+    service_config( <<"dynamodb">>, Region, Config );
+service_config( <<"streams.dynamodb">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ ddb_streams_host = Host };
+service_config( <<"ec2">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ ec2_host = Host };
+service_config( <<"elasticloadbalancing">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ elb_host = Host };
+service_config( <<"elb">>, Region, Config ) ->
+    service_config( <<"elasticloadbalancing">>, Region, Config );
+service_config( <<"iam">>, _Region, Config ) -> Config;
+service_config( <<"kinesis">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ kinesis_host = Host };
+service_config( <<"mechanicalturk">>, _Region, Config ) -> Config;
+service_config( <<"rds">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ rds_host = Host };
+service_config( <<"s3">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ s3_host = Host };
+service_config( <<"sdb">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ sdb_host = Host };
+service_config( <<"ses">> = Service, Region, Config ) ->
+    Host = service_host( <<"email">>, Region ),
+    Config#aws_config{ ses_host = Host };
+service_config( <<"sns">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ sns_host = Host };
+service_config( <<"sqs">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ sqs_host = Host };
+service_config( <<"sts">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ sts_host = Host };
+service_config( <<"waf">>, _Region, Config ) -> Config.
+
+    
+%%%---------------------------------------------------------------------------
+-spec service_host( Service :: atom() | binary(),
+                    Region :: binary() ) -> string().
+%%%---------------------------------------------------------------------------
+%% @hidden
+%% @doc Host name for the specified AWS service & region
+%%
+%% This function handles the special and general cases of service host
+%% names.
+%%
+service_host( <<"s3">>, <<"us-east-1">> ) -> "s3-external-1.amazonaws.com";
+service_host( <<"s3">>, Region ) ->
+    binary_to_list( <<"s3-", Region/binary, ".amazonaws.com">> );
+service_host( <<"sdb">>, <<"us-east-1">> ) -> "sdb.amazonaws.com";
+service_host( Service, Region ) when is_binary(Service) ->
+    binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com">> );
+service_host( ListService, Region ) when is_list(ListService) ->
+    service_host( list_to_binary(ListService), Region ).
+
+
+
+
 
 -spec configure(aws_config()) -> {ok, aws_config()}.
 
