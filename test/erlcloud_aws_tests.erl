@@ -620,11 +620,23 @@ service_config_sqs_test() ->
 
 service_config_sts_test() ->
     Service = <<"sts">>,
+    ServiceAlt = sts,
+    ServiceAlt2 = "sts",
     Regions = [<<"us-east-1">>, <<"us-west-1">>, <<"us-west-2">>,
                <<"eu-west-1">>, <<"eu-central-1">>,
                <<"ap-northeast-1">>, <<"ap-northeast-2">>,
                <<"ap-southeast-1">>, <<"ap-southeast-2">>,
                <<"sa-east-1">>],
+    RegionsAlt = ['us-east-1', 'us-west-1', 'us-west-2',
+                  'eu-west-1', 'eu-central-1',
+                  'ap-northeast-1', 'ap-northeast-2',
+                  'ap-southeast-1', 'ap-southeast-2',
+                  'sa-east-1'],
+    RegionsAlt2 = ["us-east-1", "us-west-1", "us-west-2",
+                   "eu-west-1", "eu-central-1",
+                   "ap-northeast-1", "ap-northeast-2",
+                   "ap-southeast-1", "ap-southeast-2",
+                   "sa-east-1"],
     Expected = ["sts.us-east-1.amazonaws.com",
                 "sts.us-west-1.amazonaws.com",
                 "sts.us-west-2.amazonaws.com",
@@ -639,7 +651,17 @@ service_config_sts_test() ->
                   [H || #aws_config{ sts_host = H } <-
                             [erlcloud_aws:service_config(
                                Service, Region, #aws_config{} )
-                             || Region <- Regions]] ).
+                             || Region <- Regions]] ),
+    ?assertEqual( Expected,
+                  [H || #aws_config{ sts_host = H } <-
+                            [erlcloud_aws:service_config(
+                               ServiceAlt, Region, #aws_config{} )
+                             || Region <- RegionsAlt]] ),
+    ?assertEqual( Expected,
+                  [H || #aws_config{ sts_host = H } <-
+                            [erlcloud_aws:service_config(
+                               ServiceAlt2, Region, #aws_config{} )
+                             || Region <- RegionsAlt2]] ).
 
 service_config_waf_test() ->
     Service = <<"waf">>,
