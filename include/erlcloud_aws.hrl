@@ -41,6 +41,8 @@
           access_key_id::string()|undefined|false,
           secret_access_key::string()|undefined|false,
           security_token=undefined::string()|undefined,
+          %% epoch seconds when temporary credentials will expire
+          expiration :: pos_integer(),
           %% Network request timeout; if not specifed, the default timeout will be used:
           %% ddb: 1s for initial call, 10s for subsequence;
           %% s3:delete_objects_batch/{2,3}, cloudtrail: 1s;
