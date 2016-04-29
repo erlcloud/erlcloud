@@ -15,7 +15,8 @@
          sign_v4_headers/5,
          sign_v4/8,
          get_service_status/1,
-         get_timeout/1
+         get_timeout/1,
+         profile/0, profile/1, profile/2
 ]).
 
 -include("erlcloud.hrl").
@@ -29,6 +30,13 @@
          security_token=undefined :: string(),
          expiration_gregorian_seconds :: integer()
         }).
+
+-record(profile_options, {
+          session_name :: string(),
+          session_secs :: 900..3600,
+          external_id :: string()
+}).
+
 
 aws_request_xml(Method, Host, Path, Params, #aws_config{} = Config) ->
     Body = aws_request(Method, Host, Path, Params, Config),
@@ -494,3 +502,194 @@ get_filtered_statuses(ServiceNames, Statuses) ->
                 ServiceNames)
         end,
         Statuses).
+
+
+%%%---------------------------------------------------------------------------
+-spec profile() -> {ok, aws_config()} | {error, string()}.
+%%%---------------------------------------------------------------------------
+%% @doc Retrieve a config based on default credentials
+%%
+%% This function will retrieve the credentials for the <em>default</em>
+%% profile, in the same way as the AWS CLI tools, and construct a {@link
+%% #aws_config{}. config record} to be used accessing services.
+%%
+%% @see profile/2
+%%
+profile() ->
+    profile( default, [] ).
+
+
+%%%---------------------------------------------------------------------------
+-spec profile( Name :: atom() ) -> {ok, aws_config()} | {error, string()}.
+%%%---------------------------------------------------------------------------
+%% @doc Retrieve a config based on named credentials profile
+%%
+%% This function will retrieve the credentials for the named profile, in the
+%% same way as the AWS CLI tools, and construct a {@link
+%% #aws_config{}. config record} to be used accessing services.
+%%
+%% @see profile/2
+%%
+profile( Name ) ->
+    profile( Name, [] ).
+
+
+-type profile_option() :: {role_session_name, string()}
+                          | {role_session_secs, 900..3600}.
+
+%%%---------------------------------------------------------------------------
+-spec profile( Name :: atom(), Options :: [profile_option()] ) ->
+                     {ok, aws_config()} | {error, string()}.
+%%%---------------------------------------------------------------------------
+%% @doc Retrieve a config based on named credentials profile
+%%
+%% This function will read the <code>$HOME/.aws/credentials</code> file used
+%% by the AWS CLI tools and construct a {@link #aws_config{}. config record}
+%% to be used accessing services for the named profile.  This supports both
+%% direct credentials that appear in the profile:
+%%
+%% <code><pre>
+%%  [default]
+%%  aws_access_key_id = XXXXXXXXXXXXXXXXXXX2
+%%  aws_secret_access_key = yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy2
+%% </pre></code>
+%%
+%% as well as indirection using <em>source_profile</em>:
+%%
+%% <code><pre>
+%%  [foo]
+%%  source_profile = default
+%% </pre></code>
+%%
+%% and finally, will supports the <em>role_arn</em> specification, and will
+%% assume the role indicated using the credentials current when interpreting
+%% the profile in which they it is declared:
+%%
+%% <code><pre>
+%%  [foo]
+%%  role_arn=arn:aws:iam::892406118791:role/centralized-users
+%%  source_profile = default
+%% </pre></code>
+%%
+%% When using the the <em>role_arn</em> specification, you may supply the
+%% following two options to control the way in which the assume_role request
+%% is made via AWS STS service:
+%%
+%% <ul>
+%%  <li><code>'role_session_name'</code>
+%%    <p>The name that should be used
+%%    for the <code>RoleSessionName</code> parameter.  If this option is not
+%%    specified, then it will default to "erlcloud"</p>
+%%  </li>
+%%  <li><code>'role_duration_secs'</code>
+%%    <p>The number of seconds that
+%%    should be used for the <code>DurationSeconds</code> parameter.  If
+%%    this option is not specified, then it will default to 900 seconds.</p>
+%%  </li>
+%%  <li><code>'external_id'</code>
+%%    <p>The identifier that is used in the <code>ExternalId</code>
+%%    parameter.  If this option is not specified, then it will default to
+%%    `undefined`, which will work for normal in-account roles, but will
+%%    need to be specified for roles in external accounts.</p>
+%%  </li>
+%% </ul>
+%%
+profile( Name, Options ) ->
+    try
+        OptionsRec = profile_options( Options ),
+        Profiles = profiles_read(),
+        profiles_resolve( Name, Profiles, OptionsRec )
+    catch
+        throw:Error -> Error
+    end.
+
+profile_options( Options ) ->
+    SessionName = proplists:get_value( role_session_name, Options, "erlcloud" ),
+    SessionDuration = proplists:get_value( role_duration_secs, Options, 900 ),
+    ExternalId = proplists:get_value( external_id, Options ),
+    #profile_options{ session_name = SessionName, external_id = ExternalId,
+                      session_secs = SessionDuration }.
+
+profiles_read() ->
+    HOME = profiles_home(),
+    Path = HOME ++ "/.aws/credentials",
+    case file:read_file( Path ) of
+        {ok, Contents} ->
+            profiles_parse( Contents );
+        Error ->
+            error_msg( "could not read credentials file ~s, because ~p",
+                   [Path, Error] )
+    end.
+    
+profiles_home() ->
+    case os:getenv("HOME") of
+        false ->
+            error_msg( "HOME environment variable is not set" );
+        HOME -> HOME
+    end.
+        
+profiles_parse( Content ) ->
+    case eini:parse( Content ) of
+        {ok, Profiles} -> Profiles;
+        Error ->
+            error_msg( "failed to parse credentials, because: ~p", [Error] )
+    end.
+            
+profiles_resolve( Name, Profiles, Options ) ->
+    profiles_resolve( Name, Profiles, undefined, Options ).
+
+profiles_resolve( BinName, Profiles, Role, Options ) when is_binary(BinName) ->
+    try binary_to_existing_atom( BinName, latin1 ) of
+        Name -> profiles_resolve( Name, Profiles, Role, Options )
+    catch
+        error:badarg -> 
+            error_msg( "invalid source_profile reference to ~s", [BinName] )
+    end;
+profiles_resolve( Name, Profiles, BinRole, Options ) when is_binary(BinRole) ->
+    Role = binary_to_list( BinRole ),
+    profiles_resolve( Name, Profiles, Role, Options );
+profiles_resolve( Name, Profiles, Role, Options ) ->
+    case proplists:get_value( Name, Profiles ) of
+        undefined ->
+            error_msg( "profile ~s does not exist", [Name] );
+        Keys ->
+            profiles_recurse( Keys, Profiles, Role, Options )
+    end.
+
+profiles_recurse( Keys, Profiles, Role, Options ) ->
+    case profiles_credentials( Keys ) of
+        {ok, Id, Secret} ->
+            profiles_assume( Id, Secret, Role, Options );
+        {cont, ProfileName, BinRole} ->
+            profiles_resolve( ProfileName, Profiles, BinRole, Options )
+    end.
+
+profiles_credentials( Keys ) ->
+    Names = [aws_access_key_id, aws_secret_access_key, source_profile],
+    BinRole = proplists:get_value( role_arn, Keys ),
+    case [proplists:get_value( K, Keys ) || K <- Names] of
+        [Id, Secret, undefined] when Id =/= undefined, Secret =/= undefined ->
+            {ok, binary_to_list(Id), binary_to_list(Secret)};
+        [undefined, undefined, BinProfile] when BinProfile =/= undefined ->
+            {cont, BinProfile, BinRole}
+    end.
+
+profiles_assume( Id, Secret, undefined, _Options ) ->
+    Config = #aws_config{ access_key_id = Id, secret_access_key = Secret },
+    {ok, Config};
+profiles_assume( Id, Secret, Role,
+                 #profile_options{ session_name = Name, external_id = ExtId,
+                                   session_secs = Duration } ) ->
+    Config = #aws_config{ access_key_id = Id, secret_access_key = Secret },
+    {AssumedConfig, _Creds} =
+        erlcloud_sts:assume_role( Config, Role, Name, Duration, ExtId ),
+    {ok, AssumedConfig}.
+    
+
+error_msg( Message ) ->
+    Error = iolist_to_binary( Message ),
+    throw( {error, Error} ).
+
+error_msg( Format, Values ) ->
+    Error = iolist_to_binary( io_lib:format( Format, Values ) ),
+    throw( {error, Error} ).
