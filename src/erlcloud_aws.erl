@@ -261,7 +261,7 @@ update_config(#aws_config{} = Config) ->
 
 %%%---------------------------------------------------------------------------
 -spec service_config( Service :: atom() | string() | binary(),
-                      Region :: atom() | string() | binary(),
+                      Region :: string() | binary(),
                       Config :: #aws_config{} ) -> #aws_config{}.
 %%%---------------------------------------------------------------------------
 %% @doc Generate config updated to work with specified AWS service & region
@@ -276,14 +276,12 @@ update_config(#aws_config{} = Config) ->
 %% chaining of calls to this interface to allow concise configuraiton of a
 %% config for multiple services.
 %%
+service_config( Service, Region, Config ) when is_atom(Service) ->
+    service_config( atom_to_binary(Service, latin1), Region, Config );
 service_config( Service, Region, Config ) when is_list(Service) ->
     service_config( list_to_binary(Service), Region, Config );
 service_config( Service, Region, Config ) when is_list(Region) ->
     service_config( Service, list_to_binary(Region), Config );
-service_config( Service, Region, Config ) when is_atom(Service) ->
-    service_config( atom_to_binary(Service, latin1), Region, Config );
-service_config( Service, Region, Config ) when is_atom(Region) ->
-    service_config( Service, atom_to_binary(Region, latin1), Config );
 service_config( <<"autoscaling">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ as_host = Host };
@@ -311,6 +309,9 @@ service_config( <<"elasticloadbalancing">> = Service, Region, Config ) ->
     Config#aws_config{ elb_host = Host };
 service_config( <<"elb">>, Region, Config ) ->
     service_config( <<"elasticloadbalancing">>, Region, Config );
+service_config( <<"iam">> = Service, <<"cn-north-1">> = Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ iam_host = Host };
 service_config( <<"iam">>, _Region, Config ) -> Config;
 service_config( <<"kinesis">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
@@ -325,7 +326,7 @@ service_config( <<"s3">> = Service, Region, Config ) ->
 service_config( <<"sdb">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ sdb_host = Host };
-service_config( <<"ses">> = Service, Region, Config ) ->
+service_config( <<"ses">>, Region, Config ) ->
     Host = service_host( <<"email">>, Region ),
     Config#aws_config{ ses_host = Host };
 service_config( <<"sns">> = Service, Region, Config ) ->
@@ -341,7 +342,7 @@ service_config( <<"waf">>, _Region, Config ) -> Config.
 
     
 %%%---------------------------------------------------------------------------
--spec service_host( Service :: atom() | binary(),
+-spec service_host( Service :: binary(),
                     Region :: binary() ) -> string().
 %%%---------------------------------------------------------------------------
 %% @hidden
@@ -351,15 +352,14 @@ service_config( <<"waf">>, _Region, Config ) -> Config.
 %% names.
 %%
 service_host( <<"s3">>, <<"us-east-1">> ) -> "s3-external-1.amazonaws.com";
+service_host( <<"s3">>, <<"cn-north-1">> ) -> "s3.cn-north-1.amazonaws.com.cn";
+service_host( <<"s3">>, <<"us-gov-west-1">> ) ->
+    "s3-fips-us-gov-west-1.amazonaws.com";
 service_host( <<"s3">>, Region ) ->
     binary_to_list( <<"s3-", Region/binary, ".amazonaws.com">> );
 service_host( <<"sdb">>, <<"us-east-1">> ) -> "sdb.amazonaws.com";
 service_host( Service, Region ) when is_binary(Service) ->
-    binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com">> );
-service_host( ListService, Region ) when is_list(ListService) ->
-    service_host( list_to_binary(ListService), Region ).
-
-
+    binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com">> ).
 
 
 
