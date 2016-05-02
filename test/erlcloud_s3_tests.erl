@@ -14,18 +14,21 @@
 
 operation_test_() ->
     {foreach,
-     fun start/0,
-     fun stop/1,
-     [fun get_bucket_policy_tests/1,
-         fun get_bucket_notification_test/1,
-      fun put_object_tests/1,
-      fun error_handling_tests/1,
-      fun dns_compliant_name_tests/1,
-      fun get_bucket_lifecycle_tests/1,
-      fun put_bucket_lifecycle_tests/1,
-      fun delete_bucket_lifecycle_tests/1,
-      fun encode_bucket_lifecycle_tests/1
-     ]}.
+        fun start/0,
+        fun stop/1,
+        [
+            fun get_bucket_policy_tests/1,
+            fun get_bucket_notification_test/1,
+            fun get_bucket_notification_no_prefix_test/1,
+            fun get_bucket_notification_no_suffix_test/1,
+            fun put_object_tests/1,
+            fun error_handling_tests/1,
+            fun dns_compliant_name_tests/1,
+            fun get_bucket_lifecycle_tests/1,
+            fun put_bucket_lifecycle_tests/1,
+            fun delete_bucket_lifecycle_tests/1,
+            fun encode_bucket_lifecycle_tests/1
+        ]}.
 
 start() ->
     meck:new(erlcloud_httpc),
@@ -134,6 +137,24 @@ encode_bucket_lifecycle_tests(_) ->
 set_bucket_notification_test_() ->
     [?_assertEqual({'NotificationConfiguration',[]},
                    erlcloud_s3:create_notification_xml([])),
+     ?_assertError(
+            function_clause,
+            erlcloud_s3:create_notification_param_xml({filter,[{foo, "bar"}]}, [])),
+     ?_assertEqual(
+            [{'Filter',[{'S3Key',
+                [{'FilterRule',[{'Name',["Prefix"]}, {'Value',["images/"]}]}]}]}],
+            erlcloud_s3:create_notification_param_xml({filter,[{prefix, "images/"}]}, [])),
+     ?_assertEqual(
+            [{'Filter',[{'S3Key',
+                [{'FilterRule',[{'Name',["Suffix"]}, {'Value',["jpg"]}]}]}]}],
+            erlcloud_s3:create_notification_param_xml({filter,[{suffix, "jpg"}]}, [])),
+     ?_assertEqual(
+         [{'Filter',[{'S3Key',
+             [{'FilterRule',[{'Name',["Prefix"]}, {'Value',["images/"]}]},
+              {'FilterRule',[{'Name',["Suffix"]}, {'Value',["jpg"]}]}]}]}],
+         erlcloud_s3:create_notification_param_xml({filter,[{prefix, "images/"},
+                                                            {suffix, "jpg"}]},
+                                                   [])),
      ?_assertEqual(?S3_BUCKET_EVENTS_SIMPLE_XML_FORM,
                    erlcloud_s3:create_notification_xml(?S3_BUCKET_EVENTS_LIST))].
 
@@ -142,6 +163,20 @@ get_bucket_notification_test(_) ->
     meck:expect(erlcloud_httpc, request,
         fun("https://s3.amazonaws.com/?notification", _, _, _, _, _) -> Response end),
     ?_assertEqual(?S3_BUCKET_EVENTS_LIST,
+        erlcloud_s3:get_bucket_attribute("BucketName", notification, config())).
+
+get_bucket_notification_no_prefix_test(_) ->
+    Response = {ok, {{200, "OK"}, [], ?S3_BUCKET_EVENT_XML_CONFIG_NO_PREFIX}},
+    meck:expect(erlcloud_httpc, request,
+        fun("https://s3.amazonaws.com/?notification", _, _, _, _, _) -> Response end),
+    ?_assertEqual(?S3_BUCKET_EVENTS_LIST_NO_PREFIX,
+        erlcloud_s3:get_bucket_attribute("BucketName", notification, config())).
+
+get_bucket_notification_no_suffix_test(_) ->
+    Response = {ok, {{200, "OK"}, [], ?S3_BUCKET_EVENT_XML_CONFIG_NO_SUFFIX}},
+    meck:expect(erlcloud_httpc, request,
+        fun("https://s3.amazonaws.com/?notification", _, _, _, _, _) -> Response end),
+    ?_assertEqual(?S3_BUCKET_EVENTS_LIST_NO_SUFFIX,
                   erlcloud_s3:get_bucket_attribute("BucketName", notification, config())).
 
 get_bucket_policy_tests(_) ->
