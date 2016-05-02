@@ -63,9 +63,14 @@
           directconnect_host="directconnect.us-east-1.amazonaws.com"::string(),
           directconnect_port=80::non_neg_integer(),
           cloudformation_host="cloudformation.us-east-1.amazonaws.com"::string(),
+          waf_scheme="https://"::string(),
+          waf_host="waf.amazonaws.com"::string(),
+          waf_port=443::non_neg_integer(),
           access_key_id::string()|undefined|false,
           secret_access_key::string()|undefined|false,
           security_token=undefined::string()|undefined,
+          %% epoch seconds when temporary credentials will expire
+          expiration :: pos_integer(),
           %% Network request timeout; if not specifed, the default timeout will be used:
           %% ddb: 1s for initial call, 10s for subsequence;
           %% s3:delete_objects_batch/{2,3}, cloudtrail: 1s;
@@ -86,8 +91,6 @@
           retry_num=10::non_neg_integer()
          }).
 -type(aws_config() :: #aws_config{}).
-
--define(DEFAULT_TIMEOUT, 10000).
 
 -record(aws_request,
         {

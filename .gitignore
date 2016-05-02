@@ -1,6 +1,6 @@
 # IntelliJ IDEA
 /.idea
-/*.iml
+*.iml
 
 *.beam
 *.tmproj

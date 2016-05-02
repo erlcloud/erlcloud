@@ -209,7 +209,7 @@ params_dimension(Prefix, ND, Dimension) ->
 params_stat(Prefix, StatisticValues) ->
     [
      {Prefix++".StatisticValues.Maximum",    float_to_list(StatisticValues#statistic_set.maximum)},
-     {Prefix++".StatisticValues.Minimum",    float_to_list(StatisticValues#statistic_set.maximum)},
+     {Prefix++".StatisticValues.Minimum",    float_to_list(StatisticValues#statistic_set.minimum)},
      {Prefix++".StatisticValues.Sum",        float_to_list(StatisticValues#statistic_set.sum)},
      {Prefix++".StatisticValues.SampleCount",integer_to_list(StatisticValues#statistic_set.sample_count)}
     ].

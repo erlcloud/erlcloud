@@ -10,17 +10,22 @@
          aws_request_form/8,
          aws_request_form_raw/8,
          param_list/2, default_config/0, update_config/1,
+         service_config/3,
          configure/1, format_timestamp/1,
          http_headers_body/1,
          request_to_return/1,
          sign_v4_headers/5,
          sign_v4/8,
          get_service_status/1,
-         is_throttling_error_response/1
+         is_throttling_error_response/1,
+         get_timeout/1,
+         profile/0, profile/1, profile/2
 ]).
 
 -include("erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
+
+-define(ERLCLOUD_RETRY_TIMEOUT, 10000).
 
 -record(metadata_credentials,
         {access_key_id :: string(),
@@ -28,6 +33,13 @@
          security_token=undefined :: string(),
          expiration_gregorian_seconds :: integer()
         }).
+
+-record(profile_options, {
+          session_name :: string(),
+          session_secs :: 900..3600,
+          external_id :: string()
+}).
+
 
 aws_request_xml(Method, Host, Path, Params, #aws_config{} = Config) ->
     Body = aws_request(Method, Host, Path, Params, Config),
@@ -288,6 +300,111 @@ update_config(#aws_config{} = Config) ->
                    security_token = Credentials#metadata_credentials.security_token}}
     end.
 
+
+%%%---------------------------------------------------------------------------
+-spec service_config( Service :: atom() | string() | binary(),
+                      Region :: string() | binary(),
+                      Config :: #aws_config{} ) -> #aws_config{}.
+%%%---------------------------------------------------------------------------
+%% @doc Generate config updated to work with specified AWS service & region
+%%
+%% This function will generate a new configuration, based on the one
+%% provided, and configured to access the specified AWS service in the
+%% specified region.  If called for a service without a region based
+%% endpoint, the config provided will be returned unaltered.
+%%
+%% If an invalid service name is provided, then this will throw an error,
+%% presuming that this is just a coding error.  This behavior allows the
+%% chaining of calls to this interface to allow concise configuraiton of a
+%% config for multiple services.
+%%
+service_config( Service, Region, Config ) when is_atom(Service) ->
+    service_config( atom_to_binary(Service, latin1), Region, Config );
+service_config( Service, Region, Config ) when is_list(Service) ->
+    service_config( list_to_binary(Service), Region, Config );
+service_config( Service, Region, Config ) when is_list(Region) ->
+    service_config( Service, list_to_binary(Region), Config );
+service_config( <<"autoscaling">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ as_host = Host };
+service_config( <<"cloudformation">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ cloudformation_host = Host };
+service_config( <<"cfn">>, Region, Config ) ->
+    service_config( <<"cloudformation">>, Region, Config );
+service_config( <<"cloudtrail">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ cloudtrail_host = Host };
+service_config( <<"dynamodb">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ ddb_host = Host };
+service_config( <<"ddb">>, Region, Config ) ->
+    service_config( <<"dynamodb">>, Region, Config );
+service_config( <<"streams.dynamodb">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ ddb_streams_host = Host };
+service_config( <<"ec2">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ ec2_host = Host };
+service_config( <<"elasticloadbalancing">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ elb_host = Host };
+service_config( <<"elb">>, Region, Config ) ->
+    service_config( <<"elasticloadbalancing">>, Region, Config );
+service_config( <<"iam">> = Service, <<"cn-north-1">> = Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ iam_host = Host };
+service_config( <<"iam">>, _Region, Config ) -> Config;
+service_config( <<"kinesis">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ kinesis_host = Host };
+service_config( <<"mechanicalturk">>, _Region, Config ) -> Config;
+service_config( <<"rds">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ rds_host = Host };
+service_config( <<"s3">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ s3_host = Host };
+service_config( <<"sdb">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ sdb_host = Host };
+service_config( <<"ses">>, Region, Config ) ->
+    Host = service_host( <<"email">>, Region ),
+    Config#aws_config{ ses_host = Host };
+service_config( <<"sns">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ sns_host = Host };
+service_config( <<"sqs">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ sqs_host = Host };
+service_config( <<"sts">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ sts_host = Host };
+service_config( <<"waf">>, _Region, Config ) -> Config.
+
+    
+%%%---------------------------------------------------------------------------
+-spec service_host( Service :: binary(),
+                    Region :: binary() ) -> string().
+%%%---------------------------------------------------------------------------
+%% @hidden
+%% @doc Host name for the specified AWS service & region
+%%
+%% This function handles the special and general cases of service host
+%% names.
+%%
+service_host( <<"s3">>, <<"us-east-1">> ) -> "s3-external-1.amazonaws.com";
+service_host( <<"s3">>, <<"cn-north-1">> ) -> "s3.cn-north-1.amazonaws.com.cn";
+service_host( <<"s3">>, <<"us-gov-west-1">> ) ->
+    "s3-fips-us-gov-west-1.amazonaws.com";
+service_host( <<"s3">>, Region ) ->
+    binary_to_list( <<"s3-", Region/binary, ".amazonaws.com">> );
+service_host( <<"sdb">>, <<"us-east-1">> ) -> "sdb.amazonaws.com";
+service_host( Service, Region ) when is_binary(Service) ->
+    binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com">> ).
+
+
+
 -spec configure(aws_config()) -> {ok, aws_config()}.
 
 configure(#aws_config{} = Config) ->
@@ -321,7 +438,7 @@ get_credentials_from_metadata(Config) ->
     case http_body(
            erlcloud_httpc:request(
              "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
-             get, [], <<>>, timeout(Config), Config)) of
+             get, [], <<>>, get_timeout(Config), Config)) of
         {error, Reason} ->
             {error, Reason};
         {ok, Body} ->
@@ -331,7 +448,7 @@ get_credentials_from_metadata(Config) ->
                    erlcloud_httpc:request(
                      "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++
                          binary_to_list(Role),
-                     get, [], <<>>, timeout(Config), Config)) of
+                     get, [], <<>>, get_timeout(Config), Config)) of
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
@@ -375,9 +492,9 @@ http_headers_body({ok, {{Status, StatusLine}, _Headers, Body}}) ->
 http_headers_body({error, Reason}) ->
     {error, {socket_error, Reason}}.
 
-timeout(#aws_config{timeout = undefined}) ->
-    ?DEFAULT_TIMEOUT;
-timeout(#aws_config{timeout = Timeout}) ->
+get_timeout(#aws_config{timeout = undefined}) ->
+    ?ERLCLOUD_RETRY_TIMEOUT;
+get_timeout(#aws_config{timeout = Timeout}) ->
     Timeout.
 
 %% Convert an aws_request record to return value as returned by http_headers_body
@@ -548,3 +665,194 @@ is_throttling_error_response(RequestResponse) ->
         _ ->
             true
     end.
+
+
+%%%---------------------------------------------------------------------------
+-spec profile() -> {ok, aws_config()} | {error, string()}.
+%%%---------------------------------------------------------------------------
+%% @doc Retrieve a config based on default credentials
+%%
+%% This function will retrieve the credentials for the <em>default</em>
+%% profile, in the same way as the AWS CLI tools, and construct a {@link
+%% #aws_config{}. config record} to be used accessing services.
+%%
+%% @see profile/2
+%%
+profile() ->
+    profile( default, [] ).
+
+
+%%%---------------------------------------------------------------------------
+-spec profile( Name :: atom() ) -> {ok, aws_config()} | {error, string()}.
+%%%---------------------------------------------------------------------------
+%% @doc Retrieve a config based on named credentials profile
+%%
+%% This function will retrieve the credentials for the named profile, in the
+%% same way as the AWS CLI tools, and construct a {@link
+%% #aws_config{}. config record} to be used accessing services.
+%%
+%% @see profile/2
+%%
+profile( Name ) ->
+    profile( Name, [] ).
+
+
+-type profile_option() :: {role_session_name, string()}
+                          | {role_session_secs, 900..3600}.
+
+%%%---------------------------------------------------------------------------
+-spec profile( Name :: atom(), Options :: [profile_option()] ) ->
+                     {ok, aws_config()} | {error, string()}.
+%%%---------------------------------------------------------------------------
+%% @doc Retrieve a config based on named credentials profile
+%%
+%% This function will read the <code>$HOME/.aws/credentials</code> file used
+%% by the AWS CLI tools and construct a {@link #aws_config{}. config record}
+%% to be used accessing services for the named profile.  This supports both
+%% direct credentials that appear in the profile:
+%%
+%% <code><pre>
+%%  [default]
+%%  aws_access_key_id = XXXXXXXXXXXXXXXXXXX2
+%%  aws_secret_access_key = yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy2
+%% </pre></code>
+%%
+%% as well as indirection using <em>source_profile</em>:
+%%
+%% <code><pre>
+%%  [foo]
+%%  source_profile = default
+%% </pre></code>
+%%
+%% and finally, will supports the <em>role_arn</em> specification, and will
+%% assume the role indicated using the credentials current when interpreting
+%% the profile in which they it is declared:
+%%
+%% <code><pre>
+%%  [foo]
+%%  role_arn=arn:aws:iam::892406118791:role/centralized-users
+%%  source_profile = default
+%% </pre></code>
+%%
+%% When using the the <em>role_arn</em> specification, you may supply the
+%% following two options to control the way in which the assume_role request
+%% is made via AWS STS service:
+%%
+%% <ul>
+%%  <li><code>'role_session_name'</code>
+%%    <p>The name that should be used
+%%    for the <code>RoleSessionName</code> parameter.  If this option is not
+%%    specified, then it will default to "erlcloud"</p>
+%%  </li>
+%%  <li><code>'role_duration_secs'</code>
+%%    <p>The number of seconds that
+%%    should be used for the <code>DurationSeconds</code> parameter.  If
+%%    this option is not specified, then it will default to 900 seconds.</p>
+%%  </li>
+%%  <li><code>'external_id'</code>
+%%    <p>The identifier that is used in the <code>ExternalId</code>
+%%    parameter.  If this option is not specified, then it will default to
+%%    `undefined`, which will work for normal in-account roles, but will
+%%    need to be specified for roles in external accounts.</p>
+%%  </li>
+%% </ul>
+%%
+profile( Name, Options ) ->
+    try
+        OptionsRec = profile_options( Options ),
+        Profiles = profiles_read(),
+        profiles_resolve( Name, Profiles, OptionsRec )
+    catch
+        throw:Error -> Error
+    end.
+
+profile_options( Options ) ->
+    SessionName = proplists:get_value( role_session_name, Options, "erlcloud" ),
+    SessionDuration = proplists:get_value( role_duration_secs, Options, 900 ),
+    ExternalId = proplists:get_value( external_id, Options ),
+    #profile_options{ session_name = SessionName, external_id = ExternalId,
+                      session_secs = SessionDuration }.
+
+profiles_read() ->
+    HOME = profiles_home(),
+    Path = HOME ++ "/.aws/credentials",
+    case file:read_file( Path ) of
+        {ok, Contents} ->
+            profiles_parse( Contents );
+        Error ->
+            error_msg( "could not read credentials file ~s, because ~p",
+                   [Path, Error] )
+    end.
+    
+profiles_home() ->
+    case os:getenv("HOME") of
+        false ->
+            error_msg( "HOME environment variable is not set" );
+        HOME -> HOME
+    end.
+        
+profiles_parse( Content ) ->
+    case eini:parse( Content ) of
+        {ok, Profiles} -> Profiles;
+        Error ->
+            error_msg( "failed to parse credentials, because: ~p", [Error] )
+    end.
+            
+profiles_resolve( Name, Profiles, Options ) ->
+    profiles_resolve( Name, Profiles, undefined, Options ).
+
+profiles_resolve( BinName, Profiles, Role, Options ) when is_binary(BinName) ->
+    try binary_to_existing_atom( BinName, latin1 ) of
+        Name -> profiles_resolve( Name, Profiles, Role, Options )
+    catch
+        error:badarg -> 
+            error_msg( "invalid source_profile reference to ~s", [BinName] )
+    end;
+profiles_resolve( Name, Profiles, BinRole, Options ) when is_binary(BinRole) ->
+    Role = binary_to_list( BinRole ),
+    profiles_resolve( Name, Profiles, Role, Options );
+profiles_resolve( Name, Profiles, Role, Options ) ->
+    case proplists:get_value( Name, Profiles ) of
+        undefined ->
+            error_msg( "profile ~s does not exist", [Name] );
+        Keys ->
+            profiles_recurse( Keys, Profiles, Role, Options )
+    end.
+
+profiles_recurse( Keys, Profiles, Role, Options ) ->
+    case profiles_credentials( Keys ) of
+        {ok, Id, Secret} ->
+            profiles_assume( Id, Secret, Role, Options );
+        {cont, ProfileName, BinRole} ->
+            profiles_resolve( ProfileName, Profiles, BinRole, Options )
+    end.
+
+profiles_credentials( Keys ) ->
+    Names = [aws_access_key_id, aws_secret_access_key, source_profile],
+    BinRole = proplists:get_value( role_arn, Keys ),
+    case [proplists:get_value( K, Keys ) || K <- Names] of
+        [Id, Secret, undefined] when Id =/= undefined, Secret =/= undefined ->
+            {ok, binary_to_list(Id), binary_to_list(Secret)};
+        [undefined, undefined, BinProfile] when BinProfile =/= undefined ->
+            {cont, BinProfile, BinRole}
+    end.
+
+profiles_assume( Id, Secret, undefined, _Options ) ->
+    Config = #aws_config{ access_key_id = Id, secret_access_key = Secret },
+    {ok, Config};
+profiles_assume( Id, Secret, Role,
+                 #profile_options{ session_name = Name, external_id = ExtId,
+                                   session_secs = Duration } ) ->
+    Config = #aws_config{ access_key_id = Id, secret_access_key = Secret },
+    {AssumedConfig, _Creds} =
+        erlcloud_sts:assume_role( Config, Role, Name, Duration, ExtId ),
+    {ok, AssumedConfig}.
+    
+
+error_msg( Message ) ->
+    Error = iolist_to_binary( Message ),
+    throw( {error, Error} ).
+
+error_msg( Format, Values ) ->
+    Error = iolist_to_binary( io_lib:format( Format, Values ) ),
+    throw( {error, Error} ).

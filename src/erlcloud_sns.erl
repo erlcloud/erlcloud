@@ -149,12 +149,11 @@ create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attribut
     create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, new_config(AccessKeyID, SecretAccessKey)).
 
 
--spec(create_topic/1 :: (string()) -> Arn::string()).
--spec(create_topic/2 :: (string(), aws_config()) -> Arn::string()).
-
+-spec create_topic/1 :: (string()) -> string().
 create_topic(TopicName) ->
     create_topic(TopicName, default_config()).
 
+-spec create_topic/2 :: (string(), aws_config()) -> string().
 create_topic(TopicName, Config)
     when is_record(Config, aws_config) ->
         Doc = sns_xml_request(Config, "CreateTopic", [{"Name", TopicName}]),
@@ -213,11 +212,10 @@ delete_endpoint(EndpointArn, AccessKeyID, SecretAccessKey) ->
 
 
 -spec delete_topic/1 :: (string()) -> ok.
--spec delete_topic/2 :: (string(), aws_config()) -> ok.
-
 delete_topic(TopicArn) ->
     delete_topic(TopicArn, default_config()).
 
+-spec delete_topic/2 :: (string(), aws_config()) -> ok.
 delete_topic(TopicArn, Config)
     when is_record(Config, aws_config) ->
         sns_simple_request(Config, "DeleteTopic", [{"TopicArn", TopicArn}]).
@@ -247,10 +245,9 @@ get_endpoint_attributes(EndpointArn, AccessKeyID, SecretAccessKey) ->
 
 
 -spec set_endpoint_attributes/2 :: (string(), [{sns_endpoint_attribute(), string()}]) -> string().
--spec set_endpoint_attributes/3 :: (string(), [{sns_endpoint_attribute(), string()}], aws_config()) -> string().
-
 set_endpoint_attributes(EndpointArn, Attributes) ->
     set_endpoint_attributes(EndpointArn, Attributes, default_config()).
+-spec set_endpoint_attributes/3 :: (string(), [{sns_endpoint_attribute(), string()}], aws_config()) -> string().
 set_endpoint_attributes(EndpointArn, Attributes, Config) ->
     Doc = sns_xml_request(Config, "SetEndpointAttributes", [{"EndpointArn", EndpointArn} |
                                                             encode_attributes(Attributes)]),
@@ -259,14 +256,12 @@ set_endpoint_attributes(EndpointArn, Attributes, Config) ->
 
 
 -spec list_endpoints_by_platform_application/1 :: (string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
--spec list_endpoints_by_platform_application/2 :: (string(), undefined|string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
--spec list_endpoints_by_platform_application/3 :: (string(), undefined|string(), aws_config()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
--spec list_endpoints_by_platform_application/4 :: (string(), undefined|string(), string(), string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
-
 list_endpoints_by_platform_application(PlatformApplicationArn) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, undefined).
+-spec list_endpoints_by_platform_application/2 :: (string(), undefined|string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
 list_endpoints_by_platform_application(PlatformApplicationArn, NextToken) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, default_config()).
+-spec list_endpoints_by_platform_application/3 :: (string(), undefined|string(), aws_config()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
 list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, Config) ->
     Params =
         case NextToken of
@@ -282,21 +277,21 @@ list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, Config
              {next_token, "ListEndpointsByPlatformApplicationResult/NextToken", text}],
             Doc),
     Decoded.
+-spec list_endpoints_by_platform_application/4 :: (string(), undefined|string(), string(), string()) -> [{endpoints, [sns_endpoint()]} | {next_token, string()}].
 list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, AccessKeyID, SecretAccessKey) ->
     list_endpoints_by_platform_application(PlatformApplicationArn, NextToken, new_config(AccessKeyID, SecretAccessKey)).
 
 -spec list_topics/0 :: () -> [{topics, [[{arn, string()}]]} | {next_token, string()}].
--spec list_topics/1 :: (undefined | string() | aws_config()) -> [{topics, [[{arn, string()}]]} | {next_token, string()}].
--spec list_topics/2 :: (undefined | string(), aws_config()) ->  [{topics, [[{arn, string()}]]} | {next_token, string()}].
-
 list_topics() ->
     list_topics(default_config()).
 
+-spec list_topics/1 :: (undefined | string() | aws_config()) -> [{topics, [[{arn, string()}]]} | {next_token, string()}].
 list_topics(Config) when is_record(Config, aws_config) ->
     list_topics(undefined, Config);
 list_topics(NextToken) ->
     list_topics(NextToken, default_config()).
 
+-spec list_topics/2 :: (undefined | string(), aws_config()) ->  [{topics, [[{arn, string()}]]} | {next_token, string()}].
 list_topics(NextToken, Config) ->
     Params =
         case NextToken of
@@ -314,10 +309,10 @@ list_topics(NextToken, Config) ->
     Decoded.
 
 -spec list_topics_all/0 :: () -> [[{arn, string()}]].
--spec list_topics_all/1 :: (aws_config()) -> [[{arn, string()}]].
 list_topics_all() ->
     list_topics_all(default_config()).
 
+-spec list_topics_all/1 :: (aws_config()) -> [[{arn, string()}]].
 list_topics_all(Config) ->
     list_all(fun list_topics/2, topics, Config, undefined, []).
 

@@ -4,11 +4,16 @@
 -include_lib("erlcloud/include/erlcloud.hrl").
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+-endif.
+
 -export([assume_role/4, assume_role/5,
          get_federation_token/3,
          get_federation_token/4]).
 
 -define(API_VERSION, "2011-06-15").
+-define(UTC_TO_GREGORIAN, 62167219200).
 
 
 assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds) ->
@@ -44,12 +49,13 @@ assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds, ExternalId)
             {expiration       , "AssumeRoleResult/Credentials/Expiration"     , time}
         ],
         Xml),
-
+    ExpireTS = expiration_tosecs( proplists:get_value(expiration, Creds) ),
     AssumedConfig =
         AwsConfig#aws_config {
             access_key_id     = proplists:get_value(access_key_id, Creds),
             secret_access_key = proplists:get_value(secret_access_key, Creds),
-            security_token    = proplists:get_value(session_token, Creds)
+            security_token    = proplists:get_value(session_token, Creds),
+            expiration        = ExpireTS
         },
 
     {AssumedConfig, Creds}.
@@ -82,16 +88,18 @@ get_federation_token(AwsConfig, DurationSeconds, Name, Policy)
                {access_key_id       , "GetFederationTokenResult/Credentials/AccessKeyId", text},
                {secret_access_key   , "GetFederationTokenResult/Credentials/SecretAccessKey", text},
                {session_token       , "GetFederationTokenResult/Credentials/SessionToken"   , text},
+               {expiration          , "GetFederationTokenResult/Credentials/Expiration", text},
                {federated_user_arn  , "GetFederationTokenResult/FederatedUser/Arn", text},
                {federated_user_id   , "GetFederationTokenResult/FederatedUser/FederatedUserId", text}
               ],
               Xml),
-
+    ExpireTS = expiration_tosecs( proplists:get_value(expiration, Creds) ),
     FederatedConfig =
         AwsConfig#aws_config {
           access_key_id     = proplists:get_value(access_key_id, Creds),
           secret_access_key = proplists:get_value(secret_access_key, Creds),
-          security_token    = proplists:get_value(session_token, Creds)
+          security_token    = proplists:get_value(session_token, Creds),
+          expiration        = ExpireTS
          },
 
     {FederatedConfig, Creds}.
@@ -112,3 +120,21 @@ sts_query(AwsConfig, Action, Params, ApiVersion) ->
         {error, Reason} ->
             erlang:error({aws_error, Reason})
     end.
+
+expiration_tosecs( Timestamp ) ->
+    {ok, [Year,Month,Day,Hour,Min,Sec,_Ms],[]} =
+        io_lib:fread( "~4d-~2d-~2dT~2d:~2d:~2d.~3dZ", Timestamp ),
+    GregorianSeconds = calendar:datetime_to_gregorian_seconds(
+                         {{Year,Month,Day},{Hour,Min,Sec}} ),
+    (GregorianSeconds - ?UTC_TO_GREGORIAN).
+
+    
+
+-ifdef(TEST).
+
+expiration_tosecs_test() ->
+    Timestamp = "2011-07-15T23:28:33.359Z",
+    ?assertEqual( 1310772513, expiration_tosecs( Timestamp ) ).
+
+
+-endif.
