@@ -88,7 +88,7 @@ get_federation_token(AwsConfig, DurationSeconds, Name, Policy)
                {access_key_id       , "GetFederationTokenResult/Credentials/AccessKeyId", text},
                {secret_access_key   , "GetFederationTokenResult/Credentials/SecretAccessKey", text},
                {session_token       , "GetFederationTokenResult/Credentials/SessionToken"   , text},
-               {expiration          , "GetFederationTokenResult/Credentials/Expiration", text},
+               {expiration          , "GetFederationTokenResult/Credentials/Expiration", time},
                {federated_user_arn  , "GetFederationTokenResult/FederatedUser/Arn", text},
                {federated_user_id   , "GetFederationTokenResult/FederatedUser/FederatedUserId", text}
               ],
@@ -121,13 +121,13 @@ sts_query(AwsConfig, Action, Params, ApiVersion) ->
             erlang:error({aws_error, Reason})
     end.
 
+expiration_tosecs( Datetime ) when is_tuple(Datetime) ->
+    GregorianSeconds = calendar:datetime_to_gregorian_seconds( Datetime ),
+    (GregorianSeconds - ?UTC_TO_GREGORIAN);
 expiration_tosecs( Timestamp ) ->
     {ok, [Year,Month,Day,Hour,Min,Sec,_Ms],[]} =
         io_lib:fread( "~4d-~2d-~2dT~2d:~2d:~2d.~3dZ", Timestamp ),
-    GregorianSeconds = calendar:datetime_to_gregorian_seconds(
-                         {{Year,Month,Day},{Hour,Min,Sec}} ),
-    (GregorianSeconds - ?UTC_TO_GREGORIAN).
-
+    expiration_tosecs( {{Year,Month,Day},{Hour,Min,Sec}} ).
     
 
 -ifdef(TEST).
