@@ -391,6 +391,7 @@ list_objects(BucketName, Options, Config)
     Attributes = [{name, "Name", text},
                   {prefix, "Prefix", text},
                   {marker, "Marker", text},
+                  {next_marker, "NextMarker", text},
                   {delimiter, "Delimiter", text},
                   {max_keys, "MaxKeys", integer},
                   {is_truncated, "IsTruncated", boolean},
