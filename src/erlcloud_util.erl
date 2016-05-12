@@ -22,19 +22,18 @@ sha256_mac(K, S) ->
             crypto:hmac_final(R1)
     end.
 
+-ifdef(old_hash).
 sha256(V) ->
-    try
-        crypto:hash(sha256, V)
-    catch
-        _:_ ->
-            crypto:sha256(V)
-    end.
+    crypto:sha256(V).
+-else.
+sha256(V) ->
+    crypto:hash(sha256, V).
+-endif.
 
+-ifdef(old_hash).
 md5(V) ->
-    try
-        crypto:hash(md5, V)
-    catch
-        _:_ ->
-            crypto:md5(V)
-    end.
-     
+    crypto:md5(V).
+-else.
+md5(V) ->
+    crypto:hash(md5, V).
+-endif.
