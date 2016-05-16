@@ -21,7 +21,7 @@ assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds) ->
 
 
 % See http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html
--spec assume_role/5 :: (#aws_config{}, string(), string(), 900..3600, undefined | string()) -> {#aws_config{}, proplist()}.
+-spec assume_role(#aws_config{}, string(), string(), 900..3600, undefined | string()) -> {#aws_config{}, proplist()}.
 assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds, ExternalId)
     when length(RoleArn) >= 20,
          length(RoleSessionName) >= 2, length(RoleSessionName) =< 32,
@@ -65,7 +65,7 @@ get_federation_token(AwsConfig, DurationSeconds, Name) ->
         get_federation_token(AwsConfig, DurationSeconds, Name, undefined).
 
 % See http://docs.aws.amazon.com/STS/latest/APIReference/API_GetFederationToken.html
--spec get_federation_token/4 :: (#aws_config{}, 900..129600, string(), undefined | string()) -> {#aws_config{}, proplist()}.
+-spec get_federation_token(#aws_config{}, 900..129600, string(), undefined | string()) -> {#aws_config{}, proplist()}.
 get_federation_token(AwsConfig, DurationSeconds, Name, Policy)
   when length(Name) >= 2, length(Name) =< 32,
        DurationSeconds >= 900, DurationSeconds =< 129600 ->
