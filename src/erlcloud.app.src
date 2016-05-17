@@ -12,6 +12,7 @@
                   ssl,
                   xmerl,
                   inets,
+                  eini,
                   jsx,
                   %% hackney,
                   lhttpc]},
