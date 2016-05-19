@@ -24,9 +24,9 @@
          test2/0
         ]).
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
--include_lib("erlcloud/include/erlcloud_mon.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
+-include("erlcloud_mon.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
 -import(erlcloud_xml, [get_text/2]).
@@ -276,23 +276,23 @@ configure_host(Host, Port, Protocol) ->
                                   mon_protocol=Protocol},
     put(aws_config, NewConfig).
 
--spec(new/2 :: (string(), string()) -> aws_config()).
+-spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey}.
 
--spec(new/3 :: (string(), string(), string()) -> aws_config()).
+-spec new(string(), string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
                 mon_host=Host}.
 
--spec(configure/2 :: (string(), string()) -> ok).
+-spec configure(string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey)),
     ok.
 
--spec(configure/3 :: (string(), string(), string()) -> ok).
+-spec configure(string(), string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.

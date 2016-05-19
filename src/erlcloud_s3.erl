@@ -34,8 +34,8 @@
          get_bucket_and_key/1
         ]).
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
 %%% Note that get_bucket_and_key/1 may be used to obtain the Bucket and Key to pass to various
@@ -328,7 +328,7 @@ list_buckets(Config) ->
 % @doc Get S3 bucket policy JSON object
 % API Document: http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGETacl.html
 %
--spec(get_bucket_policy/1 :: (BucketName::string()) -> ok | {error, Reason::term()}).
+-spec get_bucket_policy(BucketName::string()) -> ok | {error, Reason::term()}.
 get_bucket_policy(BucketName) ->
     get_bucket_policy(BucketName, default_config()).
 
@@ -344,7 +344,7 @@ get_bucket_policy(BucketName) ->
 %                                   <RequestId>DC1EA9456B266EF5</RequestId>
 %                                   <HostId>DRtkAB80cAeom+4ffSGU3PFCxS7QvtiW+wxLnPF0dM2nxoaRqQk1SK/z62ZJVHAD</HostId>
 %                               </Error>"}}
--spec(get_bucket_policy/2 :: (BucketName::string(), Config::aws_config()) -> {ok, Policy::string()} | {error, Reason::term()}).
+-spec get_bucket_policy(BucketName::string(), Config::aws_config()) -> {ok, Policy::string()} | {error, Reason::term()}.
 get_bucket_policy(BucketName, Config)
     when is_record(Config, aws_config) ->
         case s3_request2(Config, get, BucketName, "/", "policy", [], <<>>, []) of
