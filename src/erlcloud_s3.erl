@@ -119,7 +119,8 @@ configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
                                   | location
                                   | logging
                                   | request_payment
-                                  | versioning.
+                                  | versioning
+                                  | notification.
 
 -type s3_bucket_acl() :: private
                        | public_read
