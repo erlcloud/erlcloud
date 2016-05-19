@@ -166,9 +166,9 @@
 % -define(NEW_API_VERSION, "2013-10-15").
 % -define(NEW_API_VERSION, "2014-02-01").
 -define(NEW_API_VERSION, "2015-10-01").
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
--include_lib("erlcloud/include/erlcloud_ec2.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
+-include("erlcloud_ec2.hrl").
 
 -type filter_list() :: [{string(),[string()]}].
 

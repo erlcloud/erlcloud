@@ -1,7 +1,7 @@
 -module(erlcloud_cloudtrail).
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 
 %% EC2 API Functions
 -export([

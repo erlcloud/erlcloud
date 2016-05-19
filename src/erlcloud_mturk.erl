@@ -57,9 +57,9 @@
          update_qualification_type/1, update_qualification_type/2
         ]).
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
--include_lib("erlcloud/include/erlcloud_mturk.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
+-include("erlcloud_mturk.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
 -define(API_VERSION, "2008-08-02").

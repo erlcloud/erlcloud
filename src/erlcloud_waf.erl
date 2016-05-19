@@ -1,8 +1,8 @@
 -module(erlcloud_waf).
 -author('pavel@alertlogic.com').
 
--include_lib("erlcloud/include/erlcloud_aws.hrl").
--include_lib("erlcloud/include/erlcloud_waf.hrl").
+-include("erlcloud_aws.hrl").
+-include("erlcloud_waf.hrl").
 
 %%% Library initialization.
 -export([configure/2, configure/3, configure/4, new/2, new/3, new/4]).

@@ -16,8 +16,8 @@
          split_shards/3, split_shards/4
         ]).
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 
 -spec new(string(), string()) -> aws_config().
 

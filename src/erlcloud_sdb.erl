@@ -33,8 +33,8 @@
 -compile(export_all).
 -endif.
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 
 -define(API_VERSION, "2009-04-15").
 -define(SDB_TIMEOUT, 10000).
