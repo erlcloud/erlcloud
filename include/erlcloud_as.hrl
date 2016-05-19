@@ -44,3 +44,13 @@
           progress :: integer()
          }).
 -type(aws_autoscaling_activity() :: #aws_autoscaling_activity{}).
+
+-record(aws_autoscaling_lifecycle_hook,{
+          group_name :: string(),
+          lifecycle_hook_name :: string(),
+          global_timeout :: non_neg_integer(),
+          heartbeat_timeout :: non_neg_integer(),
+          default_result :: string(),
+          lifecycle_transition :: string()
+         }).
+-type(aws_autoscaling_lifecycle_hook() :: #aws_autoscaling_lifecycle_hook{}).
