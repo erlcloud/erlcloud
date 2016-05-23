@@ -2754,9 +2754,9 @@ run_instances(InstanceSpec, Config)
 net_if_params(#ec2_net_if{private_ip=undefined}=X) ->
     [
         {"DeviceIndex", X#ec2_net_if.device_index},
-        {"SubnetId",    X#ec2_net_if.subnet_id},
-        {"AssociatePublicIpAddress", X#ec2_net_if.associate_public_ip}
-    ] ++ erlcloud_aws:param_list(X#ec2_net_if.security_group, "SecurityGroupId");
+        {"SubnetId",    X#ec2_net_if.subnet_id}
+    ] ++ [{"AssociatePublicIpAddress", X#ec2_net_if.associate_public_ip} || X#ec2_net_if.associate_public_ip /= undefined]
+      ++ erlcloud_aws:param_list(X#ec2_net_if.security_group, "SecurityGroupId");
 net_if_params(#ec2_net_if{}=X) ->
     [
         {"DeviceIndex", X#ec2_net_if.device_index},
