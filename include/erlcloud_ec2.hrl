@@ -12,10 +12,10 @@
 
 %% Network interface (used by launch specification)
 -record(ec2_net_if, {
-          device_index   :: string(),
-          subnet_id      :: string(),
-          security_group :: [string()],
-          private_ip     :: [string()],
+          device_index        :: string(),
+          subnet_id           :: string(),
+          security_group=[]   :: [string()],
+          private_ip=[]       :: [string()],
           associate_public_ip :: boolean()
 }).
 

@@ -2751,7 +2751,7 @@ run_instances(InstanceSpec, Config)
             Error
     end.
 
-private_ip_params(undefined) -> [];
+private_ip_params([]) -> [];
 private_ip_params([HeadIP|TailIPs]) ->
     [{"PrivateIpAddress", HeadIP}|
       erlcloud_aws:param_list(
