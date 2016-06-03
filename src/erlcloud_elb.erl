@@ -13,7 +13,9 @@
          describe_load_balancer/1, describe_load_balancer/2,
          describe_load_balancers/1, describe_load_balancers/2,
 
-         configure_health_check/2, configure_health_check/3]).
+         configure_health_check/2, configure_health_check/3,
+
+         describe_load_balancer_attributes/1, describe_load_balancer_attributes/2]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -22,6 +24,9 @@
 
 -import(erlcloud_xml, [get_text/2]).
 
+%%%===================================================================
+%%% API
+%%%===================================================================
 -spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id=AccessKeyID,
@@ -109,6 +114,7 @@ configure_health_check(LB, Target) when is_list(LB),
                                         is_list(Target) ->
     configure_health_check(LB, Target, default_config()).
 
+
 -spec configure_health_check(string(), string(), aws_config()) -> proplist().
 configure_health_check(LB, Target, Config) when is_list(LB) ->
     elb_simple_request(Config,
@@ -117,21 +123,52 @@ configure_health_check(LB, Target, Config) when is_list(LB) ->
                         {"HealthCheck.Target", Target}]).
 
 
+-spec describe_load_balancer(string()) -> proplist().
 describe_load_balancer(Name) ->
     describe_load_balancer(Name, default_config()).
 describe_load_balancer(Name, Config) ->
     describe_load_balancers([Name], Config).
 
-
+-spec describe_load_balancers([string()]) -> proplist().
 describe_load_balancers(Names) ->
     describe_load_balancers(Names, default_config()).
 describe_load_balancers(Names, Config) ->
     elb_request(Config,
                 "DescribeLoadBalancers",
-                [erlcloud_aws:param_list(Names, "LoadBalancerNames.member")]).
+                [erlcloud_aws:param_list(Names, "LoadBalancerName.member")]).
+
+-spec describe_load_balancer_attributes(string()) -> proplist().
+describe_load_balancer_attributes(Name) ->
+    describe_load_balancer_attributes(Name, default_config()).
+
+-spec describe_load_balancer_attributes(string(), aws_config()) -> proplist().
+describe_load_balancer_attributes(Name, Config) ->
+    Node = elb_request(Config,
+        "DescribeLoadBalancerAttributes",
+        [{"LoadBalancerName", Name}]),
+    extract_elb_attribs(Node).
 
 
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+-spec extract_elb_attribs(proplist()) -> proplist().
+extract_elb_attribs(Node) ->
+    RootPath = "DescribeLoadBalancerAttributesResult/LoadBalancerAttributes",
+    erlcloud_xml:decode(
+        [
+            {access_log_enabled, RootPath ++ "/AccessLog/Enabled", boolean},
+            {access_log_s3_name, RootPath ++ "/AccessLog/S3BucketName", text},
+            {access_log_s3_prefix, RootPath ++ "/AccessLog/S3BucketPrefix", text},
+            {access_log_emit_interval, RootPath ++ "/AccessLog/EmitInterval", integer},
 
+            {connection_settings_idletimeout, RootPath ++ "/ConnectionSettings/IdleTimeout", integer},
+
+            {cross_zone_load_balancing_enabled, RootPath ++ "/CrossZoneLoadBalancing/Enabled", boolean},
+
+            {connection_draining_enabled, RootPath ++ "/ConnectionDraining/Enabled", boolean},
+            {connection_draining_timeout, RootPath ++ "/ConnectionDraining/Timeout", integer}
+        ], Node).
 
 elb_request(Config, Action, Params) ->
     QParams = [{"Action", Action}, {"Version", ?API_VERSION} | Params],
