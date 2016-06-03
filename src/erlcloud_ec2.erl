@@ -2751,21 +2751,23 @@ run_instances(InstanceSpec, Config)
             Error
     end.
 
-net_if_params(#ec2_net_if{private_ip=undefined}=X) ->
-    [
-        {"DeviceIndex", X#ec2_net_if.device_index},
-        {"SubnetId",    X#ec2_net_if.subnet_id},
-        {"AssociatePublicIpAddress", X#ec2_net_if.associate_public_ip}
-    ] ++ erlcloud_aws:param_list(X#ec2_net_if.security_group, "SecurityGroupId");
+private_ip_params([]) -> [];
+private_ip_params([HeadIP|TailIPs]) ->
+    [{"PrivateIpAddress", HeadIP}|
+      erlcloud_aws:param_list(
+        [[{"PrivateIpAddress", IP}] || IP <- TailIPs], "PrivateIpAddresses")].
+
+public_ip_params(undefined) -> [];
+public_ip_params(Bool) -> [{"AssociatePublicIpAddress", Bool}].
+
 net_if_params(#ec2_net_if{}=X) ->
     [
         {"DeviceIndex", X#ec2_net_if.device_index},
-        {"SubnetId",    X#ec2_net_if.subnet_id},
-        {"AssociatePublicIpAddress", X#ec2_net_if.associate_public_ip},
-        {"PrivateIpAddress", hd(X#ec2_net_if.private_ip)}
-    ] ++ erlcloud_aws:param_list(
-        [ [{"PrivateIpAddress", IP}] || IP <- tl(X#ec2_net_if.private_ip)], "PrivateIpAddresses"
-    ) ++ erlcloud_aws:param_list(X#ec2_net_if.security_group, "SecurityGroupId").
+        {"SubnetId",    X#ec2_net_if.subnet_id}
+    ]
+    ++ public_ip_params(X#ec2_net_if.associate_public_ip)
+    ++ private_ip_params(X#ec2_net_if.private_ip)
+    ++ erlcloud_aws:param_list(X#ec2_net_if.security_group, "SecurityGroupId").
 net_if_params(List, Prefix) ->
     erlcloud_aws:param_list([net_if_params(X) || X <- List], Prefix).
 
