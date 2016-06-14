@@ -353,7 +353,7 @@ sdb_request_with_retry(Config, Action, Params, Try, Timeout, StartTime) ->
                     Wait = math:pow(2, Try) * 200.0,
                     %% Not exactly random since we're relying on the
                     %% calling process to hold our PRNG state.
-                    FuzzWait = random:uniform(round(Wait)),
+                    FuzzWait = erlcloud_util:rand_uniform(round(Wait)),
                     timer:sleep(FuzzWait),
                     sdb_request_with_retry(Config, Action, Params,
                                            Try + 1, Timeout, StartTime)

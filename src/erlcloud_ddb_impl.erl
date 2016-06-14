@@ -107,7 +107,7 @@ request(Config0, Operation, Json) ->
 -spec backoff(pos_integer()) -> ok.
 backoff(1) -> ok;
 backoff(Attempt) ->
-    timer:sleep(random:uniform((1 bsl (Attempt - 1)) * 100)).
+    timer:sleep(erlcloud_util:rand_uniform((1 bsl (Attempt - 1)) * 100)).
 
 %% HTTPC timeout for a request
 timeout(1, #aws_config{timeout = undefined}) ->

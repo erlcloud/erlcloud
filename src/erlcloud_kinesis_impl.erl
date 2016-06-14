@@ -81,7 +81,7 @@ request(Config0, Operation, Json) ->
 -spec backoff(pos_integer()) -> ok.
 backoff(1) -> ok;
 backoff(Attempt) ->
-    timer:sleep(random:uniform((1 bsl (Attempt - 1)) * 100)).
+    timer:sleep(erlcloud_util:rand_uniform((1 bsl (Attempt - 1)) * 100)).
 
 -type attempt() :: {attempt, pos_integer()} | {error, term()}.
 -type retry_fun() :: fun((pos_integer(), term()) -> attempt()).
