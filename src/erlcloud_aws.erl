@@ -266,20 +266,23 @@ format_timestamp({{Yr, Mo, Da}, {H, M, S}}) ->
 
 default_config() ->
     case get(aws_config) of
-        undefined ->
-            AccessKeyId = case os:getenv("AWS_ACCESS_KEY_ID") of
-                              false -> "";
-                              AKI -> AKI
-                          end,
-            SecretAccessKey = case os:getenv("AWS_SECRET_ACCESS_KEY") of
-                                  false -> "";
-                                  SAC -> SAC
-                              end,
-            #aws_config{access_key_id = AccessKeyId,
-                        secret_access_key = SecretAccessKey};
-        Config ->
-            Config
+        undefined -> default_config_env();
+        Config -> Config
     end.
+
+default_config_env() ->
+    case {os:getenv("AWS_ACCESS_KEY_ID"), os:getenv("AWS_SECRET_ACCESS_KEY")} of
+        {KeyId, Secret} when is_list(KeyId), is_list(Secret) ->
+            #aws_config{access_key_id = KeyId, secret_access_key = Secret};
+        _ -> default_config_profile()
+    end.
+
+default_config_profile() ->
+    case profile() of
+        {ok, Config} -> Config;
+        _ -> #aws_config{}
+    end.
+
 
 -spec update_config(aws_config()) -> {ok, aws_config()} | {error, term()}.
 update_config(#aws_config{access_key_id = KeyId} = Config)
