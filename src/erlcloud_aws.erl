@@ -144,6 +144,11 @@ aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) ->
             {error, Reason}
     end.
 
+aws_request4_no_update(put, Protocol, Host, Port, Path, Params, Service, #aws_config{} = Config) ->
+    Region = aws_region_from_host(Host),
+    SignedHeaders = sign_v4(put, Path, Config, [{"host", Host}], Params, Region, Service, []),
+    aws_request_form(put, Protocol, Host, Port, Path, Params, SignedHeaders, Config);
+
 aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service, #aws_config{} = Config) ->
     Query = erlcloud_http:make_query_string(Params),
     Region = aws_region_from_host(Host),
@@ -188,7 +193,7 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
                 erlcloud_httpc:request(
                   lists:flatten(URL), Method,
                   [{<<"content-type">>, <<"application/x-www-form-urlencoded; charset=utf-8">>} | Headers],
-                  list_to_binary(Form), get_timeout(Config), Config)
+                  if is_binary(Form) -> Form; true -> list_to_binary(Form) end, get_timeout(Config), Config)
         end,
 
     http_body(Response).
