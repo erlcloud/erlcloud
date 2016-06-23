@@ -361,6 +361,9 @@ service_config( <<"iam">>, _Region, Config ) -> Config;
 service_config( <<"kinesis">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ kinesis_host = Host };
+service_config( <<"lambda">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ lambda_host = Host };
 service_config( <<"mechanicalturk">>, _Region, Config ) -> Config;
 service_config( <<"rds">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
