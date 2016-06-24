@@ -271,16 +271,33 @@ default_config() ->
     end.
 
 default_config_env() ->
-    case {os:getenv("AWS_ACCESS_KEY_ID"), os:getenv("AWS_SECRET_ACCESS_KEY")} of
-        {KeyId, Secret} when is_list(KeyId), is_list(Secret) ->
-            #aws_config{access_key_id = KeyId, secret_access_key = Secret};
+    case {os:getenv("AWS_ACCESS_KEY_ID"), os:getenv("AWS_SECRET_ACCESS_KEY"),
+          os:getenv("AWS_SECURITY_TOKEN", undefined )} of
+        {KeyId, Secret, Token} when is_list(KeyId), is_list(Secret) ->
+            #aws_config{access_key_id = KeyId, secret_access_key = Secret,
+                        security_token = Token};
         _ -> default_config_profile()
     end.
 
 default_config_profile() ->
     case profile() of
         {ok, Config} -> Config;
-        _ -> #aws_config{}
+        _ -> default_config_metadata()
+    end.
+
+default_config_metadata() ->
+    Config = #aws_config{},
+    case get_metadata_credentials( Config ) of
+        {ok, #metadata_credentials{
+                access_key_id = Id,
+                secret_access_key = Secret,
+                security_token = Token,
+                expiration_gregorian_seconds = GregorianSecs}} ->
+            EpochTimeout = GregorianSecs - 62167219200,
+            {ok, Config#aws_config {
+                   access_key_id = Id, secret_access_key = Secret,
+                   security_token = Token, expiration = EpochTimeout }};
+        {error, _Reason} -> Config
     end.
 
 
