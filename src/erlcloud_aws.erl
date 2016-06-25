@@ -272,8 +272,9 @@ default_config() ->
 
 default_config_env() ->
     case {os:getenv("AWS_ACCESS_KEY_ID"), os:getenv("AWS_SECRET_ACCESS_KEY"),
-          os:getenv("AWS_SECURITY_TOKEN", undefined )} of
-        {KeyId, Secret, Token} when is_list(KeyId), is_list(Secret) ->
+          os:getenv("AWS_SECURITY_TOKEN")} of
+        {KeyId, Secret, T} when is_list(KeyId), is_list(Secret) ->
+            Token = if is_list(T) -> T; true -> undefined end,
             #aws_config{access_key_id = KeyId, secret_access_key = Secret,
                         security_token = Token};
         _ -> default_config_profile()
