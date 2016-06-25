@@ -450,6 +450,7 @@ get_metadata_credentials(Config) ->
             get_credentials_from_metadata(Config)
     end.
 
+timestamp_to_gregorian_seconds(undefined) -> undefined;
 timestamp_to_gregorian_seconds(Timestamp) ->
     {ok, [Yr, Mo, Da, H, M, S], []} = io_lib:fread("~d-~d-~dT~d:~d:~dZ", binary_to_list(Timestamp)),
     calendar:datetime_to_gregorian_seconds({{Yr, Mo, Da}, {H, M, S}}).
@@ -477,16 +478,34 @@ get_credentials_from_metadata(Config) ->
                     {error, Reason};
                 {ok, Json} ->
                     Creds = jsx:decode(Json),
-                    Record = #metadata_credentials
-                        {access_key_id = binary_to_list(proplists:get_value(<<"AccessKeyId">>, Creds)),
-                         secret_access_key = binary_to_list(proplists:get_value(<<"SecretAccessKey">>, Creds)),
-                         security_token = binary_to_list(proplists:get_value(<<"Token">>, Creds)),
-                         expiration_gregorian_seconds = timestamp_to_gregorian_seconds(
-                                                          proplists:get_value(<<"Expiration">>, Creds))},
-                    application:set_env(erlcloud, metadata_credentials, Record),
-                    {ok, Record}
+                    get_credentials_from_metadata_xform( Creds )
             end
     end.
+
+get_credentials_from_metadata_xform( Creds ) ->
+    case {prop_to_list_defined(<<"AccessKeyId">>, Creds),
+          prop_to_list_defined(<<"SecretAccessKey">>, Creds),
+          prop_to_list_defined(<<"Token">>, Creds),
+          timestamp_to_gregorian_seconds(
+            proplists:get_value(<<"Expiration">>, Creds))} of
+        {Id, Key, Token, GregorianExpire} when is_list(Id), is_list(Key),
+                                               is_list(Token),
+                                               is_integer(GregorianExpire) ->
+            Record = #metadata_credentials{
+                        access_key_id = Id, secret_access_key = Key,
+                        security_token = Token,
+                        expiration_gregorian_seconds = GregorianExpire },
+            application:set_env(erlcloud, metadata_credentials, Record),
+            {ok, Record};
+        _ -> {error, metadata_not_available}
+    end.
+
+prop_to_list_defined( Name, Props ) ->
+    case proplists:get_value( Name, Props ) of
+        undefined -> undefined;
+        Value when is_binary(Value) -> binary_to_list(Value)
+    end.
+
 
 port_to_str(Port) when is_integer(Port) ->
     integer_to_list(Port);
