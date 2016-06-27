@@ -26,6 +26,7 @@
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
 -define(ERLCLOUD_RETRY_TIMEOUT, 10000).
+-define(GREGORIAN_EPOCH_OFFSET, 62167219200).
 
 -record(metadata_credentials,
         {access_key_id :: string(),
@@ -286,7 +287,6 @@ default_config_env() ->
         {error, _} -> #aws_config{}
     end.
 
-
 %%%---------------------------------------------------------------------------
 -spec auto_config() -> {ok, aws_config()} | undefined.
 %%%---------------------------------------------------------------------------
@@ -302,7 +302,7 @@ default_config_env() ->
 %%     environment variables <code>AWS_ACCESS_KEY_ID</code>,
 %%     <code>AWS_SECRET_ACCESS_KEY</code> and
 %%     <code>AWS_SECURITY_TOKEN</code> respectively.  Both the Id and Key
-%%     values must e non-empty for this form of credentials to be considered
+%%     values must be non-empty for this form of credentials to be considered
 %%     valid.</p>
 %%   </li>
 %%
@@ -317,7 +317,7 @@ default_config_env() ->
 %%   </li>
 %% </ol>
 %%
-%% If none if these credential sources are available, this function will
+%% If none of these credential sources are available, this function will
 %% return <code>undefined</code>.
 %%
 auto_config() ->
@@ -359,7 +359,7 @@ config_metadata() ->
                 secret_access_key = Secret,
                 security_token = Token,
                 expiration_gregorian_seconds = GregorianSecs}} ->
-            EpochTimeout = GregorianSecs - 62167219200,
+            EpochTimeout = GregorianSecs - ?GREGORIAN_EPOCH_OFFSET,
             {ok, Config#aws_config {
                    access_key_id = Id, secret_access_key = Secret,
                    security_token = Token, expiration = EpochTimeout }};
