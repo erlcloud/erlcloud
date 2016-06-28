@@ -9,7 +9,7 @@
          aws_region_from_host/1,
          aws_request_form/8,
          aws_request_form_raw/8,
-         param_list/2, default_config/0, update_config/1,
+         param_list/2, default_config/0, auto_config/0, update_config/1,
          service_config/3,
          configure/1, format_timestamp/1,
          http_headers_body/1,
@@ -26,6 +26,7 @@
 -include_lib("erlcloud/include/erlcloud_aws.hrl").
 
 -define(ERLCLOUD_RETRY_TIMEOUT, 10000).
+-define(GREGORIAN_EPOCH_OFFSET, 62167219200).
 
 -record(metadata_credentials,
         {access_key_id :: string(),
@@ -264,6 +265,16 @@ format_timestamp({{Yr, Mo, Da}, {H, M, S}}) ->
       io_lib:format("~4.10.0b-~2.10.0b-~2.10.0bT~2.10.0b:~2.10.0b:~2.10.0bZ",
                     [Yr, Mo, Da, H, M, S])).
 
+%%%---------------------------------------------------------------------------
+-spec default_config() -> aws_config().
+%%%---------------------------------------------------------------------------
+%% @doc Generate a default config
+%%
+%% This function will generate a default configuration, using credentials
+%% available in the environment, if available.  If no credentials are
+%% available then this will just return a default <code>#aws_config{}</code>
+%% record.
+%%
 default_config() ->
     case get(aws_config) of
         undefined -> default_config_env();
@@ -271,16 +282,88 @@ default_config() ->
     end.
 
 default_config_env() ->
-    case {os:getenv("AWS_ACCESS_KEY_ID"), os:getenv("AWS_SECRET_ACCESS_KEY")} of
-        {KeyId, Secret} when is_list(KeyId), is_list(Secret) ->
-            #aws_config{access_key_id = KeyId, secret_access_key = Secret};
-        _ -> default_config_profile()
+    case config_env() of
+        {ok, Config} -> Config;
+        {error, _} -> #aws_config{}
     end.
 
-default_config_profile() ->
+%%%---------------------------------------------------------------------------
+-spec auto_config() -> {ok, aws_config()} | undefined.
+%%%---------------------------------------------------------------------------
+%% @doc Generate config using the best available credentials
+%%
+%% This function will generate a valid <code>#aws_config{}</code> based on
+%% the best available credentials source in the current environment.  The
+%% following sources of credentials will be used, in order:
+%%
+%% <ol>
+%%   <li>Environment Variables
+%%     <p>An Id, Key and optionally Token, will be sourced from the
+%%     environment variables <code>AWS_ACCESS_KEY_ID</code>,
+%%     <code>AWS_SECRET_ACCESS_KEY</code> and
+%%     <code>AWS_SECURITY_TOKEN</code> respectively.  Both the Id and Key
+%%     values must be non-empty for this form of credentials to be considered
+%%     valid.</p>
+%%   </li>
+%%
+%%   <li>User Profile
+%%     <p>The default user profile credentials will be sourced using the
+%%     {@link profile/0} function, if available for the current user.</p>
+%%   </li>
+%%
+%%   <li>Host Metadata
+%%     <p>The credentials available via host metadata will be sourced, if
+%%     available.</p>
+%%   </li>
+%% </ol>
+%%
+%% If none of these credential sources are available, this function will
+%% return <code>undefined</code>.
+%%
+auto_config() ->
+    case config_env() of
+        {ok, _Config} = Result -> Result;
+        {error, _} -> auto_config_profile()
+    end.
+
+auto_config_profile() ->
     case profile() of
-        {ok, Config} -> Config;
-        _ -> #aws_config{}
+        {ok, _Config} = Result -> Result;
+        {error, _} -> auto_config_metadata()
+    end.
+
+auto_config_metadata() ->
+    case config_metadata() of
+        {ok, _Config} = Result -> Result;
+        {error, _} -> undefined
+    end.
+
+
+config_env() ->
+    case {os:getenv("AWS_ACCESS_KEY_ID"), os:getenv("AWS_SECRET_ACCESS_KEY"),
+          os:getenv("AWS_SECURITY_TOKEN")} of
+        {KeyId, Secret, T} when is_list(KeyId), is_list(Secret) ->
+            Token = if is_list(T) -> T; true -> undefined end,
+            Config = #aws_config{access_key_id = KeyId,
+                                 secret_access_key = Secret,
+                                 security_token = Token},
+            {ok, Config};
+        _ -> {error, environment_config_unavailable}
+    end.
+
+config_metadata() ->
+    Config = #aws_config{},
+    case get_metadata_credentials( Config ) of
+        {ok, #metadata_credentials{
+                access_key_id = Id,
+                secret_access_key = Secret,
+                security_token = Token,
+                expiration_gregorian_seconds = GregorianSecs}} ->
+            EpochTimeout = GregorianSecs - ?GREGORIAN_EPOCH_OFFSET,
+            {ok, Config#aws_config {
+                   access_key_id = Id, secret_access_key = Secret,
+                   security_token = Token, expiration = EpochTimeout }};
+        {error, _Reason} = Error -> Error
     end.
 
 
@@ -432,6 +515,7 @@ get_metadata_credentials(Config) ->
             get_credentials_from_metadata(Config)
     end.
 
+timestamp_to_gregorian_seconds(undefined) -> undefined;
 timestamp_to_gregorian_seconds(Timestamp) ->
     {ok, [Yr, Mo, Da, H, M, S], []} = io_lib:fread("~d-~d-~dT~d:~d:~dZ", binary_to_list(Timestamp)),
     calendar:datetime_to_gregorian_seconds({{Yr, Mo, Da}, {H, M, S}}).
@@ -459,16 +543,34 @@ get_credentials_from_metadata(Config) ->
                     {error, Reason};
                 {ok, Json} ->
                     Creds = jsx:decode(Json),
-                    Record = #metadata_credentials
-                        {access_key_id = binary_to_list(proplists:get_value(<<"AccessKeyId">>, Creds)),
-                         secret_access_key = binary_to_list(proplists:get_value(<<"SecretAccessKey">>, Creds)),
-                         security_token = binary_to_list(proplists:get_value(<<"Token">>, Creds)),
-                         expiration_gregorian_seconds = timestamp_to_gregorian_seconds(
-                                                          proplists:get_value(<<"Expiration">>, Creds))},
-                    application:set_env(erlcloud, metadata_credentials, Record),
-                    {ok, Record}
+                    get_credentials_from_metadata_xform( Creds )
             end
     end.
+
+get_credentials_from_metadata_xform( Creds ) ->
+    case {prop_to_list_defined(<<"AccessKeyId">>, Creds),
+          prop_to_list_defined(<<"SecretAccessKey">>, Creds),
+          prop_to_list_defined(<<"Token">>, Creds),
+          timestamp_to_gregorian_seconds(
+            proplists:get_value(<<"Expiration">>, Creds))} of
+        {Id, Key, Token, GregorianExpire} when is_list(Id), is_list(Key),
+                                               is_list(Token),
+                                               is_integer(GregorianExpire) ->
+            Record = #metadata_credentials{
+                        access_key_id = Id, secret_access_key = Key,
+                        security_token = Token,
+                        expiration_gregorian_seconds = GregorianExpire },
+            application:set_env(erlcloud, metadata_credentials, Record),
+            {ok, Record};
+        _ -> {error, metadata_not_available}
+    end.
+
+prop_to_list_defined( Name, Props ) ->
+    case proplists:get_value( Name, Props ) of
+        undefined -> undefined;
+        Value when is_binary(Value) -> binary_to_list(Value)
+    end.
+
 
 port_to_str(Port) when is_integer(Port) ->
     integer_to_list(Port);
