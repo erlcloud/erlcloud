@@ -264,8 +264,8 @@ check_bucket_access(BucketName)
 check_bucket_access(BucketName, Config)
   when is_list(BucketName), is_record(Config, aws_config) ->
     case s3_request2(Config, head, BucketName, "/", "", [], <<>>, []) of
-        {ok, {_Headers, Body}} ->
-            {ok, binary_to_list(Body)};
+        {ok, {_Headers, _Body}} ->
+            ok;
         Error ->
             Error
     end.
