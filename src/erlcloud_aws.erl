@@ -233,8 +233,13 @@ default_config() ->
                                   false -> undefined;
                                   SAC -> SAC
                               end,
+            SecurityToken = case os:getenv("AWS_SECURITY_TOKEN") of
+                                false -> undefined;
+                                SeT -> SeT
+                            end,
             #aws_config{access_key_id = AccessKeyId,
-                        secret_access_key = SecretAccessKey};
+                        secret_access_key = SecretAccessKey,
+                        security_token = SecurityToken};
         Config ->
             Config
     end.
