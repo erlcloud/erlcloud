@@ -4,6 +4,7 @@ otp_release:
   - R16B03-1
   - 17.5
   - 18.1
+  - 19.0
 env:
   - FORCE_REBAR2=true
   - FORCE_REBAR2=false PATH=$PATH:$PWD
