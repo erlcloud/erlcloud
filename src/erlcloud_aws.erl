@@ -769,33 +769,42 @@ profiles_resolve( Name, Profiles, Role, Options ) ->
 
 profiles_recurse( Keys, Profiles, Role, Options ) ->
     case profiles_credentials( Keys ) of
-        {ok, Id, Secret} ->
-            profiles_assume( Id, Secret, Role, Options );
+        {ok, Credential} ->
+            profiles_assume( Credential, Role, Options );
         {cont, ProfileName, BinRole} ->
             profiles_resolve( ProfileName, Profiles, BinRole, Options )
     end.
 
 profiles_credentials( Keys ) ->
-    Names = [aws_access_key_id, aws_secret_access_key, source_profile],
+    Names = [aws_access_key_id, aws_secret_access_key, aws_security_token, source_profile],
     BinRole = proplists:get_value( role_arn, Keys ),
     case [proplists:get_value( K, Keys ) || K <- Names] of
-        [Id, Secret, undefined] when Id =/= undefined, Secret =/= undefined ->
-            {ok, binary_to_list(Id), binary_to_list(Secret)};
-        [undefined, undefined, BinProfile] when BinProfile =/= undefined ->
+        [Id, Secret, undefined, undefined] when Id =/= undefined, Secret =/= undefined ->
+            {ok, {binary_to_list(Id), binary_to_list(Secret)}};
+        [Id, Secret, Token, undefined] when Id =/= undefined, Secret =/= undefined, Token =/= undefined ->
+            {ok, {binary_to_list(Id), binary_to_list(Secret), binary_to_list(Token)}};
+        [undefined, undefined, undefined, BinProfile] when BinProfile =/= undefined ->
             {cont, BinProfile, BinRole}
     end.
 
-profiles_assume( Id, Secret, undefined, _Options ) ->
-    Config = #aws_config{ access_key_id = Id, secret_access_key = Secret },
+profiles_assume( Credential, undefined, _Options ) ->
+    Config = config_credential(Credential, #aws_config{}),
     {ok, Config};
-profiles_assume( Id, Secret, Role,
+profiles_assume( Credential, Role,
                  #profile_options{ session_name = Name, external_id = ExtId,
                                    session_secs = Duration } ) ->
-    Config = #aws_config{ access_key_id = Id, secret_access_key = Secret },
+    Config = config_credential(Credential, #aws_config{}),
     {AssumedConfig, _Creds} =
         erlcloud_sts:assume_role( Config, Role, Name, Duration, ExtId ),
     {ok, AssumedConfig}.
     
+
+config_credential({Id, Secret}, Config) ->
+    Config#aws_config{ access_key_id = Id, secret_access_key = Secret };
+config_credential({Id, Secret, Token}, Config) ->
+    Config#aws_config{ access_key_id = Id, secret_access_key = Secret, security_token = Token }.
+
+
 
 error_msg( Message ) ->
     Error = iolist_to_binary( Message ),

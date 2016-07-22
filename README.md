@@ -102,11 +102,12 @@ export AWS_SECRET_ACCESS_KEY=<Your AWS Secret Access Key>
 export AWS_SECURITY_TOKEN=<Your AWS Security Token>
 ```
 
-If you did not provide your amazon credentials in the environmental variables, then you need to provide the per-process configuration:
+
+If you did not provide your amazon credentials in the environmental variables, then you need to provide configuration read from your profile:
 
 ```
-erlcloud_ec2:configure(AccessKeyId, SecretAccessKey [, Hostname]).
-erlcloud:configure(AccessKeyId, SecretAccessKey, SecurityToken).
+{ok, Conf} = erlcloud_aws:profile().
+erlcloud_s3:list_buckets(Conf).
 ```
 
 ## Roadmap ##
