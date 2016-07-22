@@ -783,7 +783,7 @@ profiles_credentials( Keys ) ->
             {ok, {binary_to_list(Id), binary_to_list(Secret)}};
         [Id, Secret, Token, undefined] when Id =/= undefined, Secret =/= undefined, Token =/= undefined ->
             {ok, {binary_to_list(Id), binary_to_list(Secret), binary_to_list(Token)}};
-        [undefined, undefined, _, BinProfile] when BinProfile =/= undefined ->
+        [undefined, undefined, undefined, BinProfile] when BinProfile =/= undefined ->
             {cont, BinProfile, BinRole}
     end.
 
