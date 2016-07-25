@@ -59,12 +59,12 @@ url_encode_loose([Char|String], Accum)
   when Char >=0, Char =< 255 ->
     url_encode_loose(String, [hex_char(Char rem 16), hex_char(Char div 16), $% | Accum]).
 
-utf8_encode_char(Char) when Char > 16#7FFF, Char =< 16#7FFFF ->
+utf8_encode_char(Char) when Char > 16#FFFF, Char =< 16#10FFFF ->
     encode_char(Char band 16#3F + 16#80)
       ++ encode_char((16#3F band (Char bsr 6)) + 16#80)
       ++ encode_char((16#3F band (Char bsr 12)) + 16#80)
       ++ encode_char((Char bsr 18) + 16#F0);
-utf8_encode_char(Char) when Char > 16#7FF, Char =< 16#7FFF ->
+utf8_encode_char(Char) when Char > 16#7FF, Char =< 16#FFFF ->
     encode_char(Char band 16#3F + 16#80)
       ++ encode_char((16#3F band (Char bsr 6)) + 16#80)
       ++ encode_char((Char bsr 12) + 16#E0);
@@ -72,7 +72,7 @@ utf8_encode_char(Char) when Char > 16#7F, Char =< 16#7FF ->
     encode_char(Char band 16#3F + 16#80)
       ++ encode_char((Char bsr 6) + 16#C0);
 utf8_encode_char(Char) when Char =< 16#7F ->
-  encode_char(Char).
+    encode_char(Char).
 
 encode_char(Char) ->
   [hex_char(Char rem 16), hex_char(Char div 16), $%].
