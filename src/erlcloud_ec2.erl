@@ -2371,7 +2371,7 @@ register_image(ImageSpec, Config) ->
     BDParams = block_device_params(ImageSpec#ec2_image_spec.block_device_mapping),
     case ec2_query2(Config, "RegisterImage", Params ++ BDParams) of
         {ok, Doc} ->
-            {ok, [{image_id, get_text("/CreateImageResponse/imageId", Doc)}]};
+            {ok, [{image_id, get_text("/RegisterImageResponse/imageId", Doc)}]};
         {error, _} = Error ->
             Error
     end.
