@@ -12,6 +12,7 @@
          service_config/3,
          configure/1, format_timestamp/1,
          http_headers_body/1,
+         http_body/1,
          request_to_return/1,
          sign_v4_headers/5,
          sign_v4/8,
@@ -398,20 +399,13 @@ timestamp_to_gregorian_seconds(Timestamp) ->
 get_credentials_from_metadata(Config) ->
     %% TODO this function should retry on errors getting credentials
     %% First get the list of roles
-    case http_body(
-           erlcloud_httpc:request(
-             "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
-             get, [], <<>>, get_timeout(Config), Config)) of
+    case erlcloud_ec2_meta:get_instance_metadata("iam/security-credentials/", Config) of
         {error, Reason} ->
             {error, Reason};
         {ok, Body} ->
             %% Always use the first role
             [Role | _] = binary:split(Body, <<$\n>>),
-            case http_body(
-                   erlcloud_httpc:request(
-                     "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++
-                         binary_to_list(Role),
-                     get, [], <<>>, get_timeout(Config), Config)) of
+            case erlcloud_ec2_meta:get_instance_metadata("iam/security-credentials/" ++ binary_to_list(Role), Config) of
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
