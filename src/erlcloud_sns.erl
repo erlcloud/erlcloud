@@ -36,6 +36,7 @@
          confirm_subscription/1, confirm_subscription/2, confirm_subscription/3,
          confirm_subscription2/2, confirm_subscription2/3, confirm_subscription2/4,
          set_topic_attributes/3, set_topic_attributes/4,
+         get_topic_attributes/1, get_topic_attributes/2,
          subscribe/3, subscribe/4,
          unsubscribe/1, unsubscribe/2
          ]).
@@ -493,6 +494,24 @@ set_topic_attributes(AttributeName, AttributeValue, TopicArn, Config)
             {"AttributeName", AttributeName},
             {"AttributeValue", AttributeValue},
             {"TopicArn", TopicArn}]).
+
+
+-spec(get_topic_attributes/1 :: (string()) -> ok).
+get_topic_attributes(TopicArn) ->
+    get_topic_attributes(TopicArn, default_config()).
+
+-spec(get_topic_attributes/2 :: (string(), aws_config()) -> ok).
+get_topic_attributes(TopicArn, Config)
+    when is_record(Config, aws_config) ->
+    Params = [{"TopicArn", TopicArn}],
+    Doc = sns_xml_request(Config, "GetTopicAttributes", Params),
+    Decoded =
+        erlcloud_xml:decode(
+            [{attributes, "GetTopicAttributesResult/Attributes/entry",
+                fun extract_attribute/1
+             }],
+            Doc),
+    Decoded.
 
 
 -spec(subscribe/3 :: (string(), sns_subscribe_protocol_type(), string()) -> Arn::string()).
