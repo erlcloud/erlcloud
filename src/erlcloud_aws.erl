@@ -140,6 +140,8 @@ aws_region_from_host(Host) ->
         %% format
         ["streams", "dynamodb", Value | _Rest] ->
             Value;
+        ["metering", "marketplace", Value | _Rest] ->
+            Value;
         [_, Value, _, _ | _Rest] ->
             Value;
         _ ->
@@ -478,6 +480,9 @@ service_config( <<"lambda">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ lambda_host = Host };
 service_config( <<"mechanicalturk">>, _Region, Config ) -> Config;
+service_config( <<"metering.marketplace">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ mms_host = Host };
 service_config( <<"rds">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ rds_host = Host };
