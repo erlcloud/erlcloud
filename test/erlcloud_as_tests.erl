@@ -20,7 +20,8 @@ autoscaling_test_() ->
      [fun description_tests/1,
       fun terminate_tests/1,
       fun create_tests/1,
-      fun detach_instances_tests/1]}.
+      fun detach_instances_tests/1,
+      fun lifecycle_hooks_tests/1]}.
 
 start() ->
     meck:new(erlcloud_aws, [non_strict]),
@@ -88,6 +89,14 @@ detach_instances_tests(_) ->
              Res = extract_result(erlcloud_as:detach_instances(["i-bdae7a84"], "my-test-asg-lbs", false)),
              ?assertEqual(Res, expected_detach_activities()) end].
     
+lifecycle_hooks_tests(_) ->
+     [fun() ->
+             Res = extract_result(erlcloud_as:describe_lifecycle_hooks("my-test-asg-lbs", ["TestHook"])),
+             ?assertEqual(Res, expected_describe_lifecycle_hooks()) end,
+      fun() ->
+             Res = extract_result(erlcloud_as:complete_lifecycle_action("my-test-asg-lbs", "CONTINUE", "TestHook", {instance_id, "i-bdae7a84"})),
+             ?assertEqual(Res, expected_complete_lifecycle_action()) end].
+    
 mocked_aws_xml() ->
     meck:expect(erlcloud_aws, default_config, [{[], #aws_config{}}]),
     meck:expect(erlcloud_aws, aws_request_xml4, [
@@ -98,7 +107,9 @@ mocked_aws_xml() ->
                                                  mocked_scaling_activity(),
                                                  mocked_create_launch_config(),
                                                  mocked_create_asg(),
-                                                 mocked_detach_instances()]).
+                                                 mocked_detach_instances(),
+                                                 mocked_describe_lifecycle_hooks(),
+                                                 mocked_complete_lifecycle_action()]).
 
 parsed_mock_response(Text) ->
     {ok, element(1, xmerl_scan:string(Text))}.
@@ -400,3 +411,57 @@ expected_detach_activities() ->
         status_code = "InProgress",status_msg = [],
         start_time = {{2016,2,3},{16,10,3}},
         end_time = undefined,progress = 50}].
+
+
+mocked_describe_lifecycle_hooks() ->
+    {[post, '_', "/", [
+                       {"Action", "DescribeLifecycleHooks"},
+                       {"Version", "2011-01-01"},
+                       {"AutoScalingGroupName", "my-test-asg-lbs"},
+                       {"LifecycleHookNames.member.1", "TestHook"}],
+      "autoscaling", '_'], parsed_mock_response("
+<DescribeLifecycleHooksResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
+  <DescribeLifecycleHooksResult>
+    <LifecycleHooks>
+      <member>
+        <AutoScalingGroupName>my-test-asg-lbs</AutoScalingGroupName>
+        <LifecycleTransition>autoscaling:EC2_INSTANCE_LAUNCHING</LifecycleTransition>
+        <GlobalTimeout>172800</GlobalTimeout>
+        <LifecycleHookName>TestHook</LifecycleHookName>
+        <HeartbeatTimeout>3600</HeartbeatTimeout>
+        <DefaultResult>ABANDON</DefaultResult>
+      </member>
+    </LifecycleHooks>
+  </DescribeLifecycleHooksResult>
+  <ResponseMetadata>
+    <RequestId>ff028e98-1dc1-11e6-89f3-81231a887c98</RequestId>
+  </ResponseMetadata>
+</DescribeLifecycleHooksResponse>")}.
+
+expected_describe_lifecycle_hooks() ->
+    [#aws_autoscaling_lifecycle_hook{
+        group_name = "my-test-asg-lbs",
+        lifecycle_hook_name = "TestHook",
+        global_timeout = 172800,
+        heartbeat_timeout = 3600,
+        default_result = "ABANDON",
+        lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"}].
+
+mocked_complete_lifecycle_action() ->
+    {[post, '_', "/", [
+                       {"Action", "CompleteLifecycleAction"},
+                       {"Version", "2011-01-01"},
+                       {"AutoScalingGroupName", "my-test-asg-lbs"},
+                       {"LifecycleActionResult", "CONTINUE"},
+                       {"LifecycleHookName", "TestHook"},
+                       {"InstanceId", "i-bdae7a84"}],
+      "autoscaling", '_'], parsed_mock_response("
+<CompleteLifecycleActionResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
+  <CompleteLifecycleActionResult/>
+  <ResponseMetadata>
+    <RequestId>ff028e98-1dc1-11e6-89f3-81231a887c98</RequestId>
+  </ResponseMetadata>
+</CompleteLifecycleActionResponse>")}.
+
+expected_complete_lifecycle_action() ->
+    "ff028e98-1dc1-11e6-89f3-81231a887c98".

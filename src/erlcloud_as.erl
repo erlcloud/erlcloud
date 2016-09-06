@@ -1,7 +1,7 @@
 -module(erlcloud_as).
 
--include_lib("erlcloud/include/erlcloud_aws.hrl").
--include_lib("erlcloud/include/erlcloud_as.hrl").
+-include("erlcloud_aws.hrl").
+-include("erlcloud_as.hrl").
 
 
 %% AWS Autoscaling functions
@@ -23,9 +23,11 @@
 
          suspend_processes/1, suspend_processes/2, suspend_processes/3,
          resume_processes/1, resume_processes/2, resume_processes/3,
-         detach_instances/2, detach_instances/3, detach_instances/4
-]).
+         detach_instances/2, detach_instances/3, detach_instances/4,
 
+         describe_lifecycle_hooks/1, describe_lifecycle_hooks/2, describe_lifecycle_hooks/3,
+         complete_lifecycle_action/4, complete_lifecycle_action/5
+]).
 
 -define(API_VERSION, "2011-01-01").
 -define(DEFAULT_MAX_RECORDS, 20).
@@ -67,6 +69,12 @@
 %% xpath for detach instances:
 -define(DETACH_INSTANCES_ACTIVITY, 
         "/DetachInstancesResponse/DetachInstancesResult/Activities/member").
+
+-define(DESCRIBE_LIFECYCLE_HOOKS_PATH, 
+        "/DescribeLifecycleHooksResponse/DescribeLifecycleHooksResult/LifecycleHooks/member").
+
+-define(COMPLETE_LIFECYCLE_ACTION_ACTIVITY, 
+        "/CompleteLifecycleActionResponse/ResponseMetadata/RequestId").
 
 
 %% --------------------------------------------------------------------
@@ -412,8 +420,8 @@ describe_instances(I, MaxRecords, NextToken, Config) ->
     describe_instances(I, [{"MaxRecords", MaxRecords}, {"NextToken", NextToken}], Config).
 
 -spec describe_instances(list(string()), list({string(), term()}), aws_config()) -> 
-                                {ok, list(aws_launch_config())} | 
-                                {{paged, string()}, list(aws_launch_config)} | 
+                                {ok, list(aws_autoscaling_instance())} | 
+                                {{paged, string()}, list(aws_autoscaling_instance())} | 
                                 {error, term()}.                       
 describe_instances(I, Params, Config) ->
     P = member_params("InstanceIds.member.", I) ++ Params,
@@ -568,6 +576,60 @@ detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity, Config)
             {error, Reason}
     end.
 
+
+describe_lifecycle_hooks(GroupName) ->
+    describe_lifecycle_hooks(GroupName, [], erlcloud_aws:default_config()).
+
+describe_lifecycle_hooks(GroupName, LifecycleHookNames) when is_list(LifecycleHookNames) ->
+    describe_lifecycle_hooks(GroupName, LifecycleHookNames, erlcloud_aws:default_config());
+describe_lifecycle_hooks(GroupName, Config) ->
+    describe_lifecycle_hooks(GroupName, [], Config).
+
+-spec describe_lifecycle_hooks(string(), list(string()), aws_config()) -> {ok, list(aws_autoscaling_lifecycle_hook())} | {error, term()}.
+describe_lifecycle_hooks(GroupName, LifecycleHookNames, Config) ->
+    Params = [{"AutoScalingGroupName", GroupName} | member_params("LifecycleHookNames.member.", LifecycleHookNames)],
+    case as_query(Config, "DescribeLifecycleHooks", Params, ?API_VERSION) of
+        {ok, Doc} ->
+            LifecycleHooks = xmerl_xpath:string(?DESCRIBE_LIFECYCLE_HOOKS_PATH, Doc),            
+            Hooks = [extract_lifecycle_hook(H) || H <- LifecycleHooks],
+            {ok, Hooks};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+extract_lifecycle_hook(H) -> 
+    #aws_autoscaling_lifecycle_hook{
+          group_name = erlcloud_xml:get_text("AutoScalingGroupName", H),
+          lifecycle_hook_name = erlcloud_xml:get_text("LifecycleHookName", H),
+          global_timeout = erlcloud_xml:get_integer("GlobalTimeout", H),
+          heartbeat_timeout = erlcloud_xml:get_integer("HeartbeatTimeout", H),
+          default_result = erlcloud_xml:get_text("DefaultResult", H),
+          lifecycle_transition = erlcloud_xml:get_text("LifecycleTransition", H)}.
+
+
+-spec complete_lifecycle_action(string(), string(), string(), {instance_id | token, string()}) -> {ok, string()} | {error, term()}.
+complete_lifecycle_action(GroupName, LifecycleActionResult, LifecycleHookName, InstanceIdOrLifecycleActionToken) ->
+    complete_lifecycle_action(GroupName, LifecycleActionResult, LifecycleHookName, InstanceIdOrLifecycleActionToken, erlcloud_aws:default_config()).
+
+-spec complete_lifecycle_action(string(), string(), string(), {instance_id | token, string()}, aws_config()) -> {ok, string()} | {error, term()}.
+complete_lifecycle_action(GroupName, LifecycleActionResult, LifecycleHookName, InstanceIdOrLifecycleActionToken, Config) ->
+    InstanceIdOrLifecycleActionTokenParam = case InstanceIdOrLifecycleActionToken of
+        {instance_id,InstanceId} ->
+            {"InstanceId", InstanceId};
+        {token,LifecycleActionToken} ->
+            {"LifecycleActionToken", LifecycleActionToken}
+    end,
+    Params = [{"AutoScalingGroupName", GroupName},
+              {"LifecycleActionResult", LifecycleActionResult},
+              {"LifecycleHookName", LifecycleHookName},
+              InstanceIdOrLifecycleActionTokenParam],
+    case as_query(Config, "CompleteLifecycleAction", Params, ?API_VERSION) of
+        {ok, Doc} ->
+            RequestId = erlcloud_xml:get_text(?COMPLETE_LIFECYCLE_ACTION_ACTIVITY, Doc),            
+            {ok, RequestId};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 %% given a list of member identifiers, return a list of 
 %% {key with prefix, member identifier} for use in autoscaling calls.

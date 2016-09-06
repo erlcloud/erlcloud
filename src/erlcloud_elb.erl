@@ -11,6 +11,7 @@
          deregister_instance/2, deregister_instance/3,
 
          describe_load_balancer/1, describe_load_balancer/2,
+
          describe_load_balancers/0, describe_load_balancers/1, 
          describe_load_balancers/2, describe_load_balancers/3, describe_load_balancers/4,
          describe_load_balancers_all/0, describe_load_balancers_all/1, describe_load_balancers_all/2,
@@ -24,10 +25,12 @@
          describe_load_balancer_policies/2, describe_load_balancer_policies/3,
          
          describe_load_balancer_policy_types/0, describe_load_balancer_policy_types/1, 
-         describe_load_balancer_policy_types/2]).
+         describe_load_balancer_policy_types/2,
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+         describe_load_balancer_attributes/1, describe_load_balancer_attributes/2]).
+
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 
 -define(API_VERSION, "2012-06-01").
 
@@ -45,23 +48,26 @@
 
 -import(erlcloud_xml, [get_text/2, get_integer/2, get_list/2]).
 
--spec(new/2 :: (string(), string()) -> aws_config()).
+%%%===================================================================
+%%% API
+%%%===================================================================
+-spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey}.
 
--spec(new/3 :: (string(), string(), string()) -> aws_config()).
+-spec new(string(), string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
                 elb_host=Host}.
 
--spec(configure/2 :: (string(), string()) -> ok).
+-spec configure(string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey)),
     ok.
 
--spec(configure/3 :: (string(), string(), string()) -> ok).
+-spec configure(string(), string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
@@ -102,11 +108,11 @@ delete_load_balancer(LB, Config) when is_list(LB) ->
                        [{"LoadBalancerName", LB}]).
 
 
--spec register_instance/2 :: (string(), string()) -> proplist().
+-spec register_instance(string(), string()) -> proplist().
 register_instance(LB, InstanceId) ->
     register_instance(LB, InstanceId, default_config()).
 
--spec register_instance/3 :: (string(), string(), aws_config()) -> proplist().
+-spec register_instance(string(), string(), aws_config()) -> proplist().
 register_instance(LB, InstanceId, Config) when is_list(LB) ->
     elb_simple_request(Config,
                        "RegisterInstancesWithLoadBalancer",
@@ -114,11 +120,11 @@ register_instance(LB, InstanceId, Config) when is_list(LB) ->
                         erlcloud_aws:param_list([[{"InstanceId", InstanceId}]], "Instances.member")]).
 
 
--spec deregister_instance/2 :: (string(), string()) -> proplist().
+-spec deregister_instance(string(), string()) -> proplist().
 deregister_instance(LB, InstanceId) ->
     deregister_instance(LB, InstanceId, default_config()).
 
--spec deregister_instance/3 :: (string(), string(), aws_config()) -> proplist().
+-spec deregister_instance(string(), string(), aws_config()) -> proplist().
 deregister_instance(LB, InstanceId, Config) when is_list(LB) ->
     elb_simple_request(Config,
                        "DeregisterInstancesFromLoadBalancer",
@@ -127,12 +133,13 @@ deregister_instance(LB, InstanceId, Config) when is_list(LB) ->
 
 
 
--spec configure_health_check/2 :: (string(), string()) -> proplist().
+-spec configure_health_check(string(), string()) -> proplist().
 configure_health_check(LB, Target) when is_list(LB),
                                         is_list(Target) ->
     configure_health_check(LB, Target, default_config()).
 
--spec configure_health_check/3 :: (string(), string(), aws_config()) -> proplist().
+
+-spec configure_health_check(string(), string(), aws_config()) -> proplist().
 configure_health_check(LB, Target, Config) when is_list(LB) ->
     elb_simple_request(Config,
                        "ConfigureHealthCheck",
@@ -144,7 +151,8 @@ configure_health_check(LB, Target, Config) when is_list(LB) ->
 %% specific configuration and specific balancer name. 
 %% @end
 %% --------------------------------------------------------------------
-describe_load_balancer(Name) when is_list(Name) ->
+-spec describe_load_balancer(string()) -> proplist().
+describe_load_balancer(Name) ->
     describe_load_balancer(Name, default_config()).
 describe_load_balancer(Name, Config) ->
     describe_load_balancers([Name], Config).
@@ -437,6 +445,40 @@ create_load_balancer_policy(LB, PolicyName, PolicyTypeName, AttrList, Config)
                                                 {AttrName, AttrValue} <- AttrList],
                                                "PolicyAttributes.member")]),
     ok.
+
+
+-spec describe_load_balancer_attributes(string()) -> proplist().
+describe_load_balancer_attributes(Name) ->
+    describe_load_balancer_attributes(Name, default_config()).
+
+-spec describe_load_balancer_attributes(string(), aws_config()) -> proplist().
+describe_load_balancer_attributes(Name, Config) ->
+    Node = elb_request(Config,
+        "DescribeLoadBalancerAttributes",
+        [{"LoadBalancerName", Name}]),
+    extract_elb_attribs(Node).
+
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+-spec extract_elb_attribs(proplist()) -> proplist().
+extract_elb_attribs(Node) ->
+    RootPath = "DescribeLoadBalancerAttributesResult/LoadBalancerAttributes",
+    erlcloud_xml:decode(
+        [
+            {access_log_enabled, RootPath ++ "/AccessLog/Enabled", boolean},
+            {access_log_s3_name, RootPath ++ "/AccessLog/S3BucketName", text},
+            {access_log_s3_prefix, RootPath ++ "/AccessLog/S3BucketPrefix", text},
+            {access_log_emit_interval, RootPath ++ "/AccessLog/EmitInterval", integer},
+
+            {connection_settings_idletimeout, RootPath ++ "/ConnectionSettings/IdleTimeout", integer},
+
+            {cross_zone_load_balancing_enabled, RootPath ++ "/CrossZoneLoadBalancing/Enabled", boolean},
+
+            {connection_draining_enabled, RootPath ++ "/ConnectionDraining/Enabled", boolean},
+            {connection_draining_timeout, RootPath ++ "/ConnectionDraining/Timeout", integer}
+        ], Node).
 
 %% --------------------------------------------------------------------
 %% @doc Calls delete_load_balancer_policy() with default aws config.

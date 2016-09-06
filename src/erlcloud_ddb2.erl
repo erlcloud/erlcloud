@@ -202,25 +202,25 @@
 %%% Library initialization.
 %%%------------------------------------------------------------------------------
 
--spec(new/2 :: (string(), string()) -> aws_config()).
+-spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey}.
 
--spec(new/3 :: (string(), string(), string()) -> aws_config()).
+-spec new(string(), string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
                 ddb_host=Host}.
 
--spec(new/4 :: (string(), string(), string(), non_neg_integer()) -> aws_config()).
+-spec new(string(), string(), string(), non_neg_integer()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host, Port) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
                 ddb_host=Host,
                 ddb_port=Port}.
 
--spec(new/5 :: (string(), string(), string(), non_neg_integer(), string()) -> aws_config()).
+-spec new(string(), string(), string(), non_neg_integer(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
@@ -228,22 +228,22 @@ new(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
                 ddb_port=Port,
                 ddb_scheme=Scheme}.
 
--spec(configure/2 :: (string(), string()) -> ok).
+-spec configure(string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey)),
     ok.
 
--spec(configure/3 :: (string(), string(), string()) -> ok).
+-spec configure(string(), string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
 
--spec(configure/4 :: (string(), string(), string(), non_neg_integer()) -> ok).
+-spec configure(string(), string(), string(), non_neg_integer()) -> ok.
 configure(AccessKeyID, SecretAccessKey, Host, Port) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port)),
     ok.
 
--spec(configure/5 :: (string(), string(), string(), non_neg_integer(), string()) -> ok).
+-spec configure(string(), string(), string(), non_neg_integer(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port, Scheme)),
     ok.

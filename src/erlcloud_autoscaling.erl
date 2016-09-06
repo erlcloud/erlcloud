@@ -22,37 +22,37 @@
 -define(API_VERSION, "2011-01-01").
 -define(SERVICE_NAME, "autoscaling").
 
--spec(new/2 :: (string(), string()) -> aws_config()).
+-spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey}.
 
--spec(new/3 :: (string(), string(), string()) -> aws_config()).
+-spec new(string(), string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
                 autoscaling_host=Host}.
 
--spec(configure/2 :: (string(), string()) -> ok).
+-spec configure(string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey)),
     ok.
 
--spec(configure/3 :: (string(), string(), string()) -> ok).
+-spec configure(string(), string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
 
--spec(describe_autoscaling_groups/0 :: () -> proplist()).
+-spec describe_autoscaling_groups() -> proplist().
 describe_autoscaling_groups() -> describe_autoscaling_groups([]).
 
--spec(describe_autoscaling_groups/1 :: ([string()] | aws_config()) -> proplist()).
+-spec describe_autoscaling_groups([string()] | aws_config()) -> proplist().
 describe_autoscaling_groups(Config) when is_record(Config, aws_config) -> 
     describe_autoscaling_groups([], Config);
 describe_autoscaling_groups(GroupNames) ->
     describe_autoscaling_groups(GroupNames, default_config()).
 
--spec(describe_autoscaling_groups/2 :: ([string()], aws_config()) -> proplist()).
+-spec describe_autoscaling_groups([string()], aws_config()) -> proplist().
 describe_autoscaling_groups(GroupNames, Config) 
   when is_list(GroupNames), is_record(Config, aws_config) -> 
     %case autoscaling_query(Config, "DescribeAutoScalingGroups", []) of % erlcloud_aws:param_list(GroupNames, "AutoScalingGroupNames.member")) of
@@ -64,16 +64,16 @@ describe_autoscaling_groups(GroupNames, Config)
             {error, Reason}
     end.
 
--spec(describe_autoscaling_groups_all/0 :: () -> proplist()).
+-spec describe_autoscaling_groups_all() -> proplist().
 describe_autoscaling_groups_all() -> describe_autoscaling_groups_all([]).
 
--spec(describe_autoscaling_groups_all/1 :: ([string()] | aws_config()) -> proplist()).
+-spec describe_autoscaling_groups_all([string()] | aws_config()) -> proplist().
 describe_autoscaling_groups_all(Config) when is_record(Config, aws_config) -> 
     describe_autoscaling_groups_all([], Config);
 describe_autoscaling_groups_all(GroupNames) ->
     describe_autoscaling_groups_all(GroupNames, default_config()).
 
--spec(describe_autoscaling_groups_all/2 :: ([string()], aws_config()) -> proplist()).
+-spec describe_autoscaling_groups_all([string()], aws_config()) -> proplist().
 describe_autoscaling_groups_all(GroupNames, Config)
   when is_list(GroupNames), is_record(Config, aws_config) -> 
     %case autoscaling_query(Config, "DescribeAutoScalingGroups", []) of % erlcloud_aws:param_list(GroupNames, "AutoScalingGroupNames.member")) of
@@ -85,16 +85,16 @@ describe_autoscaling_groups_all(GroupNames, Config)
             {error, Reason}
     end.
 
--spec(describe_launch_configurations/0 :: () -> proplist()).
+-spec describe_launch_configurations() -> proplist().
 describe_launch_configurations() -> describe_launch_configurations([]).
 
--spec(describe_launch_configurations/1 :: ([string()] | aws_config()) -> proplist()).
+-spec describe_launch_configurations([string()] | aws_config()) -> proplist().
 describe_launch_configurations(Config) when is_record(Config, aws_config) -> 
     describe_launch_configurations([], Config);
 describe_launch_configurations(ConfiguratoinNames) ->
     describe_launch_configurations(ConfiguratoinNames, default_config()).
 
--spec(describe_launch_configurations/2 :: ([string()], aws_config()) -> proplist()).
+-spec describe_launch_configurations([string()], aws_config()) -> proplist().
 describe_launch_configurations(ConfiguratoinNames, Config) 
   when is_list(ConfiguratoinNames), is_record(Config, aws_config) -> 
     case autoscaling_query(Config, "DescribeLaunchConfigurations", erlcloud_aws:param_list(ConfiguratoinNames, "LaunchConfigurationNames.member")) of
@@ -105,16 +105,16 @@ describe_launch_configurations(ConfiguratoinNames, Config)
             {error, Reason}  
     end.
 
--spec(describe_launch_configurations_all/0 :: () -> proplist()).
+-spec describe_launch_configurations_all() -> proplist().
 describe_launch_configurations_all() -> describe_launch_configurations_all([]).
 
--spec(describe_launch_configurations_all/1 :: ([string()] | aws_config()) -> proplist()).
+-spec describe_launch_configurations_all([string()] | aws_config()) -> proplist().
 describe_launch_configurations_all(Config) when is_record(Config, aws_config) -> 
     describe_launch_configurations_all([], Config);
 describe_launch_configurations_all(ConfiguratoinNames) ->
     describe_launch_configurations_all(ConfiguratoinNames, default_config()).
 
--spec(describe_launch_configurations_all/2 :: ([string()], aws_config()) -> proplist()).
+-spec describe_launch_configurations_all([string()], aws_config()) -> proplist().
 describe_launch_configurations_all(ConfiguratoinNames, Config)
   when is_list(ConfiguratoinNames), is_record(Config, aws_config) -> 
     case erlcloud_util:query_all_token(fun autoscaling_query/3, Config, "DescribeLaunchConfigurations", erlcloud_aws:param_list(ConfiguratoinNames, "LaunchConfigurationNames.member")) of
