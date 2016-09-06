@@ -1485,7 +1485,7 @@ describe_internet_gateways(Filter) ->
 describe_internet_gateways(Filter, Config) ->
     describe_internet_gateways([], Filter, Config).
 
--spec(describe_internet_gateways/3 :: (list(), none | filter_list(), aws_config()) -> [proplist()]).
+-spec describe_internet_gateways(list(), none | filter_list(), aws_config()) -> [proplist()].
 describe_internet_gateways(IGWIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(IGWIds, "InternetGatewayId") ++ list_to_ec2_filter(Filter), %
     case ec2_query(Config, "DescribeInternetGateways", Params, ?NEW_API_VERSION) of
@@ -1750,17 +1750,17 @@ describe_reserved_instances_offerings(Selector, Config)
             Error
     end.
 
--spec(describe_reserved_instances_offerings_all/0 :: () -> proplist()).
+-spec describe_reserved_instances_offerings_all() -> proplist().
 describe_reserved_instances_offerings_all() -> describe_reserved_instances_offerings_all([]).
 
--spec(describe_reserved_instances_offerings_all/1 :: ([{atom(), string()}] | aws_config()) -> proplist()).
+-spec describe_reserved_instances_offerings_all([{atom(), string()}] | aws_config()) -> proplist().
 describe_reserved_instances_offerings_all(Config)
   when is_record(Config, aws_config) ->
     describe_reserved_instances_offerings_all([], Config);
 describe_reserved_instances_offerings_all(Selector) ->
     describe_reserved_instances_offerings_all(Selector, default_config()).
 
--spec(describe_reserved_instances_offerings_all/2 :: ([{atom(), string()}], aws_config()) -> proplist()).
+-spec describe_reserved_instances_offerings_all([{atom(), string()}], aws_config()) -> proplist().
 describe_reserved_instances_offerings_all(Selector, Config) ->
     describe_reserved_instances_offerings_all(Selector, Config, []).
 
@@ -1803,7 +1803,7 @@ describe_route_tables(Filter) ->
 describe_route_tables(Filter, Config) ->
     describe_route_tables([], Filter, Config).
 
--spec(describe_route_tables/3 :: ([string()], filter_list() | none, aws_config()) -> [proplist()]).
+-spec describe_route_tables([string()], filter_list() | none, aws_config()) -> [proplist()].
 describe_route_tables(RouteTableIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(RouteTableIds, "RouteTableId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeRouteTables", Params, ?NEW_API_VERSION) of
@@ -1875,7 +1875,7 @@ describe_security_groups_filtered(Filter, Config)->
 
 %
 % describe_security_groups functions above are left for interface backward compatibility.
--spec(describe_security_groups/4 :: (list(), list(), list(), aws_config()) -> [proplist()]).
+-spec describe_security_groups(list(), list(), list(), aws_config()) -> [proplist()].
 describe_security_groups(GroupIds, GroupNames, Filters, Config)
   when is_list(GroupIds),
        is_list(GroupNames),
@@ -2145,8 +2145,8 @@ describe_subnets(Filter) when is_list(Filter) ->
 describe_subnets(Filter, Config) ->
     describe_subnets([], Filter, Config).
 
--spec(describe_subnets/3 :: (list(), none | filter_list(), aws_config()) -> proplist()).
-describe_subnets(SubnetIds, Filter, Config) 
+-spec describe_subnets(list(), none | filter_list(), aws_config()) -> proplist().
+describe_subnets(SubnetIds, Filter, Config)
         when is_list(SubnetIds) ->
     Params = erlcloud_aws:param_list(SubnetIds, "SubnetId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeSubnets", Params, ?NEW_API_VERSION) of
@@ -2227,7 +2227,7 @@ describe_vpcs(Filter) ->
 describe_vpcs(Filter, Config) ->
     describe_vpcs([], Filter, Config).
 
--spec(describe_vpcs/3 :: (list(), filter_list() | none, aws_config()) -> proplist()).
+-spec describe_vpcs(list(), filter_list() | none, aws_config()) -> proplist().
 describe_vpcs(VpcIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(VpcIds, "VpcId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeVpcs", Params, ?NEW_API_VERSION) of
@@ -3168,21 +3168,21 @@ list_to_ec2_values([H|T], Count, VCount, Res) ->
 
 %%
 %%
--spec(describe_vpn_gateways/0 :: () -> {ok, [proplist()]} | {error, any()}).
+-spec describe_vpn_gateways() -> {ok, [proplist()]} | {error, any()}.
 describe_vpn_gateways() ->
     describe_vpn_gateways(none, default_config()).
 
--spec(describe_vpn_gateways/1 :: (filter_list | aws_config()) -> {ok, [proplist()]} | {error, any()}).
+-spec describe_vpn_gateways(filter_list | aws_config()) -> {ok, [proplist()]} | {error, any()}.
 describe_vpn_gateways(Config) when is_record(Config, aws_config) ->
     describe_vpn_gateways(none, Config);
 describe_vpn_gateways(Filter) ->
     describe_vpn_gateways(Filter, default_config()).
 
--spec(describe_vpn_gateways/2 :: (none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
+-spec describe_vpn_gateways(none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
 describe_vpn_gateways(Filter, Config) ->
     describe_vpn_gateways([], Filter, Config).
 
--spec(describe_vpn_gateways/3 :: (list(), none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
+-spec describe_vpn_gateways(list(), none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
 describe_vpn_gateways(VGWIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(VGWIds, "VpnGatewayId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeVpnGateways", Params, ?NEW_API_VERSION) of
@@ -3211,21 +3211,21 @@ extract_vgw_attachments(Node) ->
 
 %%
 %%
--spec(describe_vpn_connections/0 :: () -> {ok, [proplist()]} | {error, any()}).
+-spec describe_vpn_connections() -> {ok, [proplist()]} | {error, any()}.
 describe_vpn_connections() ->
     describe_vpn_connections(none, default_config()).
 
--spec(describe_vpn_connections/1 :: (filter_list | aws_config()) -> {ok, [proplist()]} | {error, any()}).
+-spec describe_vpn_connections(filter_list | aws_config()) -> {ok, [proplist()]} | {error, any()}.
 describe_vpn_connections(Config) when is_record(Config, aws_config) ->
     describe_vpn_connections(none, Config);
 describe_vpn_connections(Filter) ->
     describe_vpn_connections(Filter, default_config()).
 
--spec(describe_vpn_connections/2 :: (none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
+-spec describe_vpn_connections(none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
 describe_vpn_connections(Filter, Config) ->
     describe_vpn_connections([], Filter, Config).
 
--spec(describe_vpn_connections/3 :: (list(), none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
+-spec describe_vpn_connections(list(), none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
 describe_vpn_connections(VpnConnIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(VpnConnIds, "VpnConnectionId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeVpnConnections", Params, ?NEW_API_VERSION) of
@@ -3250,21 +3250,21 @@ extract_vpn_connection(Node) ->
 
 %%
 %%
--spec(describe_customer_gateways/0 :: () -> {ok, [proplist()]} | {error, any()}).
+-spec describe_customer_gateways() -> {ok, [proplist()]} | {error, any()}.
 describe_customer_gateways() ->
     describe_customer_gateways(none, default_config()).
 
--spec(describe_customer_gateways/1 :: (filter_list | aws_config()) -> {ok, [proplist()]} | {error, any()}).
+-spec describe_customer_gateways(filter_list | aws_config()) -> {ok, [proplist()]} | {error, any()}.
 describe_customer_gateways(Config) when is_record(Config, aws_config) ->
     describe_customer_gateways(none, Config);
 describe_customer_gateways(Filter) ->
     describe_customer_gateways(Filter, default_config()).
 
--spec(describe_customer_gateways/2 :: (none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
+-spec describe_customer_gateways(none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
 describe_customer_gateways(Filter, Config) ->
     describe_customer_gateways([], Filter, Config).
 
--spec(describe_customer_gateways/3 :: (list(), none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}).
+-spec describe_customer_gateways(list(), none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
 describe_customer_gateways(CGWIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(CGWIds, "CustomerGatewayId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeCustomerGateways", Params, ?NEW_API_VERSION) of

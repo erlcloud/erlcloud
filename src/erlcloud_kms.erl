@@ -642,7 +642,7 @@ get_key_rotation_status(KeyId, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
--spec list_aliases/0 ::
+-spec list_aliases
           () ->
           return_val().
 list_aliases() ->
@@ -753,7 +753,7 @@ list_key_policies(KeyId, Options, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
--spec list_keys/0 ::
+-spec list_keys
           () ->
           return_val().
 list_keys() ->

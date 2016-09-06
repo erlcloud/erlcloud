@@ -326,12 +326,12 @@ get_records(ShardIterator, Limit)
   when is_integer(Limit), Limit > 0, Limit =< 10000 ->
     get_records(ShardIterator, Limit, default_config()).
 
--spec get_records/3 :: (binary(), get_records_limit(), aws_config()) ->
+-spec get_records(binary(), get_records_limit(), aws_config()) ->
     {ok, [proplist()]} | {error, any()}.
 get_records(ShardIterator, Limit, Config) ->
     get_records(ShardIterator, Limit, [], Config).
 
--spec get_records/4 :: (binary(), get_records_limit(), proplist(), aws_config()) ->
+-spec get_records(binary(), get_records_limit(), proplist(), aws_config()) ->
     {ok, [proplist()] | binary()} | {error, any()}.
 get_records(ShardIterator, Limit, Options, Config)
   when is_record(Config, aws_config),

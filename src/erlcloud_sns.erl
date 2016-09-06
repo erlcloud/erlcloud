@@ -348,8 +348,8 @@ list_subscriptions_by_topic(TopicArn, NextToken, Config) when is_record(Config, 
             Doc),
     Decoded.
 
--spec list_subscriptions_by_topic_all/1 :: (string()) -> proplist().
--spec list_subscriptions_by_topic_all/2 :: (string(), aws_config()) -> proplist().
+-spec list_subscriptions_by_topic_all(string()) -> proplist().
+-spec list_subscriptions_by_topic_all(string(), aws_config()) -> proplist().
 list_subscriptions_by_topic_all(TopicArn) ->
     list_subscriptions_by_topic_all(TopicArn, default_config()).
 
@@ -501,7 +501,7 @@ set_topic_attributes(AttributeName, AttributeValue, TopicArn, Config)
 get_topic_attributes(TopicArn) ->
     get_topic_attributes(TopicArn, default_config()).
 
--spec get_topic_attributes/2 :: (string(), aws_config()) -> ok.
+-spec get_topic_attributes(string(), aws_config()) -> ok.
 get_topic_attributes(TopicArn, Config)
     when is_record(Config, aws_config) ->
     Params = [{"TopicArn", TopicArn}],
@@ -528,11 +528,11 @@ subscribe(Endpoint, Protocol, TopicArn, Config)
                 {"TopicArn", TopicArn}]),
         erlcloud_xml:get_text("/SubscribeResponse/SubscribeResult/SubscriptionArn", Doc).
 
--spec(unsubscribe/1 :: (string()) -> ok).
+-spec unsubscribe(string()) -> ok.
 unsubscribe(SubArn) ->
     unsubscribe(SubArn, default_config()).
 
--spec(unsubscribe/2 :: (string(), aws_config()) -> ok).
+-spec unsubscribe(string(), aws_config()) -> ok.
 unsubscribe(SubArn, Config)
         when is_record(Config, aws_config) ->
     sns_simple_request(Config, "Unsubscribe", [{"SubscriptionArn", SubArn}]).
