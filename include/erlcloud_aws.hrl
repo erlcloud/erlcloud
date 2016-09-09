@@ -64,7 +64,7 @@
 -record(aws_request,
         {
           %% Provided by requesting service
-          service :: s3,
+          service :: s3|waf,
           uri :: string() | binary(),
           method :: atom(),
           request_headers :: [{string(), string()}],
