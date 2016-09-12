@@ -8,7 +8,7 @@ case erlang:function_exported(rebar3, main, 1) of
         [{deps, [{meck, ".*",{git, "https://github.com/eproxus/meck.git", {tag, "0.8.4"}}},
                  {jsx, ".*", {git, "git://github.com/talentdeficit/jsx.git", {tag, "2.8.0"}}},
                  %% {hackney, ".*", {git, "git://github.com/benoitc/hackney.git", {tag, "1.2.0"}}},
-                 {eini, ".*", {git, "https://github.com/accense/eini.git", {tag, "1.2.1"}}},
+                 {eini, ".*", {git, "https://github.com/erlcloud/eini.git", {tag, "1.2.3"}}},
                  {lhttpc, ".*", {git, "git://github.com/talko/lhttpc", {tag, "1.4.0"}}}]}
          | lists:keydelete(deps, 1, CONFIG)]
 end.
