@@ -1126,25 +1126,21 @@ s3_request2_no_update(Config, Method, Host, Path, Subresource, Params, Body, Hea
                                 end
                                ]),
 
-    Request = #aws_request{service = s3, uri = RequestURI, method = Method},
-    Request2 = case Method of
-                   M when M =:= get orelse M =:= head orelse M =:= delete ->
-                       Request#aws_request{
-                         request_headers = RequestHeaders,
-                         request_body = <<>>};
-                   _ ->
-                       Headers2 = case lists:keyfind("content-type", 1, RequestHeaders) of
-                                      false ->
-                                          [{"content-type", ContentType} | RequestHeaders];
-                                      _ ->
-                                          RequestHeaders
-                                  end,
-                       Request#aws_request{
-                         request_headers = Headers2,
-                         request_body = Body}
-               end,
-    Request3 = erlcloud_retry:request(Config, Request2, fun s3_result_fun/1),
-    erlcloud_aws:request_to_return(Request3).
+    {RequestHeaders2, RequestBody} = case Method of
+                                         M when M =:= get orelse M =:= head orelse M =:= delete ->
+                                             {RequestHeaders, <<>>};
+                                         _ ->
+                                             Headers2 = case lists:keyfind("content-type", 1, RequestHeaders) of
+                                                            false ->
+                                                                [{"content-type", ContentType} | RequestHeaders];
+                                                            _ ->
+                                                                RequestHeaders
+                                                        end,
+                                             {Headers2, Body}
+                                     end,
+    Request = #aws_request{service = s3, uri = RequestURI, method = Method, request_headers = RequestHeaders2, request_body = RequestBody},
+    Request2 = erlcloud_retry:request(Config, Request, fun s3_result_fun/1),
+    erlcloud_aws:request_to_return(Request2).
 
 s3_result_fun(#aws_request{response_type = ok} = Request) ->
     Request;
