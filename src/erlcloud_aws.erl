@@ -762,7 +762,7 @@ hash_encode(Data) ->
     base16(Hash).
 
 base16(Data) ->
-    io_lib:format("~64.16.0b", [binary:decode_unsigned(Data)]).
+    [binary:bin_to_list(base16:encode(Data))].
 
 credential_scope(Date, Region, Service) ->
     DateOnly = string:left(Date, 8),
