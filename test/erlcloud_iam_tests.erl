@@ -2,7 +2,7 @@
 -module(erlcloud_iam_tests).
 -include_lib("eunit/include/eunit.hrl").
 -include("erlcloud.hrl").
--include_lib("../include/erlcloud_aws.hrl").
+-include("erlcloud_aws.hrl").
 -compile([export_all]).
 
 %% Unit tests for iam.

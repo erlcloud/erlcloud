@@ -25,8 +25,8 @@
         describe_delegation_sets/2, describe_delegation_sets_all/0,
         describe_delegation_sets_all/1, describe_delegation_sets_all/2]).
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 
 -define(API_VERSION, "2013-04-01").
 -define(DEFAULT_MAX_RECORDS, 100).

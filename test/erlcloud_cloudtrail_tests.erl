@@ -2,7 +2,7 @@
 -module(erlcloud_cloudtrail_tests).
 -include_lib("eunit/include/eunit.hrl").
 -include("erlcloud.hrl").
--include_lib("../include/erlcloud_aws.hrl").
+-include("erlcloud_aws.hrl").
 
 %% Unit tests for cloudtrail.
 %% These tests work by using meck to mock erlcloud_httpc. 

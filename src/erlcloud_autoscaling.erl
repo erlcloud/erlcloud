@@ -13,8 +13,8 @@
          describe_launch_configurations_all/0, describe_launch_configurations_all/1, describe_launch_configurations_all/2
         ]).
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
 -import(erlcloud_xml, [get_text/1, get_text/2, get_bool/2, get_integer/2]).

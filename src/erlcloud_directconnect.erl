@@ -19,8 +19,8 @@
 -define(SERVICE_NAME, "directconnect").
 -define(API_PREFIX, "OvertureService.").
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 
 %%%------------------------------------------------------------------------------
 %%% Shared types
