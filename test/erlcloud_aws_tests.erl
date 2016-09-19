@@ -1,6 +1,6 @@
 -module(erlcloud_aws_tests).
 
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud_aws.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 request_test_() ->

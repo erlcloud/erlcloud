@@ -1,7 +1,7 @@
 %% -*- mode: erlang;erlang-indent-level: 4;indent-tabs-mode: nil -*-
 -module(erlcloud_waf_tests).
 -include_lib("eunit/include/eunit.hrl").
--include_lib("include/erlcloud_waf.hrl").
+-include("erlcloud_waf.hrl").
 
 %% Unit tests for erlcloud_waf.
 %% These tests work by using meck to mock erlcloud_httpc. There are two classes of test: input and output.
