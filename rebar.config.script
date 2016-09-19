@@ -9,6 +9,6 @@ case erlang:function_exported(rebar3, main, 1) of
                  {jsx, ".*", {git, "git://github.com/talentdeficit/jsx.git", {tag, "2.8.0"}}},
                  %% {hackney, ".*", {git, "git://github.com/benoitc/hackney.git", {tag, "1.2.0"}}},
                  {eini, ".*", {git, "https://github.com/erlcloud/eini.git", {tag, "1.2.3"}}},
-                 {lhttpc, ".*", {git, "git://github.com/talko/lhttpc", {tag, "1.4.0"}}}]}
+                 {lhttpc, ".*", {git, "git://github.com/erlcloud/lhttpc", {tag, "1.4.0"}}}]}
          | lists:keydelete(deps, 1, CONFIG)]
 end.

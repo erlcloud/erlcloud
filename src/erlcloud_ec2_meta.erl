@@ -1,7 +1,7 @@
 -module(erlcloud_ec2_meta).
 
 -include("erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud_aws.hrl").
 
 -export([get_instance_metadata/0, get_instance_metadata/1, get_instance_metadata/2,
         get_instance_user_data/0, get_instance_user_data/1,
