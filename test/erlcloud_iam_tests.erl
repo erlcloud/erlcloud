@@ -3,7 +3,6 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
--compile([export_all]).
 
 %% Unit tests for iam.
 %% These tests work by using meck to mock erlcloud_httpc. There are two classes of test: input and output.

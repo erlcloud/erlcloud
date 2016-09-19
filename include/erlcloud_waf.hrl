@@ -1,5 +1,3 @@
--include("erlcloud.hrl").
-
 -type waf_update_action() :: insert | delete.
 -type waf_text_transformation() :: none | compress_white_space | html_entity_decode | lowercase | cmd_line | url_decode.
 -type waf_positional_constraint() :: exactly | starts_with | ends_with | contains | contains_word.
@@ -9,7 +7,7 @@
 
 -record(waf_field_to_match, {
     type :: uri | 'query_string' | header | method | body,
-    data :: string()
+    data :: string()|undefined
 }).
 -type(waf_field_to_match() :: #waf_field_to_match{}).
 
@@ -141,4 +139,3 @@
         xss_match_tuple :: waf_xss_match_tuple()
 }).
 -type(waf_xss_match_set_update() :: #waf_xss_match_set_update{}).
-
