@@ -1299,24 +1299,24 @@ attribute_xpath(_, AttributeName) ->
 
 %%
 %%
--spec describe_instances() -> {ok, proplist()} | {error, any()}.
+-spec describe_instances() -> {ok, [proplist()]} | {error, any()}.
 describe_instances() -> describe_instances([]).
 
--spec describe_instances([string()] | aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec describe_instances([string()] | aws_config()) -> {ok, [proplist()]} | {error, any()}.
 describe_instances(Config)
   when is_record(Config, aws_config) ->
     describe_instances([], Config);
 describe_instances(InstanceIDs) ->
     describe_instances(InstanceIDs, [], default_config()).
 
--spec describe_instances([string()], filter_list() | aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec describe_instances([string()], filter_list() | aws_config()) -> {ok, [proplist()]} | {error, any()}.
 describe_instances(InstanceIDs, Config)
   when is_record(Config, aws_config) ->
     describe_instances(InstanceIDs, [], Config);
 describe_instances(InstanceIDs, Filter) ->
     describe_instances(InstanceIDs, Filter, default_config()).
 
--spec describe_instances([string()], filter_list(), aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec describe_instances([string()], filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
 describe_instances(InstanceIDs, Filter, Config)
   when is_list(InstanceIDs) ->
     Params = erlcloud_aws:param_list(InstanceIDs, "InstanceId") ++ list_to_ec2_filter(Filter),
