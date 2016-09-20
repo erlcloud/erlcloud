@@ -2,8 +2,8 @@
 % TODO: Add pagination support
 -module(erlcloud_iam).
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
 %% Library initialization.
@@ -65,23 +65,23 @@
 
 -define(API_VERSION, "2010-05-08").
 
--spec(new/2 :: (string(), string()) -> aws_config()).
+-spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey}.
 
--spec(new/3 :: (string(), string(), string()) -> aws_config()).
+-spec new(string(), string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
                 iam_host=Host}.
 
--spec(configure/2 :: (string(), string()) -> ok).
+-spec configure(string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey)),
     ok.
 
--spec(configure/3 :: (string(), string(), string()) -> ok).
+-spec configure(string(), string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
@@ -90,15 +90,15 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 %
 % Users API
 %
--spec(get_user/0 :: () -> {ok, proplist()} |  {error, any()}).
+-spec get_user() -> {ok, proplist()} |  {error, any()}.
 get_user() -> get_user([]).
--spec(get_user/1 :: (string() | aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_user(string() | aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_user(#aws_config{} = Config) ->
     get_user("", Config);
 get_user(UserName) ->
     get_user(UserName, default_config()).
 
--spec(get_user/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_user(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_user("", Config) ->
     get_user_impl([], Config);
 get_user(UserName, Config) ->
@@ -111,17 +111,17 @@ get_user_impl(UserNameParam, #aws_config{} = Config) ->
         {error, _} = Error -> Error
     end.
 
--spec(list_access_keys/0 :: () -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_access_keys() -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_access_keys() ->
     list_access_keys([]).
 
--spec(list_access_keys/1 :: (string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_access_keys(string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_access_keys(#aws_config{} = Config) ->
     list_access_keys([], Config);
 list_access_keys(UserName) ->
     list_access_keys(UserName, default_config()).
 
--spec(list_access_keys/2 :: (string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_access_keys(string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_access_keys(UserName, #aws_config{} = Config) when is_list(UserName) ->
     Params = case UserName of
                  [] -> [];
@@ -130,17 +130,17 @@ list_access_keys(UserName, #aws_config{} = Config) when is_list(UserName) ->
     ItemPath = "/ListAccessKeysResponse/ListAccessKeysResult/AccessKeyMetadata/member",
     iam_query(Config, "ListAccessKeys", Params, ItemPath, data_type("AccessKeyMetadata")).
 
--spec(list_access_keys_all/0 :: () -> {ok, proplist()} |  {error, any()}).
+-spec list_access_keys_all() -> {ok, proplist()} |  {error, any()}.
 list_access_keys_all() ->
     list_access_keys_all([]).
 
--spec(list_access_keys_all/1 :: (string() | aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_access_keys_all(string() | aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_access_keys_all(#aws_config{} = Config) ->
     list_access_keys_all([], Config);
 list_access_keys_all(UserName) ->
     list_access_keys_all(UserName, default_config()).
 
--spec(list_access_keys_all/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_access_keys_all(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_access_keys_all(UserName, #aws_config{} = Config) when is_list(UserName) ->
     Params = case UserName of
                  [] -> [];
@@ -149,94 +149,94 @@ list_access_keys_all(UserName, #aws_config{} = Config) when is_list(UserName) ->
     ItemPath = "/ListAccessKeysResponse/ListAccessKeysResult/AccessKeyMetadata/member",
     iam_query_all(Config, "ListAccessKeys", Params, ItemPath, data_type("AccessKeyMetadata")).
 
--spec(list_users/0 :: () -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_users() -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_users() -> list_users("/").
--spec(list_users/1 :: (string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_users(string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_users(#aws_config{} = Config) ->
     list_users("/", Config);
 list_users(PathPrefix) ->
     list_users(PathPrefix, default_config()).
 
--spec(list_users/2 :: (string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_users(string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_users(PathPrefix, #aws_config{} = Config)
   when is_list(PathPrefix) ->
     ItemPath = "/ListUsersResponse/ListUsersResult/Users/member",
     iam_query(Config, "ListUsers", [{"PathPrefix", PathPrefix}], ItemPath, data_type("User")).
 
--spec(list_users_all/0 :: () -> {ok, proplist()} |  {error, any()}).
+-spec list_users_all() -> {ok, proplist()} |  {error, any()}.
 list_users_all() -> list_users_all("/").
--spec(list_users_all/1 :: (string() | aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_users_all(string() | aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_users_all(#aws_config{} = Config) ->
     list_users_all("/", Config);
 list_users_all(PathPrefix) ->
     list_users_all(PathPrefix, default_config()).
 
--spec(list_users_all/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_users_all(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_users_all(PathPrefix, #aws_config{} = Config)
   when is_list(PathPrefix) ->
     ItemPath = "/ListUsersResponse/ListUsersResult/Users/member",
     iam_query_all(Config, "ListUsers", [{"PathPrefix", PathPrefix}], ItemPath, data_type("User")).
 
--spec(list_groups_for_user/1 :: (string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec  list_groups_for_user(string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_groups_for_user(UserName) ->
     list_groups_for_user(UserName, default_config()).
 
--spec(list_groups_for_user/2 :: (string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_groups_for_user(string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_groups_for_user(UserName, #aws_config{} = Config) ->
     ItemPath = "/ListGroupsForUserResponse/ListGroupsForUserResult/Groups/member",
     iam_query(Config, "ListGroupsForUser", [{"UserName", UserName}], ItemPath, data_type("Group")).
 
--spec(list_groups_for_user_all/1 :: (string()) -> {ok, proplist()} |  {error, any()}).
+-spec list_groups_for_user_all(string()) -> {ok, proplist()} |  {error, any()}.
 list_groups_for_user_all(UserName) ->
     list_groups_for_user_all(UserName, default_config()).
 
--spec(list_groups_for_user_all/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_groups_for_user_all(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_groups_for_user_all(UserName, #aws_config{} = Config) ->
     ItemPath = "/ListGroupsForUserResponse/ListGroupsForUserResult/Groups/member",
     iam_query_all(Config, "ListGroupsForUser", [{"UserName", UserName}], ItemPath, data_type("Group")).
 
--spec(list_user_policies/1 :: (string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_user_policies(string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_user_policies(UserName) ->
     list_user_policies(UserName, default_config()).
 
--spec(list_user_policies/2 :: (string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_user_policies(string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_user_policies(UserName, #aws_config{} = Config) ->
     ItemPath = "/ListUserPoliciesResponse/ListUserPoliciesResult/PolicyNames/member",
     DataType = [{policy_name, "String"}],
     iam_query(Config, "ListUserPolicies", [{"UserName", UserName}], ItemPath, DataType).
 
--spec(list_user_policies_all/1 :: (string()) -> {ok, proplist()} |  {error, any()}).
+-spec list_user_policies_all(string()) -> {ok, proplist()} |  {error, any()}.
 list_user_policies_all(UserName) ->
     list_user_policies_all(UserName, default_config()).
 
--spec(list_user_policies_all/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_user_policies_all(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_user_policies_all(UserName, #aws_config{} = Config) ->
     ItemPath = "/ListUserPoliciesResponse/ListUserPoliciesResult/PolicyNames/member",
     DataType = [{policy_name, "String"}],
     iam_query_all(Config, "ListUserPolicies", [{"UserName", UserName}], ItemPath, DataType).
 
--spec(get_user_policy/2 :: (string(), string()) -> {ok, proplist()} |  {error, any()}).
+-spec get_user_policy(string(), string()) -> {ok, proplist()} |  {error, any()}.
 get_user_policy(UserName, PolicyName) ->
     get_user_policy(UserName, PolicyName, default_config()).
 
--spec(get_user_policy/3 :: (string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_user_policy(string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_user_policy(UserName, PolicyName, #aws_config{} = Config) ->
     ItemPath = "/GetUserPolicyResponse/GetUserPolicyResult",
     Params = [{"UserName", UserName}, {"PolicyName", PolicyName}],
     iam_query(Config, "GetUserPolicy", Params, ItemPath, data_type("UserPolicyList")).
 
--spec(list_attached_user_policies/1 :: (string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_attached_user_policies(string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_attached_user_policies(UserName) ->
     list_attached_user_policies(UserName, "/", default_config()).
 
--spec(list_attached_user_policies/2 :: (string(), string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_attached_user_policies(string(), string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_attached_user_policies(UserName, #aws_config{} = Config) ->
     list_attached_user_policies(UserName, "/", Config);
 list_attached_user_policies(UserName, PathPrefix)
   when is_list(UserName), is_list(PathPrefix) ->
     list_attached_user_policies(UserName, PathPrefix, default_config()).
 
--spec(list_attached_user_policies/3 :: (string(), string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_attached_user_policies(string(), string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_attached_user_policies(UserName, [], Config) ->
     list_attached_user_policies(UserName, "/", Config);
 list_attached_user_policies(UserName, PathPrefix, #aws_config{} = Config)
@@ -245,18 +245,18 @@ list_attached_user_policies(UserName, PathPrefix, #aws_config{} = Config)
     Params = [{"UserName", UserName}, {"PathPrefix", PathPrefix}],
     iam_query(Config, "ListAttachedUserPolicies", Params, ItemPath, data_type("AttachedPolicy")).
 
--spec(list_attached_user_policies_all/1 :: (string()) -> {ok, proplist()} |  {error, any()}).
+-spec list_attached_user_policies_all(string()) -> {ok, proplist()} |  {error, any()}.
 list_attached_user_policies_all(UserName) ->
     list_attached_user_policies_all(UserName, "/", default_config()).
 
--spec(list_attached_user_policies_all/2 :: (string(), string() | aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_attached_user_policies_all(string(), string() | aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_attached_user_policies_all(UserName, #aws_config{} = Config) ->
     list_attached_user_policies_all(UserName, "/", Config);
 list_attached_user_policies_all(UserName, PathPrefix)
   when is_list(UserName), is_list(PathPrefix) ->
     list_attached_user_policies_all(UserName, PathPrefix, default_config()).
 
--spec(list_attached_user_policies_all/3 :: (string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_attached_user_policies_all(string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_attached_user_policies_all(UserName, [], Config) ->
     list_attached_user_policies_all(UserName, "/", Config);
 list_attached_user_policies_all(UserName, PathPrefix, #aws_config{} = Config)
@@ -265,11 +265,11 @@ list_attached_user_policies_all(UserName, PathPrefix, #aws_config{} = Config)
     Params = [{"UserName", UserName}, {"PathPrefix", PathPrefix}],
     iam_query_all(Config, "ListAttachedUserPolicies", Params, ItemPath, data_type("AttachedPolicy")).
 
--spec(get_login_profile/1 :: (string()) -> {ok, proplist()} |  {error, any()}).
+-spec get_login_profile(string()) -> {ok, proplist()} |  {error, any()}.
 get_login_profile(UserName) ->
     get_login_profile(UserName, default_config()).
 
--spec(get_login_profile/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_login_profile(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_login_profile(UserName, #aws_config{} = Config) ->
     ItemPath = "/GetLoginProfileResponse/GetLoginProfileResult/LoginProfile",
     iam_query(Config, "GetLoginProfile", [{"UserName", UserName}], ItemPath, data_type("LoginProfile")).
@@ -277,11 +277,11 @@ get_login_profile(UserName, #aws_config{} = Config) ->
 %
 % Groups API
 %
--spec(get_group/1 :: (string()) -> {ok, proplist()} |  {error, any()}).
+-spec get_group(string()) -> {ok, proplist()} |  {error, any()}.
 get_group(GroupName) when is_list(GroupName)->
     get_group(GroupName, default_config()).
 
--spec(get_group/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_group(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_group(GroupName, Config) ->
     get_group_impl([{"GroupName", GroupName}], Config).
     
@@ -292,94 +292,94 @@ get_group_impl(GroupNameParam, #aws_config{} = Config) ->
         {error, _} = Error -> Error
     end.
 
--spec(list_groups/0 :: () -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_groups() -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_groups() -> list_groups([]).
--spec(list_groups/1 :: (string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_groups(string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_groups(#aws_config{} = Config) ->
     list_groups("/", Config);
 list_groups(PathPrefix) ->
     list_groups(PathPrefix, default_config()).
 
--spec(list_groups/2 :: (string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_groups(string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_groups(PathPrefix, Config)
   when is_list(PathPrefix) ->
     ItemPath = "/ListGroupsResponse/ListGroupsResult/Groups/member",
     iam_query(Config, "ListGroups", [{"PathPrefix", PathPrefix}], ItemPath, data_type("Group")).
 
--spec(list_groups_all/0 :: () -> {ok, proplist()} |  {error, any()}).
+-spec list_groups_all() -> {ok, proplist()} |  {error, any()}.
 list_groups_all() -> list_groups_all([]).
--spec(list_groups_all/1 :: (string() | aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_groups_all(string() | aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_groups_all(#aws_config{} = Config) ->
     list_groups_all("/", Config);
 list_groups_all(PathPrefix) ->
     list_groups_all(PathPrefix, default_config()).
 
--spec(list_groups_all/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_groups_all(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_groups_all(PathPrefix, Config)
   when is_list(PathPrefix) ->
     ItemPath = "/ListGroupsResponse/ListGroupsResult/Groups/member",
     iam_query_all(Config, "ListGroups", [{"PathPrefix", PathPrefix}], ItemPath, data_type("Group")).
 
--spec(list_group_policies/1 :: (string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_group_policies(string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_group_policies(GroupName) ->
     list_group_policies(GroupName, default_config()).
 
--spec(list_group_policies/2 :: (string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_group_policies(string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_group_policies(GroupName, #aws_config{} = Config) ->
     ItemPath = "/ListGroupPoliciesResponse/ListGroupPoliciesResult/PolicyNames/member",
     DataTypeDef = [{policy_name, "String"}],
     iam_query(Config, "ListGroupPolicies", [{"GroupName", GroupName}], ItemPath, DataTypeDef).
 
--spec(list_group_policies_all/1 :: (string()) -> {ok, proplist()} |  {error, any()}).
+-spec list_group_policies_all(string()) -> {ok, proplist()} |  {error, any()}.
 list_group_policies_all(GroupName) ->
     list_group_policies_all(GroupName, default_config()).
 
--spec(list_group_policies_all/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_group_policies_all(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_group_policies_all(GroupName, #aws_config{} = Config) ->
     ItemPath = "/ListGroupPoliciesResponse/ListGroupPoliciesResult/PolicyNames/member",
     DataTypeDef = [{policy_name, "String"}],
     iam_query_all(Config, "ListGroupPolicies", [{"GroupName", GroupName}], ItemPath, DataTypeDef).
 
--spec(get_group_policy/2 :: (string(), string()) -> {ok, proplist()} |  {error, any()}).
+-spec get_group_policy(string(), string()) -> {ok, proplist()} |  {error, any()}.
 get_group_policy(GroupName, PolicyName) ->
     get_group_policy(GroupName, PolicyName, default_config()).
 
--spec(get_group_policy/3 :: (string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_group_policy(string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_group_policy(GroupName, PolicyName, #aws_config{} = Config) ->
     ItemPath = "/GetGroupPolicyResponse/GetGroupPolicyResult",
     Params = [{"GroupName", GroupName}, {"PolicyName", PolicyName}],
     iam_query(Config, "GetGroupPolicy", Params, ItemPath, data_type("GroupPolicyList")).
 
--spec(list_attached_group_policies/1 :: (string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_attached_group_policies(string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_attached_group_policies(GroupName) ->
     list_attached_group_policies(GroupName, "/", default_config()).
 
--spec(list_attached_group_policies/2 :: (string(), string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_attached_group_policies(string(), string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_attached_group_policies(GroupName, #aws_config{} = Config) ->
     list_attached_group_policies(GroupName, "/", Config);
 list_attached_group_policies(GroupName, PathPrefix)
   when is_list(GroupName), is_list(PathPrefix) ->
     list_attached_group_policies(GroupName, PathPrefix, default_config()).
 
--spec(list_attached_group_policies/3 :: (string(), string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_attached_group_policies(string(), string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_attached_group_policies(GroupName, PathPrefix, #aws_config{} = Config)
   when is_list(GroupName), is_list(PathPrefix) ->
     ItemPath = "/ListAttachedGroupPoliciesResponse/ListAttachedGroupPoliciesResult/AttachedPolicies/member",
     Params = [{"GroupName", GroupName}, {"PathPrefix", PathPrefix}],
     iam_query(Config, "ListAttachedGroupPolicies", Params, ItemPath, data_type("AttachedPolicy")).
 
--spec(list_attached_group_policies_all/1 :: (string()) -> {ok, proplist()} |  {error, any()}).
+-spec list_attached_group_policies_all(string()) -> {ok, proplist()} |  {error, any()}.
 list_attached_group_policies_all(GroupName) ->
     list_attached_group_policies_all(GroupName, "/", default_config()).
 
--spec(list_attached_group_policies_all/2 :: (string(), string() | aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_attached_group_policies_all(string(), string() | aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_attached_group_policies_all(GroupName, #aws_config{} = Config) ->
     list_attached_group_policies_all(GroupName, "/", Config);
 list_attached_group_policies_all(GroupName, PathPrefix)
   when is_list(GroupName), is_list(PathPrefix) ->
     list_attached_group_policies_all(GroupName, PathPrefix, default_config()).
 
--spec(list_attached_group_policies_all/3 :: (string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_attached_group_policies_all(string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_attached_group_policies_all(GroupName, PathPrefix, #aws_config{} = Config)
   when is_list(GroupName), is_list(PathPrefix) ->
     ItemPath = "/ListAttachedGroupPoliciesResponse/ListAttachedGroupPoliciesResult/AttachedPolicies/member",
@@ -389,11 +389,11 @@ list_attached_group_policies_all(GroupName, PathPrefix, #aws_config{} = Config)
 %
 % Roles API
 %
--spec(get_role/1 :: (string()) -> {ok, proplist()} |  {error, any()}).
+-spec get_role(string()) -> {ok, proplist()} |  {error, any()}.
 get_role(RoleName) when is_list(RoleName) ->
     get_role(RoleName, default_config()).
 
--spec(get_role/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_role(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_role(RoleName, Config) ->
     get_role_impl([{"RoleName", RoleName}], Config).
     
@@ -404,94 +404,94 @@ get_role_impl(RoleNameParam, #aws_config{} = Config) ->
         {error, _} = Error -> Error
     end.
 
--spec(list_roles/0 :: () -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_roles() -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_roles() -> list_roles([]).
--spec(list_roles/1 :: (string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_roles(string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_roles(#aws_config{} = Config) ->
     list_roles("/", Config);
 list_roles(PathPrefix) ->
     list_roles(PathPrefix, default_config()).
 
--spec(list_roles/2 :: (string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_roles(string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_roles(PathPrefix, #aws_config{} = Config)
   when is_list(PathPrefix) ->
     ItemPath = "/ListRolesResponse/ListRolesResult/Roles/member",
     iam_query(Config, "ListRoles", [{"PathPrefix", PathPrefix}], ItemPath, data_type("Role")).
 
--spec(list_roles_all/0 :: () -> {ok, proplist()} |  {error, any()}).
+-spec list_roles_all() -> {ok, proplist()} |  {error, any()}.
 list_roles_all() -> list_roles([]).
--spec(list_roles_all/1 :: (string() | aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_roles_all(string() | aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_roles_all(#aws_config{} = Config) ->
     list_roles_all("/", Config);
 list_roles_all(PathPrefix) ->
     list_roles_all(PathPrefix, default_config()).
 
--spec(list_roles_all/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_roles_all(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_roles_all(PathPrefix, #aws_config{} = Config)
   when is_list(PathPrefix) ->
     ItemPath = "/ListRolesResponse/ListRolesResult/Roles/member",
     iam_query_all(Config, "ListRoles", [{"PathPrefix", PathPrefix}], ItemPath, data_type("Role")).
 
--spec(list_role_policies/1 :: (string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_role_policies(string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_role_policies(RoleName) ->
     list_role_policies(RoleName, default_config()).
 
--spec(list_role_policies/2 :: (string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_role_policies(string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_role_policies(RoleName, #aws_config{} = Config) ->
     ItemPath = "/ListRolePoliciesResponse/ListRolePoliciesResult/PolicyNames/member",
     DataTypeDef = [{policy_name, "String"}],
     iam_query(Config, "ListRolePolicies", [{"RoleName", RoleName}], ItemPath, DataTypeDef).
 
--spec(list_role_policies_all/1 :: (string()) -> {ok, proplist()} |  {error, any()}).
+-spec list_role_policies_all(string()) -> {ok, proplist()} |  {error, any()}.
 list_role_policies_all(RoleName) ->
     list_role_policies_all(RoleName, default_config()).
 
--spec(list_role_policies_all/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_role_policies_all(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_role_policies_all(RoleName, #aws_config{} = Config) ->
     ItemPath = "/ListRolePoliciesResponse/ListRolePoliciesResult/PolicyNames/member",
     DataTypeDef = [{policy_name, "String"}],
     iam_query_all(Config, "ListRolePolicies", [{"RoleName", RoleName}], ItemPath, DataTypeDef).
 
--spec(get_role_policy/2 :: (string(), string()) -> {ok, proplist()} |  {error, any()}).
+-spec get_role_policy(string(), string()) -> {ok, proplist()} |  {error, any()}.
 get_role_policy(RoleName, PolicyName) ->
     get_role_policy(RoleName, PolicyName, default_config()).
 
--spec(get_role_policy/3 :: (string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_role_policy(string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_role_policy(RoleName, PolicyName, #aws_config{} = Config) ->
     ItemPath = "/GetRolePolicyResponse/GetRolePolicyResult",
     Params = [{"RoleName", RoleName}, {"PolicyName", PolicyName}],
     iam_query(Config, "GetRolePolicy", Params, ItemPath, data_type("RolePolicyList")).
 
--spec(list_attached_role_policies/1 :: (string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_attached_role_policies(string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_attached_role_policies(RoleName) ->
     list_attached_role_policies(RoleName, "/", default_config()).
 
--spec(list_attached_role_policies/2 :: (string(), string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_attached_role_policies(string(), string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_attached_role_policies(RoleName, #aws_config{} = Config) ->
     list_attached_role_policies(RoleName, "/", Config);
 list_attached_role_policies(RoleName, PathPrefix)
   when is_list(RoleName), is_list(PathPrefix) ->
     list_attached_role_policies(RoleName, PathPrefix, default_config()).
 
--spec(list_attached_role_policies/3 :: (string(), string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_attached_role_policies(string(), string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_attached_role_policies(RoleName, PathPrefix, #aws_config{} = Config)
   when is_list(RoleName), is_list(PathPrefix) ->
     ItemPath = "/ListAttachedRolePoliciesResponse/ListAttachedRolePoliciesResult/AttachedPolicies/member",
     Params = [{"RoleName", RoleName}, {"PathPrefix", PathPrefix}],
     iam_query(Config, "ListAttachedRolePolicies", Params, ItemPath, data_type("AttachedPolicy")).
 
--spec(list_attached_role_policies_all/1 :: (string()) -> {ok, proplist()} |  {error, any()}).
+-spec list_attached_role_policies_all(string()) -> {ok, proplist()} |  {error, any()}.
 list_attached_role_policies_all(RoleName) ->
     list_attached_role_policies_all(RoleName, "/", default_config()).
 
--spec(list_attached_role_policies_all/2 :: (string(), string() | aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_attached_role_policies_all(string(), string() | aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_attached_role_policies_all(RoleName, #aws_config{} = Config) ->
     list_attached_role_policies_all(RoleName, "/", Config);
 list_attached_role_policies_all(RoleName, PathPrefix)
   when is_list(RoleName), is_list(PathPrefix) ->
     list_attached_role_policies_all(RoleName, PathPrefix, default_config()).
 
--spec(list_attached_role_policies_all/3 :: (string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_attached_role_policies_all(string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_attached_role_policies_all(RoleName, PathPrefix, #aws_config{} = Config)
   when is_list(RoleName), is_list(PathPrefix) ->
     ItemPath = "/ListAttachedRolePoliciesResponse/ListAttachedRolePoliciesResult/AttachedPolicies/member",
@@ -501,94 +501,94 @@ list_attached_role_policies_all(RoleName, PathPrefix, #aws_config{} = Config)
 %
 % Policies API
 %
--spec(list_policies/0 :: () -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_policies() -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_policies() ->
     list_policies("/").
--spec(list_policies/1 :: (string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_policies(string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_policies(#aws_config{} = Config) ->
     list_policies("/", Config);
 list_policies(PathPrefix) ->
     list_policies(PathPrefix, default_config()).
 
--spec(list_policies/2 :: (string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_policies(string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_policies(PathPrefix, #aws_config{} = Config) ->
     list_policies(PathPrefix, [], Config).
 
--spec(list_policies/3 :: (string(), list(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_policies(string(), list(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_policies(PathPrefix, ReqParams, #aws_config{} = Config)
         when is_list(PathPrefix), is_list(ReqParams) ->
     ItemPath = "/ListPoliciesResponse/ListPoliciesResult/Policies/member",
     iam_query(Config, "ListPolicies", [{"PathPrefix", PathPrefix} | ReqParams], ItemPath, data_type("Policy")).
 
--spec(list_policies_all/0 :: () -> {ok, proplist()} |  {error, any()}).
+-spec list_policies_all() -> {ok, proplist()} |  {error, any()}.
 list_policies_all() ->
     list_policies_all("/").
--spec(list_policies_all/1 :: (string() | aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_policies_all(string() | aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_policies_all(#aws_config{} = Config) ->
     list_policies_all("/", Config);
 list_policies_all(PathPrefix) ->
     list_policies_all(PathPrefix, default_config()).
 
--spec(list_policies_all/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_policies_all(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_policies_all(PathPrefix, #aws_config{} = Config) ->
     list_policies_all(PathPrefix, [], Config).
 
--spec(list_policies_all/3 :: (string(), list(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_policies_all(string(), list(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_policies_all(PathPrefix, ReqParams, #aws_config{} = Config)
         when is_list(PathPrefix), is_list(ReqParams) ->
     ItemPath = "/ListPoliciesResponse/ListPoliciesResult/Policies/member",
     iam_query_all(Config, "ListPolicies", [{"PathPrefix", PathPrefix} | ReqParams], ItemPath, data_type("Policy")).
 
--spec(list_entities_for_policy/1 :: (string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_entities_for_policy(string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_entities_for_policy(PolicyArn) ->
   list_entities_for_policy(PolicyArn, default_config()).
 
--spec(list_entities_for_policy/2 :: (string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_entities_for_policy(string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_entities_for_policy(PolicyArn, #aws_config{} = Config) ->
   list_entities_for_policy(PolicyArn, "/", Config).
 
--spec(list_entities_for_policy/3 :: (string(), string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_entities_for_policy(string(), string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_entities_for_policy(PolicyArn, PathPrefix, #aws_config{} = Config) ->
   list_entities_for_policy(PolicyArn, PathPrefix, [], Config).
 
--spec(list_entities_for_policy/4 :: (string(), string(), list(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_entities_for_policy(string(), string(), list(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_entities_for_policy(PolicyArn, PathPrefix, ReqParams, #aws_config{} = Config)
         when is_list(PathPrefix), is_list(PolicyArn), is_list(ReqParams) ->
     ItemPath = "/ListEntitiesForPolicyResponse/ListEntitiesForPolicyResult",
     Params = [{"PathPrefix", PathPrefix} , {"PolicyArn", PolicyArn} | ReqParams],
     iam_query(Config, "ListEntitiesForPolicy", Params, ItemPath, data_type("EntitiesPolicyList")).
 
--spec(list_entities_for_policy_all/1 :: (string()) -> {ok, proplist()} |  {error, any()}).
+-spec list_entities_for_policy_all(string()) -> {ok, proplist()} |  {error, any()}.
 list_entities_for_policy_all(PolicyArn) ->
   list_entities_for_policy_all(PolicyArn, default_config()).
 
--spec(list_entities_for_policy_all/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_entities_for_policy_all(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_entities_for_policy_all(PolicyArn, #aws_config{} = Config) ->
   list_entities_for_policy_all(PolicyArn, "/", Config).
 
--spec(list_entities_for_policy_all/3 :: (string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_entities_for_policy_all(string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_entities_for_policy_all(PolicyArn, PathPrefix, #aws_config{} = Config) ->
   list_entities_for_policy_all(PolicyArn, PathPrefix, [], Config).
 
--spec(list_entities_for_policy_all/4 :: (string(), string(), list(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_entities_for_policy_all(string(), string(), list(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_entities_for_policy_all(PolicyArn, PathPrefix, ReqParams, #aws_config{} = Config)
         when is_list(PathPrefix), is_list(PolicyArn), is_list(ReqParams) ->
     ItemPath = "/ListEntitiesForPolicyResponse/ListEntitiesForPolicyResult",
     Params = [{"PathPrefix", PathPrefix} , {"PolicyArn", PolicyArn} | ReqParams],
     iam_query_all(Config, "ListEntitiesForPolicy", Params, ItemPath, data_type("EntitiesPolicyList")).
 
--spec(get_policy/1 :: (string()) -> {ok, proplist()} |  {error, any()}).
+-spec get_policy(string()) -> {ok, proplist()} |  {error, any()}.
 get_policy(PolicyArn) -> get_policy(PolicyArn, default_config()).
--spec(get_policy/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_policy(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_policy(PolicyArn, #aws_config{} = Config)
   when is_list(PolicyArn) ->
     ItemPath = "/GetPolicyResponse/GetPolicyResult/Policy",
     iam_query(Config, "GetPolicy", [{"PolicyArn", PolicyArn}], ItemPath, data_type("Policy")).
 
--spec(get_policy_version/2 :: (string(), string()) -> {ok, proplist()} |  {error, any()}).
+-spec get_policy_version(string(), string()) -> {ok, proplist()} |  {error, any()}.
 get_policy_version(PolicyArn, VersionId) ->
     get_policy_version(PolicyArn, VersionId, default_config()).
--spec(get_policy_version/3 :: (string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_policy_version(string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_policy_version(PolicyArn, VersionId, #aws_config{} = Config)
   when is_list(PolicyArn), is_list(VersionId) ->
     ItemPath = "/GetPolicyVersionResponse/GetPolicyVersionResult/PolicyVersion",
@@ -597,45 +597,45 @@ get_policy_version(PolicyArn, VersionId, #aws_config{} = Config)
 %
 % InstanceProfile
 %
--spec(list_instance_profiles/0 :: () -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_instance_profiles() -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_instance_profiles() ->
     list_instance_profiles(default_config()).
 
--spec(list_instance_profiles/1 :: (string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_instance_profiles(string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_instance_profiles(#aws_config{} = Config) ->
     list_instance_profiles("/", Config);
 
 list_instance_profiles(PathPrefix) ->
     list_instance_profiles(PathPrefix, default_config()).
 
--spec(list_instance_profiles/2 :: (string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}).
+-spec list_instance_profiles(string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_instance_profiles(PathPrefix, #aws_config{} = Config) ->
     ItemPath = "/ListInstanceProfilesResponse/ListInstanceProfilesResult/InstanceProfiles/member",
     Params = [{"PathPrefix", PathPrefix}],
     iam_query(Config, "ListInstanceProfiles", Params, ItemPath, data_type("InstanceProfile")).
 
--spec(list_instance_profiles_all/0 :: () -> {ok, proplist()} |  {error, any()}).
+-spec list_instance_profiles_all() -> {ok, proplist()} |  {error, any()}.
 list_instance_profiles_all() ->
     list_instance_profiles_all(default_config()).
 
--spec(list_instance_profiles_all/1 :: (string() | aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_instance_profiles_all(string() | aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_instance_profiles_all(#aws_config{} = Config) ->
     list_instance_profiles_all("/", Config);
 
 list_instance_profiles_all(PathPrefix) ->
     list_instance_profiles_all(PathPrefix, default_config()).
 
--spec(list_instance_profiles_all/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec list_instance_profiles_all(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_instance_profiles_all(PathPrefix, #aws_config{} = Config) ->
     ItemPath = "/ListInstanceProfilesResponse/ListInstanceProfilesResult/InstanceProfiles/member",
     Params = [{"PathPrefix", PathPrefix}],
     iam_query_all(Config, "ListInstanceProfiles", Params, ItemPath, data_type("InstanceProfile")).
 
--spec(get_instance_profile/1 :: (string()) -> {ok, proplist()} |  {error, any()}).
+-spec get_instance_profile(string()) -> {ok, proplist()} |  {error, any()}.
 get_instance_profile(ProfileName) ->
     get_instance_profile(ProfileName, default_config()).
 
--spec(get_instance_profile/2 :: (string(), aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_instance_profile(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_instance_profile(ProfileName, #aws_config{} = Config) ->
     ItemPath = "/GetInstanceProfileResponse/GetInstanceProfileResult/InstanceProfile",
     Params = [{"InstanceProfileName", ProfileName}],
@@ -644,11 +644,11 @@ get_instance_profile(ProfileName, #aws_config{} = Config) ->
 %
 % Account APIs
 %
--spec(get_account_authorization_details/0 :: () -> {ok, proplist()} |  {error, any()}).
+-spec get_account_authorization_details() -> {ok, proplist()} |  {error, any()}.
 get_account_authorization_details() ->
     get_account_authorization_details(default_config()).
   
--spec(get_account_authorization_details/1 :: (aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_account_authorization_details(aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_account_authorization_details(#aws_config{} = Config) ->
     ItemPath = "/GetAccountAuthorizationDetailsResponse/GetAccountAuthorizationDetailsResult",
     DataTypeDef = data_type("AccountAuthorizationDetails"),
@@ -658,11 +658,11 @@ get_account_authorization_details(#aws_config{} = Config) ->
         {error, _} = Error -> Error
     end.
 
--spec(get_account_summary/0 :: () -> {ok, proplist()} |  {error, any()}).
+-spec get_account_summary() -> {ok, proplist()} |  {error, any()}.
 get_account_summary() ->
     get_account_summary(default_config()).
 
--spec(get_account_summary/1 :: (aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_account_summary(aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_account_summary(#aws_config{} = Config) ->
     case iam_query(Config, "GetAccountSummary", []) of
         {ok, Doc} ->
@@ -672,33 +672,33 @@ get_account_summary(#aws_config{} = Config) ->
             Error
     end.
 
--spec(get_account_password_policy/0 :: () -> {ok, proplist()} |  {error, any()}).
+-spec get_account_password_policy() -> {ok, proplist()} |  {error, any()}.
 get_account_password_policy() ->
     get_account_password_policy(default_config()).
 
--spec(get_account_password_policy/1 :: (aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_account_password_policy(aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_account_password_policy(#aws_config{} = Config) ->
     ItemPath = "/GetAccountPasswordPolicyResponse/GetAccountPasswordPolicyResult/PasswordPolicy",
     DataTypeDef = data_type("PasswordPolicy"),
     iam_query(Config, "GetAccountPasswordPolicy", [], ItemPath, DataTypeDef).
 
 
--spec(generate_credential_report/0 :: () -> {ok, proplist()} |  {error, any()}).
+-spec generate_credential_report() -> {ok, proplist()} |  {error, any()}.
 generate_credential_report() ->
     generate_credential_report(default_config()).
 
--spec(generate_credential_report/1 :: (aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec generate_credential_report(aws_config()) -> {ok, proplist()} |  {error, any()}.
 generate_credential_report(Config) ->
     ItemPath = "/GenerateCredentialReportResponse/GenerateCredentialReportResult",
     DataTypeDef = [{"State", state, "String"},
                    {"Description", description, "String"}],
     iam_query(Config, "GenerateCredentialReport", [], ItemPath, DataTypeDef).
 
--spec(get_credential_report/0 :: () -> {ok, proplist()} |  {error, any()}).
+-spec get_credential_report() -> {ok, proplist()} |  {error, any()}.
 get_credential_report() ->
     get_credential_report(default_config()).
 
--spec(get_credential_report/1 :: (aws_config()) -> {ok, proplist()} |  {error, any()}).
+-spec get_credential_report(aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_credential_report(Config) ->
     ItemPath = "/GetCredentialReportResponse/GetCredentialReportResult",
     DataTypeDef = [{"GeneratedTime", generated_time, "DateTime"},

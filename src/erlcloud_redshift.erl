@@ -1,7 +1,7 @@
 -module(erlcloud_redshift).
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 
 -define(API_VERSION, "2012-12-01").
 
@@ -20,23 +20,23 @@
 -type(cluster_return() :: {ok, proplists:proplist()} | {error, term()}).
 
 
--spec(new/2 :: (string(), string()) -> aws_config()).
+-spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey}.
 
--spec(new/3 :: (string(), string(), string()) -> aws_config()).
+-spec new(string(), string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
                 redshift_host=Host}.
 
--spec(configure/2 :: (string(), string()) -> ok).
+-spec configure(string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey)),
     ok.
 
--spec(configure/3 :: (string(), string(), string()) -> ok).
+-spec configure(string(), string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.

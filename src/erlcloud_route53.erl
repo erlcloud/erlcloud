@@ -25,8 +25,8 @@
         describe_delegation_sets/2, describe_delegation_sets_all/0,
         describe_delegation_sets_all/1, describe_delegation_sets_all/2]).
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 
 -define(API_VERSION, "2013-04-01").
 -define(DEFAULT_MAX_RECORDS, 100).
@@ -53,23 +53,23 @@
 -define(DESCRIBE_DS_NEXT_MARKER,
         "/ListReusableDelegationSetsResponse/NextMarker").
 
--spec(new/2 :: (string(), string()) -> aws_config()).
+-spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey}.
 
--spec(new/3 :: (string(), string(), string()) -> aws_config()).
+-spec new(string(), string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
                 route53_host=Host}.
 
--spec(configure/2 :: (string(), string()) -> ok).
+-spec configure(string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey)),
     ok.
 
--spec(configure/3 :: (string(), string(), string()) -> ok).
+-spec configure(string(), string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
@@ -78,9 +78,9 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 %% @doc Describes provided zone using default config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_zone(ZoneId :: string()) ->
+-spec describe_zone(ZoneId :: string()) ->
              {ok, list(aws_route53_zone())} |
-             {error, term()}).
+             {error, term()}.
 describe_zone(ZoneId) ->
     describe_zone(ZoneId, erlcloud_aws:default_config()).
 
@@ -88,10 +88,10 @@ describe_zone(ZoneId) ->
 %% @doc Describes provided zone using provided config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_zone(ZoneId :: string(),
+-spec describe_zone(ZoneId :: string(),
                     AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_zone())} |
-             {error, term()}).
+             {error, term()}.
 describe_zone(ZoneId, AwsConfig) ->
     describe_zone(ZoneId, [], AwsConfig).
 
@@ -99,11 +99,11 @@ describe_zone(ZoneId, AwsConfig) ->
 %% @doc Describes provided zone using provided config + AWS options
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_zone(ZoneId :: string(),
+-spec describe_zone(ZoneId :: string(),
                     Options   :: list({string(), string()}),
                     AwsConfig :: aws_config()) ->
     {ok, list(aws_route53_zone())} |
-    {error, term()}).
+    {error, term()}.
 describe_zone(ZoneId, Options, Config) when is_list(Options),
                                             is_record(Config, aws_config) ->
     do_describe_zone(ZoneId, Options, Config).
@@ -112,10 +112,10 @@ describe_zone(ZoneId, Options, Config) when is_list(Options),
 %% @doc Describes all zones using default config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_zones() ->
+-spec describe_zones() ->
              {ok, list(aws_route53_zone())} |
              {ok, list(aws_route53_zone()), string()} |
-             {error, term()}).
+             {error, term()}.
 describe_zones() ->
     describe_zones(erlcloud_aws:default_config()).
 
@@ -123,10 +123,10 @@ describe_zones() ->
 %% @doc Describes all zones using provided config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_zones(AwsConfig :: aws_config()) ->
+-spec describe_zones(AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_zone())} |
              {ok, list(aws_route53_zone()), string()} |
-             {error, term()}).
+             {error, term()}.
 describe_zones(AwsConfig) ->
     describe_zones([], AwsConfig).
 
@@ -134,11 +134,11 @@ describe_zones(AwsConfig) ->
 %% @doc Describes all zones using provided config + AWS options
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_zones(Options   :: list({string(), string()}),
+-spec describe_zones(Options   :: list({string(), string()}),
                      AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_zone())} |
              {ok, list(aws_route53_zone()), string()} |
-             {error, term()}).
+             {error, term()}.
 describe_zones(Options, Config) when is_list(Options),
                                      is_record(Config, aws_config) ->
     do_describe_zones(Options, Config).
@@ -147,9 +147,9 @@ describe_zones(Options, Config) when is_list(Options),
 %% @doc Describes all zones using default config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_zones_all() ->
+-spec describe_zones_all() ->
              {ok, list(aws_route53_zone())} |
-             {error, term()}).
+             {error, term()}.
 describe_zones_all() ->
     describe_all(fun describe_zones/2, [],
                  erlcloud_aws:default_config(), []).
@@ -158,9 +158,9 @@ describe_zones_all() ->
 %% @doc Describes all zones using provided config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_zones_all(AwsConfig :: aws_config()) ->
+-spec describe_zones_all(AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_zone())} |
-             {error, term()}).
+             {error, term()}.
 describe_zones_all(AwsConfig) ->
     describe_all(fun describe_zones/2, [], AwsConfig, []).
 
@@ -168,10 +168,10 @@ describe_zones_all(AwsConfig) ->
 %% @doc Describes all zones using provided config + AWS options
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_zones_all(Options   :: list({string(), string()}),
+-spec describe_zones_all(Options   :: list({string(), string()}),
                          AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_zone())} |
-             {error, term()}).
+             {error, term()}.
 describe_zones_all(Options, Config) when is_list(Options),
                                          is_record(Config, aws_config) ->
     describe_all(fun describe_zones/2, Options, Config, []).
@@ -180,11 +180,11 @@ describe_zones_all(Options, Config) when is_list(Options),
 %% @doc Describes resource sets for a specific zone_id using default config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_resource_sets(ZoneId :: string()) ->
+-spec describe_resource_sets(ZoneId :: string()) ->
              {ok, list(aws_route53_resourceset())} |
              {ok, list(aws_route53_resourceset()), {string(), string()}} |
              {ok ,list(aws_route53_resourceset()), string()} |
-             {error, term()}).
+             {error, term()}.
 describe_resource_sets(ZoneId) ->
     describe_resource_sets(ZoneId, erlcloud_aws:default_config()).
 
@@ -192,12 +192,12 @@ describe_resource_sets(ZoneId) ->
 %% @doc Describes resource sets for a specific zone_id using provided config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_resource_sets(ZoneId :: string(),
+-spec describe_resource_sets(ZoneId :: string(),
                              AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_resourceset())} |
              {ok, list(aws_route53_resourceset()), {string(), string()}} |
              {ok ,list(aws_route53_resourceset()), string()} |
-             {error, term()}).
+             {error, term()}.
 describe_resource_sets(ZoneId, AwsConfig) ->
     describe_resource_sets(ZoneId, [], AwsConfig).
 
@@ -206,13 +206,13 @@ describe_resource_sets(ZoneId, AwsConfig) ->
 %% ZoneID with a list of AWS options
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_resource_sets(ZoneID    :: string(),
+-spec describe_resource_sets(ZoneID    :: string(),
                              Options   :: list({string(), string()}),
                              AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_resourceset())} |
              {ok, list(aws_route53_resourceset()), {string(), string()}} |
              {ok ,list(aws_route53_resourceset()), string()} |
-             {error, term()}).
+             {error, term()}.
 describe_resource_sets(ZoneId, Options, AwsConfig) ->
     do_describe_resource_sets(ZoneId, Options, AwsConfig).
 
@@ -220,9 +220,9 @@ describe_resource_sets(ZoneId, Options, AwsConfig) ->
 %% @doc Describes resource sets for a specific zone_id using default config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_resource_sets_all(ZoneId :: string()) ->
+-spec describe_resource_sets_all(ZoneId :: string()) ->
              {ok, list(aws_route53_resourceset())} |
-             {error, term()}).
+             {error, term()}.
 describe_resource_sets_all(ZoneId) ->
     describe_all(fun describe_resource_sets/3, [ZoneId], [],
                  erlcloud_aws:default_config(), []).
@@ -231,10 +231,10 @@ describe_resource_sets_all(ZoneId) ->
 %% @doc Describes resource sets for a specific zone_id using provided config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_resource_sets_all(ZoneId :: string(),
+-spec describe_resource_sets_all(ZoneId :: string(),
                                  AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_resourceset())} |
-             {error, term()}).
+             {error, term()}.
 describe_resource_sets_all(ZoneId, AwsConfig) ->
     describe_all(fun describe_resource_sets/3, [ZoneId], [], AwsConfig, []).
 
@@ -243,11 +243,11 @@ describe_resource_sets_all(ZoneId, AwsConfig) ->
 %% ZoneID with a list of AWS options
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_resource_sets_all(ZoneID    :: string(),
+-spec describe_resource_sets_all(ZoneID    :: string(),
                                  Options   :: list({string(), string()}),
                                  AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_resourceset())} |
-             {error, term()}).
+             {error, term()}.
 describe_resource_sets_all(ZoneId, Options, AwsConfig) ->
     describe_all(fun describe_resource_sets/3, [ZoneId],
                  Options, AwsConfig, []).
@@ -256,10 +256,10 @@ describe_resource_sets_all(ZoneId, Options, AwsConfig) ->
 %% @doc Describes delegation sets using default config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_delegation_sets() ->
+-spec describe_delegation_sets() ->
              {ok, list(aws_route53_delegation_set())} |
              {ok, list(aws_route53_delegation_set()), string()} |
-             {error, term()}).
+             {error, term()}.
 describe_delegation_sets() ->
     describe_delegation_sets(erlcloud_aws:default_config()).
 
@@ -267,10 +267,10 @@ describe_delegation_sets() ->
 %% @doc Describes delegation sets using provided config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_delegation_sets(AwsConfig :: aws_config()) ->
+-spec describe_delegation_sets(AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_delegation_set())} |
              {ok, list(aws_route53_delegation_set()), string()} |
-             {error, term()}).
+             {error, term()}.
 describe_delegation_sets(AwsConfig) ->
     describe_delegation_sets([], AwsConfig).
 
@@ -279,11 +279,11 @@ describe_delegation_sets(AwsConfig) ->
 %% options
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_delegation_sets(Options   :: list({string(), string()}),
+-spec describe_delegation_sets(Options   :: list({string(), string()}),
                                AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_delegation_set())} |
              {ok, list(aws_route53_delegation_set()), string()} |
-             {error, term()}).
+             {error, term()}.
 describe_delegation_sets(Options, AwsConfig) ->
     do_describe_delegation_sets(Options, AwsConfig).
 
@@ -291,9 +291,9 @@ describe_delegation_sets(Options, AwsConfig) ->
 %% @doc Describes delegation sets using default config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_delegation_sets_all() ->
+-spec describe_delegation_sets_all() ->
              {ok, list(aws_route53_delegation_set())} |
-             {error, term()}).
+             {error, term()}.
 describe_delegation_sets_all() ->
     describe_all(fun describe_delegation_sets/2, [],
                        erlcloud_aws:default_config(), []).
@@ -302,9 +302,9 @@ describe_delegation_sets_all() ->
 %% @doc Describes delegation sets using provided config
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_delegation_sets_all(AwsConfig :: aws_config()) ->
+-spec describe_delegation_sets_all(AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_delegation_set())} |
-             {error, term()}).
+             {error, term()}.
 describe_delegation_sets_all(AwsConfig) ->
     describe_all(fun describe_delegation_sets/2, [], AwsConfig, []).
 
@@ -313,10 +313,10 @@ describe_delegation_sets_all(AwsConfig) ->
 %% options
 %% @end
 %% --------------------------------------------------------------------
--spec(describe_delegation_sets_all(Options   :: list({string(), string()}),
+-spec describe_delegation_sets_all(Options   :: list({string(), string()}),
                                    AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_delegation_set())} |
-             {error, term()}).
+             {error, term()}.
 describe_delegation_sets_all(Options, AwsConfig) ->
     describe_all(fun describe_delegation_sets/2, Options, AwsConfig, []).
 

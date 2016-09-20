@@ -46,8 +46,8 @@
 -export([create_notification_param_xml/2]).
 -endif.
 
--include_lib("erlcloud/include/erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
 %%% Note that get_bucket_and_key/1 may be used to obtain the Bucket and Key to pass to various
@@ -382,7 +382,7 @@ list_buckets(Config) ->
 % @doc Get S3 bucket policy JSON object
 % API Document: http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGETacl.html
 %
--spec(get_bucket_policy/1 :: (BucketName::string()) -> ok | {error, Reason::term()}).
+-spec get_bucket_policy(BucketName::string()) -> ok | {error, Reason::term()}.
 get_bucket_policy(BucketName) ->
     get_bucket_policy(BucketName, default_config()).
 
@@ -398,7 +398,7 @@ get_bucket_policy(BucketName) ->
 %                                   <RequestId>DC1EA9456B266EF5</RequestId>
 %                                   <HostId>DRtkAB80cAeom+4ffSGU3PFCxS7QvtiW+wxLnPF0dM2nxoaRqQk1SK/z62ZJVHAD</HostId>
 %                               </Error>"}}
--spec(get_bucket_policy/2 :: (BucketName::string(), Config::aws_config()) -> {ok, Policy::string()} | {error, Reason::term()}).
+-spec get_bucket_policy(BucketName::string(), Config::aws_config()) -> {ok, Policy::string()} | {error, Reason::term()}.
 get_bucket_policy(BucketName, Config)
     when is_record(Config, aws_config) ->
         case s3_request2(Config, get, BucketName, "/", "policy", [], <<>>, []) of
@@ -417,11 +417,11 @@ put_bucket_policy(BucketName, Policy, Config)
   when is_list(BucketName), is_binary(Policy), is_record(Config, aws_config) ->
     s3_simple_request(Config, put, BucketName, "/", "policy", [], Policy, []).
 
--spec(get_bucket_lifecycle/1 :: (BucketName::string()) -> ok | {error, Reason::term()}).
+-spec get_bucket_lifecycle(BucketName::string()) -> ok | {error, Reason::term()}.
 get_bucket_lifecycle(BucketName) ->
     get_bucket_lifecycle(BucketName, default_config()).
 
--spec(get_bucket_lifecycle/2 :: (BucketName::string(), Config::aws_config()) -> {ok, Policy::string()} | {error, Reason::term()}).
+-spec get_bucket_lifecycle(BucketName::string(), Config::aws_config()) -> {ok, Policy::string()} | {error, Reason::term()}.
 get_bucket_lifecycle(BucketName, Config)
     when is_record(Config, aws_config) ->
         case s3_request2(Config, get, BucketName, "/", "lifecycle", [], <<>>, []) of
@@ -482,6 +482,7 @@ list_objects(BucketName, Options, Config)
     Attributes = [{name, "Name", text},
                   {prefix, "Prefix", text},
                   {marker, "Marker", text},
+                  {next_marker, "NextMarker", text},
                   {delimiter, "Delimiter", text},
                   {max_keys, "MaxKeys", integer},
                   {is_truncated, "IsTruncated", boolean},
@@ -755,7 +756,8 @@ get_object(BucketName, Key, Options, Config) ->
                       Version   -> ["versionId=", Version]
                   end,
     {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders),
-    [{etag, proplists:get_value("etag", Headers)},
+    [{last_modified, proplists:get_value("last-modified", Headers)},
+     {etag, proplists:get_value("etag", Headers)},
      {content_length, proplists:get_value("content-length", Headers)},
      {content_type, proplists:get_value("content-type", Headers)},
      {content_encoding, proplists:get_value("content-encoding", Headers)},
@@ -1433,25 +1435,21 @@ s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body,
               [$&, erlcloud_http:make_query_string(FParams, no_assignment)]
         end]),
 
-    Request = #aws_request{service = s3, uri = RequestURI, method = Method},
-    Request2 = case Method of
-                   M when M =:= get orelse M =:= head orelse M =:= delete ->
-                       Request#aws_request{
-                         request_headers = RequestHeaders,
-                         request_body = <<>>};
-                   _ ->
-                       Headers2 = case lists:keyfind("content-type", 1, RequestHeaders) of
-                                      false ->
-                                          [{"content-type", ContentType} | RequestHeaders];
-                                      _ ->
-                                          RequestHeaders
-                                  end,
-                       Request#aws_request{
-                         request_headers = Headers2,
-                         request_body = Body}
-               end,
-    Request3 = erlcloud_retry:request(Config, Request2, fun s3_result_fun/1),
-    erlcloud_aws:request_to_return(Request3).
+    {RequestHeaders2, RequestBody} = case Method of
+                                         M when M =:= get orelse M =:= head orelse M =:= delete ->
+                                             {RequestHeaders, <<>>};
+                                         _ ->
+                                             Headers2 = case lists:keyfind("content-type", 1, RequestHeaders) of
+                                                            false ->
+                                                                [{"content-type", ContentType} | RequestHeaders];
+                                                            _ ->
+                                                                RequestHeaders
+                                                        end,
+                                             {Headers2, Body}
+                                     end,
+    Request = #aws_request{service = s3, uri = RequestURI, method = Method, request_headers = RequestHeaders2, request_body = RequestBody},
+    Request2 = erlcloud_retry:request(Config, Request, fun s3_result_fun/1),
+    erlcloud_aws:request_to_return(Request2).
 
 
 s3_result_fun(#aws_request{response_type = ok} = Request) ->

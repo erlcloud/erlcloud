@@ -1,6 +1,6 @@
 -module(erlcloud_redshift_tests).
 -include_lib("eunit/include/eunit.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud_aws.hrl").
 
 -define(ALL_FEILDS_XML, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <DescribeClustersResponse xmlns=\"http://redshift.amazonaws.com/doc/2012-12-01/\">

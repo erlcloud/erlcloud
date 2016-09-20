@@ -1,8 +1,8 @@
 -module(erlcloud_lambda_tests).
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
--include_lib("erlcloud/include/erlcloud_lambda.hrl").
+-include("erlcloud_aws.hrl").
+-include("erlcloud_lambda.hrl").
 
 -define(BASE_URL, "https://lambda.us-east-1.amazonaws.com:443/2015-03-31/").
 

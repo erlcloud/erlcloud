@@ -1,6 +1,6 @@
 -module(erlcloud_route53_tests).
 -include_lib("eunit/include/eunit.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud_aws.hrl").
 
 route53_test_() ->
     {foreach,

@@ -97,7 +97,7 @@ default_config() ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
--spec create_alias/4 :: (FunctionName    :: binary(),
+-spec create_alias(FunctionName    :: binary(),
                          FunctionVersion :: binary(),
                          AliasName       :: binary(),
                          Options         :: proplist()) -> return_val().
@@ -106,7 +106,7 @@ create_alias(FunctionName, FunctionVersion, AliasName, Options) ->
 create_alias(FunctionName, FunctionVersion,
                  AliasName, Options, default_config()).
 
--spec create_alias/5 :: (FunctionName    :: binary(),
+-spec create_alias(FunctionName    :: binary(),
                          FunctionVersion :: binary(),
                          AliasName       :: binary(),
                          Options         :: proplist(),
@@ -130,7 +130,7 @@ create_alias(FunctionName, FunctionVersion, AliasName, Options, Config) ->
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
--spec create_event_source_mapping/4 :: (EventSourceArn   :: binary(),
+-spec create_event_source_mapping(EventSourceArn   :: binary(),
                                         FunctionName     :: binary(),
                                         StartingPosition :: binary(),
                                         Options          :: proplist())
@@ -140,7 +140,7 @@ create_event_source_mapping(EventSourceArn, FunctionName,
     create_event_source_mapping(EventSourceArn, FunctionName,
                                 StartingPosition, Options, default_config()).
 
--spec create_event_source_mapping/5 :: (EventSourceArn   :: binary(),
+-spec create_event_source_mapping(EventSourceArn   :: binary(),
                                         FunctionName     :: binary(),
                                         StartingPosition :: binary(),
                                         Options          :: proplist(),
@@ -168,7 +168,7 @@ create_event_source_mapping(EventSourceArn, FunctionName,
 %% ===Example===
 %%
 %%------------------------------------------------------------------------------
--spec create_function/6 :: (Code         :: erlcloud_lambda_code(),
+-spec create_function(Code         :: erlcloud_lambda_code(),
                             FunctionName :: string(),
                             Handler      :: string(),
                             Role         :: string(),
@@ -179,7 +179,7 @@ create_function(#erlcloud_lambda_code{} = Code,
     create_function(Code, FunctionName, Handler, Role,
                     Runtime, Options, default_config()).
 
--spec create_function/7 :: (Code         :: erlcloud_lambda_code(),
+-spec create_function(Code         :: erlcloud_lambda_code(),
                             FunctionName :: string(),
                             Handler      :: string(),
                             Role         :: string(),
@@ -210,11 +210,11 @@ create_function(#erlcloud_lambda_code{} = Code,
 %%
 %%------------------------------------------------------------------------------
 
--spec delete_event_source_mapping/1 :: (Uuid :: binary()) -> return_val().
+-spec delete_event_source_mapping(Uuid :: binary()) -> return_val().
 delete_event_source_mapping(Uuid) ->
     delete_event_source_mapping(Uuid, default_config()).
 
--spec delete_event_source_mapping/2 :: (Uuid   :: binary(),
+-spec delete_event_source_mapping(Uuid   :: binary(),
                                         Config :: aws_config()) -> return_val().
 delete_event_source_mapping(Uuid, Config) ->
     Path = base_path() ++ "event-source-mappings/" ++ binary_to_list(Uuid),

@@ -1,5 +1,6 @@
 -module(erlcloud_util).
--export([sha_mac/2, sha256_mac/2, md5/1, sha256/1,is_dns_compliant_name/1,
+-export([sha_mac/2, sha256_mac/2, md5/1, sha256/1,rand_uniform/1,
+         is_dns_compliant_name/1,
          query_all/4, query_all/5, query_all_token/4, make_response/2, 
          get_items/2, to_string/1, encode_list/2, next_token/2]).
 
@@ -25,21 +26,47 @@ sha256_mac(K, S) ->
             crypto:hmac_final(R1)
     end.
 
-sha256(V) ->
-    try
-        crypto:hash(sha256, V)
-    catch
-        _:_ ->
-            crypto:sha256(V)
-    end.
+-ifdef(ERLANG_OTP_VERSION_14).
+-else.
+-ifdef(ERLANG_OTP_VERSION_15).
+-else.
+-define(ERLANG_OTP_VERSION_16_FEATURES, true).
+-ifdef(ERLANG_OTP_VERSION_16).
+-else.
+-ifdef(ERLANG_OTP_VERSION_17).
+-else.
+-ifdef(ERLANG_OTP_VERSION_18).
+-else.
+-define(ERLANG_OTP_VERSION_19_FEATURES, true).
+-endif.
+-endif.
+-endif.
+-endif.
+-endif.
 
+-ifndef(ERLANG_OTP_VERSION_16_FEATURES).
+sha256(V) ->
+    crypto:sha256(V).
+-else.
+sha256(V) ->
+    crypto:hash(sha256, V).
+-endif.
+
+-ifndef(ERLANG_OTP_VERSION_16_FEATURES).
 md5(V) ->
-    try
-        crypto:hash(md5, V)
-    catch
-        _:_ ->
-            crypto:md5(V)
-    end.
+    crypto:md5(V).
+-else.
+md5(V) ->
+    crypto:hash(md5, V).
+-endif.
+
+-ifndef(ERLANG_OTP_VERSION_19_FEATURES).
+rand_uniform(N) ->
+    random:uniform(N).
+-else.
+rand_uniform(N) ->
+    rand:uniform(N).
+-endif.
 
 -spec is_dns_compliant_name(string()) -> boolean().
 is_dns_compliant_name(Name) ->

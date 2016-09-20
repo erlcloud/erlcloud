@@ -13,6 +13,7 @@
          service_config/3,
          configure/1, format_timestamp/1,
          http_headers_body/1,
+         http_body/1,
          request_to_return/1,
          sign_v4_headers/5,
          sign_v4/8,
@@ -23,7 +24,7 @@
 ]).
 
 -include("erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud_aws.hrl").
 
 -define(ERLCLOUD_RETRY_TIMEOUT, 10000).
 -define(GREGORIAN_EPOCH_OFFSET, 62167219200).
@@ -525,20 +526,13 @@ timestamp_to_gregorian_seconds(Timestamp) ->
 get_credentials_from_metadata(Config) ->
     %% TODO this function should retry on errors getting credentials
     %% First get the list of roles
-    case http_body(
-           erlcloud_httpc:request(
-             "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
-             get, [], <<>>, get_timeout(Config), Config)) of
+    case erlcloud_ec2_meta:get_instance_metadata("iam/security-credentials/", Config) of
         {error, Reason} ->
             {error, Reason};
         {ok, Body} ->
             %% Always use the first role
             [Role | _] = binary:split(Body, <<$\n>>),
-            case http_body(
-                   erlcloud_httpc:request(
-                     "http://169.254.169.254/latest/meta-data/iam/security-credentials/" ++
-                         binary_to_list(Role),
-                     get, [], <<>>, get_timeout(Config), Config)) of
+            case erlcloud_ec2_meta:get_instance_metadata("iam/security-credentials/" ++ binary_to_list(Role), Config) of
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
@@ -929,33 +923,42 @@ profiles_resolve( Name, Profiles, Role, Options ) ->
 
 profiles_recurse( Keys, Profiles, Role, Options ) ->
     case profiles_credentials( Keys ) of
-        {ok, Id, Secret} ->
-            profiles_assume( Id, Secret, Role, Options );
+        {ok, Credential} ->
+            profiles_assume( Credential, Role, Options );
         {cont, ProfileName, BinRole} ->
             profiles_resolve( ProfileName, Profiles, BinRole, Options )
     end.
 
 profiles_credentials( Keys ) ->
-    Names = [aws_access_key_id, aws_secret_access_key, source_profile],
+    Names = [aws_access_key_id, aws_secret_access_key, aws_security_token, source_profile],
     BinRole = proplists:get_value( role_arn, Keys ),
     case [proplists:get_value( K, Keys ) || K <- Names] of
-        [Id, Secret, undefined] when Id =/= undefined, Secret =/= undefined ->
-            {ok, binary_to_list(Id), binary_to_list(Secret)};
-        [undefined, undefined, BinProfile] when BinProfile =/= undefined ->
+        [Id, Secret, undefined, undefined] when Id =/= undefined, Secret =/= undefined ->
+            {ok, {binary_to_list(Id), binary_to_list(Secret)}};
+        [Id, Secret, Token, undefined] when Id =/= undefined, Secret =/= undefined, Token =/= undefined ->
+            {ok, {binary_to_list(Id), binary_to_list(Secret), binary_to_list(Token)}};
+        [undefined, undefined, undefined, BinProfile] when BinProfile =/= undefined ->
             {cont, BinProfile, BinRole}
     end.
 
-profiles_assume( Id, Secret, undefined, _Options ) ->
-    Config = #aws_config{ access_key_id = Id, secret_access_key = Secret },
+profiles_assume( Credential, undefined, _Options ) ->
+    Config = config_credential(Credential, #aws_config{}),
     {ok, Config};
-profiles_assume( Id, Secret, Role,
+profiles_assume( Credential, Role,
                  #profile_options{ session_name = Name, external_id = ExtId,
                                    session_secs = Duration } ) ->
-    Config = #aws_config{ access_key_id = Id, secret_access_key = Secret },
+    Config = config_credential(Credential, #aws_config{}),
     {AssumedConfig, _Creds} =
         erlcloud_sts:assume_role( Config, Role, Name, Duration, ExtId ),
     {ok, AssumedConfig}.
     
+
+config_credential({Id, Secret}, Config) ->
+    Config#aws_config{ access_key_id = Id, secret_access_key = Secret };
+config_credential({Id, Secret, Token}, Config) ->
+    Config#aws_config{ access_key_id = Id, secret_access_key = Secret, security_token = Token }.
+
+
 
 error_msg( Message ) ->
     Error = iolist_to_binary( Message ),

@@ -70,7 +70,7 @@
           secret_access_key::string()|undefined|false,
           security_token=undefined::string()|undefined,
           %% epoch seconds when temporary credentials will expire
-          expiration :: pos_integer(),
+          expiration=undefined :: pos_integer()|undefined,
           %% Network request timeout; if not specifed, the default timeout will be used:
           %% ddb: 1s for initial call, 10s for subsequence;
           %% s3:delete_objects_batch/{2,3}, cloudtrail: 1s;
@@ -104,15 +104,15 @@
 
           %% Read from response
           attempt = 0 :: integer(),
-          response_type :: ok | error,
-          error_type :: aws | httpc,
-          httpc_error_reason :: term(),
-          response_status :: pos_integer(),
-          response_status_line :: string(),
-          response_headers :: [{string(), string()}],
-          response_body :: binary(),
+          response_type :: ok | error | undefined,
+          error_type :: aws | httpc | undefined,
+          httpc_error_reason :: term() | undefined,
+          response_status :: pos_integer() | undefined,
+          response_status_line :: string() | undefined,
+          response_headers :: [{string(), string()}] | undefined,
+          response_body :: binary() | undefined,
 
           %% Service specific error information
-          should_retry :: boolean()
+          should_retry :: boolean() | undefined
         }).
 -type(aws_request() :: #aws_request{}).
