@@ -989,3 +989,149 @@ error_msg( Message ) ->
 error_msg( Format, Values ) ->
     Error = iolist_to_binary( io_lib:format( Format, Values ) ),
     throw( {error, Error} ).
+
+
+
+%%====================================================================
+%% Test Functions
+%%====================================================================
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+
+default_profile_test_() ->
+    {setup, fun profiles_test_setup/0, fun profiles_test_cleanup/1,
+     ?_test(
+        ?assertMatch(
+           {ok, #aws_config{
+            access_key_id = "XXXXXXXXXXXXXXXXXXX2",
+            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy2" }},
+           profile() )
+       )
+    }.
+
+
+direct_profile_test_() ->
+    {setup, fun profiles_test_setup/0, fun profiles_test_cleanup/1,
+     ?_test(
+        ?assertMatch(
+           {ok, #aws_config{
+            access_key_id = "XXXXXXXXXXXXXXXXXXX1",
+            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy1" }},
+           profile( bar ) )
+       )
+    }.
+
+indirect_profile_test_() ->
+    {setup, fun profiles_test_setup/0, fun profiles_test_cleanup/1,
+     ?_test(
+        ?assertMatch(
+           {ok, #aws_config{
+            access_key_id = "XXXXXXXXXXXXXXXXXXX1",
+            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy1" }},
+           profile( blah ) )
+       )
+    }.
+    
+indirect_role_profile_test_() ->
+    {setup, fun profiles_assume_setup/0, fun profiles_assume_cleanup/1,
+     ?_test(
+        ?assertMatch(
+           {ok, #aws_config{
+            access_key_id = "XXXXXXXXXXXXXXXXXXX3",
+            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy3",
+            security_token = "WHOOOOOOOO:12345" }},
+           profile( flooga ) )
+       )
+    }.
+
+external_id_role_profile_test_() ->
+    {setup, fun profiles_assume_setup/0, fun profiles_assume_cleanup/1,
+     ?_test(
+        ?assertMatch(
+           {ok, #aws_config{
+            access_key_id = "XXXXXXXXXXXXXXXXXXX3",
+            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy3",
+            security_token = "WHOOOOOOOO:12345:12349321" }},
+           profile( eid ) )
+       )
+    }.
+
+double_external_id_role_profile_test_() ->
+    {setup, fun profiles_assume_setup/0, fun profiles_assume_cleanup/1,
+     ?_test(
+        ?assertMatch(
+           {ok, #aws_config{
+            access_key_id = "XXXXXXXXXXXXXXXXXXX3",
+            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy3",
+            security_token = "WHOOOOOOOO:12345:fubar" }},
+           profile( eidrecurse ) )
+       )
+    }.
+
+undefined_profile_profile_test_() ->
+    {setup, fun profiles_test_setup/0, fun profiles_test_cleanup/1,
+     ?_test(
+        ?assertMatch( {error, _}, profile( what ) )
+       )
+    }.
+    
+undefined_indirect_profile_profile_test_() ->
+    {setup, fun profiles_test_setup/0, fun profiles_test_cleanup/1,
+     ?_test(
+        ?assertMatch( {error, _}, profile( whoa ) )
+       )
+    }.
+    
+
+profiles_test_setup() ->
+    Profile = <<"
+[bar]
+aws_access_key_id = XXXXXXXXXXXXXXXXXXX1
+aws_secret_access_key = yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy1
+[baz]
+aws_access_key_id = XXXXXXXXXXXXXXXXXXX3
+aws_secret_access_key = yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy3
+[flooga]
+role_arn=arn:aws:iam::892406118791:role/centralized-users
+source_profile=baz
+[eid]
+role_arn=arn:aws:iam::100406118791:role/centralized-users
+external_id=12349321
+source_profile=baz
+[eidrecurse]
+role_arn=arn:aws:iam::000406118791:role/centralized-users
+external_id=fubar
+source_profile=eid
+[default]
+aws_access_key_id = XXXXXXXXXXXXXXXXXXX2
+aws_secret_access_key = yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy2
+[blah]
+source_profile=bar
+[whoa]
+source_profile=cowboy
+">>,
+    meck:new( file, [unstick, passthrough] ),
+    meck:expect( file, read_file, fun( _ ) -> {ok, Profile} end ).
+
+profiles_test_cleanup(_) ->
+    meck:unload( file ).
+
+profiles_assume_setup() ->
+    profiles_test_setup(),
+    meck:new( erlcloud_sts ),
+    meck:expect( erlcloud_sts, assume_role,
+                 fun( Config, _, _, _, undefined ) ->
+                         Token = "WHOOOOOOOO:12345",
+                         {Config#aws_config{ security_token = Token }, []};
+                    ( Config, _, _, _, ExtId ) ->
+                         Token = "WHOOOOOOOO:12345:" ++ ExtId,
+                         {Config#aws_config{ security_token = Token }, []}
+                 end ).
+
+profiles_assume_cleanup(P) ->
+    profiles_test_cleanup(P),
+    meck:unload( erlcloud_sts ).
+
+
+-endif.
