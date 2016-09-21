@@ -998,14 +998,21 @@ error_msg( Format, Values ) ->
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
+-define(DEFAULT_ACCESS_ID, "XXXXXXXXXXXXXXXXXXX2").
+-define(DEFAULT_ACCESS_KEY, "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy2").
+-define(BAR_ACCESS_ID, "XXXXXXXXXXXXXXXXXXX1").
+-define(BAR_ACCESS_KEY, "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy1").
+-define(BAZ_ACCESS_ID, "XXXXXXXXXXXXXXXXXXX3").
+-define(BAZ_ACCESS_KEY, "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy3").
+
 
 default_profile_test_() ->
     {setup, fun profiles_test_setup/0, fun profiles_test_cleanup/1,
      ?_test(
         ?assertMatch(
            {ok, #aws_config{
-            access_key_id = "XXXXXXXXXXXXXXXXXXX2",
-            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy2" }},
+            access_key_id = ?DEFAULT_ACCESS_ID,
+            secret_access_key = ?DEFAULT_ACCESS_KEY }},
            profile() )
        )
     }.
@@ -1016,8 +1023,8 @@ direct_profile_test_() ->
      ?_test(
         ?assertMatch(
            {ok, #aws_config{
-            access_key_id = "XXXXXXXXXXXXXXXXXXX1",
-            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy1" }},
+            access_key_id = ?BAR_ACCESS_ID,
+            secret_access_key = ?BAR_ACCESS_KEY }},
            profile( bar ) )
        )
     }.
@@ -1027,8 +1034,8 @@ indirect_profile_test_() ->
      ?_test(
         ?assertMatch(
            {ok, #aws_config{
-            access_key_id = "XXXXXXXXXXXXXXXXXXX1",
-            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy1" }},
+            access_key_id = ?BAR_ACCESS_ID,
+            secret_access_key = ?BAR_ACCESS_KEY }},
            profile( blah ) )
        )
     }.
@@ -1038,8 +1045,8 @@ indirect_role_profile_test_() ->
      ?_test(
         ?assertMatch(
            {ok, #aws_config{
-            access_key_id = "XXXXXXXXXXXXXXXXXXX3",
-            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy3",
+            access_key_id = ?BAZ_ACCESS_ID,
+            secret_access_key = ?BAZ_ACCESS_KEY,
             security_token = "WHOOOOOOOO:12345" }},
            profile( flooga ) )
        )
@@ -1050,8 +1057,8 @@ external_id_role_profile_test_() ->
      ?_test(
         ?assertMatch(
            {ok, #aws_config{
-            access_key_id = "XXXXXXXXXXXXXXXXXXX3",
-            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy3",
+            access_key_id = ?BAZ_ACCESS_ID,
+            secret_access_key = ?BAZ_ACCESS_KEY,
             security_token = "WHOOOOOOOO:12345:12349321" }},
            profile( eid ) )
        )
@@ -1062,8 +1069,8 @@ double_external_id_role_profile_test_() ->
      ?_test(
         ?assertMatch(
            {ok, #aws_config{
-            access_key_id = "XXXXXXXXXXXXXXXXXXX3",
-            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy3",
+            access_key_id = ?BAZ_ACCESS_ID,
+            secret_access_key = ?BAZ_ACCESS_KEY,
             security_token = "WHOOOOOOOO:12345:fubar" }},
            profile( eidrecurse ) )
        )
