@@ -901,52 +901,72 @@ profiles_parse( Content ) ->
     end.
             
 profiles_resolve( Name, Profiles, Options ) ->
-    profiles_resolve( Name, Profiles, undefined, Options ).
+    profiles_resolve( Name, Profiles, undefined, undefined, Options ).
 
-profiles_resolve( BinName, Profiles, Role, Options ) when is_binary(BinName) ->
+profiles_resolve( BinName, Profiles, Role, ExternalId, Options )
+  when is_binary(BinName) ->
     try binary_to_existing_atom( BinName, latin1 ) of
-        Name -> profiles_resolve( Name, Profiles, Role, Options )
+        Name -> profiles_resolve( Name, Profiles, Role, ExternalId, Options )
     catch
         error:badarg -> 
             error_msg( "invalid source_profile reference to ~s", [BinName] )
     end;
-profiles_resolve( Name, Profiles, BinRole, Options ) when is_binary(BinRole) ->
+profiles_resolve( Name, Profiles, BinRole, ExternalId, Options )
+  when is_binary(BinRole) ->
     Role = binary_to_list( BinRole ),
-    profiles_resolve( Name, Profiles, Role, Options );
-profiles_resolve( Name, Profiles, Role, Options ) ->
+    profiles_resolve( Name, Profiles, Role, ExternalId, Options );
+profiles_resolve( Name, Profiles, Role, BinExternalId, Options )
+  when is_binary(BinExternalId) ->
+    ExternalId = binary_to_list( BinExternalId ),
+    profiles_resolve( Name, Profiles, Role, ExternalId, Options );
+profiles_resolve( Name, Profiles, Role, ExternalId, Options ) ->
     case proplists:get_value( Name, Profiles ) of
         undefined ->
             error_msg( "profile ~s does not exist", [Name] );
         Keys ->
-            profiles_recurse( Keys, Profiles, Role, Options )
+            profiles_recurse( Keys, Profiles, Role, ExternalId, Options )
     end.
 
-profiles_recurse( Keys, Profiles, Role, Options ) ->
+profiles_recurse( Keys, Profiles, Role, ExternalId, Options ) ->
     case profiles_credentials( Keys ) of
         {ok, Credential} ->
-            profiles_assume( Credential, Role, Options );
-        {cont, ProfileName, BinRole} ->
-            profiles_resolve( ProfileName, Profiles, BinRole, Options )
+            profiles_assume( Credential, Role, ExternalId, Options );
+        {cont, ProfileName, NextRole, NextExternalId} ->
+            case profiles_resolve( ProfileName, Profiles,
+                                   NextRole, NextExternalId, Options ) of
+                {ok, Config} ->
+                    profiles_assume( Config, Role, ExternalId, Options );
+                Otherwise -> Otherwise
+            end
     end.
 
 profiles_credentials( Keys ) ->
-    Names = [aws_access_key_id, aws_secret_access_key, aws_security_token, source_profile],
-    BinRole = proplists:get_value( role_arn, Keys ),
+    Names = [aws_access_key_id, aws_secret_access_key, aws_security_token,
+             source_profile],
     case [proplists:get_value( K, Keys ) || K <- Names] of
         [Id, Secret, undefined, undefined] when Id =/= undefined, Secret =/= undefined ->
             {ok, {binary_to_list(Id), binary_to_list(Secret)}};
         [Id, Secret, Token, undefined] when Id =/= undefined, Secret =/= undefined, Token =/= undefined ->
             {ok, {binary_to_list(Id), binary_to_list(Secret), binary_to_list(Token)}};
-        [undefined, undefined, undefined, BinProfile] when BinProfile =/= undefined ->
-            {cont, BinProfile, BinRole}
+        [undefined, undefined, undefined, SourceProfile] ->
+            profiles_credentials( Keys, SourceProfile )
     end.
 
-profiles_assume( Credential, undefined, _Options ) ->
+profiles_credentials( Keys, SourceProfile ) ->
+    Names = [role_arn, external_id],
+    [RoleArn, ExternalId] = [proplists:get_value( K, Keys ) || K <- Names],
+    {cont, SourceProfile, RoleArn, ExternalId}.
+
+profiles_assume( Credential, undefined, __ExternalId, _Options ) ->
     Config = config_credential(Credential, #aws_config{}),
     {ok, Config};
-profiles_assume( Credential, Role,
-                 #profile_options{ session_name = Name, external_id = ExtId,
+profiles_assume( Credential, Role, ExternalId,
+                 #profile_options{ session_name = Name,
+                                   external_id = DefaultExternalId,
                                    session_secs = Duration } ) ->
+    ExtId = if ExternalId =/= undefined -> ExternalId;
+               ExternalId =:= undefined -> DefaultExternalId
+            end,
     Config = config_credential(Credential, #aws_config{}),
     {AssumedConfig, _Creds} =
         erlcloud_sts:assume_role( Config, Role, Name, Duration, ExtId ),
@@ -956,7 +976,9 @@ profiles_assume( Credential, Role,
 config_credential({Id, Secret}, Config) ->
     Config#aws_config{ access_key_id = Id, secret_access_key = Secret };
 config_credential({Id, Secret, Token}, Config) ->
-    Config#aws_config{ access_key_id = Id, secret_access_key = Secret, security_token = Token }.
+    Config#aws_config{ access_key_id = Id, secret_access_key = Secret, security_token = Token };
+config_credential(#aws_config{} = Config, _) -> Config.
+
 
 
 
