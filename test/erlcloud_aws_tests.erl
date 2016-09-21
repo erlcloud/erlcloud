@@ -159,13 +159,21 @@ test_url(ExpScheme, ExpHost, ExpPort, ExpPath, Url) ->
      ?_assertEqual(ExpPath, Path)].
 
 
+-define(DEFAULT_ACCESS_ID, "XXXXXXXXXXXXXXXXXXX2").
+-define(DEFAULT_ACCESS_KEY, "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy2").
+-define(BAR_ACCESS_ID, "XXXXXXXXXXXXXXXXXXX1").
+-define(BAR_ACCESS_KEY, "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy1").
+-define(BAZ_ACCESS_ID, "XXXXXXXXXXXXXXXXXXX3").
+-define(BAZ_ACCESS_KEY, "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy3").
+
+
 profile_default_test_() ->
     {setup, fun profiles_test_setup/0, fun profiles_test_cleanup/1,
      ?_test(
         ?assertMatch(
            {ok, #aws_config{
-            access_key_id = "XXXXXXXXXXXXXXXXXXX2",
-            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy2" }},
+            access_key_id = ?DEFAULT_ACCESS_ID,
+            secret_access_key = ?DEFAULT_ACCESS_KEY }},
            erlcloud_aws:profile() )
        )
     }.
@@ -176,8 +184,8 @@ profile_direct_test_() ->
      ?_test(
         ?assertMatch(
            {ok, #aws_config{
-            access_key_id = "XXXXXXXXXXXXXXXXXXX1",
-            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy1" }},
+            access_key_id = ?BAR_ACCESS_ID,
+            secret_access_key = ?BAR_ACCESS_KEY }},
            erlcloud_aws:profile( bar ) )
        )
     }.
@@ -187,8 +195,8 @@ profile_indirect_test_() ->
      ?_test(
         ?assertMatch(
            {ok, #aws_config{
-            access_key_id = "XXXXXXXXXXXXXXXXXXX1",
-            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy1" }},
+            access_key_id = ?BAR_ACCESS_ID,
+            secret_access_key = ?BAR_ACCESS_KEY }},
            erlcloud_aws:profile( blah ) )
        )
     }.
@@ -198,8 +206,8 @@ profile_indirect_role_test_() ->
      ?_test(
         ?assertMatch(
            {ok, #aws_config{
-            access_key_id = "XXXXXXXXXXXXXXXXXXX3",
-            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy3",
+            access_key_id = ?BAZ_ACCESS_ID,
+            secret_access_key = ?BAZ_ACCESS_KEY,
             security_token = "WHOOOOOOOO:12345" }},
            erlcloud_aws:profile( flooga ) )
        )
@@ -212,8 +220,8 @@ profile_indirect_role_options_test_() ->
      ?_test(
         ?assertMatch(
            {ok, #aws_config{
-            access_key_id = "XXXXXXXXXXXXXXXXXXX3",
-            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy3",
+            access_key_id = ?BAZ_ACCESS_ID,
+            secret_access_key = ?BAZ_ACCESS_KEY,
             security_token = "WHOOOOOOOO:54321" }},
            erlcloud_aws:profile( flooga, Options ) )
        )
@@ -227,10 +235,34 @@ profile_indirect_role_options_external_id_test_() ->
      ?_test(
         ?assertMatch(
            {ok, #aws_config{
-            access_key_id = "XXXXXXXXXXXXXXXXXXX3",
-            secret_access_key = "yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy3",
+            access_key_id = ?BAZ_ACCESS_ID,
+            secret_access_key = ?BAZ_ACCESS_KEY,
             security_token = "WHOOOOOOOO:54321" }},
            erlcloud_aws:profile( flooga, Options ) )
+       )
+    }.
+
+profile_external_id_role_test_() ->
+    {setup, fun profiles_assume_setup/0, fun profiles_assume_cleanup/1,
+     ?_test(
+        ?assertMatch(
+           {ok, #aws_config{
+            access_key_id = ?BAZ_ACCESS_ID,
+            secret_access_key = ?BAZ_ACCESS_KEY,
+            security_token = "WHOOOOOOOO:12345:12349321" }},
+           erlcloud_aws:profile( eid ) )
+       )
+    }.
+
+profile_double_external_id_role_test_() ->
+    {setup, fun profiles_assume_setup/0, fun profiles_assume_cleanup/1,
+     ?_test(
+        ?assertMatch(
+           {ok, #aws_config{
+            access_key_id = ?BAZ_ACCESS_ID,
+            secret_access_key = ?BAZ_ACCESS_KEY,
+            security_token = "WHOOOOOOOO:12345:fubar" }},
+           erlcloud_aws:profile( eidrecurse ) )
        )
     }.
 
@@ -254,22 +286,25 @@ profiles_test_setup() ->
 [bar]
 aws_access_key_id = XXXXXXXXXXXXXXXXXXX1
 aws_secret_access_key = yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy1
-
 [baz]
 aws_access_key_id = XXXXXXXXXXXXXXXXXXX3
 aws_secret_access_key = yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy3
-
 [flooga]
 role_arn=arn:aws:iam::892406118791:role/centralized-users
 source_profile=baz
-
+[eid]
+role_arn=arn:aws:iam::100406118791:role/centralized-users
+external_id=12349321
+source_profile=baz
+[eidrecurse]
+role_arn=arn:aws:iam::000406118791:role/centralized-users
+external_id=fubar
+source_profile=eid
 [default]
 aws_access_key_id = XXXXXXXXXXXXXXXXXXX2
 aws_secret_access_key = yyyyyyyyyyyyyyyyyyyyyyyyyy+yyyy/yyyyyyyy2
-
 [blah]
 source_profile=bar
-
 [whoa]
 source_profile=cowboy
 ">>,
@@ -283,7 +318,7 @@ profiles_assume_setup() ->
     profiles_test_setup(),
     meck:new( erlcloud_sts ),
     meck:expect( erlcloud_sts, assume_role,
-                 fun( Config, _, "erlcloud", 900, _ ) ->
+                 fun( Config, _, _, 900, undefined ) ->
                       {Config#aws_config{ security_token = "WHOOOOOOOO:12345" },
                        []};
                     ( Config, _, "wonder", 3600, _ ) ->
@@ -291,7 +326,10 @@ profiles_assume_setup() ->
                        []};
                     ( Config, _, "external", 3600, "HOOPDIE" ) ->
                       {Config#aws_config{ security_token = "WHOOOOOOOO:99999" },
-                       []}
+                       []};
+                    ( Config, _, _, _, ExtId ) ->
+                         Token = "WHOOOOOOOO:12345:" ++ ExtId,
+                         {Config#aws_config{ security_token = Token }, []}
                  end ).
 
 profiles_assume_cleanup(P) ->
@@ -722,4 +760,3 @@ service_config_waf_test() ->
                             [erlcloud_aws:service_config(
                                Service, Region, #aws_config{} )
                              || Region <- Regions]] ).
-
