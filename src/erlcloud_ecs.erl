@@ -2595,7 +2595,6 @@ ecs_request_no_update(Config, Operation, Body) ->
                            method = post,
                            request_headers = Headers,
                            request_body = Payload},
-    io:format("~p~n", [Request]),
     case erlcloud_aws:request_to_return(erlcloud_retry:request(Config, Request, fun ecs_result_fun/1)) of
         {ok, {_RespHeaders, <<>>}} -> {ok, []};
         {ok, {_RespHeaders, RespBody}} -> {ok, jsx:decode(RespBody)};
