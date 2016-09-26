@@ -1,7 +1,7 @@
 -module(erlcloud_as_tests).
 -include_lib("eunit/include/eunit.hrl").
 -include("erlcloud_as.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud_aws.hrl").
 
 %% Some simple unit tests for autoscaling functions.
 %% These mostly just test correct parsing based on the AWS sample documents.

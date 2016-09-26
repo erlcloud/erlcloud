@@ -2,7 +2,7 @@
 -module(erlcloud_sns_tests).
 -include_lib("eunit/include/eunit.hrl").
 % -include("erlcloud.hrl").
--include_lib("erlcloud/include/erlcloud_aws.hrl").
+-include("erlcloud_aws.hrl").
 
 %% Unit tests for sns.
 %% These tests work by using meck to mock httpc. There are two classes of test: input and output.

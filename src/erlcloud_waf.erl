@@ -1,6 +1,7 @@
 -module(erlcloud_waf).
 -author('pavel@alertlogic.com').
 
+-include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 -include("erlcloud_waf.hrl").
 
@@ -51,10 +52,13 @@
 -define(API_VERSION, "20150824").
 -define(LIMIT_MAX, 100).
 
+-type json_proplist() :: proplists:proplist().
+-type json_binary() :: binary().
+
 %%%------------------------------------------------------------------------------
 %%% Shared types
 %%%------------------------------------------------------------------------------
--type waf_return_val() :: {ok, proplists:proplist()} | {error, term()}.
+-type waf_return_val() :: {ok, json_proplist()} | {error, term()}.
 
 -export_type([waf_return_val/0]).
 
@@ -1128,6 +1132,7 @@ get_field_to_match(#waf_field_to_match{data = Data, type = Type}) ->
         [{<<"Data">>, to_binary(Data)},
         {<<"Type">>, get_field_to_match_type(Type)}].
 
+-spec get_field_to_match_type(atom()) -> binary().
 get_field_to_match_type(uri) -> <<"URI">>;
 get_field_to_match_type(query_string) -> <<"QUERY_STRING">>;
 get_field_to_match_type(header) -> <<"HEADER">>;
@@ -1158,6 +1163,7 @@ get_acl_action_type(block) -> <<"BLOCK">>;
 get_acl_action_type(allow) -> <<"ALLOW">>;
 get_acl_action_type(count) -> <<"COUNT">>.
 
+-spec waf_request(aws_config(), string(), json_proplist()) -> {error, term()}|{ok, json_proplist()}.
 waf_request(Config, Operation, Body) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
@@ -1167,6 +1173,7 @@ waf_request(Config, Operation, Body) ->
     end.
 
 
+-spec waf_request_no_update(aws_config(), string(), json_proplist()) -> {error, term()}|{ok, json_proplist()}.
 waf_request_no_update(Config, Operation, Body) ->
     Payload = case Body of
                <<>> -> <<"{}">>;
