@@ -4,7 +4,7 @@
          aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
          aws_request2/7,
          aws_request_xml2/5, aws_request_xml2/7,
-         aws_request4/8,
+         aws_request4/8, aws_request4/9,
          aws_request_xml4/6, aws_request_xml4/8,
          aws_region_from_host/1,
          aws_request_form/8,
@@ -141,17 +141,21 @@ aws_region_from_host(Host) ->
     end.
 
 aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) ->
+    aws_request4(Method, Protocol, Host, Port, Path, Params, Service, [], Config).
+
+aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Headers, Config) ->
     case update_config(Config) of
         {ok, Config1} ->
-            aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service, Config1);
+            aws_request4_no_update(Method, Protocol, Host, Port, Path, Params,
+                                   Service, Headers, Config1);
         {error, Reason} ->
             {error, Reason}
     end.
 
-aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service, #aws_config{} = Config) ->
+aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service,
+                       Headers, #aws_config{} = Config) ->
     Query = erlcloud_http:make_query_string(Params),
     Region = aws_region_from_host(Host),
-
     SignedHeaders = case Method of
         M when M =:= get orelse M =:= head orelse M =:= delete ->
             sign_v4(M, Path, Config, [{"host", Host}],
@@ -161,8 +165,8 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service, #aws
                     [{"host", Host}], list_to_binary(Query),
                     Region, Service, [])
     end,
-
-    aws_request_form(Method, Protocol, Host, Port, Path, Query, SignedHeaders, Config).
+    aws_request_form(Method, Protocol, Host, Port, Path, Query,
+                     SignedHeaders ++ Headers, Config).
 
 
 -spec aws_request_form(Method :: atom(), Protocol :: undefined | string(), Host :: string(),
