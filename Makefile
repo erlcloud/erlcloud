@@ -19,6 +19,7 @@ endif
 CHECK_FILES=\
 	ebin/erlcloud_aws.beam \
 	ebin/erlcloud_cloudtrail.beam \
+	ebin/erlcloud_cloudsearch.beam \
 	ebin/erlcloud_ddb.beam \
 	ebin/erlcloud_ddb1.beam \
 	ebin/erlcloud_ddb2.beam \
