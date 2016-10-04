@@ -1592,7 +1592,7 @@ describe_regions(RegionNames, Config)
 %
 -spec(describe_network_interfaces/0 :: () -> [proplist()]).
 describe_network_interfaces() ->
-    describe_network_interfaces(none).
+    describe_network_interfaces([]).
 
 -spec(describe_network_interfaces/1 :: (list() | aws_config()) -> [proplist()]).
 describe_network_interfaces(Config)
