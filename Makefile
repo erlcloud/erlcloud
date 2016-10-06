@@ -107,3 +107,22 @@ else
 	wget https://s3.amazonaws.com/rebar3/rebar3
 	chmod a+x rebar3
 endif
+
+travis-publish:
+	@echo Create directories
+	mkdir -p ~/.hex
+	mkdir -p ~/.config/rebar3
+
+	@echo Decrypt secrets
+	@openssl aes-256-cbc -K $encrypted_9abc06b32f03_key -iv $encrypted_9abc06b32f03_iv -in hex.config.enc -out ~/.hex/hex.config -d
+
+	@echo Create global config
+	echo '{plugins, [rebar3_hex]}.' > ~/.config/rebar3/rebar.config
+
+	@echo Edit version tag in app.src
+	vi -e -c '%s/{vsn, *.*}/{vsn, "'${TRAVIS_TAG}'"}/g|w|q' src/dogstatsd.app.src
+
+	@echo Publish to Hex
+	echo 'Y' | ./vendor/rebar3 hex publish
+
+	@echo Done
