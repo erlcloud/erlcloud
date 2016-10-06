@@ -7,7 +7,7 @@ otp_release:
   - 19.0
 env:
   global:
-  - MAIN_OTP = 19.0
+  - MAIN_OTP=19.0
   matrix:
   - FORCE_REBAR2=true
   - FORCE_REBAR2=false PATH=$PATH:$PWD
