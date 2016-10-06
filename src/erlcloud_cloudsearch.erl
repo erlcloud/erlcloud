@@ -393,16 +393,16 @@ date_array_field_options(FieldName) ->
                                FacetEnabled :: boolean(),
                                ReturnEnabled :: boolean(),
                                SearchEnabled :: boolean(),
-                               SourceField :: string()) -> proplist().
+                               SourceFields :: string()) -> proplist().
 date_array_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
-                         SearchEnabled, SourceField) ->
+                         SearchEnabled, SourceFields) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "date-array"},
      {"DateArrayOptions.DefaultValue", DefaultValue},
      {"DateArrayOptions.FacetEnabled", FacetEnabled},
      {"DateArrayOptions.ReturnEnabled", ReturnEnabled},
      {"DateArrayOptions.SearchEnabled", SearchEnabled},
-     {"DateArrayOptions.SourceField", SourceField}].
+     {"DateArrayOptions.SourceFields", SourceFields}].
 
 %%------------------------------------------------------------------------------
 %% Index field: DoubleOptions
@@ -449,16 +449,16 @@ double_array_field_options(FieldName) ->
                                  FacetEnabled :: boolean(),
                                  ReturnEnabled :: boolean(),
                                  SearchEnabled :: boolean(),
-                                 SourceField :: string()) -> proplist().
+                                 SourceFields :: string()) -> proplist().
 double_array_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
-                           SearchEnabled, SourceField) ->
+                           SearchEnabled, SourceFields) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "double-array"},
      {"DoubleArrayOptions.DefaultValue", DefaultValue},
      {"DoubleArrayOptions.FacetEnabled", FacetEnabled},
      {"DoubleArrayOptions.ReturnEnabled", ReturnEnabled},
      {"DoubleArrayOptions.SearchEnabled", SearchEnabled},
-     {"DoubleArrayOptions.SourceField", SourceField}].
+     {"DoubleArrayOptions.SourceFields", SourceFields}].
 
 %%------------------------------------------------------------------------------
 %% Index field: IntOptions
@@ -505,16 +505,16 @@ int_array_field_options(FieldName) ->
                               FacetEnabled :: boolean(),
                               ReturnEnabled :: boolean(),
                               SearchEnabled :: boolean(),
-                              SourceField :: string()) -> proplist().
+                              SourceFields :: string()) -> proplist().
 int_array_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
-                        SearchEnabled, SourceField) ->
+                        SearchEnabled, SourceFields) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "int-array"},
      {"IntArrayOptions.DefaultValue", DefaultValue},
      {"IntArrayOptions.FacetEnabled", FacetEnabled},
      {"IntArrayOptions.ReturnEnabled", ReturnEnabled},
      {"IntArrayOptions.SearchEnabled", SearchEnabled},
-     {"IntArrayOptions.SourceField", SourceField}].
+     {"IntArrayOptions.SourceFields", SourceFields}].
 
 %%------------------------------------------------------------------------------
 %% Index field: LatLonOptions
@@ -587,16 +587,16 @@ literal_array_field_options(FieldName) ->
                                   FacetEnabled :: boolean(),
                                   ReturnEnabled :: boolean(),
                                   SearchEnabled :: boolean(),
-                                  SourceField :: string()) -> proplist().
+                                  SourceFields :: string()) -> proplist().
 literal_array_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
-                            SearchEnabled, SourceField) ->
+                            SearchEnabled, SourceFields) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "literal-array"},
      {"LiteralArrayOptions.DefaultValue", DefaultValue},
      {"LiteralArrayOptions.FacetEnabled", FacetEnabled},
      {"LiteralArrayOptions.ReturnEnabled", ReturnEnabled},
      {"LiteralArrayOptions.SearchEnabled", SearchEnabled},
-     {"LiteralArrayOptions.SourceField", SourceField}].
+     {"LiteralArrayOptions.SourceFields", SourceFields}].
 
 %%------------------------------------------------------------------------------
 %% Index field: TextOptions
@@ -641,16 +641,16 @@ text_array_field_options(FieldName) ->
                                DefaultValue :: string(),
                                HighlightEnabled :: boolean(),
                                ReturnEnabled :: boolean(),
-                               SourceField :: string()) -> proplist().
+                               SourceFields :: string()) -> proplist().
 text_array_field_options(FieldName, AnalysisScheme, DefaultValue,
-                         HighlightEnabled, ReturnEnabled, SourceField) ->
+                         HighlightEnabled, ReturnEnabled, SourceFields) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "text-array"},
      {"TextArrayOptions.AnalysisScheme", AnalysisScheme},
      {"TextArrayOptions.DefaultValue", DefaultValue},
      {"TextArrayOptions.HighlightEnabled", HighlightEnabled},
      {"TextArrayOptions.ReturnEnabled", ReturnEnabled},
-     {"TextArrayOptions.SourceField", SourceField}].
+     {"TextArrayOptions.SourceFields", SourceFields}].
 
 %%==============================================================================
 %% Internal Functions
