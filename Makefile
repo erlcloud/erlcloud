@@ -120,9 +120,9 @@ travis-publish:
 	echo '{plugins, [rebar3_hex]}.' > ~/.config/rebar3/rebar.config
 
 	@echo Edit version tag in app.src
-	vi -e -c '%s/{vsn, *.*}/{vsn, "'${TRAVIS_TAG}'"}/g|w|q' src/dogstatsd.app.src
+	vi -e -c '%s/{vsn, *.*}/{vsn, "'${TRAVIS_TAG}'"}/g|w|q' src/erlcloud.app.src
 
 	@echo Publish to Hex
-	echo 'Y' | ./vendor/rebar3 hex publish
+	echo 'Y' | ./rebar3 hex publish
 
 	@echo Done
