@@ -337,6 +337,37 @@ get_all_tests(_) ->
                }],
              {ok, [[{<<"hkn">>, <<"hkv">>}]]}}),
          ?_ddb_test(
+            {"get_all typed_out = true",
+             ?_f(erlcloud_ddb_util:get_all(<<"tn">>, [{<<"hkn">>, <<"hkv">>}], [], [{typed_out, true}])),
+             [{"
+{
+    \"RequestItems\": {
+        \"tn\": {
+            \"Keys\": [
+                {
+                    \"hkn\":{\"S\":\"hkv\"}
+                }
+            ]
+        }
+    }
+}"
+               , "
+{
+    \"Responses\": {
+        \"tn\": [
+            {
+                \"hkn\":{
+                    \"S\":\"hkv\"
+                }
+            }
+        ]
+    },
+    \"UnprocessedKeys\": {
+    }
+}"
+               }],
+             {ok, [[{<<"hkn">>, {s, <<"hkv">>}}]]}}),
+         ?_ddb_test(
             {"get_all unprocessed",
              ?_f(erlcloud_ddb_util:get_all(<<"tn">>, [{<<"hkn">>, <<"hk1">>}, {<<"hkn">>, <<"hk2">>}])),
              [{"
@@ -470,6 +501,39 @@ q_all_tests(_) ->
                }],
              {ok, [[{<<"hkn">>, <<"hkv">>}, {<<"rkn">>, <<"rkv">>}]]}}),
          ?_ddb_test(
+            {"q_all typed_out = true",
+             ?_f(erlcloud_ddb_util:q_all(<<"tn">>, {<<"hkn">>, <<"hkv">>}, [{typed_out, true}])),
+             [{"
+{
+    \"TableName\": \"tn\",
+    \"KeyConditions\": {
+        \"hkn\": {
+            \"AttributeValueList\": [
+                {
+                    \"S\": \"hkv\"
+                }
+            ],
+            \"ComparisonOperator\": \"EQ\"
+        }
+    }
+}"
+               , "
+{
+    \"Count\": 1,
+    \"Items\": [
+        {
+            \"hkn\": {
+                \"S\": \"hkv\"
+            },
+            \"rkn\": {
+                \"S\": \"rkv\"
+            }
+        }
+    ]
+}"
+               }],
+             {ok, [[{<<"hkn">>, {s, <<"hkv">>}}, {<<"rkn">>, {s, <<"rkv">>}}]]}}),
+         ?_ddb_test(
             {"q_all two batches",
              ?_f(erlcloud_ddb_util:q_all(<<"tn">>, {<<"hkn">>, <<"hkv">>})),
              [{"
@@ -585,6 +649,29 @@ scan_all_tests(_) ->
 }"
                }],
              {ok, [[{<<"hkn">>, <<"hkv">>}, {<<"rkn">>, <<"rkv">>}]]}}),
+         ?_ddb_test(
+            {"scan_all typed_out = true",
+             ?_f(erlcloud_ddb_util:scan_all(<<"tn">>, [{typed_out, true}])),
+             [{"
+{
+    \"TableName\": \"tn\"
+}"
+               , "
+{
+    \"Count\": 1,
+    \"Items\": [
+        {
+            \"hkn\": {
+                \"S\": \"hkv\"
+            },
+            \"rkn\": {
+                \"S\": \"rkv\"
+            }
+        }
+    ]
+}"
+               }],
+             {ok, [[{<<"hkn">>, {s, <<"hkv">>}}, {<<"rkn">>, {s, <<"rkv">>}}]]}}),
          ?_ddb_test(
             {"scan_all two batches",
              ?_f(erlcloud_ddb_util:scan_all(<<"tn">>)),
@@ -759,3 +846,24 @@ write_all_tests(_) ->
              ok})
          ],
     multi_call_tests(Tests).
+
+
+set_out_opt_test_() ->
+    [{"set_out_opt defaults to record",
+      ?_assertEqual([{out, record}],
+                    erlcloud_ddb_util:set_out_opt([]))},
+     {"set_out_opt typed_out=true sets out=typed_record",
+      ?_assertEqual([{out, typed_record}],
+                    erlcloud_ddb_util:set_out_opt([{typed_out, true}]))},
+     {"set_out_opt typed_out=false sets out=record",
+      ?_assertEqual([{out, record}],
+                    erlcloud_ddb_util:set_out_opt([{typed_out, false}]))},
+     {"set_out_opt preserves location of out opt",
+      ?_assertEqual([{foo, bar}, {out, record}],
+                    erlcloud_ddb_util:set_out_opt([{typed_out, false}, {foo, bar}, {out, record}]))},
+     {"set_out_opt overrides out opt with valid value",
+      ?_assertEqual([{out, typed_record}, {foo, bar}],
+                    erlcloud_ddb_util:set_out_opt([{typed_out, true}, {out, json}, {foo, bar}]))},
+     {"set_out_opt returns default on bogus typed_out opt",
+      ?_assertEqual([{out, record}],
+                    erlcloud_ddb_util:set_out_opt([{typed_out, bogus}]))}].
