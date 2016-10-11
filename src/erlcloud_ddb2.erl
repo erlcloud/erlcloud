@@ -388,6 +388,9 @@ dynamize_value({bs, Value}) when is_list(Value) ->
 
 dynamize_value({l, Value}) when is_list(Value) ->
     {<<"L">>, [[dynamize_value(V)] || V <- Value]};
+dynamize_value({m, []}) ->
+    %% jsx represents empty objects as [{}]
+    {<<"M">>, [{}]};
 dynamize_value({m, Value}) when is_list(Value) ->
     {<<"M">>, [dynamize_attr(Attr) || Attr <- Value]};
 
@@ -631,6 +634,9 @@ undynamize_value({<<"BS">>, Values}, _) ->
     [base64:decode(Value) || Value <- Values];
 undynamize_value({<<"L">>, List}, Opts) ->
     [undynamize_value(Value, Opts) || [Value] <- List];
+undynamize_value({<<"M">>, [{}]}, _Opts) ->
+    %% jsx returns [{}] for empty objects
+    [];
 undynamize_value({<<"M">>, Map}, Opts) ->
     [undynamize_attr(Attr, Opts) || Attr <- Map].
 
@@ -678,6 +684,9 @@ undynamize_value_typed({<<"BS">>, Values}, _) ->
     {bs, [base64:decode(Value) || Value <- Values]};
 undynamize_value_typed({<<"L">>, List}, Opts) ->
     {l, [undynamize_value_typed(Value, Opts) || [Value] <- List]};
+undynamize_value_typed({<<"M">>, [{}]}, _Opts) ->
+    %% jsx returns [{}] for empty objects
+    {m, []};
 undynamize_value_typed({<<"M">>, Map}, Opts) ->
     {m, [undynamize_attr_typed(Attr, Opts) || Attr <- Map]}.
 
