@@ -28,8 +28,17 @@
          write_all/2, write_all/3, write_all/4
         ]).
 
+%% Export all functions for unit tests
+-ifdef(TEST).
+-compile(export_all).
+-endif.
+
 -define(BATCH_WRITE_LIMIT, 25).
 -define(BATCH_GET_LIMIT, 100).
+
+-type typed_out() :: {typed_out, boolean()}.
+-type batch_read_ddb_opt() :: typed_out() | erlcloud_ddb2:ddb_opt().
+-type batch_read_ddb_opts() :: [batch_read_ddb_opt()].
 
 -type conditions() :: erlcloud_ddb2:conditions().
 -type ddb_opts() :: erlcloud_ddb2:ddb_opts().
@@ -42,6 +51,11 @@
 -type table_name() :: erlcloud_ddb2:table_name().
 
 -type items_return() :: {ok, [out_item()]} | {error, term()}.
+
+-export_type(
+   [batch_read_ddb_opt/0,
+    batch_read_ddb_opts/0,
+    typed_out/0]).
 
 default_config() -> erlcloud_aws:default_config().
 
@@ -155,6 +169,12 @@ get_all(Table, Keys) ->
 get_all(Table, Keys, Opts) ->
     get_all(Table, Keys, Opts, default_config()).
 
+-spec get_all(table_name(), [key()], get_all_opts(), aws_config() | batch_read_ddb_opts()) -> items_return().
+get_all(Table, Keys, Opts, Config) when is_record(Config, aws_config) ->
+    get_all(Table, Keys, Opts, [], Config);
+get_all(Table, Keys, Opts, DdbOpts) ->
+    get_all(Table, Keys, Opts, DdbOpts, default_config()).
+
 %%------------------------------------------------------------------------------
 %% @doc
 %%
@@ -171,22 +191,23 @@ get_all(Table, Keys, Opts) ->
 %%       [{<<"Name">>, {s, <<"Amazon DynamoDB">>}},
 %%        {<<"Name">>, {s, <<"Amazon RDS">>}},
 %%        {<<"Name">>, {s, <<"Amazon Redshift">>}}],
-%%       [{projection_expression, <<"Name, Threads, Messages, Views">>}]),
+%%       [{projection_expression, <<"Name, Threads, Messages, Views">>}],
+%%       [{typed_out, false}]),
 %% '
 %%
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_all(table_name(), [key()], get_all_opts(), aws_config()) -> items_return().
-get_all(Table, Keys, Opts, Config) when length(Keys) =< ?BATCH_GET_LIMIT ->
-    batch_get_retry([{Table, Keys, Opts}], Config, []);
-get_all(Table, Keys, Opts, Config) ->
+-spec get_all(table_name(), [key()], get_all_opts(), batch_read_ddb_opts(), aws_config()) -> items_return().
+get_all(Table, Keys, Opts, DdbOpts, Config) when length(Keys) =< ?BATCH_GET_LIMIT ->
+    batch_get_retry([{Table, Keys, Opts}], DdbOpts, Config, []);
+get_all(Table, Keys, Opts, DdbOpts, Config) ->
     BatchList = chop(?BATCH_GET_LIMIT, Keys),
     Results = pmap_unordered(
                 fun(Batch) ->
                         %% try/catch to prevent hang forever if there is an exception
                         try
-                            batch_get_retry([{Table, Batch, Opts}], Config, [])
+                            batch_get_retry([{Table, Batch, Opts}], DdbOpts, Config, [])
                         catch
                             Type:Ex ->
                                 {error, {Type, Ex}}
@@ -195,9 +216,9 @@ get_all(Table, Keys, Opts, Config) ->
                 BatchList),
     lists:foldl(fun parfold/2, {ok, []}, Results).
 
--spec batch_get_retry([erlcloud_ddb2:batch_get_item_request_item()], aws_config(), [out_item()]) -> items_return().
-batch_get_retry(RequestItems, Config, Acc) ->
-    case erlcloud_ddb2:batch_get_item(RequestItems, [{out, record}], Config) of
+-spec batch_get_retry([erlcloud_ddb2:batch_get_item_request_item()], ddb_opts(), aws_config(), [out_item()]) -> items_return().
+batch_get_retry(RequestItems, DdbOpts, Config, Acc) ->
+    case erlcloud_ddb2:batch_get_item(RequestItems, set_out_opt(DdbOpts), Config) of
         {error, Reason} ->
             {error, Reason};
         {ok, #ddb2_batch_get_item{unprocessed_keys = [],
@@ -205,7 +226,7 @@ batch_get_retry(RequestItems, Config, Acc) ->
             {ok, Items ++ Acc};
         {ok, #ddb2_batch_get_item{unprocessed_keys = Unprocessed,
                                   responses = [#ddb2_batch_get_item_response{items = Items}]}} ->
-            batch_get_retry(Unprocessed, Config, Items ++ Acc)
+            batch_get_retry(Unprocessed, DdbOpts, Config, Items ++ Acc)
     end.
 
 %%%------------------------------------------------------------------------------
@@ -254,7 +275,7 @@ put_all(Table, Items, Opts, Config) ->
 %%% q_all
 %%%------------------------------------------------------------------------------
 
--type q_all_opts() :: erlcloud_ddb2:q_opts().
+-type q_all_opts() :: [erlcloud_ddb2:q_opt() | batch_read_ddb_opt()].
 
 -spec q_all(table_name(), conditions() | expression()) -> items_return().
 q_all(Table, KeyConditionsOrExpression) ->
@@ -282,7 +303,8 @@ q_all(Table, KeyConditionsOrExpression, Opts) ->
 %%          {<<":t2">>, <<"20130115">>}]},
 %%        {index_name, <<"LastPostIndex">>},
 %%        {select, all_attributes},
-%%        {consistent_read, true}]),
+%%        {consistent_read, true},
+%%        {typed_out, true}]),
 %% '
 %%
 %% @end
@@ -296,7 +318,7 @@ q_all(Table, KeyConditionsOrExpression, Opts, Config) ->
            -> items_return().
 q_all(Table, KeyConditionsOrExpression, Opts, Config, Acc, StartKey) ->
     case erlcloud_ddb2:q(Table, KeyConditionsOrExpression,
-                         [{exclusive_start_key, StartKey}, {out, record} | Opts],
+                         [{exclusive_start_key, StartKey} | set_out_opt(Opts)], 
                          Config) of
         {error, Reason} ->
             {error, Reason};
@@ -310,7 +332,7 @@ q_all(Table, KeyConditionsOrExpression, Opts, Config, Acc, StartKey) ->
 %%% scan_all
 %%%------------------------------------------------------------------------------
 
--type scan_all_opts() :: erlcloud_ddb2:scan_opts().
+-type scan_all_opts() :: [erlcloud_ddb2:scan_opt() | batch_read_ddb_opt()].
 
 -spec scan_all(table_name()) -> items_return().
 scan_all(Table) ->
@@ -332,7 +354,8 @@ scan_all(Table, Opts) ->
 %%     erlcloud_ddb_util:scan_all(
 %%       <<"Thread">>,
 %%       [{segment, 0},
-%%        {total_segments, 4}]),
+%%        {total_segments, 4},
+%%        {typed_out, true}]),
 %% '
 %%
 %% @end
@@ -346,7 +369,7 @@ scan_all(Table, Opts, Config) ->
         -> items_return().
 scan_all(Table, Opts, Config, Acc, StartKey) ->
     case erlcloud_ddb2:scan(Table,
-                            [{exclusive_start_key, StartKey}, {out, record} | Opts],
+                            [{exclusive_start_key, StartKey} | set_out_opt(Opts)],
                             Config) of
         {error, Reason} ->
             {error, Reason};
@@ -435,6 +458,20 @@ write_all_result([]) ->
 %%%------------------------------------------------------------------------------
 %%% Internal Functions
 %%%------------------------------------------------------------------------------
+
+%% Set `out' option to record/typed_record output formats based on `typed_out'
+%%  boolean setting for get_all, scan_all, q_all. Other output formats are not
+%%  supported for multi_call reads. Validation is bypassed for backwards
+%%  compatibility.
+-spec set_out_opt(batch_read_ddb_opts()) -> ddb_opts().
+set_out_opt(Opts) ->
+    {OutOpt, NewOpts} = case lists:keytake(typed_out, 1, Opts) of
+        {value, {typed_out, true}, Opts1} -> {{out, typed_record}, Opts1};
+        {value, {typed_out, _}, Opts2} -> {{out, record}, Opts2};
+        false -> {{out, record}, Opts}
+    end,
+    lists:keystore(out, 1, NewOpts, OutOpt).
+
 
 %% Reverses a list of lists and flattens one level
 flatreverse(List) ->

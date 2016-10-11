@@ -12,6 +12,7 @@
          get_shard_iterator/3, get_shard_iterator/4, get_shard_iterator/5,
          get_records/1, get_records/2, get_records/3, get_records/4,
          put_record/3, put_record/4, put_record/5, put_record/6, put_record/7,
+         put_records/2, put_records/3,
          merge_shards/3, merge_shards/4,
          split_shards/3, split_shards/4
         ]).
@@ -435,6 +436,72 @@ put_record(StreamName, PartitionKey, Data, ExplicitHashKey, Ordering, Options, C
             {<<"Data">>, Encoded}
            |[ KV || {_, V} = KV <- Optional, V /= undefined ]],
     erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.PutRecord", Json).
+
+%%------------------------------------------------------------------------------
+%% Kinesis API:
+%% [https://docs.aws.amazon.com/kinesis/latest/APIReference/API_PutRecords.html]
+%%
+%% ===Example===
+%%
+%% This operation puts data records into an Amazon Kinesis stream from a producer.
+%%
+%% `
+%% erlcloud_kinesis:put_records(<<"StreamName">>, [{<<"data">>, <<"partitionKey1">>}]).
+%% {ok, [{<<"FailedRecordCount">>, 0},
+%%      {<<"Records">>,
+%%       [
+%%        [{<<"SequenceNumber">>,
+%%          <<"49537292605574028653758531131893428543501381406818304001">>},
+%%         {<<"ShardId">>,<<"shardId-000000000000">>}]
+%%       ]}
+%%     ]
+%% }
+%% erlcloud_kinesis:put_records(<<"StreamName">>, [{<<"data">>, <<"explicitHashKey">>, <<"partitionKey1">>}]).
+%% {ok, [{<<"FailedRecordCount">>, 0},
+%%      {<<"Records">>,
+%%       [
+%%        [{<<"SequenceNumber">>,
+%%          <<"49537292605574028653758531131893428543501381406818304001">>},
+%%         {<<"ShardId">>,<<"shardId-000000000000">>}]
+%%       ]}
+%%     ]
+%% }
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-type put_records_item() :: {Data :: string(), PartitionKey :: string()}
+                          | {Data :: string(), ExplicitHashKey :: string(), PartitionKey :: string()}.
+-type put_records_items() :: [put_records_item()].
+
+-spec put_records(string(), put_records_items()) -> proplist().
+
+put_records(StreamName, Items) ->
+    put_records(StreamName, Items, default_config()).
+
+-spec put_records(string(), put_records_items(), Config) -> proplist() when
+      Config :: aws_config().
+
+put_records(StreamName, Items, Config) ->
+    Operation = put_records_operation(),
+    Json = prepare_put_records_data(StreamName, Items),
+    erlcloud_kinesis_impl:request(Config, Operation, Json).
+
+put_records_operation() ->
+    "Kinesis_20131202.PutRecords".
+
+prepare_put_records_data(StreamName, Items) ->
+    Records = [prepare_put_records_item(X) || X <- Items],
+    [{<<"StreamName">>, StreamName}, {<<"Records">>, Records}].
+
+prepare_put_records_item({Data, PartitionKey}) ->
+    [{<<"PartitionKey">>, PartitionKey},
+     {<<"Data">>, base64:encode(Data)}];
+prepare_put_records_item({Data, ExplicitHashKey, PartitionKey}) ->
+    [{<<"PartitionKey">>, PartitionKey},
+     {<<"ExplicitHashKey">>, ExplicitHashKey},
+     {<<"Data">>, base64:encode(Data)}].
 
 %%------------------------------------------------------------------------------
 %% @doc
