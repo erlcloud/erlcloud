@@ -49,9 +49,17 @@
 %% Shared types
 %%==============================================================================
 -type cloudsearch_return_val() :: {ok, proplists:proplist()} | {error, term()}.
--type cloudsearch_domain_tag() :: [{binary(), string()}].
+-type cloudsearch_domain_tag() :: [{TagKey :: binary(), TagValue :: string()}].
+-type cloudsearch_index_field_option() :: {
+        OptionName :: string(),
+        OptionValue :: boolean() | string() | null | integer() | float()
+}.
+-type cloudsearch_index_field() :: [cloudsearch_index_field_option()].
 
--export_type([cloudsearch_return_val/0, cloudsearch_domain_tag/0]).
+-export_type([cloudsearch_return_val/0,
+              cloudsearch_domain_tag/0,
+              cloudsearch_index_field_option/0,
+              cloudsearch_index_field/0]).
 
 -define(API_VERSION, '2013-01-01').
 
@@ -127,7 +135,7 @@ add_tags(DomainARN, TagList) ->
 -spec add_tags(DomainName :: string(),
                TagList :: [cloudsearch_domain_tag()],
                Config :: aws_config()) -> cloudsearch_return_val().
-add_tags(DomainARN, TagList, Config) ->
+add_tags(DomainARN, TagList, #aws_config{} = Config) ->
     TagParams = get_tag_params(TagList),
     cloudsearch_query(Config, "AddTags", [{"ARN", DomainARN} | TagParams]).
 
@@ -143,7 +151,7 @@ create_domain(DomainName) ->
 
 -spec create_domain(DomainName :: string(), Config :: aws_config()) ->
     cloudsearch_return_val().
-create_domain(DomainName, Config) ->
+create_domain(DomainName, #aws_config{} = Config) ->
     cloudsearch_query(Config, "CreateDomain", [{"DomainName", DomainName}]).
 
 %%------------------------------------------------------------------------------
@@ -160,31 +168,33 @@ create_domain(DomainName, Config) ->
 %% IndexFields = [erlcloud_cloudsearch:int_field_options("field1"),
 %%                erlcloud_cloudsearch:int_array_field_options("field2"),
 %%                erlcloud_cloudsearch:text_field_options("field3")].
-%% {ok, Response} = define_index_fields("my-test-domain", IndexFields).
+%% {ok, Response} = erlcloud_cloudsearch:define_index_fields("my-test-domain", IndexFields).
 %%------------------------------------------------------------------------------
 
--spec define_index_field(DomainName :: string(), IndexField :: proplist()) ->
+-spec define_index_field(DomainName :: string(),
+                         IndexField :: cloudsearch_index_field()) ->
     cloudsearch_return_val().
 define_index_field(DomainName, IndexField) ->
     define_index_field(DomainName, IndexField, default_config()).
 
 -spec define_index_field(DomainName :: string(),
-                         IndexField :: proplist(),
+                         IndexField :: cloudsearch_index_field(),
                          Config :: aws_config()) ->
     cloudsearch_return_val().
-define_index_field(DomainName, IndexField, Config) ->
+define_index_field(DomainName, IndexField, #aws_config{} = Config) ->
     define_index_fields(DomainName, [IndexField], Config).
 
--spec define_index_fields(DomainName :: string(),  IndexFields :: [proplist()]) ->
+-spec define_index_fields(DomainName :: string(),
+                          IndexFields :: [cloudsearch_index_field()]) ->
     cloudsearch_return_val().
-define_index_fields(DomainName, [[{_,_}|_]|_] = IndexFields) ->
+define_index_fields(DomainName, IndexFields) ->
     define_index_fields(DomainName, IndexFields, default_config()).
 
 -spec define_index_fields(DomainName :: string(),
-                          IndexFields :: [proplist()],
+                          IndexFields :: [cloudsearch_index_field()],
                           Config :: aws_config()) ->
     cloudsearch_return_val().
-define_index_fields(DomainName, [[{_,_}|_]|_] = IndexFields, Config) ->
+define_index_fields(DomainName, IndexFields, #aws_config{} = Config) ->
     IndexFieldParams = erlcloud_aws:param_list(IndexFields, "IndexFields.IndexField"),
     cloudsearch_query(Config, "DefineIndexFields", [{"DomainName", DomainName} |
                                                     IndexFieldParams]).
@@ -200,7 +210,7 @@ delete_domain(DomainName) ->
     delete_domain(DomainName, default_config()).
 
 -spec delete_domain(DomainName :: string(), Config :: aws_config()) -> cloudsearch_return_val().
-delete_domain(DomainName, Config) ->
+delete_domain(DomainName, #aws_config{} = Config) ->
     cloudsearch_query(Config, "DeleteDomain", [{"DomainName", DomainName}]).
 
 %%------------------------------------------------------------------------------
@@ -218,7 +228,7 @@ delete_index_field(DomainName, IndexFieldName) ->
                          IndexFieldName :: string(),
                          Config :: aws_config()) ->
     cloudsearch_return_val().
-delete_index_field(DomainName, IndexFieldName, Config) ->
+delete_index_field(DomainName, IndexFieldName, #aws_config{} = Config) ->
     cloudsearch_query(Config, "DeleteIndexField", [{"DomainName", DomainName},
                                                    {"IndexFieldName", IndexFieldName}]).
 
@@ -233,16 +243,14 @@ describe_domains() ->
     describe_domains(default_config()).
 
 -spec describe_domains(aws_config() | list()) -> cloudsearch_return_val().
-describe_domains(Config) when is_record(Config, aws_config) ->
+describe_domains(#aws_config{} = Config) ->
     cloudsearch_query(Config, "DescribeDomains", []);
 describe_domains(DomainNames) when is_list(DomainNames) ->
     describe_domains(DomainNames, default_config()).
 
--spec describe_domains(DomainNames :: [list()], Config :: aws_config()) ->
+-spec describe_domains(DomainNames :: [string()], Config :: aws_config()) ->
     cloudsearch_return_val().
-describe_domains(DomainNames, Config)
-        when is_list(DomainNames),
-             is_record(Config, aws_config)->
+describe_domains(DomainNames, #aws_config{} = Config) ->
     Params = erlcloud_aws:param_list(DomainNames, "DomainNames.member"),
     cloudsearch_query(Config, "DescribeDomains", Params).
 
@@ -258,13 +266,13 @@ describe_index_fields(DomainName) ->
 
 -spec describe_index_fields(DomainName :: string(),
                             Config :: aws_config()) -> cloudsearch_return_val().
-describe_index_fields(DomainName, Config) ->
+describe_index_fields(DomainName, #aws_config{} = Config) ->
     describe_index_fields(DomainName, false, [], Config).
 
 -spec describe_index_fields(DomainName :: string(),
                             Deployed :: boolean(),
                             Config :: aws_config()) -> cloudsearch_return_val().
-describe_index_fields(DomainName, Deployed, Config)
+describe_index_fields(DomainName, Deployed, #aws_config{} = Config)
         when Deployed =:= true; Deployed =:= false ->
     describe_index_fields(DomainName, Deployed, [], Config).
 
@@ -272,7 +280,7 @@ describe_index_fields(DomainName, Deployed, Config)
                             Deployed :: boolean(),
                             FieldNames :: [string()],
                             Config :: aws_config()) -> cloudsearch_return_val().
-describe_index_fields(DomainName, Deployed, FieldNames, Config)
+describe_index_fields(DomainName, Deployed, FieldNames, #aws_config{} = Config)
         when Deployed =:= true; Deployed =:= false ->
     FieldParams = erlcloud_aws:param_list(FieldNames, "FieldNames.member"),
     cloudsearch_query(Config, "DescribeIndexFields", [{"DomainName", DomainName},
@@ -291,7 +299,7 @@ index_documents(DomainName) ->
 
 -spec index_documents(DomainName :: string(), Config :: aws_config()) ->
     cloudsearch_return_val().
-index_documents(DomainName, Config) ->
+index_documents(DomainName, #aws_config{} = Config) ->
     cloudsearch_query(Config, "IndexDocuments", [{"DomainName", DomainName}]).
 
 %%------------------------------------------------------------------------------
@@ -305,7 +313,7 @@ list_domain_names() ->
     list_domain_names(default_config()).
 
 -spec list_domain_names(Config :: aws_config()) -> cloudsearch_return_val().
-list_domain_names(Config) ->
+list_domain_names(#aws_config{} = Config) ->
     cloudsearch_query(Config, "ListDomainNames", []).
 
 %%------------------------------------------------------------------------------
@@ -320,7 +328,7 @@ list_tags(DomainARN) ->
 
 -spec list_tags(DomainARN :: string(), Config :: aws_config()) ->
     cloudsearch_return_val().
-list_tags(DomainARN, Config) ->
+list_tags(DomainARN, #aws_config{} = Config) ->
     cloudsearch_query(Config, "ListTags", [{"ARN", DomainARN}]).
 
 %%------------------------------------------------------------------------------
@@ -337,7 +345,7 @@ remove_tags(DomainARN, TagKeys) ->
 -spec remove_tags(DomainARN :: string(),
                   TagKeys :: [string()],
                   Config :: aws_config()) -> cloudsearch_return_val().
-remove_tags(DomainARN, TagKeys, Config) ->
+remove_tags(DomainARN, TagKeys, #aws_config{} = Config) ->
     Params = erlcloud_aws:param_list(TagKeys, "TagKeys.member"),
     cloudsearch_query(Config, "RemoveTags", [{"ARN", DomainARN} | Params]).
 
@@ -345,9 +353,9 @@ remove_tags(DomainARN, TagKeys, Config) ->
 %% CloudSearch Utils API
 %%==============================================================================
 
--spec create_tag_list([{Key :: string(), Value :: string}]) ->
-    cloudsearch_domain_tag().
-create_tag_list([{_Key, _Value} | _] = TagList) ->
+-spec create_tag_list([{Key :: string(), Value :: string()}]) ->
+    [cloudsearch_domain_tag()].
+create_tag_list(TagList) ->
     [ [{<<"Key">>, Key}, {<<"Value">>, Value}] || {Key, Value} <- TagList ].
 
 %%------------------------------------------------------------------------------
@@ -355,7 +363,7 @@ create_tag_list([{_Key, _Value} | _] = TagList) ->
 %%
 %% http://docs.aws.amazon.com/cloudsearch/latest/developerguide/API_DateOptions.html
 %%------------------------------------------------------------------------------
--spec date_field_options(FieldName :: string()) -> proplist().
+-spec date_field_options(FieldName :: string()) -> cloudsearch_index_field().
 date_field_options(FieldName) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "date"}].
@@ -383,7 +391,7 @@ date_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
 
 %% http://docs.aws.amazon.com/cloudsearch/latest/developerguide/API_DateArrayOptions.html
 %%------------------------------------------------------------------------------
--spec date_array_field_options(FieldName :: string()) -> proplist().
+-spec date_array_field_options(FieldName :: string()) -> cloudsearch_index_field().
 date_array_field_options(FieldName) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "date-array"}].
@@ -393,7 +401,7 @@ date_array_field_options(FieldName) ->
                                FacetEnabled :: boolean(),
                                ReturnEnabled :: boolean(),
                                SearchEnabled :: boolean(),
-                               SourceFields :: string()) -> proplist().
+                               SourceFields :: string()) -> cloudsearch_index_field().
 date_array_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
                          SearchEnabled, SourceFields) ->
     [{"IndexFieldName", FieldName},
@@ -409,7 +417,7 @@ date_array_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
 %%
 %% http://docs.aws.amazon.com/cloudsearch/latest/developerguide/API_DoubleOptions.html
 %%------------------------------------------------------------------------------
--spec double_field_options(FieldName :: string()) -> proplist().
+-spec double_field_options(FieldName :: string()) -> cloudsearch_index_field().
 double_field_options(FieldName) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "double"},
@@ -421,7 +429,7 @@ double_field_options(FieldName) ->
                            ReturnEnabled :: boolean(),
                            SearchEnabled :: boolean(),
                            SortEnabled :: boolean(),
-                           SourceField :: string()) -> proplist().
+                           SourceField :: string()) -> cloudsearch_index_field().
 double_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
                      SearchEnabled, SortEnabled, SourceField) ->
     [{"IndexFieldName", FieldName},
@@ -438,7 +446,7 @@ double_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
 
 %% http://docs.aws.amazon.com/cloudsearch/latest/developerguide/API_DoubleArrayOptions.html
 %%------------------------------------------------------------------------------
--spec double_array_field_options(FieldName :: string()) -> proplist().
+-spec double_array_field_options(FieldName :: string()) -> cloudsearch_index_field().
 double_array_field_options(FieldName) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "double-array"},
@@ -449,7 +457,7 @@ double_array_field_options(FieldName) ->
                                  FacetEnabled :: boolean(),
                                  ReturnEnabled :: boolean(),
                                  SearchEnabled :: boolean(),
-                                 SourceFields :: string()) -> proplist().
+                                 SourceFields :: string()) -> cloudsearch_index_field().
 double_array_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
                            SearchEnabled, SourceFields) ->
     [{"IndexFieldName", FieldName},
@@ -465,7 +473,7 @@ double_array_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
 %%
 %% http://docs.aws.amazon.com/cloudsearch/latest/developerguide/API_IntOptions.html
 %%------------------------------------------------------------------------------
--spec int_field_options(FieldName :: string()) -> proplist().
+-spec int_field_options(FieldName :: string()) -> cloudsearch_index_field().
 int_field_options(FieldName) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "int"},
@@ -477,7 +485,7 @@ int_field_options(FieldName) ->
                         ReturnEnabled :: boolean(),
                         SearchEnabled :: boolean(),
                         SortEnabled :: boolean(),
-                        SourceField :: string()) -> proplist().
+                        SourceField :: string()) -> cloudsearch_index_field().
 int_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
                   SearchEnabled, SortEnabled, SourceField) ->
     [{"IndexFieldName", FieldName},
@@ -494,7 +502,7 @@ int_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
 
 %% http://docs.aws.amazon.com/cloudsearch/latest/developerguide/API_IntArrayOptions.html
 %%------------------------------------------------------------------------------
--spec int_array_field_options(FieldName :: string()) -> proplist().
+-spec int_array_field_options(FieldName :: string()) -> cloudsearch_index_field().
 int_array_field_options(FieldName) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "int-array"},
@@ -505,7 +513,7 @@ int_array_field_options(FieldName) ->
                               FacetEnabled :: boolean(),
                               ReturnEnabled :: boolean(),
                               SearchEnabled :: boolean(),
-                              SourceFields :: string()) -> proplist().
+                              SourceFields :: string()) -> cloudsearch_index_field().
 int_array_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
                         SearchEnabled, SourceFields) ->
     [{"IndexFieldName", FieldName},
@@ -521,7 +529,7 @@ int_array_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
 
 %% http://docs.aws.amazon.com/cloudsearch/latest/developerguide/API_LatLonOptions.html
 %%------------------------------------------------------------------------------
--spec latlon_field_options(FieldName :: string()) -> proplist().
+-spec latlon_field_options(FieldName :: string()) -> cloudsearch_index_field().
 latlon_field_options(FieldName) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "latlon"}].
@@ -532,7 +540,7 @@ latlon_field_options(FieldName) ->
                            ReturnEnabled :: boolean(),
                            SearchEnabled :: boolean(),
                            SortEnabled :: boolean(),
-                           SourceField :: string()) -> proplist().
+                           SourceField :: string()) -> cloudsearch_index_field().
 latlon_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
                      SearchEnabled, SortEnabled, SourceField) ->
     [{"IndexFieldName", FieldName},
@@ -549,7 +557,7 @@ latlon_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
 
 %% http://docs.aws.amazon.com/cloudsearch/latest/developerguide/API_LiteralOptions.html
 %%------------------------------------------------------------------------------
--spec literal_field_options(FieldName :: string()) -> proplist().
+-spec literal_field_options(FieldName :: string()) -> cloudsearch_index_field().
 literal_field_options(FieldName) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "literal"}].
@@ -560,7 +568,7 @@ literal_field_options(FieldName) ->
                             ReturnEnabled :: boolean(),
                             SearchEnabled :: boolean(),
                             SortEnabled :: boolean(),
-                            SourceField :: string()) -> proplist().
+                            SourceField :: string()) -> cloudsearch_index_field().
 literal_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
                       SearchEnabled, SortEnabled, SourceField) ->
     [{"IndexFieldName", FieldName},
@@ -577,7 +585,7 @@ literal_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
 
 %% http://docs.aws.amazon.com/cloudsearch/latest/developerguide/API_LiteralArrayOptions.html
 %%------------------------------------------------------------------------------
--spec literal_array_field_options(FieldName :: string()) -> proplist().
+-spec literal_array_field_options(FieldName :: string()) -> cloudsearch_index_field().
 literal_array_field_options(FieldName) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "literal-array"}].
@@ -587,7 +595,7 @@ literal_array_field_options(FieldName) ->
                                   FacetEnabled :: boolean(),
                                   ReturnEnabled :: boolean(),
                                   SearchEnabled :: boolean(),
-                                  SourceFields :: string()) -> proplist().
+                                  SourceFields :: string()) -> cloudsearch_index_field().
 literal_array_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled,
                             SearchEnabled, SourceFields) ->
     [{"IndexFieldName", FieldName},
@@ -603,7 +611,7 @@ literal_array_field_options(FieldName, DefaultValue, FacetEnabled, ReturnEnabled
 
 %% http://docs.aws.amazon.com/cloudsearch/latest/developerguide/API_TextOptions.html
 %%------------------------------------------------------------------------------
--spec text_field_options(FieldName :: string()) -> proplist().
+-spec text_field_options(FieldName :: string()) -> cloudsearch_index_field().
 text_field_options(FieldName) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "text"}].
@@ -614,7 +622,7 @@ text_field_options(FieldName) ->
                          HighlightEnabled :: boolean(),
                          ReturnEnabled :: boolean(),
                          SortEnabled :: boolean(),
-                         SourceField :: string()) -> proplist().
+                         SourceField :: string()) -> cloudsearch_index_field().
 text_field_options(FieldName, AnalysisScheme, DefaultValue, HighlightEnabled,
                    ReturnEnabled, SortEnabled, SourceField) ->
     [{"IndexFieldName", FieldName},
@@ -631,7 +639,7 @@ text_field_options(FieldName, AnalysisScheme, DefaultValue, HighlightEnabled,
 
 %% http://docs.aws.amazon.com/cloudsearch/latest/developerguide/API_TextArrayOptions.html
 %%------------------------------------------------------------------------------
--spec text_array_field_options(FieldName :: string()) -> proplist().
+-spec text_array_field_options(FieldName :: string()) -> cloudsearch_index_field().
 text_array_field_options(FieldName) ->
     [{"IndexFieldName", FieldName},
      {"IndexFieldType", "text-array"}].
@@ -641,7 +649,7 @@ text_array_field_options(FieldName) ->
                                DefaultValue :: string(),
                                HighlightEnabled :: boolean(),
                                ReturnEnabled :: boolean(),
-                               SourceFields :: string()) -> proplist().
+                               SourceFields :: string()) -> cloudsearch_index_field().
 text_array_field_options(FieldName, AnalysisScheme, DefaultValue,
                          HighlightEnabled, ReturnEnabled, SourceFields) ->
     [{"IndexFieldName", FieldName},
