@@ -19,7 +19,7 @@
   {modules, []},
   {env, []},
   {licenses, ["MIT"]},
-  {links, [{"Github", "https://github.com/alertlogic/erlcloud"}]},
+  {links, [{"Github", "https://github.com/erlcloud/erlcloud"}]},
   {maintainers, []}
  ]
 }.
