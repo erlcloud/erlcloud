@@ -28,9 +28,8 @@
          select_all/1, select_all/2, select_all/3
         ]).
 
-%% Export all functions for unit tests
 -ifdef(TEST).
--compile(export_all).
+-export([extract_token/1]).
 -endif.
 
 -include("erlcloud.hrl").

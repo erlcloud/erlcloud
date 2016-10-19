@@ -37,7 +37,10 @@ describe_tags_test_() ->
       fun modify_spot_fleet_request_output_tests/1,
       fun describe_spot_fleet_request_input_tests/1,
       fun describe_spot_fleet_request_output_tests/1,
-      fun describe_images_tests/1
+      fun describe_images_tests/1,
+      fun describe_vpn_gateways_tests/1,
+      fun describe_customer_gateways_tests/1,
+      fun describe_vpn_connections_tests/1
      ]}.
 
 start() ->

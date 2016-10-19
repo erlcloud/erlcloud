@@ -506,7 +506,7 @@ describe_stack_resource_output_tests(_) ->
         }),
 
     output_test(?_f(erlcloud_cloudformation:describe_stack_resource([],
-                "Stack Name", "Logical Id", Config = #aws_config{}
+                "Stack Name", "Logical Id", #aws_config{}
             )), Test).
 
 describe_stack_events_output_tests(_) ->
