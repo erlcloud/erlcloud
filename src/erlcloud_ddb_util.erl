@@ -25,10 +25,12 @@
          put_all/2, put_all/3, put_all/4,
          q_all/2, q_all/3, q_all/4,
          scan_all/1, scan_all/2, scan_all/3,
-         write_all/2, write_all/3, write_all/4,
-         set_out_opt/1
+         write_all/2, write_all/3, write_all/4
         ]).
 
+-ifdef(TEST).
+-export([set_out_opt/1]).
+-endif.
 
 -define(BATCH_WRITE_LIMIT, 25).
 -define(BATCH_GET_LIMIT, 100).
@@ -452,6 +454,9 @@ write_all_result([{error, Reason} | _]) ->
 write_all_result([]) ->
     ok.
 
+%%%------------------------------------------------------------------------------
+%%% Internal Functions
+%%%------------------------------------------------------------------------------
 
 %% Set `out' option to record/typed_record output formats based on `typed_out'
 %%  boolean setting for get_all, scan_all, q_all. Other output formats are not
@@ -466,9 +471,6 @@ set_out_opt(Opts) ->
     end,
     lists:keystore(out, 1, NewOpts, OutOpt).
 
-%%%------------------------------------------------------------------------------
-%%% Internal Functions
-%%%------------------------------------------------------------------------------
 
 %% Reverses a list of lists and flattens one level
 flatreverse(List) ->
