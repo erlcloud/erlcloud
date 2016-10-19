@@ -3,7 +3,7 @@
 -module(erlcloud_route53).
 
 -ifdef(TEST).
--compile([export_all]).
+-export([describe_all/4, describe_all/5]).
 -endif.
 
 -type(aws_route53_delegation_set() :: proplists:proplist()).

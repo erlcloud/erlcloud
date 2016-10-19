@@ -61,8 +61,6 @@
 
 -export([get_uri/2]).
 
--import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
-
 -define(API_VERSION, "2010-05-08").
 
 -spec new(string(), string()) -> aws_config().
@@ -807,7 +805,7 @@ extract_account_summary(Item) ->
                {"UsersQuota", users_quota, get_integer}],
     lists:foldl(
       fun(E, As) ->
-              Key = get_text("key", E),
+              Key = erlcloud_xml:get_text("key", E),
               case lists:keyfind(Key, 1, Extract) of
                   false ->
                       As;

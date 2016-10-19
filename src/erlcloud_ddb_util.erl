@@ -28,9 +28,8 @@
          write_all/2, write_all/3, write_all/4
         ]).
 
-%% Export all functions for unit tests
 -ifdef(TEST).
--compile(export_all).
+-export([set_out_opt/1]).
 -endif.
 
 -define(BATCH_WRITE_LIMIT, 25).

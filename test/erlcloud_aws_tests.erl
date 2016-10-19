@@ -53,12 +53,11 @@ request_retry_test(_) ->
           <RequestId>87503803-73c7-5e4d-8619-76be476a7915</RequestId></ErrorResponse>">>}},
     Response200 = {ok, {{200, "OK"}, [], <<"OkBody">>}},
     meck:sequence(erlcloud_httpc, request, 6, [Response400, Response200]),
-    Result1 = erlcloud_aws:aws_request(get, "host", "/", [], config()),
-    ?_assertEqual(<<"OkBody">>, Result1),
+    <<"OkBody">> = erlcloud_aws:aws_request(get, "host", "/", [], config()),
 
     meck:sequence(erlcloud_httpc, request, 6, [Response400, Response500, Response200]),
-    Result2 = erlcloud_aws:aws_request(get, "host", "/", [], config()),
-    ?_assertEqual(<<"OkBody">>, Result2),
+    <<"OkBody">> = erlcloud_aws:aws_request(get, "host", "/", [], config()),
+
     
     meck:sequence(erlcloud_httpc, request, 6, [Response400, Response500, Response400, Response200]),
     Result3 = erlcloud_aws:aws_request_xml4(get, "host", "/", [], "any", config()),
