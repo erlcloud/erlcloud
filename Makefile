@@ -63,6 +63,13 @@ else
 	$(REBAR) shell
 endif
 
+check_warnings:
+ifeq ($(REBAR_VSN),2)
+	@echo skip checking warnings
+else
+	@$(REBAR) as warnings compile
+endif
+
 eunit:
 ifeq ($(REBAR_VSN),2)
 	@$(REBAR) compile
