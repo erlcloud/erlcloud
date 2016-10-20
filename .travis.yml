@@ -17,7 +17,9 @@ branches:
     - /^[0-9]+\.[0-9]+\.[0-9]+/
 install:
   - make travis-install
-script: make eunit
+script:
+  - make check_warnings
+  - make eunit
 deploy:
   skip_cleanup: true
   provider: script
