@@ -30,7 +30,8 @@ erlcloud_cloudsearch_test_() ->
       fun literal_field_options/0,
       fun literal_array_field_options/0,
       fun text_field_options/0,
-      fun text_array_field_options/0]}.
+      fun text_array_field_options/0,
+      fun test_flatten_index_field/0]}.
 
 start() ->
     meck:new(HTTPMock = erlcloud_httpc),
@@ -62,6 +63,64 @@ stop(Modules) ->
 -define(SEARCH_ENABLED, false).
 -define(SORT_ENABLED, false).
 -define(SOURCE_FIELD, "TestSourceField").
+
+-define(TEST_FIELD_1(Name),
+    [{<<"DateArrayOptions">>,null},
+     {<<"DateOptions">>,null},
+     {<<"DoubleArrayOptions">>,null},
+     {<<"DoubleOptions">>,null},
+     {<<"IntArrayOptions">>,null},
+     {<<"IntOptions">>,null},
+     {<<"LatLonOptions">>,null},
+     {<<"LiteralArrayOptions">>,null},
+     {<<"LiteralOptions">>,null},
+     {<<"TextArrayOptions">>,null},
+     {<<"TextOptions">>,
+        [{<<"AnalysisScheme">>,<<"_en_default_">>},
+         {<<"DefaultValue">>,null},
+         {<<"HighlightEnabled">>,true},
+         {<<"ReturnEnabled">>,true},
+         {<<"SortEnabled">>,true},
+         {<<"SourceField">>,"text_field1"}]},
+     {<<"IndexFieldName">>,Name},
+     {<<"IndexFieldType">>,<<"text">>}]).
+
+-define(TEST_FIELD_1_NORM(Name),
+    [{<<"IndexFieldName">>,Name},
+     {<<"IndexFieldType">>,<<"text">>},
+     {<<"TextOptions.AnalysisScheme">>,<<"_en_default_">>},
+     {<<"TextOptions.HighlightEnabled">>,true},
+     {<<"TextOptions.ReturnEnabled">>,true},
+     {<<"TextOptions.SortEnabled">>,true},
+     {<<"TextOptions.SourceField">>,"text_field1"}]).
+
+% options unsorted, null values
+-define(TEST_FIELD_2(Name),
+    [{<<"DateArrayOptions">>,null},
+     {<<"DateOptions">>,null},
+     {<<"DoubleArrayOptions">>,null},
+     {<<"DoubleOptions">>,null},
+     {<<"IndexFieldName">>,Name},
+     {<<"IndexFieldType">>,<<"int">>},
+     {<<"IntArrayOptions">>,null},
+     {<<"IntOptions">>,
+        [{<<"SearchEnabled">>,true},
+         {<<"DefaultValue">>,null},
+         {<<"FacetEnabled">>,null},
+         {<<"ReturnEnabled">>,true},
+         {<<"SortEnabled">>,null},
+         {<<"SourceField">>,null}]},
+     {<<"LatLonOptions">>,null},
+     {<<"LiteralArrayOptions">>,null},
+     {<<"LiteralOptions">>,null},
+     {<<"TextArrayOptions">>,null},
+     {<<"TextOptions">>,null}]).
+
+-define(TEST_FIELD_2_NORM(Name),
+    [{<<"IndexFieldName">>,Name},
+     {<<"IndexFieldType">>,<<"int">>},
+     {<<"IntOptions.ReturnEnabled">>,true},
+     {<<"IntOptions.SearchEnabled">>,true}]).
 
 add_tags() ->
     TagList = erlcloud_cloudsearch:create_tag_list([{"name", "my test domain"},
@@ -140,16 +199,17 @@ create_tag_list() ->
     ?assertEqual(ExpectedOutput, erlcloud_cloudsearch:create_tag_list(InTags)).
 
 date_field_options() ->
-    FieldType = "date",
-    ExpectedOutput1 = [{"IndexFieldName", ?FIELD_NAME},
-                       {"IndexFieldType", FieldType}],
+    FieldType = <<"date">>,
+    ExpectedOutput1 = [{<<"IndexFieldName">>, ?FIELD_NAME},
+                       {<<"IndexFieldType">>, FieldType}],
     ExpectedOutput2 = ExpectedOutput1 ++
-            [{"DateOptions.DefaultValue", ?DEFAULT_VALUE_DATE},
-             {"DateOptions.FacetEnabled", ?FACET_ENABLED},
-             {"DateOptions.ReturnEnabled", ?RETURN_ENABLED},
-             {"DateOptions.SearchEnabled", ?SEARCH_ENABLED},
-             {"DateOptions.SortEnabled", ?SORT_ENABLED},
-             {"DateOptions.SourceField", ?SOURCE_FIELD}],
+            [{<<"DateOptions">>,
+                [{<<"DefaultValue">>, ?DEFAULT_VALUE_DATE},
+                 {<<"FacetEnabled">>, ?FACET_ENABLED},
+                 {<<"ReturnEnabled">>, ?RETURN_ENABLED},
+                 {<<"SearchEnabled">>, ?SEARCH_ENABLED},
+                 {<<"SortEnabled">>, ?SORT_ENABLED},
+                 {<<"SourceField">>, ?SOURCE_FIELD}]}],
     ?assertEqual(ExpectedOutput1, erlcloud_cloudsearch:date_field_options(?FIELD_NAME)),
     ?assertEqual(ExpectedOutput2,
                  erlcloud_cloudsearch:date_field_options(?FIELD_NAME, ?DEFAULT_VALUE_DATE,
@@ -158,15 +218,16 @@ date_field_options() ->
                                                          ?SOURCE_FIELD)).
 
 date_array_field_options() ->
-    FieldType = "date-array",
-    ExpectedOutput1 = [{"IndexFieldName", ?FIELD_NAME},
-                       {"IndexFieldType", FieldType}],
+    FieldType = <<"date-array">>,
+    ExpectedOutput1 = [{<<"IndexFieldName">>, ?FIELD_NAME},
+                       {<<"IndexFieldType">>, FieldType}],
     ExpectedOutput2 = ExpectedOutput1 ++
-            [{"DateArrayOptions.DefaultValue", ?DEFAULT_VALUE_DATE},
-             {"DateArrayOptions.FacetEnabled", ?FACET_ENABLED},
-             {"DateArrayOptions.ReturnEnabled", ?RETURN_ENABLED},
-             {"DateArrayOptions.SearchEnabled", ?SEARCH_ENABLED},
-             {"DateArrayOptions.SourceFields", ?SOURCE_FIELD}],
+            [{<<"DateArrayOptions">>,
+                [{<<"DefaultValue">>, ?DEFAULT_VALUE_DATE},
+                 {<<"FacetEnabled">>, ?FACET_ENABLED},
+                 {<<"ReturnEnabled">>, ?RETURN_ENABLED},
+                 {<<"SearchEnabled">>, ?SEARCH_ENABLED},
+                 {<<"SourceFields">>, ?SOURCE_FIELD}]}],
     ?assertEqual(ExpectedOutput1, erlcloud_cloudsearch:date_array_field_options(?FIELD_NAME)),
     ?assertEqual(ExpectedOutput2,
                  erlcloud_cloudsearch:date_array_field_options(?FIELD_NAME, ?DEFAULT_VALUE_DATE,
@@ -174,16 +235,17 @@ date_array_field_options() ->
                                                                ?SEARCH_ENABLED, ?SOURCE_FIELD)).
 
 double_field_options() ->
-    FieldType = "double",
-    ExpectedOutput1 = [{"IndexFieldName", ?FIELD_NAME},
-                       {"IndexFieldType", FieldType},
-                       {"DoubleOptions.DefaultValue", ?DEFAULT_VALUE_DOUBLE}],
+    FieldType = <<"double">>,
+    ExpectedOutput1 = [{<<"IndexFieldName">>, ?FIELD_NAME},
+                       {<<"IndexFieldType">>, FieldType}],
     ExpectedOutput2 = ExpectedOutput1 ++
-            [{"DoubleOptions.FacetEnabled", ?FACET_ENABLED},
-             {"DoubleOptions.ReturnEnabled", ?RETURN_ENABLED},
-             {"DoubleOptions.SearchEnabled", ?SEARCH_ENABLED},
-             {"DoubleOptions.SortEnabled", ?SORT_ENABLED},
-             {"DoubleOptions.SourceField", ?SOURCE_FIELD}],
+            [{<<"DoubleOptions">>,
+                [{<<"DefaultValue">>, ?DEFAULT_VALUE_DOUBLE},
+                 {<<"FacetEnabled">>, ?FACET_ENABLED},
+                 {<<"ReturnEnabled">>, ?RETURN_ENABLED},
+                 {<<"SearchEnabled">>, ?SEARCH_ENABLED},
+                 {<<"SortEnabled">>, ?SORT_ENABLED},
+                 {<<"SourceField">>, ?SOURCE_FIELD}]}],
     ?assertEqual(ExpectedOutput1, erlcloud_cloudsearch:double_field_options(?FIELD_NAME)),
     ?assertEqual(ExpectedOutput2,
                  erlcloud_cloudsearch:double_field_options(?FIELD_NAME, ?DEFAULT_VALUE_DOUBLE,
@@ -192,15 +254,16 @@ double_field_options() ->
                                                            ?SOURCE_FIELD)).
 
 double_array_field_options() ->
-    FieldType = "double-array",
-    ExpectedOutput1 = [{"IndexFieldName", ?FIELD_NAME},
-                       {"IndexFieldType", FieldType},
-                       {"DoubleArrayOptions.DefaultValue", ?DEFAULT_VALUE_DOUBLE}],
+    FieldType = <<"double-array">>,
+    ExpectedOutput1 = [{<<"IndexFieldName">>, ?FIELD_NAME},
+                       {<<"IndexFieldType">>, FieldType}],
     ExpectedOutput2 = ExpectedOutput1 ++
-            [{"DoubleArrayOptions.FacetEnabled", ?FACET_ENABLED},
-             {"DoubleArrayOptions.ReturnEnabled", ?RETURN_ENABLED},
-             {"DoubleArrayOptions.SearchEnabled", ?SEARCH_ENABLED},
-             {"DoubleArrayOptions.SourceFields", ?SOURCE_FIELD}],
+            [{<<"DoubleArrayOptions">>,
+                [{<<"DefaultValue">>, ?DEFAULT_VALUE_DOUBLE},
+                 {<<"FacetEnabled">>, ?FACET_ENABLED},
+                 {<<"ReturnEnabled">>, ?RETURN_ENABLED},
+                 {<<"SearchEnabled">>, ?SEARCH_ENABLED},
+                 {<<"SourceFields">>, ?SOURCE_FIELD}]}],
     ?assertEqual(ExpectedOutput1, erlcloud_cloudsearch:double_array_field_options(?FIELD_NAME)),
     ?assertEqual(ExpectedOutput2,
                  erlcloud_cloudsearch:double_array_field_options(?FIELD_NAME, ?DEFAULT_VALUE_DOUBLE,
@@ -208,16 +271,17 @@ double_array_field_options() ->
                                                                  ?SEARCH_ENABLED, ?SOURCE_FIELD)).
 
 int_field_options() ->
-    FieldType = "int",
-    ExpectedOutput1 = [{"IndexFieldName", ?FIELD_NAME},
-                       {"IndexFieldType", FieldType},
-                       {"IntOptions.DefaultValue", ?DEFAULT_VALUE_INT}],
+    FieldType = <<"int">>,
+    ExpectedOutput1 = [{<<"IndexFieldName">>, ?FIELD_NAME},
+                       {<<"IndexFieldType">>, FieldType}],
     ExpectedOutput2 = ExpectedOutput1 ++
-            [{"IntOptions.FacetEnabled", ?FACET_ENABLED},
-             {"IntOptions.ReturnEnabled", ?RETURN_ENABLED},
-             {"IntOptions.SearchEnabled", ?SEARCH_ENABLED},
-             {"IntOptions.SortEnabled", ?SORT_ENABLED},
-             {"IntOptions.SourceField", ?SOURCE_FIELD}],
+            [{<<"IntOptions">>,
+                [{<<"DefaultValue">>, ?DEFAULT_VALUE_INT},
+                 {<<"FacetEnabled">>, ?FACET_ENABLED},
+                 {<<"ReturnEnabled">>, ?RETURN_ENABLED},
+                 {<<"SearchEnabled">>, ?SEARCH_ENABLED},
+                 {<<"SortEnabled">>, ?SORT_ENABLED},
+                 {<<"SourceField">>, ?SOURCE_FIELD}]}],
     ?assertEqual(ExpectedOutput1, erlcloud_cloudsearch:int_field_options(?FIELD_NAME)),
     ?assertEqual(ExpectedOutput2,
                  erlcloud_cloudsearch:int_field_options(?FIELD_NAME, ?DEFAULT_VALUE_INT,
@@ -226,15 +290,16 @@ int_field_options() ->
                                                         ?SOURCE_FIELD)).
 
 int_array_field_options() ->
-    FieldType = "int-array",
-    ExpectedOutput1 = [{"IndexFieldName", ?FIELD_NAME},
-                       {"IndexFieldType", FieldType},
-                       {"IntArrayOptions.DefaultValue", ?DEFAULT_VALUE_INT}],
+    FieldType = <<"int-array">>,
+    ExpectedOutput1 = [{<<"IndexFieldName">>, ?FIELD_NAME},
+                       {<<"IndexFieldType">>, FieldType}],
     ExpectedOutput2 = ExpectedOutput1 ++
-            [{"IntArrayOptions.FacetEnabled", ?FACET_ENABLED},
-             {"IntArrayOptions.ReturnEnabled", ?RETURN_ENABLED},
-             {"IntArrayOptions.SearchEnabled", ?SEARCH_ENABLED},
-             {"IntArrayOptions.SourceFields", ?SOURCE_FIELD}],
+            [{<<"IntArrayOptions">>,
+                [{<<"DefaultValue">>, ?DEFAULT_VALUE_INT},
+                 {<<"FacetEnabled">>, ?FACET_ENABLED},
+                 {<<"ReturnEnabled">>, ?RETURN_ENABLED},
+                 {<<"SearchEnabled">>, ?SEARCH_ENABLED},
+                 {<<"SourceFields">>, ?SOURCE_FIELD}]}],
     ?assertEqual(ExpectedOutput1, erlcloud_cloudsearch:int_array_field_options(?FIELD_NAME)),
     ?assertEqual(ExpectedOutput2,
                  erlcloud_cloudsearch:int_array_field_options(?FIELD_NAME, ?DEFAULT_VALUE_INT,
@@ -242,16 +307,17 @@ int_array_field_options() ->
                                                               ?SEARCH_ENABLED, ?SOURCE_FIELD)).
 
 latlon_field_options() ->
-    FieldType = "latlon",
-    ExpectedOutput1 = [{"IndexFieldName", ?FIELD_NAME},
-                       {"IndexFieldType", FieldType}],
+    FieldType = <<"latlon">>,
+    ExpectedOutput1 = [{<<"IndexFieldName">>, ?FIELD_NAME},
+                       {<<"IndexFieldType">>, FieldType}],
     ExpectedOutput2 = ExpectedOutput1 ++
-            [{"LatLonOptions.DefaultValue", ?DEFAULT_VALUE_LATLON},
-             {"LatLonOptions.FacetEnabled", ?FACET_ENABLED},
-             {"LatLonOptions.ReturnEnabled", ?RETURN_ENABLED},
-             {"LatLonOptions.SearchEnabled", ?SEARCH_ENABLED},
-             {"LatLonOptions.SortEnabled", ?SORT_ENABLED},
-             {"LatLonOptions.SourceField", ?SOURCE_FIELD}],
+            [{<<"LatLonOptions">>,
+                [{<<"DefaultValue">>, ?DEFAULT_VALUE_LATLON},
+                 {<<"FacetEnabled">>, ?FACET_ENABLED},
+                 {<<"ReturnEnabled">>, ?RETURN_ENABLED},
+                 {<<"SearchEnabled">>, ?SEARCH_ENABLED},
+                 {<<"SortEnabled">>, ?SORT_ENABLED},
+                 {<<"SourceField">>, ?SOURCE_FIELD}]}],
     ?assertEqual(ExpectedOutput1, erlcloud_cloudsearch:latlon_field_options(?FIELD_NAME)),
     ?assertEqual(ExpectedOutput2,
                  erlcloud_cloudsearch:latlon_field_options(?FIELD_NAME, ?DEFAULT_VALUE_LATLON,
@@ -260,16 +326,17 @@ latlon_field_options() ->
                                                            ?SOURCE_FIELD)).
 
 literal_field_options() ->
-    FieldType = "literal",
-    ExpectedOutput1 = [{"IndexFieldName", ?FIELD_NAME},
-                       {"IndexFieldType", FieldType}],
+    FieldType = <<"literal">>,
+    ExpectedOutput1 = [{<<"IndexFieldName">>, ?FIELD_NAME},
+                       {<<"IndexFieldType">>, FieldType}],
     ExpectedOutput2 = ExpectedOutput1 ++
-            [{"LiteralOptions.DefaultValue", ?DEFAULT_VALUE_LITERAL},
-             {"LiteralOptions.FacetEnabled", ?FACET_ENABLED},
-             {"LiteralOptions.ReturnEnabled", ?RETURN_ENABLED},
-             {"LiteralOptions.SearchEnabled", ?SEARCH_ENABLED},
-             {"LiteralOptions.SortEnabled", ?SORT_ENABLED},
-             {"LiteralOptions.SourceField", ?SOURCE_FIELD}],
+            [{<<"LiteralOptions">>,
+                [{<<"DefaultValue">>, ?DEFAULT_VALUE_LITERAL},
+                 {<<"FacetEnabled">>, ?FACET_ENABLED},
+                 {<<"ReturnEnabled">>, ?RETURN_ENABLED},
+                 {<<"SearchEnabled">>, ?SEARCH_ENABLED},
+                 {<<"SortEnabled">>, ?SORT_ENABLED},
+                 {<<"SourceField">>, ?SOURCE_FIELD}]}],
     ?assertEqual(ExpectedOutput1, erlcloud_cloudsearch:literal_field_options(?FIELD_NAME)),
     ?assertEqual(ExpectedOutput2,
                  erlcloud_cloudsearch:literal_field_options(?FIELD_NAME, ?DEFAULT_VALUE_LITERAL,
@@ -278,15 +345,16 @@ literal_field_options() ->
                                                             ?SOURCE_FIELD)).
 
 literal_array_field_options() ->
-    FieldType = "literal-array",
-    ExpectedOutput1 = [{"IndexFieldName", ?FIELD_NAME},
-                       {"IndexFieldType", FieldType}],
+    FieldType = <<"literal-array">>,
+    ExpectedOutput1 = [{<<"IndexFieldName">>, ?FIELD_NAME},
+                       {<<"IndexFieldType">>, FieldType}],
     ExpectedOutput2 = ExpectedOutput1 ++
-            [{"LiteralArrayOptions.DefaultValue", ?DEFAULT_VALUE_LITERAL},
-             {"LiteralArrayOptions.FacetEnabled", ?FACET_ENABLED},
-             {"LiteralArrayOptions.ReturnEnabled", ?RETURN_ENABLED},
-             {"LiteralArrayOptions.SearchEnabled", ?SEARCH_ENABLED},
-             {"LiteralArrayOptions.SourceFields", ?SOURCE_FIELD}],
+            [{<<"LiteralArrayOptions">>,
+                [{<<"DefaultValue">>, ?DEFAULT_VALUE_LITERAL},
+                 {<<"FacetEnabled">>, ?FACET_ENABLED},
+                 {<<"ReturnEnabled">>, ?RETURN_ENABLED},
+                 {<<"SearchEnabled">>, ?SEARCH_ENABLED},
+                 {<<"SourceFields">>, ?SOURCE_FIELD}]}],
     ?assertEqual(ExpectedOutput1, erlcloud_cloudsearch:literal_array_field_options(?FIELD_NAME)),
     ?assertEqual(ExpectedOutput2,
                  erlcloud_cloudsearch:literal_array_field_options(?FIELD_NAME, ?DEFAULT_VALUE_LITERAL,
@@ -294,16 +362,17 @@ literal_array_field_options() ->
                                                                   ?SEARCH_ENABLED, ?SOURCE_FIELD)).
 
 text_field_options() ->
-    FieldType = "text",
-    ExpectedOutput1 = [{"IndexFieldName", ?FIELD_NAME},
-                       {"IndexFieldType", FieldType}],
+    FieldType = <<"text">>,
+    ExpectedOutput1 = [{<<"IndexFieldName">>, ?FIELD_NAME},
+                       {<<"IndexFieldType">>, FieldType}],
     ExpectedOutput2 = ExpectedOutput1 ++
-            [{"TextOptions.AnalysisScheme", ?ANALYSIS_SCHEME},
-             {"TextOptions.DefaultValue", ?DEFAULT_VALUE_TEXT},
-             {"TextOptions.HighlightEnabled", ?HIGHLIGHT_ENABLED},
-             {"TextOptions.ReturnEnabled", ?RETURN_ENABLED},
-             {"TextOptions.SortEnabled", ?SORT_ENABLED},
-             {"TextOptions.SourceField", ?SOURCE_FIELD}],
+            [{<<"TextOptions">>,
+                [{<<"AnalysisScheme">>, ?ANALYSIS_SCHEME},
+                 {<<"DefaultValue">>, ?DEFAULT_VALUE_TEXT},
+                 {<<"HighlightEnabled">>, ?HIGHLIGHT_ENABLED},
+                 {<<"ReturnEnabled">>, ?RETURN_ENABLED},
+                 {<<"SortEnabled">>, ?SORT_ENABLED},
+                 {<<"SourceField">>, ?SOURCE_FIELD}]}],
     ?assertEqual(ExpectedOutput1, erlcloud_cloudsearch:text_field_options(?FIELD_NAME)),
     ?assertEqual(ExpectedOutput2,
                  erlcloud_cloudsearch:text_field_options(?FIELD_NAME, ?ANALYSIS_SCHEME,
@@ -312,17 +381,24 @@ text_field_options() ->
                                                          ?SOURCE_FIELD)).
 
 text_array_field_options() ->
-    FieldType = "text-array",
-    ExpectedOutput1 = [{"IndexFieldName", ?FIELD_NAME},
-                       {"IndexFieldType", FieldType}],
+    FieldType = <<"text-array">>,
+    ExpectedOutput1 = [{<<"IndexFieldName">>, ?FIELD_NAME},
+                       {<<"IndexFieldType">>, FieldType}],
     ExpectedOutput2 = ExpectedOutput1 ++
-            [{"TextArrayOptions.AnalysisScheme", ?ANALYSIS_SCHEME},
-             {"TextArrayOptions.DefaultValue", ?DEFAULT_VALUE_TEXT},
-             {"TextArrayOptions.HighlightEnabled", ?HIGHLIGHT_ENABLED},
-             {"TextArrayOptions.ReturnEnabled", ?RETURN_ENABLED},
-             {"TextArrayOptions.SourceFields", ?SOURCE_FIELD}],
+            [{<<"TextArrayOptions">>,
+                [{<<"AnalysisScheme">>, ?ANALYSIS_SCHEME},
+                 {<<"DefaultValue">>, ?DEFAULT_VALUE_TEXT},
+                 {<<"HighlightEnabled">>, ?HIGHLIGHT_ENABLED},
+                 {<<"ReturnEnabled">>, ?RETURN_ENABLED},
+                 {<<"SourceFields">>, ?SOURCE_FIELD}]}],
     ?assertEqual(ExpectedOutput1, erlcloud_cloudsearch:text_array_field_options(?FIELD_NAME)),
     ?assertEqual(ExpectedOutput2,
                  erlcloud_cloudsearch:text_array_field_options(?FIELD_NAME, ?ANALYSIS_SCHEME,
                                                                ?DEFAULT_VALUE_TEXT, ?HIGHLIGHT_ENABLED,
                                                                ?RETURN_ENABLED, ?SOURCE_FIELD)).
+
+test_flatten_index_field() ->
+    ?assertEqual(?TEST_FIELD_1_NORM(<<"field1">>),
+                 erlcloud_cloudsearch:flatten_index_field(?TEST_FIELD_1(<<"field1">>))),
+    ?assertEqual(?TEST_FIELD_2_NORM(<<"field2">>),
+                 erlcloud_cloudsearch:flatten_index_field(?TEST_FIELD_2(<<"field2">>))).

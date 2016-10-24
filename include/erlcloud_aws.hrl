@@ -64,7 +64,7 @@
           directconnect_port=80::non_neg_integer(),
           cloudsearch_scheme="https://"::string(),
           cloudsearch_host="cloudsearch.us-east-1.amazonaws.com"::string(),
-          cloudsearch_port=80::non_neg_integer(),
+          cloudsearch_port=443::non_neg_integer(),
           cloudformation_host="cloudformation.us-east-1.amazonaws.com"::string(),
           waf_scheme="https://"::string(),
           waf_host="waf.amazonaws.com"::string(),
