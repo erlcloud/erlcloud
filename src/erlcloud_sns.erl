@@ -639,7 +639,7 @@ sns_xml_request(Config, Action, Params) ->
                                        [{"Action", Action}, {"Version", ?API_VERSION} | Params],
                                        "sns", Config) of
         {ok, XML} -> XML;
-        {error, {http_error, 400, _BadRequest, Body}} ->
+        {error, {http_error, _, _BadRequest, Body}} ->
             XML = element(1, xmerl_scan:string(binary_to_list(Body))),
             ErrCode = erlcloud_xml:get_text("Error/Code", XML),
             ErrMsg = erlcloud_xml:get_text("Error/Message", XML),
