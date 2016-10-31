@@ -259,7 +259,7 @@ param_list(Values, Key) ->
     [{lists:flatten([Key, $., integer_to_list(I)]), Value} ||
         {I, Value} <- lists:zip(lists:seq(1, length(Values)), Values)].
 
-value_to_string(Float) when is_float(Float) -> io_lib:format("~p", [Float]);
+value_to_string(Float) when is_float(Float) -> float_to_list(Float);
 value_to_string(Integer) when is_integer(Integer) -> integer_to_list(Integer);
 value_to_string(Atom) when is_atom(Atom) -> atom_to_list(Atom);
 value_to_string(Binary) when is_binary(Binary) -> Binary;
