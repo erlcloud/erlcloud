@@ -134,9 +134,11 @@ configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
                                 | us_west_1
                                 | eu
                                 | 'us-east-1'
+                                | 'us-east-2'
                                 | 'us-west-1'
                                 | 'eu-west-1'
                                 | 'eu-central-1'
+                                | 'ap-south-1'
                                 | 'ap-southeast-1'
                                 | 'ap-southeast-2'
                                 | 'ap-northeast-1'
@@ -223,10 +225,12 @@ create_bucket(BucketName, ACL, LocationConstraint, Config)
 encode_location_constraint(eu) -> "EU";
 encode_location_constraint(us_west_1) -> "us-west-1";
 encode_location_constraint('us-east-1') -> undefined;
+encode_location_constraint('us-east-2') -> "us-east-2";
 encode_location_constraint('us-west-1') -> "us-west-1";
 encode_location_constraint('us-west-2') -> "us-west-2";
 encode_location_constraint('eu-west-1') -> "EU";
 encode_location_constraint('eu-central-1') -> "eu-central-1";
+encode_location_constraint('ap-south-1') -> "ap-south-1";
 encode_location_constraint('ap-southeast-1') -> "ap-southeast-1";
 encode_location_constraint('ap-southeast-2') -> "ap-southeast-2";
 encode_location_constraint('ap-northeast-1') -> "ap-northeast-1";
