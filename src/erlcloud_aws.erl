@@ -10,7 +10,7 @@
          aws_request_form/8,
          aws_request_form_raw/8,
          param_list/2, default_config/0, auto_config/0, update_config/1,
-         service_config/3,
+         service_config/3, service_host/2,
          configure/1, format_timestamp/1,
          http_headers_body/1,
          http_body/1,
