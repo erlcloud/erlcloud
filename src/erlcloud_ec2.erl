@@ -31,7 +31,7 @@
          delete_volume/1, delete_volume/2,
          describe_snapshot_attribute/2, describe_snapshot_attribute/3,
          describe_snapshots/0, describe_snapshots/1, describe_snapshots/2,
-         describe_snapshots/3, describe_snapshots/4,
+         describe_snapshots/3, describe_snapshots/4, describe_snapshots/5,
          describe_volumes/0, describe_volumes/1, describe_volumes/2,
          detach_volume/1, detach_volume/2,
          modify_snapshot_attribute/3, modify_snapshot_attribute/4,
@@ -54,7 +54,7 @@
          %% Instances
          describe_instance_attribute/2, describe_instance_attribute/3,
          describe_instances/0, describe_instances/1, describe_instances/2,
-         describe_instances/3,
+         describe_instances/3, describe_instances/4,
          modify_instance_attribute/3, modify_instance_attribute/4,
          modify_instance_attribute/5,
          reboot_instances/1, reboot_instances/2,
@@ -64,7 +64,8 @@
          stop_instances/1, stop_instances/2, stop_instances/3,
          terminate_instances/1, terminate_instances/2,
          describe_instance_status/1, describe_instance_status/2,
-         describe_instance_status/3,
+         describe_instance_status/3, describe_instance_status/4,
+         describe_instance_status/5,
 
          %% Key Pairs
          create_key_pair/1, create_key_pair/2,
@@ -87,6 +88,8 @@
          describe_reserved_instances_offerings/0,
          describe_reserved_instances_offerings/1,
          describe_reserved_instances_offerings/2,
+         describe_reserved_instances_offerings/3,
+         describe_reserved_instances_offerings/4,
          describe_reserved_instances_offerings_all/0,
          describe_reserved_instances_offerings_all/1,
          describe_reserved_instances_offerings_all/2,
@@ -109,14 +112,15 @@
          create_spot_datafeed_subscription/3,
          delete_spot_datafeed_subscription/0, delete_spot_datafeed_subscription/1,
          describe_spot_datafeed_subscription/0, describe_spot_datafeed_subscription/1,
-         describe_spot_fleet_instances_all/1, describe_spot_fleet_instances_all/2,
          describe_spot_fleet_instances/1, describe_spot_fleet_instances/2,
          describe_spot_fleet_instances/3, describe_spot_fleet_instances/4,
+         describe_spot_fleet_instances_all/1, describe_spot_fleet_instances_all/2,
          describe_spot_instance_requests/0, describe_spot_instance_requests/1,
          describe_spot_instance_requests/2,
          describe_spot_price_history/0, describe_spot_price_history/1,
          describe_spot_price_history/2, describe_spot_price_history/3,
-         describe_spot_price_history/5,
+         describe_spot_price_history/4, describe_spot_price_history/5,
+         describe_spot_price_history/6, describe_spot_price_history/7,
          modify_spot_fleet_request/3, modify_spot_fleet_request/4,
          request_spot_instances/1, request_spot_instances/2,
          request_spot_fleet/1, request_spot_fleet/2,
@@ -162,7 +166,7 @@
 
          %% Tagging. Uses different version of AWS API
          create_tags/2, create_tags/3,
-         describe_tags/0, describe_tags/1, describe_tags/2,
+         describe_tags/0, describe_tags/1, describe_tags/2, describe_tags/3, describe_tags/4,
          delete_tags/2, delete_tags/3,
         
          %% VPN gateways
@@ -186,7 +190,29 @@
 -include("erlcloud_aws.hrl").
 -include("erlcloud_ec2.hrl").
 
+-define(INSTANCES_MR_MIN, 5).
+-define(INSTANCES_MR_MAX, 1000).
+-define(SPOT_INSTANCE_STATUS_MR_MIN, 5).
+-define(SPOT_INSTANCE_STATUS_MR_MAX, 1000).
+-define(SNAPSHOTS_MR_MIN, 5).
+-define(SNAPSHOTS_MR_MAX, 1000).
+-define(SPOT_PRICE_MR_MIN, 5).
+-define(SPOT_PRICE_MR_MAX, 1000).
+-define(TAGS_MR_MIN, 5).
+-define(TAGS_MR_MAX, 1000).
+-define(SPOT_FLEET_INSTANCES_MR_MIN, 1).
+-define(SPOT_FLEET_INSTANCES_MR_MAX, 1000).
+-define(RESERVED_INSTANCES_OFFERINGS_MR_MIN, 5).
+-define(RESERVED_INSTANCES_OFFERINGS_MR_MAX, 1000).
+
 -type filter_list() :: [{string(),[string()]}].
+-type ec2_param_list() :: [{string(),string()}].
+-type ec2_selector() :: proplist().
+-type ec2_token() :: string() | undefined.
+-type ec2_max_result() :: pos_integer() | undefined.
+-type ok_error(Ok) :: {ok, Ok} | {error, term()}.
+-type ok_error(Ok1, Ok2) :: {ok, Ok1, Ok2} | {error, term()}.
+
 
 -spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
@@ -1348,37 +1374,66 @@ attribute_xpath(_, AttributeName) ->
     "/DescribeInstanceAttributeResponse/" ++ AttributeName ++ "/value".
 
 
-%%
-%%
--spec describe_instances() -> {ok, [proplist()]} | {error, any()}.
-describe_instances() -> describe_instances([]).
+-type ec2_instances_ids() :: [string()].
 
--spec describe_instances([string()] | aws_config()) -> {ok, [proplist()]} | {error, any()}.
+%%
+%% Function for making calls to DescribeInstances action
+%% DescribeInstances Documentation: docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html
+%%
+-spec describe_instances() -> ok_error(proplist()).
+describe_instances() ->
+    describe_instances([],[],default_config()).
+
+-spec describe_instances(aws_config()) -> ok_error(proplist());
+                        (ec2_instances_ids()) -> ok_error(proplist()).
 describe_instances(Config)
-  when is_record(Config, aws_config) ->
+    when is_record(Config, aws_config) ->
     describe_instances([], Config);
 describe_instances(InstanceIDs) ->
     describe_instances(InstanceIDs, [], default_config()).
 
--spec describe_instances([string()], filter_list() | aws_config()) -> {ok, [proplist()]} | {error, any()}.
+-spec describe_instances(ec2_instances_ids(), filter_list()) -> ok_error(proplist());
+                        (ec2_instances_ids(), aws_config()) -> ok_error(proplist());
+                        (ec2_max_result(), ec2_token()) -> ok_error(proplist(), ec2_token()).
+describe_instances(InstanceIDs, Filter)
+    when is_list(InstanceIDs), is_list(Filter) ->
+    describe_instances(InstanceIDs, Filter, default_config());
 describe_instances(InstanceIDs, Config)
-  when is_record(Config, aws_config) ->
-    describe_instances(InstanceIDs, [], Config);
-describe_instances(InstanceIDs, Filter) ->
-    describe_instances(InstanceIDs, Filter, default_config()).
+    when is_list(InstanceIDs), is_record(Config, aws_config) ->
+    describe_instances(InstanceIDs, [], Config).
 
--spec describe_instances([string()], filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
+- spec describe_instances(ec2_instances_ids(), filter_list(), aws_config()) -> ok_error(proplist());
+                         (filter_list(), ec2_max_result(), ec2_token()) -> ok_error(proplist(), ec2_token()).
 describe_instances(InstanceIDs, Filter, Config)
-  when is_list(InstanceIDs) ->
+    when is_list(InstanceIDs), is_list(Filter), is_record(Config, aws_config) ->
     Params = erlcloud_aws:param_list(InstanceIDs, "InstanceId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeInstances", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
-            Reservations = xmerl_xpath:string("/DescribeInstancesResponse/reservationSet/item", Doc),
-            {ok, [extract_reservation(Item) || Item <- Reservations]};
-        {error, Reason} ->
-            {error, Reason}
-    end.
+            Results = extract_results("DescribeInstancesResponse", "reservationSet", fun extract_reservation/1, Doc),
+            {ok, Results};
+        {error, _} = E -> E
+    end;
+describe_instances(Filter, MaxResults, NextToken)
+    when is_list(Filter), is_integer(MaxResults), is_list(NextToken) orelse NextToken =:= undefined ->
+    describe_instances(Filter, MaxResults, NextToken, default_config()).
 
+-spec describe_instances(filter_list(), ec2_max_result(), ec2_token(), aws_config())
+    -> ok_error(proplist(), ec2_token()).
+describe_instances(Filter, MaxResults, NextToken, Config)
+    when is_list(Filter),
+         is_integer(MaxResults) andalso MaxResults >= ?INSTANCES_MR_MIN andalso MaxResults =< ?INSTANCES_MR_MAX,
+         is_list(NextToken) orelse NextToken =:= undefined,
+         is_record(Config, aws_config) ->
+    Params = [{"MaxResults", MaxResults}, {"NextToken", NextToken}] ++
+             list_to_ec2_filter(Filter),
+    case ec2_query(Config, "DescribeInstances", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            Reservations = extract_results("DescribeInstancesResponse", "reservationSet", fun extract_reservation/1, Doc),
+            NewNextToken = extract_next_token("DescribeInstancesResponse", Doc),
+            {ok, Reservations, NewNextToken};
+        {error,  _} = E -> E
+    end.
+    
 extract_reservation(Node) ->
     [{reservation_id, get_text("reservationId", Node)},
      {owner_id, get_text("ownerId", Node)},
@@ -1441,25 +1496,53 @@ extract_block_device_mapping_status(Node) ->
      {delete_on_termination, get_bool("ebs/deleteOnTermination", Node)}
     ].
 
-%%
-%%
--spec describe_instance_status(string()) -> proplist().
-describe_instance_status(InstanceID) ->
+-type instance_id() :: string().
+
+-spec describe_instance_status(instance_id()) -> ok_error(proplist()).
+describe_instance_status(InstanceID)
+    when is_list(InstanceID) ->
     describe_instance_status([{"InstanceId", InstanceID}], [], default_config()).
 
--spec describe_instance_status(proplist(), filter_list()) -> proplist().
-describe_instance_status(Params, Filter) ->
+-spec describe_instance_status(ec2_param_list(), filter_list()) -> ok_error(proplist());
+                              (ec2_max_result(), ec2_token()) -> ok_error(proplist(), ec2_token()).
+describe_instance_status(Params, Filter)
+    when is_list(Params), is_list(Filter) ->
     describe_instance_status(Params, Filter, default_config()).
 
--spec describe_instance_status(proplist(), filter_list(), aws_config()) -> proplist().
-describe_instance_status(Params, Filter, Config) ->
+-spec describe_instance_status(ec2_param_list(), filter_list(), aws_config()) -> ok_error(proplist()).
+describe_instance_status(Params, Filter, Config)
+    when is_list(Params), is_list(Filter), is_record(Config, aws_config) ->
     AllParams = Params ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeInstanceStatus", AllParams, ?NEW_API_VERSION) of
         {ok, Doc} ->
-            Path = "/DescribeInstanceStatusResponse/instanceStatusSet/item",
-            {ok, [ extract_instance_status(Item) || Item <- xmerl_xpath:string(Path, Doc) ]};
-        {error, _} = Error ->
-            Error
+            Statuses = extract_results("DescribeInstanceStatusResponse", "instanceStatusSet", fun extract_instance_status/1, Doc),
+            {ok, Statuses};
+        {error, _} = E -> E
+    end.
+
+-spec describe_instance_status(ec2_param_list(), filter_list(), ec2_max_result(), ec2_token())
+    -> ok_error(proplist(), ec2_token()).
+describe_instance_status(Params, Filter, MaxResults, NextToken)
+    when is_list(Params), is_list(Filter), is_integer(MaxResults), is_list(NextToken) orelse NextToken =:= undefined ->
+    describe_instance_status(Params, Filter, MaxResults, NextToken, default_config()).
+
+-spec describe_instance_status(ec2_param_list(), filter_list(), ec2_max_result(), ec2_token(), aws_config())
+    -> ok_error(proplist(), ec2_token()).
+describe_instance_status(Params, Filter, MaxResults, NextToken, Config)
+    when is_list(Params),is_list(Filter),
+         is_integer(MaxResults), MaxResults >= ?SPOT_INSTANCE_STATUS_MR_MIN, MaxResults =< ?SPOT_INSTANCE_STATUS_MR_MAX,
+         is_list(NextToken) orelse NextToken =:= undefined,
+         is_record(Config, aws_config) ->
+    AllParams = Params ++
+                [{"MaxResults", MaxResults}, {"NextToken", NextToken}] ++
+                list_to_ec2_filter(Filter),
+    case ec2_query(Config, "DescribeInstanceStatus", AllParams, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            Statuses = extract_results(
+                "DescribeInstanceStatusResponse", "instanceStatusSet", fun extract_instance_status/1, Doc),
+            NewNextToken = extract_next_token("DescribeInstanceStatusResponse", Doc),
+            {ok, Statuses, NewNextToken};
+        {error, _} = E -> E
     end.
 
 extract_instance_status(Node) ->
@@ -1713,41 +1796,74 @@ extract_reserved_instance(Node) ->
      {state, get_text("state", Node)}
     ].
 
-%%
-%%
--spec describe_reserved_instances_offerings() -> proplist().
-describe_reserved_instances_offerings() -> describe_reserved_instances_offerings([]).
+-spec describe_reserved_instances_offerings() -> ok_error(proplist()).
+describe_reserved_instances_offerings() ->
+    describe_reserved_instances_offerings([], default_config()).
 
--spec describe_reserved_instances_offerings([{atom(), string()}] | aws_config()) -> proplist().
+-spec describe_reserved_instances_offerings(ec2_selector()) -> ok_error(proplist());
+(aws_config()) -> ok_error(proplist()).
+describe_reserved_instances_offerings(Selector)
+    when is_list(Selector) ->
+    describe_reserved_instances_offerings(Selector, default_config());
 describe_reserved_instances_offerings(Config)
-  when is_record(Config, aws_config) ->
-    describe_reserved_instances_offerings([], Config);
-describe_reserved_instances_offerings(Selector) ->
-    describe_reserved_instances_offerings(Selector, default_config()).
+    when is_record(Config, aws_config) ->
+    describe_reserved_instances_offerings([], Config).
 
--spec describe_reserved_instances_offerings([{atom(), string()}], aws_config()) -> proplist().
+-spec describe_reserved_instances_offerings(ec2_selector(), aws_config())
+    -> ok_error(proplist()) | ok_error(proplist(), ec2_token()).
 describe_reserved_instances_offerings(Selector, Config)
-  when is_list(Selector) ->
-    InstanceTypes = [Value || {Key, Value} <- Selector, Key =:= instance_type],
-    AvailabilityZones = [Value || {Key, Value} <- Selector, Key =:= availability_zone],
-    Descs = [Value || {Key, Value} <- Selector, Key =:= product_description],
-    Token = [Value || {Key, Value} <- Selector, Key =:= token],
+    when is_list(Selector), is_record(Config, aws_config) ->
+    InstanceTypes = proplists:get_all_values(instance_type, Selector),
+    AvailabilityZones = proplists:get_all_values(availability_zone, Selector),
+    Descs = proplists:get_all_values(product_description, Selector),
+    Token = proplists:get_all_values(token, Selector),
     Params = erlcloud_aws:param_list(InstanceTypes, "InstanceType") ++
-        erlcloud_aws:param_list(AvailabilityZones, "AvailabilityZone") ++
-        erlcloud_aws:param_list(Descs, "ProductDescription") ++
-        erlcloud_aws:param_list(Token, "NextToken"),
-    case ec2_query(Config, "DescribeReservedInstancesOfferings", Params) of
+             erlcloud_aws:param_list(AvailabilityZones, "AvailabilityZone") ++
+             erlcloud_aws:param_list(Descs, "ProductDescription") ++
+             erlcloud_aws:param_list(Token, "NextToken"),
+    case ec2_query(Config, "DescribeReservedInstancesOfferings", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
-            Res = [extract_reserved_instances_offering(Node) ||
-                      Node <- xmerl_xpath:string("/DescribeReservedInstancesOfferingsResponse/reservedInstancesOfferingsSet/item", Doc)],
-            case erlcloud_util:next_token("/DescribeReservedInstancesOfferingsResponse/nextToken", Doc) of
-                ok ->
-                    {ok, Res};
-                {paged, NextToken} ->
-                    {ok, Res, NextToken}
+            Offerings = extract_results("DescribeReservedInstancesOfferingsResponse", "reservedInstancesOfferingsSet",
+                fun extract_reserved_instances_offering/1, Doc),
+            NewNextToken = extract_next_token("DescribeReservedInstancesOfferingsResponse", Doc),
+            case NewNextToken of
+                undefined ->
+                    {ok, Offerings};
+                NewNextToken ->
+                    {ok, Offerings, NewNextToken}
             end;
         {error, _} = Error ->
             Error
+    end.
+
+-spec describe_reserved_instances_offerings(ec2_selector(), ec2_max_result(), ec2_token())
+    -> ok_error(proplist(), ec2_token()).
+describe_reserved_instances_offerings(Selector, MaxResults, NextToken)
+    when is_list(Selector), is_integer(MaxResults), is_list(NextToken) orelse NextToken =:= undefined ->
+    describe_reserved_instances_offerings(Selector, MaxResults, NextToken, default_config()).
+
+-spec describe_reserved_instances_offerings(ec2_selector(), ec2_max_result(), ec2_token(), aws_config())
+    -> ok_error(proplist(), ec2_token()).
+describe_reserved_instances_offerings(Selector, MaxResults, NextToken, Config)
+    when is_list(Selector), is_integer(MaxResults),
+         MaxResults >= ?RESERVED_INSTANCES_OFFERINGS_MR_MIN,
+         MaxResults =< ?RESERVED_INSTANCES_OFFERINGS_MR_MAX,
+         is_list(NextToken) orelse NextToken =:= undefined,
+         is_record(Config, aws_config) ->
+    InstanceTypes = proplists:get_all_values(instance_type, Selector),
+    AvailabilityZones = proplists:get_all_values(availability_zone, Selector),
+    Descs = proplists:get_all_values(product_description, Selector),
+    Params = erlcloud_aws:param_list(InstanceTypes, "InstanceType") ++
+             erlcloud_aws:param_list(AvailabilityZones, "AvailabilityZone") ++
+             erlcloud_aws:param_list(Descs, "ProductDescription") ++
+             [{"MaxResults", MaxResults}, {"NextToken", NextToken}],
+    case ec2_query(Config, "DescribeReservedInstancesOfferings", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            Offerings = extract_results("DescribeReservedInstancesOfferingsResponse", "reservedInstancesOfferingsSet",
+                fun extract_reserved_instances_offering/1, Doc),
+            NewNextToken = extract_next_token("DescribeReservedInstancesOfferingsResponse", Doc),
+            {ok, Offerings, NewNextToken};
+        {error, _} = E -> E
     end.
 
 -spec describe_reserved_instances_offerings_all() -> proplist().
@@ -1768,10 +1884,10 @@ describe_reserved_instances_offerings_all(Selector, Config, Acc)
   when is_list(Selector) ->
     case describe_reserved_instances_offerings(Selector, Config) of
         {ok, Res} ->
-            {ok, lists:append(Acc, Res)};
-        {ok, Res, NextToken} ->
-            NewSelector = [{token, NextToken} | proplists:delete(token, Selector)],
-            describe_reserved_instances_offerings_all(NewSelector, Config, lists:append(Acc, Res));
+            {ok, Acc ++ Res};
+        {ok, Res, NewNextToken} ->
+            NewSelector = [{token, NewNextToken} | proplists:delete(token, Selector)],
+            describe_reserved_instances_offerings_all(NewSelector, Config, Acc ++ Res);
         {error, _} = Error ->
             Error
     end.
@@ -1941,44 +2057,84 @@ describe_snapshot_attribute(SnapshotID, create_volume_permission, Config)
             Error
     end.
 
-%%
-%%
--spec describe_snapshots() -> [proplist()].
-describe_snapshots() -> describe_snapshots([], "self").
+-type ec2_snapshot_ids() :: [string()].
+-type ec2_snapshot_owner() :: string().
+-type ec2_snapshot_restorable_by() :: string() | none.
 
--spec describe_snapshots([string()] | aws_config()) -> proplist().
+-spec describe_snapshots() -> ok_error(proplist()).
+describe_snapshots() -> describe_snapshots([], "self", none, default_config()).
+
+-spec describe_snapshots(ec2_snapshot_ids()) -> ok_error(proplist());
+                        (aws_config()) -> ok_error(proplist()).
+describe_snapshots(SnapshotIDs)
+    when is_list(SnapshotIDs) ->
+    describe_snapshots(SnapshotIDs, "self", none, default_config());
 describe_snapshots(Config)
-  when is_record(Config, aws_config) ->
-    describe_snapshots([], "self", Config);
-describe_snapshots(SnapshotIDs) ->
-    describe_snapshots(SnapshotIDs, none, none, default_config()).
+    when is_record(Config, aws_config) ->
+    describe_snapshots([], "self", none, Config).
 
--spec describe_snapshots([string()], aws_config() | string() | none) -> [proplist()].
+-spec describe_snapshots(ec2_snapshot_ids(), ec2_snapshot_owner()) -> ok_error(proplist());
+                        (ec2_snapshot_ids(), aws_config()) -> ok_error(proplist()).
+describe_snapshots(SnapshotIDs, Owner)
+    when is_list(SnapshotIDs), is_list(Owner) ->
+    describe_snapshots(SnapshotIDs, Owner, none, default_config());
 describe_snapshots(SnapshotIDs, Config)
-  when is_record(Config, aws_config) ->
-    describe_snapshots(SnapshotIDs, none, none, Config);
-describe_snapshots(SnapshotIDs, Owner) ->
-    describe_snapshots(SnapshotIDs, Owner, none, default_config()).
+    when is_list(SnapshotIDs), is_record(Config, aws_config) ->
+    describe_snapshots(SnapshotIDs, "self", none, Config).
 
--spec describe_snapshots([string()], string() | none, aws_config() | string() | none) -> [proplist()].
+-spec describe_snapshots(ec2_snapshot_ids(), ec2_snapshot_owner(), ec2_snapshot_restorable_by())
+                            -> ok_error(proplist());
+                        (ec2_snapshot_ids(), ec2_snapshot_owner(), aws_config())
+                            -> ok_error(proplist()).
+describe_snapshots(SnapshotIDs, Owner, RestorableBy)
+    when is_list(SnapshotIDs), is_list(Owner), is_list(RestorableBy) ->
+    describe_snapshots(SnapshotIDs, Owner, RestorableBy, default_config());
 describe_snapshots(SnapshotIDs, Owner, Config)
-  when is_record(Config, aws_config) ->
-    describe_snapshots(SnapshotIDs, Owner, none, Config);
-describe_snapshots(SnapshotIDs, Owner, RestorableBy) ->
-    describe_snapshots(SnapshotIDs, Owner, RestorableBy, default_config()).
+    when is_list(SnapshotIDs), is_list(Owner), is_record(Config, aws_config) ->
+    describe_snapshots(SnapshotIDs, Owner, none, Config).
 
--spec describe_snapshots([string()], string() | none, string() | none, aws_config()) -> [proplist()].
+-spec describe_snapshots(ec2_snapshot_ids(), ec2_snapshot_owner(), ec2_snapshot_restorable_by(), aws_config())
+                            -> ok_error(proplist());
+                        (ec2_snapshot_owner(), ec2_snapshot_restorable_by(), ec2_max_result(), ec2_token())
+                            -> ok_error(proplist(), ec2_token()).
 describe_snapshots(SnapshotIDs, Owner, RestorableBy, Config)
-  when is_list(SnapshotIDs),
-       is_list(Owner) orelse Owner =:= none,
-       is_list(RestorableBy) orelse RestorableBy =:= none ->
-    Params = [{"Owner", Owner}, {"RestorableBy", RestorableBy}|
-              erlcloud_aws:param_list(SnapshotIDs, "SnapshotId")],
-    case ec2_query(Config, "DescribeSnapshots", Params) of
+    when is_list(SnapshotIDs),
+         is_list(Owner) orelse Owner =:= none,
+         is_list(RestorableBy) orelse RestorableBy =:= none ->
+    Params = erlcloud_aws:param_list(SnapshotIDs, "SnapshotId") ++
+             [{"Owner", Owner}, {"RestorableBy", RestorableBy}],
+    case ec2_query(Config, "DescribeSnapshots", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
-            {ok, [extract_snapshot(Item) || Item <- xmerl_xpath:string("/DescribeSnapshotsResponse/snapshotSet/item", Doc)]};
-        {error, _} = Error ->
-            Error
+            Snapshots = extract_results("DescribeSnapshotsResponse", "snapshotSet", fun extract_snapshot/1, Doc),
+            {ok, Snapshots};
+        {error, _} = E -> E
+    end;
+describe_snapshots(Owner, RestorableBy, MaxResults, NextToken)
+    when is_list(Owner) orelse Owner =:= none,
+         is_list(RestorableBy) orelse RestorableBy =:= none,
+         is_integer(MaxResults),
+         is_list(NextToken) orelse NextToken =:= undefined ->
+    describe_snapshots(Owner, RestorableBy, MaxResults, NextToken, default_config()).
+
+-spec describe_snapshots(ec2_snapshot_owner(),
+                         ec2_snapshot_restorable_by(),
+                         ec2_max_result(),
+                         ec2_token(),
+                         aws_config()
+                        ) -> ok_error(proplist(), ec2_token()).
+describe_snapshots(Owner, RestorableBy, MaxResults, NextToken, Config)
+    when is_list(Owner) orelse Owner =:= none,
+         is_list(RestorableBy) orelse RestorableBy =:= none,
+         is_integer(MaxResults), MaxResults >= ?SNAPSHOTS_MR_MIN, MaxResults =< ?SNAPSHOTS_MR_MAX,
+         is_list(NextToken) orelse NextToken =:= undefined,
+         is_record(Config, aws_config) ->
+    Params = [{"Owner", Owner}, {"RestorableBy", RestorableBy}, {"MaxResults", MaxResults}, {"NextToken", NextToken}],
+    case ec2_query(Config, "DescribeSnapshots", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            Snapshots = extract_results("DescribeSnapshotsResponse", "snapshotSet", fun extract_snapshot/1, Doc),
+            NewNextToken = extract_next_token("DescribeSnapshotsResponse", Doc),
+            {ok, Snapshots, NewNextToken};
+        {error, _} = E -> E
     end.
 
 extract_snapshot(Node) ->
@@ -2069,55 +2225,104 @@ extract_launch_specification(Node) ->
      {subnet_id, get_text("subnetId", Node)}
     ].
 
-%%
-%%
--spec describe_spot_price_history() -> proplist().
+-type ec2_spot_price_time() :: string() | none.
+-type ec2_instance_types() :: [string()].
+-type ec2_product_description() :: string() | none.
+
+-spec describe_spot_price_history() -> ok_error(proplist()).
 describe_spot_price_history() ->
     describe_spot_price_history(none).
 
--spec describe_spot_price_history(datetime() | none | aws_config()) -> proplist().
+-spec describe_spot_price_history(aws_config()) -> ok_error(proplist());
+                                 (ec2_spot_price_time()) -> ok_error(proplist()).
 describe_spot_price_history(Config)
-  when is_record(Config, aws_config) ->
+    when is_record(Config, aws_config) ->
     describe_spot_price_history(none, Config);
 describe_spot_price_history(StartTime) ->
     describe_spot_price_history(StartTime, none).
 
--spec describe_spot_price_history(datetime() | none, datetime() | none | aws_config()) -> proplist().
+-spec describe_spot_price_history(ec2_spot_price_time(), aws_config()) -> ok_error(proplist());
+                                 (ec2_spot_price_time(), ec2_spot_price_time()) -> ok_error(proplist()).
 describe_spot_price_history(StartTime, Config)
-  when is_record(Config, aws_config) ->
+    when is_record(Config, aws_config) ->
     describe_spot_price_history(StartTime, none, Config);
 describe_spot_price_history(StartTime, EndTime) ->
     describe_spot_price_history(StartTime, EndTime, []).
 
--spec describe_spot_price_history(datetime() | none, datetime() | none, [string()] | aws_config()) -> proplist().
+
+-spec describe_spot_price_history(ec2_spot_price_time(), ec2_spot_price_time(), aws_config())
+                                     -> ok_error(proplist());
+                                 (ec2_spot_price_time(), ec2_spot_price_time(), ec2_instance_types())
+                                     -> ok_error(proplist()).
 describe_spot_price_history(StartTime, EndTime, Config)
-  when is_record(Config, aws_config) ->
+    when is_record(Config, aws_config) ->
     describe_spot_price_history(StartTime, EndTime, [], Config);
 describe_spot_price_history(StartTime, EndTime, InstanceTypes) ->
     describe_spot_price_history(StartTime, EndTime, InstanceTypes, none).
 
--spec describe_spot_price_history(datetime() | none, datetime() | none, [string()], string() | none | aws_config()) -> proplist().
+-spec describe_spot_price_history
+                         (ec2_spot_price_time(), ec2_spot_price_time(), ec2_instance_types(), aws_config())
+                             -> ok_error(proplist());
+                         (ec2_spot_price_time(), ec2_spot_price_time(), ec2_instance_types(), ec2_product_description())
+                             -> ok_error(proplist()).
 describe_spot_price_history(StartTime, EndTime, InstanceTypes, Config)
-  when is_record(Config, aws_config) ->
+    when is_record(Config, aws_config) ->
     describe_spot_price_history(StartTime, EndTime, InstanceTypes, none, Config);
 describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescription) ->
-    describe_spot_price_history(StartTime, EndTime, InstanceTypes,
-                                ProductDescription, default_config()).
+    describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescription, default_config()).
 
--spec describe_spot_price_history(datetime() | none, datetime() | none, [string()], string() | none, aws_config()) -> proplist().
-describe_spot_price_history(StartTime, EndTime, InstanceTypes,
-                            ProductDescription, Config)
-  when is_list(InstanceTypes),
-       is_list(ProductDescription) orelse ProductDescription =:= none ->
-    case ec2_query(Config, "DescribeSpotPriceHistory",
-                    [{"StartTime", StartTime}, {"EndTime", EndTime},
-                     {"ProductDescription", ProductDescription}|
-                     erlcloud_aws:param_list(InstanceTypes, "InstanceType")], ?NEW_API_VERSION) of
+-spec describe_spot_price_history
+    (ec2_spot_price_time(), ec2_spot_price_time(), ec2_instance_types(), ec2_product_description(), aws_config())
+        -> ok_error(proplist()).
+describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescription, Config)
+    when is_list(InstanceTypes),
+         is_list(ProductDescription) orelse ProductDescription =:= none,
+         is_record(Config, aws_config) ->
+    Params = [{"StartTime", StartTime}, {"EndTime", EndTime}, {"ProductDescription", ProductDescription}] ++
+             erlcloud_aws:param_list(InstanceTypes, "InstanceType"),
+    case ec2_query(Config, "DescribeSpotPriceHistory", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
-            {ok, [extract_spot_price_history(Item) ||
-                    Item <- xmerl_xpath:string("/DescribeSpotPriceHistoryResponse/spotPriceHistorySet/item", Doc)]};
-        {error, _} = Error ->
-            Error
+            History = extract_results(
+                "DescribeSpotPriceHistoryResponse", "spotPriceHistorySet", fun extract_spot_price_history/1, Doc),
+            {ok, History};
+        {error, _} = E -> E
+    end.
+
+-spec describe_spot_price_history(ec2_spot_price_time(),
+                                  ec2_spot_price_time(),
+                                  ec2_instance_types(),
+                                  ec2_product_description(),
+                                  ec2_max_result(),
+                                  ec2_token()
+                                 )  -> ok_error(proplist(), ec2_token()).
+describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescription, MaxResults, NextToken)
+    when is_integer(MaxResults), is_list(NextToken) orelse NextToken =:= undefined ->
+    describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescription, MaxResults, NextToken, default_config()).
+
+-spec describe_spot_price_history(ec2_spot_price_time(),
+                                  ec2_spot_price_time(),
+                                  ec2_instance_types(),
+                                  ec2_product_description(),
+                                  ec2_max_result(),
+                                  ec2_token(),
+                                  aws_config()
+                                 )  -> ok_error(proplist(), ec2_token()).
+describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescription, MaxResults, NextToken, Config)
+    when is_list(InstanceTypes),
+         is_list(ProductDescription) orelse ProductDescription =:= none,
+         is_integer(MaxResults), MaxResults >= ?SPOT_PRICE_MR_MIN, MaxResults =< ?SPOT_PRICE_MR_MAX,
+         is_list(NextToken) orelse NextToken =:= undefined,
+         is_record(Config, aws_config) ->
+    Params = [{"StartTime", StartTime}, {"EndTime", EndTime}, {"ProductDescription", ProductDescription}] ++
+             erlcloud_aws:param_list(InstanceTypes, "InstanceType") ++
+             [{"MaxResults", MaxResults}, {"NextToken", NextToken}],
+    case ec2_query(Config, "DescribeSpotPriceHistory", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            History = extract_results("DescribeSpotPriceHistoryResponse", "spotPriceHistorySet",
+                fun extract_spot_price_history/1, Doc),
+            NewNextToken = extract_next_token("DescribeSpotPriceHistoryResponse", Doc),
+            {ok, History, NewNextToken};
+        {error, _} = E -> E
     end.
 
 extract_spot_price_history(Node) ->
@@ -2614,33 +2819,42 @@ describe_spot_fleet_instances_all(SpotFleetRequestId, Config) ->
     end,
     ListAll(ListAll, undefined, []).
 
--type describe_spot_fleet_instances_return() :: {ok, [{instances, [proplist()]} | {next_token, string()}]} | {error, term()}.
+-type describe_spot_fleet_instances_return() ::
+    {ok, [{instances, [proplist()]} | {next_token, string()}]} | {error, term()}.
+-type spot_fleet_instance_id() :: string().
 
--spec describe_spot_fleet_instances(string()) -> describe_spot_fleet_instances_return().
+-spec describe_spot_fleet_instances(spot_fleet_instance_id()) -> describe_spot_fleet_instances_return().
 describe_spot_fleet_instances(SpotFleetRequestId) ->
     describe_spot_fleet_instances(SpotFleetRequestId, undefined, undefined, default_config()).
 
--spec describe_spot_fleet_instances(string(), string()) -> describe_spot_fleet_instances_return().
-describe_spot_fleet_instances(SpotFleetRequestId, NextToken) ->
-    describe_spot_fleet_instances(SpotFleetRequestId, NextToken, undefined, default_config()).
+-spec describe_spot_fleet_instances(spot_fleet_instance_id(), ec2_token()) -> describe_spot_fleet_instances_return().
+describe_spot_fleet_instances(SpotFleetRequestId, NextToken)
+    when is_list(NextToken) orelse NextToken =:= undefined ->
+    describe_spot_fleet_instances(SpotFleetRequestId, NextToken, undefined).
 
--spec describe_spot_fleet_instances(string(), string(), pos_integer()) -> describe_spot_fleet_instances_return().
-describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults) ->
+-spec describe_spot_fleet_instances(spot_fleet_instance_id(), ec2_token(), ec2_max_result())
+    -> describe_spot_fleet_instances_return().
+describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults)
+    when is_list(NextToken),
+         is_list(NextToken) orelse NextToken =:= undefined,
+         is_integer(MaxResults) orelse MaxResults =:= undefined ->
     describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults, default_config()).
 
--spec describe_spot_fleet_instances(string(), string(), pos_integer(), aws_config()) -> describe_spot_fleet_instances_return().
-describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults, Config) ->
-    Params = [
-        {"SpotFleetRequestId", SpotFleetRequestId},
-        {"NextToken", NextToken},
-        {"MaxResults", MaxResults}
-    ],
+-spec describe_spot_fleet_instances(spot_fleet_instance_id(), ec2_token(), ec2_max_result(), aws_config())
+    -> describe_spot_fleet_instances_return().
+describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults, Config)
+    when is_list(NextToken) orelse NextToken =:= undefined,
+         is_integer(MaxResults) andalso
+         MaxResults >= ?SPOT_FLEET_INSTANCES_MR_MIN andalso MaxResults =< ?SPOT_FLEET_INSTANCES_MR_MAX orelse
+         MaxResults =:= undefined,
+         is_record(Config, aws_config) ->
+    Params = [{"SpotFleetRequestId", SpotFleetRequestId}, {"MaxResults", MaxResults}, {"NextToken", NextToken}],
     case ec2_query(Config, "DescribeSpotFleetInstances", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
-            Instances = [extract_describe_spot_fleet_request(Item) ||
-                Item <- xmerl_xpath:string("/DescribeSpotFleetInstancesResponse/activeInstanceSet/item", Doc)],
-            NT = get_text("/DescribeSpotFleetInstancesResponse/nextToken", Doc, undefined),
-            {ok, [{instances, Instances}, {next_token, NT}]};
+            Instances = extract_results("DescribeSpotFleetInstancesResponse", "activeInstanceSet",
+                fun extract_describe_spot_fleet_request/1, Doc),
+            NewNextToken = extract_next_token("DescribeSpotFleetInstances", Doc),
+            {ok, [{instances, Instances}, {next_token, NewNextToken}]};
         {error, _} = E -> E
     end.
 
@@ -2938,64 +3152,72 @@ delete_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
             Error
     end.
 
-%%------------------------------------------------------------------------------
-%% @doc
-%% @see describe_tags/2.
-%% @end
-%%------------------------------------------------------------------------------
-%% describe_tags follows new API patterns. It returning {ok, _} or {error, _}
-%% and by using records instead of property lists.
--type filter_name() :: key | resource_id | resource_type | value.
--type filter() :: {filter_name(), [string()]}.
--spec describe_tags() -> {ok, [#ec2_tag{}]} | {error, tuple()}.
+-type tags_filter_name() :: key | resource_id | resource_type | value.
+-type tags_filter() :: {tags_filter_name(), [string()]}.
+-type tags_filter_list() :: [tags_filter()].
+
+-spec describe_tags() -> ok_error(proplist()).
 describe_tags() ->
-    describe_tags([], default_config()).
+    describe_tags([]).
 
-%%------------------------------------------------------------------------------
-%% @doc
-%% @see describe_tags/2.
-%% @end
-%%------------------------------------------------------------------------------
--spec describe_tags([filter()] | aws_config()) -> {ok, [#ec2_tag{}]} | {error, tuple()}.
-describe_tags(#aws_config{} = Config) ->
-    describe_tags([], Config);
-describe_tags(Filters) ->
-    describe_tags(Filters, default_config()).
+-spec describe_tags(tags_filter_list()) -> ok_error(proplist());
+(aws_config()) -> ok_error(proplist()).
+describe_tags(Filters)
+    when is_list(Filters) ->
+    describe_tags(Filters, default_config());
+describe_tags(Config)
+    when is_record(Config, aws_config) ->
+    describe_tags([], Config)     .
 
-%%------------------------------------------------------------------------------
-%% @doc EC2 API:
-%% [http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-query-DescribeTags.html]
-%%
-%% ===Example===
-%% Get "Tag1" and "Tag2" for a specific instance
-%%
-%% <code>
-%% {ok, Tags} = erlcloud_ec2:describe_tags([{resource_id, [InstanceId]}, {key, ["Tag1", "Tag2"]}], Config), <br/>
-%% Tag1 = lists:keyfind("Tag1", #ec2_tag.key, Tags), <br/>
-%% Tag1Value = Tag1#ec2_tag.value,
-%% </code>
-%% @end
-%%------------------------------------------------------------------------------
--spec describe_tags([filter()], aws_config()) -> {ok, [#ec2_tag{}]} | {error, tuple()}.
-describe_tags(Filters, Config) ->
+-spec describe_tags(tags_filter_list(), aws_config()) -> ok_error(proplist()).
+describe_tags(Filters, Config)
+    when is_list(Filters), is_record(Config, aws_config) ->
     {Params, _} =
         lists:foldl(
-          fun({Name, Values}, {Acc, Index}) ->
-                  I = integer_to_list(Index),
-                  Key = "Filter."++I++".Name",
-                  Prefix = "Filter."++I++".Value.",
-                  {value_list_params(Values, Prefix) ++ [{Key, filter_name(Name)} | Acc], Index + 1}
-          end, {[], 1}, Filters),
-
-    case ec2_query(Config, "DescribeTags", Params, "2012-12-01") of
+            fun({Name, Values}, {Acc, Index}) ->
+                I = integer_to_list(Index),
+                Key = "Filter."++I++".Name",
+                Prefix = "Filter."++I++".Value.",
+                {value_list_params(Values, Prefix) ++ [{Key, filter_name(Name)} | Acc], Index + 1}
+            end, {[], 1}, Filters),
+    case ec2_query(Config, "DescribeTags", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
-            Tags = xmerl_xpath:string("/DescribeTagsResponse/tagSet/item", Doc),
-            {ok, [extract_tag(Tag) || Tag <- Tags]};
-        {error, Reason} ->
-            {error, Reason}
+            Tags = extract_results("DescribeTagsResponse", "tagSet", fun extract_tag/1, Doc),
+            {ok, Tags};
+        {error, _} = E -> E
     end.
 
--spec filter_name(filter_name()) -> string().
+-spec describe_tags(tags_filter_list(), ec2_max_result(), ec2_token()) -> ok_error(proplist(), ec2_token()).
+describe_tags(Filters, MaxResults, NextToken)
+    when is_list(Filters), is_integer(MaxResults), is_list(NextToken)  orelse NextToken =:= undefined ->
+    describe_tags(Filters, MaxResults, NextToken, default_config()).
+
+-spec describe_tags(tags_filter_list(), ec2_max_result(), ec2_token(), aws_config())
+    -> ok_error(proplist(), ec2_token()).
+describe_tags(Filters, MaxResults, NextToken, Config)
+    when is_list(Filters),
+    is_integer(MaxResults), MaxResults >= ?TAGS_MR_MIN, MaxResults =< ?TAGS_MR_MAX,
+    is_list(NextToken) orelse NextToken =:= undefined,
+    is_record(Config, aws_config) ->
+    {FilterParams, _} =
+        lists:foldl(
+            fun({Name, Values}, {Acc, Index}) ->
+                I = integer_to_list(Index),
+                Key = "Filter."++I++".Name",
+                Prefix = "Filter."++I++".Value.",
+                {value_list_params(Values, Prefix) ++ [{Key, filter_name(Name)} | Acc], Index + 1}
+            end, {[], 1}, Filters),
+    Params = [{"MaxResults", MaxResults}, {"NextToken", NextToken}] ++
+        FilterParams,
+    case ec2_query(Config, "DescribeTags", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            Tags = extract_results("DescribeTagsResponse", "tagSet", fun extract_tag/1, Doc),
+            NewNextToken = extract_next_token("DescribeTagsResponse", Doc),
+            {ok, Tags, NewNextToken};
+        {error, _} = E -> E
+    end.
+
+-spec filter_name(tags_filter_name()) -> string().
 filter_name(key) -> "key";
 filter_name(resource_id) -> "resource-id";
 filter_name(resource_type) -> "resource-type";
@@ -3285,3 +3507,15 @@ extract_cgw(Node) ->
        [extract_tag_item(Item)
         || Item <- xmerl_xpath:string("tagSet/item", Node)]}
  ].
+
+-spec extract_results(string(), string(), function(), any()) -> proplist().
+extract_results(ResponseName, SetName, ExtractFunction, Doc)
+    when is_list(ResponseName), is_list(SetName), is_function(ExtractFunction), is_record(Doc, xmlElement)->
+    Results = xmerl_xpath:string("/" ++ ResponseName ++ "/" ++ SetName ++ "/item", Doc),
+    ExtractedResults = [apply(ExtractFunction, [Item]) || Item <- Results],
+    ExtractedResults.
+
+-spec extract_next_token(string(), tuple()) -> ec2_token().
+extract_next_token(ResponseName, Doc)
+    when is_list(ResponseName), is_record(Doc, xmlElement) ->
+    erlcloud_xml:get_text("/" ++ ResponseName ++ "/nextToken", Doc, undefined).
