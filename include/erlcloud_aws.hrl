@@ -92,7 +92,9 @@
           retry=fun erlcloud_retry:no_retry/1::erlcloud_retry:retry_fun(),
           %% Currently matches DynamoDB retry
           %% It's likely this is too many retries for other services
-          retry_num=10::non_neg_integer()
+          retry_num=10::non_neg_integer(),
+          assume_role = [] :: proplists:proplist() %% If a role to be assumed is given
+          %% then we will try to assume the role during the update_config
          }).
 -type(aws_config() :: #aws_config{}).
 
