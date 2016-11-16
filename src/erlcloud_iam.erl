@@ -15,6 +15,7 @@
     get_user/0, get_user/1, get_user/2, 
     list_access_keys/0, list_access_keys/1, list_access_keys/2,
     list_access_keys_all/0, list_access_keys_all/1, list_access_keys_all/2,
+    get_access_key_last_used/1, get_access_key_last_used/2,
     list_users/0, list_users/1, list_users/2,
     list_users_all/0, list_users_all/1, list_users_all/2,
     list_groups_for_user/1, list_groups_for_user/2,
@@ -101,7 +102,7 @@ get_user("", Config) ->
     get_user_impl([], Config);
 get_user(UserName, Config) ->
     get_user_impl([{"UserName", UserName}], Config).
-    
+
 get_user_impl(UserNameParam, #aws_config{} = Config) ->
     ItemPath = "/GetUserResponse/GetUserResult/User",
     case iam_query(Config, "GetUser", UserNameParam, ItemPath, data_type("User")) of
@@ -146,6 +147,23 @@ list_access_keys_all(UserName, #aws_config{} = Config) when is_list(UserName) ->
              end,
     ItemPath = "/ListAccessKeysResponse/ListAccessKeysResult/AccessKeyMetadata/member",
     iam_query_all(Config, "ListAccessKeys", Params, ItemPath, data_type("AccessKeyMetadata")).
+
+-spec get_access_key_last_used(string()) -> {ok, proplist()} | {error, any()}.
+get_access_key_last_used(KeyId) when is_list(KeyId) ->
+    get_access_key_last_used(KeyId, default_config()).
+
+-spec get_access_key_last_used(string(), aws_config()) -> {ok, proplist()} | {error, any()}.
+get_access_key_last_used(KeyId, #aws_config{} = Config) when is_list(KeyId) ->
+    Params = [{"AccessKeyId", KeyId}],
+    ItemPath = "/GetAccessKeyLastUsedResponse/GetAccessKeyLastUsedResult",
+    Result = iam_query(Config, "GetAccessKeyLastUsed", Params, ItemPath,
+                       data_type("GetAccessKeyLastUsedResult")),
+    singular_result(Result).
+
+singular_result({ok, [Res]}) ->
+    {ok, Res};
+singular_result({error, _} = Error) ->
+    Error.
 
 -spec list_users() -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_users() -> list_users("/").
@@ -932,7 +950,12 @@ data_type("EvaluationResult") ->
      {"EvalDecision", eval_decision, "String"},
      {"EvalActionName", eval_action_name, "String"}];
 data_type("MatchedStatement") ->
-    [{"SourcePolicyId", source_policy_id, "String"}].
+    [{"SourcePolicyId", source_policy_id, "String"}];
+data_type("GetAccessKeyLastUsedResult") ->
+    [{"UserName", user_name, "String"},
+     {"AccessKeyLastUsed/Region", access_key_last_used_region, "String"},
+     {"AccessKeyLastUsed/ServiceName", access_key_last_used_service_name, "String"},
+     {"AccessKeyLastUsed/LastUsedDate", access_key_last_used_date, "DateTime"}].
 
 data_fun("String") -> {erlcloud_xml, get_text};
 data_fun("DateTime") -> {erlcloud_xml, get_time};
