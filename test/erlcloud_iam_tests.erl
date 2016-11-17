@@ -47,6 +47,8 @@ iam_api_test_() ->
       fun list_access_keys_input_tests/1,
       fun list_access_keys_output_tests/1,
       fun list_access_keys_all_output_tests/1,
+      fun get_access_key_last_used_input_tests/0,
+      fun get_access_key_last_used_output_tests/0,
       fun list_users_input_tests/1,
       fun list_users_output_tests/1,
       fun list_users_all_output_tests/1,
@@ -784,6 +786,46 @@ list_access_keys_all_output_tests(_) ->
                       ]}})
             ],
     output_tests_seq(?_f(erlcloud_iam:list_access_keys_all("test")), Tests). 
+
+get_access_key_last_used_output() ->
+"<GetAccessKeyLastUsedResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+  <GetAccessKeyLastUsedResult>
+    <AccessKeyLastUsed>
+      <Region>us-west-2</Region>
+      <LastUsedDate>2015-03-13T10:45:00Z</LastUsedDate>
+      <ServiceName>s3</ServiceName>
+    </AccessKeyLastUsed>
+    <UserName>bob</UserName>
+  </GetAccessKeyLastUsedResult>
+  <ResponseMetadata>
+    <RequestId>510a6abf-d022-11e4-abe8-9b0ebEXAMPLE</RequestId>
+  </ResponseMetadata>
+</GetAccessKeyLastUsedResponse>".
+
+get_access_key_last_used_input_tests() ->
+    Tests =
+        [?_iam_test(
+            {"GetAccessKeyLastUsed input",
+             ?_f(erlcloud_iam:get_access_key_last_used("KEYID")),
+             [
+              {"Action", "GetAccessKeyLastUsed"},
+              {"AccessKeyId", "KEYID"}
+              ]})
+        ],
+    Response = get_access_key_last_used_output(),
+    input_tests(Response, Tests).
+
+get_access_key_last_used_output_tests() ->
+    Tests = [?_iam_test(
+                {"This lists all access keys for a user",
+                 get_access_key_last_used_output(),
+                 {ok,  [{user_name, "bob"},
+                        {access_key_last_used_region, "us-west-2"},
+                        {access_key_last_used_date, {{2015,3,13},{10,45,0}}},
+                        {access_key_last_used_service_name, "s3"}]
+                 }})
+            ],
+    output_tests(?_f(erlcloud_iam:get_access_key_last_used_output("KEYID")), Tests).
 
 %% ListUsers test based on the API examples:
 %% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListUsers.html
