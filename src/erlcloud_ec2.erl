@@ -212,6 +212,20 @@
 -type ec2_max_result() :: pos_integer() | undefined.
 -type ok_error(Ok) :: {ok, Ok} | {error, term()}.
 -type ok_error(Ok1, Ok2) :: {ok, Ok1, Ok2} | {error, term()}.
+-type instance_id() :: string().
+-type ec2_instances_ids() :: [instance_id()].
+-type ec2_snapshot_ids() :: [string()].
+-type ec2_snapshot_owner() :: string().
+-type ec2_snapshot_restorable_by() :: string() | none.
+-type ec2_spot_price_time() :: string() | none.
+-type ec2_instance_types() :: [string()].
+-type ec2_product_description() :: string() | none.
+-type describe_spot_fleet_instances_return() ::
+    {ok, [{instances, [proplist()]} | {next_token, string()}]} | {error, term()}.
+-type spot_fleet_instance_id() :: string().
+-type tags_filter_name() :: key | resource_id | resource_type | value.
+-type tags_filter() :: {tags_filter_name(), [string()]}.
+-type tags_filter_list() :: [tags_filter()].
 
 
 -spec new(string(), string()) -> aws_config().
@@ -1374,8 +1388,6 @@ attribute_xpath(_, AttributeName) ->
     "/DescribeInstanceAttributeResponse/" ++ AttributeName ++ "/value".
 
 
--type ec2_instances_ids() :: [string()].
-
 %%
 %% Function for making calls to DescribeInstances action
 %% DescribeInstances Documentation: docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html
@@ -1402,7 +1414,7 @@ describe_instances(InstanceIDs, Config)
     when is_list(InstanceIDs), is_record(Config, aws_config) ->
     describe_instances(InstanceIDs, [], Config).
 
-- spec describe_instances(ec2_instances_ids(), filter_list(), aws_config()) -> ok_error(proplist());
+-spec describe_instances(ec2_instances_ids(), filter_list(), aws_config()) -> ok_error(proplist());
                          (filter_list(), ec2_max_result(), ec2_token()) -> ok_error(proplist(), ec2_token()).
 describe_instances(InstanceIDs, Filter, Config)
     when is_list(InstanceIDs), is_list(Filter), is_record(Config, aws_config) ->
@@ -1496,7 +1508,6 @@ extract_block_device_mapping_status(Node) ->
      {delete_on_termination, get_bool("ebs/deleteOnTermination", Node)}
     ].
 
--type instance_id() :: string().
 
 -spec describe_instance_status(instance_id()) -> ok_error(proplist()).
 describe_instance_status(InstanceID)
@@ -2057,9 +2068,6 @@ describe_snapshot_attribute(SnapshotID, create_volume_permission, Config)
             Error
     end.
 
--type ec2_snapshot_ids() :: [string()].
--type ec2_snapshot_owner() :: string().
--type ec2_snapshot_restorable_by() :: string() | none.
 
 -spec describe_snapshots() -> ok_error(proplist()).
 describe_snapshots() -> describe_snapshots([], "self", none, default_config()).
@@ -2225,9 +2233,6 @@ extract_launch_specification(Node) ->
      {subnet_id, get_text("subnetId", Node)}
     ].
 
--type ec2_spot_price_time() :: string() | none.
--type ec2_instance_types() :: [string()].
--type ec2_product_description() :: string() | none.
 
 -spec describe_spot_price_history() -> ok_error(proplist()).
 describe_spot_price_history() ->
@@ -2819,9 +2824,6 @@ describe_spot_fleet_instances_all(SpotFleetRequestId, Config) ->
     end,
     ListAll(ListAll, undefined, []).
 
--type describe_spot_fleet_instances_return() ::
-    {ok, [{instances, [proplist()]} | {next_token, string()}]} | {error, term()}.
--type spot_fleet_instance_id() :: string().
 
 -spec describe_spot_fleet_instances(spot_fleet_instance_id()) -> describe_spot_fleet_instances_return().
 describe_spot_fleet_instances(SpotFleetRequestId) ->
@@ -3152,9 +3154,6 @@ delete_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
             Error
     end.
 
--type tags_filter_name() :: key | resource_id | resource_type | value.
--type tags_filter() :: {tags_filter_name(), [string()]}.
--type tags_filter_list() :: [tags_filter()].
 
 -spec describe_tags() -> ok_error(proplist()).
 describe_tags() ->

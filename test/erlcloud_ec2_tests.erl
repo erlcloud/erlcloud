@@ -18,9 +18,16 @@
 %% The _f macro is a terse way to wrap code in a fun. Similar to _test but doesn't annotate with a line number
 -define(_f(F), fun() -> F end).
 
--ifdef(TEST).
--compile(export_all).
--endif.
+%% helper funs
+-export([
+    generate_one_instance/1, generate_instances_response/3,
+    generate_one_snapshot/1, generate_snapshots_response/3,
+    generate_one_tag/1, generate_tags_response/3,
+    generate_one_spot_price/1, generate_spot_price_history_response/3,
+    generate_one_instance_status/1, generate_instance_status_response/3,
+    generate_one_reserved_instance_offering/1, generate_reserved_instances_offerings_response/3,
+    test_pagination/3
+]).
 
 %%%===================================================================
 %%% Test entry points
