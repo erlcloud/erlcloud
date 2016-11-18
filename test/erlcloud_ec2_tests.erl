@@ -18,6 +18,17 @@
 %% The _f macro is a terse way to wrap code in a fun. Similar to _test but doesn't annotate with a line number
 -define(_f(F), fun() -> F end).
 
+%% helper funs
+-export([
+    generate_one_instance/1, generate_instances_response/3,
+    generate_one_snapshot/1, generate_snapshots_response/3,
+    generate_one_tag/1, generate_tags_response/3,
+    generate_one_spot_price/1, generate_spot_price_history_response/3,
+    generate_one_instance_status/1, generate_instance_status_response/3,
+    generate_one_reserved_instance_offering/1, generate_reserved_instances_offerings_response/3,
+    test_pagination/3
+]).
+
 %%%===================================================================
 %%% Test entry points
 %%%===================================================================
@@ -723,3 +734,314 @@ describe_images_tests(_) ->
 
   %% Remaining AWS API examples return subsets of the same data
   output_tests(?_f(erlcloud_ec2:describe_images()), Tests).
+
+describe_instances_test() ->
+    Tests = [{30,6},{22,5},{3,7},{10,10},{0,10},{0,5},{0,1000}],
+    test_pagination(Tests, generate_instances_response, describe_instances, [], [[]])
+.
+
+describe_instances_boundaries_test_() ->
+    [
+        ?_assertException(error, function_clause, erlcloud_ec2:describe_instances([], 4, undefined)),
+        ?_assertException(error, function_clause, erlcloud_ec2:describe_instances([], 1001, undefined))
+    ].
+
+describe_snapshots_test() ->
+    Tests = [{30,6},{22,5},{3,7},{10,10},{0,10},{0,5},{0,1000}],
+    test_pagination(Tests, generate_snapshots_response, describe_snapshots, [], ["self", []])
+.
+
+describe_snapshots_boundaries_test_() ->
+    [
+        ?_assertException(error, function_clause, erlcloud_ec2:describe_snapshots("self", [], 4, undefined)),
+        ?_assertException(error, function_clause, erlcloud_ec2:describe_snapshots("self", [], 1001, undefined))
+    ].
+
+describe_tags_test() ->
+    Tests = [{30,6},{22,5},{3,7},{10,10},{0,10},{0,5},{0,1000}],
+    test_pagination(Tests, generate_tags_response, describe_tags, [], [[]])
+.
+
+describe_tags_boundaries_test_() ->
+    [
+        ?_assertException(error, function_clause, erlcloud_ec2:describe_tags([], 4, undefined)),
+        ?_assertException(error, function_clause, erlcloud_ec2:describe_tags([], 1001, undefined))
+    ].
+describe_spot_price_history_test() ->
+    Tests = [{30,6},{22,5},{3,7},{10,10},{0,10},{0,5},{0,1000}],
+    test_pagination(Tests, generate_spot_price_history_response, describe_spot_price_history, [], ["", "", [], ""])
+.
+
+describe_spot_price_history_boundaries_test_() ->
+    [
+        ?_assertException(error, function_clause, erlcloud_ec2:describe_spot_price_history(["", "", [], ""], 4, undefined)),
+        ?_assertException(error, function_clause, erlcloud_ec2:describe_spot_price_history(["", "", [], ""], 1001, undefined))
+    ].
+
+describe_instance_status_test() ->
+    Tests = [{30,6},{22,5},{3,7},{10,10},{0,10},{0,5},{0,1000}],
+    test_pagination(Tests, generate_instance_status_response, describe_instance_status, [[], []], [[], []])
+.
+
+describe_instance_status_boundaries_test_() ->
+    [
+        ?_assertException(error, function_clause, erlcloud_ec2:describe_instance_status([], [], 4, undefined)),
+        ?_assertException(error, function_clause, erlcloud_ec2:describe_instance_status([], [], 1001, undefined))
+    ].
+
+describe_reserved_instances_offerings_test() ->
+    Tests = [{30,6},{22,5},{3,7},{10,10},{0,10},{0,5},{0,1000}],
+    test_pagination(Tests, generate_reserved_instances_offerings_response, describe_reserved_instances_offerings, [], [[]])
+.
+
+describe_reserved_instances_offerings_boundaries_test_() ->
+    [
+        ?_assertException(error, function_clause, erlcloud_ec2:describe_reserved_instances_offerings([], 4, undefined)),
+        ?_assertException(error, function_clause, erlcloud_ec2:describe_reserved_instances_offerings([], 1001, undefined))
+    ].
+
+generate_one_instance(N) ->
+    "<item>
+        <reservationId>r-69</reservationId>
+        <ownerId>12345</ownerId>
+        <groupSet/>
+        <instancesSet>
+            <item>
+                <instanceId>i-" ++ integer_to_list(N) ++ "f</instanceId>
+                <imageId>ami-123</imageId>
+                <instanceState>
+                    <code>48</code>
+                    <name>terminated</name>
+                </instanceState>
+                <privateDnsName/>
+                <dnsName/>
+                <reason>Because</reason>
+                <keyName>Key</keyName>
+                <amiLaunchIndex>123</amiLaunchIndex>
+                <productCodes/>
+                <instanceType>t2.small</instanceType>
+                <launchTime>2016-09-26T10:35:00.000Z</launchTime>
+                <placement>
+                    <availabilityZone>us-east-1a</availabilityZone>
+                    <groupName/>
+                    <tenancy>default</tenancy>
+                </placement>
+                <monitoring>
+                    <state>disabled</state>
+                </monitoring>
+                <groupSet/>
+                <stateReason>
+                    <code>code</code>
+                    <message>message</message>
+                </stateReason>
+                <architecture>x86_64</architecture>
+                <rootDeviceType>ebs</rootDeviceType>
+                <rootDeviceName>/dev/null</rootDeviceName>
+                <blockDeviceMapping/>
+                <virtualizationType>hvm</virtualizationType>
+                <clientToken>123-123-12345</clientToken>
+                <tagSet/>
+                <hypervisor>xen</hypervisor>
+                <networkInterfaceSet/>
+                <ebsOptimized>false</ebsOptimized>
+            </item>
+        </instancesSet>
+    </item>".
+
+generate_instances_response(Start, End, NT) ->
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+     <DescribeInstancesResponse
+         xmlns=\"http://ec2.amazonaws.com/doc/2014-10-01/\">
+         <requestId>abcdef-12345</requestId>
+         <reservationSet>" ++
+        generate_items(generate_one_instance, Start, End) ++
+        "</reservationSet>" ++
+        generate_next_token_xml(NT) ++
+        "</DescribeInstancesResponse>".
+
+generate_one_snapshot(N) ->
+    "<item>
+        <snapshotId>snap-" ++ integer_to_list(N) ++ "</snapshotId>
+        <volumeId>vol-123</volumeId>
+        <status>completed</status>
+        <startTime>2016-10-04T17:02:55.000Z</startTime>
+        <progress>100%</progress>
+        <ownerId>12345</ownerId>
+        <volumeSize>123</volumeSize>
+        <description>bla</description>
+        <encrypted>false</encrypted>
+    </item>".
+
+generate_snapshots_response(Start, End, NT) ->
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+     <DescribeSnapshotsResponse
+         xmlns=\"http://ec2.amazonaws.com/doc/2014-10-01/\">
+         <requestId>12345</requestId>
+         <snapshotSet>" ++
+        generate_items(generate_one_snapshot, Start, End) ++
+        "</snapshotSet>" ++
+        generate_next_token_xml(NT) ++
+        "</DescribeSnapshotsResponse>".
+
+generate_one_tag(N) ->
+    "<item>
+        <resourceId>ami-" ++ integer_to_list(N) ++ "</resourceId>
+        <resourceType>type</resourceType>
+        <key>key</key>
+        <value>value</value>
+     </item>".
+
+generate_tags_response(Start, End, NT) ->
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+     <DescribeTagsResponse
+         xmlns=\"http://ec2.amazonaws.com/doc/2014-10-01/\">
+         <requestId>e64e4387-5542-4765-bd0b-12b7e7ba902d</requestId>
+         <tagSet>" ++
+        generate_items(generate_one_tag, Start, End) ++
+        "</tagSet>" ++
+        generate_next_token_xml(NT) ++
+        "</DescribeTagsResponse>".
+
+generate_one_spot_price(N) ->
+    "<item>
+        <instanceType>m8.xlarge</instanceType>
+        <productDescription>Product</productDescription>
+        <spotPrice>0." ++ integer_to_list(N) ++"</spotPrice>
+        <timestamp>2016-10-12T16:22:33.000Z</timestamp>
+        <availabilityZone>us-west-1d</availabilityZone>
+     </item>".
+
+generate_spot_price_history_response(Start, End, NT) ->
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+     <DescribeSpotPriceHistoryResponse
+         xmlns=\"http://ec2.amazonaws.com/doc/2014-10-01/\">
+         <requestId>12345678 </requestId>
+         <spotPriceHistorySet>" ++
+        generate_items(generate_one_spot_price, Start, End) ++
+        "</spotPriceHistorySet>" ++
+        generate_next_token_xml(NT) ++
+        "</DescribeSpotPriceHistoryResponse>".
+
+generate_one_instance_status(N) ->
+    "<item>
+        <instanceId>i-" ++ integer_to_list(N) ++ "</instanceId>
+        <availabilityZone>us-east-1d</availabilityZone>
+        <instanceState>
+            <code>16</code>
+            <name>running</name>
+        </instanceState>
+        <systemStatus>
+            <status>ok</status>
+            <details/>
+        </systemStatus>
+        <instanceStatus>
+            <status>ok</status>
+            <details/>
+        </instanceStatus>
+     </item>".
+
+generate_instance_status_response(Start, End, NT) ->
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+     <DescribeInstanceStatusResponse
+         xmlns=\"http://ec2.amazonaws.com/doc/2014-10-01/\">
+         <requestId>12345</requestId>
+         <instanceStatusSet>" ++
+             generate_items(generate_one_instance_status, Start, End) ++
+        "</instanceStatusSet>" ++
+         generate_next_token_xml(NT) ++
+        "</DescribeInstanceStatusResponse>".
+
+generate_one_reserved_instance_offering(N) ->
+    "<item>
+           <reservedInstancesListingId>" ++ integer_to_list(N) ++ "</reservedInstancesListingId>
+           <reservedInstancesId>12345</reservedInstancesId>
+           <createDate>2016-10-13T17:38:57.000Z</createDate>
+           <updateDate>2016-10-13T17:38:58.000Z</updateDate>
+           <status>active</status>
+           <statusMessage>ACTIVE</statusMessage>
+           <instanceCounts/>
+           <priceSchedules/>
+           <tagSet/>
+           <clientToken>myclienttoken1</clientToken>
+    </item>".
+
+generate_reserved_instances_offerings_response(Start, End, NT) ->
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+     <DescribeReservedInstancesOfferingsResponse
+         xmlns=\"http://ec2.amazonaws.com/doc/2014-10-01/\">
+          <requestId>12345</requestId>
+          <reservedInstancesOfferingsSet>" ++
+        generate_items(generate_one_reserved_instance_offering, Start, End) ++
+        "</reservedInstancesOfferingsSet>" ++
+        generate_next_token_xml(NT) ++
+        "</DescribeReservedInstancesOfferingsResponse>".
+
+generate_items(GenerateFunction, K, N) ->
+    generate_items(GenerateFunction, K, N, []).
+
+generate_items(_GenerateFunction, K, N, Acc) when K > N ->
+    Acc;
+generate_items(GenerateFunction, K, N, Acc) ->
+    generate_items(GenerateFunction, K+1, N, Acc ++ apply(?MODULE, GenerateFunction, [K])).
+
+generate_next_token_xml(undefined) ->
+    "";
+generate_next_token_xml(NT) ->
+    NTString = integer_to_list(NT),
+    "<nextToken>" ++ NTString ++ "</nextToken>".
+
+test_pagination(TestCases, ResponseGenerator, OriginalFunction) ->
+    test_pagination(TestCases, ResponseGenerator, OriginalFunction, [], []).
+
+test_pagination([], _, _, _, _) -> ok;
+test_pagination([{TotalResults, ResultsPerPage} | Rest], ResponseGenerator, OriginalFunction, NormalParams, PagedParams) ->
+    meck:new(erlcloud_aws, [passthrough]),
+    meck:expect(erlcloud_aws, aws_request_xml4,
+        fun(_,_,_,Params,_,_) ->
+            NextTokenString = proplists:get_value("NextToken", Params),
+            MaxResults = proplists:get_value("MaxResults", Params),
+            {Start, End, NT} =
+                case {NextTokenString, MaxResults} of
+                    {undefined, undefined} ->
+                        {1, TotalResults, undefined};
+                    {undefined, MaxResults} ->
+                        case MaxResults >= TotalResults of
+                            true ->
+                                {1, TotalResults, undefined};
+                            false ->
+                                {1, MaxResults, MaxResults + 1}
+                        end;
+                    {NextTokenString, MaxResults} ->
+                        NextToken = list_to_integer(NextTokenString),
+                        case NextToken + MaxResults - 1 >= TotalResults of
+                            true ->
+                                {NextToken, TotalResults, undefined};
+                            false ->
+                                {NextToken, NextToken + MaxResults - 1,  NextToken + MaxResults}
+                        end
+                end,
+            Response = apply(?MODULE, ResponseGenerator, [Start, End, NT]),
+            {ok, element(1, xmerl_scan:string(Response))}
+        end),
+    {ok, AllResults} = apply(erlcloud_ec2, OriginalFunction, NormalParams),
+    {ok, PagedResults} = describe_all(OriginalFunction, PagedParams, ResultsPerPage),
+    meck:unload(erlcloud_aws),
+    ?assertEqual(length(AllResults), TotalResults),
+    ?assertEqual(length(AllResults), length(PagedResults)),
+    ?assert(lists_are_the_same(AllResults, PagedResults)),
+    test_pagination(Rest, ResponseGenerator, OriginalFunction, NormalParams, PagedParams).
+
+describe_all(DescribeFunction, Params, MaxResults) ->
+    describe_all(DescribeFunction, Params, MaxResults, undefined, []).
+
+describe_all(DescribeFunction, Params, MaxResults, NextToken, Acc) ->
+    AllParams = Params ++ [MaxResults, NextToken],
+    case apply(erlcloud_ec2, DescribeFunction, AllParams) of
+        {ok, Res, undefined} ->
+            {ok, Acc ++ Res};
+        {ok, Res, NewNextToken} ->
+            describe_all(DescribeFunction, Params, MaxResults, NewNextToken, Acc ++ Res)
+    end.
+
+lists_are_the_same(List1, List2) ->
+    lists:sort(List1) =:= lists:sort(List2).
