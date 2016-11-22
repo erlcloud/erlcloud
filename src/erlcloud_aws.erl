@@ -635,8 +635,8 @@ sign_v4_headers(Config, Headers, Payload, Region, Service) ->
 -spec sign_v4(atom(), list(), aws_config(), headers(), binary(), string(), string(), list()) -> headers().
 sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams) ->
     Date = iso_8601_basic_time(),
-    PayloadHash = hash_encode(Payload),
-    Headers1 = [{"x-amz-content-sha256", PayloadHash}, {"x-amz-date", Date} | Headers],
+    {PayloadHash, Headers1} =
+        sign_v4_content_sha256_header( [{"x-amz-date", Date} | Headers], Payload ),
     Headers2 = case Config#aws_config.security_token of
                    undefined -> Headers1;
                    Token -> [{"x-amz-security-token", Token} | Headers1]
@@ -665,6 +665,15 @@ canonical_request(Method, CanonicalURI, QParams, Headers, PayloadHash) ->
       SignedHeaders, $\n,
       PayloadHash],
      SignedHeaders}.
+
+sign_v4_content_sha256_header( Headers, Payload ) ->
+    case proplists:get_value( "x-amz-content-sha256", Headers ) of
+        undefined ->
+            PayloadHash = hash_encode(Payload),
+            NewHeaders = [{"x-amz-content-sha256", PayloadHash} | Headers],
+            {PayloadHash, NewHeaders};
+        PayloadHash -> {PayloadHash, Headers}
+    end.
 
 canonical_headers(Headers) ->
     Normalized = [{string:to_lower(Name), trimall(Value)} || {Name, Value} <- Headers],
