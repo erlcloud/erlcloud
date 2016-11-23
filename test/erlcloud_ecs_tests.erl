@@ -139,14 +139,13 @@ create_cluster_output_tests(_) ->
         \"status\": \"ACTIVE\"
     }
 }",
-            {ok,#ecs_create_cluster
-                {cluster = #ecs_cluster
+            {ok,#ecs_cluster
                     {active_services_count = 0,
                      cluster_arn = <<"arn:aws:ecs:us-east-1:012345678910:cluster/My-cluster">>,
                      cluster_name = <<"My-cluster">>,
                      pending_tasks_count = 0,
                      registered_container_instances_count = 0,
-                     running_tasks_count = 0,status = <<"ACTIVE">>}}}})
+                     running_tasks_count = 0,status = <<"ACTIVE">>}}})
         ],
     output_tests(?_f(erlcloud_ecs:create_cluster([{cluster_name, "My-cluster"}, {out, record}])), Tests).
 
@@ -232,8 +231,7 @@ create_service_output_tests(_) ->
         \"taskDefinition\": \"arn:aws:ecs:us-east-1:012345678910:task-definition/ecs-demo:1\"
      }
 }",
-            {ok, #ecs_create_service
-                {service = #ecs_service
+            {ok, #ecs_service
                     {cluster_arn = <<"arn:aws:ecs:us-east-1:012345678910:cluster/default">>,
                      deployment_configuration = #ecs_deployment_configuration{
                         maximum_percent = 200,
@@ -259,8 +257,7 @@ create_service_output_tests(_) ->
                      status = <<"ACTIVE">>,
                      task_definition = <<"arn:aws:ecs:us-east-1:012345678910:task-definition/ecs-demo:1">>
                     }
-                }
-            } 
+            }
         })
         ],
     output_tests(?_f(erlcloud_ecs:create_service("ecs-simple-service", "ecs-demo", 10, [{out, record}])), Tests).
@@ -307,15 +304,14 @@ delete_cluster_output_tests(_) ->
         \"status\": \"INACTIVE\"
     }
 }",
-            {ok,#ecs_delete_cluster
-                {cluster = #ecs_cluster
+            {ok,#ecs_cluster
                     {active_services_count = 0,
                      cluster_arn = <<"arn:aws:ecs:us-east-1:012345678910:cluster/My-cluster">>,
                      cluster_name = <<"My-cluster">>,
                      pending_tasks_count = 0,
                      registered_container_instances_count = 0,
                      running_tasks_count = 0,
-                     status = <<"INACTIVE">>}}}})
+                     status = <<"INACTIVE">>}}})
         ],
     output_tests(?_f(erlcloud_ecs:delete_cluster("My-cluster", [{out, record}])), Tests).
 
@@ -399,8 +395,7 @@ delete_service_output_tests(_) ->
         \"taskDefinition\": \"arn:aws:ecs:us-east-1:012345678910:task-definition/ecs-demo:1\"
      }
 }",
-            {ok, #ecs_delete_service
-                {service = #ecs_service
+            {ok, #ecs_service
                     {cluster_arn = <<"arn:aws:ecs:us-east-1:012345678910:cluster/default">>,
                      deployment_configuration = #ecs_deployment_configuration{
                         maximum_percent = 200,
@@ -426,8 +421,7 @@ delete_service_output_tests(_) ->
                      status = <<"DRAINING">>,
                      task_definition = <<"arn:aws:ecs:us-east-1:012345678910:task-definition/ecs-demo:1">>
                     }
-                }
-            } 
+            }
         })
         ],
     output_tests(?_f(erlcloud_ecs:delete_service("ecs-simple-service", [{out, record}])), Tests).
@@ -670,8 +664,7 @@ deregister_container_instance_output_tests(_) ->
         }
     }
 }",
-            {ok, #ecs_deregister_container_instance{
-                container_instance = #ecs_container_instance{
+            {ok, #ecs_container_instance{
                     agent_connected = true,
                     attributes = [
                         #ecs_attribute{
@@ -768,7 +761,7 @@ deregister_container_instance_output_tests(_) ->
                         docker_version = <<"DockerVersion: 1.7.1">>
                     }
                 }
-            }}})
+            }})
         ],
     output_tests(?_f(erlcloud_ecs:deregister_container_instance("c9c9a6f2-8766-464b-8805-9c57b9368fb0", [{out, record}])), Tests).
 
@@ -851,8 +844,7 @@ deregister_task_definition_output_tests(_) ->
     \"volumes\": []
   }
 }",
-            {ok, #ecs_deregister_task_definition{
-                task_definition = #ecs_task_definition{
+            {ok, #ecs_task_definition{
                     container_definitions = [
                         #ecs_container_definition{
                             command = [<<"apt-get update; apt-get install stress; while true; do stress --cpu $(( RANDOM % 4 )) -t $(( RANDOM % 10 )); done">>],
@@ -874,7 +866,7 @@ deregister_task_definition_output_tests(_) ->
                     task_definition_arn = <<"arn:aws:ecs:us-west-2:012345678910:task-definition/cpu-wave:1">>,
                     volumes = []
                 }
-            }}})
+            }})
         ],
     output_tests(?_f(erlcloud_ecs:deregister_task_definition("cpu-wave:1", [{out, record}])), Tests).
 
@@ -1570,8 +1562,7 @@ describe_task_definition_output_tests(_) ->
   }
 }
 ",
-            {ok, #ecs_describe_task_definition{
-                task_definition = #ecs_task_definition{
+            {ok, #ecs_task_definition{
                     container_definitions = [
                         #ecs_container_definition{
                             cpu = 10,
@@ -1612,7 +1603,7 @@ describe_task_definition_output_tests(_) ->
                     task_definition_arn = <<"arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:10">>,
                     volumes = []
                 }
-            }}})
+            }})
         ],
     output_tests(?_f(erlcloud_ecs:describe_task_definition("hello_world:10", [{out, record}])), Tests).
 
@@ -2243,8 +2234,7 @@ register_task_definition_output_tests(_) ->
   }
 }
 ",
-            {ok, #ecs_register_task_definition{
-                task_definition = #ecs_task_definition{
+            {ok, #ecs_task_definition{
                     container_definitions = [
                         #ecs_container_definition{
                             cpu = 10,
@@ -2293,7 +2283,7 @@ register_task_definition_output_tests(_) ->
                     task_definition_arn = <<"arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:4">>,
                     volumes = []
                 }
-            }}})
+            }})
         ],
     output_tests(?_f(erlcloud_ecs:register_task_definition([
                                                             [
@@ -2704,8 +2694,7 @@ stop_task_output_tests(_) ->
   }
 }
 ",
-            {ok, #ecs_stop_task{
-                task = #ecs_task{
+            {ok, #ecs_task{
                     cluster_arn = <<"arn:aws:ecs:us-east-1:012345678910:cluster/default">>,
                     container_instance_arn = <<"arn:aws:ecs:us-east-1:012345678910:container-instance/8db248d6-16a7-42b5-b9f9-43d3b1ad9430">>,
                     containers = [
@@ -2745,7 +2734,7 @@ stop_task_output_tests(_) ->
                     task_arn = <<"arn:aws:ecs:us-east-1:012345678910:task/a126249b-b7e4-4b06-9d8f-1b56e75a99b5">>,
                     task_definition_arn = <<"arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:11">>
                 }
-            }}})
+            }})
         ],
     output_tests(?_f(erlcloud_ecs:stop_task("a126249b-b7e4-4b06-9d8f-1b56e75a99b5", [{out, record}])), Tests).
 
@@ -2991,8 +2980,7 @@ update_container_agent_output_tests(_) ->
       }
 }
 ",
-            {ok, #ecs_update_container_agent{
-                container_instance = #ecs_container_instance{
+            {ok, #ecs_container_instance{
                     agent_connected = true,
                     agent_update_status = <<"PENDING">>,
                     attributes = [
@@ -3090,7 +3078,7 @@ update_container_agent_output_tests(_) ->
                         docker_version = <<"DockerVersion: 1.7.1">>
                     }
                 }
-            }}})
+            }})
         ],
     output_tests(?_f(erlcloud_ecs:update_container_agent("c9c9a6f2-8766-464b-8805-9c57b9368fb0", [{cluster, "update"}, {out, record}])), Tests).
 
@@ -3177,8 +3165,7 @@ update_service_output_tests(_) ->
   }
 }
 ",
-            {ok, #ecs_update_service{
-                service = #ecs_service{
+            {ok, #ecs_service{
                     cluster_arn = <<"arn:aws:ecs:us-east-1:012345678910:cluster/default">>,
                     deployment_configuration = #ecs_deployment_configuration{
                         maximum_percent = 200,
@@ -3206,7 +3193,7 @@ update_service_output_tests(_) ->
                     status = <<"ACTIVE">>,
                     task_definition = <<"arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:10">>
                 }
-            }}})
+            }})
         ],
     output_tests(?_f(erlcloud_ecs:update_service("hello_world", [{desired_count, 3}, {out, record}])), Tests).
 

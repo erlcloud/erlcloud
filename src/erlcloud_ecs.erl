@@ -17,19 +17,15 @@
 %% 
 %% Output is in the form of `{ok, Value}' or `{error, Reason}'. The
 %% format of `Value' is controlled by the `out' option, which defaults
-%% to `simple'. The possible values are: 
-%%
-%% * `simple' - The most interesting part of the output. For example
-%% `desciribe_tasks' will return list of `ecs_task' and won't include `failures' .
-%%
-%% * `record' - A record containing all the information from the
-%% ECS response except field types. This is useful if you need more detailed
-%% information than what is returned with `simple'.
+%% to `json'. The possible values are:
 %%
 %% * `json' - The output from ECS as processed by `jsx:decode'
 %% but with no further manipulation. This would rarely be useful,
 %% unless the ECS API is updated to include data that is not yet
 %% parsed correctly.
+%%
+%% * `record' - A record containing all the information from the
+%% ECS response except field types.
 %%
 %% ECS errors are return in the form `{error, {ErrorCode, Message}}' 
 %% where `ErrorCode' and 'Message' are both binary
@@ -94,34 +90,23 @@
     container_volumes_from_opt/0,
     create_cluster_opt/0,
     create_cluster_opts/0,
-    create_cluster_return/0,
     create_service_opt/0,
     create_service_opts/0,
-    create_service_return/0,
-    delete_cluster_return/0,
     delete_service_opt/0,
     delete_service_opts/0,
-    delete_service_return/0,
     deployment_configuration/0,
     deployment_configuration_opt/0,
     deployment_configuration_opts/0,
     deregister_container_instance_opt/0,
     deregister_container_instance_opts/0,
-    deregister_container_instance_return/0,
-    deregister_task_definition_return/0,
     describe_clusters_opt/0,
     describe_clusters_opts/0,
-    describe_clusters_return/0,
     describe_container_instances_opt/0,
     describe_container_instances_opts/0,
-    describe_container_instances_return/0,
     describe_services_opt/0,
     describe_services_opts/0,
-    describe_services_return/0,
-    describe_task_definition_return/0,
     describe_tasks_opt/0,
     describe_tasks_opts/0,
-    describe_tasks_return/0,
     ecs_container_override_opt/0,
     ecs_container_override_opts/0,
     ecs_host_entry_opt/0,
@@ -132,9 +117,7 @@
     ecs_mount_point_opts/0,
     ecs_port_mapping_opt/0,
     ecs_port_mapping_opts/0,
-    ecs_opts/0, 
-    ecs_return/2,
-    ecs_return_val/0,
+    ecs_opts/0,
     ecs_task_override_opt/0,
     ecs_task_override_opts/0,
     ecs_ulimit_opt/0,
@@ -145,22 +128,16 @@
     key_value_pair_opts/0,
     list_clusters_opt/0,
     list_clusters_opts/0,
-    list_clusters_return/0,
     list_container_instances_opt/0,
     list_container_instances_opts/0,
-    list_container_instances_return/0,
     list_services_opt/0,
     list_services_opts/0,
-    list_services_return/0,
     list_task_definition_families_opt/0,
     list_task_definition_families_opts/0,
-    list_task_definition_families_return/0,
     list_task_definitions_opt/0,
     list_task_definitions_opts/0,
-    list_task_definitions_return/0,
     list_tasks_opt/0,
     list_tasks_opts/0,
-    list_tasks_return/0,
     load_balancer_name_opt/0,
     load_balancers_opt/0,
     load_balancers_opts/0,
@@ -169,24 +146,18 @@
     minimum_healthy_percent_opt/0, 
     register_task_definition_opt/0,
     register_task_definition_opts/0,
-    register_task_definition_return/0,
     role_opt/0,
     run_task_opt/0,
     run_task_opts/0,
-    run_task_return/0,
     start_task_opt/0,
     start_task_opts/0,
-    start_task_return/0,
     stop_task_opt/0,
     stop_task_opts/0,
-    stop_task_return/0,
     target_group_arn_opt/0, 
     task_overrides_opt/0,
     update_container_agent_opts/0,
-    update_container_agent_return/0,
     update_service_opt/0,
     update_service_opts/0,
-    update_service_return/0,
     volume_host_opt/0,
     volume_name_opt/0,
     volumes/0,
@@ -255,23 +226,17 @@ default_config() ->
 
 -type string_param() :: binary() | string().
 -type attr_name() :: binary() | string().
--type token() :: binary().
 -type arn() :: binary().
 
 -type json_pair() :: {binary(), jsx:json_term()}.
 -type json_return() :: {ok, jsx:json_term()} | {error, term()}.
-
--type ok_return(T) :: {ok, T} | {error, term()}.
-
--type ecs_return_val() :: {ok, proplists:proplist()} | {error, term()}.
+-type ecs_return(Record) :: {ok, jsx:json_term() | Record } | {error, term()}.
+-type decode_fun() :: fun((jsx:json_term(), decode_opts()) -> tuple()).
 
 %%%------------------------------------------------------------------------------
 %%% Shared Options
 %%%------------------------------------------------------------------------------
--spec id(X) -> X.
-id(X) -> X.
-
--type out_type() :: json | record | simple.
+-type out_type() :: json | record.
 -type out_opt() :: {out, out_type()}.
 -type property() :: proplists:property().
 
@@ -281,7 +246,7 @@ id(X) -> X.
 
 -spec verify_ecs_opt(atom(), term()) -> ok.
 verify_ecs_opt(out, Value) ->
-    case lists:member(Value, [json, record, typed_record, simple]) of
+    case lists:member(Value, [json, record]) of
         true ->
             ok;
         false ->
@@ -708,6 +673,8 @@ encode_maybe_list(Fun, List) when is_list(List) ->
 -type decode_opts() :: [decode_opt()].
 -type record_desc() :: {tuple(), field_table()}.
 
+-spec id(X) -> X.
+id(X) -> X.
 
 -spec id(X, decode_opts()) -> X.
 id(X, _) -> X.
@@ -732,49 +699,31 @@ decode_record({Record, _}, [{}], _) ->
 decode_record({Record, Table}, Json, Opts) ->
     lists:foldl(fun(Pair, A) -> decode_folder(Table, Pair, Opts, A) end, Record, Json).
 
+-spec decode_single_record(record_desc(), binary(), jsx:json_term(), decode_opts()) -> tuple().
+decode_single_record(Rec, Name, Json, Opts)->
+    Desc = {#ecs_single_return{},
+        [{Name, #ecs_single_return.object,
+            fun(V, O) -> decode_record(Rec, V, O) end}
+        ]},
+    R = decode_record(Desc, Json, Opts),
+    element(#ecs_single_return.object, R).
+
+
 %%%------------------------------------------------------------------------------
 %%% Output
 %%%------------------------------------------------------------------------------
--type ecs_return(Record, Simple) :: {ok, jsx:json_term() | Record | Simple} | {error, term()}.
--type decode_fun() :: fun((jsx:json_term(), decode_opts()) -> tuple()).
-
--spec out(json_return(), decode_fun(), ecs_opts()) 
+-spec out(json_return(), decode_fun(), ecs_opts())
          -> {ok, jsx:json_term() | tuple()} |
             {simple, term()} |
             {error, term()}.
 out({error, Reason}, _, _) ->
     {error, Reason};
 out({ok, Json}, Decode, Opts) ->
-    case proplists:get_value(out, Opts, simple) of
+    case proplists:get_value(out, Opts, record) of
         json ->
             {ok, Json};
         record ->
-            {ok, Decode(Json, [])};
-        typed_record ->
-            {ok, Decode(Json, [{typed, true}])};
-        simple ->
-            {simple, Decode(Json, [])}
-    end.
-
-%% Returns specified field of tuple for simple return
--spec out(erlcloud_ecs_impl:json_return(), decode_fun(), ecs_opts(), pos_integer()) 
-         -> ok_return(term()).
-out(Result, Decode, Opts, Index) ->
-    out(Result, Decode, Opts, Index, {error, no_return}).
-
--spec out(erlcloud_ecs_impl:json_return(), decode_fun(), ecs_opts(), pos_integer(), ok_return(term())) 
-         -> ok_return(term()).
-out(Result, Decode, Opts, Index, Default) ->
-    case out(Result, Decode, Opts) of
-        {simple, Record} ->
-            case element(Index, Record) of
-                undefined ->
-                    Default;
-                Element ->
-                    {ok, Element}
-            end;
-        Else ->
-            Else
+            {ok, Decode(Json, [])}
     end.
 
 %%%------------------------------------------------------------------------------
@@ -1199,20 +1148,11 @@ create_cluster_opts() ->
         {cluster_name, <<"clusterName">>, fun to_binary/1}
     ].
 
--spec create_cluster_record() -> record_desc().
-create_cluster_record() ->
-    {#ecs_create_cluster{},
-     [{<<"cluster">>, #ecs_create_cluster.cluster,  
-       fun(V, Opts) -> decode_record(cluster_record(), V, Opts) end}
-     ]}.
-
--type create_cluster_return() :: ecs_return(#ecs_create_cluster{}, #ecs_cluster{}).
-
--spec create_cluster() -> create_cluster_return().
+-spec create_cluster() -> ecs_return(#ecs_cluster{}).
 create_cluster() ->
     create_cluster(default_config()).
 
--spec create_cluster(create_cluster_opts() | aws_config()) -> create_cluster_return().
+-spec create_cluster(create_cluster_opts() | aws_config()) -> ecs_return(#ecs_cluster{}).
 create_cluster(#aws_config{} = Config) ->
     create_cluster([], Config);
 create_cluster(Opts) ->
@@ -1232,15 +1172,15 @@ create_cluster(Opts) ->
 %% '
 %% @end
 %%%------------------------------------------------------------------------------
--spec create_cluster(Opts :: create_cluster_opts(), Config :: aws_config()) -> create_cluster_return().
+-spec create_cluster(Opts :: create_cluster_opts(), Config :: aws_config()) -> ecs_return(#ecs_cluster{}).
 create_cluster(Opts, #aws_config{} = Config) ->
     {AwsOpts, EcsOpts} = opts(create_cluster_opts(), Opts),
     Return = ecs_request(
                 Config,
                 "CreateCluster",
                 AwsOpts),
-    out(Return, fun(Json, UOpts) -> decode_record(create_cluster_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_create_cluster.cluster).
+    out(Return, fun(Json, UOpts) -> decode_single_record(cluster_record(), <<"cluster">>, Json, UOpts) end,
+        EcsOpts).
     
 %%%------------------------------------------------------------------------------
 % CreateService
@@ -1262,25 +1202,16 @@ create_service_opts() ->
         role_opt()
     ].
 
--spec create_service_record() -> record_desc().
-create_service_record() ->
-    {#ecs_create_service{},
-     [{<<"service">>, #ecs_create_service.service,
-       fun(V, Opts) -> decode_record(service_record(), V, Opts) end}
-     ]}.
-
--type create_service_return() :: ecs_return(#ecs_create_service{}, #ecs_service{}).
-
 -spec create_service(ServiceName :: string_param(),
                      TaskDefinition :: string_param(),
-                     DesiredCount :: pos_integer()) -> create_service_return().
+                     DesiredCount :: pos_integer()) -> ecs_return(#ecs_service{}).
 create_service(ServiceName, TaskDefinition, DesiredCount) ->
     create_service(ServiceName, TaskDefinition, DesiredCount, default_config()).
 
 -spec create_service(ServiceName :: string_param(),
                      TaskDefinition :: string_param(),
                      DesiredCount :: pos_integer(),
-                     create_service_opts() | aws_config()) -> create_service_return().
+                     create_service_opts() | aws_config()) -> ecs_return(#ecs_service{}).
 create_service(ServiceName, TaskDefinition, DesiredCount, #aws_config{} = Config) ->
     create_service(ServiceName, TaskDefinition, DesiredCount, [], Config);
 create_service(ServiceName, TaskDefinition, DesiredCount, Opts) ->
@@ -1303,7 +1234,7 @@ create_service(ServiceName, TaskDefinition, DesiredCount, Opts) ->
 -spec create_service(ServiceName :: string_param(),
                      TaskDefinition :: string_param(),
                      DesiredCount :: pos_integer(),
-                     Opts :: create_service_opts(), Config :: aws_config()) -> create_service_return().
+                     Opts :: create_service_opts(), Config :: aws_config()) -> ecs_return(#ecs_service{}).
 create_service(ServiceName, TaskDefinition, DesiredCount, Opts, #aws_config{} = Config) ->
     Params = [
                 {<<"serviceName">>, to_binary(ServiceName)},
@@ -1315,26 +1246,17 @@ create_service(ServiceName, TaskDefinition, DesiredCount, Opts, #aws_config{} = 
                 Config,
                 "CreateService",
                 Params ++ AwsOpts),
-    out(Return, fun(Json, UOpts) -> decode_record(create_service_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_create_service.service).
+    out(Return, fun(Json, UOpts) -> decode_single_record(service_record(), <<"service">>, Json, UOpts) end,
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %% DeleteCluster 
 %%%------------------------------------------------------------------------------
--spec delete_cluster_record() -> record_desc().
-delete_cluster_record() ->
-    {#ecs_delete_cluster{},
-     [{<<"cluster">>, #ecs_delete_cluster.cluster,  
-       fun(V, Opts) -> decode_record(cluster_record(), V, Opts) end}
-     ]}.
-
--type delete_cluster_return() :: ecs_return(#ecs_delete_cluster{}, #ecs_cluster{}).
-
--spec delete_cluster(ClusterName :: string_param()) -> delete_cluster_return().
+-spec delete_cluster(ClusterName :: string_param()) -> ecs_return(#ecs_cluster{}).
 delete_cluster(ClusterName) ->
     delete_cluster(ClusterName, default_config()).
 
--spec delete_cluster(ClusterName :: string_param(), ecs_opts() | aws_config()) -> delete_cluster_return().
+-spec delete_cluster(ClusterName :: string_param(), ecs_opts() | aws_config()) -> ecs_return(#ecs_cluster{}).
 delete_cluster(ClusterName, #aws_config{} = Config) ->
     delete_cluster(ClusterName, [], Config);
 delete_cluster(ClusterName, Opts) ->
@@ -1354,7 +1276,7 @@ delete_cluster(ClusterName, Opts) ->
 %% '
 %% @end
 %%%------------------------------------------------------------------------------
--spec delete_cluster(ClusterName :: string_param(), ecs_opts(), aws_config()) -> delete_cluster_return().
+-spec delete_cluster(ClusterName :: string_param(), ecs_opts(), aws_config()) -> ecs_return(#ecs_cluster{}).
 delete_cluster(ClusterName, Opts, #aws_config{} = Config) ->
     {[], EcsOpts} = opts([], Opts),
     Return = ecs_request(
@@ -1362,8 +1284,8 @@ delete_cluster(ClusterName, Opts, #aws_config{} = Config) ->
                 "DeleteCluster",
                 [{<<"cluster">>, to_binary(ClusterName)}]),
 
-    out(Return, fun(Json, UOpts) -> decode_record(delete_cluster_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_delete_cluster.cluster).
+    out(Return, fun(Json, UOpts) -> decode_single_record(cluster_record(), <<"cluster">>, Json, UOpts) end,
+        EcsOpts).
 
 
 %%%------------------------------------------------------------------------------
@@ -1378,20 +1300,11 @@ delete_service_opts() ->
         {cluster, <<"cluster">>, fun to_binary/1}
     ].
 
--spec delete_service_record() -> record_desc().
-delete_service_record() ->
-    {#ecs_delete_service{},
-     [{<<"service">>, #ecs_delete_service.service,
-       fun(V, Opts) -> decode_record(service_record(), V, Opts) end}
-     ]}.
-
--type delete_service_return() :: ecs_return(#ecs_delete_service{}, #ecs_service{}).
-
--spec delete_service(ServiceName :: string_param()) -> delete_service_return().
+-spec delete_service(ServiceName :: string_param()) -> ecs_return( #ecs_service{}).
 delete_service(ServiceName) ->
     delete_service(ServiceName, [], default_config()).
 
--spec delete_service(ServiceName :: string_param(), delete_service_opts() | aws_config()) -> delete_service_return().
+-spec delete_service(ServiceName :: string_param(), delete_service_opts() | aws_config()) -> ecs_return(#ecs_service{}).
 delete_service(ServiceName, #aws_config{} = Config) ->
     delete_service(ServiceName, [], Config);
 delete_service(ServiceName, Opts) ->
@@ -1414,7 +1327,7 @@ delete_service(ServiceName, Opts) ->
 -spec delete_service(
         ServiceName :: string_param(),
         Opts :: delete_service_opts(),
-        Config :: aws_config()) -> delete_service_return().
+        Config :: aws_config()) -> ecs_return(#ecs_service{}).
 delete_service(ServiceName, Opts, #aws_config{} = Config) ->
     Params = [{<<"service">>, to_binary(ServiceName)}],
     {AwsOpts, EcsOpts} = opts(delete_service_opts(), Opts),
@@ -1423,8 +1336,8 @@ delete_service(ServiceName, Opts, #aws_config{} = Config) ->
                 Config,
                 "DeleteService",
                 Params ++ AwsOpts),
-    out(Return, fun(Json, UOpts) -> decode_record(delete_service_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_delete_service.service).
+    out(Return, fun(Json, UOpts) -> decode_single_record(service_record(), <<"service">>, Json, UOpts) end,
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %% DeregisterContainerInstance
@@ -1440,24 +1353,13 @@ deregister_container_instance_opts() ->
         {force, <<"cluster">>, fun id/1}
     ].
 
--spec deregister_container_instance_record() -> record_desc().
-deregister_container_instance_record() ->
-    {#ecs_deregister_container_instance{},
-     [{<<"containerInstance">>, #ecs_deregister_container_instance.container_instance,
-       fun(V, Opts) -> decode_record(container_instance_record(), V, Opts) end}
-     ]}.
-
--type deregister_container_instance_return() :: ecs_return(
-                                                    #ecs_deregister_container_instance{},
-                                                    #ecs_container_instance{}).
-
--spec deregister_container_instance(ContainerInstance :: string_param()) -> deregister_container_instance_return().
+-spec deregister_container_instance(ContainerInstance :: string_param()) -> ecs_return(#ecs_container_instance{}).
 deregister_container_instance(ContainerInstance) ->
     deregister_container_instance(ContainerInstance, [], default_config()).
 
 -spec deregister_container_instance(
                 ContainerInstance :: string_param(),
-                deregister_container_instance_opts() | aws_config()) -> deregister_container_instance_return().
+                deregister_container_instance_opts() | aws_config()) -> ecs_return(#ecs_container_instance{}).
 deregister_container_instance(ContainerInstance, #aws_config{} = Config) ->
     deregister_container_instance(ContainerInstance, [], Config);
 
@@ -1481,7 +1383,7 @@ deregister_container_instance(ContainerInstance, Opts) ->
 -spec deregister_container_instance(
                 ContainerInstance :: string_param(),
                 Opts :: deregister_container_instance_opts(),
-                Config :: aws_config()) -> deregister_container_instance_return().
+                Config :: aws_config()) -> ecs_return(#ecs_container_instance{}).
 deregister_container_instance(ContainerInstance, Opts, Config) ->
     Params = [
         {<<"containerInstance">>, to_binary(ContainerInstance)}
@@ -1492,31 +1394,21 @@ deregister_container_instance(ContainerInstance, Opts, Config) ->
                 Config,
                 "DeregisterContainerInstance",
                 Params ++ AwsOpts),
-    out(Return, fun(Json, UOpts) -> decode_record(deregister_container_instance_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_deregister_container_instance.container_instance).
+    out(Return, fun(Json, UOpts) -> decode_single_record(container_instance_record(), <<"containerInstance">>, Json, UOpts) end,
+        EcsOpts).
 
 
 %%%------------------------------------------------------------------------------
 %% DeregisterTaskDefinition
 %%%------------------------------------------------------------------------------
--spec deregister_task_definition_record() -> record_desc().
-deregister_task_definition_record() ->
-    {#ecs_deregister_task_definition{},
-     [{<<"taskDefinition">>, #ecs_deregister_task_definition.task_definition,
-       fun(V, Opts) -> decode_record(task_definition_record(), V, Opts) end}
-     ]}.
 
--type deregister_task_definition_return() :: ecs_return(
-                                                    #ecs_deregister_task_definition{},
-                                                    #ecs_task_definition{}).
-
--spec deregister_task_definition(TaskDefinition :: string_param()) -> deregister_task_definition_return().
+-spec deregister_task_definition(TaskDefinition :: string_param()) -> ecs_return(#ecs_task_definition{}).
 deregister_task_definition(TaskDefinition) ->
     deregister_task_definition(TaskDefinition, [], default_config()).
 
 -spec deregister_task_definition(
             TaskDefinition :: string_param(),
-            ecs_opts() | aws_config()) -> deregister_task_definition_return().
+            ecs_opts() | aws_config()) -> ecs_return(#ecs_task_definition{}).
 deregister_task_definition(TaskDefinition, #aws_config{} = Config) ->
     deregister_task_definition(TaskDefinition, [], Config);
 deregister_task_definition(TaskDefinition, Opts) ->
@@ -1539,7 +1431,7 @@ deregister_task_definition(TaskDefinition, Opts) ->
 -spec deregister_task_definition(
             TaskDefinition :: string_param(),
             ecs_opts(),
-            aws_config()) -> deregister_task_definition_return().
+            aws_config()) -> ecs_return(#ecs_task_definition{}).
 deregister_task_definition(TaskDefinition, Opts, Config) ->
     {[], EcsOpts} = opts([], Opts),
     Return = ecs_request(
@@ -1547,8 +1439,8 @@ deregister_task_definition(TaskDefinition, Opts, Config) ->
                 "DeregisterTaskDefinition",
                 [{<<"taskDefinition">>, to_binary(TaskDefinition)}]),
 
-    out(Return, fun(Json, UOpts) -> decode_record(deregister_task_definition_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_deregister_task_definition.task_definition).
+    out(Return, fun(Json, UOpts) -> decode_single_record(task_definition_record(), <<"taskDefinition">>, Json, UOpts) end,
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %% DescribeClusters
@@ -1569,13 +1461,11 @@ describe_clusters_record() ->
       {<<"failures">>, #ecs_describe_clusters.failures, fun decode_failures_list/2}
      ]}.
 
--type describe_clusters_return() :: ecs_return(#ecs_describe_clusters{}, [#ecs_cluster{}]).
-
--spec describe_clusters() -> describe_clusters_return().
+-spec describe_clusters() -> ecs_return(#ecs_describe_clusters{}).
 describe_clusters() ->
     describe_clusters([], default_config()).
 
--spec describe_clusters(describe_clusters_opts() | aws_config()) -> describe_clusters_return().
+-spec describe_clusters(describe_clusters_opts() | aws_config()) -> ecs_return(#ecs_describe_clusters{}).
 describe_clusters(#aws_config{} = Config) ->
     describe_clusters([], Config);
 describe_clusters(Opts) ->
@@ -1595,7 +1485,7 @@ describe_clusters(Opts) ->
 %% '
 %% @end
 %%%------------------------------------------------------------------------------
--spec describe_clusters(Opts :: describe_clusters_opts(), Config :: aws_config()) -> describe_clusters_return().
+-spec describe_clusters(Opts :: describe_clusters_opts(), Config :: aws_config()) -> ecs_return(#ecs_describe_clusters{}).
 describe_clusters(Opts, #aws_config{} = Config) ->
     {AwsOpts, EcsOpts} = opts(describe_clusters_opts(), Opts),
     Return = ecs_request(
@@ -1603,7 +1493,7 @@ describe_clusters(Opts, #aws_config{} = Config) ->
                 "DescribeClusters",
                 AwsOpts),
     out(Return, fun(Json, UOpts) -> decode_record(describe_clusters_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_describe_clusters.clusters).
+        EcsOpts).
  
 %%%------------------------------------------------------------------------------
 %% DescribeContainerInstances
@@ -1624,15 +1514,13 @@ describe_container_instances_record() ->
       {<<"failures">>, #ecs_describe_container_instances.failures, fun decode_failures_list/2}
      ]}.
 
--type describe_container_instances_return() :: ecs_return(#ecs_describe_container_instances{}, [#ecs_container_instance{}]).
-
--spec describe_container_instances(Instances :: [string_param()]) -> describe_container_instances_return().
+-spec describe_container_instances(Instances :: [string_param()]) -> ecs_return(#ecs_describe_container_instances{}).
 describe_container_instances(Instances) ->
     describe_container_instances(Instances, [], default_config()).
 
 -spec describe_container_instances(
         Instances :: [string_param()],
-        describe_container_instances_opts() | aws_config()) -> describe_container_instances_return().
+        describe_container_instances_opts() | aws_config()) -> ecs_return(#ecs_describe_container_instances{}).
 describe_container_instances(Instances, #aws_config{} = Config) ->
     describe_container_instances(Instances, [], Config);
 describe_container_instances(Instances, Opts) ->
@@ -1655,7 +1543,7 @@ describe_container_instances(Instances, Opts) ->
 -spec describe_container_instances(
         Instances :: [string_param()],
         Opts :: describe_container_instances_opts(),
-        Config :: aws_config()) -> describe_container_instances_return().
+        Config :: aws_config()) -> ecs_return(#ecs_describe_container_instances{}).
 describe_container_instances(Instances, Opts, #aws_config{} = Config) ->
     {AwsOpts, EcsOpts} = opts(describe_container_instances_opts(), Opts),
     Return = ecs_request(
@@ -1663,7 +1551,7 @@ describe_container_instances(Instances, Opts, #aws_config{} = Config) ->
                 "DescribeContainerInstances",
                 [{<<"containerInstances">>, to_binary(Instances)}] ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> decode_record(describe_container_instances_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_describe_container_instances.container_instances).
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %% DescribeServices
@@ -1684,15 +1572,13 @@ describe_services_record() ->
       {<<"failures">>, #ecs_describe_services.failures, fun decode_failures_list/2}
      ]}.
 
--type describe_services_return() :: ecs_return(#ecs_describe_services{}, [#ecs_service{}]).
-
--spec describe_services(Services :: [string_param()]) -> describe_services_return().
+-spec describe_services(Services :: [string_param()]) -> ecs_return(#ecs_describe_services{}).
 describe_services(Services) ->
     describe_services(Services, [], default_config()).
 
 -spec describe_services(
         Services :: [string_param()],
-        describe_services_opts() | aws_config()) -> describe_services_return().
+        describe_services_opts() | aws_config()) -> ecs_return(#ecs_describe_services{}).
 describe_services(Services, #aws_config{} = Config) ->
     describe_services(Services, [], Config);
 describe_services(Services, Opts) ->
@@ -1715,7 +1601,7 @@ describe_services(Services, Opts) ->
 -spec describe_services(
         Services :: [string_param()],
         Opts :: describe_services_opts(),
-        Config :: aws_config()) -> describe_services_return().
+        Config :: aws_config()) -> ecs_return(#ecs_describe_services{}).
 describe_services(Services, Opts, #aws_config{} = Config) ->
     {AwsOpts, EcsOpts} = opts(describe_services_opts(), Opts),
     Return = ecs_request(
@@ -1723,27 +1609,19 @@ describe_services(Services, Opts, #aws_config{} = Config) ->
                 "DescribeServices",
                 [{<<"services">>, to_binary(Services)}] ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> decode_record(describe_services_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_describe_services.services).
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %% DescribeTaskDefinition
 %%%------------------------------------------------------------------------------
--spec describe_task_definition_record() -> record_desc().
-describe_task_definition_record() ->
-    {#ecs_describe_task_definition{},
-     [{<<"taskDefinition">>, #ecs_describe_task_definition.task_definition,
-        fun(V, Opts) -> decode_record(task_definition_record(), V, Opts) end}
-     ]}.
 
--type describe_task_definition_return() :: ecs_return(#ecs_describe_task_definition{}, [#ecs_container_definition{}]).
-
--spec describe_task_definition(TaskDefinition :: string_param()) -> describe_task_definition_return().
+-spec describe_task_definition(TaskDefinition :: string_param()) -> ecs_return(#ecs_container_definition{}).
 describe_task_definition(TaskDefinition) ->
     describe_task_definition(TaskDefinition, default_config()).
 
 -spec describe_task_definition(
             TaskDefinition :: string_param(),
-            ecs_opts() | aws_config()) -> describe_task_definition_return().
+            ecs_opts() | aws_config()) -> ecs_return(#ecs_container_definition{}).
 describe_task_definition(TaskDefinition, #aws_config{} = Config) ->
     describe_task_definition(TaskDefinition, [], Config);
 describe_task_definition(TaskDefinition, Opts) ->
@@ -1766,15 +1644,15 @@ describe_task_definition(TaskDefinition, Opts) ->
 -spec describe_task_definition(
         TaskDefinition :: string_param(),
         Opts :: ecs_opts(),
-        Config :: aws_config()) -> describe_task_definition_return().
+        Config :: aws_config()) -> ecs_return(#ecs_container_definition{}).
 describe_task_definition(TaskDefinition, Opts, #aws_config{} = Config) ->
     {_AwsOpts, EcsOpts} = opts([], Opts),
     Return = ecs_request(
                 Config,
                 "DescribeTaskDefinition",
                 [{<<"taskDefinition">>, to_binary(TaskDefinition)}]),
-    out(Return, fun(Json, UOpts) -> decode_record(describe_task_definition_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_describe_task_definition.task_definition).
+    out(Return, fun(Json, UOpts) -> decode_single_record(task_definition_record(), <<"taskDefinition">>, Json, UOpts) end,
+        EcsOpts).
 
 
 %%%------------------------------------------------------------------------------
@@ -1796,15 +1674,13 @@ describe_tasks_record() ->
       {<<"failures">>, #ecs_describe_tasks.failures, fun decode_failures_list/2}
      ]}.
 
--type describe_tasks_return() :: ecs_return(#ecs_describe_tasks{}, [#ecs_task{}]).
-
--spec describe_tasks(Tasks :: [string_param()]) -> describe_tasks_return().
+-spec describe_tasks(Tasks :: [string_param()]) -> ecs_return(#ecs_describe_tasks{}).
 describe_tasks(Tasks) ->
     describe_tasks(Tasks, [], default_config()).
 
 -spec describe_tasks(
         Tasks :: [string_param()],
-        describe_tasks_opts() | aws_config()) -> describe_tasks_return().
+        describe_tasks_opts() | aws_config()) -> ecs_return(#ecs_describe_tasks{}).
 describe_tasks(Tasks, #aws_config{} = Config) ->
     describe_tasks(Tasks, [], Config);
 describe_tasks(Tasks, Opts) ->
@@ -1827,7 +1703,7 @@ describe_tasks(Tasks, Opts) ->
 -spec describe_tasks(
         Tasks :: [string_param()],
         Opts :: describe_tasks_opts(),
-        Config :: aws_config()) -> describe_tasks_return().
+        Config :: aws_config()) -> ecs_return(#ecs_describe_tasks{}).
 describe_tasks(Tasks, Opts, #aws_config{} = Config) ->
     {AwsOpts, EcsOpts} = opts(describe_tasks_opts(), Opts),
     Return = ecs_request(
@@ -1835,7 +1711,7 @@ describe_tasks(Tasks, Opts, #aws_config{} = Config) ->
                 "DescribeTasks",
                 [{<<"tasks">>, to_binary(Tasks)}] ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> decode_record(describe_tasks_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_describe_tasks.tasks).
+        EcsOpts).
 
 
 %%%------------------------------------------------------------------------------
@@ -1860,13 +1736,11 @@ list_clusters_record() ->
       {<<"nextToken">>, #ecs_list_clusters.next_token, fun id/2}
      ]}.
 
--type list_clusters_return() :: ecs_return(#ecs_list_clusters{}, [arn()]).
-
--spec list_clusters() -> list_clusters_return().
+-spec list_clusters() -> ecs_return(#ecs_list_clusters{}).
 list_clusters() ->
     list_clusters([], default_config()).
 
--spec list_clusters(list_clusters_opts()) -> list_clusters_return().
+-spec list_clusters(list_clusters_opts()) -> ecs_return(#ecs_list_clusters{}).
 list_clusters(Opts) ->
     list_clusters(Opts, default_config()).
 
@@ -1884,12 +1758,12 @@ list_clusters(Opts) ->
 %% '
 %% @end
 %%%------------------------------------------------------------------------------
--spec list_clusters(list_clusters_opts(), aws_config()) -> list_clusters_return().
+-spec list_clusters(list_clusters_opts(), aws_config()) -> ecs_return(#ecs_list_clusters{}).
 list_clusters(Opts, Config) ->
     {AwsOpts, EcsOpts} = opts(list_clusters_opts(), Opts),
     Return = ecs_request(Config, "ListClusters", AwsOpts),
     out(Return, fun(Json, UOpts) -> decode_record(list_clusters_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_list_clusters.cluster_arns, {ok, []}).
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %% ListContainerInstances
@@ -1915,13 +1789,11 @@ list_container_instances_record() ->
       {<<"nextToken">>, #ecs_list_container_instances.next_token, fun id/2}
      ]}.
 
--type list_container_instances_return() :: ecs_return(#ecs_list_container_instances{}, [arn()]).
-
--spec list_container_instances() -> list_container_instances_return().
+-spec list_container_instances() -> ecs_return(#ecs_list_container_instances{}).
 list_container_instances() ->
     list_container_instances([], default_config()).
 
--spec list_container_instances(list_container_instances_opts()) -> list_container_instances_return().
+-spec list_container_instances(list_container_instances_opts()) -> ecs_return(#ecs_list_container_instances{}).
 list_container_instances(Opts) ->
     list_container_instances(Opts, default_config()).
 
@@ -1939,12 +1811,12 @@ list_container_instances(Opts) ->
 %% '
 %% @end
 %%%------------------------------------------------------------------------------
--spec list_container_instances(list_container_instances_opts(), aws_config()) -> list_container_instances_return().
+-spec list_container_instances(list_container_instances_opts(), aws_config()) -> ecs_return(#ecs_list_container_instances{}).
 list_container_instances(Opts, Config) ->
     {AwsOpts, EcsOpts} = opts(list_container_instances_opts(), Opts),
     Return = ecs_request(Config, "ListContainerInstances", AwsOpts),
     out(Return, fun(Json, UOpts) -> decode_record(list_container_instances_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_list_container_instances.container_instance_arns, {ok, []}).
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %% ListServices
@@ -1970,13 +1842,11 @@ list_services_record() ->
       {<<"nextToken">>, #ecs_list_services.next_token, fun id/2}
      ]}.
 
--type list_services_return() :: ecs_return(#ecs_list_services{}, [arn()]).
-
--spec list_services() -> list_services_return().
+-spec list_services() -> ecs_return(#ecs_list_services{}).
 list_services() ->
     list_services([], default_config()).
 
--spec list_services(list_services_opts()) -> list_services_return().
+-spec list_services(list_services_opts()) -> ecs_return(#ecs_list_services{}).
 list_services(Opts) ->
     list_services(Opts, default_config()).
 
@@ -1994,12 +1864,12 @@ list_services(Opts) ->
 %% '
 %% @end
 %%%------------------------------------------------------------------------------
--spec list_services(list_services_opts(), aws_config()) -> list_services_return().
+-spec list_services(list_services_opts(), aws_config()) -> ecs_return(#ecs_list_services{}).
 list_services(Opts, Config) ->
     {AwsOpts, EcsOpts} = opts(list_services_opts(), Opts),
     Return = ecs_request(Config, "ListServices", AwsOpts),
-    out(Return, fun(Json, UOpts) -> decode_record(list_services_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_list_services.service_arns, {ok, []}).
+    out(Return, fun(Json, UOpts) -> decode_record(list_services_record(), Json, UOpts) end,
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %% ListTaskDefinitionFamilies
@@ -2027,13 +1897,12 @@ list_task_definition_families_record() ->
       {<<"nextToken">>, #ecs_list_task_definition_families.next_token, fun id/2}
      ]}.
 
--type list_task_definition_families_return() :: ecs_return(#ecs_list_task_definition_families{}, [arn()]).
 
--spec list_task_definition_families() -> list_task_definition_families_return().
+-spec list_task_definition_families() -> ecs_return(#ecs_list_task_definition_families{}).
 list_task_definition_families() ->
     list_task_definition_families([], default_config()).
 
--spec list_task_definition_families(list_task_definition_families_opts()) -> list_task_definition_families_return().
+-spec list_task_definition_families(list_task_definition_families_opts()) -> ecs_return(#ecs_list_task_definition_families{}).
 list_task_definition_families(Opts) ->
     list_task_definition_families(Opts, default_config()).
 
@@ -2053,12 +1922,12 @@ list_task_definition_families(Opts) ->
 %%%------------------------------------------------------------------------------
 -spec list_task_definition_families(
         list_task_definition_families_opts(),
-        aws_config()) -> list_task_definition_families_return().
+        aws_config()) -> ecs_return(#ecs_list_task_definition_families{}).
 list_task_definition_families(Opts, Config) ->
     {AwsOpts, EcsOpts} = opts(list_task_definition_families_opts(), Opts),
     Return = ecs_request(Config, "ListTaskDefinitionFamilies", AwsOpts),
     out(Return, fun(Json, UOpts) -> decode_record(list_task_definition_families_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_list_task_definition_families.families, {ok, []}).
+        EcsOpts).
 
 
 %%%------------------------------------------------------------------------------
@@ -2089,13 +1958,11 @@ list_task_definitions_record() ->
       {<<"nextToken">>, #ecs_list_task_definitions.next_token, fun id/2}
      ]}.
 
--type list_task_definitions_return() :: ecs_return(#ecs_list_task_definitions{}, [arn()]).
-
--spec list_task_definitions() -> list_task_definitions_return().
+-spec list_task_definitions() -> ecs_return(#ecs_list_task_definitions{}).
 list_task_definitions() ->
     list_task_definitions([], default_config()).
 
--spec list_task_definitions(list_task_definitions_opts()) -> list_task_definitions_return().
+-spec list_task_definitions(list_task_definitions_opts()) -> ecs_return(#ecs_list_task_definitions{}).
 list_task_definitions(Opts) ->
     list_task_definitions(Opts, default_config()).
 
@@ -2113,12 +1980,12 @@ list_task_definitions(Opts) ->
 %% '
 %% @end
 %%%------------------------------------------------------------------------------
--spec list_task_definitions(list_task_definitions_opts(), aws_config()) -> list_task_definitions_return().
+-spec list_task_definitions(list_task_definitions_opts(), aws_config()) -> ecs_return(#ecs_list_task_definitions{}).
 list_task_definitions(Opts, Config) ->
     {AwsOpts, EcsOpts} = opts(list_task_definitions_opts(), Opts),
     Return = ecs_request(Config, "ListTaskDefinitions", AwsOpts),
     out(Return, fun(Json, UOpts) -> decode_record(list_task_definitions_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_list_task_definitions.task_definition_arns, {ok, []}).
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %% ListTasks
@@ -2156,13 +2023,12 @@ list_tasks_record() ->
       {<<"nextToken">>, #ecs_list_tasks.next_token, fun id/2}
      ]}.
 
--type list_tasks_return() :: ecs_return(#ecs_list_tasks{}, [arn()]).
 
--spec list_tasks() -> list_tasks_return().
+-spec list_tasks() -> ecs_return(#ecs_list_tasks{}).
 list_tasks() ->
     list_tasks([], default_config()).
 
--spec list_tasks(list_tasks_opts()) -> list_tasks_return().
+-spec list_tasks(list_tasks_opts()) -> ecs_return(#ecs_list_tasks{}).
 list_tasks(Opts) ->
     list_tasks(Opts, default_config()).
 
@@ -2180,12 +2046,12 @@ list_tasks(Opts) ->
 %% '
 %% @end
 %%%------------------------------------------------------------------------------
--spec list_tasks(list_tasks_opts(), aws_config()) -> list_tasks_return().
+-spec list_tasks(list_tasks_opts(), aws_config()) -> ecs_return(#ecs_list_tasks{}).
 list_tasks(Opts, Config) ->
     {AwsOpts, EcsOpts} = opts(list_tasks_opts(), Opts),
     Return = ecs_request(Config, "ListTasks", AwsOpts),
     out(Return, fun(Json, UOpts) -> decode_record(list_tasks_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_list_tasks.task_arns, {ok, []}).
+        EcsOpts).
 
 
 %%%------------------------------------------------------------------------------
@@ -2204,25 +2070,17 @@ register_task_definition_opts() ->
         volumes_opt()
     ].
 
--spec register_task_definition_record() -> record_desc().
-register_task_definition_record() ->
-    {#ecs_register_task_definition{},
-     [{<<"taskDefinition">>, #ecs_register_task_definition.task_definition,
-       fun(V, Opts) -> decode_record(task_definition_record(), V, Opts) end}
-     ]}.
-        
--type register_task_definition_return() :: ecs_return(#ecs_register_task_definition{}, #ecs_task_definition{}).
 
 -spec register_task_definition(
         ContainerDefinitions :: maybe_list(container_definition_opts()),
-        Family :: string_param()) -> register_task_definition_return().
+        Family :: string_param()) -> ecs_return(#ecs_task_definition{}).
 register_task_definition(ContainerDefinitions, Family) ->
     register_task_definition(ContainerDefinitions, Family, default_config()).
 
 -spec register_task_definition(
         ContainerDefinitions :: maybe_list(container_definition_opts()),
         Family :: string_param(),
-        register_task_definition_opts() | aws_config()) -> register_task_definition_return().
+        register_task_definition_opts() | aws_config()) -> ecs_return(#ecs_task_definition{}).
 register_task_definition(ContainerDefinitions, Family, #aws_config{} = Config) ->
     register_task_definition(ContainerDefinitions, Family, [], Config);
 register_task_definition(ContainerDefinitions, Family, Opts) ->
@@ -2246,7 +2104,7 @@ register_task_definition(ContainerDefinitions, Family, Opts) ->
         ContainerDefinitions :: maybe_list(container_definition_opts()),
         Family :: string_param(),
         Opts :: register_task_definition_opts(),
-        Config :: aws_config()) -> register_task_definition_return().
+        Config :: aws_config()) -> ecs_return(#ecs_task_definition{}).
 register_task_definition(ContainerDefinitions, Family, Opts, Config) ->
     Params = [
                 {<<"containerDefinitions">>, encode_container_definitions(ContainerDefinitions)},
@@ -2257,8 +2115,8 @@ register_task_definition(ContainerDefinitions, Family, Opts, Config) ->
                 Config,
                 "RegisterTaskDefinition",
                 Params ++ AwsOpts),
-    out(Return, fun(Json, UOpts) -> decode_record(register_task_definition_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_register_task_definition.task_definition).
+    out(Return, fun(Json, UOpts) -> decode_single_record(task_definition_record(), <<"taskDefinition">>, Json, UOpts) end,
+        EcsOpts).
 
 
 %%%------------------------------------------------------------------------------
@@ -2286,13 +2144,11 @@ run_task_record() ->
       {<<"failures">>, #ecs_run_task.failures, fun decode_failures_list/2}
      ]}.
 
--type run_task_return() :: ecs_return(#ecs_run_task{}, [#ecs_task{}]).
-
--spec run_task(TaskDefinition :: string_param()) -> run_task_return().
+-spec run_task(TaskDefinition :: string_param()) -> ecs_return(#ecs_run_task{}).
 run_task(TaskDefinition) ->
     run_task(TaskDefinition, [], default_config()).
 
--spec run_task(TaskDefinition :: string_param(), run_task_opts() | aws_config()) -> run_task_return().
+-spec run_task(TaskDefinition :: string_param(), run_task_opts() | aws_config()) -> ecs_return(#ecs_run_task{}).
 run_task(TaskDefinition, #aws_config{} = Config) ->
     run_task(TaskDefinition, [], Config);
 run_task(TaskDefinition, Opts) ->
@@ -2316,7 +2172,7 @@ run_task(TaskDefinition, Opts) ->
 -spec run_task(
         TaskDefinition :: string_param(),
         Opts :: run_task_opts(),
-        Config :: aws_config()) -> run_task_return().
+        Config :: aws_config()) -> ecs_return(#ecs_run_task{}).
 run_task(TaskDefinition, Opts, Config) ->
     {AwsOpts, EcsOpts} = opts(run_task_opts(), Opts),
     Return = ecs_request(
@@ -2324,7 +2180,7 @@ run_task(TaskDefinition, Opts, Config) ->
                 "RunTask",
                 [{<<"taskDefinition">>, to_binary(TaskDefinition)}] ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> decode_record(run_task_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_run_task.tasks).
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %% StartTask
@@ -2349,18 +2205,16 @@ start_task_record() ->
       {<<"failures">>, #ecs_start_task.failures, fun decode_failures_list/2}
      ]}.
 
--type start_task_return() :: ecs_return(#ecs_start_task{}, [#ecs_task{}]).
-
 -spec start_task(
         TaskDefinition :: string_param(),
-        ContainerInstances :: [string_param()]) -> start_task_return().
+        ContainerInstances :: [string_param()]) -> ecs_return(#ecs_start_task{}).
 start_task(TaskDefinition, ContainerInstances) ->
     start_task(TaskDefinition, ContainerInstances, [], default_config()).
 
 -spec start_task(
         TaskDefinition :: string_param(),
         ContainerInstances :: [string_param()],
-        start_task_opts() | aws_config()) -> start_task_return().
+        start_task_opts() | aws_config()) -> ecs_return(#ecs_start_task{}).
 start_task(TaskDefinition, ContainerInstances, #aws_config{} = Config) ->
     start_task(TaskDefinition, ContainerInstances, [], Config);
 start_task(TaskDefinition, ContainerInstances, Opts) ->
@@ -2384,7 +2238,7 @@ start_task(TaskDefinition, ContainerInstances, Opts) ->
         TaskDefinition :: string_param(),
         ContainerInstances :: [string_param()],
         Opts :: start_task_opts(),
-        Config :: aws_config()) -> start_task_return().
+        Config :: aws_config()) -> ecs_return(#ecs_start_task{}).
 start_task(TaskDefinition, ContainerInstances, Opts, Config) ->
     {AwsOpts, EcsOpts} = opts(start_task_opts(), Opts),
     Return = ecs_request(
@@ -2395,7 +2249,7 @@ start_task(TaskDefinition, ContainerInstances, Opts, Config) ->
                     {<<"containerInstances">>, to_binary(ContainerInstances)}
                 ] ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> decode_record(start_task_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_start_task.tasks).
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %% StopTask
@@ -2410,20 +2264,12 @@ stop_task_opts() ->
         {reason, <<"reason">>, fun to_binary/1}
     ].
 
--spec stop_task_record() -> record_desc().
-stop_task_record() ->
-    {#ecs_stop_task{},
-     [{<<"task">>, #ecs_stop_task.task,
-       fun(V, Opts) -> decode_record(task_record(), V, Opts) end}
-     ]}.
-    
--type stop_task_return() :: ecs_return(#ecs_stop_task{}, #ecs_task{}).
 
--spec stop_task(Task :: string_param()) -> stop_task_return().
+-spec stop_task(Task :: string_param()) -> ecs_return(#ecs_task{}).
 stop_task(Task) ->
     stop_task(Task, [], default_config()).
 
--spec stop_task(Task :: string_param(), stop_task_opts() | aws_config()) -> stop_task_return().
+-spec stop_task(Task :: string_param(), stop_task_opts() | aws_config()) -> ecs_return(#ecs_task{}).
 stop_task(Task, #aws_config{} = Config) ->
     stop_task(Task, [], Config);
 stop_task(Task, Opts) ->
@@ -2443,15 +2289,15 @@ stop_task(Task, Opts) ->
 %% '
 %% @end
 %%%------------------------------------------------------------------------------
--spec stop_task(Task :: string_param(), stop_task_opts(), aws_config()) -> stop_task_return().
+-spec stop_task(Task :: string_param(), stop_task_opts(), aws_config()) -> ecs_return(#ecs_task{}).
 stop_task(Task, Opts, #aws_config{} = Config) ->
     {AwsOpts, EcsOpts} = opts(stop_task_opts(), Opts),
     Return = ecs_request(
                 Config,
                 "StopTask",
                 [{<<"task">>, to_binary(Task)}] ++ AwsOpts),
-    out(Return, fun(Json, UOpts) -> decode_record(stop_task_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_stop_task.task).
+    out(Return, fun(Json, UOpts) -> decode_single_record(task_record(), <<"task">>, Json, UOpts) end,
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %% UpdateContainerAgent 
@@ -2461,22 +2307,14 @@ stop_task(Task, Opts, #aws_config{} = Config) ->
 update_container_agent_opts() ->
     [{cluster, <<"cluster">>, fun to_binary/1}].
 
--spec update_container_agent_record() -> record_desc().
-update_container_agent_record() ->
-    {#ecs_update_container_agent{},
-     [{<<"containerInstance">>, #ecs_update_container_agent.container_instance,
-       fun(V, Opts) -> decode_record(container_instance_record(), V, Opts) end}
-     ]}.
 
--type update_container_agent_return() :: ecs_return(#ecs_update_container_agent{}, #ecs_container_instance{}).
-
--spec update_container_agent(ContainerInstance :: string_param()) -> update_container_agent_return().
+-spec update_container_agent(ContainerInstance :: string_param()) -> ecs_return(#ecs_container_instance{}).
 update_container_agent(ContainerInstance) ->
     update_container_agent(ContainerInstance, [], default_config()).
 
 -spec update_container_agent(
             ContainerInstance :: string_param(),
-            update_container_agent_opts() | aws_config()) -> update_container_agent_return().
+            update_container_agent_opts() | aws_config()) -> ecs_return(#ecs_container_instance{}).
 update_container_agent(ContainerInstance, #aws_config{} = Config) ->
     update_container_agent(ContainerInstance, [], Config);
 update_container_agent(ContainerInstance, Opts) ->
@@ -2499,15 +2337,15 @@ update_container_agent(ContainerInstance, Opts) ->
 -spec update_container_agent(
             ContainerInstance :: string_param(),
             Opts :: update_container_agent_opts(),
-            Config :: aws_config()) -> update_container_agent_return().
+            Config :: aws_config()) -> ecs_return(#ecs_container_instance{}).
 update_container_agent(ContainerInstance, Opts, Config) ->
     {AwsOpts, EcsOpts} = opts(update_container_agent_opts(), Opts),
     Return = ecs_request(
                 Config,
                 "UpdateContainerAgent",
                 [{<<"containerInstance">>, to_binary(ContainerInstance)}] ++ AwsOpts),
-    out(Return, fun(Json, UOpts) -> decode_record(update_container_agent_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_update_container_agent.container_instance).
+    out(Return, fun(Json, UOpts) -> decode_single_record(container_instance_record(), <<"containerInstance">>, Json, UOpts) end,
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %% UpdateService
@@ -2526,20 +2364,12 @@ update_service_opts() ->
         {task_definition, <<"taskDefinition">>, fun to_binary/1}
     ].
 
--spec update_service_record() -> record_desc().
-update_service_record() ->
-    {#ecs_update_service{},
-     [{<<"service">>, #ecs_update_service.service,
-       fun(V, Opts) -> decode_record(service_record(), V, Opts) end}
-     ]}.
 
--type update_service_return() :: ecs_return(#ecs_update_service{}, #ecs_service{}).
-
--spec update_service(Service :: string_param()) -> update_service_return().
+-spec update_service(Service :: string_param()) -> ecs_return(#ecs_service{}).
 update_service(Service) ->
     update_service(Service, [], default_config()).
 
--spec update_service(Service :: string_param(), update_service_opts() | aws_config) -> update_service_return().
+-spec update_service(Service :: string_param(), update_service_opts() | aws_config) -> ecs_return(#ecs_service{}).
 update_service(Service, #aws_config{} = Config) ->
     update_service(Service, [], Config);
 update_service(Service, Opts) ->
@@ -2562,15 +2392,15 @@ update_service(Service, Opts) ->
 -spec update_service(
         Service :: string_param(),
         Opts :: update_service_opts(),
-        Config :: aws_config()) -> update_service_return().
+        Config :: aws_config()) -> ecs_return(#ecs_service{}).
 update_service(Service, Opts, #aws_config{} = Config) ->
     {AwsOpts, EcsOpts} = opts(update_service_opts(), Opts),
     Return = ecs_request(
                 Config,
                 "UpdateService",
                 [{<<"service">>, to_binary(Service)}] ++ AwsOpts),
-    out(Return, fun(Json, UOpts) -> decode_record(update_service_record(), Json, UOpts) end, 
-        EcsOpts, #ecs_create_service.service).
+    out(Return, fun(Json, UOpts) -> decode_single_record(service_record(), <<"service">>, Json, UOpts) end,
+        EcsOpts).
 
 %%%------------------------------------------------------------------------------
 %%% Internal Functions

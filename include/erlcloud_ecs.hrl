@@ -7,6 +7,7 @@
 -type ecs_task_log_driver() :: 'json-file' | syslog | journald | gelf | fluentd | awslogs | splunk.
 -type ecs_protocol() :: tcp | udp.
 -type ecs_ulimit_name() :: core | cpu | data | fsize | locks | memlock | msgqueue | nice | nofile | nproc | rss | rtprio | rttime | sigpending | stack.
+-type token() :: binary().
 
 %%%------------------------------------------------------------------------------
 %%
@@ -15,13 +16,17 @@
 %%%------------------------------------------------------------------------------
 -record(ecs_pagination_options, {
     max_results = ?LIMIT_MAX :: 1..100,
-    next_token :: binary()
+    next_token :: token()
 }).
 -type(ecs_pagination_options() :: #ecs_pagination_options{}).
 
 -record(ecs_attribute, {
     name :: binary(),
     value :: binary()
+}).
+%% helper record
+-record(ecs_single_return, {
+    object :: term()
 }).
 
 -record(ecs_deployment_configuration, {
@@ -63,14 +68,6 @@
     status :: binary()
 }).
 
--record(ecs_create_cluster, {
-    cluster :: #ecs_cluster{}
-}).
-
--record(ecs_delete_cluster, {
-    cluster :: #ecs_cluster{}
-}).
-
 -record(ecs_service, {
     cluster_arn :: binary(),
     created_at :: pos_integer(),
@@ -86,14 +83,6 @@
     service_name :: binary(),
     status :: binary(),
     task_definition :: binary()
-}).
-
--record(ecs_create_service, {
-    service :: #ecs_service{}
-}).
-
--record(ecs_delete_service, {
-    service :: #ecs_service{}
 }).
 
 -record(ecs_resource, {
@@ -123,10 +112,6 @@
     running_tasks_count :: pos_integer(),
     status :: binary(),
     version_info :: #ecs_version_info{}
-}).
-
--record(ecs_deregister_container_instance, {
-    container_instance :: #ecs_container_instance{}
 }).
 
 -record(ecs_failure, {
@@ -170,14 +155,12 @@
     host_port :: pos_integer(),
     protocol :: ecs_protocol()
 }).
--type(ecs_port_mapping() :: #ecs_port_mapping{}).
 
 -record(ecs_ulimit, {
     hard_limit :: pos_integer(),
     name :: ecs_ulimit_name(),
     soft_limit :: pos_integer()
 }).
--type(ecs_ulimit() :: #ecs_ulimit{}).
 
 -record(ecs_volume_from, {
     read_only :: boolean(),
@@ -233,14 +216,6 @@
     volumes :: [#ecs_volume{}]
 }).
 
--record(ecs_deregister_task_definition, {
-    task_definition :: #ecs_task_definition{}
-}).
-
--record(ecs_describe_task_definition, {
-    task_definition :: #ecs_task_definition{}
-}).
-
 -record(ecs_network_binding, {
     bind_ip :: binary(),
     container_port :: pos_integer(),
@@ -292,36 +267,32 @@
 
 -record(ecs_list_clusters, {
     cluster_arns :: [erlcloud_ecs:arn()],
-    next_token :: erlcloud_ecs:token()
+    next_token :: token()
 }).
 
 -record(ecs_list_container_instances, {
     container_instance_arns:: [erlcloud_ecs:arn()],
-    next_token :: erlcloud_ecs:token()
+    next_token :: token()
 }).
 
 -record(ecs_list_services, {
     service_arns:: [erlcloud_ecs:arn()],
-    next_token :: erlcloud_ecs:token()
+    next_token :: token()
 }).
 
 -record(ecs_list_task_definition_families, {
     families :: [erlcloud_ecs:arn()],
-    next_token :: erlcloud_ecs:token()
+    next_token :: token()
 }).
 
 -record(ecs_list_task_definitions, {
     task_definition_arns :: [erlcloud_ecs:arn()],
-    next_token :: erlcloud_ecs:token()
+    next_token :: token()
 }).
 
 -record(ecs_list_tasks, {
     task_arns :: [erlcloud_ecs:arn()],
-    next_token :: erlcloud_ecs:token()
-}).
-
--record(ecs_register_task_definition, {
-    task_definition :: #ecs_task_definition{}
+    next_token :: token()
 }).
 
 -record(ecs_run_task, {
@@ -333,16 +304,3 @@
     tasks :: [#ecs_task{}],
     failures :: [#ecs_failure{}]
 }).
-
--record(ecs_stop_task, {
-    task :: #ecs_task{}
-}).
-
--record(ecs_update_container_agent, {
-    container_instance :: #ecs_container_instance{}
-}).
-
--record(ecs_update_service, {
-    service :: #ecs_service{}
-}).
-
