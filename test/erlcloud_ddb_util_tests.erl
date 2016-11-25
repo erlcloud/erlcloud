@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("erlcloud.hrl").
 -include("erlcloud_ddb.hrl").
+-include("erlcloud_ddb2.hrl").
 
 %% Unit tests for erlcloud_ddb_util.
 %% These tests work by using meck to mock erlcloud_httpc.
@@ -31,7 +32,11 @@ operation_test_() ->
       fun get_all_tests/1,
       fun put_all_tests/1,
       fun q_all_tests/1,
+      fun q_all_attributes/0,
+      fun q_all_count/0,
       fun scan_all_tests/1,
+      fun scan_all_attributes/0,
+      fun scan_all_count/0,
       fun write_all_tests/1
      ]}.
 
@@ -624,6 +629,34 @@ q_all_tests(_) ->
          ],
     multi_call_tests(Tests).
 
+q_all_attributes() ->
+    Item1 = <<"item_1">>,
+    Item2 = <<"item_2">>,
+    meck:new(EDDB = erlcloud_ddb2),
+    meck:sequence(EDDB, q, 4, [
+        {ok, #ddb2_q{last_evaluated_key = <<"key">>,
+                     items              = [Item1]}},
+        {ok, #ddb2_q{last_evaluated_key = undefined,
+                     items              = [Item2]}}
+    ]),
+    ?assertEqual({ok, [Item1, Item2]},
+                 erlcloud_ddb_util:q_all(<<"tbl">>, [])),
+    meck:unload(EDDB).
+
+q_all_count() ->
+    meck:new(EDDB = erlcloud_ddb2),
+    meck:sequence(EDDB, q, 4, [
+        {ok, #ddb2_q{last_evaluated_key = <<"key">>,
+                     items              = undefined,
+                     count              = 2}},
+        {ok, #ddb2_q{last_evaluated_key = undefined,
+                     items              = undefined,
+                     count              = 1}}
+    ]),
+    ?assertEqual({ok, 3},
+                 erlcloud_ddb_util:q_all(<<"tbl">>, [])),
+    meck:unload(EDDB).
+
 scan_all_tests(_) ->
     Tests =
         [?_ddb_test(
@@ -742,6 +775,34 @@ scan_all_tests(_) ->
                   ]}})
          ],
     multi_call_tests(Tests).
+
+scan_all_attributes() ->
+    Item1 = <<"item_1">>,
+    Item2 = <<"item_2">>,
+    meck:new(EDDB = erlcloud_ddb2),
+    meck:sequence(EDDB, scan, 3, [
+        {ok, #ddb2_scan{last_evaluated_key = <<"key">>,
+                        items              = [Item1]}},
+        {ok, #ddb2_scan{last_evaluated_key = undefined,
+                        items              = [Item2]}}
+    ]),
+    ?assertEqual({ok, [Item1, Item2]},
+                 erlcloud_ddb_util:scan_all(<<"tbl">>, [])),
+    meck:unload(EDDB).
+
+scan_all_count() ->
+    meck:new(EDDB = erlcloud_ddb2),
+    meck:sequence(EDDB, scan, 3, [
+        {ok, #ddb2_scan{last_evaluated_key = <<"key">>,
+                        items              = undefined,
+                        count              = 2}},
+        {ok, #ddb2_scan{last_evaluated_key = undefined,
+                        items              = undefined,
+                        count              = 1}}
+    ]),
+    ?assertEqual({ok, 3},
+                 erlcloud_ddb_util:scan_all(<<"tbl">>, [])),
+    meck:unload(EDDB).
 
 %% Currently don't have tests for the parallel write (more than 25 items).
 write_all_tests(_) ->
