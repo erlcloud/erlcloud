@@ -381,14 +381,8 @@ config_metadata() ->
 
 
 -spec update_config(aws_config()) -> {ok, aws_config()} | {error, term()}.
-update_config(#aws_config{access_key_id = KeyId} = Config)
-  when is_list(KeyId), KeyId /= [] ->
-    %% In order to support caching of the aws_config, we could store the expiration_time
-    %% and check it here. If it is about to expire (within 5 minutes is what boto uses)
-    %% then we should get the new config.
-    {ok, Config};
-update_config(#aws_config{assume_role = AssumeRoleOptions} = Config)
-    when  is_list(AssumeRoleOptions), AssumeRoleOptions /= [] ->
+update_config(#aws_config{assume_role = [{_,_}|_] = AssumeRoleOptions} = Config)
+    when is_list(AssumeRoleOptions) ->
     %% The assume role options are defined lets try to assume a role
     case get_role_credentials(Config) of
         {error, Reason} ->
@@ -399,6 +393,12 @@ update_config(#aws_config{assume_role = AssumeRoleOptions} = Config)
                 secret_access_key = Credentials#role_credentials.secret_access_key,
                 security_token = Credentials#role_credentials.session_token}}
     end;
+update_config(#aws_config{access_key_id = KeyId} = Config)
+  when is_list(KeyId), KeyId /= [] ->
+    %% In order to support caching of the aws_config, we could store the expiration_time
+    %% and check it here. If it is about to expire (within 5 minutes is what boto uses)
+    %% then we should get the new config.
+    {ok, Config};
 update_config(#aws_config{} = Config) ->
     %% AccessKey is not set. Try to read from role metadata.
     case get_metadata_credentials(Config) of
@@ -591,12 +591,13 @@ prop_to_list_defined( Name, Props ) ->
 
 
 -spec get_role_credentials(aws_config()) -> {ok, #role_credentials{}} | {error, term()}.
-get_role_credentials(Config) ->
-    case application:get_env(erlcloud, role_credentials) of
+get_role_credentials(#aws_config{assume_role = AssumeRoleOptions} = Config) ->
+    RoleArn = proplists:get_value(role_arn, AssumeRoleOptions, undefined),
+    case application:get_env(erlcloud, {role_credentials, RoleArn}) of
         {ok, #role_credentials{expiration_gregorian_seconds = Expiration} = Credentials} ->
             Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
-            %% Get new credentials if these will expire in less than 5 minutes
-            case Expiration - Now < 300 of
+            %% Get new credentials if these will expire in less than 2 minutes
+            case Expiration - Now < 120 of
                 true -> get_credentials_from_role(Config);
                 false -> {ok, Credentials}
             end;
@@ -604,23 +605,29 @@ get_role_credentials(Config) ->
             get_credentials_from_role(Config)
     end.
 
--spec get_credentials_from_role(aws_config()) -> {ok, #role_credentials{}} | {error, term()}.
+-spec get_credentials_from_role(aws_config()) -> {ok, #role_credentials{}} |
+                                                 {error, term()}.
 get_credentials_from_role(#aws_config{assume_role = AssumeRoleOptions} = Config) ->
     RoleArn = proplists:get_value(role_arn, AssumeRoleOptions, undefined),
     SessionName = proplists:get_value(session_name, AssumeRoleOptions,
                                       "erlcloud"),
     SessionExpiration = proplists:get_value(session_expiration,
                                             AssumeRoleOptions, 900),
-    case catch erlcloud_sts:assume_role(Config, RoleArn, SessionName,
+    %% We have to remove the assume role options to make sure we do not
+    %% enter in a infinite loop because erlcloud_sts:assume_role also calls
+    %% update_config deep inside when makes the request
+    case catch erlcloud_sts:assume_role(Config#aws_config{assume_role = []},
+                                        RoleArn, SessionName,
                                         SessionExpiration) of
         {#aws_config{}=_NewConfig, Creds} ->
+            ExpireAt = calendar:datetime_to_gregorian_seconds(
+                proplists:get_value(expiration, Creds)),
             Record = #role_credentials{
                 access_key_id =  proplists:get_value(access_key_id, Creds),
                 secret_access_key = proplists:get_value(secret_access_key, Creds),
                 session_token = proplists:get_value(session_token, Creds),
-                expiration_gregorian_seconds = timestamp_to_gregorian_seconds(
-                    proplists:get_value(expiration, Creds))},
-            application:set_env(erlcloud, role_credentials, Record),
+                expiration_gregorian_seconds = ExpireAt},
+            application:set_env(erlcloud, {role_credentials, RoleArn}, Record),
             {ok, Record};
         {'EXIT', Reason} ->
             {error, Reason}
