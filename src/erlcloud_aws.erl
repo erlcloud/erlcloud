@@ -613,12 +613,14 @@ get_credentials_from_role(#aws_config{assume_role = AssumeRoleOptions} = Config)
                                       "erlcloud"),
     SessionExpiration = proplists:get_value(session_expiration,
                                             AssumeRoleOptions, 900),
+    ExternalId = proplists:get_value(external_id, AssumeRoleOptions,
+                                      undefined),
     %% We have to remove the assume role options to make sure we do not
     %% enter in a infinite loop because erlcloud_sts:assume_role also calls
     %% update_config deep inside when makes the request
     case catch erlcloud_sts:assume_role(Config#aws_config{assume_role = []},
                                         RoleArn, SessionName,
-                                        SessionExpiration) of
+                                        SessionExpiration, ExternalId) of
         {#aws_config{}=_NewConfig, Creds} ->
             ExpireAt = calendar:datetime_to_gregorian_seconds(
                 proplists:get_value(expiration, Creds)),
