@@ -210,6 +210,7 @@
 -type ec2_selector() :: proplist().
 -type ec2_token() :: string() | undefined.
 -type ec2_max_result() :: pos_integer() | undefined.
+-type ok_error() :: ok | {error, term()}.
 -type ok_error(Ok) :: {ok, Ok} | {error, term()}.
 -type ok_error(Ok1, Ok2) :: {ok, Ok1, Ok2} | {error, term()}.
 -type instance_id() :: string().
@@ -246,18 +247,16 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
 
-%%
-%%
--spec allocate_address() -> {ok, string()} | {error, any()}.
+-spec allocate_address() -> ok_error(string()).
 allocate_address() -> allocate_address(none, default_config()).
 
--spec allocate_address(aws_config()) -> {ok, string()} | {error, any()}.
+-spec allocate_address(aws_config()) -> ok_error(string()).
 allocate_address(Config) when is_record(Config, aws_config) ->
     allocate_address(none, Config);
 allocate_address(Domain) when is_atom(Domain) ->
     allocate_address(Domain, default_config()).
 
--spec allocate_address(none | vpc, aws_config()) -> {ok, string()} | {ok, {string() | string()}} | {error, any()}.
+-spec allocate_address(none | vpc, aws_config()) -> ok_error(string() | {string(), string()}).
 allocate_address(Domain, Config) ->
     Params = case Domain of
                  vpc -> [{"Domain", "vpc"}];
@@ -276,13 +275,11 @@ allocate_address(Domain, Config) ->
             Error
     end.
 
-%%
-%%
--spec associate_address(string(), string()) -> ok | {error, any()}.
+-spec associate_address(string(), string()) -> ok_error().
 associate_address(PublicIP, InstanceID) ->
     associate_address(PublicIP, InstanceID, default_config()).
 
--spec associate_address(string(), string(), string() | aws_config()) -> ok | {error, any()}.
+-spec associate_address(string(), string(), string() | aws_config()) -> ok_error().
 associate_address(PublicIP, InstanceID, Config)
   when is_list(PublicIP), is_list(InstanceID), is_record(Config, aws_config) ->
     associate_address(PublicIP, InstanceID, none, Config);
@@ -290,7 +287,7 @@ associate_address(PublicIP, InstanceID, AllocationID)
   when is_list(PublicIP), is_list(InstanceID), is_list(AllocationID) ->
     associate_address(PublicIP, InstanceID, AllocationID, default_config()).
 
--spec associate_address(string(), string(), string() | none, aws_config()) -> ok | {error, any()}.
+-spec associate_address(string(), string(), string() | none, aws_config()) -> ok_error().
 associate_address(PublicIP, InstanceID, AllocationID, Config) ->
     AllocationParam = case AllocationID of
                           none -> [{ "PublicIp", PublicIP} ];
@@ -300,24 +297,20 @@ associate_address(PublicIP, InstanceID, AllocationID, Config) ->
                      [{"InstanceId", InstanceID} | AllocationParam],
                      ?NEW_API_VERSION).
 
-%%
-%%
--spec associate_dhcp_options(string(), string()) -> ok | {error, any()}.
+-spec associate_dhcp_options(string(), string()) -> ok_error().
 associate_dhcp_options(OptionsID, VpcID) ->
     associate_dhcp_options(OptionsID, VpcID, default_config()).
 
--spec associate_dhcp_options(string(), string(), aws_config()) -> ok | {error, any()}.
+-spec associate_dhcp_options(string(), string(), aws_config()) -> ok_error().
 associate_dhcp_options(OptionsID, VpcID, Config) ->
     ec2_simple_query(Config, "AssociateDhcpOptions",
                      [{"DhcpOptionsId", OptionsID}, {"VpcId", VpcID}]).
 
-%%
-%%
--spec associate_route_table(string(), string()) -> {ok, string()} | {error, any()}.
+-spec associate_route_table(string(), string()) -> ok_error(string()).
 associate_route_table(RouteTableID, SubnetID) ->
     associate_route_table(RouteTableID, SubnetID, default_config()).
 
--spec associate_route_table(string(), string(), aws_config()) -> {ok, string()} | {error, any()}.
+-spec associate_route_table(string(), string(), aws_config()) -> ok_error(string()).
 associate_route_table(RouteTableID, SubnetID, Config) ->
     Params = [{"RouteTableId", RouteTableID}, {"SubnetId", SubnetID}],
     case ec2_query(Config, "AssociateRouteTable", Params, ?NEW_API_VERSION) of
@@ -327,26 +320,21 @@ associate_route_table(RouteTableID, SubnetID, Config) ->
             Error
     end.
 
-%%
-%%
--spec attach_internet_gateway(string(), string()) -> {ok, proplist()} | {error, any()}.
+-spec attach_internet_gateway(string(), string()) -> ok_error().
 attach_internet_gateway(GatewayID, VpcID) ->
     attach_internet_gateway(GatewayID, VpcID, default_config()).
 
--spec attach_internet_gateway(string(), string(), aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec attach_internet_gateway(string(), string(), aws_config()) -> ok_error().
 attach_internet_gateway(GatewayID, VpcID, Config) ->
     ec2_simple_query(Config, "AttachInternetGateway",
                      [{"InternetGatewayId", GatewayID},
                       {"VpcId", VpcID}], ?NEW_API_VERSION).
 
-
-%%
-%%
--spec attach_volume(string(), string(), string()) -> {ok, proplist()} | {error, any()}.
+-spec attach_volume(string(), string(), string()) -> ok_error(proplist()).
 attach_volume(VolumeID, InstanceID, Device) ->
     attach_volume(VolumeID, InstanceID, Device, default_config()).
 
--spec attach_volume(string(), string(), string(), aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec attach_volume(string(), string(), string(), aws_config()) -> ok_error(proplist()).
 attach_volume(VolumeID, InstanceID, Device, Config)
   when is_list(VolumeID), is_list(InstanceID), is_list(Device) ->
     case ec2_query(Config, "AttachVolume", [{"InstanceId", InstanceID}, {"Device", Device}, {"VolumeId", VolumeID}]) of
@@ -368,13 +356,11 @@ extract_volume_status(Node) ->
       Node
      ).
 
-%%
-%%
--spec authorize_security_group_ingress(string(), ec2_ingress_spec()) -> ok | {error, any()}.
+-spec authorize_security_group_ingress(string(), ec2_ingress_spec()) -> ok_error().
 authorize_security_group_ingress(GroupName, IngressSpec) ->
     authorize_security_group_ingress(GroupName, IngressSpec, default_config()).
 
--spec authorize_security_group_ingress(string(), ec2_ingress_spec() | [ vpc_ingress_spec() ], aws_config()) -> ok | {error, any()}.
+-spec authorize_security_group_ingress(string(), ec2_ingress_spec() | [vpc_ingress_spec()], aws_config()) -> ok_error().
 authorize_security_group_ingress(GroupName, IngressSpec, Config)
   when is_list(GroupName), is_record(IngressSpec, ec2_ingress_spec) ->
     Params = [{"GroupName", GroupName}|ingress_spec_params(IngressSpec)],
@@ -428,15 +414,13 @@ vpc_ingress_details_to_params([H|T], Count, Prefix, Suffix, DetailCount, Res) ->
     vpc_ingress_details_to_params(T, Count, Prefix, Suffix, DetailCount + 1,
                                   [ Param | Res ]).
 
-%%
-%%
--spec bundle_instance(string(), string(), string(), string(), string(), string()) -> {ok, proplist()} | {error, any()}.
+-spec bundle_instance(string(), string(), string(), string(), string(), string()) -> ok_error(proplist()).
 bundle_instance(InstanceID, Bucket, Prefix, AccessKeyID, UploadPolicy,
                 UploadPolicySignature) ->
     bundle_instance(InstanceID, Bucket, Prefix, AccessKeyID, UploadPolicy,
                     UploadPolicySignature, default_config()).
 
--spec bundle_instance(string(), string(), string(), string(), string(), string(), aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec bundle_instance(string(), string(), string(), string(), string(), string(), aws_config()) -> ok_error(proplist()).
 bundle_instance(InstanceID, Bucket, Prefix, AccessKeyID, UploadPolicy,
                 UploadPolicySignature, Config) ->
     case ec2_query(Config, "BundleInstance",
@@ -462,13 +446,11 @@ extract_bundle_task([Node]) ->
      {prefix, get_text("storage/S3/prefix", Node)}
     ].
 
-%%
-%%
--spec cancel_bundle_task(string()) -> {ok, proplist()} | {error, any()}.
+-spec cancel_bundle_task(string()) -> ok_error(proplist()).
 cancel_bundle_task(BundleID) ->
     cancel_bundle_task(BundleID, default_config()).
 
--spec cancel_bundle_task(string(), aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec cancel_bundle_task(string(), aws_config()) -> ok_error(proplist()).
 cancel_bundle_task(BundleID, Config)
   when is_list(BundleID) ->
     case ec2_query(Config, "CancelBundleTask", [{"BundleId", BundleID}]) of
@@ -478,13 +460,11 @@ cancel_bundle_task(BundleID, Config)
             Error
     end.
 
-%%
-%%
--spec cancel_spot_instance_requests([string()]) -> {ok, [proplist()]} | {error, any()}.
+-spec cancel_spot_instance_requests([string()]) -> ok_error([proplist()]).
 cancel_spot_instance_requests(SpotInstanceRequestIDs) ->
     cancel_spot_instance_requests(SpotInstanceRequestIDs, default_config()).
 
--spec cancel_spot_instance_requests([string()], aws_config()) -> {ok, [proplist()]} | {error, any()}.
+-spec cancel_spot_instance_requests([string()], aws_config()) -> ok_error([proplist()]).
 cancel_spot_instance_requests(SpotInstanceRequestIDs, Config)
   when is_list(SpotInstanceRequestIDs) ->
     case ec2_query(Config, "CancelSpotInstanceRequests",
@@ -502,13 +482,11 @@ extract_spot_instance_state(Node) ->
      {state, get_text("state", Node)}
     ].
 
-%%
-%%
--spec confirm_product_instance(string(), string()) -> {ok, proplist()} | {error, any()}.
+-spec confirm_product_instance(string(), string()) -> ok_error(proplist()).
 confirm_product_instance(ProductCode, InstanceID) ->
     confirm_product_instance(ProductCode, InstanceID, default_config()).
 
--spec confirm_product_instance(string(), string(), aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec confirm_product_instance(string(), string(), aws_config()) -> ok_error(proplist()).
 confirm_product_instance(ProductCode, InstanceID, Config)
   when is_list(ProductCode), is_list(InstanceID) ->
     Params = [{"ProductCode", ProductCode}, {"InstanceId", InstanceID}],
@@ -522,12 +500,10 @@ confirm_product_instance(ProductCode, InstanceID, Config)
             Error
     end.
 
-%%
-%%
--spec create_key_pair(string()) -> {ok, proplist()} | {error, any()}.
+-spec create_key_pair(string()) -> ok_error(proplist()).
 create_key_pair(KeyName) -> create_key_pair(KeyName, default_config()).
 
--spec create_key_pair(string(), aws_config()) -> proplist().
+-spec create_key_pair(string(), aws_config()) -> ok_error(proplist()).
 create_key_pair(KeyName, Config)
   when is_list(KeyName) ->
     case ec2_query(Config, "CreateKeyPair", [{"KeyName", KeyName}]) of
@@ -541,12 +517,10 @@ create_key_pair(KeyName, Config)
             Error
     end.
 
-%%
-%%
--spec import_key_pair(string(), string()) -> {ok, proplist()} | {error, any()}.
+-spec import_key_pair(string(), string()) -> ok_error(proplist()).
 import_key_pair(KeyName, PublicKeyMaterial) -> import_key_pair(KeyName, PublicKeyMaterial, default_config()).
 
--spec import_key_pair(string(), string(), aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec import_key_pair(string(), string(), aws_config()) -> ok_error(proplist()).
 import_key_pair(KeyName, PublicKeyMaterial, Config)
   when is_record(Config, aws_config) ->
     Params = [{"KeyName", KeyName}, {"PublicKeyMaterial", base64:encode_to_string(PublicKeyMaterial)}],
@@ -560,26 +534,24 @@ import_key_pair(KeyName, PublicKeyMaterial, Config)
             Error
     end.
 
-%%
-%%
--spec create_image(string(), string()) -> {ok, proplist()} | {error, any()}.
+-spec create_image(string(), string()) -> ok_error(proplist()).
 create_image(InstanceID, Name) -> create_image(InstanceID, Name, default_config()).
 
--spec create_image(string(), string(), string() | aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec create_image(string(), string(), string() | aws_config()) -> ok_error(proplist()).
 create_image(InstanceID, Name, Config)
   when is_record(Config, aws_config) ->
     create_image(InstanceID, Name, none, Config);
 create_image(InstanceID, Name, Description) ->
     create_image(InstanceID, Name, Description, default_config()).
 
--spec create_image(string(), string(), string() | none, boolean() | aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec create_image(string(), string(), string() | none, boolean() | aws_config()) -> ok_error(proplist()).
 create_image(InstanceID, Name, Description, Config)
   when is_record(Config, aws_config) ->
     create_image(InstanceID, Name, Description, false, Config);
 create_image(InstanceID, Name, Description, NoReboot) ->
     create_image(InstanceID, Name, Description, NoReboot, default_config()).
 
--spec create_image(string(), string(), string() | none, boolean(), aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec create_image(string(), string(), string() | none, boolean(), aws_config()) -> ok_error(proplist()).
 create_image(InstanceID, Name, Description, NoReboot, Config)
   when is_list(InstanceID), is_list(Name),
        is_list(Description) orelse Description =:= none,
@@ -593,13 +565,11 @@ create_image(InstanceID, Name, Description, NoReboot, Config)
             Error
     end.
 
-%%
-%%
--spec create_internet_gateway() -> {ok, proplist()} | {error, any()}.
+-spec create_internet_gateway() -> ok_error(proplist()).
 create_internet_gateway() ->
     create_internet_gateway(default_config()).
 
--spec create_internet_gateway(aws_config()) -> proplist().
+-spec create_internet_gateway(aws_config()) -> ok_error(proplist()).
 create_internet_gateway(Config) ->
     case ec2_query(Config, "CreateInternetGateway", [], ?NEW_API_VERSION) of
         {ok, Doc} ->
@@ -609,13 +579,11 @@ create_internet_gateway(Config) ->
             Error
     end.
 
-%%
-%%
--spec create_network_acl(string()) -> {ok, proplist()} | {error, any()}.
+-spec create_network_acl(string()) -> ok_error(proplist()).
 create_network_acl(VpcID) ->
     create_network_acl(VpcID, default_config()).
 
--spec create_network_acl(string(), aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec create_network_acl(string(), aws_config()) -> ok_error(proplist()).
 create_network_acl(VpcID, Config) ->
     case ec2_query(Config, "CreateNetworkAcl", [{"VpcId", VpcID}], ?NEW_API_VERSION) of
         {ok, Doc} ->
@@ -661,13 +629,11 @@ extract_port_range([Node]) ->
      {to, get_text("to", Node)}
 ].
 
-%%
-%%
--spec create_network_acl_entry(ec2_network_acl_spec()) -> ok | {error, any()}.
+-spec create_network_acl_entry(ec2_network_acl_spec()) -> ok_error().
 create_network_acl_entry(Spec) ->
     create_network_acl_entry(Spec, default_config()).
 
--spec create_network_acl_entry(ec2_network_acl_spec(), aws_config()) -> ok | {error, any()}.
+-spec create_network_acl_entry(ec2_network_acl_spec(), aws_config()) -> ok_error().
 create_network_acl_entry(Spec, Config) ->
     Params = network_acl_spec_to_params(Spec),
     ec2_simple_query(Config, "CreateNetworkAclEntry", Params, ?NEW_API_VERSION).
@@ -684,13 +650,11 @@ network_acl_spec_to_params(Spec) ->
      { "PortRange.From", Spec#ec2_network_acl_spec.port_range_from },
      { "PortRange.To", Spec#ec2_network_acl_spec.port_range_to }].
 
-%%
-%%
--spec create_route(string(), string(), gateway_id | instance_id | network_interface_id, string()) -> ok | {error, any()}.
+-spec create_route(string(), string(), gateway_id | instance_id | network_interface_id, string()) -> ok_error().
 create_route(RouteTableID, DestCidrBl, Attachment, Val) ->
     create_route(RouteTableID, DestCidrBl, Attachment, Val, default_config()).
 
--spec create_route(string(), string(), gateway_id | instance_id | network_interface_id, string(), aws_config()) -> ok | {error, any()}.
+-spec create_route(string(), string(), gateway_id | instance_id | network_interface_id, string(), aws_config()) -> ok_error().
 create_route(RouteTableID, DestCidrBl, Attachment, Val, Config) ->
     ASpec= case Attachment of
                gateway_id -> {"GatewayId", Val};
@@ -702,14 +666,11 @@ create_route(RouteTableID, DestCidrBl, Attachment, Val, Config) ->
               {"DestinationCidrBlock", DestCidrBl}],
     ec2_simple_query(Config, "CreateRoute", Params, ?NEW_API_VERSION).
 
-
-%%
-%%
--spec create_route_table(string()) -> {ok, [proplist()]} | {error, any()}.
+-spec create_route_table(string()) -> ok_error([proplist()]).
 create_route_table(VpcID) ->
     create_route_table(VpcID, default_config()).
 
--spec create_route_table(string(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
+-spec create_route_table(string(), aws_config()) -> ok_error([proplist()]).
 create_route_table(VpcID, Config) ->
     case ec2_query(Config, "CreateRouteTable", [{"VpcId", VpcID}], ?NEW_API_VERSION) of
         {ok, Doc} ->
@@ -719,20 +680,17 @@ create_route_table(VpcID, Config) ->
             Error
     end.
 
-
-%%
-%%
--spec create_subnet(string(), string()) -> {ok, proplist()} | {error, any()}.
+-spec create_subnet(string(), string()) -> ok_error(proplist()).
 create_subnet(VpcID, CIDR) when is_list(VpcID), is_list(CIDR) ->
     create_subnet(VpcID, CIDR, none, default_config()).
 
--spec create_subnet(string(), string(), string() | aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec create_subnet(string(), string(), string() | aws_config()) -> ok_error(proplist()).
 create_subnet(VpcID, CIDR, Config) when is_record(Config, aws_config) ->
     create_subnet(VpcID, CIDR, none, Config);
 create_subnet(VpcID, CIDR, Zone) when is_list(Zone) ->
     create_subnet(VpcID, CIDR, Zone, default_config()).
 
--spec create_subnet(string(), string(), string() | none, aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec create_subnet(string(), string(), string() | none, aws_config()) -> ok_error(proplist()).
 create_subnet(VpcID, CIDR, Zone, Config) when
       is_list(VpcID), is_list(CIDR), is_list(Zone) orelse Zone =:= none ->
     Params = [{"VpcId", VpcID}, {"CidrBlock", CIDR},
@@ -745,20 +703,18 @@ create_subnet(VpcID, CIDR, Zone, Config) when
             Error
     end.
 
-%%
-%%
--spec create_security_group(string(), string()) -> ok | {error, any()}.
+-spec create_security_group(string(), string()) -> ok_error().
 create_security_group(GroupName, GroupDescription) ->
     create_security_group(GroupName, GroupDescription, none, default_config()).
 
--spec create_security_group(string(), string(), aws_config() | string() | none) -> ok | {error, any()}.
+-spec create_security_group(string(), string(), aws_config() | string() | none) -> ok_error().
 create_security_group(GroupName, GroupDescription, Config)
   when is_record(Config, aws_config) ->
     create_security_group(GroupName, GroupDescription, none, Config);
 create_security_group(GroupName, GroupDescription, VpcID) ->
     create_security_group(GroupName, GroupDescription, VpcID, default_config()).
 
--spec create_security_group(string(), string(), string() | none, aws_config()) -> ok | {error, any()}.
+-spec create_security_group(string(), string(), string() | none, aws_config()) -> ok_error().
 create_security_group(GroupName, GroupDescription, VpcID, Config)
   when is_list(GroupName), is_list(GroupDescription) ->
     case ec2_query(Config, "CreateSecurityGroup",
@@ -773,20 +729,18 @@ create_security_group(GroupName, GroupDescription, VpcID, Config)
             Error
     end.
 
-%%
-%%
--spec create_snapshot(string()) -> {ok, proplist()} | {error, any()}.
+-spec create_snapshot(string()) -> ok_error(proplist()).
 create_snapshot(VolumeID) ->
     create_snapshot(VolumeID, "", default_config()).
 
--spec create_snapshot(string(), string()) -> proplist() ; (string(), aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec create_snapshot(string(), string()) -> proplist() ; (string(), aws_config()) -> ok_error(proplist()).
 create_snapshot(VolumeID, Config)
   when is_record(Config, aws_config) ->
     create_snapshot(VolumeID, "", Config);
 create_snapshot(VolumeID, Description) ->
     create_snapshot(VolumeID, Description, default_config()).
 
--spec create_snapshot(string(), string(), aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec create_snapshot(string(), string(), aws_config()) -> ok_error(proplist()).
 create_snapshot(VolumeID, Description, Config)
   when is_list(VolumeID), is_list(Description) ->
     case ec2_query(Config, "CreateSnapshot", [{"VolumeId", VolumeID}, {"Description", Description}]) of
@@ -805,20 +759,18 @@ create_snapshot(VolumeID, Description, Config)
             Error
     end.
 
-%%
-%%
--spec create_spot_datafeed_subscription(string()) -> {ok, proplist()} | {error, any()}.
+-spec create_spot_datafeed_subscription(string()) -> ok_error(proplist()).
 create_spot_datafeed_subscription(Bucket) ->
     create_spot_datafeed_subscription(Bucket, none).
 
--spec create_spot_datafeed_subscription(string(), string() | none | aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec create_spot_datafeed_subscription(string(), string() | none | aws_config()) -> ok_error(proplist()).
 create_spot_datafeed_subscription(Bucket, Config)
   when is_record(Config, aws_config) ->
     create_spot_datafeed_subscription(Bucket, none, Config);
 create_spot_datafeed_subscription(Bucket, Prefix) ->
     create_spot_datafeed_subscription(Bucket, Prefix, default_config()).
 
--spec create_spot_datafeed_subscription(string(), string() | none, aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec create_spot_datafeed_subscription(string(), string() | none, aws_config()) -> ok_error(proplist()).
 create_spot_datafeed_subscription(Bucket, Prefix, Config)
   when is_list(Bucket),
        is_list(Prefix) orelse Prefix =:= none ->
@@ -840,17 +792,15 @@ extract_spot_datafeed_subscription([Node]) ->
              ]}
     ].
 
-%%
-%%
--spec create_volume(ec2_volume_size(), string(), string()) -> {ok, proplist()} | {error, any()}.
+-spec create_volume(ec2_volume_size(), string(), string()) -> ok_error(proplist()).
 create_volume(Size, SnapshotID, AvailabilityZone) ->
     create_volume(Size, SnapshotID, AvailabilityZone,"standard", default_config()).
 
--spec create_volume(ec2_volume_size(), string(), string(), string()) -> {ok, proplist()} | {error, any()}.
+-spec create_volume(ec2_volume_size(), string(), string(), string()) -> ok_error(proplist()).
 create_volume(Size, SnapshotID, AvailabilityZone, VolumeType) ->
     create_volume(Size, SnapshotID, AvailabilityZone,VolumeType, default_config()).
 
--spec create_volume(ec2_volume_size(), string(), string(), string(), aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec create_volume(ec2_volume_size(), string(), string(), string(), aws_config()) -> ok_error(proplist()).
 create_volume(Size, SnapshotID, AvailabilityZone, VolumeType, Config)
   when ((VolumeType == "standard" andalso Size >= 1 andalso Size =< 1024) orelse
         (VolumeType == "gp2" andalso Size >= 1 andalso Size =< 16384) orelse
@@ -878,19 +828,17 @@ create_volume(Size, SnapshotID, AvailabilityZone, VolumeType, Config)
             Error
     end.
 
-%%
-%%
--spec create_vpc(string()) -> {ok, proplist()} | {error, any()}.
+-spec create_vpc(string()) -> ok_error(proplist()).
 create_vpc(CIDR) ->
     create_vpc(CIDR, none, default_config()).
 
--spec create_vpc(string(), string() | none | aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec create_vpc(string(), string() | none | aws_config()) -> ok_error(proplist()).
 create_vpc(CIDR, InsTen) when is_list(InsTen) ->
     create_vpc(CIDR, InsTen, default_config());
 create_vpc(CIDR, Config) when is_record(Config, aws_config) ->
     create_vpc(CIDR, none, Config).
 
--spec create_vpc(string(), string() | none, aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec create_vpc(string(), string() | none, aws_config()) -> ok_error(proplist()).
 create_vpc(CIDR, InsTen, Config) when
       is_list(CIDR), is_list(InsTen) orelse InsTen =:= none ->
     case ec2_query(Config, "CreateVpc", [{"CidrBlock", CIDR}, {"instanceTenancy", InsTen}]) of
@@ -905,88 +853,74 @@ create_vpc(CIDR, InsTen, Config) when
             Error
     end.
 
-%%
-%%
--spec delete_internet_gateway(string()) -> ok | {error, any()}.
+-spec delete_internet_gateway(string()) -> ok_error().
 delete_internet_gateway(GatewayID) ->
     delete_internet_gateway(GatewayID, default_config()).
 
--spec delete_internet_gateway(string(), aws_config()) -> ok | {error, any()}.
+-spec delete_internet_gateway(string(), aws_config()) -> ok_error().
 delete_internet_gateway(GatewayID, Config) ->
     ec2_simple_query(Config, "DeleteInternetGateway",
                      [{"InternetGatewayId", GatewayID}], ?NEW_API_VERSION).
 
-%%
-%%
--spec delete_key_pair(string()) -> ok | {error, any()}.
+-spec delete_key_pair(string()) -> ok_error().
 delete_key_pair(KeyName) -> delete_key_pair(KeyName, default_config()).
 
--spec delete_key_pair(string(), aws_config()) -> ok | {error, any()}.
+-spec delete_key_pair(string(), aws_config()) -> ok_error().
 delete_key_pair(KeyName, Config)
   when is_list(KeyName) ->
     ec2_simple_query(Config, "DeleteKeyPair", [{"KeyName", KeyName}]).
 
-%%
-%%
--spec delete_network_acl(string()) -> ok | {error, any()}.
+-spec delete_network_acl(string()) -> ok_error().
 delete_network_acl(NetworkAclId) ->
     delete_network_acl(NetworkAclId, default_config()).
 
--spec delete_network_acl(string(), aws_config()) -> ok | {error, any()}.
+-spec delete_network_acl(string(), aws_config()) -> ok_error().
 delete_network_acl(NetworkAclId, Config) ->
     ec2_simple_query(Config, "DeleteNetworkAcl",
                      [{"NetworkAclId", NetworkAclId}], ?NEW_API_VERSION).
 
-%%
-%%
--spec delete_network_acl_entry(string(), string()) -> ok | {error, any()}.
+-spec delete_network_acl_entry(string(), string()) -> ok_error().
 delete_network_acl_entry(NetworkAclID, RuleNumber) ->
     delete_network_acl_entry(NetworkAclID, RuleNumber, false, default_config()).
 
--spec delete_network_acl_entry(string(), string(), boolean() | aws_config()) -> ok | {error, any()}.
+-spec delete_network_acl_entry(string(), string(), boolean() | aws_config()) -> ok_error().
 delete_network_acl_entry(NetworkAclID, RuleNumber, Config)
   when is_record(Config, aws_config) ->
     delete_network_acl_entry(NetworkAclID, RuleNumber, false, Config);
 delete_network_acl_entry(NetworkAclID, RuleNumber, Egress) ->
     delete_network_acl_entry(NetworkAclID, RuleNumber, Egress, default_config()).
 
--spec delete_network_acl_entry(string(), string(), boolean(), aws_config()) -> ok | {error, any()}.
+-spec delete_network_acl_entry(string(), string(), boolean(), aws_config()) -> ok_error().
 delete_network_acl_entry(NetworkAclID, RuleNumber, Egress, Config) ->
     Params = [{"NetworkAclId", NetworkAclID},
               {"RuleNumber", RuleNumber},
               {"Egress", Egress}],
     ec2_simple_query(Config, "DeleteNetworkAclEntry", Params, ?NEW_API_VERSION).
 
-%%
-%%
--spec delete_route(string(), string()) -> ok | {error, any()}.
+-spec delete_route(string(), string()) -> ok_error().
 delete_route(RouteTableID, DestCidrBlock) ->
     delete_route(RouteTableID, DestCidrBlock, default_config()).
 
--spec delete_route(string(), string(), aws_config()) -> ok | {error, any()}.
+-spec delete_route(string(), string(), aws_config()) -> ok_error().
 delete_route(RouteTableID, DestCidrBlock, Config) ->
     Params = [{"RouteTableId", RouteTableID},
               {"DestinationCidrBlock", DestCidrBlock}],
     ec2_simple_query(Config, "DeleteRoute", Params, ?NEW_API_VERSION).
 
-%%
-%%
--spec delete_route_table(string()) -> ok | {error, any()}.
+-spec delete_route_table(string()) -> ok_error().
 delete_route_table(RouteTableID) ->
     delete_route_table(RouteTableID, default_config()).
 
--spec delete_route_table(string(), aws_config()) -> ok | {error, any()}.
+-spec delete_route_table(string(), aws_config()) -> ok_error().
 delete_route_table(RouteTableID, Config) ->
     ec2_simple_query(Config, "DeleteRouteTable",
                      [{"RouteTableId", RouteTableID}], ?NEW_API_VERSION).
 
-%%
-%%
--spec delete_security_group(string()) -> ok | {error, any()}.
+-spec delete_security_group(string()) -> ok_error().
 delete_security_group(GroupName) ->
     delete_security_group(groupName, GroupName, default_config()).
 
--spec delete_security_group(groupId | groupName | string(), string() | aws_config()) -> ok | {error, any()}.
+-spec delete_security_group(groupId | groupName | string(), string() | aws_config()) -> ok_error().
 delete_security_group(GroupName, Config)
   when is_list(GroupName), is_record(Config, aws_config) ->
     delete_security_group(groupName, GroupName, Config);
@@ -994,83 +928,69 @@ delete_security_group(Param, GroupName)
   when is_atom(Param), is_list(GroupName) ->
     delete_security_group(Param, GroupName, default_config()).
 
--spec delete_security_group(groupId | groupName, string(), aws_config()) -> ok | {error, any()}.
+-spec delete_security_group(groupId | groupName, string(), aws_config()) -> ok_error().
 delete_security_group(Param, GroupName, Config) ->
     ParamStr = atom_to_list(Param),
     Key = [string:to_upper(hd(ParamStr)) | tl(ParamStr)],
     ec2_simple_query(Config, "DeleteSecurityGroup", [{Key, GroupName}], ?NEW_API_VERSION).
 
-%%
-%%
--spec delete_snapshot(string()) -> ok | {error, any()}.
+-spec delete_snapshot(string()) -> ok_error().
 delete_snapshot(SnapshotID) -> delete_snapshot(SnapshotID, default_config()).
 
--spec delete_snapshot(string(), aws_config()) -> ok | {error, any()}.
+-spec delete_snapshot(string(), aws_config()) -> ok_error().
 delete_snapshot(SnapshotID, Config)
   when is_list(SnapshotID) ->
     ec2_simple_query(Config, "DeleteSnapshot", [{"SnapshotId", SnapshotID}]).
 
-%%
-%%
--spec delete_spot_datafeed_subscription() -> ok | {error, any()}.
+-spec delete_spot_datafeed_subscription() -> ok_error().
 delete_spot_datafeed_subscription() -> delete_spot_datafeed_subscription(default_config()).
 
--spec delete_spot_datafeed_subscription(aws_config()) -> ok | {error, any()}.
+-spec delete_spot_datafeed_subscription(aws_config()) -> ok_error().
 delete_spot_datafeed_subscription(Config) ->
     ec2_simple_query(Config, "DeleteSpotDatafeedSubscription", []).
 
-%%
-%%
--spec delete_subnet(string()) -> ok | {error, any()}.
+-spec delete_subnet(string()) -> ok_error().
 delete_subnet(SubnetID) when is_list(SubnetID) ->
     delete_subnet(SubnetID, default_config()).
 
--spec delete_subnet(string(), aws_config()) -> ok | {error, any()}.
+-spec delete_subnet(string(), aws_config()) -> ok_error().
 delete_subnet(SubnetID, Config) when is_list(SubnetID) ->
     ec2_simple_query(Config, "DeleteSubnet", [{"SubnetId", SubnetID}]).
 
-%%
-%%
--spec delete_volume(string()) -> ok | {error, any()}.
+-spec delete_volume(string()) -> ok_error().
 delete_volume(VolumeID) -> delete_volume(VolumeID, default_config()).
 
--spec delete_volume(string(), aws_config()) -> ok | {error, any()}.
+-spec delete_volume(string(), aws_config()) -> ok_error().
 delete_volume(VolumeID, Config)
   when is_list(VolumeID) ->
     ec2_simple_query(Config, "DeleteVolume", [{"VolumeId", VolumeID}]).
 
-%%
-%%
--spec delete_vpc(string()) -> ok | {error, any()}.
+-spec delete_vpc(string()) -> ok_error().
 delete_vpc(ID) ->
     delete_vpc(ID, default_config()).
 
--spec delete_vpc(string(), aws_config()) -> ok | {error, any()}.
+-spec delete_vpc(string(), aws_config()) -> ok_error().
 delete_vpc(ID, Config) ->
     ec2_simple_query(Config, "DeleteVpc", [{"VpcId", ID}]).
 
-%%
-%%
--spec deregister_image(string()) -> ok | {error, any()}.
+-spec deregister_image(string()) -> ok_error().
 deregister_image(ImageID) -> deregister_image(ImageID, default_config()).
 
--spec deregister_image(string(), aws_config()) -> ok | {error, any()}.
+-spec deregister_image(string(), aws_config()) -> ok_error().
 deregister_image(ImageID, Config)
   when is_list(ImageID) ->
     ec2_simple_query(Config, "DeregisterImage", [{"ImageId", ImageID}]).
 
-%%
-%%
--spec describe_addresses() -> {ok, proplist()} | {error, any()}.
+-spec describe_addresses() -> ok_error(proplist()).
 describe_addresses() -> describe_addresses([]).
 
--spec describe_addresses([string()] | aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec describe_addresses([string()] | aws_config()) -> ok_error(proplist()).
 describe_addresses(Config)
   when is_record(Config, aws_config) ->
     describe_addresses([], Config);
 describe_addresses(PublicIPs) -> describe_addresses(PublicIPs, default_config()).
 
--spec describe_addresses([string()], aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec describe_addresses([string()], aws_config()) -> ok_error(proplist()).
 describe_addresses(PublicIPs, Config)
   when is_list(PublicIPs) ->
     case ec2_query(Config, "DescribeAddresses", erlcloud_aws:param_list(PublicIPs, "PublicIp")) of
@@ -1081,18 +1001,16 @@ describe_addresses(PublicIPs, Config)
             Error
     end.
 
-%%
-%%
--spec describe_availability_zones() -> proplist().
+-spec describe_availability_zones() -> ok_error(proplist()).
 describe_availability_zones() -> describe_availability_zones([]).
--spec describe_availability_zones([string()] | aws_config()) -> proplist().
+-spec describe_availability_zones([string()] | aws_config()) -> ok_error(proplist()).
 describe_availability_zones(Config)
   when is_record(Config, aws_config) ->
     describe_availability_zones([], Config);
 describe_availability_zones(ZoneNames) ->
     describe_availability_zones(ZoneNames, default_config()).
 
--spec describe_availability_zones([string()], aws_config()) -> proplist().
+-spec describe_availability_zones([string()], aws_config()) -> ok_error(proplist()).
 describe_availability_zones(ZoneNames, Config)
   when is_list(ZoneNames) ->
     case ec2_query(Config, "DescribeAvailabilityZones", erlcloud_aws:param_list(ZoneNames, "ZoneName")) of
@@ -1107,20 +1025,18 @@ describe_availability_zones(ZoneNames, Config)
             Error
     end.
 
-%%
-%%
--spec describe_bundle_tasks() -> [proplist()].
+-spec describe_bundle_tasks() -> ok_error(proplist()).
 describe_bundle_tasks() ->
     describe_bundle_tasks([]).
 
--spec describe_bundle_tasks([string()] | aws_config()) -> [proplist()].
+-spec describe_bundle_tasks([string()] | aws_config()) -> ok_error(proplist()).
 describe_bundle_tasks(Config)
   when is_record(Config, aws_config) ->
     describe_bundle_tasks([], Config);
 describe_bundle_tasks(BundleIDs) ->
     describe_bundle_tasks(BundleIDs, default_config()).
 
--spec describe_bundle_tasks([string()], aws_config()) -> [proplist()].
+-spec describe_bundle_tasks([string()], aws_config()) -> ok_error(proplist()).
 describe_bundle_tasks(BundleIDs, Config) ->
     case ec2_query(Config, "DescribeBundleTasks", erlcloud_aws:param_list(BundleIDs, "BundleId")) of
         {ok, Doc} ->
@@ -1129,19 +1045,17 @@ describe_bundle_tasks(BundleIDs, Config) ->
             Error
     end.
 
-%%
-%%
--spec describe_dhcp_options() -> proplist().
+-spec describe_dhcp_options() -> ok_error(proplist()).
 describe_dhcp_options() ->
     describe_dhcp_options(none, default_config()).
 
--spec describe_dhcp_options(aws_config() | filter_list() | none) -> proplist().
+-spec describe_dhcp_options(aws_config() | filter_list() | none) -> ok_error(proplist()).
 describe_dhcp_options(Config) when is_record(Config, aws_config) ->
     describe_dhcp_options(none, Config);
 describe_dhcp_options(Filter) when is_list(Filter) orelse Filter =:= none ->
     describe_dhcp_options(Filter, default_config()).
 
--spec describe_dhcp_options(none | filter_list(), aws_config()) -> proplist().
+-spec describe_dhcp_options(none | filter_list(), aws_config()) -> ok_error(proplist()).
 describe_dhcp_options(Filter, Config) ->
     Params = list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeDhcpOptions", Params, ?NEW_API_VERSION) of
@@ -1161,13 +1075,11 @@ extract_dhcp_opt_kv(Node) ->
     [ {key, get_text("key", Node)},
       {value, get_text("valueSet/item/value", Node)} ].
 
-%%
-%%
--spec describe_image_attribute(string(), atom()) -> proplist().
+-spec describe_image_attribute(string(), atom()) -> ok_error(proplist()).
 describe_image_attribute(ImageID, Attribute) ->
     describe_image_attribute(ImageID, Attribute, default_config()).
 
--spec describe_image_attribute(string(), atom(), aws_config()) -> term().
+-spec describe_image_attribute(string(), atom(), aws_config()) -> ok_error(proplist()).
 describe_image_attribute(ImageID, Attribute, Config)
   when is_list(ImageID), is_atom(Attribute) ->
     AttributeName = case Attribute of
@@ -1228,12 +1140,12 @@ extract_permissions([Node|Nodes], Accum) ->
 %%    product_codes: []
 %% ]]
 %%
--spec describe_images() -> proplist().
+-spec describe_images() -> ok_error(proplist()).
 describe_images() -> describe_images([], "self").
 
 %% Uses an config other than the one set for the current process.
 %% See describe_images/0 for return term
--spec describe_images([string()] | aws_config()) -> proplist().
+-spec describe_images([string()] | aws_config()) -> ok_error(proplist()).
 describe_images(Config)
   when is_record(Config, aws_config) ->
     describe_images([], "self", none, Config);
@@ -1245,7 +1157,7 @@ describe_images(ImageIDs) ->
 
 %% Describes images with ImageIDs if owned by current user using an alternate Config.
 %% See describe_images/0 for return term
--spec describe_images([string()], aws_config() | string() | none) -> proplist().
+-spec describe_images([string()], aws_config() | string() | none) -> ok_error(proplist()).
 describe_images(ImageIDs, Config)
   when is_record(Config, aws_config) ->
     describe_images(ImageIDs, none, none, Config);
@@ -1257,7 +1169,7 @@ describe_images(ImageIDs, Config)
 describe_images(ImageIDs, Owner) ->
     describe_images(ImageIDs, Owner, none, default_config()).
 
--spec describe_images([string()], string() | none, aws_config() | string() | none) -> proplist().
+-spec describe_images([string()], string() | none, aws_config() | string() | none) -> ok_error(proplist()).
 
 %% Describes images with ImageIDs if Owned by Owner (useful for corporate accounts) using an alternate Config.
 %% See describe_images/0 for return term
@@ -1274,7 +1186,7 @@ describe_images(ImageIDs, Owner, ExecutableBy) ->
 %% See describe_images/0 for return term
 
 -spec describe_images([string()],
-                      string() | none, string() | none, aws_config()) -> proplist().
+                       string() | none, string() | none, aws_config()) -> ok_error(proplist()).
 describe_images(ImageIDs, Owner, ExecutableBy, Config) 
   when is_list(ImageIDs),
        is_list(Owner) orelse Owner =:= none,
@@ -1283,10 +1195,10 @@ describe_images(ImageIDs, Owner, ExecutableBy, Config)
     describe_images(ImageIDs, Owner, ExecutableBy, none, Config).
 
 -spec describe_images([string()],
-                            string() | none, 
-                            string() | none, 
-                            filter_list() | none, 
-                            aws_config()) -> proplist().
+                       string() | none,
+                       string() | none,
+                       filter_list(),
+                       aws_config()) -> ok_error(proplist()).
 describe_images(ImageIDs, Owner, ExecutableBy, Filters, Config)
   when is_list(ImageIDs),
        is_list(Owner) orelse Owner =:= none,
@@ -1340,8 +1252,6 @@ extract_product_code(Node) ->
         {type, get_text("type", Node)}
     ].
 
-%%
-%%
 -spec describe_instance_attribute(string(), atom()) -> proplist().
 describe_instance_attribute(InstanceID, Attribute) ->
     describe_instance_attribute(InstanceID, Attribute, default_config()).
@@ -1383,7 +1293,6 @@ attribute_xpath(block_device_mapping, AttributeName) ->
     "/DescribeInstanceAttributeResponse/" ++ AttributeName;
 attribute_xpath(_, AttributeName) ->
     "/DescribeInstanceAttributeResponse/" ++ AttributeName ++ "/value".
-
 
 %%
 %% Function for making calls to DescribeInstances action
@@ -1507,7 +1416,6 @@ extract_block_device_mapping_status(Node) ->
      {delete_on_termination, get_bool("ebs/deleteOnTermination", Node)}
     ].
 
-
 -spec describe_instance_status(instance_id()) -> ok_error(proplist()).
 describe_instance_status(InstanceID)
     when is_list(InstanceID) ->
@@ -1566,23 +1474,21 @@ extract_instance_status(Node) ->
       { instance_state_code, get_text("instanceState/code", Node) },
       { instance_state_name, get_text("instanceState/name", Node) } ].
 
-%%
-%%
--spec describe_internet_gateways() -> proplist().
+-spec describe_internet_gateways() -> ok_error(proplist()).
 describe_internet_gateways() ->
     describe_internet_gateways(none, default_config()).
 
--spec describe_internet_gateways(filter_list | aws_config()) -> proplist().
+-spec describe_internet_gateways(filter_list | aws_config()) -> ok_error(proplist()).
 describe_internet_gateways(Config) when is_record(Config, aws_config) ->
     describe_internet_gateways(none, Config);
 describe_internet_gateways(Filter) ->
     describe_internet_gateways(Filter, default_config()).
 
--spec describe_internet_gateways(none | filter_list(), aws_config()) -> [proplist()].
+-spec describe_internet_gateways(none | filter_list(), aws_config()) -> ok_error(proplist()).
 describe_internet_gateways(Filter, Config) ->
     describe_internet_gateways([], Filter, Config).
 
--spec describe_internet_gateways(list(), none | filter_list(), aws_config()) -> [proplist()].
+-spec describe_internet_gateways(list(), none | filter_list(), aws_config()) -> ok_error(proplist()).
 describe_internet_gateways(IGWIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(IGWIds, "InternetGatewayId") ++ list_to_ec2_filter(Filter), %
     case ec2_query(Config, "DescribeInternetGateways", Params, ?NEW_API_VERSION) of
@@ -1606,18 +1512,16 @@ extract_igw_attachments(Node) ->
     [ {vpc_id, get_text("vpcId", Node)},
       {state, get_text("state", Node)} ].
 
-%%
-%%
--spec describe_key_pairs() -> proplist().
+-spec describe_key_pairs() -> ok_error(proplist()).
 describe_key_pairs() -> describe_key_pairs([]).
 
--spec describe_key_pairs([string()] | aws_config()) -> proplist().
+-spec describe_key_pairs([string()] | aws_config()) -> ok_error(proplist()).
 describe_key_pairs(Config)
   when is_record(Config, aws_config) ->
     describe_key_pairs([], Config);
 describe_key_pairs(KeyNames) -> describe_key_pairs(KeyNames, default_config()).
 
--spec describe_key_pairs([string()], aws_config()) -> proplist().
+-spec describe_key_pairs([string()], aws_config()) -> ok_error(proplist()).
 describe_key_pairs(KeyNames, Config)
   when is_list(KeyNames) ->
     case ec2_query(Config, "DescribeKeyPairs", erlcloud_aws:param_list(KeyNames, "KeyName")) of
@@ -1633,23 +1537,21 @@ describe_key_pairs(KeyNames, Config)
             Error
     end.
 
-%%
-%%
--spec describe_network_acls() -> [proplist()].
+-spec describe_network_acls() -> ok_error(proplist()).
 describe_network_acls() ->
     describe_network_acls([], none, default_config()).
 
--spec describe_network_acls(filter_list() | aws_config()) -> [proplist()].
+-spec describe_network_acls(filter_list() | aws_config()) -> ok_error(proplist()).
 describe_network_acls(Config) when is_record(Config, aws_config) ->
     describe_network_acls([], none, Config);
 describe_network_acls(Filter) ->
     describe_network_acls([], Filter, default_config()).
 
--spec describe_network_acls(filter_list(), aws_config()) -> [proplist()].
+-spec describe_network_acls(filter_list(), aws_config()) -> ok_error(proplist()).
 describe_network_acls(Filter, Config) when is_record(Config, aws_config) ->
     describe_network_acls([], Filter, Config).
 
--spec describe_network_acls([string()], filter_list(), aws_config()) -> [proplist()].
+-spec describe_network_acls([string()], filter_list(), aws_config()) -> ok_error(proplist()).
 describe_network_acls(AclIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(AclIds, "NetworkAclId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeNetworkAcls", Params, ?NEW_API_VERSION) of
@@ -1660,18 +1562,16 @@ describe_network_acls(AclIds, Filter, Config) ->
             Error
     end.
 
-%%
-%%
--spec describe_regions() -> proplist().
+-spec describe_regions() -> ok_error(proplist()).
 describe_regions() -> describe_regions([]).
--spec describe_regions([string()] | aws_config()) -> proplist().
+-spec describe_regions([string()] | aws_config()) -> ok_error(proplist()).
 describe_regions(Config)
   when is_record(Config, aws_config) ->
     describe_regions([], Config);
 describe_regions(RegionNames) ->
     describe_regions(RegionNames, default_config()).
 
--spec describe_regions([string()], aws_config()) -> proplist().
+-spec describe_regions([string()], aws_config()) -> ok_error(proplist()).
 describe_regions(RegionNames, Config)
   when is_list(RegionNames) ->
     case ec2_query(Config, "DescribeRegions", erlcloud_aws:param_list(RegionNames, "RegionName")) of
@@ -1687,26 +1587,24 @@ describe_regions(RegionNames, Config)
 %
 % Network Interfaces API
 %
--spec describe_network_interfaces() -> [proplist()].
+-spec describe_network_interfaces() -> ok_error(proplist()).
 describe_network_interfaces() ->
     describe_network_interfaces([]).
 
--spec describe_network_interfaces(list() | aws_config()) -> [proplist()].
+-spec describe_network_interfaces(list() | aws_config()) -> ok_error(proplist()).
 describe_network_interfaces(Config)
     when is_record(Config, aws_config) ->
       describe_network_interfaces([], Config);
 describe_network_interfaces(NetworkInterfacesIds) ->
     describe_network_interfaces(NetworkInterfacesIds, default_config()).
 
--spec describe_network_interfaces(list(), aws_config()) -> [proplist()].
-%%
-%%
+-spec describe_network_interfaces(list(), aws_config()) -> ok_error(proplist()).
 %% Example: describe_network_interfaces(["eni-1c111111", "eni-222e2222"], Config).
 describe_network_interfaces(NetworkInterfacesIds, Config)
     when is_record(Config, aws_config) ->
         describe_network_interfaces_filtered(NetworkInterfacesIds, none, Config).
 
--spec describe_network_interfaces_filtered(list(), filter_list() | node, aws_config()) -> [proplist()].
+-spec describe_network_interfaces_filtered(list(), filter_list() | node, aws_config()) -> ok_error(proplist()).
 %%
 %% Example: describe_network_interfaces_filtered([], [{"subnet-id", ["subnet-e11e11e1"]}], Config)
 %%
@@ -1773,19 +1671,17 @@ extract_association(Node) ->
      {association_id, get_text("association/associationId", Node)}
     ].
 
-%%
-%%
--spec describe_reserved_instances() -> proplist().
+-spec describe_reserved_instances() -> ok_error(proplist()).
 describe_reserved_instances() -> describe_reserved_instances([]).
 
--spec describe_reserved_instances([string()] | aws_config()) -> proplist().
+-spec describe_reserved_instances([string()] | aws_config()) -> ok_error(proplist()).
 describe_reserved_instances(Config)
   when is_record(Config, aws_config) ->
     describe_reserved_instances([], Config);
 describe_reserved_instances(ReservedInstanceIDs) ->
     describe_reserved_instances(ReservedInstanceIDs, default_config()).
 
--spec describe_reserved_instances([string()], aws_config()) -> proplist().
+-spec describe_reserved_instances([string()], aws_config()) -> ok_error(proplist()).
 describe_reserved_instances(ReservedInstanceIDs, Config)
   when is_list(ReservedInstanceIDs) ->
     case ec2_query(Config, "DescribeReservedInstances", erlcloud_aws:param_list(ReservedInstanceIDs, "ReservedInstanceId")) of
@@ -1880,17 +1776,17 @@ describe_reserved_instances_offerings(Selector, MaxResults, NextToken, Config)
         {error, _} = E -> E
     end.
 
--spec describe_reserved_instances_offerings_all() -> proplist().
+-spec describe_reserved_instances_offerings_all() -> ok_error(proplist()).
 describe_reserved_instances_offerings_all() -> describe_reserved_instances_offerings_all([]).
 
--spec describe_reserved_instances_offerings_all([{atom(), string()}] | aws_config()) -> proplist().
+-spec describe_reserved_instances_offerings_all([{atom(), string()}] | aws_config()) -> ok_error(proplist()).
 describe_reserved_instances_offerings_all(Config)
   when is_record(Config, aws_config) ->
     describe_reserved_instances_offerings_all([], Config);
 describe_reserved_instances_offerings_all(Selector) ->
     describe_reserved_instances_offerings_all(Selector, default_config()).
 
--spec describe_reserved_instances_offerings_all([{atom(), string()}], aws_config()) -> proplist().
+-spec describe_reserved_instances_offerings_all([{atom(), string()}], aws_config()) -> ok_error(proplist()).
 describe_reserved_instances_offerings_all(Selector, Config) ->
     describe_reserved_instances_offerings_all(Selector, Config, []).
 
@@ -1917,23 +1813,21 @@ extract_reserved_instances_offering(Node) ->
      {product_description, get_text("productDescription", Node)}
     ].
 
-%%
-%%
--spec describe_route_tables() -> [proplist()].
+-spec describe_route_tables() -> ok_error(proplist()).
 describe_route_tables() ->
     describe_route_tables([], none, default_config()).
 
--spec describe_route_tables(filter_list() | none | aws_config()) -> [proplist()].
+-spec describe_route_tables(filter_list() | none | aws_config()) -> ok_error(proplist()).
 describe_route_tables(Config) when is_record(Config, aws_config) ->
     describe_route_tables([], none, Config);
 describe_route_tables(Filter) ->
     describe_route_tables([], Filter, default_config()).
 
--spec describe_route_tables(filter_list() | none, aws_config()) -> [proplist()].
+-spec describe_route_tables(filter_list() | none, aws_config()) -> ok_error(proplist()).
 describe_route_tables(Filter, Config) ->
     describe_route_tables([], Filter, Config).
 
--spec describe_route_tables([string()], filter_list() | none, aws_config()) -> [proplist()].
+-spec describe_route_tables([string()], filter_list() | none, aws_config()) -> ok_error(proplist()).
 describe_route_tables(RouteTableIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(RouteTableIds, "RouteTableId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeRouteTables", Params, ?NEW_API_VERSION) of
@@ -1977,35 +1871,33 @@ extract_route_assn(Node) ->
      {subnet_id, get_text("subnetId", Node)}
     ].
 
-%%
-%%
--spec describe_security_groups() -> [proplist()].
+-spec describe_security_groups() -> ok_error(proplist()).
 describe_security_groups() ->
     describe_security_groups([]).
 
--spec describe_security_groups([string()] | aws_config()) -> [proplist()].
+-spec describe_security_groups([string()] | aws_config()) -> ok_error(proplist()).
 describe_security_groups(Config)
   when is_record(Config, aws_config) ->
     describe_security_groups([], Config);
 describe_security_groups(GroupNames) ->
     describe_security_groups(GroupNames, default_config()).
 
--spec describe_security_groups([string()], aws_config()) -> [proplist()].
+-spec describe_security_groups([string()], aws_config()) -> ok_error(proplist()).
 describe_security_groups(GroupNames, Config)
   when is_list(GroupNames) ->
     describe_security_groups([], GroupNames, [], Config).
 
--spec describe_security_groups_filtered(filter_list()) -> [proplist()].
+-spec describe_security_groups_filtered(filter_list()) -> ok_error(proplist()).
 describe_security_groups_filtered(Filter) ->
     describe_security_groups_filtered(Filter, default_config()).
 
--spec describe_security_groups_filtered(filter_list(), aws_config()) -> [proplist()].
+-spec describe_security_groups_filtered(filter_list(), aws_config()) -> ok_error(proplist()).
 describe_security_groups_filtered(Filter, Config)->
     describe_security_groups([], [], Filter, Config).
 
 %
 % describe_security_groups functions above are left for interface backward compatibility.
--spec describe_security_groups(list(), list(), filter_list(), aws_config()) -> [proplist()].
+-spec describe_security_groups(list(), list(), filter_list(), aws_config()) -> ok_error(proplist()).
 describe_security_groups(GroupIds, GroupNames, Filters, Config)
   when is_list(GroupIds),
        is_list(GroupNames),
@@ -2020,7 +1912,6 @@ describe_security_groups(GroupIds, GroupNames, Filters, Config)
         {error, _} = Error ->
             Error
     end.
-
 
 extract_security_group(Node) ->
     [
@@ -2055,13 +1946,12 @@ extract_user_id_group_pair(Node) ->
       {group_id, get_text("groupId", Node)},
       {group_name, get_text("groupName", Node)}
     ].
-%%
-%%
--spec describe_snapshot_attribute(string(), atom()) -> proplist().
+
+-spec describe_snapshot_attribute(string(), atom()) -> ok_error(proplist()).
 describe_snapshot_attribute(SnapshotID, Attribute) ->
     describe_snapshot_attribute(SnapshotID, Attribute, default_config()).
 
--spec describe_snapshot_attribute(string(), atom(), aws_config()) -> term().
+-spec describe_snapshot_attribute(string(), atom(), aws_config()) -> ok_error(proplist()).
 describe_snapshot_attribute(SnapshotID, create_volume_permission, Config)
   when is_list(SnapshotID) ->
     case ec2_query(Config, "DescribeSnapshotAttribute", [{"snapshotId", SnapshotID}, {"Attribute", "createVolumePermission"}]) of
@@ -2070,7 +1960,6 @@ describe_snapshot_attribute(SnapshotID, create_volume_permission, Config)
         {error, _} = Error ->
             Error
     end.
-
 
 -spec describe_snapshots() -> ok_error(proplist()).
 describe_snapshots() -> describe_snapshots([], "self", none, default_config()).
@@ -2160,13 +2049,11 @@ extract_snapshot(Node) ->
      {owner_alias, get_text("ownerAlias", Node, none)}
     ].
 
-%%
-%%
--spec describe_spot_datafeed_subscription() -> proplist().
+-spec describe_spot_datafeed_subscription() -> ok_error(proplist()).
 describe_spot_datafeed_subscription() ->
     describe_spot_datafeed_subscription(default_config()).
 
--spec describe_spot_datafeed_subscription(aws_config()) -> proplist().
+-spec describe_spot_datafeed_subscription(aws_config()) -> ok_error(proplist()).
 describe_spot_datafeed_subscription(Config) ->
     case ec2_query(Config, "DescribeSpotDatafeedSubscription", []) of
         {ok, Doc} ->
@@ -2175,20 +2062,18 @@ describe_spot_datafeed_subscription(Config) ->
             Error
     end.
 
-%%
-%%
--spec describe_spot_instance_requests() -> [proplist()].
+-spec describe_spot_instance_requests() -> ok_error(proplist()).
 describe_spot_instance_requests() ->
     describe_spot_instance_requests([]).
 
--spec describe_spot_instance_requests([string()] | aws_config()) -> [proplist()].
+-spec describe_spot_instance_requests([string()] | aws_config()) -> ok_error(proplist()).
 describe_spot_instance_requests(Config)
   when is_record(Config, aws_config) ->
     describe_spot_instance_requests([], Config);
 describe_spot_instance_requests(SpotInstanceRequestIDs) ->
     describe_spot_instance_requests(SpotInstanceRequestIDs, default_config()).
 
--spec describe_spot_instance_requests([string()], aws_config()) -> [proplist()].
+-spec describe_spot_instance_requests([string()], aws_config()) -> ok_error(proplist()).
 describe_spot_instance_requests(SpotInstanceRequestIDs, Config)
   when is_list(SpotInstanceRequestIDs) ->
     case ec2_query(Config, "DescribeSpotInstanceRequests", erlcloud_aws:param_list(SpotInstanceRequestIDs, "SpotInstanceRequestId"), ?NEW_API_VERSION) of
@@ -2235,7 +2120,6 @@ extract_launch_specification(Node) ->
      {ramdisk_id, get_text("ramdiskId", Node)},
      {subnet_id, get_text("subnetId", Node)}
     ].
-
 
 -spec describe_spot_price_history() -> ok_error(proplist()).
 describe_spot_price_history() ->
@@ -2342,23 +2226,21 @@ extract_spot_price_history(Node) ->
      {availability_zone, get_text("availabilityZone", Node)}
     ].
 
-%%
-%%
--spec describe_subnets() -> proplist().
+-spec describe_subnets() -> ok_error(proplist()).
 describe_subnets() ->
     describe_subnets(none, default_config()).
 
--spec describe_subnets(filter_list() | aws_config()) -> proplist().
+-spec describe_subnets(filter_list() | aws_config()) -> ok_error(proplist()).
 describe_subnets(Config) when is_record(Config, aws_config) ->
     describe_subnets(none, Config);
 describe_subnets(Filter) when is_list(Filter) orelse Filter =:= none ->
     describe_subnets(Filter, default_config()).
 
--spec describe_subnets(none | filter_list(), aws_config()) -> proplist().
+-spec describe_subnets(none | filter_list(), aws_config()) -> ok_error(proplist()).
 describe_subnets(Filter, Config) ->
     describe_subnets([], Filter, Config).
 
--spec describe_subnets(list(), filter_list(), aws_config()) -> proplist().
+-spec describe_subnets(list(), filter_list(), aws_config()) -> ok_error(proplist()).
 describe_subnets(SubnetIds, Filter, Config)
         when is_list(SubnetIds) ->
     Params = erlcloud_aws:param_list(SubnetIds, "SubnetId") ++ list_to_ec2_filter(Filter),
@@ -2382,19 +2264,17 @@ extract_subnet(Node) ->
        || Item <- xmerl_xpath:string("tagSet/item", Node)]}
 ].
 
-%%
-%%
--spec describe_volumes() -> {ok, proplist()} | {error, any()}.
+-spec describe_volumes() -> ok_error(proplist()).
 describe_volumes() -> describe_volumes([]).
 
--spec describe_volumes([string()] | aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec describe_volumes([string()] | aws_config()) -> ok_error(proplist()).
 describe_volumes(Config)
   when is_record(Config, aws_config) ->
     describe_volumes([], Config);
 describe_volumes(VolumeIDs) ->
     describe_volumes(VolumeIDs, default_config()).
 
--spec describe_volumes([string()], aws_config()) -> {ok, proplist()} | {error, any()}.
+-spec describe_volumes([string()], aws_config()) -> ok_error(proplist()).
 describe_volumes(VolumeIDs, Config)
   when is_list(VolumeIDs) ->
     case ec2_query(Config, "DescribeVolumes", erlcloud_aws:param_list(VolumeIDs, "VolumeId"), ?NEW_API_VERSION) of
@@ -2424,23 +2304,21 @@ extract_volume(Node) ->
      }
     ].
 
-%%
-%%
--spec describe_vpcs() -> proplist().
+-spec describe_vpcs() -> ok_error(proplist()).
 describe_vpcs() ->
     describe_vpcs(default_config()).
 
--spec describe_vpcs(filter_list() | aws_config()) -> proplist().
+-spec describe_vpcs(filter_list() | aws_config()) -> ok_error(proplist()).
 describe_vpcs(Config) when is_record(Config, aws_config) ->
     describe_vpcs(none, Config);
 describe_vpcs(Filter) ->
     describe_vpcs(Filter, default_config()).
 
--spec describe_vpcs(filter_list() | none, aws_config()) -> proplist().
+-spec describe_vpcs(filter_list() | none, aws_config()) -> ok_error(proplist()).
 describe_vpcs(Filter, Config) ->
     describe_vpcs([], Filter, Config).
 
--spec describe_vpcs(list(), filter_list() | none, aws_config()) -> proplist().
+-spec describe_vpcs(list(), filter_list() | none, aws_config()) -> ok_error(proplist()).
 describe_vpcs(VpcIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(VpcIds, "VpcId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeVpcs", Params, ?NEW_API_VERSION) of
@@ -2463,8 +2341,6 @@ extract_vpc(Node) ->
          || Item <- xmerl_xpath:string("tagSet/item", Node)]}
  ].
 
-%%
-%%
 -spec detach_internet_gateway(string(), string()) -> ok.
 detach_internet_gateway(GatewayID, VpcID) ->
     detach_internet_gateway(GatewayID, VpcID, default_config()).
@@ -2475,12 +2351,10 @@ detach_internet_gateway(GatewayID, VpcID, Config) ->
                      [{"InternetGatewayId", GatewayID}, {"VpcId", VpcID}],
                      ?NEW_API_VERSION).
 
-%%
-%%
--spec detach_volume(string()) -> proplist().
+-spec detach_volume(string()) -> ok_error(proplist()).
 detach_volume(VolumeID) -> detach_volume(VolumeID, default_config()).
 
--spec detach_volume(string(), aws_config()) -> proplist().
+-spec detach_volume(string(), aws_config()) -> ok_error(proplist()).
 detach_volume(VolumeID, Config)
   when is_list(VolumeID) ->
     Params = [{"VolumeId", VolumeID}],
@@ -2491,8 +2365,6 @@ detach_volume(VolumeID, Config)
             Error
     end.
 
-%%
-%%
 -spec disassociate_address(string()) -> ok.
 disassociate_address(PublicIP) ->
     disassociate_address(PublicIP, default_config()).
@@ -2502,12 +2374,10 @@ disassociate_address(PublicIP, Config)
   when is_list(PublicIP) ->
     ec2_simple_query(Config, "DisassociateAddress", [{"PublicIp", PublicIP}]).
 
-%%
-%%
--spec get_console_output(string()) -> proplist().
+-spec get_console_output(string()) -> ok_error(proplist()).
 get_console_output(InstanceID) -> get_console_output(InstanceID, default_config()).
 
--spec get_console_output(string(), aws_config()) -> proplist().
+-spec get_console_output(string(), aws_config()) -> ok_error(proplist()).
 get_console_output(InstanceID, Config)
   when is_list(InstanceID) ->
     case ec2_query(Config, "GetConsoleOutput", [{"InstanceId", InstanceID}]) of
@@ -2521,12 +2391,10 @@ get_console_output(InstanceID, Config)
             Error
     end.
 
-%%
-%%
--spec get_password_data(string()) -> proplist().
+-spec get_password_data(string()) -> ok_error(proplist()).
 get_password_data(InstanceID) -> get_password_data(InstanceID, default_config()).
 
--spec get_password_data(string(), aws_config()) -> proplist().
+-spec get_password_data(string(), aws_config()) -> ok_error(proplist()).
 get_password_data(InstanceID, Config)
   when is_list(InstanceID) ->
     case ec2_query(Config, "GetPasswordData", [{"InstanceId", InstanceID}]) of
@@ -2540,8 +2408,6 @@ get_password_data(InstanceID, Config)
             Error
     end.
 
-%%
-%%
 -spec modify_image_attribute(string(), atom(), term()) -> ok.
 modify_image_attribute(ImageID, Attribute, Value) ->
     modify_image_attribute(ImageID, Attribute, Value, default_config()).
@@ -2566,8 +2432,6 @@ modify_image_attribute(ImageID, Attribute, Value, Config) ->
              ],
     ec2_simple_query(Config, "ModifyImageAttribute", Params).
 
-%%
-%%
 -spec modify_instance_attribute(string(), atom(), term()) -> ok.
 modify_instance_attribute(InstanceID, Attribute, Value) ->
     modify_instance_attribute(InstanceID, Attribute, Value, default_config()).
@@ -2604,8 +2468,6 @@ permission_list(Permissions) ->
     Groups = [Group || {group, Group} <- Permissions],
     erlcloud_aws:param_list(UserIDs, "UserId") ++ erlcloud_aws:param_list(Groups, "Group").
 
-%%
-%%
 -spec modify_snapshot_attribute(string(), atom(), term()) -> ok.
 modify_snapshot_attribute(SnapshotID, Attribute, Value) ->
     modify_snapshot_attribute(SnapshotID, Attribute, Value, default_config()).
@@ -2622,13 +2484,11 @@ modify_snapshot_attribute(SnapshotID, create_volume_permission,
              ],
     ec2_simple_query(Config, "ModifySnapshotAttribute", Params).
 
-%%
-%%
--spec monitor_instances([string()]) -> proplist().
+-spec monitor_instances([string()]) -> ok_error(proplist()).
 monitor_instances(InstanceIDs) ->
     monitor_instances(InstanceIDs, default_config()).
 
--spec monitor_instances([string()], aws_config()) -> [proplist()].
+-spec monitor_instances([string()], aws_config()) -> ok_error(proplist()).
 monitor_instances(InstanceIDs, Config) ->
     case ec2_query(Config, "MonitorInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId")) of
         {ok, Doc} ->
@@ -2643,13 +2503,11 @@ extract_monitor_state(Node) ->
      {monitoring_state, get_text("monitoring/state", Node)}
     ].
 
-%%
-%%
--spec purchase_reserved_instances_offering([string() | {string(), pos_integer()}]) -> [string()].
+-spec purchase_reserved_instances_offering([string() | {string(), pos_integer()}]) -> ok_error([string()]).
 purchase_reserved_instances_offering(ReservedInstancesOfferings) ->
     purchase_reserved_instances_offering(ReservedInstancesOfferings, default_config()).
 
--spec purchase_reserved_instances_offering([string() | {string(), pos_integer()}], aws_config()) -> [string()].
+-spec purchase_reserved_instances_offering([string() | {string(), pos_integer()}], aws_config()) -> ok_error([string()]).
 purchase_reserved_instances_offering(ReservedInstancesOfferings, Config)
   when is_list(ReservedInstancesOfferings), length(ReservedInstancesOfferings) > 0 ->
     Params = lists:flatten(
@@ -2670,8 +2528,6 @@ purchase_reserved_instances_offering(ReservedInstancesOfferings, Config)
             Error
     end.
 
-%%
-%%
 -spec reboot_instances([string()]) -> ok.
 reboot_instances(InstanceIDs) -> reboot_instances(InstanceIDs, default_config()).
 
@@ -2680,12 +2536,10 @@ reboot_instances(InstanceIDs, Config)
   when is_list(InstanceIDs) ->
     ec2_simple_query(Config, "RebootInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId")).
 
-%%
-%%
--spec register_image(ec2_image_spec()) -> proplist().
+-spec register_image(ec2_image_spec()) -> ok_error(proplist()).
 register_image(ImageSpec) -> register_image(ImageSpec, default_config()).
 
--spec register_image(ec2_image_spec(), aws_config()) -> proplist().
+-spec register_image(ec2_image_spec(), aws_config()) -> ok_error(proplist()).
 register_image(ImageSpec, Config) ->
     Params = [
               {"ImageLocation", ImageSpec#ec2_image_spec.image_location},
@@ -2704,18 +2558,14 @@ register_image(ImageSpec, Config) ->
             Error
     end.
 
-%%
-%%
 -spec release_address(string()) -> ok.
 release_address(PublicIP) -> release_address(PublicIP, default_config()).
 
-%%
-%%
--spec replace_network_acl_association(string(), string()) -> string().
+-spec replace_network_acl_association(string(), string()) -> ok_error(string()).
 replace_network_acl_association(AssociationID, NetworkAclID) ->
     replace_network_acl_association(AssociationID, NetworkAclID, default_config()).
 
--spec replace_network_acl_association(string(), string(), aws_config()) -> string().
+-spec replace_network_acl_association(string(), string(), aws_config()) -> ok_error(string()).
 replace_network_acl_association(AssociationID, NetworkAclID, Config) ->
     Params = [{"AssociationId", AssociationID},
               {"NetworkAclId", NetworkAclID}],
@@ -2727,8 +2577,6 @@ replace_network_acl_association(AssociationID, NetworkAclID, Config) ->
             Error
     end.
 
-%%
-%%
 -spec replace_network_acl_entry(ec2_network_acl_spec()) -> ok.
 replace_network_acl_entry(Spec) ->
     replace_network_acl_entry(Spec, default_config()).
@@ -2738,13 +2586,11 @@ replace_network_acl_entry(Spec, Config) ->
     Params = network_acl_spec_to_params(Spec),
     ec2_simple_query(Config, "ReplaceNetworkAclEntry", Params, ?NEW_API_VERSION).
 
-%%
-%%
--spec request_spot_instances(ec2_spot_instance_request()) -> [proplist()].
+-spec request_spot_instances(ec2_spot_instance_request()) -> ok_error(proplist()).
 request_spot_instances(Request) ->
     request_spot_instances(Request, default_config()).
 
--spec request_spot_instances(ec2_spot_instance_request(), aws_config()) -> [proplist()].
+-spec request_spot_instances(ec2_spot_instance_request(), aws_config()) -> ok_error(proplist()).
 request_spot_instances(Request, Config) ->
     InstanceSpec = Request#ec2_spot_instance_request.launch_specification,
     Params = [
@@ -2806,13 +2652,11 @@ extract_describe_spot_fleet_request(Doc) ->
      {instance_type, get_text("instanceType", Doc)}
     ].
 
--spec describe_spot_fleet_instances_all(string()) ->
-    {ok, [{instances, [proplist()]}]} | {error, term()}.
+-spec describe_spot_fleet_instances_all(string()) -> ok_error([{instances, [proplist()]}]).
 describe_spot_fleet_instances_all(SpotFleetRequestId) ->
     describe_spot_fleet_instances_all(SpotFleetRequestId, default_config()).
 
--spec describe_spot_fleet_instances_all(string(), aws_config()) ->
-    {ok, [{instances, [proplist()]}]} | {error, term()}.
+-spec describe_spot_fleet_instances_all(string(), aws_config()) -> ok_error([{instances, [proplist()]}]).
 describe_spot_fleet_instances_all(SpotFleetRequestId, Config) ->
     ListAll = fun(Fun, NextToken, Acc) ->
         case describe_spot_fleet_instances(SpotFleetRequestId, NextToken, undefined, Config) of
@@ -2826,7 +2670,6 @@ describe_spot_fleet_instances_all(SpotFleetRequestId, Config) ->
         end
     end,
     ListAll(ListAll, undefined, []).
-
 
 -spec describe_spot_fleet_instances(spot_fleet_instance_id()) -> describe_spot_fleet_instances_return().
 describe_spot_fleet_instances(SpotFleetRequestId) ->
@@ -2863,12 +2706,12 @@ describe_spot_fleet_instances(SpotFleetRequestId, NextToken, MaxResults, Config)
         {error, _} = E -> E
     end.
 
--spec modify_spot_fleet_request(string(), non_neg_integer(), default | no_termination) -> ok | {error, term()}.
+-spec modify_spot_fleet_request(string(), non_neg_integer(), default | no_termination) -> ok_error().
 modify_spot_fleet_request(SpotFleetRequestId, TargetCapacity, ExcessCapacityTerminationPolicy) ->
     modify_spot_fleet_request(SpotFleetRequestId, TargetCapacity,
         ExcessCapacityTerminationPolicy, default_config()).
 
--spec modify_spot_fleet_request(string(), non_neg_integer(), default | no_termination, aws_config()) -> ok | {error, term()}.
+-spec modify_spot_fleet_request(string(), non_neg_integer(), default | no_termination, aws_config()) -> ok_error().
 modify_spot_fleet_request(SpotFleetRequestId, TargetCapacity, ExcessCapacityTerminationPolicy, Config) ->
     Params = [
         {"ExcessCapacityTerminationPolicy", encode_termination_policy(ExcessCapacityTerminationPolicy)},
@@ -2900,11 +2743,11 @@ extract_cancel_spot_fleet_response(Doc) ->
          Item <- xmerl_xpath:string("/CancelSpotFleetRequestsResponse/successfulFleetRequestSet/item", Doc)]}
     ].
 
--spec cancel_spot_fleet_requests([string()], boolean()) -> {ok, proplist()} | {error, term()}.
+-spec cancel_spot_fleet_requests([string()], boolean()) -> ok_error(proplist()).
 cancel_spot_fleet_requests(SpotFleetRequestIds, TerminateInstances) ->
     cancel_spot_fleet_requests(SpotFleetRequestIds, TerminateInstances, default_config()).
 
--spec cancel_spot_fleet_requests([string()], boolean(), aws_config()) -> {ok, proplist()} | {error, term()}.
+-spec cancel_spot_fleet_requests([string()], boolean(), aws_config()) -> ok_error(proplist()).
 cancel_spot_fleet_requests(SpotFleetRequestIds, TerminateInstances, Config) ->
     Params = [
         {"TerminateInstances", TerminateInstances} |
@@ -2920,11 +2763,11 @@ cancel_spot_fleet_requests(SpotFleetRequestIds, TerminateInstances, Config) ->
         {error, _} = E -> E
     end.
 
--spec request_spot_fleet(ec2_spot_fleet_request()) -> {ok, string()} | {error, term()}.
+-spec request_spot_fleet(ec2_spot_fleet_request()) -> ok_error(string()).
 request_spot_fleet(Request) ->
     request_spot_fleet(Request, default_config()).
 
--spec request_spot_fleet(ec2_spot_fleet_request(), aws_config()) -> {ok, string()} | {error, term()}.
+-spec request_spot_fleet(ec2_spot_fleet_request(), aws_config()) -> ok_error(string()).
 request_spot_fleet(Request, Config) ->
     LConf = Request#ec2_spot_fleet_request.spot_fleet_request_config,
     {LSpecs, _} = lists:foldl(
@@ -2985,15 +2828,11 @@ request_spot_fleet(Request, Config) ->
         {error, _} = E -> E
     end.
 
-%%
-%%
 -spec release_address(string(), aws_config()) -> ok.
 release_address(PublicIP, Config)
   when is_list(PublicIP) ->
     ec2_simple_query(Config, "ReleaseAddress", [{"PublicIp", PublicIP}]).
 
-%%
-%%
 -spec reset_image_attribute(string(), atom()) -> ok.
 reset_image_attribute(ImageID, Attribute) ->
     reset_image_attribute(ImageID, Attribute, default_config()).
@@ -3003,8 +2842,6 @@ reset_image_attribute(ImageID, launch_permission, Config) ->
     ec2_simple_query(Config, "ResetImageAttribute",
                      [{"ImageId", ImageID}, {"Attribute", "launchPermission"}]).
 
-%%
-%%
 -spec reset_instance_attribute(string(), atom()) -> ok.
 reset_instance_attribute(InstanceID, Attribute) ->
     reset_instance_attribute(InstanceID, Attribute, default_config()).
@@ -3016,8 +2853,6 @@ reset_instance_attribute(InstanceID, Attribute, Config)
     ec2_simple_query(Config, "ResetInstanceAttribute",
                      [{"InstanceId", InstanceID}, {"Attribute", Attribute}]).
 
-%%
-%%
 -spec reset_snapshot_attribute(string(), atom()) -> ok.
 reset_snapshot_attribute(SnapshotID, Attribute) ->
     reset_snapshot_attribute(SnapshotID, Attribute, default_config()).
@@ -3028,8 +2863,6 @@ reset_snapshot_attribute(SnapshotID, create_volume_permission, Config)
     ec2_simple_query(Config, "ResetSnapshotAttribute",
                      [{"snapshotId", SnapshotID}, {"Attribute", "createVolumePermission"}]).
 
-%%
-%%
 -spec revoke_security_group_ingress(string(), ec2_ingress_spec()) -> ok.
 revoke_security_group_ingress(GroupName, IngressSpec) ->
     revoke_security_group_ingress(GroupName, IngressSpec, default_config()).
@@ -3040,12 +2873,10 @@ revoke_security_group_ingress(GroupName, IngressSpec, Config)
     Params = [{"GroupName", GroupName}|ingress_spec_params(IngressSpec)],
     ec2_simple_query(Config, "RevokeSecurityGroupIngress", Params).
 
-%%
-%%
--spec run_instances(ec2_instance_spec()) -> proplist().
+-spec run_instances(ec2_instance_spec()) -> ok_error(proplist()).
 run_instances(InstanceSpec) -> run_instances(InstanceSpec, default_config()).
 
--spec run_instances(ec2_instance_spec(), aws_config()) -> proplist().
+-spec run_instances(ec2_instance_spec(), aws_config()) -> ok_error(proplist()).
 run_instances(InstanceSpec, Config)
   when is_record(InstanceSpec, ec2_instance_spec) ->
     Params = [
@@ -3105,13 +2936,11 @@ net_if_params(#ec2_net_if{}=X) ->
 net_if_params(List, Prefix) ->
     erlcloud_aws:param_list([net_if_params(X) || X <- List], Prefix).
 
-%%
-%%
--spec create_tags([string()], [{string(), string()}]) -> proplist().
+-spec create_tags([string()], [{string(), string()}]) -> ok_error(proplist()).
 create_tags(ResourceIds, TagsList) when is_list(ResourceIds) ->
     create_tags(ResourceIds, TagsList, default_config()).
 
--spec create_tags([string()], [{string(), string()}], aws_config()) -> proplist().
+-spec create_tags([string()], [{string(), string()}], aws_config()) -> ok_error(proplist()).
 create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
     {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
                                     I = integer_to_list(Index),
@@ -3131,13 +2960,11 @@ create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
             Error
     end.
 
-%%
-%%
--spec delete_tags([string()], [{string(), string()}]) -> proplist().
+-spec delete_tags([string()], [{string(), string()}]) -> ok_error(proplist()).
 delete_tags(ResourceIds, TagsList) when is_list(ResourceIds) ->
     delete_tags(ResourceIds, TagsList, default_config()).
 
--spec delete_tags([string()], [{string(), string()}], aws_config()) -> proplist().
+-spec delete_tags([string()], [{string(), string()}], aws_config()) -> ok_error(proplist()).
 delete_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
     {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
                                     I = integer_to_list(Index),
@@ -3156,7 +2983,6 @@ delete_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
         {error, _} = Error ->
             Error
     end.
-
 
 -spec describe_tags() -> ok_error(proplist()).
 describe_tags() ->
@@ -3234,12 +3060,10 @@ block_device_params(Mappings) ->
            end ||
           Mapping <- Mappings], "BlockDeviceMapping").
 
-%%
-%%
--spec start_instances([string()]) -> proplist().
+-spec start_instances([string()]) -> ok_error(proplist()).
 start_instances(InstanceIDs) -> start_instances(InstanceIDs, default_config()).
 
--spec start_instances([string()], aws_config()) -> proplist().
+-spec start_instances([string()], aws_config()) -> ok_error(proplist()).
 start_instances(InstanceIDs, Config)
   when is_list(InstanceIDs) ->
     case ec2_query(Config, "StartInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId")) of
@@ -3249,19 +3073,17 @@ start_instances(InstanceIDs, Config)
             Error
     end.
 
-%%
-%%
--spec stop_instances([string()]) -> proplist().
+-spec stop_instances([string()]) -> ok_error(proplist()).
 stop_instances(InstanceIDs) -> stop_instances(InstanceIDs, default_config()).
 
--spec stop_instances([string()], boolean() | aws_config()) -> proplist().
+-spec stop_instances([string()], boolean() | aws_config()) -> ok_error(proplist()).
 stop_instances(InstanceIDs, Config)
   when is_record(Config, aws_config) ->
     stop_instances(InstanceIDs, false, Config);
 stop_instances(InstanceIDs, Force) ->
     stop_instances(InstanceIDs, Force, default_config()).
 
--spec stop_instances([string()], boolean(), aws_config()) -> proplist().
+-spec stop_instances([string()], boolean(), aws_config()) -> ok_error(proplist()).
 stop_instances(InstanceIDs, Force, Config)
   when is_list(InstanceIDs), is_boolean(Force) ->
     case ec2_query(Config, "StopInstances",
@@ -3272,12 +3094,10 @@ stop_instances(InstanceIDs, Force, Config)
             Error
     end.
 
-%%
-%%
--spec terminate_instances([string()]) -> proplist().
+-spec terminate_instances([string()]) -> ok_error(proplist()).
 terminate_instances(InstanceIDs) -> terminate_instances(InstanceIDs, default_config()).
 
--spec terminate_instances([string()], aws_config()) -> proplist().
+-spec terminate_instances([string()], aws_config()) -> ok_error(proplist()).
 terminate_instances(InstanceIDs, Config)
   when is_list(InstanceIDs) ->
     case ec2_query(Config, "TerminateInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId")) of
@@ -3300,13 +3120,11 @@ extract_instance_state_change(Node) ->
      }
     ].
 
-%%
-%%
--spec unmonitor_instances([string()]) -> proplist().
+-spec unmonitor_instances([string()]) -> ok_error(proplist()).
 unmonitor_instances(InstanceIDs) ->
     unmonitor_instances(InstanceIDs, default_config()).
 
--spec unmonitor_instances([string()], aws_config()) -> [proplist()].
+-spec unmonitor_instances([string()], aws_config()) -> ok_error(proplist()).
 unmonitor_instances(InstanceIDs, Config) ->
     case ec2_query(Config, "UnmonitorInstances", erlcloud_aws:param_list(InstanceIDs, "InstanceId")) of
         {ok, Doc} ->
@@ -3315,17 +3133,19 @@ unmonitor_instances(InstanceIDs, Config) ->
             Error
     end.
 
+-spec ec2_simple_query(aws_config(), string(), list()) -> ok_error().
 ec2_simple_query(Config, Action, Params) ->
     case ec2_query(Config, Action, Params) of
-        {ok,    _} ->
+        {ok, _} ->
             ok;
         {error, _} = Error ->
             Error
     end.
 
+-spec ec2_simple_query(aws_config(), string(), list(), string()) -> ok_error().
 ec2_simple_query(Config, Action, Params, ApiVersion) ->
     case ec2_query(Config, Action, Params, ApiVersion) of
-        {ok,    _} ->
+        {ok, _} ->
             ok;
         {error, _} = Error ->
             Error
@@ -3363,24 +3183,21 @@ list_to_ec2_values([H|T], Count, VCount, Res) ->
     Tup = {io_lib:format("Filter.~p.Value.~p", [Count, VCount]), H},
     list_to_ec2_values(T, Count, VCount + 1, [Tup|Res]).
 
-
-%%
-%%
--spec describe_vpn_gateways() -> {ok, [proplist()]} | {error, any()}.
+-spec describe_vpn_gateways() -> ok_error([proplist()]).
 describe_vpn_gateways() ->
     describe_vpn_gateways(none, default_config()).
 
--spec describe_vpn_gateways(filter_list | aws_config()) -> {ok, [proplist()]} | {error, any()}.
+-spec describe_vpn_gateways(filter_list | aws_config()) -> ok_error([proplist()]).
 describe_vpn_gateways(Config) when is_record(Config, aws_config) ->
     describe_vpn_gateways(none, Config);
 describe_vpn_gateways(Filter) ->
     describe_vpn_gateways(Filter, default_config()).
 
--spec describe_vpn_gateways(none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
+-spec describe_vpn_gateways(none | filter_list(), aws_config()) -> ok_error([proplist()]).
 describe_vpn_gateways(Filter, Config) ->
     describe_vpn_gateways([], Filter, Config).
 
--spec describe_vpn_gateways(list(), none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
+-spec describe_vpn_gateways(list(), none | filter_list(), aws_config()) -> ok_error([proplist()]).
 describe_vpn_gateways(VGWIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(VGWIds, "VpnGatewayId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeVpnGateways", Params, ?NEW_API_VERSION) of
@@ -3407,23 +3224,21 @@ extract_vgw_attachments(Node) ->
     [ {vpc_id, get_text("vpcId", Node)},
       {state, get_text("state", Node)} ].
 
-%%
-%%
--spec describe_vpn_connections() -> {ok, [proplist()]} | {error, any()}.
+-spec describe_vpn_connections() -> ok_error([proplist()]).
 describe_vpn_connections() ->
     describe_vpn_connections(none, default_config()).
 
--spec describe_vpn_connections(filter_list | aws_config()) -> {ok, [proplist()]} | {error, any()}.
+-spec describe_vpn_connections(filter_list | aws_config()) -> ok_error([proplist()]).
 describe_vpn_connections(Config) when is_record(Config, aws_config) ->
     describe_vpn_connections(none, Config);
 describe_vpn_connections(Filter) ->
     describe_vpn_connections(Filter, default_config()).
 
--spec describe_vpn_connections(none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
+-spec describe_vpn_connections(none | filter_list(), aws_config()) -> ok_error([proplist()]).
 describe_vpn_connections(Filter, Config) ->
     describe_vpn_connections([], Filter, Config).
 
--spec describe_vpn_connections(list(), none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
+-spec describe_vpn_connections(list(), none | filter_list(), aws_config()) -> ok_error([proplist()]).
 describe_vpn_connections(VpnConnIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(VpnConnIds, "VpnConnectionId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeVpnConnections", Params, ?NEW_API_VERSION) of
@@ -3446,23 +3261,21 @@ extract_vpn_connection(Node) ->
         || Item <- xmerl_xpath:string("tagSet/item", Node)]}
  ].
 
-%%
-%%
--spec describe_customer_gateways() -> {ok, [proplist()]} | {error, any()}.
+-spec describe_customer_gateways() -> ok_error([proplist()]).
 describe_customer_gateways() ->
     describe_customer_gateways(none, default_config()).
 
--spec describe_customer_gateways(filter_list | aws_config()) -> {ok, [proplist()]} | {error, any()}.
+-spec describe_customer_gateways(filter_list | aws_config()) -> ok_error([proplist()]).
 describe_customer_gateways(Config) when is_record(Config, aws_config) ->
     describe_customer_gateways(none, Config);
 describe_customer_gateways(Filter) ->
     describe_customer_gateways(Filter, default_config()).
 
--spec describe_customer_gateways(none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
+-spec describe_customer_gateways(none | filter_list(), aws_config()) -> ok_error([proplist()]).
 describe_customer_gateways(Filter, Config) ->
     describe_customer_gateways([], Filter, Config).
 
--spec describe_customer_gateways(list(), none | filter_list(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
+-spec describe_customer_gateways(list(), none | filter_list(), aws_config()) -> ok_error([proplist()]).
 describe_customer_gateways(CGWIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(CGWIds, "CustomerGatewayId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeCustomerGateways", Params, ?NEW_API_VERSION) of
