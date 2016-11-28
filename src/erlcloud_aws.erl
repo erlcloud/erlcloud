@@ -632,7 +632,6 @@ request_to_return(#aws_request{response_type = error,
 -spec sign_v4_request(atom(), list(), aws_config(), headers(), list(), string(), string(), list(), string()) -> string().
 sign_v4_request(Method, Path, Config, Headers, Payload, Region, Service, QueryParams, DateTime) ->
   {CanonicalRequest, _} = canonical_request(Method, Path, QueryParams, Headers, Payload),
-  io:format("--------------\n~s\n--------------------\n", [CanonicalRequest]),
   Scope = credential_scope(DateTime, Region, Service),
   StringToSign = to_sign(DateTime, Scope, CanonicalRequest),
   SigningKey = signing_key(Config, DateTime, Region, Service),
