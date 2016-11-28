@@ -30,6 +30,7 @@
          set_object_acl/3, set_object_acl/4,
          make_link/3, make_link/4,
          make_get_url/3, make_get_url/4,
+         make_get_url_v4/3, make_get_url_v4/4,
          start_multipart/2, start_multipart/5,
          upload_part/5, upload_part/7,
          complete_multipart/4, complete_multipart/6,
@@ -1014,6 +1015,47 @@ make_link(Expire_time, BucketName, Key, Config) ->
       true  -> lists:flatten([Config#aws_config.s3_scheme, Config#aws_config.s3_host, port_spec(Config), "/", BucketName, "/", Key])
   end.
 
+ -spec make_get_url_v4(integer(), string(), string()) -> iolist().
+
+make_get_url_v4(ExpireTime, BucketName, Key) ->
+    make_get_url_v4(ExpireTime, BucketName, Key, default_config()).
+  
+-spec make_get_url_v4(integer(), string(), string(), aws_config()) -> iolist().
+
+make_get_url_v4(ExpireTime, BucketName, Key, Config) ->
+  Region = aws_region_from_host(Config#aws_config.s3_host),
+  Host = "s3-" ++ Region ++ ".amazonaws.com",
+  Path = erlcloud_http:url_encode_loose("/" ++ BucketName ++ "/" ++ Key),
+  EndpointUrl = "https://" ++ Host ++ Path,
+  Headers = [{"Host", Host}],
+  Service = "s3",
+  Terminator = "aws4_request",
+  Payload = "UNSIGNED-PAYLOAD",
+  AwsAccessKey = Config#aws_config.access_key_id,
+  {{Year, Month, Day}, {Hour, Minute, Second}} = calendar:now_to_universal_time(erlang:timestamp()),
+  DateTime = lists:flatten(io_lib:format(
+    "~4.10.0B~2.10.0B~2.10.0BT~2.10.0B~2.10.0B~2.10.0BZ",[Year, Month, Day, Hour, Minute, Second])),
+  Date = string:left(DateTime, 8),
+  Scope =  Date ++ "/" ++ Region ++ "/" ++ Service ++ "/" ++ Terminator,
+  QueryParams = [
+    {"X-Amz-Algorithm", "AWS4-HMAC-SHA256"}, 
+    {"X-Amz-Credential", AwsAccessKey ++ "/" ++ Scope},
+    {"X-Amz-Date", DateTime},
+    {"X-Amz-SignedHeaders", "host"},
+    {"X-Amz-Expires", integer_to_list(ExpireTime)}
+  ],
+  Signature = erlcloud_aws:sign_v4_request(get, Path, Config, Headers, Payload, Region, Service, QueryParams, DateTime),
+  
+  AuthString = lists:flatten(io_lib:format("~s=~s&~s=~s&~s=~s&~s=~s&~s=~s&~s=~s", [
+    "X-Amz-Algorithm", proplists:get_value("X-Amz-Algorithm", QueryParams),
+    "X-Amz-Credential", proplists:get_value("X-Amz-Credential", QueryParams),        
+    "X-Amz-Date", proplists:get_value("X-Amz-Date", QueryParams),        
+    "X-Amz-Expires", proplists:get_value("X-Amz-Expires", QueryParams),        
+    "X-Amz-SignedHeaders", proplists:get_value("X-Amz-SignedHeaders", QueryParams),        
+    "X-Amz-Signature", Signature
+    ])),        
+  EndpointUrl ++ "?" ++ AuthString.
+  
 -spec make_get_url(integer(), string(), string()) -> iolist().
 
 make_get_url(Expire_time, BucketName, Key) ->

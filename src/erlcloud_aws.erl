@@ -15,6 +15,7 @@
          http_headers_body/1,
          http_body/1,
          request_to_return/1,
+         sign_v4_request/9,
          sign_v4_headers/5,
          sign_v4/8,
          get_service_status/1,
@@ -627,6 +628,17 @@ request_to_return(#aws_request{response_type = error,
                                response_headers = Headers}) ->
     {error, {http_error, Status, StatusLine, Body, Headers}}.
 
+
+-spec sign_v4_request(atom(), list(), aws_config(), headers(), list(), string(), string(), list(), string()) -> string().
+sign_v4_request(Method, Path, Config, Headers, Payload, Region, Service, QueryParams, DateTime) ->
+  {CanonicalRequest, _} = canonical_request(Method, Path, QueryParams, Headers, Payload),
+  io:format("--------------\n~s\n--------------------\n", [CanonicalRequest]),
+  Scope = credential_scope(DateTime, Region, Service),
+  StringToSign = to_sign(DateTime, Scope, CanonicalRequest),
+  SigningKey = signing_key(Config, DateTime, Region, Service),
+  base16(erlcloud_util:sha256_mac(SigningKey, StringToSign)).
+
+    
 %% http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
 -spec sign_v4_headers(aws_config(), headers(), binary(), string(), string()) -> headers().
 sign_v4_headers(Config, Headers, Payload, Region, Service) ->
