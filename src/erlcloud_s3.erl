@@ -1025,7 +1025,9 @@ make_get_url(ExpireTime, BucketName, Key, Config) ->
     Host = Config#aws_config.s3_host,
     Region = aws_region_from_host(Host),
     Path = erlcloud_http:url_encode_loose("/" ++ BucketName ++ "/" ++ Key),
-    EndpointUrl = "https://" ++ Host ++ Path,
+    EndpointUrl  = lists:flatten([
+      Config#aws_config.s3_scheme,
+      Host, port_spec(Config), Path]),
     Headers = [{"Host", Host}],
     Service = "s3",
     Terminator = "aws4_request",
