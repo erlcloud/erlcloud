@@ -17,6 +17,7 @@
 
          create_launch_config/2,
          create_auto_scaling_group/2,
+         update_auto_scaling_group/2,
          delete_launch_configuration/2,
          delete_auto_scaling_group/3,
          describe_scaling_activities/3,
@@ -389,6 +390,63 @@ create_auto_scaling_group(#aws_autoscaling_group{
 create_auto_scaling_group(Params, Config) ->
     P = Params,
     case as_query(Config, "CreateAutoScalingGroup", P, ?API_VERSION) of
+        {ok, _Doc} ->
+            ok;
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+
+%% --------------------------------------------------------------------
+%% @doc Update AutoScaling group.
+%% @end
+%% --------------------------------------------------------------------
+-spec update_auto_scaling_group(aws_autoscaling_group() | list({string(), term()}), aws_config()) ->
+                                       ok | {error, term()}.
+update_auto_scaling_group(#aws_autoscaling_group{
+                              group_name = GName,
+                              launch_configuration_name = LaunchName,
+                              desired_capacity = DesiredCapacity,
+                              max_size = MaxSize,
+                              min_size = MinSize,
+                              vpc_zone_id = VpcZoneIds,
+                              availability_zones = AZones
+                          },
+                          Config) ->
+    Params = lists:concat([
+                 [
+                  {"AutoScalingGroupName", GName}
+                 ],
+                 case LaunchName of
+                     undefined -> [];
+                     _         -> [{"LaunchConfigurationName", LaunchName}]
+                 end,
+                 case DesiredCapacity of
+                     undefined -> [];
+                     _         -> [{"DesiredCapacity", integer_to_list(DesiredCapacity)}]
+                 end,
+                 case MaxSize of
+                     undefined -> [];
+                     _         -> [{"MaxSize", integer_to_list(MaxSize)}]
+                 end,
+                 case MinSize of
+                     undefined -> [];
+                     _         -> [{"MinSize", integer_to_list(MinSize)}]
+                 end,
+                 case VpcZoneIds of
+                     undefined -> [];
+                     _         ->[{"VPCZoneIdentifier", string:join(VpcZoneIds, ",")}]
+                 end,
+                 case AZones of
+                     undefined -> [];
+                     _         -> member_params("AvailabilityZones.member.", AZones)
+                 end
+             ]),
+    update_auto_scaling_group(Params, Config);
+
+update_auto_scaling_group(Params, Config) ->
+    P = Params,
+    case as_query(Config, "UpdateAutoScalingGroup", P, ?API_VERSION) of
         {ok, _Doc} ->
             ok;
         {error, Reason} ->
