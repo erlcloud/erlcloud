@@ -49,7 +49,9 @@
 -type range_key_name() :: erlcloud_ddb2:range_key_name().
 -type table_name() :: erlcloud_ddb2:table_name().
 
--type items_return() :: {ok, [out_item()]} | {error, term()}.
+-type items_return() :: {ok, [out_item()]}
+                      | {ok, non_neg_integer()}
+                      | {error, term()}.
 
 -export_type(
    [batch_read_ddb_opt/0,
@@ -309,22 +311,38 @@ q_all(Table, KeyConditionsOrExpression, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec q_all(table_name(), conditions() | expression(), q_all_opts(), aws_config()) -> items_return().
+-spec q_all(table_name(),
+            conditions() | expression(),
+            q_all_opts(),
+            aws_config()) -> items_return().
 q_all(Table, KeyConditionsOrExpression, Opts, Config) ->
     q_all(Table, KeyConditionsOrExpression, Opts, Config, [], undefined).
 
--spec q_all(table_name(), conditions() | expression(), q_all_opts(), aws_config(), [[out_item()]], key() | undefined)
-           -> items_return().
-q_all(Table, KeyConditionsOrExpression, Opts, Config, Acc, StartKey) ->
-    case erlcloud_ddb2:q(Table, KeyConditionsOrExpression,
-                         [{exclusive_start_key, StartKey} | set_out_opt(Opts)], 
-                         Config) of
+-spec q_all(table_name(),
+            conditions() | expression(),
+            q_all_opts(),
+            aws_config(),
+            [[out_item()]],
+            key() | undefined) -> items_return().
+q_all(Table, KeyCondOrExpr, Opts0, Config, Acc, StartKey) ->
+    Opts = [{exclusive_start_key, StartKey}|set_out_opt(Opts0)],
+    case erlcloud_ddb2:q(Table, KeyCondOrExpr, Opts, Config) of
         {error, Reason} ->
             {error, Reason};
-        {ok, #ddb2_q{last_evaluated_key = undefined, items = Items}} ->
-            {ok, flatreverse([Items | Acc])};
-        {ok, #ddb2_q{last_evaluated_key = LastKey, items = Items}} ->
-            q_all(Table, KeyConditionsOrExpression, Opts, Config, [Items | Acc], LastKey)
+        {ok, #ddb2_q{last_evaluated_key = undefined,
+                     items              = undefined,
+                     count              = Count}} ->
+            {ok, lists:sum([Count|Acc])};
+        {ok, #ddb2_q{last_evaluated_key = undefined,
+                     items              = Items}} ->
+            {ok, flatreverse([Items|Acc])};
+        {ok, #ddb2_q{last_evaluated_key = LastKey,
+                     items              = undefined,
+                     count              = Count}} ->
+            q_all(Table, KeyCondOrExpr, Opts0, Config, [Count|Acc], LastKey);
+        {ok, #ddb2_q{last_evaluated_key = LastKey,
+                     items              = Items}} ->
+            q_all(Table, KeyCondOrExpr, Opts0, Config, [Items|Acc], LastKey)
     end.
 
 %%%------------------------------------------------------------------------------
@@ -364,18 +382,30 @@ scan_all(Table, Opts) ->
 scan_all(Table, Opts, Config) ->
     scan_all(Table, Opts, Config, [], undefined).
 
--spec scan_all(table_name(), scan_all_opts(), aws_config(), [[out_item()]], key() | undefined)
-        -> items_return().
-scan_all(Table, Opts, Config, Acc, StartKey) ->
-    case erlcloud_ddb2:scan(Table,
-                            [{exclusive_start_key, StartKey} | set_out_opt(Opts)],
-                            Config) of
+-spec scan_all(table_name(),
+               scan_all_opts(),
+               aws_config(),
+               [[out_item()]],
+               key() | undefined) -> items_return().
+scan_all(Table, Opts0, Config, Acc, StartKey) ->
+    Opts = [{exclusive_start_key, StartKey}|set_out_opt(Opts0)],
+    case erlcloud_ddb2:scan(Table, Opts, Config) of
         {error, Reason} ->
             {error, Reason};
-        {ok, #ddb2_scan{last_evaluated_key = undefined, items = Items}} ->
-            {ok, flatreverse([Items | Acc])};
-        {ok, #ddb2_scan{last_evaluated_key = LastKey, items = Items}} ->
-            scan_all(Table, Opts, Config, [Items | Acc], LastKey)
+        {ok, #ddb2_scan{last_evaluated_key = undefined,
+                        items              = undefined,
+                        count              = Count}} ->
+            {ok, lists:sum([Count|Acc])};
+        {ok, #ddb2_scan{last_evaluated_key = undefined,
+                        items              = Items}} ->
+            {ok, flatreverse([Items|Acc])};
+        {ok, #ddb2_scan{last_evaluated_key = LastKey,
+                        items              = undefined,
+                        count              = Count}} ->
+            scan_all(Table, Opts0, Config, [Count|Acc], LastKey);
+        {ok, #ddb2_scan{last_evaluated_key = LastKey,
+                        items              = Items}} ->
+            scan_all(Table, Opts0, Config, [Items|Acc], LastKey)
     end.
 
 %%%------------------------------------------------------------------------------
