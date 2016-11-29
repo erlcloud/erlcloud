@@ -133,10 +133,11 @@ describe_groups(GN, Params, Config) ->
             {error, Reason}
     end.
     
-
+-spec extract_instance(string()) -> aws_autoscaling_instance().
 extract_instance(I) ->
     extract_instance(I, erlcloud_xml:get_text("AutoScalingGroupName", I)).
 
+-spec extract_instance(string(), string()) -> aws_autoscaling_instance().
 extract_instance(I, GroupName) ->
     #aws_autoscaling_instance{
        instance_id = erlcloud_xml:get_text("InstanceId", I),
@@ -147,6 +148,7 @@ extract_instance(I, GroupName) ->
        lifecycle_state = erlcloud_xml:get_text("LifecycleState", I)
       }.
 
+-spec extract_group(term()) -> aws_autoscaling_group().
 extract_group(G) ->
     #aws_autoscaling_group{
        group_name = erlcloud_xml:get_text("AutoScalingGroupName", G),
@@ -156,7 +158,8 @@ extract_group(G) ->
        load_balancer_names = 
            [erlcloud_xml:get_text(L) || L <- xmerl_xpath:string("LoadBalancerNames/member", G)],
        instances =
-           [extract_instance(I, group_name) || I <- xmerl_xpath:string("Instances/member", G)],
+           [extract_instance(I, erlcloud_xml:get_text("AutoScalingGroupName", G)) ||
+                I <- xmerl_xpath:string("Instances/member", G)],
        desired_capacity = erlcloud_xml:get_integer("DesiredCapacity", G),
        min_size = erlcloud_xml:get_integer("MinSize", G),
        max_size = erlcloud_xml:get_integer("MaxSize", G),
@@ -308,8 +311,8 @@ delete_auto_scaling_group(Name, ForceDelete, Config) ->
 %% @doc Create launch configuration.
 %% @end
 %% --------------------------------------------------------------------
--spec create_launch_config(aws_launch_config(), aws_config()) ->
-                                  ok | {error, term()}.
+-spec create_launch_config(aws_launch_config(), aws_config()) -> ok | {error, term()};
+                          (list(), aws_config()) -> ok | {error, term()}.
 create_launch_config(#aws_launch_config{
                          name = LCName,
                          image_id = ImageId,
@@ -351,8 +354,8 @@ create_launch_config(Params, Config) ->
 %% @doc Create AutoScaling group.
 %% @end
 %% --------------------------------------------------------------------
--spec create_auto_scaling_group(aws_autoscaling_group(), aws_config()) ->
-                                       ok | {error, term()}.
+-spec create_auto_scaling_group(aws_autoscaling_group(), aws_config()) -> ok | {error, term()};
+                               (list(), aws_config()) -> ok | {error, term()}.
 create_auto_scaling_group(#aws_autoscaling_group{
                               group_name = GName,
                               launch_configuration_name = LaunchName,
@@ -363,7 +366,7 @@ create_auto_scaling_group(#aws_autoscaling_group{
                               tags = Tags
                           },
                           Config) ->
-    ProcessedTags = lists:flatten([ tag_to_member_param(Idx, T) || {Idx, T} <- lists:zip(Tags, lists:seq(1, length(Tags))) ]),
+    ProcessedTags = lists:flatten([tag_to_member_param(T, Idx) || {T, Idx} <- lists:zip(Tags, lists:seq(1, length(Tags)))]),
     Params = lists:concat([
                  [
                   {"AutoScalingGroupName", GName},
@@ -439,7 +442,7 @@ describe_instances(I, Params, Config) ->
 %% without decrementing the desired capacity of the group.
 %% @end
 %% --------------------------------------------------------------------
--spec terminate_instance(string()) -> aws_autoscaling_activity().
+-spec terminate_instance(string()) -> {ok, aws_autoscaling_activity()} | {error, term()}.
 terminate_instance(InstanceId) ->
     terminate_instance(InstanceId, erlcloud_aws:default_config()).
 
@@ -450,6 +453,7 @@ terminate_instance(InstanceId) ->
 %% Config a supplied AWS configuration.
 %% @end
 %% --------------------------------------------------------------------
+-spec terminate_instance(string(), boolean() | aws_config()) -> {ok, aws_autoscaling_activity()} | {error, term()}.
 terminate_instance(InstanceId, false) ->
     terminate_instance(InstanceId, false, erlcloud_aws:default_config());
 terminate_instance(InstanceId, true) ->
@@ -457,6 +461,7 @@ terminate_instance(InstanceId, true) ->
 terminate_instance(InstanceId, Config) ->
     terminate_instance(InstanceId, false, Config).
 
+-spec terminate_instance(string(), boolean(), aws_config()) -> {ok, aws_autoscaling_activity()} | {error, term()}.
 terminate_instance(InstanceId, false, Config) ->
     priv_terminate_instance([{"InstanceId", InstanceId}, {"ShouldDecrementDesiredCapacity", "false"}], Config);
 terminate_instance(InstanceId, true, Config) ->
@@ -543,7 +548,7 @@ resume_processes(GroupName, ScalingProcesses, Config) ->
 %% without decrementing the desired capacity of the group.
 %% @end
 %% --------------------------------------------------------------------
--spec detach_instances(list(string()),string()) -> aws_autoscaling_activity().
+-spec detach_instances(list(string()),string()) -> aws_autoscaling_activity() | {error, term()}.
 detach_instances(InstanceIds, GroupName) ->
     detach_instances(InstanceIds, GroupName, erlcloud_aws:default_config()).
 
@@ -554,13 +559,13 @@ detach_instances(InstanceIds, GroupName) ->
 %% Config a supplied AWS configuration.
 %% @end
 %% --------------------------------------------------------------------
--spec detach_instances(list(string()),string(), boolean() | aws_config()) -> aws_autoscaling_activity().
+-spec detach_instances(list(string()),string(), boolean() | aws_config()) -> aws_autoscaling_activity() | {error, term()}.
 detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity) when is_boolean(ShouldDecrementDesiredCapacity) ->
     detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity, erlcloud_aws:default_config());
 detach_instances(InstanceIds, GroupName, Config) ->
     detach_instances(InstanceIds, GroupName, false, Config).
 
--spec detach_instances(list(string()),string(), boolean(), aws_config()) -> aws_autoscaling_activity().
+-spec detach_instances(list(string()),string(), boolean(), aws_config()) -> aws_autoscaling_activity() | {error, term()}.
 detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity, Config) ->
     P = case ShouldDecrementDesiredCapacity of
             true ->
@@ -686,7 +691,7 @@ when_defined(Value, Return, DefaultReturn) ->
             Return
     end.
 
-
+-spec tag_to_member_param(aws_autoscaling_tag(), integer()) -> list().
 tag_to_member_param(#aws_autoscaling_tag{
                         key = Key,
                         propogate_at_launch = AtLaunch,
