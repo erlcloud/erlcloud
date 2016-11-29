@@ -29,19 +29,25 @@
 -define(ERLCLOUD_RETRY_TIMEOUT, 10000).
 -define(GREGORIAN_EPOCH_OFFSET, 62167219200).
 
--record(metadata_credentials,
-        {access_key_id :: string(),
+-record(metadata_credentials, {
+         access_key_id :: string(),
          secret_access_key :: string(),
          security_token=undefined :: string(),
          expiration_gregorian_seconds :: integer()
-        }).
-
--record(profile_options, {
-          session_name :: string(),
-          session_secs :: 900..3600,
-          external_id :: string()
 }).
 
+-record(role_credentials, {
+         access_key_id :: string(),
+         secret_access_key :: string(),
+         session_token = undefined :: string(),
+         expiration_gregorian_seconds :: integer()
+}).
+
+-record(profile_options, {
+         session_name :: string(),
+         session_secs :: 900..3600,
+         external_id :: string()
+}).
 
 aws_request_xml(Method, Host, Path, Params, #aws_config{} = Config) ->
     Body = aws_request(Method, Host, Path, Params, Config),
@@ -374,6 +380,19 @@ config_metadata() ->
 
 
 -spec update_config(aws_config()) -> {ok, aws_config()} | {error, term()}.
+update_config(#aws_config{assume_role =
+                          #aws_assume_role{role_arn = RoleArn}} = Config)
+    when RoleArn /= undefined ->
+    %% The assume role options are defined lets try to assume a role
+    case get_role_credentials(Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Credentials} ->
+            {ok, Config#aws_config {
+                access_key_id = Credentials#role_credentials.access_key_id,
+                secret_access_key = Credentials#role_credentials.secret_access_key,
+                security_token = Credentials#role_credentials.session_token}}
+    end;
 update_config(#aws_config{access_key_id = KeyId} = Config)
   when is_list(KeyId), KeyId /= [] ->
     %% In order to support caching of the aws_config, we could store the expiration_time
@@ -391,7 +410,6 @@ update_config(#aws_config{} = Config) ->
                    secret_access_key = Credentials#metadata_credentials.secret_access_key,
                    security_token = Credentials#metadata_credentials.security_token}}
     end.
-
 
 %%%---------------------------------------------------------------------------
 -spec service_config( Service :: atom() | string() | binary(),
@@ -504,8 +522,6 @@ service_host( <<"sdb">>, <<"us-east-1">> ) -> "sdb.amazonaws.com";
 service_host( Service, Region ) when is_binary(Service) ->
     binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com">> ).
 
-
-
 -spec configure(aws_config()) -> {ok, aws_config()}.
 
 configure(#aws_config{} = Config) ->
@@ -576,6 +592,49 @@ prop_to_list_defined( Name, Props ) ->
         Value when is_binary(Value) -> binary_to_list(Value)
     end.
 
+
+-spec get_role_credentials(aws_config()) -> {ok, #role_credentials{}} | {error, term()}.
+get_role_credentials(#aws_config{assume_role = AssumeRole} = Config) ->
+    case application:get_env(erlcloud,
+                             {role_credentials,
+                              AssumeRole#aws_assume_role.role_arn,
+                              AssumeRole#aws_assume_role.external_id}) of
+        {ok, #role_credentials{expiration_gregorian_seconds = Expiration} = Credentials} ->
+            Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
+            %% Get new credentials if these will expire in less than 5 minutes
+            case Expiration - Now < 300 of
+                true -> get_credentials_from_role(Config);
+                false -> {ok, Credentials}
+            end;
+        undefined ->
+            get_credentials_from_role(Config)
+    end.
+
+-spec get_credentials_from_role(aws_config()) -> {ok, #role_credentials{}} |
+                                                 {error, term()}.
+get_credentials_from_role(#aws_config{assume_role = AssumeRole} = Config) ->
+    %% We have to reset the assume role to make sure we do not
+    %% enter in a infinite loop because erlcloud_sts:assume_role also calls
+    %% update_config deep inside when makes the request
+    {#aws_config{}=_NewConfig, Creds} =
+    erlcloud_sts:assume_role(Config#aws_config{assume_role = #aws_assume_role{}},
+                             AssumeRole#aws_assume_role.role_arn,
+                             AssumeRole#aws_assume_role.session_name,
+                             AssumeRole#aws_assume_role.duration_secs,
+                             AssumeRole#aws_assume_role.external_id),
+    ExpireAt = calendar:datetime_to_gregorian_seconds(
+        proplists:get_value(expiration, Creds)),
+    Record = #role_credentials{
+        access_key_id =  proplists:get_value(access_key_id, Creds),
+        secret_access_key = proplists:get_value(secret_access_key, Creds),
+        session_token = proplists:get_value(session_token, Creds),
+        expiration_gregorian_seconds = ExpireAt},
+    application:set_env(erlcloud,
+                        {role_credentials,
+                         AssumeRole#aws_assume_role.role_arn,
+                         AssumeRole#aws_assume_role.external_id},
+                        Record),
+    {ok, Record}.
 
 port_to_str(Port) when is_integer(Port) ->
     integer_to_list(Port);

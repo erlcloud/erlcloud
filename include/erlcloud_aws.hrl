@@ -1,3 +1,12 @@
+-record(aws_assume_role,{
+    role_arn :: string() | undefined,
+    session_name = "erlcloud" :: string(),
+    duration_secs =  900 :: 900..3600,
+    external_id :: string() | undefined
+}).
+
+-type(aws_assume_role() :: #aws_assume_role{}).
+
 -record(aws_config, {
           as_host="autoscaling.amazonaws.com"::string(),
           ec2_host="ec2.amazonaws.com"::string(),
@@ -92,7 +101,9 @@
           retry=fun erlcloud_retry:no_retry/1::erlcloud_retry:retry_fun(),
           %% Currently matches DynamoDB retry
           %% It's likely this is too many retries for other services
-          retry_num=10::non_neg_integer()
+          retry_num=10::non_neg_integer(),
+          assume_role = #aws_assume_role{} :: aws_assume_role() %% If a role to be assumed is given
+          %% then we will try to assume the role during the update_config
          }).
 -type(aws_config() :: #aws_config{}).
 
@@ -119,3 +130,5 @@
           should_retry :: boolean() | undefined
         }).
 -type(aws_request() :: #aws_request{}).
+
+
