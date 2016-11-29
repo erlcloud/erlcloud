@@ -1023,8 +1023,8 @@ make_get_url_v4(ExpireTime, BucketName, Key) ->
 -spec make_get_url_v4(integer(), string(), string(), aws_config()) -> iolist().
 
 make_get_url_v4(ExpireTime, BucketName, Key, Config) ->
-  Region = aws_region_from_host(Config#aws_config.s3_host),
-  Host = "s3-" ++ Region ++ ".amazonaws.com",
+  Host = Config#aws_config.s3_host,
+  Region = aws_region_from_host(Host),
   Path = erlcloud_http:url_encode_loose("/" ++ BucketName ++ "/" ++ Key),
   EndpointUrl = "https://" ++ Host ++ Path,
   Headers = [{"Host", Host}],
