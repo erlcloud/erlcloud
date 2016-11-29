@@ -7,15 +7,18 @@ Required functionality is being added upon request.
 
 Service APIs implemented:
 - Amazon Elastic Compute Cloud (EC2)
+- Amazon EC2 Container Service (ECS)
 - Amazon Simple Storage Service (S3)
 - Amazon Simple Queue Service (SQS)
 - Amazon SimpleDB
 - Amazon Mechanical Turk
 - Amazon CloudWatch (MON)
+- Amazon CloudSearch
+- Amazon Inspector
 - Amazon Key Management Service (KMS)
 - Amazon DirectConnect
 - Amazon DynamoDB & DDB streams (ddb2)
-- Amazon Autoscalling(as)
+- Amazon Autoscaling (AS)
 - Amazon CloudTrail (CT)
 - Cloud Formation (CFN)
 - ElasticLoadBalancing (ELB)
