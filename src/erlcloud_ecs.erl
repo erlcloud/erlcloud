@@ -2458,8 +2458,8 @@ port_spec(#aws_config{ecs_port=Port}) ->
 
 
 to_binary(undefined) -> undefined;
-to_binary(true) -> <<"true">>;
-to_binary(false) -> <<"false">>;
+to_binary(true) -> true;
+to_binary(false) -> false;
 to_binary(L) when is_list(L), is_list(hd(L)) -> [to_binary(V) || V <- L];
 to_binary(L) when is_list(L) -> list_to_binary(L);
 to_binary(B) when is_binary(B) -> B;
