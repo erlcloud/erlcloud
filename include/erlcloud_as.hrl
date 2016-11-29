@@ -25,7 +25,7 @@
           group_name :: string(),
           availability_zones :: list(string()),
           load_balancer_names :: list(string()),
-          tags :: list(string()),
+          tags :: list(aws_autoscaling_tag()),
           desired_capacity :: integer(),
           min_size :: integer(),
           max_size :: integer(),
