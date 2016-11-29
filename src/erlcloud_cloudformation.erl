@@ -338,7 +338,7 @@ get_template(StackName, Config = #aws_config{}) ->
 -spec get_template_summary(params(), string()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 get_template_summary(Params, StackName) ->
-    get_template_summary(Params, StackName, default_config).
+    get_template_summary(Params, StackName, default_config()).
 
 -spec get_template_summary(params(), string(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
@@ -360,20 +360,20 @@ get_template_summary(Params, StackName, Config = #aws_config{}) ->
 -spec describe_account_limits_all() ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 describe_account_limits_all() ->
-    describe_account_limits_all(default_config).
+    describe_account_limits_all(default_config()).
 
 -spec describe_account_limits_all(aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 describe_account_limits_all(Config = #aws_config{}) ->
     list_all(fun describe_account_limits/2, [], Config, []).
 
--spec describe_account_limits(params) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+-spec describe_account_limits(list()) ->
+    {ok, cloudformation_list(), string()} | {error, error_reason()}.
 describe_account_limits(Params) ->
     describe_account_limits(Params, default_config()).
 
--spec describe_account_limits(params, aws_config()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+-spec describe_account_limits(list(), aws_config()) ->
+    {ok, cloudformation_list(), string()} | {error, error_reason()}.
 describe_account_limits(Params, Config = #aws_config{}) ->
 
     RequestParams = lists:map(fun(T) -> convert_param(T) end, Params),

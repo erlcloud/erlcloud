@@ -97,7 +97,8 @@ delete_trail(Trail, Config) ->
 -spec describe_trails() -> ct_return().
 describe_trails() -> describe_trails([]).
 
--spec describe_trails(aws_config()) -> ct_return().
+-spec describe_trails(aws_config()) -> ct_return();
+                     (list()) -> ct_return().
 describe_trails(Config) when is_record(Config, aws_config) ->
     describe_trails([], Config);
 
@@ -171,11 +172,6 @@ update_trail(Trail, S3BucketName, S3KeyPrefix, SnsTopicName, IncludeGlobalServic
     ct_request("UpdateTrail", Json, Config).
 
 % Json parameter must be a list of binary key/value tuples.
-ct_request(Operation, [], Config) ->
-    #aws_config{cloudtrail_scheme = Scheme, 
-                cloudtrail_host = Host} = Config,
-    request_impl(post, Scheme, Host, port_spec(Config), "/", Operation, [], "{}", Config);
-
 ct_request(Operation, Body, Config) ->
     #aws_config{cloudtrail_scheme = Scheme, 
                 cloudtrail_host = Host} = Config,
