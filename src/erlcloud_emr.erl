@@ -10,6 +10,7 @@
 %% ElasticMapReduce API
 -export([add_job_flow_steps/2, add_job_flow_steps/3, add_job_flow_steps/4]).
 -export([describe_step/2, describe_step/3, describe_step/4]).
+-export([run_job_flow/1, run_job_flow/2, run_job_flow/3]).
 
 -export_type([emr_opts/0, emr_return/0]).
 
@@ -107,6 +108,22 @@ describe_step(ClusterId, StepId, Opts) when is_list(Opts) ->
 describe_step(ClusterId, StepId, Opts, Config) ->
     emr_request("ElasticMapReduce.DescribeStep",
                 [{'ClusterId', ClusterId}, {'StepId', StepId}], Opts, Config).
+
+
+%% --- RunJobFlow ---
+-spec run_job_flow(jsx:json_term()) -> emr_return().
+run_job_flow(Params) ->
+    run_job_flow(Params, [], erlcloud_aws:default_config()).
+
+-spec run_job_flow(jsx:json_term(), aws_config() | emr_opts()) -> emr_return().
+run_job_flow(Params, Config = #aws_config{}) ->
+    run_job_flow(Params, [], Config);
+run_job_flow(Params, Opts) when is_list(Opts) ->
+    run_job_flow(Params, Opts, erlcloud_aws:default_config()).
+
+-spec run_job_flow(jsx:json_term(), emr_opts(), aws_config()) -> emr_return().
+run_job_flow(Params, Opts, Config) ->
+    emr_request("ElasticMapReduce.RunJobFlow", Params, Opts, Config).
 
 
 %%------------------------------------------------------------------------------
