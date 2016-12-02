@@ -11,6 +11,7 @@
 -export([add_job_flow_steps/2, add_job_flow_steps/3, add_job_flow_steps/4]).
 -export([describe_step/2, describe_step/3, describe_step/4]).
 -export([run_job_flow/1, run_job_flow/2, run_job_flow/3]).
+-export([terminate_job_flows/1, terminate_job_flows/2, terminate_job_flows/3]).
 
 -export_type([emr_opts/0, emr_return/0]).
 
@@ -126,6 +127,23 @@ run_job_flow(Params, Opts, Config) ->
     emr_request("ElasticMapReduce.RunJobFlow", Params, Opts, Config).
 
 
+%% --- TerminateJobFlows ---
+-spec terminate_job_flows([binary()]) -> emr_return().
+terminate_job_flows(JobFlowIds) ->
+    terminate_job_flows(JobFlowIds, [], erlcloud_aws:default_config()).
+
+-spec terminate_job_flows([binary()], aws_config() | emr_opts()) -> emr_return().
+terminate_job_flows(JobFlowIds, Config = #aws_config{}) ->
+    terminate_job_flows(JobFlowIds, [], Config);
+terminate_job_flows(JobFlowIds, Opts) when is_list(Opts) ->
+    terminate_job_flows(JobFlowIds, Opts, erlcloud_aws:default_config()).
+
+-spec terminate_job_flows([binary()], emr_opts(), aws_config()) -> emr_return().
+terminate_job_flows(JobFlowIds, Opts, Config) ->
+    emr_request("ElasticMapReduce.TerminateJobFlows",
+                [{'JobFlowIds', JobFlowIds}], Opts, Config).
+
+
 %%------------------------------------------------------------------------------
 %%  Internal functions
 %%------------------------------------------------------------------------------
@@ -149,19 +167,22 @@ request(Action, Json, Scheme, Host, Port, Service, Opts, Cfg0) ->
     end.
 
 request_no_update(Action, Json, Scheme, Host, Port, Service, Opts, Cfg) ->
-    Body = jsx:encode(if Json == [] -> [{}];
-                         true -> Json end),
+    ReqBody = jsx:encode(if Json == [] -> [{}];
+                                  true -> Json end),
     H1 = [{"host", Host}],
     H2 = [{"content-type", "application/x-amz-json-1.1"},
           {"x-amz-target", Action}],
     Region = erlcloud_aws:aws_region_from_host(Host),
-    Headers = erlcloud_aws:sign_v4_headers(Cfg, H1, Body, Region, Service) ++ H2,
+    Headers = erlcloud_aws:sign_v4_headers(Cfg, H1, ReqBody, Region, Service) ++ H2,
     case erlcloud_aws:aws_request_form_raw(post, Scheme, Host, Port,
-                                           "/", Body, Headers, Cfg) of
-        {ok, RespBody} -> case proplists:get_value(out, Opts, json) of
-                              raw -> {ok, RespBody};
-                              _ -> {ok, jsx:decode(RespBody)}
-                          end;
+                                           "/", ReqBody, Headers, Cfg) of
+        {ok, Body} -> case proplists:get_value(out, Opts, json) of
+                          raw -> {ok, Body};
+                          _   -> case Body of
+                                     <<>> -> {ok, <<>>};
+                                     _    -> {ok, jsx:decode(Body)}
+                                 end
+                      end;
         {error, {http_error, _Code, _StatusLine, ErrBody}} ->
             {error, {aws_error, jsx:decode(ErrBody)}};
         {error, {socket_error, Reason}} ->
