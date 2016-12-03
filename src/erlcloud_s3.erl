@@ -19,7 +19,7 @@
          list_object_versions/1, list_object_versions/2, list_object_versions/3,
          copy_object/4, copy_object/5, copy_object/6,
          delete_objects_batch/2, delete_objects_batch/3,
-         explore_dirstructure/3,
+         explore_dirstructure/3, explore_dirstructure/4,
          delete_object/2, delete_object/3,
          delete_object_version/3, delete_object_version/4,
          get_object/2, get_object/3, get_object/4,
@@ -315,16 +315,20 @@ delete_objects_batch_timeout(#aws_config{timeout = Timeout}) ->
 %    ok
 %
 -spec explore_dirstructure(string(), list(), list()) -> list().
+explore_dirstructure(Bucketname, Branches, Accum) ->
+    explore_dirstructure(Bucketname, Branches, Accum, default_config()).
 
-explore_dirstructure(_, [], Result) ->
+-spec explore_dirstructure(string(), list(), list(), aws_config()) -> list().
+explore_dirstructure(_, [], Result, _Config) ->
                                     lists:append(Result);
-explore_dirstructure(Bucketname, [Branch|Tail], Accum) ->
+explore_dirstructure(Bucketname, [Branch|Tail], Accum, Config)
+    when is_record(Config, aws_config) ->
     ProcessContent = fun(Data)->
             Content = proplists:get_value(contents, Data),
             lists:foldl(fun(I,Acc)-> R = proplists:get_value(key, I), [R|Acc] end, [], Content)
             end,
 
-    Data = erlcloud_s3:list_objects(Bucketname,[{prefix, Branch}, {delimiter, "/"}]),
+    Data = list_objects(Bucketname, [{prefix, Branch}, {delimiter, "/"}], Config),
     case proplists:get_value(common_prefixes, Data) of
         [] -> % it has reached end of the branch
             Files = ProcessContent(Data),
