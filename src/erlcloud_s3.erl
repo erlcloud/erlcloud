@@ -332,12 +332,12 @@ explore_dirstructure(Bucketname, [Branch|Tail], Accum, Config)
     case proplists:get_value(common_prefixes, Data) of
         [] -> % it has reached end of the branch
             Files = ProcessContent(Data),
-            explore_dirstructure(Bucketname, Tail, [Files|Accum]);
+            explore_dirstructure(Bucketname, Tail, [Files|Accum], Config);
         Sub ->
             Files = ProcessContent(Data),
             List = lists:foldl(fun(I,Acc)-> R = proplists:get_value(prefix, I), [R|Acc] end, [], Sub),
-            Result = explore_dirstructure(Bucketname, List, Accum),
-            explore_dirstructure(Bucketname, Tail, [Result, Files|Accum])
+            Result = explore_dirstructure(Bucketname, List, Accum, Config),
+            explore_dirstructure(Bucketname, Tail, [Result, Files|Accum], Config)
     end.
 
 -spec delete_object(string(), string()) -> proplist().
