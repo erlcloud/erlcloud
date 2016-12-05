@@ -170,5 +170,10 @@ In general it follows default indentation rules of official erlang-mode as provi
 
 ## Best Practices ##
 
-- Public interfaces with paging logic should prefer {ok, Results, Marker} style to the {{paged, Marker}, Results} found in some modules
-- Public interfaces should normally expose proplists over records
+- All interfaces should provide a method for working with non-default config.
+- Public interfaces with paging logic should prefer `{ok, Results, Marker}` style to the `{{paged, Marker}, Results}` found in some modules.
+In case of records output, tokens should part of the record.
+- Passing next page `NextToken`, `NextMarker` is preferred with `Opts` rather than a a fun parameter like found in many modules.
+- Public interfaces should normally expose proplists over records.
+- Exposed records are to be used only for complex outputs. Examples to follow: ddb2, ecs.
+- Library should not expose any long running processes
