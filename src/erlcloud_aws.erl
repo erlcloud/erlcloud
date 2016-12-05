@@ -9,7 +9,8 @@
          aws_region_from_host/1,
          aws_request_form/8,
          aws_request_form_raw/8,
-         param_list/2, default_config/0, auto_config/0, update_config/1,
+         param_list/2, default_config/0, auto_config/0,
+         update_config/1,clear_config/1, clear_expired_configs/0,
          service_config/3, service_host/2,
          configure/1, format_timestamp/1,
          http_headers_body/1,
@@ -410,6 +411,21 @@ update_config(#aws_config{} = Config) ->
                    secret_access_key = Credentials#metadata_credentials.secret_access_key,
                    security_token = Credentials#metadata_credentials.security_token}}
     end.
+
+-spec clear_config(aws_config()) -> ok.
+clear_config(#aws_config{assume_role = #aws_assume_role{role_arn = Arn, external_id = ExtId}}) ->
+    application:unset_env(erlcloud, {role_credentials, Arn, ExtId}).
+
+-spec clear_expired_configs() -> ok.
+clear_expired_configs() ->
+    Env = application:get_all_env(erlcloud),
+    Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
+    [application:unset_env(erlcloud, {role_credentials, Arn, ExtId}) ||
+            {{role_credentials, Arn, ExtId},
+              #role_credentials{expiration_gregorian_seconds = Ts}} <- Env,
+        Ts < Now],
+    ok.
+
 
 %%%---------------------------------------------------------------------------
 -spec service_config( Service :: atom() | string() | binary(),
