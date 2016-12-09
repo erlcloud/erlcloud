@@ -304,6 +304,14 @@ get_function(FunctionName, Qualifier, Config) ->
 %% GetFunctionConfiguration
 %%------------------------------------------------------------------------------
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% Lambda API:
+%% [http://docs.aws.amazon.com/lambda/latest/dg/API_GetFunctionConfiguration.html]
+%%
+%% ===Example===
+%%
+%%-----------------------------------------------------------------------------
 -spec get_function_configuration(FunctionName :: binary()) -> return_val().
 get_function_configuration(FunctionName) ->
     get_function_configuration(FunctionName, default_config()).
@@ -318,15 +326,6 @@ get_function_configuration(Function, Qualifier, Config) ->
     QParams = filter_undef([{"Qualifier", Qualifier}]),
     lambda_request(Config, get, Path, undefined, QParams).
 
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% Lambda API:
-%% [http://docs.aws.amazon.com/lambda/latest/dg/API_GetFunctionConfiguration.html]
-%%
-%% ===Example===
-%%
-%%------------------------------------------------------------------------------
 
 %%------------------------------------------------------------------------------
 %% ListAliases

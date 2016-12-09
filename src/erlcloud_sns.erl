@@ -1,6 +1,6 @@
-%%% @doc Amazon SNS.
-%%%      Events are parsed according to http://docs.aws.amazon.com/sns/latest/dg/SendMessageToHttp.html
-%%% @todo add all the missing functions for the different actions
+%%% Amazon SNS.
+%%% Events are parsed according to http://docs.aws.amazon.com/sns/latest/dg/SendMessageToHttp.html
+%%% TODO add all the missing functions for the different actions
 -module(erlcloud_sns).
 -author('elbrujohalcon@inaka.net').
 
@@ -319,19 +319,17 @@ list_topics_all(Config) ->
 
 
 -spec list_subscriptions_by_topic(string()) -> proplist().
--spec list_subscriptions_by_topic(string(), string() | aws_config()) -> proplist().
--spec list_subscriptions_by_topic(string(), undefined | string(), aws_config()) -> proplist().
-
-
 list_subscriptions_by_topic(TopicArn) when is_list(TopicArn) ->
     list_subscriptions_by_topic(TopicArn, default_config()).
 
+-spec list_subscriptions_by_topic(string(), string() | aws_config()) -> proplist().
 list_subscriptions_by_topic(TopicArn, Config) when is_record(Config, aws_config) ->
     list_subscriptions_by_topic(TopicArn, undefined, Config);
 
 list_subscriptions_by_topic(TopicArn, NextToken) when is_list(NextToken) ->
     list_subscriptions_by_topic(TopicArn, NextToken, default_config()).
 
+-spec list_subscriptions_by_topic(string(), undefined | string(), aws_config()) -> proplist().
 list_subscriptions_by_topic(TopicArn, NextToken, Config) when is_record(Config, aws_config) ->
     Params =
         case NextToken of
@@ -349,10 +347,10 @@ list_subscriptions_by_topic(TopicArn, NextToken, Config) when is_record(Config, 
     Decoded.
 
 -spec list_subscriptions_by_topic_all(string()) -> proplist().
--spec list_subscriptions_by_topic_all(string(), aws_config()) -> proplist().
 list_subscriptions_by_topic_all(TopicArn) ->
     list_subscriptions_by_topic_all(TopicArn, default_config()).
 
+-spec list_subscriptions_by_topic_all(string(), aws_config()) -> proplist().
 list_subscriptions_by_topic_all(TopicArn, Config) ->
     list_all(fun (Token, Cfg) ->
             list_subscriptions_by_topic(TopicArn, Token, Cfg) end,
