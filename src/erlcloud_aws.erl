@@ -434,7 +434,7 @@ clear_expired_configs() ->
                       Region :: string() | binary(),
                       Config :: #aws_config{} ) -> #aws_config{}.
 %%%---------------------------------------------------------------------------
-%% @doc Generate config updated to work with specified AWS service & region
+%% @doc Generate config updated to work with specified AWS service and region
 %%
 %% This function will generate a new configuration, based on the one
 %% provided, and configured to access the specified AWS service in the
@@ -528,7 +528,7 @@ service_config( <<"waf">>, _Region, Config ) -> Config.
                     Region :: binary() ) -> string().
 %%%---------------------------------------------------------------------------
 %% @hidden
-%% @doc Host name for the specified AWS service & region
+%% @doc Host name for the specified AWS service and region
 %%
 %% This function handles the special and general cases of service host
 %% names.
@@ -875,8 +875,7 @@ is_throttling_error_response(RequestResponse) ->
 %% @doc Retrieve a config based on default credentials
 %%
 %% This function will retrieve the credentials for the <em>default</em>
-%% profile, in the same way as the AWS CLI tools, and construct a {@link
-%% #aws_config{}. config record} to be used accessing services.
+%% profile, in the same way as the AWS CLI tools, and construct a {@link aws_config(). config record} to be used accessing services.
 %%
 %% @see profile/2
 %%
@@ -890,8 +889,7 @@ profile() ->
 %% @doc Retrieve a config based on named credentials profile
 %%
 %% This function will retrieve the credentials for the named profile, in the
-%% same way as the AWS CLI tools, and construct a {@link
-%% #aws_config{}. config record} to be used accessing services.
+%% same way as the AWS CLI tools, and construct a {@link aws_config(). config record} to be used accessing services.
 %%
 %% @see profile/2
 %%
@@ -909,7 +907,7 @@ profile( Name ) ->
 %% @doc Retrieve a config based on named credentials profile
 %%
 %% This function will read the <code>$HOME/.aws/credentials</code> file used
-%% by the AWS CLI tools and construct a {@link #aws_config{}. config record}
+%% by the AWS CLI tools and construct a {@link aws_config(). config record}
 %% to be used accessing services for the named profile.  This supports both
 %% direct credentials that appear in the profile:
 %%
@@ -954,7 +952,7 @@ profile( Name ) ->
 %%  <li><code>'external_id'</code>
 %%    <p>The identifier that is used in the <code>ExternalId</code>
 %%    parameter.  If this option is not specified, then it will default to
-%%    `undefined`, which will work for normal in-account roles, but will
+%%    'undefined', which will work for normal in-account roles, but will
 %%    need to be specified for roles in external accounts.</p>
 %%  </li>
 %% </ul>
