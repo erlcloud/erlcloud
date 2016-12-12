@@ -156,7 +156,16 @@ resolve_customer(RegistrationToken, Config) ->
 -type json_return() :: {ok, json_term()} | {error, term()}.
 
 -spec mms_request(aws_config(), operation(), json_term()) -> json_return().
-mms_request(#aws_config{mms_scheme = Scheme, mms_host = Host, mms_port = Port} = Config, Operation, Json) ->
+mms_request(Config, Operation, Json) ->
+    case erlcloud_aws:update_config(Config) of
+        {ok, Config1} ->
+            mms_request_no_update(Config1, Operation, Json);
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+-spec mms_request_no_update(aws_config(), operation(), json_term()) -> json_return().
+mms_request_no_update(#aws_config{mms_scheme = Scheme, mms_host = Host, mms_port = Port} = Config, Operation, Json) ->
     Body = jsx:encode(Json),
     Headers = headers(Config, Operation, Body),
     case erlcloud_aws:aws_request_form_raw(post, Scheme, Host, Port, "/", Body, Headers, Config) of
