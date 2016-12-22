@@ -92,7 +92,7 @@ aws_request(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) 
         {ok, Body} ->
             Body;
         {error, Reason} ->
-            erlang:error({aws_error, Reason})
+            {error, Reason}
     end.
 aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey) ->
     aws_request(Method, Protocol, Host, Port, Path, Params,
@@ -657,25 +657,27 @@ get_credentials_from_role(#aws_config{assume_role = AssumeRole} = Config) ->
     %% We have to reset the assume role to make sure we do not
     %% enter in a infinite loop because erlcloud_sts:assume_role also calls
     %% update_config deep inside when makes the request
-    {#aws_config{}=_NewConfig, Creds} =
-    erlcloud_sts:assume_role(Config#aws_config{assume_role = #aws_assume_role{}},
+    case erlcloud_sts:assume_role(Config#aws_config{assume_role = #aws_assume_role{}},
                              AssumeRole#aws_assume_role.role_arn,
                              AssumeRole#aws_assume_role.session_name,
                              AssumeRole#aws_assume_role.duration_secs,
-                             AssumeRole#aws_assume_role.external_id),
-    ExpireAt = calendar:datetime_to_gregorian_seconds(
-        proplists:get_value(expiration, Creds)),
-    Record = #role_credentials{
-        access_key_id =  proplists:get_value(access_key_id, Creds),
-        secret_access_key = proplists:get_value(secret_access_key, Creds),
-        session_token = proplists:get_value(session_token, Creds),
-        expiration_gregorian_seconds = ExpireAt},
-    application:set_env(erlcloud,
-                        {role_credentials,
-                         AssumeRole#aws_assume_role.role_arn,
-                         AssumeRole#aws_assume_role.external_id},
-                        Record),
-    {ok, Record}.
+                             AssumeRole#aws_assume_role.external_id) of
+        {error, _Reason} = E -> E;
+        {#aws_config{}=_NewConfig, Creds} ->
+            ExpireAt = calendar:datetime_to_gregorian_seconds(
+                proplists:get_value(expiration, Creds)),
+            Record = #role_credentials{
+                access_key_id =  proplists:get_value(access_key_id, Creds),
+                secret_access_key = proplists:get_value(secret_access_key, Creds),
+                session_token = proplists:get_value(session_token, Creds),
+                expiration_gregorian_seconds = ExpireAt},
+            application:set_env(erlcloud,
+                {role_credentials,
+                    AssumeRole#aws_assume_role.role_arn,
+                    AssumeRole#aws_assume_role.external_id},
+                Record),
+            {ok, Record}
+    end.
 
 port_to_str(Port) when is_integer(Port) ->
     integer_to_list(Port);
@@ -1086,9 +1088,10 @@ profiles_assume( Credential, Role, ExternalId,
                ExternalId =:= undefined -> DefaultExternalId
             end,
     Config = config_credential(Credential, #aws_config{}),
-    {AssumedConfig, _Creds} =
-        erlcloud_sts:assume_role( Config, Role, Name, Duration, ExtId ),
-    {ok, AssumedConfig}.
+    case erlcloud_sts:assume_role( Config, Role, Name, Duration, ExtId ) of
+        {error, _Reason} = E -> E;
+        {AssumedConfig, _Creds} -> {ok, AssumedConfig}
+    end.
     
 
 config_credential({Id, Secret}, Config) ->

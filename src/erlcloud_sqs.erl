@@ -38,6 +38,8 @@
                                     created_timestamp | last_modified_timestamp | policy |
                                     queue_arn).
 
+-type sqs_basic_return() :: ok | {error, term()}.
+-type sqs_return() :: proplist() | {error, term()}.
 
 
 -spec new(string(), string()) -> aws_config().
@@ -62,16 +64,16 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
     ok.
 
 
--spec add_permission(string(), string(), sqs_acl()) -> ok.
+-spec add_permission(string(), string(), sqs_acl()) -> sqs_basic_return().
 add_permission(QueueName, Label, Permissions) ->
     add_permission(QueueName, Label, Permissions, default_config()).
 
--spec add_permission(string(), string(), sqs_acl(), aws_config()) -> ok.
+-spec add_permission(string(), string(), sqs_acl(), aws_config()) -> sqs_basic_return().
 add_permission(QueueName, Label, Permissions, Config)
   when is_list(QueueName),
        is_list(Label), length(Label) =< 80,
        is_list(Permissions) ->
-    sqs_simple_request(Config, QueueName, "AddPermission",
+    sqs_request(Config, QueueName, "AddPermission",
                        [{"Label", Label}|erlcloud_aws:param_list(encode_permissions(Permissions), {"AWSAccountId", "ActionName"})]).
 
 encode_permissions(Permissions) ->
@@ -88,83 +90,84 @@ encode_permission({AccountId, Permission}) ->
          get_queue_attributes -> "GetQueueAttributes"
      end}.
 
--spec change_message_visibility(string(), string(), 0..43200) -> ok.
+-spec change_message_visibility(string(), string(), 0..43200) -> sqs_basic_return().
 change_message_visibility(QueueName, ReceiptHandle, VisibilityTimeout) ->
     change_message_visibility(QueueName, ReceiptHandle, VisibilityTimeout,
                               default_config()).
 
--spec change_message_visibility(string(), string(), 0..43200, aws_config()) -> ok.
+-spec change_message_visibility(string(), string(), 0..43200, aws_config()) -> sqs_basic_return().
 change_message_visibility(QueueName, ReceiptHandle, VisibilityTimeout, Config) ->
-    sqs_simple_request(Config, QueueName, "ChangeMessageVisibility",
+    sqs_request(Config, QueueName, "ChangeMessageVisibility",
                        [{"ReceiptHandle", ReceiptHandle}, {"VisibilityTimeout", VisibilityTimeout}]).
 
--spec create_queue(string()) -> proplist().
+-spec create_queue(string()) -> sqs_return().
 create_queue(QueueName) ->
     create_queue(QueueName, default_config()).
 
--spec create_queue(string(), 0..43200 | none | aws_config()) -> proplist().
+-spec create_queue(string(), 0..43200 | none | aws_config()) -> sqs_return().
 create_queue(QueueName, Config)
   when is_record(Config, aws_config) ->
     create_queue(QueueName, none, Config);
 create_queue(QueueName, DefaultVisibilityTimeout) ->
     create_queue(QueueName, DefaultVisibilityTimeout, default_config()).
 
--spec create_queue(string(), 0..43200 | none, aws_config()) -> proplist().
+-spec create_queue(string(), 0..43200 | none, aws_config()) -> sqs_return().
 create_queue(QueueName, DefaultVisibilityTimeout, Config)
   when is_list(QueueName),
        (is_integer(DefaultVisibilityTimeout) andalso
         DefaultVisibilityTimeout >= 0 andalso
         DefaultVisibilityTimeout =< 43200) orelse
        DefaultVisibilityTimeout =:= none ->
-    Doc = sqs_xml_request(Config, "/", "CreateQueue",
-                          [{"QueueName", QueueName}, {"DefaultVisibilityTimeout", DefaultVisibilityTimeout}]),
-    erlcloud_xml:decode(
-      [
-       {queue_url, "CreateQueueResult/QueueUrl", text}
-      ],
-      Doc
-     ).
+    case sqs_xml_request(Config, "/", "CreateQueue",
+                          [{"QueueName", QueueName}, {"DefaultVisibilityTimeout", DefaultVisibilityTimeout}]) of
+        {error, _R} = E -> E;
+        Doc ->
+            erlcloud_xml:decode(
+                [{queue_url, "CreateQueueResult/QueueUrl", text}],
+                Doc)
+    end.
 
--spec delete_message(string(), string()) -> ok.
+
+-spec delete_message(string(), string()) -> sqs_basic_return().
 delete_message(QueueName, ReceiptHandle) ->
     delete_message(QueueName, ReceiptHandle, default_config()).
 
--spec delete_message(string(), string(), aws_config()) -> ok.
+-spec delete_message(string(), string(), aws_config()) -> sqs_basic_return().
 delete_message(QueueName, ReceiptHandle, Config)
   when is_list(QueueName), is_list(ReceiptHandle), is_record(Config, aws_config) ->
-    sqs_simple_request(Config, QueueName, "DeleteMessage",
+    sqs_request(Config, QueueName, "DeleteMessage",
                        [{"ReceiptHandle", ReceiptHandle}]).
 
--spec delete_queue(string()) -> ok.
+-spec delete_queue(string()) -> sqs_basic_return().
 delete_queue(QueueName) ->
     delete_queue(QueueName, default_config()).
 
--spec delete_queue(string(), aws_config()) -> ok.
+-spec delete_queue(string(), aws_config()) -> sqs_basic_return().
 delete_queue(QueueName, Config)
   when is_list(QueueName), is_record(Config, aws_config) ->
-    sqs_simple_request(Config, QueueName, "DeleteQueue", []).
+    sqs_request(Config, QueueName, "DeleteQueue", []).
 
--spec purge_queue(string()) -> ok.
+-spec purge_queue(string()) -> sqs_basic_return().
 purge_queue(QueueName) ->
     purge_queue(QueueName, default_config()).
 
--spec purge_queue(string(), aws_config()) -> ok.
+-spec purge_queue(string(), aws_config()) -> sqs_basic_return().
 purge_queue(QueueName, Config)
   when is_list(QueueName), is_record(Config, aws_config) ->
-    sqs_simple_request(Config, QueueName, "PurgeQueue", []).
+    sqs_request(Config, QueueName, "PurgeQueue", []).
 
--spec get_queue_attributes(string()) -> proplist().
+-spec get_queue_attributes(string()) -> sqs_return().
 get_queue_attributes(QueueName) ->
     get_queue_attributes(QueueName, all).
 
--spec get_queue_attributes(string(), all | [sqs_queue_attribute_name()] | aws_config()) -> proplist().
+-spec get_queue_attributes(string(), all | [sqs_queue_attribute_name()] | aws_config()) -> sqs_return().
 get_queue_attributes(QueueName, Config)
   when is_record(Config, aws_config) ->
     get_queue_attributes(QueueName, all, Config);
 get_queue_attributes(QueueName, AttributeNames) ->
     get_queue_attributes(QueueName, AttributeNames, default_config()).
 
--spec get_queue_attributes(string(), all | [sqs_queue_attribute_name()], aws_config()) -> proplist().
+-spec get_queue_attributes(string(), all | [sqs_queue_attribute_name()], aws_config()) -> sqs_return().
 get_queue_attributes(QueueName, all, Config) when is_record(Config, aws_config) ->
     get_queue_attributes(QueueName, [all], Config);
 get_queue_attributes(QueueName, AttributeNames, Config)
@@ -212,43 +215,46 @@ decode_attribute_value("RedrivePolicy", Value) -> Value;
 decode_attribute_value(_, Value) -> list_to_integer(Value).
 
 
--spec list_queues() -> [string()].
+-spec list_queues() -> [string()] | {error, term()}.
 list_queues() ->
     list_queues("").
 
--spec list_queues(string() | aws_config()) -> [string()].
+-spec list_queues(string() | aws_config()) -> [string()] | {error, term()}.
 list_queues(Config)
   when is_record(Config, aws_config) ->
     list_queues("", Config);
 list_queues(QueueNamePrefix) ->
     list_queues(QueueNamePrefix, default_config()).
 
--spec list_queues(string(), aws_config()) -> [string()].
+-spec list_queues(string(), aws_config()) -> [string()] | {error, term()}.
 list_queues(QueueNamePrefix, Config)
   when is_list(QueueNamePrefix), is_record(Config, aws_config) ->
-    Doc = sqs_xml_request(Config, "/", "ListQueues",
-                          [{"QueueNamePrefix", QueueNamePrefix}]),
-    erlcloud_xml:get_list("ListQueuesResult/QueueUrl", Doc).
+    case sqs_xml_request(Config, "/", "ListQueues",
+                          [{"QueueNamePrefix", QueueNamePrefix}]) of
+        {error,_R} = E -> E;
+        {ok, Doc}  -> erlcloud_xml:get_list("ListQueuesResult/QueueUrl", Doc)
+    end.
 
--spec receive_message(string()) -> proplist().
+
+-spec receive_message(string()) -> sqs_return().
 receive_message(QueueName) ->
     receive_message(QueueName, default_config()).
 
--spec receive_message(string(), [sqs_msg_attribute_name()] | all | aws_config()) -> proplist().
+-spec receive_message(string(), [sqs_msg_attribute_name()] | all | aws_config()) -> sqs_return().
 receive_message(QueueName, Config)
   when is_record(Config, aws_config) ->
     receive_message(QueueName, [], Config);
 receive_message(QueueName, AttributeNames) ->
     receive_message(QueueName, AttributeNames, default_config()).
 
--spec receive_message(string(), [sqs_msg_attribute_name()] | all, 1..10 | aws_config()) -> proplist().
+-spec receive_message(string(), [sqs_msg_attribute_name()] | all, 1..10 | aws_config()) -> sqs_return().
 receive_message(QueueName, AttributeNames, Config)
   when is_record(Config, aws_config) ->
     receive_message(QueueName, AttributeNames, 1, Config);
 receive_message(QueueName, AttributeNames, MaxNumberOfMessages) ->
     receive_message(QueueName, AttributeNames, MaxNumberOfMessages, default_config()).
 
--spec receive_message(string(), [sqs_msg_attribute_name()] | all, 1..10, 0..43200 | none | aws_config()) -> proplist().
+-spec receive_message(string(), [sqs_msg_attribute_name()] | all, 1..10, 0..43200 | none | aws_config()) -> sqs_return().
 receive_message(QueueName, AttributeNames, MaxNumberOfMessages, Config)
   when is_record(Config, aws_config) ->
     receive_message(QueueName, AttributeNames, MaxNumberOfMessages, none, Config);
@@ -257,7 +263,7 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages, VisibilityTimeou
                     VisibilityTimeout, default_config()).
 
 -spec receive_message(string(), [sqs_msg_attribute_name()] | all, 1..10,
-                      0..43200 | none, 0..20 | none | aws_config()) -> proplist().
+                      0..43200 | none, 0..20 | none | aws_config()) -> sqs_return().
 receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
                 VisibilityTimeout, Config)
   when is_record(Config, aws_config) ->
@@ -269,7 +275,7 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
                     VisibilityTimeout, WaitTimeSeconds, default_config()).
 
 -spec receive_message(string(), [sqs_msg_attribute_name()] | all, 1..10,
-                      0..43200 | none, 0..20 | none, aws_config()) -> proplist().
+                      0..43200 | none, 0..20 | none, aws_config()) -> sqs_return().
 receive_message(QueueName, all, MaxNumberOfMessages, VisibilityTimeout,
                 WaitTimeoutSeconds, Config)  when is_record(Config, aws_config) ->
     receive_message(QueueName, [all], MaxNumberOfMessages,
@@ -288,20 +294,21 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
            InitialTimeout + (WaitTimeSeconds * 1000) ;
        true -> InitialTimeout
     end,
-    Doc = sqs_xml_request(Config#aws_config{timeout=TotalTimeout}, QueueName, "ReceiveMessage",
+    case sqs_xml_request(Config#aws_config{timeout=TotalTimeout}, QueueName, "ReceiveMessage",
                           [
                            {"MaxNumberOfMessages", MaxNumberOfMessages},
                            {"VisibilityTimeout", VisibilityTimeout},
                            {"WaitTimeSeconds", WaitTimeSeconds}|
                            erlcloud_aws:param_list([encode_msg_attribute_name(N) || N <- AttributeNames], "AttributeName")
                           ]
-                         ),
-    erlcloud_xml:decode(
-      [
-       {messages, "ReceiveMessageResult/Message", fun decode_messages/1}
-      ],
-      Doc
-     ).
+                         ) of
+        {error, _R} = E -> E;
+        {ok, Doc} ->
+            erlcloud_xml:decode(
+                [{messages, "ReceiveMessageResult/Message", fun decode_messages/1}],
+                Doc)
+    end.
+
 
 
 encode_msg_attribute_name(all) -> "All";
@@ -339,73 +346,66 @@ decode_attributes(Attrs) ->
     [{erlcloud_xml:get_text("Name", Attr), erlcloud_xml:get_text("Value", Attr)} ||
         Attr <- Attrs].
 
--spec remove_permission(string(), string()) -> ok.
+-spec remove_permission(string(), string()) -> sqs_basic_return().
 remove_permission(QueueName, Label) ->
     remove_permission(QueueName, Label, default_config()).
 
--spec remove_permission(string(), string(), aws_config()) -> ok.
+-spec remove_permission(string(), string(), aws_config()) -> sqs_basic_return().
 remove_permission(QueueName, Label, Config)
   when is_list(QueueName), is_list(Label), is_record(Config, aws_config) ->
-    sqs_simple_request(Config, QueueName, "RemovePermission",
+    sqs_request(Config, QueueName, "RemovePermission",
                        [{"Label", Label}]).
 
--spec send_message(string(), string()) -> proplist().
+-spec send_message(string(), string()) -> sqs_return().
 send_message(QueueName, MessageBody) ->
     send_message(QueueName, MessageBody, default_config()).
 
--spec send_message(string(), string(), 0..900 | none | aws_config()) -> proplist().
+-spec send_message(string(), string(), 0..900 | none | aws_config()) -> sqs_return().
 send_message(QueueName, MessageBody, Config)
   when is_record(Config, aws_config) ->
     send_message(QueueName, MessageBody, none, Config);
 send_message(QueueName, MessageBody, DelaySeconds) ->
     send_message(QueueName, MessageBody, DelaySeconds, default_config()).
 
--spec send_message(string(), string(), 0..900 | none, aws_config()) -> proplist().
+-spec send_message(string(), string(), 0..900 | none, aws_config()) -> sqs_return().
 send_message(QueueName, MessageBody, DelaySeconds, Config)
   when is_list(QueueName), is_list(MessageBody), is_record(Config, aws_config),
        (DelaySeconds >= 0 andalso DelaySeconds =< 900) orelse
        DelaySeconds =:= none ->
-    Doc = sqs_xml_request(Config, QueueName, "SendMessage",
+    case sqs_xml_request(Config, QueueName, "SendMessage",
                           [{"MessageBody", MessageBody},
-                           {"DelaySeconds", DelaySeconds}]),
-    erlcloud_xml:decode(
-      [
-       {message_id, "SendMessageResult/MessageId", text},
-       {md5_of_message_body, "SendMessageResult/MD5OfMessageBody", text}
-      ],
-      Doc
-     ).
+                           {"DelaySeconds", DelaySeconds}]) of
+        {error,_R} = E -> E;
+        {ok, Doc} ->
+            erlcloud_xml:decode(
+                [
+                  {message_id, "SendMessageResult/MessageId", text},
+                  {md5_of_message_body, "SendMessageResult/MD5OfMessageBody", text}
+                ],
+                Doc
+            )
+    end.
 
--spec set_queue_attributes(string(), [{visibility_timeout, integer()} | {policy, string()}]) -> ok.
+-spec set_queue_attributes(string(), [{visibility_timeout, integer()} | {policy, string()}]) -> sqs_basic_return().
 set_queue_attributes(QueueName, Attributes) ->
     set_queue_attributes(QueueName, Attributes, default_config()).
 
--spec set_queue_attributes(string(), [{visibility_timeout, integer()} | {policy, string()}], aws_config()) -> ok.
+-spec set_queue_attributes(string(), [{visibility_timeout, integer()} | {policy, string()}], aws_config()) -> sqs_basic_return().
 set_queue_attributes(QueueName, Attributes, Config)
   when is_list(QueueName), is_list(Attributes), is_record(Config, aws_config) ->
     Params = lists:flatten(erlcloud_aws:param_list([encode_attribute_name(Name) || {Name, _} <- Attributes], "Attribute.Name"),
                           erlcloud_aws:param_list([Value || {_, Value} <- Attributes], "Attribute.Value")),
 
-    sqs_simple_request(Config, QueueName, "SetQueueAttributes", Params).
+    sqs_request(Config, QueueName, "SetQueueAttributes", Params).
 
 default_config() -> erlcloud_aws:default_config().
 
-sqs_simple_request(Config, QueueName, Action, Params) ->
-    sqs_request(Config, QueueName, Action, Params),
-    ok.
-
 sqs_xml_request(Config, QueueName, Action, Params) ->
-    case erlcloud_aws:aws_request_xml4(post, Config#aws_config.sqs_protocol,
+    erlcloud_aws:aws_request_xml4(post, Config#aws_config.sqs_protocol,
                                   Config#aws_config.sqs_host, Config#aws_config.sqs_port,
                                   queue_path(QueueName),
                                   [{"Action", Action}, {"Version", ?API_VERSION}|Params],
-                                  "sqs",Config)
-    of
-        {ok, Body} ->
-            Body;
-        {error, Reason} ->
-            erlang:error({aws_error, Reason})
-    end.
+                                  "sqs",Config).
 
 sqs_request(Config, QueueName, Action, Params) ->
     case erlcloud_aws:aws_request4(post, Config#aws_config.sqs_protocol,
@@ -414,10 +414,10 @@ sqs_request(Config, QueueName, Action, Params) ->
                               [{"Action", Action}, {"Version", ?API_VERSION}|Params],
                               "sqs", Config)
     of
-        {ok, Body} ->
-            Body;
+        {ok, _Body} ->
+            ok;
         {error, Reason} ->
-            erlang:error({aws_error, Reason})
+            {error, Reason}
     end.
 
 queue_path([$/|QueueName]) -> [$/ |erlcloud_http:url_encode(QueueName)];
