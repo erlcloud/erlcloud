@@ -4,10 +4,10 @@ otp_release:
   - R16B03-1
   - 17.5
   - 18.1
-  - 19.0
+  - 19.1
 env:
   global:
-  - MAIN_OTP=19.0
+  - MAIN_OTP=19.1
   matrix:
   - FORCE_REBAR2=true
   - FORCE_REBAR2=false PATH=$PATH:$PWD

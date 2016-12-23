@@ -14,34 +14,12 @@ else
  REBAR_VSN=3
 endif
 
-# eventually this should be just ebin/*.beam, but there are a number
-# of warnings in other files. Just check the clean files for now.
 CHECK_FILES=\
-	ebin/erlcloud_aws.beam \
-	ebin/erlcloud_cloudtrail.beam \
-	ebin/erlcloud_cloudsearch.beam \
-	ebin/erlcloud_ddb.beam \
-	ebin/erlcloud_ddb1.beam \
-	ebin/erlcloud_ddb2.beam \
-	ebin/erlcloud_ddb_impl.beam \
-	ebin/erlcloud_ddb_util.beam \
-	ebin/erlcloud_http.beam \
-	ebin/erlcloud_httpc.beam \
-	ebin/erlcloud_retry.beam \
-	ebin/erlcloud_sts.beam \
-	ebin/erlcloud_s3.beam \
-	ebin/erlcloud_sns.beam
+	ebin/*.beam
 
-# Checks on the eunit files can help find bad specs and other issues,
-# however there are some expected errors in some of the exception
-# tests that should be ignored.
 CHECK_EUNIT_FILES=\
 	$(CHECK_FILES) \
-	.eunit/erlcloud_ddb_tests.beam \
-	.eunit/erlcloud_ddb2_tests.beam \
-	.eunit/erlcloud_ddb_util_tests.beam \
-	.eunit/erlcloud_ec2_tests.beam \
-	.eunit/erlcloud_s3_tests.beam
+	.eunit/*.beam
 
 
 all: get-deps compile
