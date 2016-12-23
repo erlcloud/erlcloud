@@ -14,14 +14,9 @@ else
  REBAR_VSN=3
 endif
 
-# eventually this should be just ebin/*.beam, but there are a number
-# of warnings in other files. Just check the clean files for now.
 CHECK_FILES=\
 	ebin/*.beam
 
-# Checks on the eunit files can help find bad specs and other issues,
-# however there are some expected errors in some of the exception
-# tests that should be ignored.
 CHECK_EUNIT_FILES=\
 	$(CHECK_FILES) \
 	.eunit/*.beam
