@@ -9,7 +9,7 @@
          aws_region_from_host/1,
          aws_request_form/8,
          aws_request_form_raw/8,
-         param_list/2, default_config/0, auto_config/0,
+         param_list/2, default_config/0, auto_config/0, auto_config/1,
          update_config/1,clear_config/1, clear_expired_configs/0,
          service_config/3, service_host/2,
          configure/1, format_timestamp/1,
@@ -336,13 +336,30 @@ default_config_env() ->
 %% return <code>undefined</code>.
 %%
 auto_config() ->
+    auto_config( [] ).
+
+
+%%%---------------------------------------------------------------------------
+-spec auto_config( ProfileOptions :: [profile_option()]) ->
+                         {ok, aws_config()} | undefined.
+%%%---------------------------------------------------------------------------
+%% @doc Generate config using the best available credentials
+%%
+%% This function works the same as {@link auto_config/0}, but if credentials
+%% are developed from <em>User Profile</em> as the source, the
+%% <code>Options</code> parameter provided will be used to control the
+%% behavior.
+%%
+%% @see profile/2
+%%
+auto_config( ProfileOptions ) ->
     case config_env() of
         {ok, _Config} = Result -> Result;
-        {error, _} -> auto_config_profile()
+        {error, _} -> auto_config_profile( ProfileOptions )
     end.
 
-auto_config_profile() ->
-    case profile() of
+auto_config_profile( ProfileOptions ) ->
+    case profile( default, ProfileOptions ) of
         {ok, _Config} = Result -> Result;
         {error, _} -> auto_config_metadata()
     end.
