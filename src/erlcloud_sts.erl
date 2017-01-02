@@ -40,7 +40,7 @@ assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds, ExternalId)
         end,
 
     case sts_query(AwsConfig, "AssumeRole", Params ++ ExternalIdPart) of
-        {error, _Reason} = E -> E;
+        {error, _R} = E -> E;
         Xml ->
             Creds = erlcloud_xml:decode(
                 [

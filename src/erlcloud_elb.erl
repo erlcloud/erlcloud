@@ -89,21 +89,21 @@ create_load_balancer(LB, Port, Protocol, Zone, Config) when is_list(LB),
                                                             is_integer(Port),
                                                             is_atom(Protocol),
                                                             is_list(Zone) ->
-    XML = elb_request(Config,
+    elb_request_text(Config,
                       "CreateLoadBalancer",
+                      "/CreateLoadBalancerResponse/CreateLoadBalancerResult/DNSName",
                       [{"AvailabilityZones.member.1", Zone},
                        {"LoadBalancerName", LB} |
                        erlcloud_aws:param_list([[{"LoadBalancerPort", Port},
                                                  {"InstancePort", Port},
                                                  {"Protocol", string:to_upper(atom_to_list(Protocol))}]],
-                                               "Listeners.member")]),
-    {ok, get_text("/CreateLoadBalancerResponse/CreateLoadBalancerResult/DNSName", XML)}.
+                                               "Listeners.member")]).
 
 delete_load_balancer(LB) when is_list(LB) ->
     delete_load_balancer(LB, default_config()).
 
 delete_load_balancer(LB, Config) when is_list(LB) ->
-    elb_simple_request(Config,
+    elb_request_simple(Config,
                        "DeleteLoadBalancer",
                        [{"LoadBalancerName", LB}]).
 
@@ -114,7 +114,7 @@ register_instance(LB, InstanceId) ->
 
 -spec register_instance(string(), string(), aws_config()) -> proplist().
 register_instance(LB, InstanceId, Config) when is_list(LB) ->
-    elb_simple_request(Config,
+    elb_request_simple(Config,
                        "RegisterInstancesWithLoadBalancer",
                        [{"LoadBalancerName", LB} |
                         erlcloud_aws:param_list([[{"InstanceId", InstanceId}]], "Instances.member")]).
@@ -126,7 +126,7 @@ deregister_instance(LB, InstanceId) ->
 
 -spec deregister_instance(string(), string(), aws_config()) -> proplist().
 deregister_instance(LB, InstanceId, Config) when is_list(LB) ->
-    elb_simple_request(Config,
+    elb_request_simple(Config,
                        "DeregisterInstancesFromLoadBalancer",
                        [{"LoadBalancerName", LB} |
                         erlcloud_aws:param_list([[{"InstanceId", InstanceId}]], "Instances.member")]).
@@ -141,7 +141,7 @@ configure_health_check(LB, Target) when is_list(LB),
 
 -spec configure_health_check(string(), string(), aws_config()) -> proplist().
 configure_health_check(LB, Target, Config) when is_list(LB) ->
-    elb_simple_request(Config,
+    elb_request_simple(Config,
                        "ConfigureHealthCheck",
                        [{"LoadBalancerName", [LB]},
                         {"HealthCheck.Target", Target}]).
@@ -435,7 +435,7 @@ create_load_balancer_policy(LB, PolicyName, PolicyTypeName, AttrList, Config)
          is_list(PolicyName),
          is_list(PolicyTypeName),
          is_list(AttrList)->
-    _XML = elb_request(Config,
+    elb_request_simple(Config,
                       "CreateLoadBalancerPolicy",
                       [{"LoadBalancerName", LB},
                        {"PolicyName", PolicyName},
@@ -443,20 +443,22 @@ create_load_balancer_policy(LB, PolicyName, PolicyTypeName, AttrList, Config)
                        erlcloud_aws:param_list([[{"AttributeName", AttrName},
                                                  {"AttributeValue", AttrValue}] || 
                                                 {AttrName, AttrValue} <- AttrList],
-                                               "PolicyAttributes.member")]),
-    ok.
+                                               "PolicyAttributes.member")]).
 
 
--spec describe_load_balancer_attributes(string()) -> proplist().
+-spec describe_load_balancer_attributes(string()) -> proplist() | {error, term()}.
 describe_load_balancer_attributes(Name) ->
     describe_load_balancer_attributes(Name, default_config()).
 
--spec describe_load_balancer_attributes(string(), aws_config()) -> proplist().
+-spec describe_load_balancer_attributes(string(), aws_config()) -> proplist() | {error, term()}.
 describe_load_balancer_attributes(Name, Config) ->
-    Node = elb_request(Config,
-        "DescribeLoadBalancerAttributes",
-        [{"LoadBalancerName", Name}]),
-    extract_elb_attribs(Node).
+    case elb_request(Config,
+            "DescribeLoadBalancerAttributes",
+            [{"LoadBalancerName", Name}]) of
+        {error, _R} = E -> E;
+        {ok, Doc} ->
+            extract_elb_attribs(Doc)
+    end.
 
 
 %%%===================================================================
@@ -497,7 +499,7 @@ delete_load_balancer_policy(LB, PolicyName) when is_list(LB),
 -spec delete_load_balancer_policy(string(), string(), aws_config()) -> ok.
 delete_load_balancer_policy(LB, PolicyName, Config) when is_list(LB),
                                              is_list(PolicyName)->
-    elb_simple_request(Config,
+    elb_request_simple(Config,
                        "DeleteLoadBalancerPolicy",
                        [{"LoadBalancerName", LB},
                         {"PolicyName", PolicyName}]).
@@ -532,18 +534,20 @@ elb_query(Config, Action, Params, ApiVersion) ->
                                   Config#aws_config.elb_host,
                                   "/", QParams, "elasticloadbalancing", Config).
 
-elb_simple_request(Config, Action, Params) ->
-    _Doc = elb_request(Config, Action, Params),
-    ok.
+elb_request_simple(Config, Action, Params) ->
+    case elb_request(Config, Action, Params) of
+        {error, _R} = E -> E;
+        {ok, _Doc} -> ok
+    end.
+
+elb_request_text(Config,Action, Path, Params) ->
+    case elb_request(Config, Action, Params) of
+        {error, _R} = E -> E;
+        {ok, XML} -> {ok, get_text(Path, XML)}
+    end.
 
 elb_request(Config, Action, Params) ->
     QParams = [{"Action", Action}, {"Version", ?API_VERSION} | Params],
-    case erlcloud_aws:aws_request_xml4(post,
+    erlcloud_aws:aws_request_xml4(post,
                                   Config#aws_config.elb_host,
-                                  "/", QParams, "elasticloadbalancing", Config)
-    of
-        {ok, Body} ->
-            Body;
-        {error, Reason} ->
-            erlang:error({aws_error, Reason})
-    end.
+                                  "/", QParams, "elasticloadbalancing", Config).

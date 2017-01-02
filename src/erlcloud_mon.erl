@@ -96,9 +96,12 @@ list_metrics(
            || N<-lists:seq(1, length(DimensionFilter))]
          ),
 
-    Doc = mon_query(Config, "ListMetrics", Params),
-    Members = xmerl_xpath:string("/ListMetricsResponse/ListMetricsResult/Metrics/member", Doc),
-    [extract_member(Member) || Member <- Members].
+    case mon_query(Config, "ListMetrics", Params) of
+        {error, _R} = E -> E;
+        {ok, Doc} ->
+            Members = xmerl_xpath:string("/ListMetricsResponse/ListMetricsResult/Metrics/member", Doc),
+            [extract_member(Member) || Member <- Members]
+    end.
 
 extract_member(Node) ->
     [
@@ -382,10 +385,14 @@ get_metric_statistics(
              end
              || N<-lists:seq(1, length(Dimensions))]
            ),
-    Doc = mon_query(Config, "GetMetricStatistics", Params),
-    Members = xmerl_xpath:string("/GetMetricStatisticsResponse/GetMetricStatisticsResult/Datapoints/member", Doc),
-    Label = get_text("Label", hd(xmerl_xpath:string("/GetMetricStatisticsResponse/GetMetricStatisticsResult", Doc))),
-    [{"label", Label}, {"datapoints", [extract_metrics(Member, Statistics) || Member <- Members]}].
+    case mon_query(Config, "GetMetricStatistics", Params) of
+        {error, _R} = E -> E;
+        {ok, Doc} ->
+            Members = xmerl_xpath:string("/GetMetricStatisticsResponse/GetMetricStatisticsResult/Datapoints/member", Doc),
+            Label = get_text("Label", hd(xmerl_xpath:string("/GetMetricStatisticsResponse/GetMetricStatisticsResult", Doc))),
+            [{"label", Label}, {"datapoints", [extract_metrics(Member, Statistics) || Member <- Members]}]
+    end.
+
 
 extract_metrics(Node, Statistics) ->
     [
@@ -397,28 +404,24 @@ extract_metrics(Node, Statistics) ->
 
 %%------------------------------------------------------------------------------
 mon_simple_query(Config, Action, Params) ->
-    mon_query(Config, Action, Params),
-    ok.
+    case mon_query(Config, Action, Params) of
+        {ok, _Doc} -> ok;
+        {error, _R} = E -> E
+    end.
 
 mon_query(Config, Action, Params) ->
     mon_query(Config, Action, Params, ?API_VERSION).
 
 mon_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
-    case erlcloud_aws:aws_request_xml4(get,
+    erlcloud_aws:aws_request_xml4(get,
                                  Config#aws_config.mon_protocol,
                                  Config#aws_config.mon_host,
                                  Config#aws_config.mon_port,
                                  "/",
                                  QParams,
                                  "monitoring",
-                                 Config)
-    of
-        {ok, Body} ->
-            Body;
-        {error, Reason} ->
-            erlang:error({aws_error, Reason})
-    end.
+                                 Config).
 
 configure_host(Host, Port, Protocol) ->
     Config = default_config(),
