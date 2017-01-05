@@ -294,8 +294,12 @@ format_timestamp({{Yr, Mo, Da}, {H, M, S}}) ->
 %% "AWS_SECRET_ACCESS_KEY", "AWS_SECURITY_TOKEN", and "AWS_REGION",
 %% respectively. If no value is found, we look at the erlcloud application
 %% environment for the keys aws_access_key_id, aws_secret_access_key,
-%% aws_security_token, and aws_region, respectively. Otherwise, the value
-%% will be 'undefined'.
+%% aws_security_token, and aws_region, respectively. If still no value is
+%% found, it will default to 'undefined'.
+%% Id, Key, and Token will be set in #aws_config{}, in the fields
+%% access_key_id, secret_access_key, and security_token, respectively.
+%% If Region is set, we will attempt to set the appropriate URL for this
+%% region for each service.
 
 %% check the cache
 default_config() ->
