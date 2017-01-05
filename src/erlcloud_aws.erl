@@ -289,18 +289,76 @@ format_timestamp({{Yr, Mo, Da}, {H, M, S}}) ->
 %% available in the environment, if available.  If no credentials are
 %% available then this will just return a default <code>#aws_config{}</code>
 %% record.
-%%
+%% The credentials are; Id, Key, Token, and Region. For each credential we
+%% will first look for the environment variables "AWS_ACCESS_KEY_ID",
+%% "AWS_SECRET_ACCESS_KEY", "AWS_SECURITY_TOKEN", and "AWS_REGION",
+%% respectively. If no value is found, we look at the erlcloud application
+%% environment for the keys aws_access_key_id, aws_secret_access_key,
+%% aws_security_token, and aws_region, respectively. Otherwise, the value
+%% will be 'undefined'.
+
+%% check the cache
 default_config() ->
     case get(aws_config) of
-        undefined -> default_config_env();
+        undefined -> default_config_wrap();
         Config -> Config
     end.
 
-default_config_env() ->
-    case config_env() of
-        {ok, Config} -> Config;
-        {error, _} -> #aws_config{}
+default_config_wrap() ->
+    #{id:=Id, key:=Key, token:=Token, region:=Region} = default_config_get(),
+    default_config_region(default_config_assert(Id, Key, Token), Region).
+
+default_config_get() ->
+    #{id=>default_config_get("AWS_ACCESS_KEY_ID", aws_access_key_id),
+      key=>default_config_get("AWS_SECRET_ACCESS_KEY", aws_secret_access_key),
+      token=>default_config_get("AWS_SECURITY_TOKEN", aws_security_token),
+      region=>default_config_get("AWS_REGION", aws_region)}.
+
+%% try to get config value from OS env, failing that try app env, else
+%% return undefined
+default_config_get(OSENV, APPENV) ->
+    case default_config_osenv(OSENV) of
+        undefined -> default_config_appenv(APPENV);
+        Val -> Val
     end.
+
+default_config_osenv(ENV) ->
+    case os:getenv(ENV) of
+        Value when is_list(Value) -> Value;
+        false -> undefined
+    end.
+
+default_config_appenv(ENV) ->
+    case application:get_env(erlcloud, ENV) of
+        {ok, Value} -> Value;
+        undefined -> undefined
+    end.
+
+default_config_assert(Id, Key, Token) ->
+    case Id==undefined orelse Key==undefined of
+        false ->
+            #aws_config{access_key_id = Id,
+                        secret_access_key = Key,
+                        security_token = Token};
+        true ->
+            #aws_config{}
+    end.
+
+%% call service_config/3 with our Region for all services
+default_config_region(AwsConfig, undefined) ->
+    AwsConfig;
+default_config_region(AwsConfig, Region) ->
+    ConfF = fun(Service, C0) -> service_config(Service, Region, C0) end,
+    lists:foldl(ConfF, AwsConfig, default_config_region_services()).
+
+%% horrible hack to get a list of service names, assuming that if a key in
+%% #aws_config{} ends with "_host", the prefix is a service (except
+%% s3_bucket_after_host).
+default_config_region_services() ->
+    Fields = record_info(fields, aws_config),
+    Ts = [lists:reverse(string:tokens(atom_to_list(F), "_")) || F <- Fields],
+    Ss = [list_to_atom(string:join(lists:reverse(R), "_")) || ["host"|R] <- Ts],
+    [S || S <- Ss, S =/= s3_bucket_after].
 
 %%%---------------------------------------------------------------------------
 -spec auto_config() -> {ok, aws_config()} | undefined.
@@ -469,6 +527,8 @@ service_config( Service, Region, Config ) when is_list(Service) ->
     service_config( list_to_binary(Service), Region, Config );
 service_config( Service, Region, Config ) when is_list(Region) ->
     service_config( Service, list_to_binary(Region), Config );
+service_config( <<"as">>, Region, Config ) ->
+    service_config( <<"autoscaling">>, Region, Config );
 service_config( <<"autoscaling">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ as_host = Host };
@@ -486,8 +546,13 @@ service_config( <<"cloudtrail">> = Service, Region, Config ) ->
 service_config( <<"dynamodb">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ ddb_host = Host };
+service_config( <<"directconnect">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ directconnect_host = Host };
 service_config( <<"ddb">>, Region, Config ) ->
     service_config( <<"dynamodb">>, Region, Config );
+service_config( <<"ddb_streams">>, Region, Config ) ->
+    service_config( <<"streams.dynamodb">>, Region, Config );
 service_config( <<"streams.dynamodb">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ ddb_streams_host = Host };
@@ -506,6 +571,9 @@ service_config( <<"iam">> = Service, <<"cn-north-1">> = Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ iam_host = Host };
 service_config( <<"iam">>, _Region, Config ) -> Config;
+service_config( <<"inspector">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ inspector_host = Host };
 service_config( <<"kinesis">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ kinesis_host = Host };
@@ -515,13 +583,24 @@ service_config( <<"kms">> = Service, Region, Config ) ->
 service_config( <<"lambda">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ lambda_host = Host };
+service_config( <<"mon">>, Region, Config ) ->
+    service_config( <<"monitoring">>, Region, Config );
+service_config( <<"monitoring">>, _Region, Config ) -> Config;
+service_config( <<"mturk">>, Region, Config ) ->
+    service_config( <<"mechanicalturk">>, Region, Config );
 service_config( <<"mechanicalturk">>, _Region, Config ) -> Config;
+service_config( <<"mms">>, Region, Config ) ->
+    service_config( <<"metering.marketplace">>, Region, Config );
 service_config( <<"metering.marketplace">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ mms_host = Host };
 service_config( <<"rds">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ rds_host = Host };
+service_config( <<"redshift">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ redshift_host = Host };
+service_config( <<"route53">>, _Region, Config ) -> Config;
 service_config( <<"s3">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ s3_host = Host };
@@ -542,7 +621,6 @@ service_config( <<"sts">> = Service, Region, Config ) ->
     Config#aws_config{ sts_host = Host };
 service_config( <<"waf">>, _Region, Config ) -> Config.
 
-    
 %%%---------------------------------------------------------------------------
 -spec service_host( Service :: binary(),
                     Region :: binary() ) -> string().
