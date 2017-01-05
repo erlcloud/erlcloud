@@ -305,14 +305,14 @@ default_config() ->
     end.
 
 default_config_wrap() ->
-    #{id:=Id, key:=Key, token:=Token, region:=Region} = default_config_get(),
+    {Id, Key, Token, Region} = default_config_get(),
     default_config_region(default_config_assert(Id, Key, Token), Region).
 
 default_config_get() ->
-    #{id=>default_config_get("AWS_ACCESS_KEY_ID", aws_access_key_id),
-      key=>default_config_get("AWS_SECRET_ACCESS_KEY", aws_secret_access_key),
-      token=>default_config_get("AWS_SECURITY_TOKEN", aws_security_token),
-      region=>default_config_get("AWS_REGION", aws_region)}.
+    {default_config_get("AWS_ACCESS_KEY_ID", aws_access_key_id),
+     default_config_get("AWS_SECRET_ACCESS_KEY", aws_secret_access_key),
+     default_config_get("AWS_SECURITY_TOKEN", aws_security_token),
+     default_config_get("AWS_REGION", aws_region)}.
 
 %% try to get config value from OS env, failing that try app env, else
 %% return undefined
