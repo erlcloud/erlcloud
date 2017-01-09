@@ -2302,6 +2302,9 @@ extract_volume(Node) ->
      {status, get_text("status", Node, none)},
      {create_time, erlcloud_xml:get_time("createTime", Node)},
      {volumeType, get_text("volumeType", Node)},
+     {iops, get_integer("iops", Node)},
+     {encrypted, get_bool("encrypted", Node)},
+     {kms_key_id, get_text("kmsKeyId", Node, none)},
      {attachment_set,
       [[{volume_id, get_text("volumeId", Item)},
         {instance_id, get_text("instanceId",Item)},
@@ -2311,7 +2314,8 @@ extract_volume(Node) ->
        ] ||
           Item <- xmerl_xpath:string("attachmentSet/item", Node)
       ]
-     }
+     },
+     {tag_set, [extract_tag_item(Item) || Item <- xmerl_xpath:string("tagSet/item", Node)]}
     ].
 
 -spec describe_vpcs() -> ok_error(proplist()).
