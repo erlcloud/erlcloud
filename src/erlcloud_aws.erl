@@ -309,44 +309,27 @@ default_config() ->
     end.
 
 default_config_wrap() ->
-    {Id, Key, Token, Region} = default_config_get(),
+    Id = default_config_get("AWS_ACCESS_KEY_ID", aws_access_key_id),
+    Key = default_config_get("AWS_SECRET_ACCESS_KEY", aws_secret_access_key),
+    Token = default_config_get("AWS_SECURITY_TOKEN", aws_security_token),
+    Region = default_config_get("AWS_REGION", aws_region),
     default_config_region(default_config_assert(Id, Key, Token), Region).
-
-default_config_get() ->
-    {default_config_get("AWS_ACCESS_KEY_ID", aws_access_key_id),
-     default_config_get("AWS_SECRET_ACCESS_KEY", aws_secret_access_key),
-     default_config_get("AWS_SECURITY_TOKEN", aws_security_token),
-     default_config_get("AWS_REGION", aws_region)}.
 
 %% try to get config value from OS env, failing that try app env, else
 %% return undefined
-default_config_get(OSENV, APPENV) ->
-    case default_config_osenv(OSENV) of
-        undefined -> default_config_appenv(APPENV);
-        Val -> Val
+default_config_get(OsVar, EnvVar) ->
+    case {os:getenv(OsVar), application:get_env(erlcloud, EnvVar)} of
+        {OsVal,  _} when OsVal /= undefined -> OsVal;
+        {_, {ok, EnvVal}} -> EnvVal;
+        _ -> undefined
     end.
 
-default_config_osenv(ENV) ->
-    case os:getenv(ENV) of
-        Value when is_list(Value) -> Value;
-        false -> undefined
-    end.
-
-default_config_appenv(ENV) ->
-    case application:get_env(erlcloud, ENV) of
-        {ok, Value} -> Value;
-        undefined -> undefined
-    end.
-
+default_config_assert(undefined, _Key, _Token) -> #aws_config{};
+default_config_assert(_Id, undefined, _Token) -> #aws_config{};
 default_config_assert(Id, Key, Token) ->
-    case Id==undefined orelse Key==undefined of
-        false ->
-            #aws_config{access_key_id = Id,
-                        secret_access_key = Key,
-                        security_token = Token};
-        true ->
-            #aws_config{}
-    end.
+    #aws_config{access_key_id = Id,
+                secret_access_key = Key,
+                security_token = Token}.
 
 %% call service_config/3 with our Region for all services
 default_config_region(AwsConfig, undefined) ->
@@ -510,7 +493,7 @@ clear_expired_configs() ->
 
 %%%---------------------------------------------------------------------------
 -spec service_config( Service :: atom() | string() | binary(),
-                      Region :: string() | binary(),
+                      Region :: atom() | string() | binary(),
                       Config :: #aws_config{} ) -> #aws_config{}.
 %%%---------------------------------------------------------------------------
 %% @doc Generate config updated to work with specified AWS service and region
@@ -529,6 +512,8 @@ service_config( Service, Region, Config ) when is_atom(Service) ->
     service_config( atom_to_binary(Service, latin1), Region, Config );
 service_config( Service, Region, Config ) when is_list(Service) ->
     service_config( list_to_binary(Service), Region, Config );
+service_config( Service, Region, Config ) when is_atom(Region) ->
+    service_config( Service, atom_to_binary(Region, latin1), Config );
 service_config( Service, Region, Config ) when is_list(Region) ->
     service_config( Service, list_to_binary(Region), Config );
 service_config( <<"as">>, Region, Config ) ->
