@@ -993,13 +993,23 @@ describe_addresses(PublicIPs) -> describe_addresses(PublicIPs, default_config())
 -spec describe_addresses([string()], aws_config()) -> ok_error(proplist()).
 describe_addresses(PublicIPs, Config)
   when is_list(PublicIPs) ->
-    case ec2_query(Config, "DescribeAddresses", erlcloud_aws:param_list(PublicIPs, "PublicIp")) of
+    case ec2_query(Config, "DescribeAddresses", erlcloud_aws:param_list(PublicIPs, "PublicIp"), ?NEW_API_VERSION) of
         {ok, Doc} ->
             Items = xmerl_xpath:string("/DescribeAddressesResponse/addressesSet/item", Doc),
-            {ok, [[{public_ip, get_text("publicIp", Item)}, {instance_id, get_text("instanceId", Item, none)}] || Item <- Items]};
+            {ok, [extract_address(Item) || Item <- Items]};
         {error, _} = Error ->
             Error
     end.
+
+extract_address(Node) ->
+    [{public_ip, get_text("publicIp", Node)},
+     {allocation_id, get_text("allocationId", Node)},
+     {domain, get_text("domain", Node)},
+     {instance_id, get_text("instanceId", Node, none)},
+     {association_id, get_text("associationId", Node, none)},
+     {network_interface_id, get_text("networkInterfaceId", Node, none)},
+     {network_interface_owner_id, get_text("networkInterfaceOwnerId", Node, none)},
+     {private_ip_address, get_text("privateIpAddress", Node, none)}].
 
 -spec describe_availability_zones() -> ok_error(proplist()).
 describe_availability_zones() -> describe_availability_zones([]).
