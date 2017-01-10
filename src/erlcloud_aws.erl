@@ -319,7 +319,7 @@ default_config_wrap() ->
 %% return undefined
 default_config_get(OsVar, EnvVar) ->
     case {os:getenv(OsVar), application:get_env(erlcloud, EnvVar)} of
-        {OsVal,  _} when OsVal /= undefined -> OsVal;
+        {OsVal,  _} when OsVal /= false -> OsVal;
         {_, {ok, EnvVal}} -> EnvVal;
         _ -> undefined
     end.
