@@ -210,7 +210,7 @@
 -define(SPOT_FLEET_INSTANCES_MR_MAX, 1000).
 -define(RESERVED_INSTANCES_OFFERINGS_MR_MIN, 5).
 -define(RESERVED_INSTANCES_OFFERINGS_MR_MAX, 1000).
--define(FLOWS_MR_MIN, 5).
+-define(FLOWS_MR_MIN, 1).
 -define(FLOWS_MR_MAX, 1000).
 
 -type filter_list() :: [{string() | atom(),[string()]}] | none.
@@ -3005,11 +3005,15 @@ create_flow_logs(LogGroupName, ResourceType, ResourceIDs, TrafficType, DeliverLo
     ] ++ Resources,
     Params = case ClientToken of
                 none -> P;
-                _ -> P ++ {"ClientToken", ClientToken}
+                _ -> P ++ [{"ClientToken", ClientToken}]
             end,
     case ec2_query(Config, "CreateFlowLogs", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
-            {ok, [get_text(Item) || Item <- xmerl_xpath:string("/CreateFlowLogsResponse/flowLogIdSet/item", Doc)]};
+            {ok, [
+                    {flow_log_id_set, [get_text(Item) || Item <- xmerl_xpath:string("/CreateFlowLogsResponse/flowLogIdSet/item", Doc)]},
+                    {client_token, get_text("/CreateFlowLogsResponse/clientToken", Doc)},
+                    {unsuccessful, [extract_unsuccesful_item(Item) || Item <- xmerl_xpath:string("/CreateFlowLogsResponse/unsuccessful", Doc)]}
+                 ]};
         {error, _} = Error ->
             Error
     end.
@@ -3023,16 +3027,19 @@ delete_flow_logs(FlowIDs) ->
     delete_flow_logs(FlowIDs, default_config()).
 
 -spec delete_flow_logs([string()], aws_config()) -> ok_error(proplist()).
-delete_flow_logs(FlowLogIDs, Config) when is_record(Config, aws_config) ->
+delete_flow_logs(FlowIDs, Config) when is_record(Config, aws_config) ->
     {Resources, _} = lists:foldl(fun(ID, {Acc, Index}) ->
                                     I = integer_to_list(Index),
-                                    FlowLogID = "FlowLogId."++I,
-                                    {[{FlowLogID, ID} | Acc], Index+1}
-                            end, {[], 1}, FlowLogIDs),
+                                    FlowID = "FlowLogId."++I,
+                                    {[{FlowID, ID} | Acc], Index+1}
+                            end, {[], 1}, FlowIDs),
 
     case ec2_query(Config, "DeleteFlowLogs", Resources, ?NEW_API_VERSION) of
         {ok, Doc} ->
-            {ok,[{unsuccessful, get_text("/DeleteFlowLogsResponse/unsuccessful", Doc)}]};
+            {ok, [
+                    {unsuccessful, [extract_unsuccesful_item(Item) || Item <- xmerl_xpath:string("/DeleteFlowLogsResponse/unsuccessful", Doc)]}
+                 ]
+            };
         {error, _} = Error ->
             Error
     end.
@@ -3046,48 +3053,94 @@ describe_flow_logs() ->
     describe_flow_logs([], [], default_config()).
 
 -spec describe_flow_logs(aws_config()) -> ok_error(proplist());
-                        (ec2_flow_ids()) -> ok_error(proplist()).
+                        (ec2_flow_ids()) -> ok_error(proplist());
+                        (filter_list()) -> ok_error(proplist());
+                        (ec2_max_result()) -> ok_error(proplist(), ec2_token()).
 describe_flow_logs(Config)
     when is_record(Config, aws_config) ->
     describe_flow_logs([], Config);
-describe_flow_logs(FlowIDs) ->
-    describe_flow_logs(FlowIDs, [], default_config()).
+describe_flow_logs([{_, _} | _] = Filter) ->
+    describe_flow_logs([], Filter, default_config());
+describe_flow_logs(FlowIDs)
+    when is_list(FlowIDs) ->
+    describe_flow_logs(FlowIDs, [], default_config());
+describe_flow_logs(MaxResults)
+    when is_integer(MaxResults) ->
+    describe_flow_logs(MaxResults, default_config()).
 
 -spec describe_flow_logs(ec2_flow_ids(), filter_list()) -> ok_error(proplist());
                         (ec2_flow_ids(), aws_config()) -> ok_error(proplist());
+                        (filter_list(), aws_config()) -> ok_error(proplist());
+                        (filter_list(), ec2_max_result()) -> ok_error(proplist());
+                        (ec2_max_result(), aws_config()) -> ok_error(proplist(), ec2_token());
                         (ec2_max_result(), ec2_token()) -> ok_error(proplist(), ec2_token()). 
-describe_flow_logs(FlowIDs, Filter)
-    when is_list(FlowIDs), is_list(Filter) orelse Filter =:= none ->
+describe_flow_logs(FlowIDs, none = Filter) ->
     describe_flow_logs(FlowIDs, Filter, default_config());
+describe_flow_logs(FlowIDs, [{_, _} | _] = Filter)
+    when is_list(FlowIDs) ->
+    describe_flow_logs(FlowIDs, Filter, default_config());
+describe_flow_logs([{_, _} | _] = Filter, Config)
+    when is_record(Config, aws_config) ->
+    describe_flow_logs([], Filter, Config);
+describe_flow_logs([{_, _} | _] = Filter, MaxResults)
+    when is_integer(MaxResults) andalso MaxResults >= ?FLOWS_MR_MIN andalso MaxResults =< ?FLOWS_MR_MAX ->
+    describe_flow_logs(Filter, MaxResults, default_config());
 describe_flow_logs(FlowIDs, Config)
     when is_list(FlowIDs), is_record(Config, aws_config) ->
-    describe_flow_logs(FlowIDs, [], Config).
+    describe_flow_logs(FlowIDs, [], Config);
+describe_flow_logs(MaxResults, Config)
+    when is_integer(MaxResults) andalso MaxResults >= ?FLOWS_MR_MIN andalso MaxResults =< ?FLOWS_MR_MAX,
+    is_record(Config, aws_config) ->
+    describe_flow_logs([], MaxResults, Config);
+describe_flow_logs(MaxResults, NextToken)
+    when is_integer(MaxResults) andalso MaxResults >= ?FLOWS_MR_MIN andalso MaxResults =< ?FLOWS_MR_MAX,
+    is_list(NextToken) ->
+    describe_flow_logs(MaxResults, NextToken, default_config()).
 
 -spec describe_flow_logs(ec2_flow_ids(), filter_list(), aws_config()) -> ok_error(proplist());
-                        (filter_list(), ec2_max_result(), ec2_token()) -> ok_error(proplist(), ec2_token()).
+                        (ec2_flow_ids(), filter_list(), ec2_max_result()) -> ok_error(proplist());
+                        (filter_list(), ec2_max_result(), aws_config()) -> ok_error(proplist(), ec2_token());
+                        (ec2_max_result(), ec2_token(), aws_config()) -> ok_error(proplist(), ec2_token()).
 describe_flow_logs(FlowIDs, Filter, Config)
     when is_list(FlowIDs), is_list(Filter) orelse Filter =:= none , is_record(Config, aws_config) ->
-   Params = erlcloud_aws:param_list(FlowIDs, "FlowLogId") ++ list_to_ec2_filter(Filter),
+    Params = erlcloud_aws:param_list(FlowIDs, "FlowLogId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeFlowLogs", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             Flows = extract_results("DescribeFlowLogsResponse", "flowLogSet", fun extract_flow/1, Doc),
             {ok, Flows};
         {error, _} = E -> E
     end;
-describe_flow_logs(Filter, MaxResults, NextToken)
-    when is_list(Filter) orelse Filter =:= none,
-         is_integer(MaxResults),
-         is_list(NextToken) orelse NextToken =:= undefined ->
-    describe_flow_logs(Filter, MaxResults, NextToken, default_config()).
+describe_flow_logs(none, MaxResults, Config)
+    when is_integer(MaxResults) andalso MaxResults >= ?FLOWS_MR_MIN andalso MaxResults =< ?FLOWS_MR_MAX,
+         is_record(Config, aws_config) ->
+    describe_flow_logs([], [], MaxResults, Config);
+describe_flow_logs([] = Filter, MaxResults, Config)
+    when is_integer(MaxResults) andalso MaxResults >= ?FLOWS_MR_MIN andalso MaxResults =< ?FLOWS_MR_MAX,
+         is_record(Config, aws_config) ->
+    describe_flow_logs([], Filter, MaxResults, Config);
+describe_flow_logs([{_, _} | _] = Filter, MaxResults, Config)
+    when is_integer(MaxResults) andalso MaxResults >= ?FLOWS_MR_MIN andalso MaxResults =< ?FLOWS_MR_MAX,
+         is_record(Config, aws_config) ->
+    describe_flow_logs([], Filter, MaxResults, Config);
+describe_flow_logs(MaxResults, NextToken, Config)
+    when is_integer(MaxResults),
+         is_list(NextToken),
+         is_record(Config, aws_config) ->
+    Params = [{"MaxResults", MaxResults}, {"NextToken", NextToken}],
+    case ec2_query(Config, "DescribeFlowLogs", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            Flows = extract_results("DescribeFlowLogsResponse", "flowLogSet", fun extract_flow/1, Doc),
+            NewNextToken = extract_next_token("DescribeFlowLogsResponse", Doc),
+            {ok, Flows, NewNextToken};
+        {error,  _} = E -> E
+    end.
 
--spec describe_flow_logs(filter_list(), ec2_max_result(), ec2_token(), aws_config())
-    -> ok_error(proplist(), ec2_token()).
-describe_flow_logs(Filter, MaxResults, NextToken, Config)
+-spec describe_flow_logs(ec2_flow_ids(), filter_list(), ec2_max_result(), aws_config()) -> ok_error(proplist(), ec2_token()).
+describe_flow_logs(FlowIDs, Filter, MaxResults, Config)
     when is_list(Filter) orelse Filter =:= none,
          is_integer(MaxResults) andalso MaxResults >= ?FLOWS_MR_MIN andalso MaxResults =< ?FLOWS_MR_MAX,
-         is_list(NextToken) orelse NextToken =:= undefined,
          is_record(Config, aws_config) ->
-    Params = list_to_ec2_filter(Filter) ++ [{"NextToken", NextToken}, {"MaxResults", MaxResults}],
+    Params = erlcloud_aws:param_list(FlowIDs, "FlowLogId") ++ list_to_ec2_filter(Filter) ++ [{"MaxResults", MaxResults}],
     case ec2_query(Config, "DescribeFlowLogs", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             Flows = extract_results("DescribeFlowLogsResponse", "flowLogSet", fun extract_flow/1, Doc),
@@ -3351,9 +3404,11 @@ list_to_ec2_filter([{N, V}|T], Count, Res) ->
 
 list_to_ec2_values([], _Count, _VCount, Res) ->
     Res;
-list_to_ec2_values([H|T], Count, VCount, Res) ->
+list_to_ec2_values([H|T], Count, VCount, Res) when is_list(H) ->
     Tup = {io_lib:format("Filter.~p.Value.~p", [Count, VCount]), H},
-    list_to_ec2_values(T, Count, VCount + 1, [Tup|Res]).
+    list_to_ec2_values(T, Count, VCount + 1, [Tup|Res]);
+list_to_ec2_values(V, Count, VCount, _Res) ->
+    {io_lib:format("Filter.~p.Value.~p", [Count, VCount]), V}.
 
 -spec describe_vpn_gateways() -> ok_error([proplist()]).
 describe_vpn_gateways() ->
@@ -3480,3 +3535,9 @@ extract_results(ResponseName, SetName, ExtractFunction, Doc)
 extract_next_token(ResponseName, Doc)
     when is_list(ResponseName), is_record(Doc, xmlElement) ->
     erlcloud_xml:get_text("/" ++ ResponseName ++ "/nextToken", Doc, undefined).
+
+extract_unsuccesful_item(Node) ->
+    [ {resource_id, get_text("resourceId", Node)},
+      {error, [ {code, get_text("error/code", Node)},
+                {message, get_text("error/message", Node)}]}
+    ].
