@@ -30,7 +30,7 @@
          set_endpoint_attributes/3,
          publish_to_topic/2, publish_to_topic/3, publish_to_topic/4,
          publish_to_topic/5, publish_to_target/2, publish_to_target/3,
-         publish_to_target/4, publish_to_target/5, publish/5,
+         publish_to_target/4, publish_to_target/5, publish/5, publish/6,
          list_platform_applications/0, list_platform_applications/1,
          list_platform_applications/2, list_platform_applications/3,
          confirm_subscription/1, confirm_subscription/2, confirm_subscription/3,
@@ -56,6 +56,8 @@
 -type sns_endpoint_attribute() :: custom_user_data
                                 | enabled
                                 | token.
+
+-type sns_message_attributes() :: [{string(), string() | binary() | number()}].
 
 -type sns_endpoint() :: [{arn, string()} | {attributes, [{arn|sns_endpoint_attribute(), string()}]}].
 
@@ -99,7 +101,7 @@
 
 -type(sns_subscribe_protocol_type () :: http | https | email | 'email-json' | sms | sqs | application).
 
--export_type([sns_acl/0, sns_endpoint_attribute/0,
+-export_type([sns_acl/0, sns_endpoint_attribute/0, sns_message_attributes/0,
               sns_message/0, sns_application/0, sns_endpoint/0]).
 
 -spec add_permission(string(), string(), sns_acl()) -> ok.
@@ -422,6 +424,10 @@ publish_to_target(TargetArn, Message, Subject, AccessKeyID, SecretAccessKey) ->
 
 -spec publish(topic|target, string(), sns_message(), undefined|string(), aws_config()) -> string().
 publish(Type, RecipientArn, Message, Subject, Config) ->
+    publish(Type, RecipientArn, Message, Subject, [], Config).
+
+-spec publish(topic|target, string(), sns_message(), undefined|string(), sns_message_attributes(), aws_config()) -> string().
+publish(Type, RecipientArn, Message, Subject, Attributes, Config) ->
     RecipientParam =
         case Type of
             topic -> [{"TopicArn", RecipientArn}];
@@ -441,14 +447,13 @@ publish(Type, RecipientArn, Message, Subject, Config) ->
             undefined -> [];
             Subject -> [{"Subject", Subject}]
         end,
+    AttributesParam = message_attributes(Attributes),
     Doc =
         sns_xml_request(
             Config, "Publish",
-            RecipientParam ++ MessageParams ++ SubjectParam),
+            RecipientParam ++ MessageParams ++ SubjectParam ++ AttributesParam),
     erlcloud_xml:get_text(
         "PublishResult/MessageId", Doc).
-
-
 
 -spec parse_event(iodata()) -> sns_event().
 parse_event(EventSource) ->
@@ -716,3 +721,32 @@ scheme_to_protocol(_)                 -> erlang:error({sns_error, badarg}).
 s2p("http://")  -> "http";
 s2p("https://") -> "https";
 s2p(X)          -> erlang:error({sns_error, {unsupported_scheme, X}}).
+
+
+-spec message_attributes(sns_message_attributes()) -> [{string(), string()}].
+message_attributes(Attributes) ->
+    EnumeratedAttrs = lists:zip(lists:seq(1, length(Attributes)), Attributes),
+    lists:flatmap(
+        fun({Num, {Name, Value}}) ->
+            [format_attribute_field(Num, Field) || Field <- fields_for_attribute(Name, Value)]
+        end,
+        EnumeratedAttrs).
+
+-spec format_attribute_field(integer(), {string(), string()}) -> {string(), string()}.
+format_attribute_field(Num, {Key, Value}) ->
+    StrNum = integer_to_list(Num),
+    {"MessageAttributes.entry." ++ StrNum ++ "." ++ Key, Value}.
+
+-spec fields_for_attribute(string(), string() | binary() | number()) -> [{string(), string()}].
+fields_for_attribute(Name, Value) ->
+    [{"Key", Name} | fields_for_attribute(Value)].
+
+-spec fields_for_attribute(string() | binary() | number()) -> [{string(), string()}].
+fields_for_attribute(Value) when is_list(Value) ->
+    [{"Value.DataType", "String"}, {"Value.StringValue", Value}];
+fields_for_attribute(Value) when is_binary(Value) ->
+    [{"Value.DataType", "Binary"}, {"Value.BinaryValue", base64:encode_to_string(Value)}];
+fields_for_attribute(Value) when is_float(Value) ->
+    [{"Value.DataType", "Number"}, {"Value.StringValue", float_to_list(Value)}];
+fields_for_attribute(Value) when is_integer(Value) ->
+    [{"Value.DataType", "Number"}, {"Value.StringValue", integer_to_list(Value)}].
