@@ -40,7 +40,8 @@
          %% Elastic IP addresses.
          allocate_address/0, allocate_address/1,
          associate_address/2, associate_address/3,
-         describe_addresses/0, describe_addresses/1, describe_addresses/2,
+         describe_addresses/0, describe_addresses/1,
+         describe_addresses/2, describe_addresses/3,
          disassociate_address/1, disassociate_address/2,
          release_address/1, release_address/2,
 
@@ -985,15 +986,22 @@ deregister_image(ImageID, Config)
 describe_addresses() -> describe_addresses([]).
 
 -spec describe_addresses([string()] | aws_config()) -> ok_error(proplist()).
-describe_addresses(Config)
-  when is_record(Config, aws_config) ->
+describe_addresses(Config) when is_record(Config, aws_config) ->
     describe_addresses([], Config);
-describe_addresses(PublicIPs) -> describe_addresses(PublicIPs, default_config()).
+describe_addresses(PublicIPs) when is_list(PublicIPs) ->
+    describe_addresses(PublicIPs, default_config()).
 
 -spec describe_addresses([string()], aws_config()) -> ok_error(proplist()).
-describe_addresses(PublicIPs, Config)
-  when is_list(PublicIPs) ->
-    case ec2_query(Config, "DescribeAddresses", erlcloud_aws:param_list(PublicIPs, "PublicIp"), ?NEW_API_VERSION) of
+describe_addresses(PublicIPs, Config) ->
+    describe_addresses(PublicIPs, none, Config).
+
+-spec describe_addresses([string()], filter_list(), aws_config()) -> ok_error(proplist()).
+describe_addresses(PublicIPs, Filters, Config) ->
+    Params = lists:append(
+        erlcloud_aws:param_list(PublicIPs, "PublicIp"),
+        list_to_ec2_filter(Filters)
+    ),
+    case ec2_query(Config, "DescribeAddresses", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             Items = xmerl_xpath:string("/DescribeAddressesResponse/addressesSet/item", Doc),
             {ok, [extract_address(Item) || Item <- Items]};
