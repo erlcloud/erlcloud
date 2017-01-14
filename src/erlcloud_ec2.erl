@@ -3110,6 +3110,9 @@ describe_flow_logs(FlowIDs, Filter, Config)
             {ok, Flows};
         {error, _} = E -> E
     end;
+describe_flow_logs(FlowIDs, Filter, MaxResults)
+    when is_integer(MaxResults) andalso MaxResults >= ?FLOWS_MR_MIN andalso MaxResults =< ?FLOWS_MR_MAX ->
+    describe_flow_logs(FlowIDs, Filter, MaxResults, default_config());
 describe_flow_logs(none, MaxResults, Config)
     when is_integer(MaxResults) andalso MaxResults >= ?FLOWS_MR_MIN andalso MaxResults =< ?FLOWS_MR_MAX,
          is_record(Config, aws_config) ->
