@@ -44,7 +44,7 @@ The libraries can be used two ways:
 
 ## Roadmap ##
 
-Below is the proposed library roadmap update along with regular features and fixes.
+Below is the library roadmap update along with regular features and fixes.
 
 - 0.13.10
  * pre Alert Logic Fork merge
@@ -60,13 +60,13 @@ Below is the proposed library roadmap update along with regular features and fix
 
 - 2.1.X
  * fix dialyzer findings and make it mandatory for the library
- * make full support of Mix/HEX
+ * ~~make full support of Mix/HEX~~ done
 
 - 2.2.X
-  * Further deprecation of legacy functionality
-  * remove R14/R15 support.
-  * Only SigV4 signing and generalised in one module. Keep SigV2 in SBD section only
-  * TBD: no more `erlang:error()` use and use of regular tuples as error API.
+ * Further deprecation of legacy functionality
+ * ~~remove R14/R15 support.~~ done
+ * Only SigV4 signing and generalised in one module. Keep SigV2 in SBD section only
+ * No more `erlang:error()` use and use of regular tuples as error API. Breaking change.
 
 ### Major API compatibility changes between 0.13.X and 2.0.x
  - ELB APIs
@@ -97,17 +97,25 @@ application:ensure_all_started(erlcloud).
 The access to AWS resource might be managed through [third-party identity provider](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp.html).
 The access is managed using [temporary security credentials](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html).
 
-You can provide your amazon credentials in environmental variables
+You can provide your amazon credentials in OS environmental variables
 
 ```
 export AWS_ACCESS_KEY_ID=<Your AWS Access Key>
 export AWS_SECRET_ACCESS_KEY=<Your AWS Secret Access Key>
 export AWS_SECURITY_TOKEN=<Your AWS Security Token>
+export AWS_REGION=<Your region>
 ```
-If you did not provide your amazon credentials in the environmental variables, then you need to provide configuration read from your profile:
+If you did not provide your amazon credentials in the OS environmental variables, then you need to provide configuration read from your profile:
 ```
 {ok, Conf} = erlcloud_aws:profile().
 erlcloud_s3:list_buckets(Conf).
+```
+Or you can provide them via `erlcloud` application environment variables.
+```erlang
+application:set_env(erlcloud, aws_access_key_id, "your key"),
+application:set_env(erlcloud, aws_secret_access_key, "your secret key"),
+application:set_env(erlcloud, aws_security_token, "your token"),
+application:set_env(erlcloud, aws_region, "your region"),
 ```
 ### Using Access Key ###
 You can provide your amazon credentials in environmental variables.
