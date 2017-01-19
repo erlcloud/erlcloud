@@ -14,7 +14,12 @@
          put_record/3, put_record/4, put_record/5, put_record/6, put_record/7,
          put_records/2, put_records/3,
          merge_shards/3, merge_shards/4,
-         split_shards/3, split_shards/4
+         split_shards/3, split_shards/4,
+         add_tags_to_stream/2, add_tags_to_stream/3,
+         list_tags_for_stream/1, list_tags_for_stream/2,
+         list_tags_for_stream/3, list_tags_for_stream/4,
+         list_all_tags_for_stream/1, list_all_tags_for_stream/2,
+         remove_tags_from_stream/2, remove_tags_from_stream/3
         ]).
 
 -include("erlcloud.hrl").
@@ -560,3 +565,169 @@ split_shards(StreamName, ShardToSplit, NewStartingHashKey) ->
 split_shards(StreamName, ShardToSplit, NewStartingHashKey, Config) when is_record(Config, aws_config) ->
   Json = [{<<"StreamName">>, StreamName}, {<<"ShardToSplit">>, ShardToSplit}, {<<"NewStartingHashKey">>, NewStartingHashKey}],
   erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.SplitShard", Json).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% Kinesis API:
+%% [http://docs.aws.amazon.com/kinesis/latest/APIReference/API_AddTagsToStream.html]
+%%
+%% Adds or updates tags for the specified Amazon Kinesis stream.
+%%
+%% erlcloud_kinesis:add_tags_to_stream(<<"stream_name">>,
+%%                                     [{<<"tag_key">>, <<"tag_value">>}]).
+%% ok.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec add_tags_to_stream(binary(), [{binary(), binary()}, ...]) ->
+    ok | {error, any()}.
+add_tags_to_stream(StreamName, Tags) ->
+    add_tags_to_stream(StreamName, Tags, default_config()).
+
+-spec add_tags_to_stream(binary(), [{binary(), binary()}, ...], aws_config()) ->
+    ok | {error, any()}.
+add_tags_to_stream(StreamName, Tags, Config)
+  when is_record(Config, aws_config) ->
+    Json      = [{<<"StreamName">>, StreamName},
+                 {<<"Tags">>,       Tags}],
+    Operation = "Kinesis_20131202.AddTagsToStream",
+    Response  = erlcloud_kinesis_impl:request(Config, Operation, Json),
+    normalize_tags_response(Response).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% Kinesis API:
+%% [http://docs.aws.amazon.com/kinesis/latest/APIReference/API_ListTagsForStream.html]
+%%
+%% Lists the tags for the specified Amazon Kinesis stream.
+%%
+%% erlcloud_kinesis:list_tags_for_stream(<<"stream_name">>, <<"key2">>, 2).
+%% {ok, [
+%%       {<<"HasMoreTags">>, true},
+%%       {<<"Tags">>,        [[{<<"Key">>, <<"k1">>}, {<<"Value">>, <<"v1">>}],
+%%                            [{<<"Key">>, <<"k2">>}, {<<"Value">>, <<"v2">>}]]}
+%%      ]
+%% }.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec list_tags_for_stream(binary()) -> {ok, proplist()} | {error, any()}.
+list_tags_for_stream(StreamName) ->
+    list_tags_for_stream(StreamName, default_config()).
+
+-spec list_tags_for_stream(binary(), aws_config()) ->
+    {ok, proplist()} | {error, any()}.
+list_tags_for_stream(StreamName, Config) when is_record(Config, aws_config) ->
+    list_tags_for_stream(StreamName, undefined, undefined, Config).
+
+-spec list_tags_for_stream(binary(),
+                           binary() | undefined,
+                           integer() | undefined) ->
+    {ok, proplist()} | {error, any()}.
+list_tags_for_stream(StreamName, ESK, Limit) ->
+    list_tags_for_stream(StreamName, ESK, Limit, default_config()).
+
+-spec list_tags_for_stream(binary(),
+                           binary() | undefined,
+                           integer() | undefined,
+                           aws_config()) ->
+    {ok, proplist()} | {error, any()}.
+list_tags_for_stream(StreamName, ESK, Limit, Config)
+  when is_record(Config, aws_config) ->
+    Json      = [{<<"StreamName">>,           StreamName},
+                 {<<"ExclusiveStartTagKey">>, ESK},
+                 {<<"Limit">>,                Limit}],
+    JsonUpd   = lists:filter(fun filter_undefined_params/1, Json),
+    Operation = "Kinesis_20131202.ListTagsForStream",
+    erlcloud_kinesis_impl:request(Config, Operation, JsonUpd).
+
+filter_undefined_params({_, undefined}) -> false;
+filter_undefined_params(_)              -> true.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% Wrapper around 'list_tags_for_stream' to return {ok, <list_of_all_tags>}.
+%%
+%% erlcloud_kinesis:list_all_tags_for_stream(<<"stream_name">>).
+%% {ok, [{<<"k1">>, <<"v1">>},
+%%       {<<"k2">>, <<"v2">>}]
+%% }.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec list_all_tags_for_stream(binary()) -> {ok, proplist()} | {error, any()}.
+list_all_tags_for_stream(StreamName) ->
+    list_all_tags_for_stream(StreamName, default_config()).
+
+-spec list_all_tags_for_stream(binary(), aws_config()) ->
+    {ok, proplist()} | {error, any()}.
+list_all_tags_for_stream(StreamName, Config) ->
+    list_all_tags_for_stream(StreamName, undefined, undefined, Config, []).
+
+list_all_tags_for_stream(StreamName, ESK, Limit, Config, Acc) ->
+    case list_tags_for_stream(StreamName, ESK, Limit, Config) of
+        {ok, [{<<"HasMoreTags">>, true}, {<<"Tags">>, Tags}]} ->
+            NewESK = get_last_tag_key(Tags),
+            UpdAcc = Acc ++ Tags,
+            list_all_tags_for_stream(StreamName, NewESK, Limit, Config, UpdAcc);
+        {ok, [{<<"HasMoreTags">>, false}, {<<"Tags">>, Tags}]} ->
+            {ok, [ {K, V} || [{<<"Key">>, K}, {<<"Value">>, V}] <- Acc ++ Tags ]};
+        Error ->
+            Error
+    end.
+
+get_last_tag_key(Tags) ->
+    [{<<"Key">>, Key}, _] = lists:last(Tags),
+    Key.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% Kinesis API:
+%% [http://docs.aws.amazon.com/kinesis/latest/APIReference/API_RemoveTagsFromStream.html]
+%%
+%% Removes tags from the specified Amazon Kinesis stream.
+%%
+%% erlcloud_kinesis:remove_tags_from_stream(<<"stream_name">>, [<<"tag_key">>]).
+%% ok.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec remove_tags_from_stream(binary(), [binary(), ...]) -> ok | {error, any()}.
+remove_tags_from_stream(StreamName, TagKeys) ->
+    remove_tags_from_stream(StreamName, TagKeys, default_config()).
+
+-spec remove_tags_from_stream(binary(), [binary(), ...], aws_config()) ->
+    ok | {error, any()}.
+remove_tags_from_stream(StreamName, TagKeys, Config)
+  when is_record(Config, aws_config) ->
+    Json      = [{<<"StreamName">>, StreamName},
+                 {<<"TagKeys">>,    TagKeys}],
+    Operation = "Kinesis_20131202.RemoveTagsFromStream",
+    Response  = erlcloud_kinesis_impl:request(Config, Operation, Json),
+    normalize_tags_response(Response).
+
+normalize_tags_response({ok, []}) -> ok;
+normalize_tags_response(Error)    -> Error.
+
+%%------------------------------------------------------------------------------
+%% Unit Tests
+%%------------------------------------------------------------------------------
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+list_all_tags_pagination_test_() ->
+    meck:new(EK = erlcloud_kinesis_impl, [passthrough]),
+    Tags1 = [[{<<"Key">>, <<"k1">>}, {<<"Value">>, <<"v1">>}],
+             [{<<"Key">>, <<"k2">>}, {<<"Value">>, <<"v2">>}]],
+    Tags2 = [[{<<"Key">>, <<"k3">>}, {<<"Value">>, <<"v3">>}]],
+    meck:sequence(EK, request, 3,
+                  [{ok, [{<<"HasMoreTags">>, true},  {<<"Tags">>, Tags1}]},
+                   {ok, [{<<"HasMoreTags">>, false}, {<<"Tags">>, Tags2}]}]),
+    Result = erlcloud_kinesis:list_all_tags_for_stream(<<"stream">>),
+    meck:unload(EK),
+    ?_assertEqual({ok, [{<<"k1">>, <<"v1">>},
+                        {<<"k2">>, <<"v2">>},
+                        {<<"k3">>, <<"v3">>}]},
+                  Result).
+
+-endif.

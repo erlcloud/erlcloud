@@ -49,7 +49,15 @@ operation_test_() ->
       fun merge_shards_input_tests/1,
       fun merge_shards_output_tests/1,
       fun split_shards_input_tests/1,
-      fun split_shards_output_tests/1
+      fun split_shards_output_tests/1,
+      fun add_tags_to_stream_input_tests/1,
+      fun add_tags_to_stream_output_tests/1,
+      fun list_tags_for_stream_input_tests/1,
+      fun list_tags_for_stream_output_tests/1,
+      fun list_all_tags_for_stream_input_tests/1,
+      fun list_all_tags_for_stream_output_test/1,
+      fun remove_tags_from_stream_input_tests/1,
+      fun remove_tags_from_stream_output_tests/1
      ]}.
 
 start() ->
@@ -654,3 +662,94 @@ split_shards_output_tests(_) ->
         ],
 
     output_tests(?_f(erlcloud_kinesis:split_shards(<<"test">>, <<"shardId-000000000000">>, <<"10">>)), Tests).
+
+add_tags_to_stream_input_tests(_) ->
+    Tests =
+        [?_kinesis_test(
+            {"Add tags request test",
+             ?_f(erlcloud_kinesis:add_tags_to_stream(<<"stream">>,
+                                                     [{<<"key">>, <<"val">>}])),
+             "{\"StreamName\": \"stream\",
+               \"Tags\": {\"key\": \"val\"}}"}
+        )],
+    input_tests("", Tests).
+
+add_tags_to_stream_output_tests(_) ->
+    Tests = [?_kinesis_test({"Add tags response test", "", ok})],
+    output_tests(
+        ?_f(erlcloud_kinesis:add_tags_to_stream(<<"stream">>,
+                                                [{<<"key">>, <<"val">>}])),
+        Tests
+    ).
+
+list_tags_for_stream_input_tests(_) ->
+    Tests =
+        [?_kinesis_test(
+            {"List tags request test 1",
+             ?_f(erlcloud_kinesis:list_tags_for_stream(<<"stream">>)),
+             "{\"StreamName\": \"stream\"}"}
+        ),
+         ?_kinesis_test(
+             {"List tags request test 2",
+              ?_f(erlcloud_kinesis:list_tags_for_stream(<<"stream">>,
+                                                        <<"key1">>,
+                                                        1)),
+              "{\"StreamName\": \"stream\",
+                \"ExclusiveStartTagKey\": \"key1\",
+                \"Limit\": 1}"}
+         )],
+    input_tests("", Tests).
+
+list_tags_for_stream_output_tests(_) ->
+    Response = "{\"HasMoreTags\": false,
+                 \"Tags\": [{\"Key\":\"key1\",\"Value\":\"val1\"}]}",
+    Tests = [?_kinesis_test({"List tags response test",
+                             Response,
+                             {ok, jsx:decode(list_to_binary(Response))}})],
+    output_tests(
+        ?_f(erlcloud_kinesis:list_tags_for_stream(<<"stream">>, <<"key1">>, 1)),
+        Tests
+    ).
+
+list_all_tags_for_stream_input_tests(_) ->
+    Tests =
+        [?_kinesis_test(
+            {"List all tags request test",
+             ?_f(erlcloud_kinesis:list_all_tags_for_stream(<<"stream">>)),
+             "{\"StreamName\": \"stream\"}"}
+        )],
+    input_tests("", Tests).
+
+list_all_tags_for_stream_output_test(_) ->
+    Response = "{\"HasMoreTags\": false,
+                 \"Tags\": [{\"Key\":\"key1\",\"Value\":\"val1\"},
+                            {\"Key\":\"key2\",\"Value\":\"val2\"}]}",
+    Tests =
+        [?_kinesis_test({"List all tags response test",
+                         Response,
+                         {ok, [{<<"key1">>, <<"val1">>},
+                               {<<"key2">>, <<"val2">>}]}}
+        )],
+    output_tests(
+        ?_f(erlcloud_kinesis:list_all_tags_for_stream(<<"stream">>)),
+        Tests
+    ).
+
+remove_tags_from_stream_input_tests(_) ->
+    Tests =
+        [?_kinesis_test(
+            {"Remove tags request test",
+             ?_f(erlcloud_kinesis:remove_tags_from_stream(<<"stream">>,
+                                                          [<<"key">>])),
+             "{\"StreamName\": \"stream\",
+               \"TagKeys\": [\"key\"]}"}
+        )],
+    input_tests("", Tests).
+
+remove_tags_from_stream_output_tests(_) ->
+    Tests = [?_kinesis_test({"Remove tags response test", "", ok})],
+    output_tests(
+        ?_f(erlcloud_kinesis:remove_tags_from_stream(<<"stream">>,
+                                                     [<<"key">>])),
+        Tests
+    ).
