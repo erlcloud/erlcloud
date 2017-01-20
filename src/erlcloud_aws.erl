@@ -182,8 +182,8 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service,
                         Port :: undefined | integer() | string(), Path :: string(), Form :: string(),
                         Headers :: list(), Config :: aws_config()) -> {ok, binary()} | {error, tuple()}.
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
-    RequestHeaders = [{"content-type", 
-                      "application/x-www-form-urlencoded; charset=utf-8"} | 
+    RequestHeaders = [{"content-type",
+                      "application/x-www-form-urlencoded; charset=utf-8"} |
                      Headers],
     Scheme = case Protocol of
         undefined -> "https://";
@@ -191,16 +191,17 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
     end,
     aws_request_form_raw(Method, Scheme, Host, Port, Path, list_to_binary(Form), RequestHeaders, Config).
 
--spec aws_request_form_raw(Method :: atom(), Scheme :: string(), Host :: string(),
-                        Port :: undefined | integer() | string(), Path :: string(), Form :: iodata(),
-                        Headers :: list(), Config :: aws_config()) -> {ok, binary()} | {error, tuple()}.
+-spec aws_request_form_raw(Method :: atom(), Scheme :: string() | [string()],
+                        Host :: string(), Port :: undefined | integer() | string(),
+                        Path :: string(), Form :: iodata(), Headers :: list(),
+                        Config :: aws_config()) -> {ok, binary()} | {error, tuple()}.
 aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config) ->
     URL = case Port of
         undefined -> [Scheme, Host, Path];
         _ -> [Scheme, Host, $:, port_to_str(Port), Path]
     end,
-    
-    ResultFun = 
+
+    ResultFun =
         fun(#aws_request{response_type = ok} = Request) ->
                 Request;
            (#aws_request{response_type = error,
@@ -212,7 +213,7 @@ aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config) ->
            (#aws_request{response_type = error,
                          error_type = aws,
                          response_status = Status} = Request) when
-                %% Retry for 400, Bad Request is needed due to Amazon 
+                %% Retry for 400, Bad Request is needed due to Amazon
                 %% returns it in case of throttling
                     Status == 400 ->
                 ShouldRetry = is_throttling_error_response(Request),
@@ -228,13 +229,13 @@ aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config) ->
         case Method of
             M when M =:= get orelse M =:= head orelse M =:= delete ->
                 Req = lists:flatten([URL, $?, Form]),
-                AwsRequest = #aws_request{uri = Req, 
+                AwsRequest = #aws_request{uri = Req,
                                           method = M,
                                           request_headers = Headers,
                                           request_body = <<>>},
                 erlcloud_retry:request(Config, AwsRequest, ResultFun);
             _ ->
-                AwsRequest = #aws_request{uri = lists:flatten(URL), 
+                AwsRequest = #aws_request{uri = lists:flatten(URL),
                                           method = Method,
                                           request_headers = Headers,
                                           request_body = Form},
@@ -947,7 +948,7 @@ is_throttling_error_response(RequestResponse) ->
          response_type = error,
          error_type = aws,
          response_body = RespBody} = RequestResponse,
-  
+
     case binary:match(RespBody, <<"Throttling">>) of
         nomatch ->
             false;
@@ -1070,21 +1071,21 @@ profiles_read() ->
             error_msg( "could not read credentials file ~s, because ~p",
                    [Path, Error] )
     end.
-    
+
 profiles_home() ->
     case os:getenv("HOME") of
         false ->
             error_msg( "HOME environment variable is not set" );
         HOME -> HOME
     end.
-        
+
 profiles_parse( Content ) ->
     case eini:parse( Content ) of
         {ok, Profiles} -> Profiles;
         Error ->
             error_msg( "failed to parse credentials, because: ~p", [Error] )
     end.
-            
+
 profiles_resolve( Name, Profiles, Options ) ->
     profiles_resolve( Name, Profiles, undefined, undefined, Options ).
 
@@ -1093,7 +1094,7 @@ profiles_resolve( BinName, Profiles, Role, ExternalId, Options )
     try binary_to_existing_atom( BinName, latin1 ) of
         Name -> profiles_resolve( Name, Profiles, Role, ExternalId, Options )
     catch
-        error:badarg -> 
+        error:badarg ->
             error_msg( "invalid source_profile reference to ~s", [BinName] )
     end;
 profiles_resolve( Name, Profiles, BinRole, ExternalId, Options )
@@ -1156,7 +1157,7 @@ profiles_assume( Credential, Role, ExternalId,
     {AssumedConfig, _Creds} =
         erlcloud_sts:assume_role( Config, Role, Name, Duration, ExtId ),
     {ok, AssumedConfig}.
-    
+
 
 config_credential({Id, Secret}, Config) ->
     Config#aws_config{ access_key_id = Id, secret_access_key = Secret };
@@ -1174,6 +1175,3 @@ error_msg( Message ) ->
 error_msg( Format, Values ) ->
     Error = iolist_to_binary( io_lib:format( Format, Values ) ),
     throw( {error, Error} ).
-
-
-
