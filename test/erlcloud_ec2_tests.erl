@@ -88,7 +88,6 @@ common_params() ->
 -type expected_param() :: {string(), string()}.
 -spec validate_param(string(), [expected_param()]) -> [expected_param()].
 validate_param(Param, Expected) ->
-    % ?debugFmt("Param ~p~nExpected ~p", [Param, Expected]),
     {Key, Value} = case string:tokens(Param, "=") of
         [K, V] -> {K, V};
         [K] -> {K, ""}
@@ -167,7 +166,6 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
               meck:expect(erlcloud_httpc, request, output_expect(Response)),
               erlcloud_ec2:configure(string:copies("A", 20), string:copies("a", 40)),
               Actual = Fun(),
-              % ?debugFmt("Result ~p~nActual ~p", [Result, Actual]),
               ?assertEqual(Result, Actual)
       end}}.
 %% output_test(Fun, {Line, {Response, Result}}) ->
