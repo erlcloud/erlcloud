@@ -107,7 +107,7 @@ retry(Attempt, _) ->
 request_and_retry(_, _, _, _, {error, Reason}) ->
     {error, Reason};
 request_and_retry(Config, Headers, Body, ShouldDecode, {attempt, Attempt}) ->
-    RetryFun = Config#aws_config.kinesis_retry,
+    RetryFun = Config#aws_config.firehose_retry,
     case erlcloud_httpc:request(
            url(Config), post,
            [{"content-type","application/x-amz-json-1.1"} | Headers],
