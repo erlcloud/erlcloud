@@ -31,7 +31,7 @@
           sqs_protocol=undefined::string()|undefined,
           sqs_port=undefined::non_neg_integer()|undefined,
           emr_scheme="https://"::string()|undefined,
-          emr_host="elasticmapreduce.amazonaws.com"::string(),
+          emr_host="elasticmapreduce.us-east-1.amazonaws.com"::string(),
           emr_port=undefined::non_neg_integer()|undefined,
           sns_scheme="http://"::string(),
           sns_host="sns.amazonaws.com"::string(),
