@@ -78,6 +78,7 @@ configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
 
 
 %% --- AddJobFlowSteps ---
+%% http://docs.aws.amazon.com/ElasticMapReduce/latest/API/API_AddJobFlowSteps.html
 -spec add_job_flow_steps(binary(), jsx:json_term()) -> emr_return().
 add_job_flow_steps(JobFlowId, Steps) ->
     add_job_flow_steps(JobFlowId, Steps, [], erlcloud_aws:default_config()).
@@ -95,6 +96,7 @@ add_job_flow_steps(JobFlowId, Steps, Opts, Config) ->
 
 
 %% --- DescribeStep ---
+%% http://docs.aws.amazon.com/ElasticMapReduce/latest/API/API_DescribeStep.html
 -spec describe_step(binary(), binary()) -> emr_return().
 describe_step(ClusterId, StepId) ->
     describe_step(ClusterId, StepId, [], erlcloud_aws:default_config()).
@@ -112,6 +114,7 @@ describe_step(ClusterId, StepId, Opts, Config) ->
 
 
 %% --- RunJobFlow ---
+%% http://docs.aws.amazon.com/ElasticMapReduce/latest/API/API_RunJobFlow.html
 -spec run_job_flow(jsx:json_term()) -> emr_return().
 run_job_flow(Params) ->
     run_job_flow(Params, [], erlcloud_aws:default_config()).
@@ -128,6 +131,7 @@ run_job_flow(Params, Opts, Config) ->
 
 
 %% --- TerminateJobFlows ---
+%% http://docs.aws.amazon.com/ElasticMapReduce/latest/API/API_TerminateJobFlows.html
 -spec terminate_job_flows([binary()]) -> emr_return().
 terminate_job_flows(JobFlowIds) ->
     terminate_job_flows(JobFlowIds, [], erlcloud_aws:default_config()).
