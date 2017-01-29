@@ -401,8 +401,15 @@ describe_stacks_output_tests(_) ->
                     <CreationTime>Not Today</CreationTime>
                     <StackStatus>status</StackStatus>
                     <DisableRollback>false</DisableRollback>
+                    <Parameters>
+                      <member>
+                        <ParameterKey>Some Key</ParameterKey>
+                        <ParameterValue>Parameter</ParameterValue>
+                      </member>
+                    </Parameters>
                     <Outputs>
                       <member>
+                        <Description>Some Description</Description>
                         <OutputKey>Some Key</OutputKey>
                         <OutputValue>Output</OutputValue>
                       </member>
@@ -421,8 +428,15 @@ describe_stacks_output_tests(_) ->
                            {creation_time, "Not Today"},
                            {stack_status, "status"},
                            {disable_rollback, "false"},
+                           {parameters, [[
+                                {member, [[
+                                    {parameter_key, "Some Key"},
+                                    {parameter_value, "Parameter"}
+                                ]]}
+                            ]]},
                            {outputs, [[
                                 {member, [[
+                                    {description, "Some Description"},
                                     {output_key, "Some Key"},
                                     {output_value, "Output"}
                                 ]]}
