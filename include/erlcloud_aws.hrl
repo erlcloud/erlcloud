@@ -100,7 +100,10 @@
           cloudtrail_raw_result=false::boolean(),
           http_client=lhttpc::erlcloud_httpc:request_fun(), %% If using hackney, ensure that it is started.
           hackney_pool=default::atom(), %% The name of the http request pool hackney should use.
-          lhttpc_pool=undefined::atom(), %% The name of the http request pool lhttpc should use.
+          %% The name of the http request pool lhttpc should use
+          %% Note: If the lhttpc pool does not exists it will be created one with the lhttpc
+          %%  default settings [{connection_timeout,300000},{pool_size,1000}]
+          lhttpc_pool=undefined::atom(),
           %% Default to not retry failures (for backwards compatability).
           %% Recommended to be set to default_retry to provide recommended retry behavior.
           %% Currently only affects S3 and service modules which use erlcloud_aws
