@@ -174,10 +174,21 @@
          describe_vpn_gateways/0, describe_vpn_gateways/1, describe_vpn_gateways/2, describe_vpn_gateways/3,
          describe_vpn_connections/0, describe_vpn_connections/1, describe_vpn_connections/2, describe_vpn_connections/3,
         
-        %% Customer gateways
-         describe_customer_gateways/0, describe_customer_gateways/1, describe_customer_gateways/2, describe_customer_gateways/3
-
-        ]).
+         %% Customer gateways
+         describe_customer_gateways/0, describe_customer_gateways/1, describe_customer_gateways/2, describe_customer_gateways/3,
+        
+         %% Account attributes
+         describe_account_attributes/0, describe_account_attributes/1, describe_account_attributes/2,
+         
+         %% Nat gateways
+         describe_nat_gateways/0, describe_nat_gateways/1, describe_nat_gateways/2,
+         describe_nat_gateways/3, describe_nat_gateways/4, describe_nat_gateways/5,
+         
+         % VPC peering connections
+         describe_vpc_peering_connections/0, describe_vpc_peering_connections/1,
+         describe_vpc_peering_connections/2, describe_vpc_peering_connections/3
+    
+    ]).
 
 -import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
 
@@ -205,6 +216,8 @@
 -define(SPOT_FLEET_INSTANCES_MR_MAX, 1000).
 -define(RESERVED_INSTANCES_OFFERINGS_MR_MIN, 5).
 -define(RESERVED_INSTANCES_OFFERINGS_MR_MAX, 1000).
+-define(NAT_GATEWAYS_MR_MIN, 1).
+-define(NAT_GATEWAYS_MR_MAX, 1000).
 
 -type filter_list() :: [{string() | atom(),[string()]}] | none.
 -type ec2_param_list() :: [{string(),string()}].
@@ -225,6 +238,9 @@
 -type describe_spot_fleet_instances_return() ::
     {ok, [{instances, [proplist()]} | {next_token, string()}]} | {error, term()}.
 -type spot_fleet_instance_id() :: string().
+-type account_attribute_names() :: [string()].
+-type nat_gateway_ids() :: [string()].
+-type vpc_peering_connection_ids() :: [string()].
 
 
 -spec new(string(), string()) -> aws_config().
@@ -3318,6 +3334,182 @@ extract_cgw(Node) ->
        [extract_tag_item(Item)
         || Item <- xmerl_xpath:string("tagSet/item", Node)]}
  ].
+
+%%
+%% See API for documentation on this action:
+%% http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeAccountAttributes.html
+%%
+-spec describe_account_attributes() -> ok_error([proplist()]).
+describe_account_attributes() ->
+    describe_account_attributes([]).
+
+-spec describe_account_attributes(account_attribute_names()) -> ok_error([proplist()]);
+                                 (aws_config()) -> ok_error([proplist()]).
+describe_account_attributes(AttributeName)
+    when is_list(AttributeName) ->
+    describe_account_attributes(AttributeName, default_config());
+describe_account_attributes(Config)
+    when is_record(Config, aws_config) ->
+    describe_account_attributes([], Config).
+
+-spec describe_account_attributes(account_attribute_names(), aws_config()) -> ok_error([proplist()]).
+describe_account_attributes(AttributeName, Config)
+    when is_list(AttributeName), is_record(Config, aws_config) ->
+    Params = erlcloud_aws:param_list(AttributeName, "AttributeName"),
+    case ec2_query(Config, "DescribeAccountAttributes", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            AccountAttributes = extract_results("DescribeAccountAttributesResponse", "accountAttributeSet", fun extract_account_attributes/1, Doc),
+            {ok, AccountAttributes};
+        {error,  _} = E -> E
+    end.
+
+extract_account_attributes(Node) ->
+    [
+        {attribute_name, get_text("attributeName", Node)},
+        {attribute_value_set,
+            [extract_attributes(Item) || Item <- xmerl_xpath:string("attributeValueSet/item", Node)]}
+    ].
+
+extract_attributes(Node) ->
+    [
+        {attribute_value, get_text("attributeValue", Node)}
+    ].
+
+
+%%
+%% See API for documentation on this action:
+%% http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeNatGateways.html
+%%
+-spec describe_nat_gateways() -> ok_error([proplist()]).
+describe_nat_gateways() ->
+    describe_nat_gateways([]).
+
+-spec describe_nat_gateways(nat_gateway_ids()) -> ok_error([proplist()]);
+                           (aws_config()) -> ok_error([proplist()]).
+describe_nat_gateways(NatGatewayIds)
+    when is_list(NatGatewayIds) ->
+    describe_nat_gateways(NatGatewayIds, []);
+describe_nat_gateways(Config)
+    when is_record(Config, aws_config) ->
+    describe_nat_gateways([], Config).
+
+-spec describe_nat_gateways(nat_gateway_ids(), filter_list()) -> ok_error([proplist()]);
+                           (nat_gateway_ids(), aws_config()) -> ok_error([proplist()]).
+describe_nat_gateways(NatGatewayIds, Filter)
+    when is_list(NatGatewayIds), is_list(Filter) ->
+    describe_nat_gateways(NatGatewayIds, Filter, default_config());
+describe_nat_gateways(NatGatewayIds, Config)
+    when is_list(NatGatewayIds), is_record(Config, aws_config) ->
+    describe_nat_gateways(NatGatewayIds, [], Config).
+
+-spec describe_nat_gateways(nat_gateway_ids(), filter_list(), aws_config()) -> ok_error([proplist()]).
+describe_nat_gateways(NatGatewayIds, Filter, Config)
+    when is_list(NatGatewayIds), is_list(Filter), is_record(Config, aws_config) ->
+    Params = erlcloud_aws:param_list(NatGatewayIds, "NatGatewayId") ++ list_to_ec2_filter(Filter),
+    case ec2_query(Config, "DescribeNatGateways", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            NatGateways = extract_results("DescribeNatGatewaysResponse", "natGatewaySet", fun extract_nat_gateway/1, Doc),
+            {ok, NatGateways};
+        {error,  _} = E -> E
+    end.
+
+-spec describe_nat_gateways(nat_gateway_ids(), filter_list(), ec2_max_result(), ec2_token()) -> ok_error([proplist()]);
+                           (filter_list(), ec2_max_result(), ec2_token(), aws_config()) -> ok_error([proplist()]).
+describe_nat_gateways(NatGatewayIds, Filter, MaxResults, NextToken)
+    when is_list(NatGatewayIds), is_list(Filter), is_integer(MaxResults),
+         is_list(NextToken) orelse NextToken =:= undefined ->
+    describe_nat_gateways(NatGatewayIds, Filter, MaxResults, NextToken, default_config());
+describe_nat_gateways(Filter, MaxResults, NextToken, Config)
+    when is_list(Filter) orelse Filter =:= none, is_integer(MaxResults),
+         is_list(NextToken) orelse NextToken =:= undefined, is_record(Config, aws_config) ->
+    describe_nat_gateways([], Filter, MaxResults, NextToken, Config).
+
+-spec describe_nat_gateways(nat_gateway_ids(), filter_list(), ec2_max_result(), ec2_token(), aws_config())
+        -> ok_error([proplist()]).
+describe_nat_gateways(NatGatewayIds, Filter, MaxResults, NextToken, Config)
+    when is_list(NatGatewayIds), is_list(Filter) orelse Filter =:= none,
+         is_integer(MaxResults) andalso MaxResults >= ?NAT_GATEWAYS_MR_MIN andalso MaxResults =< ?NAT_GATEWAYS_MR_MAX,
+         is_list(NextToken) orelse NextToken =:= undefined,
+         is_record(Config, aws_config) ->
+    Params = erlcloud_aws:param_list(NatGatewayIds, "NatGatewayId") ++ list_to_ec2_filter(Filter) ++
+             [{"MaxResults", MaxResults}, {"NextToken", NextToken}],
+    case ec2_query(Config, "DescribeNatGateways", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            NatGateways = extract_results("DescribeNatGatewaysResponse", "natGatewaySet", fun extract_nat_gateway/1, Doc),
+            NewNextToken = extract_next_token("DescribeNatGatewaysResponse", Doc),
+            {ok, NatGateways, NewNextToken};
+        {error,  _} = E -> E
+    end.
+    
+extract_nat_gateway(Node) ->
+    [
+        {create_time, get_text("createTime", Node)},
+        {delete_time, get_text("deleteTime", Node)},
+        {failure_code, get_text("failureCode", Node)},
+        {failure_message, get_text("failureMessage", Node)},
+        {nat_gateway_address_set,
+            [extract_nat_gateway_address(Item) || Item <- xmerl_xpath:string("natGatewayAddressSet/item", Node)]},
+        {nat_gateway_id, get_text("natGatewayId", Node)},
+        {state, get_text("state", Node)},
+        {subnet_id, get_text("subnetId", Node)},
+        {vpc_id, get_text("vpcId", Node)}
+    ].
+    
+extract_nat_gateway_address(Node) ->
+    [
+        {allocation_id, get_text("allocationId", Node)},
+        {network_interface_id, get_text("networkInterfaceId", Node)},
+        {private_ip, get_text("privateIp", Node)},
+        {public_ip, get_text("publicIp", Node)}
+    ].
+
+%%
+%% See API for documentation on this action:
+%% http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeVpcPeeringConnections.html
+%%
+-spec describe_vpc_peering_connections() -> ok_error([proplist()]).
+describe_vpc_peering_connections() ->
+    describe_vpc_peering_connections([]).
+
+-spec describe_vpc_peering_connections(vpc_peering_connection_ids()) -> ok_error([proplist()]);
+                                      (aws_config()) -> ok_error([proplist()]).
+describe_vpc_peering_connections(VpcPeeringConnectionIds)
+    when is_list(VpcPeeringConnectionIds) ->
+    describe_vpc_peering_connections(VpcPeeringConnectionIds, []);
+describe_vpc_peering_connections(Config)
+    when is_record(Config, aws_config) ->
+    describe_vpc_peering_connections([], Config).
+
+-spec describe_vpc_peering_connections(vpc_peering_connection_ids(), filter_list()) -> ok_error([proplist()]);
+                                      (vpc_peering_connection_ids(), aws_config()) -> ok_error([proplist()]).
+describe_vpc_peering_connections(VpcPeeringConnectionIds, Filter)
+    when is_list(VpcPeeringConnectionIds), is_list(Filter) orelse Filter =:= none ->
+    describe_vpc_peering_connections(VpcPeeringConnectionIds, Filter, default_config());
+describe_vpc_peering_connections(VpcPeeringConnectionIds, Config)
+    when is_list(VpcPeeringConnectionIds), is_record(Config, aws_config) ->
+    describe_vpc_peering_connections(VpcPeeringConnectionIds, [], Config).
+
+
+-spec describe_vpc_peering_connections(vpc_peering_connection_ids(), filter_list(), aws_config()) ->
+            ok_error([proplist()]).
+describe_vpc_peering_connections(VpcPeeringConnectionIds, Filter, Config)
+    when is_list(VpcPeeringConnectionIds),
+         is_list(Filter) orelse Filter =:= none,
+         is_record(Config, aws_config) ->
+    Params = erlcloud_aws:param_list(VpcPeeringConnectionIds, "VpcPeeringConnectionId") ++ list_to_ec2_filter(Filter),
+    case ec2_query(Config, "DescribeVpcPeeringConnections", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            AccountAttributes = extract_results("DescribeVpcPeeringConnectionsResponse", "vpcPeeringConnectionSet", fun extract_vpc_peering_connection/1, Doc),
+            {ok, AccountAttributes};
+        {error,  _} = E -> E
+    end.
+    
+extract_vpc_peering_connection(Node) ->
+    [
+        {expiration_time, get_text("expirationTime", Node)},
+        {tag_set, [extract_tag_item(Item) || Item <- xmerl_xpath:string("tagSet/item", Node)]},
+        {vpc_peering_connection_id, get_text("vpcPeeringConnectionId", Node)}
+    ].
 
 -spec extract_results(string(), string(), function(), any()) -> proplist().
 extract_results(ResponseName, SetName, ExtractFunction, Doc)
