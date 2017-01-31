@@ -1359,7 +1359,8 @@ describe_instances(Filter, MaxResults, NextToken)
     -> ok_error(proplist(), ec2_token()).
 describe_instances(Filter, MaxResults, NextToken, Config)
     when is_list(Filter) orelse Filter =:= none,
-         is_integer(MaxResults) andalso MaxResults >= ?INSTANCES_MR_MIN andalso MaxResults =< ?INSTANCES_MR_MAX,
+         is_integer(MaxResults) andalso MaxResults >= ?INSTANCES_MR_MIN andalso MaxResults =< ?INSTANCES_MR_MAX
+	 orelse Filter =/= none andalso MaxResults =:= undefined,
          is_list(NextToken) orelse NextToken =:= undefined,
          is_record(Config, aws_config) ->
     Params = [{"MaxResults", MaxResults}, {"NextToken", NextToken}] ++
