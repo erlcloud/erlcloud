@@ -56,6 +56,47 @@
 
 -define(RUN_JOB_FLOW_OUTPUT, [{<<"JobFlowId">>,<<"j-ZKIY4CKQRX72">>}]).
 
+%% Example values from
+%% http://docs.aws.amazon.com/ElasticMapReduce/latest/API/API_AddJobFlowSteps.html
+
+-define(JOB_FLOW_ID, <<"j-3TS0OIYO4NFN">>).
+-define(JOB_FLOW_STEPS, [[{<<"Name">>,<<"Example Jar Step">>},
+  {<<"ActionOnFailure">>,<<"CANCEL_AND_WAIT">>},
+  {<<"HadoopJarStep">>,
+   [{<<"Jar">>,
+     <<"s3n:\\/\\/elasticmapreduce\\/samples\\/cloudburst\\/cloudburst.jar">>},
+    {<<"Args">>,
+     [<<"s3n:\\/\\/elasticmapreduce\\/samples\\/cloudburst\\/input\\/s_suis.br">>,
+      <<"s3n:\\/\\/elasticmapreduce\\/samples\\/cloudburst\\/input\\/100k.br">>,
+      <<"s3n:\\/\\/examples-bucket\\/cloudburst\\/output">>,<<"36">>,<<"3">>,
+      <<"0">>,<<"1">>,<<"240">>,<<"48">>,<<"24">>,<<"24">>,<<"128">>,
+      <<"16">>]}]}]]).
+
+-define(ADD_JOB_FLOW_INPUT, [{<<"JobFlowId">>,<<"j-3TS0OIYO4NFN">>},
+ {<<"Steps">>,
+  [[{<<"Name">>,<<"Example Jar Step">>},
+    {<<"ActionOnFailure">>,<<"CANCEL_AND_WAIT">>},
+    {<<"HadoopJarStep">>,
+     [{<<"Jar">>,
+       <<"s3n:\\/\\/elasticmapreduce\\/samples\\/cloudburst\\/cloudburst.jar">>},
+      {<<"Args">>,
+       [<<"s3n:\\/\\/elasticmapreduce\\/samples\\/cloudburst\\/input\\/s_suis.br">>,
+        <<"s3n:\\/\\/elasticmapreduce\\/samples\\/cloudburst\\/input\\/100k.br">>,
+        <<"s3n:\\/\\/examples-bucket\\/cloudburst\\/output">>,<<"36">>,
+        <<"3">>,<<"0">>,<<"1">>,<<"240">>,<<"48">>,<<"24">>,<<"24">>,
+        <<"128">>,<<"16">>]}]}]]}]).
+
+%% AddJobFlowSteps doesn't have an example output format.
+
+%% Values from
+%% http://docs.aws.amazon.com/ElasticMapReduce/latest/API/API_TerminateJobFlows.html
+
+-define(TERMINATE_JOB_FLOW_INPUT, [{<<"JobFlowIds">>,[<<"j-3TS0OIYO4NFN">>]}]).
+
+%% TerminateJobFlows doesn't have an example output format.
+
+%% DescribeSteps doesn't have any example input/output
+
 %%==============================================================================
 %% Test generator functions
 %%==============================================================================
@@ -87,6 +128,16 @@ emr_input_tests(_) ->
             {"Run job flow input",
              ?_f(erlcloud_emr:run_job_flow(?RUN_JOB_FLOW_INPUT)),
              ?RUN_JOB_FLOW_INPUT}
+        ),
+        ?_emr_test(
+            {"Add job flows input",
+             ?_f(erlcloud_emr:add_job_flow_steps(?JOB_FLOW_ID, ?JOB_FLOW_STEPS)),
+             ?ADD_JOB_FLOW_INPUT}
+        ),
+        ?_emr_test(
+            {"Terminate job flows input",
+             ?_f(erlcloud_emr:terminate_job_flows([?JOB_FLOW_ID])),
+             ?TERMINATE_JOB_FLOW_INPUT}
         )
     ]).
 
