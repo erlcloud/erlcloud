@@ -525,7 +525,19 @@ extract_described_stack(XmlNode) ->
             {creation_time, "CreationTime", optional_text},
             {stack_status, "StackStatus", optional_text},
             {disable_rollback, "DisableRollback", optional_text},
+            {parameters, "Parameters", {map, fun extract_parameters/1}},
             {outputs, "Outputs", {map, fun extract_resource_outputs/1}}
+        ], XmlNode).
+
+extract_parameters(XmlNode) ->
+    erlcloud_xml:decode([
+            {member, "member", {map, fun extract_parameter/1}}
+         ], XmlNode).
+
+extract_parameter(XmlNode) ->
+    erlcloud_xml:decode([
+            {parameter_key, "ParameterKey", optional_text},
+            {parameter_value, "ParameterValue", optional_text}
         ], XmlNode).
 
 extract_resource_outputs(XmlNode) ->
@@ -535,6 +547,7 @@ extract_resource_outputs(XmlNode) ->
 
 extract_resource_output(XmlNode) ->
     erlcloud_xml:decode([
+            {description, "Description", optional_text},
             {output_key, "OutputKey", optional_text},
             {output_value, "OutputValue", optional_text}
         ], XmlNode).
