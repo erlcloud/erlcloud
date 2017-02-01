@@ -515,6 +515,40 @@ service_config_elasticloadbalancing_test() ->
                                ServiceAlt, Region, #aws_config{} )
                              || Region <- Regions]] ).
 
+% current as of 2017-01-27, list from
+% http://docs.aws.amazon.com/general/latest/gr/rande.html#emr_region
+service_config_elasticmapreduce_test() ->
+    Service = <<"elasticmapreduce">>,
+    ServiceAlt = <<"emr">>,
+    Regions = [<<"us-east-1">>, <<"us-east-2">>, <<"us-west-1">>, <<"us-west-2">>,
+               <<"ca-central-1">>, <<"eu-west-1">>, <<"eu-central-1">>,
+               <<"ap-northeast-1">>, <<"ap-northeast-2">>,
+               <<"ap-southeast-1">>, <<"ap-southeast-2">>,
+               <<"sa-east-1">>],
+    Expected = ["elasticmapreduce.us-east-1.amazonaws.com",
+                "elasticmapreduce.us-east-2.amazonaws.com",
+                "elasticmapreduce.us-west-1.amazonaws.com",
+                "elasticmapreduce.us-west-2.amazonaws.com",
+                "elasticmapreduce.ca-central-1.amazonaws.com",
+                "elasticmapreduce.eu-west-1.amazonaws.com",
+                "elasticmapreduce.eu-central-1.amazonaws.com",
+                "elasticmapreduce.ap-northeast-1.amazonaws.com",
+                "elasticmapreduce.ap-northeast-2.amazonaws.com",
+                "elasticmapreduce.ap-southeast-1.amazonaws.com",
+                "elasticmapreduce.ap-southeast-2.amazonaws.com",
+                "elasticmapreduce.sa-east-1.amazonaws.com"],
+    ?assertEqual( Expected,
+                  [H || #aws_config{ emr_host = H } <-
+                            [erlcloud_aws:service_config(
+                               Service, Region, #aws_config{} )
+                             || Region <- Regions]] ),
+    ?assertEqual( Expected,
+                  [H || #aws_config{ emr_host = H } <-
+                            [erlcloud_aws:service_config(
+                               ServiceAlt, Region, #aws_config{} )
+                             || Region <- Regions]] ).
+
+
 service_config_iam_test() ->
     Service = <<"iam">>,
     Regions = [<<"us-east-1">>, <<"us-west-1">>, <<"us-west-2">>,
