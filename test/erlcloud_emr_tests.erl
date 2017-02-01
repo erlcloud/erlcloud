@@ -88,6 +88,8 @@
 
 %% AddJobFlowSteps doesn't have an example output format.
 
+-define(ADD_JOB_FLOW_OUTPUT, [{<<"StepIds">>,[?JOB_FLOW_ID]}]).
+
 %% Values from
 %% http://docs.aws.amazon.com/ElasticMapReduce/latest/API/API_TerminateJobFlows.html
 
@@ -148,6 +150,13 @@ emr_output_tests(_) ->
             {"Job flow output test",
              jsx:encode(?RUN_JOB_FLOW_OUTPUT),
              {ok, ?RUN_JOB_FLOW_OUTPUT}}
+        )
+    ]),
+    output_tests(?_f(erlcloud_emr:add_job_flow_steps(?JOB_FLOW_ID, ?JOB_FLOW_STEPS)), [
+        ?_emr_test(
+           {"Add job flow output test",
+            jsx:encode(?ADD_JOB_FLOW_OUTPUT),
+            {ok, ?ADD_JOB_FLOW_OUTPUT}}
         )
     ]).
 
