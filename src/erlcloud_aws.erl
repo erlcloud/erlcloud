@@ -614,6 +614,9 @@ service_config( <<"sqs">> = Service, Region, Config ) ->
 service_config( <<"sts">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ sts_host = Host };
+service_config(<<"cloudwatch_logs">>, Region, Config)->
+    Host = service_host(<<"logs">>, Region),
+    Config#aws_config{cloudwatch_logs_host = Host};
 service_config( <<"waf">>, _Region, Config ) -> Config.
 
 %%%---------------------------------------------------------------------------
