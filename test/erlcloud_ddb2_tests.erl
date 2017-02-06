@@ -2739,6 +2739,14 @@ scan_input_tests(_) ->
     \"ExpressionAttributeValues\": {\":val\": {\"S\": \"joe@example.com\"}},
     \"ReturnConsumedCapacity\": \"TOTAL\"
 }"
+            }),
+         ?_ddb_test(
+            {"Scan with consistent read option",
+             ?_f(erlcloud_ddb2:scan(<<"Reply">>, [{consistent_read, true}])), "
+{
+    \"TableName\": \"Reply\",
+    \"ConsistentRead\": true
+}"
             })
         ],
 

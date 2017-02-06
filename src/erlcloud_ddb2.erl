@@ -2067,6 +2067,7 @@ q(Table, KeyConditionsOrExpression, Opts, Config) ->
                     consistent_read_opt() |
                     {filter_expression, expression()} |
                     conditional_op_opt() |
+                    consistent_read_opt() |
                     {scan_filter, conditions()} |
                     {limit, pos_integer()} |
                     {exclusive_start_key, key() | undefined} |
@@ -2087,6 +2088,7 @@ scan_opts() ->
      consistent_read_opt(),
      filter_expression_opt(),
      conditional_op_opt(),
+     consistent_read_opt(),
      {scan_filter, <<"ScanFilter">>, fun dynamize_conditions/1},
      {limit, <<"Limit">>, fun id/1},
      {exclusive_start_key, <<"ExclusiveStartKey">>, fun dynamize_key/1},
