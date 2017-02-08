@@ -557,6 +557,11 @@ service_config( <<"elasticloadbalancing">> = Service, Region, Config ) ->
     Config#aws_config{ elb_host = Host };
 service_config( <<"elb">>, Region, Config ) ->
     service_config( <<"elasticloadbalancing">>, Region, Config );
+service_config( <<"elasticmapreduce">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ emr_host = Host };
+service_config( <<"emr">>, Region, Config ) ->
+    service_config( <<"elasticmapreduce">>, Region, Config );
 service_config( <<"iam">> = Service, <<"cn-north-1">> = Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ iam_host = Host };
@@ -609,6 +614,9 @@ service_config( <<"sqs">> = Service, Region, Config ) ->
 service_config( <<"sts">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ sts_host = Host };
+service_config(<<"cloudwatch_logs">>, Region, Config)->
+    Host = service_host(<<"logs">>, Region),
+    Config#aws_config{cloudwatch_logs_host = Host};
 service_config( <<"waf">>, _Region, Config ) -> Config.
 
 %%%---------------------------------------------------------------------------
