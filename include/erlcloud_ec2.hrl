@@ -6,7 +6,8 @@
           virtual_name::string(),
           snapshot_id::string(),
           volume_size::ec2_volume_size(),
-          delete_on_termination::boolean()
+          delete_on_termination::boolean(),
+          encrypted::boolean()
          }).
 -type(ec2_block_device_mapping() :: #ec2_block_device_mapping{}).
 

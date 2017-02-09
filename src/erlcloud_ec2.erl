@@ -1287,7 +1287,8 @@ extract_block_device_mapping(Node) ->
                               virtual_name=get_text("virtualName", Node),
                               snapshot_id=get_text("ebs/snapshotId", Node, none),
                               volume_size=list_to_integer(get_text("ebs/volumeSize", Node, "0")),
-                              delete_on_termination=get_bool("ebs/deleteOnTermination", Node)
+                              delete_on_termination=get_bool("ebs/deleteOnTermination", Node),
+                              encrypted=get_bool("ebs/encrypted", Node)
                              }.
 
 extract_product_code(Node) ->
@@ -2090,7 +2091,8 @@ extract_snapshot(Node) ->
      {owner_id, get_text("ownerId", Node)},
      {volume_size, get_integer("volumeSize", Node)},
      {description, get_text("description", Node)},
-     {owner_alias, get_text("ownerAlias", Node, none)}
+     {owner_alias, get_text("ownerAlias", Node, none)},
+     {encrypted, get_bool("encrypted", Node)}
     ].
 
 -spec describe_spot_datafeed_subscription() -> ok_error(proplist()).
