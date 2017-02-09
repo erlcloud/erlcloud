@@ -71,6 +71,7 @@
           cloudwatch_logs_scheme="https://"::string(),
           cloudwatch_logs_host="logs.us-east-1.amazonaws.com"::string(),
           cloudwatch_logs_port=443::non_neg_integer(),
+          cloudfront_host="cloudfront.amazonaws.com"::string(),
           autoscaling_scheme="https://"::string(),
           autoscaling_host="autoscaling.us-east-1.amazonaws.com"::string(),
           autoscaling_port=80::non_neg_integer(),
