@@ -261,7 +261,6 @@ get_stack_policy(Params, StackName) ->
 -spec get_stack_policy(params(), string(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 get_stack_policy(Params, StackName, Config = #aws_config{}) ->
-
     FullParams = [{"StackName", StackName}
         | lists:map(
             fun(T) ->
@@ -338,7 +337,7 @@ get_template(StackName, Config = #aws_config{}) ->
 -spec get_template_summary(params(), string()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 get_template_summary(Params, StackName) ->
-    get_template_summary(Params, StackName, default_config).
+    get_template_summary(Params, StackName, default_config()).
 
 -spec get_template_summary(params(), string(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
@@ -360,7 +359,7 @@ get_template_summary(Params, StackName, Config = #aws_config{}) ->
 -spec describe_account_limits_all() ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 describe_account_limits_all() ->
-    describe_account_limits_all(default_config).
+    describe_account_limits_all(default_config()).
 
 -spec describe_account_limits_all(aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
