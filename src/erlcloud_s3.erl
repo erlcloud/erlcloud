@@ -148,6 +148,7 @@ configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
 
 
 -define(XMLNS_S3, "http://s3.amazonaws.com/doc/2006-03-01/").
+-define(XMLNS_SCHEMA_INSTANCE, "http://www.w3.org/2001/XMLSchema-instance").
 
 -spec copy_object(string(), string(), string(), string()) -> proplist().
 
@@ -261,7 +262,7 @@ delete_bucket(BucketName, Config)
 
 -spec check_bucket_access(string()) -> ok | {error, any()}.
 
-check_bucket_access(BucketName) 
+check_bucket_access(BucketName)
   when is_list(BucketName) ->
     check_bucket_access(BucketName, default_config()).
 
@@ -967,10 +968,10 @@ set_object_acl(BucketName, Key, ACL, Config)
     Id = proplists:get_value(id, proplists:get_value(owner, ACL)),
     DisplayName = proplists:get_value(display_name, proplists:get_value(owner, ACL)),
     ACL1 = proplists:get_value(access_control_list, ACL),
-    XML = {'AccessControlPolicy',
+    XML = {'AccessControlPolicy', [{'xmlns', ?XMLNS_S3}],
            [{'Owner', [{'ID', [Id]}, {'DisplayName', [DisplayName]}]},
             {'AccessControlList', encode_grants(ACL1)}]},
-    XMLText = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
+    XMLText = list_to_binary(xmerl:export_simple([XML], xmerl_xml, [{prolog, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"}])),
     s3_simple_request(Config, put, BucketName, [$/|Key], "acl", [], XMLText, [{"content-type", "application/xml"}]).
 
 -spec sign_get(integer(), string(), string(), aws_config()) -> {binary(), string()}.
@@ -1299,10 +1300,10 @@ encode_grant(Grant) ->
 encode_grantee(Grantee) ->
   case proplists:get_value(id, Grantee) of
     undefined ->
-      {'Grantee', [{'xmlns:xsi', ?XMLNS_S3}, {'xsi:type', "Group"}],
+      {'Grantee', [{'xmlns:xsi', ?XMLNS_SCHEMA_INSTANCE}, {'xsi:type', "Group"}],
       [{'URI', [proplists:get_value(uri, Grantee)]}]};
     Id ->
-      {'Grantee', [{'xmlns:xsi', ?XMLNS_S3}, {'xsi:type', "CanonicalUser"}],
+      {'Grantee', [{'xmlns:xsi', ?XMLNS_SCHEMA_INSTANCE}, {'xsi:type', "CanonicalUser"}],
       [{'ID', [Id]},
        {'DisplayName', [proplists:get_value(display_name, Grantee)]}]}
   end.
