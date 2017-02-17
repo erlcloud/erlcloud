@@ -1,0 +1,818 @@
+-module(erlcloud_cloudfront_tests).
+
+
+-include_lib("eunit/include/eunit.hrl").
+-include("erlcloud.hrl").
+
+
+-define(_cloudfront_test(T), {?LINE, T}).
+%% The _f macro is a terse way to wrap code in a fun.
+%% Similar to _test but doesn't annotate with a line number
+-define(_f(F), fun() -> F end).
+
+
+-type expected_param() :: {string(), string()}.
+-type output_test_spec() :: {pos_integer(), {string(), term()} |
+                            {string(), string(), term()}}.
+
+
+%%==============================================================================
+%% Test entry points
+%%==============================================================================
+
+
+describe_db_instances_test_() ->
+    {foreach, fun start/0, fun stop/1, [
+        fun list_distributions_output_tests/1,
+        fun get_distribution_output_tests/1
+    ]}.
+
+
+start() ->
+    meck:new(erlcloud_httpc),
+    ok.
+
+
+stop(_) ->
+    meck:unload(erlcloud_httpc).
+
+
+%%==============================================================================
+%% Output test helpers
+%%==============================================================================
+
+
+%% returns the mock of the erlcloud_httpc function output tests expect
+%% to be called.
+-spec output_expect(string()) -> fun().
+output_expect(Response) ->
+    fun(_Url, _Method, _Headers, _Body, _Timeout, _Config) ->
+        {ok, {{200, "OK"}, [], list_to_binary(Response)}}
+    end.
+
+
+%% output_test converts an output_test specifier into an eunit test generator
+-spec output_test(fun(), output_test_spec()) -> tuple().
+output_test(Fun, {Line, {Description, Response, Result}}) ->
+    {Description, {Line, fun() ->
+        meck:expect(erlcloud_httpc, request, output_expect(Response)),
+        erlcloud_ec2:configure(string:copies("A", 20), string:copies("a", 40)),
+        Actual = Fun(),
+        ?assertEqual(Result, Actual)
+    end}}.
+
+
+%%==============================================================================
+%% Actual test specifiers
+%%==============================================================================
+
+
+list_distributions_output_tests(_) ->
+    Test = ?_cloudfront_test({
+        "Tests listing distribution",
+        "<DistributionList>
+            <IsTruncated>false</IsTruncated>
+            <Items>
+               <DistributionSummary>
+                  <Aliases>
+                     <Items>
+                        <CNAME>string1</CNAME>
+                        <CNAME>string2</CNAME>
+                     </Items>
+                     <Quantity>2</Quantity>
+                  </Aliases>
+                  <ARN>string3</ARN>
+                  <CacheBehaviors>
+                     <Items>
+                        <CacheBehavior>
+                           <AllowedMethods>
+                              <CachedMethods>
+                                 <Items>
+                                    <Method>GET</Method>
+                                    <Method>PUT</Method>
+                                 </Items>
+                                 <Quantity>2</Quantity>
+                              </CachedMethods>
+                              <Items>
+                                 <Method>POST</Method>
+                                 <Method>DELETE</Method>
+                              </Items>
+                              <Quantity>2</Quantity>
+                           </AllowedMethods>
+                           <Compress>false</Compress>
+                           <DefaultTTL>100500</DefaultTTL>
+                           <ForwardedValues>
+                              <Cookies>
+                                 <Forward>string4</Forward>
+                                 <WhitelistedNames>
+                                    <Items>
+                                       <Name>string5</Name>
+                                       <Name>string6</Name>
+                                    </Items>
+                                    <Quantity>2</Quantity>
+                                 </WhitelistedNames>
+                              </Cookies>
+                              <Headers>
+                                 <Items>
+                                    <Name>string7</Name>
+                                    <Name>string8</Name>
+                                 </Items>
+                                 <Quantity>2</Quantity>
+                              </Headers>
+                              <QueryString>true</QueryString>
+                              <QueryStringCacheKeys>
+                                 <Items>
+                                    <Name>string9</Name>
+                                    <Name>string10</Name>
+                                 </Items>
+                                 <Quantity>2</Quantity>
+                              </QueryStringCacheKeys>
+                           </ForwardedValues>
+                           <LambdaFunctionAssociations>
+                              <Items>
+                                 <LambdaFunctionAssociation>
+                                    <EventType>string11</EventType>
+                                    <LambdaFunctionARN>string12</LambdaFunctionARN>
+                                 </LambdaFunctionAssociation>
+                                 <LambdaFunctionAssociation>
+                                    <EventType>string13</EventType>
+                                    <LambdaFunctionARN>string14</LambdaFunctionARN>
+                                 </LambdaFunctionAssociation>
+                              </Items>
+                              <Quantity>2</Quantity>
+                           </LambdaFunctionAssociations>
+                           <MaxTTL>100500100</MaxTTL>
+                           <MinTTL>10</MinTTL>
+                           <PathPattern>string15</PathPattern>
+                           <SmoothStreaming>true16</SmoothStreaming>
+                           <TargetOriginId>string17</TargetOriginId>
+                           <TrustedSigners>
+                              <Enabled>true</Enabled>
+                              <Items>
+                                 <AwsAccountNumber>string18</AwsAccountNumber>
+                                 <AwsAccountNumber>string19</AwsAccountNumber>
+                              </Items>
+                              <Quantity>2</Quantity>
+                           </TrustedSigners>
+                           <ViewerProtocolPolicy>string20</ViewerProtocolPolicy>
+                        </CacheBehavior>
+                        <CacheBehavior>
+                           <AllowedMethods>
+                              <CachedMethods>
+                                 <Items>
+                                    <Method>POST</Method>
+                                    <Method>GET</Method>
+                                 </Items>
+                                 <Quantity>2</Quantity>
+                              </CachedMethods>
+                              <Items>
+                                 <Method>POST</Method>
+                                 <Method>DELETE</Method>
+                              </Items>
+                              <Quantity>2</Quantity>
+                           </AllowedMethods>
+                           <Compress>false</Compress>
+                           <DefaultTTL>100500</DefaultTTL>
+                           <ForwardedValues>
+                              <Cookies>
+                                 <Forward>string21</Forward>
+                                 <WhitelistedNames>
+                                    <Items>
+                                       <Name>string22</Name>
+                                       <Name>string23</Name>
+                                    </Items>
+                                    <Quantity>2</Quantity>
+                                 </WhitelistedNames>
+                              </Cookies>
+                              <Headers>
+                                 <Items>
+                                    <Name>string24</Name>
+                                    <Name>string25</Name>
+                                 </Items>
+                                 <Quantity>2</Quantity>
+                              </Headers>
+                              <QueryString>true</QueryString>
+                              <QueryStringCacheKeys>
+                                 <Items>
+                                    <Name>string26</Name>
+                                    <Name>string27</Name>
+                                 </Items>
+                                 <Quantity>2</Quantity>
+                              </QueryStringCacheKeys>
+                           </ForwardedValues>
+                           <LambdaFunctionAssociations>
+                              <Items>
+                                 <LambdaFunctionAssociation>
+                                    <EventType>string28</EventType>
+                                    <LambdaFunctionARN>string29</LambdaFunctionARN>
+                                 </LambdaFunctionAssociation>
+                                 <LambdaFunctionAssociation>
+                                    <EventType>string30</EventType>
+                                    <LambdaFunctionARN>string31</LambdaFunctionARN>
+                                 </LambdaFunctionAssociation>
+                              </Items>
+                              <Quantity>2</Quantity>
+                           </LambdaFunctionAssociations>
+                           <MaxTTL>100500000</MaxTTL>
+                           <MinTTL>10</MinTTL>
+                           <PathPattern>string32</PathPattern>
+                           <SmoothStreaming>true</SmoothStreaming>
+                           <TargetOriginId>string33</TargetOriginId>
+                           <TrustedSigners>
+                              <Enabled>true</Enabled>
+                              <Items>
+                                 <AwsAccountNumber>string34</AwsAccountNumber>
+                                 <AwsAccountNumber>string35</AwsAccountNumber>
+                              </Items>
+                              <Quantity>2</Quantity>
+                           </TrustedSigners>
+                           <ViewerProtocolPolicy>string36</ViewerProtocolPolicy>
+                        </CacheBehavior>
+                     </Items>
+                     <Quantity>2</Quantity>
+                  </CacheBehaviors>
+                  <Comment>string</Comment>
+                  <CustomErrorResponses>
+                     <Items>
+                        <CustomErrorResponse>
+                           <ErrorCachingMinTTL>100500</ErrorCachingMinTTL>
+                           <ErrorCode>400</ErrorCode>
+                           <ResponseCode>string37</ResponseCode>
+                           <ResponsePagePath>string38</ResponsePagePath>
+                        </CustomErrorResponse>
+                        <CustomErrorResponse>
+                           <ErrorCachingMinTTL>100500</ErrorCachingMinTTL>
+                           <ErrorCode>401</ErrorCode>
+                           <ResponseCode>string39</ResponseCode>
+                           <ResponsePagePath>string40</ResponsePagePath>
+                        </CustomErrorResponse>
+                     </Items>
+                     <Quantity>2</Quantity>
+                  </CustomErrorResponses>
+                  <DefaultCacheBehavior>
+                     <AllowedMethods>
+                        <CachedMethods>
+                           <Items>
+                              <Method>GET</Method>
+                              <Method>DELETE</Method>
+                           </Items>
+                           <Quantity>2</Quantity>
+                        </CachedMethods>
+                        <Items>
+                           <Method>POST</Method>
+                           <Method>GET</Method>
+                        </Items>
+                        <Quantity>2</Quantity>
+                     </AllowedMethods>
+                     <Compress>true</Compress>
+                     <DefaultTTL>100500</DefaultTTL>
+                     <ForwardedValues>
+                        <Cookies>
+                           <Forward>string41</Forward>
+                           <WhitelistedNames>
+                              <Items>
+                                 <Name>string42</Name>
+                                 <Name>string43</Name>
+                              </Items>
+                              <Quantity>2</Quantity>
+                           </WhitelistedNames>
+                        </Cookies>
+                        <Headers>
+                           <Items>
+                              <Name>string44</Name>
+                              <Name>string45</Name>
+                           </Items>
+                           <Quantity>2</Quantity>
+                        </Headers>
+                        <QueryString>false</QueryString>
+                        <QueryStringCacheKeys>
+                           <Items>
+                              <Name>string46</Name>
+                              <Name>string47</Name>
+                           </Items>
+                           <Quantity>2</Quantity>
+                        </QueryStringCacheKeys>
+                     </ForwardedValues>
+                     <LambdaFunctionAssociations>
+                        <Items>
+                           <LambdaFunctionAssociation>
+                              <EventType>string48</EventType>
+                              <LambdaFunctionARN>string49</LambdaFunctionARN>
+                           </LambdaFunctionAssociation>
+                           <LambdaFunctionAssociation>
+                              <EventType>string50</EventType>
+                              <LambdaFunctionARN>string51</LambdaFunctionARN>
+                           </LambdaFunctionAssociation>
+                        </Items>
+                        <Quantity>2</Quantity>
+                     </LambdaFunctionAssociations>
+                     <MaxTTL>100500100</MaxTTL>
+                     <MinTTL>10</MinTTL>
+                     <SmoothStreaming>true</SmoothStreaming>
+                     <TargetOriginId>string52</TargetOriginId>
+                     <TrustedSigners>
+                        <Enabled>true</Enabled>
+                        <Items>
+                           <AwsAccountNumber>string53</AwsAccountNumber>
+                           <AwsAccountNumber>string54</AwsAccountNumber>
+                        </Items>
+                        <Quantity>2</Quantity>
+                     </TrustedSigners>
+                     <ViewerProtocolPolicy>string55</ViewerProtocolPolicy>
+                  </DefaultCacheBehavior>
+                  <DomainName>string</DomainName>
+                  <Enabled>true</Enabled>
+                  <HttpVersion>http-1-1</HttpVersion>
+                  <Id>string</Id>
+                  <IsIPV6Enabled>false</IsIPV6Enabled>
+                  <LastModifiedTime>2002-09-24T06:00:00Z</LastModifiedTime>
+                 <Origins>
+                    <Items>
+                       <Origin>
+                          <CustomHeaders>
+                             <Items>
+                                <OriginCustomHeader>
+                                   <HeaderName>string56</HeaderName>
+                                   <HeaderValue>string57</HeaderValue>
+                                </OriginCustomHeader>
+                                <OriginCustomHeader>
+                                   <HeaderName>string58</HeaderName>
+                                   <HeaderValue>string59</HeaderValue>
+                                </OriginCustomHeader>
+                             </Items>
+                             <Quantity>2</Quantity>
+                          </CustomHeaders>
+                          <CustomOriginConfig>
+                             <HTTPPort>80</HTTPPort>
+                             <HTTPSPort>443</HTTPSPort>
+                             <OriginProtocolPolicy>string60</OriginProtocolPolicy>
+                             <OriginSslProtocols>
+                                <Items>
+                                   <SslProtocol>ssl3</SslProtocol>
+                                   <SslProtocol>tls2</SslProtocol>
+                                </Items>
+                                <Quantity>2</Quantity>
+                             </OriginSslProtocols>
+                          </CustomOriginConfig>
+                          <DomainName>string61</DomainName>
+                          <Id>string72</Id>
+                          <OriginPath>string62</OriginPath>
+                          <S3OriginConfig>
+                             <OriginAccessIdentity>string63</OriginAccessIdentity>
+                          </S3OriginConfig>
+                       </Origin>
+                       <Origin>
+                          <CustomHeaders>
+                             <Items>
+                                <OriginCustomHeader>
+                                   <HeaderName>string64</HeaderName>
+                                   <HeaderValue>string65</HeaderValue>
+                                </OriginCustomHeader>
+                                <OriginCustomHeader>
+                                   <HeaderName>string66</HeaderName>
+                                   <HeaderValue>string67</HeaderValue>
+                                </OriginCustomHeader>
+                             </Items>
+                             <Quantity>2</Quantity>
+                          </CustomHeaders>
+                          <CustomOriginConfig>
+                             <HTTPPort>80</HTTPPort>
+                             <HTTPSPort>443</HTTPSPort>
+                             <OriginProtocolPolicy>string68</OriginProtocolPolicy>
+                             <OriginSslProtocols>
+                                <Items>
+                                   <SslProtocol>ssl3</SslProtocol>
+                                   <SslProtocol>tls1</SslProtocol>
+                                </Items>
+                                <Quantity>2</Quantity>
+                             </OriginSslProtocols>
+                          </CustomOriginConfig>
+                          <DomainName>string68</DomainName>
+                          <Id>string69</Id>
+                          <OriginPath>string70</OriginPath>
+                          <S3OriginConfig>
+                             <OriginAccessIdentity>string71</OriginAccessIdentity>
+                          </S3OriginConfig>
+                       </Origin>
+                    </Items>
+                    <Quantity>2</Quantity>
+                 </Origins>
+                 <PriceClass>Price_All</PriceClass>
+                 <Restrictions>
+                    <GeoRestriction>
+                       <Items>
+                          <Location>string72</Location>
+                          <Location>string73</Location>
+                       </Items>
+                       <Quantity>2</Quantity>
+                       <RestrictionType>string74</RestrictionType>
+                    </GeoRestriction>
+                 </Restrictions>
+                 <Status>string</Status>
+                 <ViewerCertificate>
+                    <ACMCertificateArn>string75</ACMCertificateArn>
+                    <Certificate>string76</Certificate>
+                    <CertificateSource>string77</CertificateSource>
+                    <CloudFrontDefaultCertificate>true</CloudFrontDefaultCertificate>
+                    <IAMCertificateId>string78</IAMCertificateId>
+                    <MinimumProtocolVersion>string79</MinimumProtocolVersion>
+                    <SSLSupportMethod>string80</SSLSupportMethod>
+                 </ViewerCertificate>
+                 <WebACLId>string81</WebACLId>
+              </DistributionSummary></Items>
+           <Marker>foobar</Marker>
+           <MaxItems>100</MaxItems>
+           <Quantity>1</Quantity>
+        </DistributionList>",
+        {ok, [[{distribution_id,"string"},
+               {distribution_arn,"string3"},
+               {aliases,["string1","string2"]},
+               {comment,"string"},
+               {default_cache_behaviour,[{allowed_methods,["POST","GET"]},
+                                         {cached_methods,["GET","DELETE"]},
+                                         {compress,true},
+                                         {smooth_streaming,true},
+                                         {default_ttl,100500},
+                                         {max_ttl,100500100},
+                                         {min_ttl,10},
+                                         {target_origin_id,"string52"},
+                                         {viewer_protocol_policy,"string55"},
+                                         {forwarded_query_string,false},
+                                         {forwarded_query_string_cache_keys, ["string46","string47"]},
+                                         {forwarded_cookies_forward,false},
+                                         {forwarded_cookies_whitelisted_names,["string42","string43"]},
+                                         {forwarded_headers,["string44","string45"]},
+                                         {trusted_signers,["string53","string54"]},
+                                         {trusted_signer_required,true}]},
+               {domain_name,"string"},
+               {http_version,"http-1-1"},
+               {is_ipv6_enabled,false},
+               {enabled,true},
+               {last_modified_time, {{2002, 9, 24},{6,0,0}}},
+               {price_class,"Price_All"},
+               {geo_restrictions,["string72","string73"]},
+               {geo_restriction_type,"string74"},
+               {viewer_certificate,[{acm_certificate_arn,"string75"},
+                                    {certificate,"string76"},
+                                    {certificate_source,"string77"},
+                                    {cloudfront_default_certificate,"true"},
+                                    {iam_certificate_id,"string78"},
+                                    {minimum_protocol_version,"string79"},
+                                    {ssl_support_method,"string80"}]},
+               {status,"string"},
+               {web_acl_id,"string81"},
+               {custom_error_responses,[[{error_caching_min_ttl,100500},
+                                         {error_code,400},
+                                         {response_code,"string37"},
+                                         {response_page_path,"string38"}],
+                                        [{error_caching_min_ttl,100500},
+                                         {error_code,401},
+                                         {response_code,"string39"},
+                                         {response_page_path,"string40"}]]},
+               {cache_behaviours,[[{allowed_methods,["POST","DELETE"]},
+                                   {cached_methods,["GET","PUT"]},
+                                   {compress,false},
+                                   {smooth_streaming,false},
+                                   {default_ttl,100500},
+                                   {max_ttl,100500100},
+                                   {min_ttl,10},
+                                   {path_pattern,"string15"},
+                                   {target_origin_id,"string17"},
+                                   {viewer_protocol_policy,"string20"},
+                                   {forwarded_query_string,true},
+                                   {forwarded_query_string_cache_keys, ["string9","string10"]},
+                                   {forwarded_cookies_forward,false},
+                                   {forwarded_cookies_whitelisted_names,["string5","string6"]},
+                                   {forwarded_headers,["string7","string8"]},
+                                   {trusted_signers,["string18","string19"]},
+                                   {trusted_signer_required,true}],
+                                  [{allowed_methods,["POST","DELETE"]},
+                                   {cached_methods,["POST","GET"]},
+                                   {compress,false},
+                                   {smooth_streaming,true},
+                                   {default_ttl,100500},
+                                   {max_ttl,100500000},
+                                   {min_ttl,10},
+                                   {path_pattern,"string32"},
+                                   {target_origin_id,"string33"},
+                                   {viewer_protocol_policy,"string36"},
+                                   {forwarded_query_string,true},
+                                   {forwarded_query_string_cache_keys, ["string26","string27"]},
+                                   {forwarded_cookies_forward,false},
+                                   {forwarded_cookies_whitelisted_names,["string22","string23"]},
+                                   {forwarded_headers,["string24","string25"]},
+                                   {trusted_signers,["string34","string35"]},
+                                   {trusted_signer_required,true}]]},
+               {origins,[[{origin_id,"string72"},
+                          {origin_path,"string62"},
+                          {domain_name,"string61"},
+                          {custom_headers,[[{name, "string56"},{value, "string57"}],
+                                           [{name, "string58"},{value, "string59"}]]},
+                          {http_port,80},
+                          {https_port,443},
+                          {origin_protocol_policy,"string60"},
+                          {origin_ssl_protocols,["ssl3","tls2"]},
+                          {origin_access_identity,"string63"}],
+                         [{origin_id,"string69"},
+                          {origin_path,"string70"},
+                          {domain_name,"string68"},
+                          {custom_headers,[[{name, "string64"},{value, "string65"}],
+                                           [{name, "string66"},{value, "string67"}]]},
+                          {http_port,80},
+                          {https_port,443},
+                          {origin_protocol_policy,"string68"},
+                          {origin_ssl_protocols,["ssl3", "tls1"]},
+                          {origin_access_identity,"string71"}]]}]
+             ], undefined}}),
+
+    output_test(?_f(erlcloud_cloudfront:list_distributions(100, undefined)), Test).
+
+
+get_distribution_output_tests(_) ->
+    Test = ?_cloudfront_test({
+        "Tests getting distribution",
+        "<Distribution>
+               <ActiveTrustedSigners>
+                  <Enabled>true</Enabled>
+                  <Items>
+                     <Signer>
+                        <AwsAccountNumber>string100</AwsAccountNumber>
+                        <KeyPairIds>
+                           <Items>
+                              <KeyPairId>string101</KeyPairId></Items>
+                           <Quantity>1</Quantity>
+                        </KeyPairIds>
+                     </Signer></Items>
+                  <Quantity>1</Quantity>
+               </ActiveTrustedSigners>
+               <ARN>string1</ARN>
+               <DistributionConfig>
+                  <Aliases>
+                     <Items>
+                        <CNAME>string2</CNAME></Items>
+                     <Quantity>1</Quantity>
+                  </Aliases>
+                  <CacheBehaviors>
+                     <Items>
+                        <CacheBehavior>
+                           <AllowedMethods>
+                              <CachedMethods>
+                                 <Items>
+                                    <Method>GET</Method></Items>
+                                 <Quantity>1</Quantity>
+                              </CachedMethods>
+                              <Items>
+                                 <Method>POST</Method></Items>
+                              <Quantity>1</Quantity>
+                           </AllowedMethods>
+                           <Compress>true</Compress>
+                           <DefaultTTL>100500</DefaultTTL>
+                           <ForwardedValues>
+                              <Cookies>
+                                 <Forward>string3</Forward>
+                                 <WhitelistedNames>
+                                    <Items>
+                                       <Name>string4</Name></Items>
+                                    <Quantity>1</Quantity>
+                                 </WhitelistedNames>
+                              </Cookies>
+                              <Headers>
+                                 <Items>
+                                    <Name>string5</Name></Items>
+                                 <Quantity>1</Quantity>
+                              </Headers>
+                              <QueryString>true</QueryString>
+                              <QueryStringCacheKeys>
+                                 <Items>
+                                    <Name>string6</Name></Items>
+                                 <Quantity>1</Quantity>
+                              </QueryStringCacheKeys>
+                           </ForwardedValues>
+                           <LambdaFunctionAssociations>
+                              <Items>
+                                 <LambdaFunctionAssociation>
+                                    <EventType>string7</EventType>
+                                    <LambdaFunctionARN>string8</LambdaFunctionARN>
+                                 </LambdaFunctionAssociation></Items>
+                              <Quantity>1</Quantity>
+                           </LambdaFunctionAssociations>
+                           <MaxTTL>100500100</MaxTTL>
+                           <MinTTL>10</MinTTL>
+                           <PathPattern>string8</PathPattern>
+                           <SmoothStreaming>true</SmoothStreaming>
+                           <TargetOriginId>string9</TargetOriginId>
+                           <TrustedSigners>
+                              <Enabled>true</Enabled>
+                              <Items>
+                                 <AwsAccountNumber>string10</AwsAccountNumber></Items>
+                              <Quantity>1</Quantity>
+                           </TrustedSigners>
+                           <ViewerProtocolPolicy>string12</ViewerProtocolPolicy>
+                        </CacheBehavior></Items>
+                     <Quantity>1</Quantity>
+                  </CacheBehaviors>
+                  <CallerReference>string13</CallerReference>
+                  <Comment>string14</Comment>
+                  <CustomErrorResponses>
+                     <Items>
+                        <CustomErrorResponse>
+                           <ErrorCachingMinTTL>100500</ErrorCachingMinTTL>
+                           <ErrorCode>400</ErrorCode>
+                           <ResponseCode>string14</ResponseCode>
+                           <ResponsePagePath>string15</ResponsePagePath>
+                        </CustomErrorResponse></Items>
+                     <Quantity>1</Quantity>
+                  </CustomErrorResponses>
+                  <DefaultCacheBehavior>
+                     <AllowedMethods>
+                        <CachedMethods>
+                           <Items>
+                              <Method>PUT</Method></Items>
+                           <Quantity>1</Quantity>
+                        </CachedMethods>
+                        <Items>
+                           <Method>DELETE</Method></Items>
+                        <Quantity>1</Quantity>
+                     </AllowedMethods>
+                     <Compress>true</Compress>
+                     <DefaultTTL>100500</DefaultTTL>
+                     <ForwardedValues>
+                        <Cookies>
+                           <Forward>string16</Forward>
+                           <WhitelistedNames>
+                              <Items>
+                                 <Name>string17</Name></Items>
+                              <Quantity>1</Quantity>
+                           </WhitelistedNames>
+                        </Cookies>
+                        <Headers>
+                           <Items>
+                              <Name>string18</Name></Items>
+                           <Quantity>1</Quantity>
+                        </Headers>
+                        <QueryString>true</QueryString>
+                        <QueryStringCacheKeys>
+                           <Items>
+                              <Name>string19</Name></Items>
+                           <Quantity>1</Quantity>
+                        </QueryStringCacheKeys>
+                     </ForwardedValues>
+                     <LambdaFunctionAssociations>
+                        <Items>
+                           <LambdaFunctionAssociation>
+                              <EventType>string20</EventType>
+                              <LambdaFunctionARN>string21</LambdaFunctionARN>
+                           </LambdaFunctionAssociation></Items>
+                        <Quantity>1</Quantity>
+                     </LambdaFunctionAssociations>
+                     <MaxTTL>100500</MaxTTL>
+                     <MinTTL>10</MinTTL>
+                     <SmoothStreaming>false</SmoothStreaming>
+                     <TargetOriginId>string22</TargetOriginId>
+                     <TrustedSigners>
+                        <Enabled>true</Enabled>
+                        <Items>
+                           <AwsAccountNumber>string23</AwsAccountNumber></Items>
+                        <Quantity>1</Quantity>
+                     </TrustedSigners>
+                     <ViewerProtocolPolicy>string24</ViewerProtocolPolicy>
+                  </DefaultCacheBehavior>
+                  <DefaultRootObject>string25</DefaultRootObject>
+                  <Enabled>true</Enabled>
+                  <HttpVersion>http-1-1</HttpVersion>
+                  <IsIPV6Enabled>false</IsIPV6Enabled>
+                  <Logging>
+                     <Bucket>string25</Bucket>
+                     <Enabled>true</Enabled>
+                     <IncludeCookies>true</IncludeCookies>
+                     <Prefix>string26</Prefix>
+                  </Logging>
+                  <Origins>
+                     <Items>
+                        <Origin>
+                           <CustomHeaders>
+                              <Items>
+                                 <OriginCustomHeader>
+                                    <HeaderName>string27</HeaderName>
+                                    <HeaderValue>string28</HeaderValue>
+                                 </OriginCustomHeader></Items>
+                              <Quantity>1</Quantity>
+                           </CustomHeaders>
+                           <CustomOriginConfig>
+                              <HTTPPort>80</HTTPPort>
+                              <HTTPSPort>443</HTTPSPort>
+                              <OriginProtocolPolicy>string29</OriginProtocolPolicy>
+                              <OriginSslProtocols>
+                                 <Items>
+                                    <SslProtocol>ssl3</SslProtocol></Items>
+                                 <Quantity>1</Quantity>
+                              </OriginSslProtocols>
+                           </CustomOriginConfig>
+                           <DomainName>string30</DomainName>
+                           <Id>string</Id>
+                           <OriginPath>string31</OriginPath>
+                           <S3OriginConfig>
+                              <OriginAccessIdentity>string32</OriginAccessIdentity>
+                           </S3OriginConfig>
+                        </Origin></Items>
+                     <Quantity>1</Quantity>
+                  </Origins>
+                  <PriceClass>Price_All</PriceClass>
+                  <Restrictions>
+                     <GeoRestriction>
+                        <Items>
+                           <Location>string34</Location></Items>
+                        <Quantity>1</Quantity>
+                        <RestrictionType>string35</RestrictionType>
+                     </GeoRestriction>
+                  </Restrictions>
+                  <ViewerCertificate>
+                     <ACMCertificateArn>string36</ACMCertificateArn>
+                     <Certificate>string37</Certificate>
+                     <CertificateSource>string38</CertificateSource>
+                     <CloudFrontDefaultCertificate>false</CloudFrontDefaultCertificate>
+                     <IAMCertificateId>string39</IAMCertificateId>
+                     <MinimumProtocolVersion>string40</MinimumProtocolVersion>
+                     <SSLSupportMethod>string41</SSLSupportMethod>
+                  </ViewerCertificate>
+                  <WebACLId>string42</WebACLId>
+               </DistributionConfig>
+               <DomainName>string43</DomainName>
+               <Id>foobar</Id>
+               <InProgressInvalidationBatches>100500</InProgressInvalidationBatches>
+               <LastModifiedTime>2002-09-24T05:05:05Z</LastModifiedTime>
+               <Status>string</Status>
+            </Distribution>",
+        {ok, [{distribution_id,"foobar"},
+              {distribution_arn,"string1"},
+              {domain_name,"string43"},
+              {last_modified_time,{{2002,9,24},{5,5,5}}},
+              {status,"string"},
+              {aliases,["string2"]},
+              {comment,"string14"},
+              {default_cache_behaviour,
+                  [{allowed_methods,["DELETE"]},
+                   {cached_methods,["PUT"]},
+                   {compress,true},
+                   {smooth_streaming,false},
+                   {default_ttl,100500},
+                   {max_ttl,100500},
+                   {min_ttl,10},
+                   {target_origin_id,"string22"},
+                   {viewer_protocol_policy,"string24"},
+                   {forwarded_query_string,true},
+                   {forwarded_query_string_cache_keys,["string19"]},
+                   {forwarded_cookies_forward,false},
+                   {forwarded_cookies_whitelisted_names,["string17"]},
+                   {forwarded_headers,["string18"]},
+                   {trusted_signers,["string23"]},
+                   {trusted_signer_required,true}]},
+              {http_version,"http-1-1"},
+              {enabled,true},
+              {is_ipv6_enabled,false},
+              {price_class,"Price_All"},
+              {geo_restrictions,[]},
+              {viewer_certificate,
+                  [{acm_certificate_arn,"string36"},
+                   {certificate,"string37"},
+                   {certificate_source,"string38"},
+                   {cloudfront_default_certificate,"false"},
+                   {iam_certificate_id,"string39"},
+                   {minimum_protocol_version,"string40"},
+                   {ssl_support_method,"string41"}]},
+              {web_acl_id,"string42"},
+              {custom_error_responses,
+                  [[{error_caching_min_ttl,100500},
+                    {error_code,400},
+                    {response_code,"string14"},
+                    {response_page_path,"string15"}]]},
+              {cache_behaviours,
+                  [[{allowed_methods,["POST"]},
+                    {cached_methods,["GET"]},
+                    {compress,true},
+                    {smooth_streaming,true},
+                    {default_ttl,100500},
+                    {max_ttl,100500100},
+                    {min_ttl,10},
+                    {path_pattern,"string8"},
+                    {target_origin_id,"string9"},
+                    {viewer_protocol_policy,"string12"},
+                    {forwarded_query_string,true},
+                    {forwarded_query_string_cache_keys,["string6"]},
+                    {forwarded_cookies_forward,false},
+                    {forwarded_cookies_whitelisted_names,["string4"]},
+                    {forwarded_headers,["string5"]},
+                    {trusted_signers,["string10"]},
+                    {trusted_signer_required,true}]]},
+              {origins,
+                  [[{origin_id,"string"},
+                    {origin_path,"string31"},
+                    {domain_name,"string30"},
+                    {custom_headers,[[{name,"string27"},{value,"string28"}]]},
+                    {http_port,80},
+                    {https_port,443},
+                    {origin_protocol_policy,"string29"},
+                    {origin_ssl_protocols,["ssl3"]},
+                    {origin_access_identity,"string32"}]]}]}}),
+
+    output_test(?_f(erlcloud_cloudfront:get_distribution("foobar")), Test).
