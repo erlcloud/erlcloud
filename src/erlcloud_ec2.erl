@@ -3725,7 +3725,15 @@ extract_vpc_peering_connection(Node) ->
     [
         {expiration_time, get_text("expirationTime", Node)},
         {tag_set, [extract_tag_item(Item) || Item <- xmerl_xpath:string("tagSet/item", Node)]},
-        {vpc_peering_connection_id, get_text("vpcPeeringConnectionId", Node)}
+        {vpc_peering_connection_id, get_text("vpcPeeringConnectionId", Node)},
+        {requester_vpc_info, [extract_vpc_peering_connection_info(Item) || Item <- xmerl_xpath:string("requesterVpcInfo", Node)]}
+    ].
+
+extract_vpc_peering_connection_info(Node) ->
+    [
+        {cidr_block, get_text("cidrBlock", Node)},
+        {owner_id, get_text("ownerId", Node)},
+        {vpc_id, get_text("vpcId", Node)}
     ].
 
 -spec extract_results(string(), string(), function(), any()) -> proplist().
