@@ -854,6 +854,11 @@ describe_vpc_peering_connections_test() ->
        	       <requestId>lnwadt7-8adia7r-aadu8-EXAMPLE</requestId>
        	       <vpcPeeringConnectionSet>
                    <item>
+                       <requesterVpcInfo>
+                           <ownerId>777788889999</ownerId>
+                           <vpcId>vpc-1a2b3c4d</vpcId>
+                           <cidrBlock>172.31.0.0/16</cidrBlock>
+                       </requesterVpcInfo>
        	               <expirationTime>2017.01.02 09:54:15</expirationTime>
        	               <tagSet>
                            <item>
@@ -895,7 +900,16 @@ describe_vpc_peering_connections_test() ->
                             ]
                         ]
                     },
-                    {vpc_peering_connection_id, "pcx-123abc69"}
+                    {vpc_peering_connection_id, "pcx-123abc69"},
+                    {requester_vpc_info,
+                        [
+                            [
+                                {cidr_block, "172.31.0.0/16"},
+                                {owner_id, "777788889999"},
+                                {vpc_id, "vpc-1a2b3c4d"}
+                            ]
+                        ]
+                    }
                 ]
             ]
         },
