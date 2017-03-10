@@ -386,7 +386,7 @@ auto_config() ->
 
 
 %%%---------------------------------------------------------------------------
--spec auto_config( ProfileOptions :: [profile_option()]) ->
+-spec auto_config( ProfileOptions :: [{profile, atom()} | profile_option()]) ->
                          {ok, aws_config()} | undefined.
 %%%---------------------------------------------------------------------------
 %% @doc Generate config using the best available credentials
@@ -394,7 +394,9 @@ auto_config() ->
 %% This function works the same as {@link auto_config/0}, but if credentials
 %% are developed from <em>User Profile</em> as the source, the
 %% <code>Options</code> parameter provided will be used to control the
-%% behavior.
+%% behavior.  The credential profile name choosen can be controlled by
+%% providing <code>{profile, atom()}</code> as part of the options, and if
+%% not specified the <code>default</code> profile will be used.
 %%
 %% @see profile/2
 %%
@@ -405,7 +407,8 @@ auto_config( ProfileOptions ) ->
     end.
 
 auto_config_profile( ProfileOptions ) ->
-    case profile( default, ProfileOptions ) of
+    Profile = proplists:get_value( profile, ProfileOptions, default ),
+    case profile( Profile, ProfileOptions ) of
         {ok, _Config} = Result -> Result;
         {error, _} -> auto_config_metadata()
     end.
