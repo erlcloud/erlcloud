@@ -9,6 +9,7 @@
 -endif.
 
 -export([assume_role/4, assume_role/5,
+         get_caller_identity/1,
          get_federation_token/3,
          get_federation_token/4]).
 
@@ -59,6 +60,25 @@ assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds, ExternalId)
         },
 
     {AssumedConfig, Creds}.
+
+
+
+%% @doc Retrieve identity information
+%%
+%% @see http://docs.aws.amazon.com/STS/latest/APIReference/API_GetCallerIdentity.html
+-type caller_identity_prop() :: {account, string()}
+                              | {arn, string()}
+                              | {userId, string()}.
+-spec get_caller_identity(#aws_config{}) -> {ok, [caller_identity_prop()]}.
+get_caller_identity(AwsConfig) ->
+    Xml = sts_query(AwsConfig, "GetCallerIdentity", []),
+    Proplists = erlcloud_xml:decode(
+        [
+         {account, "GetCallerIdentityResult/Account", text},
+         {arn, "GetCallerIdentityResult/Arn", text},
+         {userId, "GetCallerIdentityResult/UserId", text}
+        ], Xml),
+    {ok, Proplists}.
 
 
 get_federation_token(AwsConfig, DurationSeconds, Name) ->
