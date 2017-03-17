@@ -530,6 +530,7 @@ service_config( <<"cloudformation">> = Service, Region, Config ) ->
     Config#aws_config{ cloudformation_host = Host };
 service_config( <<"cfn">>, Region, Config ) ->
     service_config( <<"cloudformation">>, Region, Config );
+service_config( <<"cloudfront">>, _Region, Config ) -> Config;
 service_config( <<"cloudsearch">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ cloudsearch_host = Host };
