@@ -99,6 +99,14 @@
 
 %% DescribeSteps doesn't have any example input/output
 
+%% Values from
+%% http://docs.aws.amazon.com/ElasticMapReduce/latest/API/API_SetTerminationProtection.html
+
+-define(SET_TERMINATION_PROTECTION_INPUT, [
+    {<<"JobFlowIds">>, [<<"j-3TS0OIYO4NFN">>]},
+    {<<"TerminationProtected">>, true}
+]).
+
 %%==============================================================================
 %% Test generator functions
 %%==============================================================================
@@ -140,6 +148,11 @@ emr_input_tests(_) ->
             {"Terminate job flows input",
              ?_f(erlcloud_emr:terminate_job_flows([?JOB_FLOW_ID])),
              ?TERMINATE_JOB_FLOW_INPUT}
+        ),
+        ?_emr_test(
+            {"Set termination protection - input test",
+             ?_f(erlcloud_emr:set_termination_protection([?JOB_FLOW_ID], true)),
+             ?SET_TERMINATION_PROTECTION_INPUT}
         )
     ]).
 

@@ -12,6 +12,8 @@
 -export([describe_step/2, describe_step/3, describe_step/4]).
 -export([run_job_flow/1, run_job_flow/2, run_job_flow/3]).
 -export([terminate_job_flows/1, terminate_job_flows/2, terminate_job_flows/3]).
+-export([set_termination_protection/2, set_termination_protection/3,
+         set_termination_protection/4]).
 
 -export_type([emr_opts/0, emr_return/0]).
 
@@ -146,6 +148,32 @@ terminate_job_flows(JobFlowIds, Opts) when is_list(Opts) ->
 terminate_job_flows(JobFlowIds, Opts, Config) ->
     emr_request("ElasticMapReduce.TerminateJobFlows",
                 [{'JobFlowIds', JobFlowIds}], Opts, Config).
+
+
+%% --- SetTerminationProtection ---
+%% http://docs.aws.amazon.com/ElasticMapReduce/latest/API/API_SetTerminationProtection.html
+-spec set_termination_protection([binary()], boolean()) -> emr_return().
+set_termination_protection(JobFlowIds, TerminationProtected) ->
+    set_termination_protection(JobFlowIds, TerminationProtected,
+                               [], erlcloud_aws:default_config()).
+
+-spec set_termination_protection([binary()], boolean(),
+                                 aws_config() | emr_opts()) -> emr_return().
+set_termination_protection(JobFlowIds, TerminationProtected,
+                           Config = #aws_config{}) ->
+    set_termination_protection(JobFlowIds, TerminationProtected,
+                               [], Config);
+set_termination_protection(JobFlowIds, TerminationProtected,
+                           Opts) when is_list(Opts) ->
+    set_termination_protection(JobFlowIds, TerminationProtected,
+                               Opts, erlcloud_aws:default_config()).
+
+-spec set_termination_protection([binary()], boolean(),
+                                 emr_opts(), aws_config()) -> emr_return().
+set_termination_protection(JobFlowIds, TerminationProtected, Opts, Config) ->
+    emr_request("ElasticMapReduce.SetTerminationProtection",
+                [{'JobFlowIds', JobFlowIds},
+                 {'TerminationProtected', TerminationProtected}], Opts, Config).
 
 
 %%------------------------------------------------------------------------------
