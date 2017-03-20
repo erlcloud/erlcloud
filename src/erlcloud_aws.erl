@@ -386,7 +386,7 @@ auto_config() ->
 
 
 %%%---------------------------------------------------------------------------
--spec auto_config( ProfileOptions :: [profile_option()]) ->
+-spec auto_config( ProfileOptions :: [{profile, atom()} | profile_option()]) ->
                          {ok, aws_config()} | undefined.
 %%%---------------------------------------------------------------------------
 %% @doc Generate config using the best available credentials
@@ -394,7 +394,9 @@ auto_config() ->
 %% This function works the same as {@link auto_config/0}, but if credentials
 %% are developed from <em>User Profile</em> as the source, the
 %% <code>Options</code> parameter provided will be used to control the
-%% behavior.
+%% behavior.  The credential profile name choosen can be controlled by
+%% providing <code>{profile, atom()}</code> as part of the options, and if
+%% not specified the <code>default</code> profile will be used.
 %%
 %% @see profile/2
 %%
@@ -405,7 +407,8 @@ auto_config( ProfileOptions ) ->
     end.
 
 auto_config_profile( ProfileOptions ) ->
-    case profile( default, ProfileOptions ) of
+    Profile = proplists:get_value( profile, ProfileOptions, default ),
+    case profile( Profile, ProfileOptions ) of
         {ok, _Config} = Result -> Result;
         {error, _} -> auto_config_metadata()
     end.
@@ -527,6 +530,7 @@ service_config( <<"cloudformation">> = Service, Region, Config ) ->
     Config#aws_config{ cloudformation_host = Host };
 service_config( <<"cfn">>, Region, Config ) ->
     service_config( <<"cloudformation">>, Region, Config );
+service_config( <<"cloudfront">>, _Region, Config ) -> Config;
 service_config( <<"cloudsearch">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ cloudsearch_host = Host };
@@ -557,6 +561,11 @@ service_config( <<"elasticloadbalancing">> = Service, Region, Config ) ->
     Config#aws_config{ elb_host = Host };
 service_config( <<"elb">>, Region, Config ) ->
     service_config( <<"elasticloadbalancing">>, Region, Config );
+service_config( <<"elasticmapreduce">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ emr_host = Host };
+service_config( <<"emr">>, Region, Config ) ->
+    service_config( <<"elasticmapreduce">>, Region, Config );
 service_config( <<"iam">> = Service, <<"cn-north-1">> = Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ iam_host = Host };
@@ -609,6 +618,9 @@ service_config( <<"sqs">> = Service, Region, Config ) ->
 service_config( <<"sts">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ sts_host = Host };
+service_config(<<"cloudwatch_logs">>, Region, Config)->
+    Host = service_host(<<"logs">>, Region),
+    Config#aws_config{cloudwatch_logs_host = Host};
 service_config( <<"waf">>, _Region, Config ) -> Config.
 
 %%%---------------------------------------------------------------------------

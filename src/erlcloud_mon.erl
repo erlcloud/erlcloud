@@ -353,9 +353,8 @@ get_metric_statistics(
   Unit,
   Statistics,
   Dimensions,
-  #aws_config{} = _Config
+  #aws_config{} = Config
  ) ->
-    Config = default_config(),
     Params =
           lists:flatten([
            {"Namespace",  Namespace},

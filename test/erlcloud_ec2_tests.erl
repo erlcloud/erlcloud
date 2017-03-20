@@ -51,7 +51,13 @@ describe_tags_test_() ->
       fun describe_images_tests/1,
       fun describe_vpn_gateways_tests/1,
       fun describe_customer_gateways_tests/1,
-      fun describe_vpn_connections_tests/1
+      fun describe_vpn_connections_tests/1,
+      fun create_flow_logs_input_tests/1,
+      fun create_flow_logs_output_tests/1,
+      fun delete_flow_logs_input_tests/1,
+      fun delete_flow_logs_output_tests/1,
+      fun describe_flow_logs_input_tests/1,
+      fun describe_flow_logs_output_tests/1
      ]}.
 
 start() ->
@@ -735,6 +741,381 @@ describe_images_tests(_) ->
   %% Remaining AWS API examples return subsets of the same data
   output_tests(?_f(erlcloud_ec2:describe_images()), Tests).
 
+describe_account_attributes_test() ->
+    XML = "<DescribeAccountAttributesResponse>
+               <requestId>12345</requestId>
+               <accountAttributeSet>
+                   <item>
+                       <attributeName>attribute123</attributeName>
+                       <attributeValueSet>
+                           <item>
+                               <attributeValue>123</attributeValue>
+                           </item>
+                       </attributeValueSet>
+                   </item>
+                   <item>
+                       <attributeName>attribute456</attributeName>
+                       <attributeValueSet>
+                           <item>
+                               <attributeValue>456</attributeValue>
+                           </item>
+                       </attributeValueSet>
+                   </item>
+                   <item>
+                       <attributeName>attribute789</attributeName>
+                       <attributeValueSet>
+                           <item>
+                               <attributeValue>789</attributeValue>
+                           </item>
+                       </attributeValueSet>
+                   </item>
+               </accountAttributeSet>
+           </DescribeAccountAttributesResponse>",
+    XMERL = {ok, element(1, xmerl_scan:string(XML))},
+    ExpectedResult =
+        {ok,[
+                [{attribute_name,"attribute123"},
+                    {attribute_value_set,[[{attribute_value,"123"}]]}],
+                [{attribute_name,"attribute456"},
+                    {attribute_value_set,[[{attribute_value,"456"}]]}],
+                [{attribute_name,"attribute789"},
+                    {attribute_value_set,[[{attribute_value,"789"}]]}]
+            ]},
+    meck:new(erlcloud_aws, [passthrough]),
+    meck:expect(erlcloud_aws, aws_request_xml4,
+        fun(_,_,_,_,_,_) ->
+            XMERL
+        end),
+    Result = erlcloud_ec2:describe_account_attributes(),
+    meck:unload(erlcloud_aws),
+    ?assertEqual(ExpectedResult, Result).
+    
+describe_nat_gateways_test() ->
+    XML = "<DescribeNatGatewaysResponse>
+               <requestId>bfed02c6-dae9-47c0-86a2-example</requestId>
+               <natGatewaySet>
+                   <item>
+                       <createTime>2017-01-02T15:49:34.999Z</createTime>
+                       <deleteTime>2017-01-02T15:49:34.999Z</deleteTime>
+                       <failureCode>1234</failureCode>
+                       <failureMessage>boom</failureMessage>
+                       <natGatewayAddressSet>
+                           <item>
+                               <allocationId>allocid-123</allocationId>
+                               <networkInterfaceId>ni-56789</networkInterfaceId>
+                               <privateIp>10.0.0.0</privateIp>
+                               <publicIp>123.12.123.12</publicIp>
+                           </item>
+                       </natGatewayAddressSet>
+                       <natGatewayId>nat-04e77a5e9c34432f9</natGatewayId>
+                       <state>available</state>
+                       <subnetId>subnet-1a2a3a4a</subnetId>
+                       <vpcId>vpc-4e20d42b</vpcId>
+                   </item>
+               </natGatewaySet>
+           </DescribeNatGatewaysResponse>",
+    XMERL = {ok, element(1, xmerl_scan:string(XML))},
+    ExpectedResult =
+        {ok,
+            [
+                [
+                    {create_time, "2017-01-02T15:49:34.999Z"},
+                    {delete_time, "2017-01-02T15:49:34.999Z"},
+                    {failure_code, "1234"},
+                    {failure_message, "boom"},
+                    {nat_gateway_address_set,
+                        [
+                            [
+                                {allocation_id, "allocid-123"},
+                                {network_interface_id, "ni-56789"},
+                                {private_ip, "10.0.0.0"},
+                                {public_ip, "123.12.123.12"}
+                            ]
+                        ]
+                    },
+                    {nat_gateway_id, "nat-04e77a5e9c34432f9"},
+                    {state, "available"},
+                    {subnet_id, "subnet-1a2a3a4a"},
+                    {vpc_id, "vpc-4e20d42b"}
+                ]
+            ]
+        },
+    meck:new(erlcloud_aws, [passthrough]),
+    meck:expect(erlcloud_aws, aws_request_xml4,
+        fun(_,_,_,_,_,_) ->
+            XMERL
+        end),
+    Result = erlcloud_ec2:describe_nat_gateways(),
+    meck:unload(erlcloud_aws),
+    ?assertEqual(ExpectedResult, Result).
+
+describe_vpc_peering_connections_test() ->
+    XML = "<DescribeVpcPeeringConnectionsResponse>
+       	       <requestId>lnwadt7-8adia7r-aadu8-EXAMPLE</requestId>
+       	       <vpcPeeringConnectionSet>
+                   <item>
+                       <requesterVpcInfo>
+                           <ownerId>777788889999</ownerId>
+                           <vpcId>vpc-1a2b3c4d</vpcId>
+                           <cidrBlock>172.31.0.0/16</cidrBlock>
+                       </requesterVpcInfo>
+       	               <expirationTime>2017.01.02 09:54:15</expirationTime>
+       	               <tagSet>
+                           <item>
+       	                       <key>key1</key>
+       	                       <value>value1</value>
+       	                   </item>
+                           <item>
+       	                       <key>key2</key>
+       	                       <value>value2</value>
+       	                   </item>
+       	                   <item>
+       	                       <key>key3</key>
+       	                       <value>value3</value>
+       	                   </item>
+       	               </tagSet>
+       	               <vpcPeeringConnectionId>pcx-123abc69</vpcPeeringConnectionId>
+       	           </item>
+               </vpcPeeringConnectionSet>
+           </DescribeVpcPeeringConnectionsResponse>",
+    XMERL = {ok, element(1, xmerl_scan:string(XML))},
+    ExpectedResult =
+        {ok,
+            [
+                [
+                    {expiration_time, "2017.01.02 09:54:15"},
+                    {tag_set,
+                        [
+                            [
+                                {key, "key1"},
+                                {value, "value1"}
+                            ],
+                            [
+                                {key, "key2"},
+                                {value, "value2"}
+                            ],
+                            [
+                                {key, "key3"},
+                                {value, "value3"}
+                            ]
+                        ]
+                    },
+                    {vpc_peering_connection_id, "pcx-123abc69"},
+                    {requester_vpc_info,
+                        [
+                            [
+                                {cidr_block, "172.31.0.0/16"},
+                                {owner_id, "777788889999"},
+                                {vpc_id, "vpc-1a2b3c4d"}
+                            ]
+                        ]
+                    }
+                ]
+            ]
+        },
+    meck:new(erlcloud_aws, [passthrough]),
+    meck:expect(erlcloud_aws, aws_request_xml4,
+        fun(_,_,_,_,_,_) ->
+            XMERL
+        end),
+    Result = erlcloud_ec2:describe_vpc_peering_connections(),
+    meck:unload(erlcloud_aws),
+    ?assertEqual(ExpectedResult, Result).
+
+create_flow_logs_input_tests(_) ->
+    Tests = [
+        ?_ec2_test({"This example creates flow log.",
+             ?_f(erlcloud_ec2:create_flow_logs(
+                    "TestLogGroup", network_interface, ["eni-aa22bb33", "eni-22aabb33"], reject,
+                     "arn:aws:iam::123456789101:role/flowlogsrole")),
+             [{"Action", "CreateFlowLogs"},
+              {"LogGroupName", "TestLogGroup"},
+              {"ResourceType", "NetworkInterface"},
+              {"ResourceId.1", "eni-aa22bb33"},
+              {"ResourceId.2", "eni-22aabb33"},
+              {"TrafficType", "REJECT"},
+              {"DeliverLogsPermissionArn", "arn%3Aaws%3Aiam%3A%3A123456789101%3Arole%2Fflowlogsrole"}]
+        }),
+        ?_ec2_test({"This example creates flow log with ClientToken.",
+             ?_f(erlcloud_ec2:create_flow_logs(
+                    "TestLogGroup", network_interface, ["eni-aa22bb33", "eni-22aabb33"], reject,
+                     "arn:aws:iam::123456789101:role/flowlogsrole", "TestClientTokenValue")),
+             [{"Action", "CreateFlowLogs"},
+              {"LogGroupName", "TestLogGroup"},
+              {"ResourceType", "NetworkInterface"},
+              {"ResourceId.1", "eni-aa22bb33"},
+              {"ResourceId.2", "eni-22aabb33"},
+              {"TrafficType", "REJECT"},
+              {"DeliverLogsPermissionArn", "arn%3Aaws%3Aiam%3A%3A123456789101%3Arole%2Fflowlogsrole"},
+              {"ClientToken", "TestClientTokenValue"}]
+        })
+    ],
+    Response = "
+        <CreateFlowLogsResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+            <requestId>2d96dae3-504b-4fc4-bf50-266EXAMPLE</requestId>
+            <unsuccessful/>
+            <clientToken>L3rV9xpxjqioMR0mCYQFUV2PB0abfsU1WRAk</clientToken>
+            <flowLogIdSet>
+                <item>fl-1a2b3c4d</item>
+            </flowLogIdSet>
+        </CreateFlowLogsResponse>
+    ",
+    input_tests(Response, Tests).
+
+create_flow_logs_output_tests(_) ->
+    Tests = [
+        ?_ec2_test(
+            {"This example creates flow logs", "
+            <CreateFlowLogsResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+                <requestId>2d96dae3-504b-4fc4-bf50-266EXAMPLE</requestId>
+                <unsuccessful/>
+                <clientToken>L3rV9xpxjqioMR0mCYQFUV2PB0abfsU1WRAk</clientToken>
+                <flowLogIdSet>
+                    <item>fl-1a2b3c4d</item>
+                </flowLogIdSet>
+            </CreateFlowLogsResponse>",
+            {ok, [{flow_log_id_set, ["fl-1a2b3c4d"]},
+                  {client_token, "L3rV9xpxjqioMR0mCYQFUV2PB0abfsU1WRAk"},
+                  {unsuccessful,[[{resource_id,[]},
+                     {error,[{code,[]},{message,[]}]}]]}]}}
+        )
+    ],
+    output_tests(?_f(erlcloud_ec2:create_flow_logs(
+                        "TestLogGroup", network_interface, ["eni-aa22bb33", "eni-22aabb33"], reject,
+                        "arn:aws:iam::123456789101:role/flowlogsrole")), Tests).
+
+delete_flow_logs_input_tests(_) ->
+    Tests = [
+        ?_ec2_test({"This example deletes flow logs.",
+             ?_f(erlcloud_ec2:delete_flow_logs(["fl-ab12cd34", "fl-123abc45"])),
+            [{"Action", "DeleteFlowLogs"},
+             {"FlowLogId.1", "fl-ab12cd34"},
+             {"FlowLogId.2", "fl-123abc45"}]
+        })
+    ],
+    Response = "
+        <DeleteFlowLogsResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+            <requestId>c5c4f51f-f4e9-42bc-8700-EXAMPLE</requestId>
+            <unsuccessful/>
+        </DeleteFlowLogsResponse>
+    ",
+    input_tests(Response, Tests).
+
+delete_flow_logs_output_tests(_) ->
+    Tests = [
+        ?_ec2_test(
+            {"This example deletes flow log", "
+            <DeleteFlowLogsResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+                <requestId>c5c4f51f-f4e9-42bc-8700-EXAMPLE</requestId>
+                <unsuccessful/>
+            </DeleteFlowLogsResponse>",
+            {ok, [{unsuccessful,[[{resource_id,[]},
+                     {error,[{code,[]},{message,[]}]}]]}]}})
+    ],
+    output_tests(?_f(erlcloud_ec2:delete_flow_logs(["fl-ab12cd34"])), Tests).
+
+describe_flow_logs_input_tests(_) ->
+    Tests =
+        [?_ec2_test(
+            {"This example describes all flow logs in a region.",
+             ?_f(erlcloud_ec2:describe_flow_logs()),
+             [{"Action", "DescribeFlowLogs"}]}),
+         ?_ec2_test({"This example describes fl-ab12cd34 flow log.",
+             ?_f(erlcloud_ec2:describe_flow_logs(["fl-ab12cd34"], [])),
+             [{"Action", "DescribeFlowLogs"},
+              {"FlowLogId.1", "fl-ab12cd34"}]}),
+         ?_ec2_test({"This example describes fl-ab12cd34 and fl-123abc45 flow logs.",
+             ?_f(erlcloud_ec2:describe_flow_logs(["fl-ab12cd34", "fl-123abc45"], [])),
+             [{"Action", "DescribeFlowLogs"},
+              {"FlowLogId.1", "fl-ab12cd34"},
+              {"FlowLogId.2", "fl-123abc45"}]}),
+         ?_ec2_test({"This example retrieves 10 flow logs.",
+             ?_f(erlcloud_ec2:describe_flow_logs([{'traffic-type', "ALL"}])),
+             [{"Action", "DescribeFlowLogs"},
+              {"Filter.1.Name", "traffic-type"},
+              {"Filter.1.Value.1", "ALL"}]}),
+         ?_ec2_test({"This example retrieves 10 flow logs using NextToken argument.",
+             ?_f(erlcloud_ec2:describe_flow_logs(10, "eyJ2IjoiMSIsInMiOjEsImMiOiI3WmlqMWVFbEM4cHdzZnRlcHVlc3pCQWNSdlZGbFBMVWZaNzZkcEpCcmdQOExlSWVjUUdIQnlCTVJmODVWWlZ6N1JpLUVXbTJrYXpSMGVVU05IclZUM3RXd3hGY3UzQTZhSkhPR3pvMnJPN1htclpjYk40T2VIMUIifQ")),
+             [{"Action", "DescribeFlowLogs"},
+              {"MaxResults", "10"},
+              {"NextToken", "eyJ2IjoiMSIsInMiOjEsImMiOiI3WmlqMWVFbEM4cHdzZnRlcHVlc3pCQWNSdlZGbFBMVWZaNzZkcEpCcmdQOExlSWVjUUdIQnlCTVJmODVWWlZ6N1JpLUVXbTJrYXpSMGVVU05IclZUM3RXd3hGY3UzQTZhSkhPR3pvMnJPN1htclpjYk40T2VIMUIifQ"}]})
+        ],
+    Response = "
+        <DescribeFlowLogsResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+            <requestId>3cb46f23-099e-4bf0-891c-EXAMPLE</requestId>
+            <flowLogSet>
+                <item>
+                    <deliverLogsErrorMessage>Access error</deliverLogsErrorMessage>
+                    <resourceId>vpc-1a2b3c4d</resourceId>
+                    <deliverLogsPermissionArn>arn:aws:iam::123456789101:role/flowlogsrole</deliverLogsPermissionArn>
+                    <flowLogStatus>ACTIVE</flowLogStatus>
+                    <creationTime>2015-05-19T08:48:59Z</creationTime>
+                    <logGroupName>FlowLogsForSubnetA</logGroupName>
+                    <trafficType>ALL</trafficType>
+                    <flowLogId>fl-ab12cd34</flowLogId>
+                </item>
+                <item>
+                    <resourceId>vpc-1122bbcc</resourceId>
+                    <deliverLogsPermissionArn>arn:aws:iam::123456789101:role/flowlogsrole</deliverLogsPermissionArn>
+                    <flowLogStatus>ACTIVE</flowLogStatus>
+                    <creationTime>2015-05-19T10:42:32Z</creationTime>
+                    <logGroupName>FlowLogsForSubnetB</logGroupName>
+                    <trafficType>ALL</trafficType>
+                    <flowLogId>fl-123abc45</flowLogId>
+                </item>
+            </flowLogSet>
+        </DescribeFlowLogsResponse>
+    ",
+    input_tests(Response, Tests).
+
+describe_flow_logs_output_tests(_) ->
+    Tests =
+        [?_ec2_test(
+            {"This example descirbes all flow logs", "
+                <DescribeFlowLogsResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+                    <requestId>3cb46f23-099e-4bf0-891c-EXAMPLE</requestId>
+                    <flowLogSet>
+                        <item>
+                            <deliverLogsErrorMessage>Access error</deliverLogsErrorMessage>
+                            <resourceId>vpc-1a2b3c4d</resourceId>
+                            <deliverLogsPermissionArn>arn:aws:iam::123456789101:role/flowlogsrole</deliverLogsPermissionArn>
+                            <flowLogStatus>ACTIVE</flowLogStatus>
+                            <creationTime>2015-05-19T08:48:59Z</creationTime>
+                            <logGroupName>FlowLogsForSubnetA</logGroupName>
+                            <trafficType>ALL</trafficType>
+                            <flowLogId>fl-ab12cd34</flowLogId>
+                        </item>
+                        <item>
+                            <resourceId>vpc-1122bbcc</resourceId>
+                            <deliverLogsPermissionArn>arn:aws:iam::123456789101:role/flowlogsrole</deliverLogsPermissionArn>
+                            <flowLogStatus>ACTIVE</flowLogStatus>
+                            <creationTime>2015-05-19T10:42:32Z</creationTime>
+                            <logGroupName>FlowLogsForSubnetB</logGroupName>
+                            <trafficType>ALL</trafficType>
+                            <flowLogId>fl-123abc45</flowLogId>
+                        </item>
+                    </flowLogSet>
+                </DescribeFlowLogsResponse>",
+                {ok, [[{deliver_logs_error_message, "Access error"},
+                      {resource_id,"vpc-1a2b3c4d"},
+                      {deliver_logs_permission_arn,"arn:aws:iam::123456789101:role/flowlogsrole"},
+                      {flow_log_status,"ACTIVE"},
+                      {creation_time,{{2015,05,19},{8,48,59}}},
+                      {log_group_name,"FlowLogsForSubnetA"},
+                      {traffic_type,"ALL"},
+                      {flow_log_id,"fl-ab12cd34"}],
+                     [{deliver_logs_error_message,[]},
+                      {resource_id,"vpc-1122bbcc"},
+                      {deliver_logs_permission_arn,"arn:aws:iam::123456789101:role/flowlogsrole"},
+                      {flow_log_status,"ACTIVE"},
+                      {creation_time,{{2015,05,19},{10,42,32}}},
+                      {log_group_name,"FlowLogsForSubnetB"},
+                      {traffic_type,"ALL"},
+                      {flow_log_id,"fl-123abc45"}]]}}
+         )
+    ],
+    output_tests(?_f(erlcloud_ec2:describe_flow_logs()), Tests).
+
 describe_instances_test() ->
     Tests = [{30,6},{22,5},{3,7},{10,10},{0,10},{0,5},{0,1000}],
     test_pagination(Tests, generate_instances_response, describe_instances, [], [[]])
@@ -1045,3 +1426,4 @@ describe_all(DescribeFunction, Params, MaxResults, NextToken, Acc) ->
 
 lists_are_the_same(List1, List2) ->
     lists:sort(List1) =:= lists:sort(List2).
+

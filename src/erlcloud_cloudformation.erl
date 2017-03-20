@@ -261,7 +261,6 @@ get_stack_policy(Params, StackName) ->
 -spec get_stack_policy(params(), string(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 get_stack_policy(Params, StackName, Config = #aws_config{}) ->
-
     FullParams = [{"StackName", StackName}
         | lists:map(
             fun(T) ->
@@ -338,7 +337,7 @@ get_template(StackName, Config = #aws_config{}) ->
 -spec get_template_summary(params(), string()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 get_template_summary(Params, StackName) ->
-    get_template_summary(Params, StackName, default_config).
+    get_template_summary(Params, StackName, default_config()).
 
 -spec get_template_summary(params(), string(), aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
@@ -360,7 +359,7 @@ get_template_summary(Params, StackName, Config = #aws_config{}) ->
 -spec describe_account_limits_all() ->
     {ok, cloudformation_list()} | {error, error_reason()}.
 describe_account_limits_all() ->
-    describe_account_limits_all(default_config).
+    describe_account_limits_all(default_config()).
 
 -spec describe_account_limits_all(aws_config()) ->
     {ok, cloudformation_list()} | {error, error_reason()}.
@@ -525,7 +524,19 @@ extract_described_stack(XmlNode) ->
             {creation_time, "CreationTime", optional_text},
             {stack_status, "StackStatus", optional_text},
             {disable_rollback, "DisableRollback", optional_text},
+            {parameters, "Parameters", {map, fun extract_parameters/1}},
             {outputs, "Outputs", {map, fun extract_resource_outputs/1}}
+        ], XmlNode).
+
+extract_parameters(XmlNode) ->
+    erlcloud_xml:decode([
+            {member, "member", {map, fun extract_parameter/1}}
+         ], XmlNode).
+
+extract_parameter(XmlNode) ->
+    erlcloud_xml:decode([
+            {parameter_key, "ParameterKey", optional_text},
+            {parameter_value, "ParameterValue", optional_text}
         ], XmlNode).
 
 extract_resource_outputs(XmlNode) ->
@@ -535,6 +546,7 @@ extract_resource_outputs(XmlNode) ->
 
 extract_resource_output(XmlNode) ->
     erlcloud_xml:decode([
+            {description, "Description", optional_text},
             {output_key, "OutputKey", optional_text},
             {output_value, "OutputValue", optional_text}
         ], XmlNode).
