@@ -53,7 +53,6 @@
 -define(LIMIT_MAX, 100).
 
 -type json_proplist() :: proplists:proplist().
--type json_binary() :: binary().
 
 %%%------------------------------------------------------------------------------
 %%% Shared types
