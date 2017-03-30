@@ -550,9 +550,9 @@ get_bucket_attribute(BucketName, AttributeName, Config)
             case erlcloud_xml:get_text("/LocationConstraint", Doc) of
                 %% logic according to http://s3tools.org/s3cmd
                 %% s3cmd-1.5.2/S3/S3.py : line 342 (function get_bucket_location)
-                [] -> "us-east-1";
-                ["US"] -> "us-east-1";
-                ["EU"] -> "eu-west-1";
+                "" -> "us-east-1";
+                "US" -> "us-east-1";
+                "EU" -> "eu-west-1";
                 Loc -> Loc
             end;
         logging ->
