@@ -30,7 +30,8 @@
          set_endpoint_attributes/3,
          publish_to_topic/2, publish_to_topic/3, publish_to_topic/4,
          publish_to_topic/5, publish_to_target/2, publish_to_target/3,
-         publish_to_target/4, publish_to_target/5, publish/5, publish/6,
+         publish_to_target/4, publish_to_target/5, publish_to_phone/2,
+         publish_to_phone/3, publish_to_phone/4, publish/5, publish/6,
          list_platform_applications/0, list_platform_applications/1,
          list_platform_applications/2, list_platform_applications/3,
          confirm_subscription/1, confirm_subscription/2, confirm_subscription/3,
@@ -422,16 +423,34 @@ publish_to_target(TargetArn, Message, Subject, Config) ->
 publish_to_target(TargetArn, Message, Subject, AccessKeyID, SecretAccessKey) ->
     publish_to_target(TargetArn, Message, Subject, new_config(AccessKeyID, SecretAccessKey)).
 
--spec publish(topic|target, string(), sns_message(), undefined|string(), aws_config()) -> string().
+%% TargetArn can be a phone number string, e.g. "+55 (11) 9999-7777"
+-spec publish_to_phone(string(), sns_message()) -> string().
+publish_to_phone(TargetArn, Message) ->
+    publish_to_phone(TargetArn, Message, undefined, default_config()).
+
+-spec publish_to_phone(string(), sns_message(), aws_config()) -> string().
+publish_to_phone(TargetArn, Message, Config) ->
+    publish(phone, TargetArn, Message, undefined, Config).
+
+-spec publish_to_phone(string(), sns_message(), string(), string()) -> string().
+publish_to_phone(TargetArn, Message, AccessKeyID, SecretAccessKey) ->
+    publish(phone, TargetArn, Message, undefined, new_config(AccessKeyID, SecretAccessKey)).
+
+%% @doc
+%% Publish API:
+%% [http://docs.aws.amazon.com/sns/latest/api/API_Publish.html]
+
+-spec publish(topic|target|phone, string(), sns_message(), undefined|string(), aws_config()) -> string().
 publish(Type, RecipientArn, Message, Subject, Config) ->
     publish(Type, RecipientArn, Message, Subject, [], Config).
 
--spec publish(topic|target, string(), sns_message(), undefined|string(), sns_message_attributes(), aws_config()) -> string().
+-spec publish(topic|target|phone, string(), sns_message(), undefined|string(), sns_message_attributes(), aws_config()) -> string().
 publish(Type, RecipientArn, Message, Subject, Attributes, Config) ->
     RecipientParam =
         case Type of
             topic -> [{"TopicArn", RecipientArn}];
-            target -> [{"TargetArn", RecipientArn}]
+            target -> [{"TargetArn", RecipientArn}];
+            phone -> [{"PhoneNumber", RecipientArn}]
         end,
     MessageParams =
         case Message of
