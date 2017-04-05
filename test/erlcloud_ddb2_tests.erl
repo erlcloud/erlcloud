@@ -43,6 +43,8 @@ operation_test_() ->
       fun describe_limits_output_tests/1,
       fun describe_table_input_tests/1,
       fun describe_table_output_tests/1,
+      fun describe_time_to_live_input_tests/1,
+      fun describe_time_to_live_output_tests/1,
       fun get_item_input_tests/1,
       fun get_item_output_tests/1,
       fun get_item_output_typed_tests/1,
@@ -57,7 +59,9 @@ operation_test_() ->
       fun update_item_input_tests/1,
       fun update_item_output_tests/1,
       fun update_table_input_tests/1,
-      fun update_table_output_tests/1
+      fun update_table_output_tests/1,
+      fun update_time_to_live_input_tests/1,
+      fun update_time_to_live_output_tests/1
      ]}.
 
 start() ->
@@ -101,7 +105,7 @@ validate_body(Body, Expected) ->
 input_expect(Response, Expected) ->
     fun(_Url, post, _Headers, Body, _Timeout, _Config) -> 
             validate_body(Body, Expected),
-            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% input_test converts an input_test specifier into an eunit test generator
@@ -1879,6 +1883,80 @@ describe_table_output_tests(_) ->
     
     output_tests(?_f(erlcloud_ddb2:describe_table(<<"name">>)), Tests).
 
+
+%% DescribeTimeToLive test
+describe_time_to_live_input_tests(_) ->
+    Tests =
+          [?_ddb_test(
+              {"DescribeTimeToLive example request",
+               ?_f(erlcloud_ddb2:describe_time_to_live(<<"SessionData">>)), "
+{
+    \"TableName\": \"SessionData\"
+}"
+              })],
+      Response = "
+{          
+    \"TimeToLiveDescription\": {
+        \"AttributeName\": \"ExpirationTime\",
+        \"TimeToLiveStatus\": \"ENABLED\"
+    }
+}",
+      input_tests(Response, Tests).
+
+%% DescribeTimeToLive test:
+describe_time_to_live_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"DescribeTimeToLive example response with enabled TTL", "
+{
+    \"TimeToLiveDescription\": {
+        \"AttributeName\": \"ExpirationTime\",
+        \"TimeToLiveStatus\": \"ENABLED\"
+    }
+}",
+              {ok, #ddb2_time_to_live_description{
+                attribute_name = <<"ExpirationTime">>,
+                time_to_live_status = enabled}}}),
+
+?_ddb_test(
+            {"DescribeTimeToLive example response with disabled TTL", "
+{
+    \"TimeToLiveDescription\": {
+        \"AttributeName\": \"ExpirationTime\",
+        \"TimeToLiveStatus\": \"DISABLED\"
+    }
+}",
+              {ok, #ddb2_time_to_live_description{
+                attribute_name = <<"ExpirationTime">>,
+                time_to_live_status = disabled}}}),
+
+
+?_ddb_test(
+            {"DescribeTimeToLive example response while TTL is enabling", "
+{
+    \"TimeToLiveDescription\": {
+        \"AttributeName\": \"ExpirationTime\",
+        \"TimeToLiveStatus\": \"ENABLING\"
+    }
+}",
+              {ok, #ddb2_time_to_live_description{
+                attribute_name = <<"ExpirationTime">>,
+                time_to_live_status = enabling}}}),
+
+?_ddb_test(
+            {"DescribeTimeToLive example response while TTL is disabling", "
+{
+    \"TimeToLiveDescription\": {
+        \"AttributeName\": \"ExpirationTime\",
+        \"TimeToLiveStatus\": \"DISABLING\"
+    }
+}",
+              {ok, #ddb2_time_to_live_description{
+                attribute_name = <<"ExpirationTime">>,
+                time_to_live_status = disabling}}})],
+    output_tests(?_f(erlcloud_ddb2:describe_time_to_live(<<"SessionData">>)), Tests).
+
+
 %% GetItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_GetItem.html
 get_item_input_tests(_) ->
@@ -3573,3 +3651,53 @@ update_table_output_tests(_) ->
     
     output_tests(?_f(erlcloud_ddb2:update_table(<<"name">>, 5, 15)), Tests).
 
+%% UpdateTimeToLive test:
+update_time_to_live_input_tests(_) ->
+    Tests =
+          [?_ddb_test(
+              {"UpdateTimeToLive example request: enable TTL for table",
+               ?_f(erlcloud_ddb2:update_time_to_live(<<"SessionData">>, [{attribute_name, <<"ExpirationTime">>}, {enabled, true}])), "
+{
+    \"TableName\": \"SessionData\",
+    \"TimeToLiveSpecification\": {
+        \"AttributeName\": \"ExpirationTime\",
+        \"Enabled\": true
+    }
+}"
+              }),
+           ?_ddb_test(
+              {"UpdateTimeToLive example request: disable TTL for table",
+               ?_f(erlcloud_ddb2:update_time_to_live(<<"SessionData">>, [{attribute_name, <<"ExpirationTime">>}, {enabled, false}])), "
+{
+    \"TableName\": \"SessionData\",
+    \"TimeToLiveSpecification\": {
+        \"AttributeName\": \"ExpirationTime\",
+        \"Enabled\": false
+    }
+}" 
+            })],
+      Response = "
+{          
+    \"TimeToLiveSpecification\": {
+        \"AttributeName\": \"ExpirationTime\",
+        \"Enabled\": true
+    }
+}",
+      input_tests(Response, Tests).
+
+%% UpdateTimeToLive test:
+update_time_to_live_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"UpdateTimeToLive example response", "
+{
+    \"TimeToLiveSpecification\": {
+        \"AttributeName\": \"ExpirationTime\",
+        \"Enabled\": true
+    }
+}",
+              {ok, #ddb2_time_to_live_specification{
+                attribute_name = <<"ExpirationTime">>,
+                enabled = true}}})],
+    output_tests(?_f(erlcloud_ddb2:update_time_to_live(<<"SessionData">>, 
+      [{attribute_name, <<"ExpirationTime">>}, {enabled, true}])), Tests).

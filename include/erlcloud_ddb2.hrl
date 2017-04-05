@@ -110,6 +110,15 @@
         {table :: #ddb2_table_description{}
         }).
 
+-record(ddb2_time_to_live_description,
+        {attribute_name :: erlcloud_ddb2:attr_name(),
+         time_to_live_status :: erlcloud_ddb2:time_to_live_status()
+        }).
+
+-record(ddb2_describe_time_to_live,
+        {time_to_live_description :: #ddb2_time_to_live_description{}
+        }).
+
 -record(ddb2_get_item,
         {item :: erlcloud_ddb2:out_item(),
          consumed_capacity :: #ddb2_consumed_capacity{}
@@ -150,5 +159,14 @@
 
 -record(ddb2_update_table,
         {table_description :: #ddb2_table_description{}
+        }).
+
+-record(ddb2_time_to_live_specification, 
+        {attribute_name :: erlcloud_ddb2:attr_name(), 
+         enabled :: boolean()
+        }).
+
+-record(ddb2_update_time_to_live,
+        {time_to_live_specification :: #ddb2_time_to_live_specification{}
         }).
 
