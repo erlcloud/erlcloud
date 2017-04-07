@@ -94,6 +94,7 @@
          delete_table/1, delete_table/2, delete_table/3,
          describe_limits/0, describe_limits/1, describe_limits/2,
          describe_table/1, describe_table/2, describe_table/3,
+         describe_time_to_live/1, describe_time_to_live/2, describe_time_to_live/3,
          get_item/2, get_item/3, get_item/4,
          list_tables/0, list_tables/1, list_tables/2,
          put_item/2, put_item/3, put_item/4,
@@ -101,7 +102,8 @@
          q/2, q/3, q/4,
          scan/1, scan/2, scan/3,
          update_item/3, update_item/4, update_item/5,
-         update_table/2, update_table/3, update_table/4, update_table/5
+         update_table/2, update_table/3, update_table/4, update_table/5,
+         update_time_to_live/2, update_time_to_live/3, update_time_to_live/4
         ]).
 
 -export_type(
@@ -139,6 +141,7 @@
     delete_item_return/0,
     delete_table_return/0,
     describe_table_return/0,
+    describe_time_to_live_return/0,
     expected_opt/0,
     expression/0,
     expression_attribute_names/0,
@@ -190,11 +193,13 @@
     stream_specification/0,
     select/0,
     table_name/0,
+    time_to_live_status/0,
     update_action/0,
     update_item_opt/0,
     update_item_opts/0,
     update_item_return/0,
     update_table_return/0,
+    update_time_to_live_return/0,
     write_units/0
    ]).
 
@@ -1715,6 +1720,65 @@ describe_table(Table, Opts, Config) ->
         DdbOpts, #ddb2_describe_table.table).
 
 %%%------------------------------------------------------------------------------
+%%% DescribeTimeToLive
+%%%------------------------------------------------------------------------------
+-type time_to_live_status() :: enabled | disabled | enabling | disabling.
+
+-spec undynamize_time_to_live_status(binary(), undynamize_opts()) -> time_to_live_status().
+undynamize_time_to_live_status(Value, _) ->
+    case Value of
+      <<"ENABLED">> -> enabled;
+      <<"ENABLING">> -> enabling;
+      <<"DISABLED">> -> disabled;
+      <<"DISABLING">> -> disabling
+    end.
+
+-spec time_to_live_description_record() -> record_desc().
+time_to_live_description_record() ->
+    {#ddb2_time_to_live_description{},
+     [{<<"AttributeName">>, #ddb2_time_to_live_description.attribute_name, fun id/2},
+      {<<"TimeToLiveStatus">>, #ddb2_time_to_live_description.time_to_live_status, fun undynamize_time_to_live_status/2}
+    ]}.
+
+-spec describe_time_to_live_record() -> record_desc().
+describe_time_to_live_record() ->
+    {#ddb2_describe_time_to_live{},
+     [{<<"TimeToLiveDescription">>, #ddb2_describe_time_to_live.time_to_live_description,
+       fun(V, Opts) -> undynamize_record(time_to_live_description_record(), V, Opts) end}
+    ]}.
+
+-type describe_time_to_live_return() :: ddb_return(#ddb2_describe_time_to_live{}, #ddb2_time_to_live_description{}).
+
+-spec describe_time_to_live(table_name()) -> describe_time_to_live_return().
+describe_time_to_live(Table) ->
+    describe_time_to_live(Table, []).
+
+-spec describe_time_to_live(table_name(), ddb_opts()) -> describe_time_to_live_return().
+describe_time_to_live(Table, DbOpts) ->
+    describe_time_to_live(Table, DbOpts, default_config()).
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeTimeToLive.html]
+%%
+%% ===Example===
+%%
+%% Describe TimeToLive for table "SessionData".
+%% `
+%% {ok, Description} = erlcloud_ddb2:describe_time_to_live(<<"SessionData">>),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+-spec describe_time_to_live(table_name(), ddb_opts(), aws_config()) -> describe_time_to_live_return().
+describe_time_to_live(Table, DbOpts, Config) ->
+    Return = erlcloud_ddb_impl:request(
+               Config,
+               "DynamoDB_20120810.DescribeTimeToLive",
+               [{<<"TableName">>, Table}]),
+    out(Return, fun(Json, UOpts) -> undynamize_record(describe_time_to_live_record(), Json, UOpts) end, 
+        DbOpts, #ddb2_describe_time_to_live.time_to_live_description).
+
+%%%------------------------------------------------------------------------------
 %%% GetItem
 %%%------------------------------------------------------------------------------
 
@@ -2364,6 +2428,81 @@ update_table(Table, ReadUnits, WriteUnits, Opts) ->
 update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
     update_table(Table, [{provisioned_throughput, {ReadUnits, WriteUnits}} | Opts], Config).
 
+
+%%%------------------------------------------------------------------------------
+%%% UpdateTimeToLive
+%%%------------------------------------------------------------------------------
+-type update_time_to_live_opt() ::  {attribute_name, attr_name()} | 
+                                    {enabled, boolean()}.
+-type update_time_to_live_opts() :: [update_time_to_live_opt()].
+
+-spec dynamize_attribute_name(binary()) -> jsx:json_term().
+dynamize_attribute_name(Name) when is_binary(Name) -> 
+    Name.
+
+-spec dynamize_enable(boolean()) -> jsx:json_term().
+dynamize_enable(Value) when is_boolean(Value) ->
+    Value.
+
+-spec update_time_to_live_opts() -> opt_table().
+update_time_to_live_opts() ->
+    [{attribute_name, <<"AttributeName">>, fun dynamize_attribute_name/1},
+     {enabled, <<"Enabled">>, fun dynamize_enable/1}].
+
+-spec time_to_live_specification_record() -> record_desc().
+time_to_live_specification_record() ->
+    {#ddb2_time_to_live_specification{},
+     [{<<"AttributeName">>, #ddb2_time_to_live_specification.attribute_name, fun id/2},
+      {<<"Enabled">>, #ddb2_time_to_live_specification.enabled, fun id/2}
+    ]}.
+
+-spec update_time_to_live_record() -> record_desc().
+update_time_to_live_record() ->
+    {#ddb2_update_time_to_live{},
+     [{<<"TimeToLiveSpecification">>, #ddb2_update_time_to_live.time_to_live_specification,
+       fun(V, Opts) -> undynamize_record(time_to_live_specification_record(), V, Opts) end}
+     ]}.
+
+-type update_time_to_live_return() :: ddb_return(#ddb2_update_time_to_live{}, #ddb2_time_to_live_specification{}).
+
+-spec update_time_to_live(table_name(), update_time_to_live_opts()) -> update_time_to_live_return().
+update_time_to_live(Table, Opts) ->
+    update_time_to_live(Table, Opts, default_config()).
+
+-spec update_time_to_live(table_name(), attr_name(), boolean(), aws_config()) -> update_time_to_live_return().
+update_time_to_live(Table, AttributeName, Enabled, Config) ->
+    update_time_to_live(Table, [{attribute_name, AttributeName}, {enabled, Enabled}], Config).
+
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTimeToLive.html]
+%%
+%% ===Example===
+%%
+%% Enable TTL for table "SessionData" by setting attribute "ExpirationTime" as expiration date.
+%% ```
+%% erlcloud_ddb2:update_time_to_live(
+%%   <<"SessionData">>,
+%%   [{attribute_name, <<"ExpirationTime">>},
+%%    {enabled, true}])
+%% '''
+%% @end
+%%------------------------------------------------------------------------------
+-spec update_time_to_live(table_name(), update_time_to_live_opts(), aws_config()) -> update_time_to_live_return();
+                         (table_name(), attr_name(), boolean()) -> update_time_to_live_return().
+update_time_to_live(Table, Opts, Config) when is_list(Opts) ->
+    {AwsOpts, DdbOpts} = opts(update_time_to_live_opts(), Opts),
+    Body = [{<<"TableName">>, Table}, {<<"TimeToLiveSpecification">>, AwsOpts}],
+    Return = erlcloud_ddb_impl:request(
+               Config,
+               "DynamoDB_20120810.UpdateTimeToLive",
+               Body),
+    out(Return, fun(Json, UOpts) -> undynamize_record(update_time_to_live_record(), Json, UOpts) end, 
+        DdbOpts, #ddb2_update_time_to_live.time_to_live_specification);
+
+update_time_to_live(Table, AttributeName, Enabled) ->
+    update_time_to_live(Table, [{attribute_name, AttributeName}, {enabled, Enabled}]).
 
 to_binary(X) when is_binary(X) ->
     X;
