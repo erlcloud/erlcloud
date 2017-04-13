@@ -38,7 +38,10 @@
   put_record/4,
   put_record_batch/2,
   put_record_batch/3,
-  put_record_batch/4
+  put_record_batch/4,
+  update_destination/2,
+  update_destination/3,
+  update_destination/4
 ]).
 
 new(AccessKeyID, SecretAccessKey) ->
@@ -189,6 +192,31 @@ put_record_batch(StreamName, Data, Options, Config) when is_record(Config, aws_c
   Json = [{<<"DeliveryStreamName">>, StreamName},
     {<<"Records">>, FormatData}],
   erlcloud_firehose_impl:request(Config, "Firehose_20150804.PutRecordBatch", Json).
+
+update_destination(DeliveryStreamName, Options) ->
+  update_destination(DeliveryStreamName, Options, erlcloud_aws:default_config()).
+update_destination(DeliveryStreamName, Options, Config) ->
+  {ok, StreamDetails}=describe_delivery_stream(DeliveryStreamName),
+
+  Description=proplists:get_value(<<"DeliveryStreamDescription">>, StreamDetails),
+  StreamName=proplists:get_value(<<"DeliveryStreamName">>, Description),
+  Destinations=proplists:get_value(<<"Destinations">>, Description),
+  First=hd(Destinations),
+  DestionationId=proplists:get_value(<<"DestinationId">>, First),
+  VersionId=proplists:get_value(<<"VersionId">>, Description),
+
+  update_destination(VersionId, StreamName, DestionationId, Options, Config).
+
+update_destination(VersionId, DeliveryStreamName, DestionationId, Options) ->
+  update_destination(VersionId, DeliveryStreamName, DestionationId, Options, erlcloud_aws:default_config()).
+update_destination(VersionId, DeliveryStreamName, DestionationId, Options, Config) ->
+  Json = [{<<"CurrentDeliveryStreamVersionId">>, VersionId},
+    {<<"DeliveryStreamName">>, DeliveryStreamName},
+    {<<"DestinationId">>, DestionationId}],
+
+  JsonWOptions=Json ++ Options,
+
+  erlcloud_firehose_impl:request(Config, "Firehose_20150804.UpdateDestination", JsonWOptions).
 
 encode(Options, Data) ->
   case proplists:get_value(encode, Options, true) of
