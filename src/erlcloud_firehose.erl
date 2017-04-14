@@ -104,23 +104,23 @@ list_delivery_streams() ->
 
 -spec list_delivery_streams(string() | aws_config()) -> proplist().
 list_delivery_streams(Config) when is_record(Config, aws_config) ->
-  erlcloud_firehose_impl:request(Config, "Firehose_20150804.ListDeliveryStreams", []);
+  erlcloud_kinesis_impl:request(firehose, Config, "Firehose_20150804.ListDeliveryStreams", []);
 list_delivery_streams(ExclusiveStartStreamName) ->
   Json = [{<<"ExclusiveStartDeliveryStreamName">>, ExclusiveStartStreamName}],
-  erlcloud_firehose_impl:request(erlcloud_aws:default_config(), "Firehose_20150804.ListDeliveryStreams", Json).
+  erlcloud_kinesis_impl:request(firehose, erlcloud_aws:default_config(), "Firehose_20150804.ListDeliveryStreams", Json).
 
 -spec list_delivery_streams(string(), 1..100 | aws_config()) -> proplist().
 list_delivery_streams(ExclusiveStartStreamName, Config) when is_record(Config, aws_config) ->
   Json = [{<<"ExclusiveStartDeliveryStreamName">>, ExclusiveStartStreamName}],
-  erlcloud_firehose_impl:request(Config, "Firehose_20150804.ListDeliveryStreams", Json);
+  erlcloud_kinesis_impl:request(firehose, Config, "Firehose_20150804.ListDeliveryStreams", Json);
 list_delivery_streams(ExclusiveStartStreamName, Limit) when is_integer(Limit), Limit > 0, Limit =< 100 ->
   Json = [{<<"ExclusiveStartDeliveryStreamName">>, ExclusiveStartStreamName}, {<<"Limit">>, Limit}],
-  erlcloud_firehose_impl:request(erlcloud_aws:default_config(), "Firehose_20150804.ListDeliveryStreams", Json).
+  erlcloud_kinesis_impl:request(firehose, erlcloud_aws:default_config(), "Firehose_20150804.ListDeliveryStreams", Json).
 
 -spec list_delivery_streams(string(), 1..100, aws_config()) -> proplist().
 list_delivery_streams(ExclusiveStartStreamName, Limit, Config) when is_record(Config, aws_config), is_integer(Limit), Limit > 0, Limit =< 100 ->
   Json = [{<<"ExclusiveStartDeliveryStreamName">>, ExclusiveStartStreamName}, {<<"Limit">>, Limit}],
-  erlcloud_firehose_impl:request(Config, "Firehose_20150804.ListDeliveryStreams", Json).
+  erlcloud_kinesis_impl:request(firehose, Config, "Firehose_20150804.ListDeliveryStreams", Json).
 
 -spec describe_delivery_stream(string()) -> proplist().
 describe_delivery_stream(StreamName) ->
@@ -129,9 +129,9 @@ describe_delivery_stream(StreamName) ->
 -spec describe_delivery_stream(string(), get_records_limit() | aws_config()) -> proplist().
 describe_delivery_stream(StreamName, Config) when is_record(Config, aws_config) ->
   Json = [{<<"DeliveryStreamName">>, StreamName}],
-  erlcloud_firehose_impl:request(Config, "Firehose_20150804.DescribeDeliveryStream", Json);
+  erlcloud_kinesis_impl:request(firehose, Config, "Firehose_20150804.DescribeDeliveryStream", Json);
 describe_delivery_stream(StreamName, Limit) ->
-  erlcloud_firehose_impl:request(StreamName, Limit, erlcloud_aws:default_config()).
+  erlcloud_kinesis_impl:request(firehose, StreamName, Limit, erlcloud_aws:default_config()).
 
 -spec describe_delivery_stream(string(), get_records_limit(), string() | aws_config()) -> proplist().
 describe_delivery_stream(StreamName, Limit, Config)
@@ -139,9 +139,9 @@ describe_delivery_stream(StreamName, Limit, Config)
   is_integer(Limit),
   Limit >= 1, Limit =< 10000 ->
   Json = [{<<"DeliveryStreamName">>, StreamName}, {<<"Limit">>, Limit}],
-  erlcloud_firehose_impl:request(Config, "Firehose_20150804.DescribeDeliveryStream", Json);
+  erlcloud_kinesis_impl:request(firehose, Config, "Firehose_20150804.DescribeDeliveryStream", Json);
 describe_delivery_stream(StreamName, Limit, ExcludeShard) ->
-  erlcloud_firehose_impl:request(StreamName, Limit, ExcludeShard, erlcloud_aws:default_config()).
+  erlcloud_kinesis_impl:request(firehose, StreamName, Limit, ExcludeShard, erlcloud_aws:default_config()).
 
 -spec describe_delivery_stream(string(), get_records_limit(), string(), aws_config()) -> proplist().
 describe_delivery_stream(StreamName, Limit, ExcludeStart, Config)
@@ -149,7 +149,7 @@ describe_delivery_stream(StreamName, Limit, ExcludeStart, Config)
   is_integer(Limit),
   Limit >= 1, Limit =< 10000 ->
   Json = [{<<"DeliveryStreamName">>, StreamName}, {<<"Limit">>, Limit}, {<<"ExclusiveStartDestinationId">>, ExcludeStart}],
-  erlcloud_firehose_impl:request(Config, "Firehose_20150804.DescribeDeliveryStream", Json).
+  erlcloud_kinesis_impl:request(firehose, Config, "Firehose_20150804.DescribeDeliveryStream", Json).
 
 -spec put_record(binary(), payload()) ->
   {ok, proplist()} | {error, any()}.
@@ -172,7 +172,7 @@ put_record(StreamName, Data, Options, Config) when is_record(Config, aws_config)
   Json = [{<<"DeliveryStreamName">>, StreamName},
     {<<"Record">>, [{<<"Data">>, Encoded}]}],
 
-  erlcloud_firehose_impl:request(Config, "Firehose_20150804.PutRecord", Json).
+  erlcloud_kinesis_impl:request(firehose, Config, "Firehose_20150804.PutRecord", Json).
 
 -spec put_record_batch(binary(), payload()) ->
   {ok, proplist()} | {error, any()}.
@@ -191,7 +191,7 @@ put_record_batch(StreamName, Data, Options, Config) when is_record(Config, aws_c
 %%  [{<<"DeliveryStreamName">>, StreamName},{<<"Records">>,[[{#Bin<4>,#Bin<4>}],[{#Bin<4>,#Bin<4>}]]}]
   Json = [{<<"DeliveryStreamName">>, StreamName},
     {<<"Records">>, FormatData}],
-  erlcloud_firehose_impl:request(Config, "Firehose_20150804.PutRecordBatch", Json).
+  erlcloud_kinesis_impl:request(firehose, Config, "Firehose_20150804.PutRecordBatch", Json).
 
 update_destination(DeliveryStreamName, Options) ->
   update_destination(DeliveryStreamName, Options, erlcloud_aws:default_config()).
@@ -216,7 +216,7 @@ update_destination(VersionId, DeliveryStreamName, DestionationId, Options, Confi
 
   JsonWOptions=Json ++ Options,
 
-  erlcloud_firehose_impl:request(Config, "Firehose_20150804.UpdateDestination", JsonWOptions).
+  erlcloud_kinesis_impl:request(firehose, Config, "Firehose_20150804.UpdateDestination", JsonWOptions).
 
 encode(Options, Data) ->
   case proplists:get_value(encode, Options, true) of
