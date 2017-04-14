@@ -193,6 +193,25 @@ put_record_batch(StreamName, Data, Options, Config) when is_record(Config, aws_c
     {<<"Records">>, FormatData}],
   erlcloud_kinesis_impl:request(firehose, Config, "Firehose_20150804.PutRecordBatch", Json).
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% Kinesis API:
+%% [http://docs.aws.amazon.com/firehose/latest/APIReference/API_UpdateDestination.html]
+%%
+%% Updates the specified destination of the specified delivery stream.
+%%
+%% erlcloud_firehose:update_destination(<<"stream_name">>, [
+%%     {<<"RedshiftDestinationUpdate">>, [
+%%         {<<"CopyCommand">>, [
+%%             {<<"CopyOptions">>, <<"timeformat as 'epochmillisecs' json 's3://json/jsonpath.json'">>},
+%%             {<<"DataTableColumns">>, <<"column_one, column_two, column_three">>},
+%%             {<<"DataTableName">>,<<"preprocess_t">>}
+%%         ]}
+%%      ]}
+%%    ]).
+%%
+%% @end
+%%------------------------------------------------------------------------------
 update_destination(DeliveryStreamName, Options) ->
   update_destination(DeliveryStreamName, Options, erlcloud_aws:default_config()).
 update_destination(DeliveryStreamName, Options, Config) ->
