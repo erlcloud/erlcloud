@@ -720,7 +720,7 @@ list_all_tags_pagination_test_() ->
     Tags1 = [[{<<"Key">>, <<"k1">>}, {<<"Value">>, <<"v1">>}],
              [{<<"Key">>, <<"k2">>}, {<<"Value">>, <<"v2">>}]],
     Tags2 = [[{<<"Key">>, <<"k3">>}, {<<"Value">>, <<"v3">>}]],
-    meck:sequence(EK, request, 3,
+    meck:sequence(EK, request, 4,
                   [{ok, [{<<"HasMoreTags">>, true},  {<<"Tags">>, Tags1}]},
                    {ok, [{<<"HasMoreTags">>, false}, {<<"Tags">>, Tags2}]}]),
     Result = erlcloud_kinesis:list_all_tags_for_stream(<<"stream">>),
