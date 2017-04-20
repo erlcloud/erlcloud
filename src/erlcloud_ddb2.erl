@@ -647,7 +647,9 @@ undynamize_value({<<"M">>, Map}, Opts) ->
 
 -spec undynamize_attr(json_attr(), undynamize_opts()) -> out_attr().
 undynamize_attr({Name, [ValueJson]}, Opts) ->
-    {Name, undynamize_value(ValueJson, Opts)}.
+    {Name, undynamize_value(ValueJson, Opts)};
+undynamize_attr({}, _) ->
+    {}.
 
 -spec undynamize_object(fun((json_pair(), undynamize_opts()) -> A), 
                         [json_pair()] | [{}], undynamize_opts()) -> [A].
