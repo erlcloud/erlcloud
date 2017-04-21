@@ -366,13 +366,13 @@ describe_account_limits_all() ->
 describe_account_limits_all(Config = #aws_config{}) ->
     list_all(fun describe_account_limits/2, [], Config, []).
 
--spec describe_account_limits(params) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+-spec describe_account_limits(list()) ->
+    {ok, cloudformation_list(), string()} | {error, error_reason()}.
 describe_account_limits(Params) ->
     describe_account_limits(Params, default_config()).
 
--spec describe_account_limits(params, aws_config()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+-spec describe_account_limits(list(), aws_config()) ->
+    {ok, cloudformation_list(), string()} | {error, error_reason()}.
 describe_account_limits(Params, Config = #aws_config{}) ->
 
     RequestParams = lists:map(fun(T) -> convert_param(T) end, Params),
