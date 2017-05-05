@@ -17,13 +17,20 @@
          receive_message/5, receive_message/6,
          remove_permission/2, remove_permission/3,
          send_message/2, send_message/3, send_message/4,
-         set_queue_attributes/2, set_queue_attributes/3
+         set_queue_attributes/2, set_queue_attributes/3,
+         send_message_batch/2, send_message_batch/3, send_message_batch/4,
+         delete_message_batch/2, delete_message_batch/3,
+         change_message_visibility_batch/3, change_message_visibility_batch/4
         ]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 
 -define(API_VERSION, "2012-11-05").
+
+-define(SEND_BATCH_FIELD(N, F, V), {"SendMessageBatchRequestEntry." ++ N ++ F, V}).
+-define(DELETE_BATCH_FIELD(N, F, V), {"DeleteMessageBatchRequestEntry." ++ N ++ F, V}).
+-define(CHANGE_VISIBILITY_BATCH_FIELD(N, F, V), {"ChangeMessageVisibilityBatchRequestEntry." ++ N ++ F, V}).
 
 -type(sqs_permission() :: all | send_message | receive_message | delete_message |
                           change_message_visibility | get_queue_attributes).
@@ -38,7 +45,7 @@
                                     created_timestamp | last_modified_timestamp | policy |
                                     queue_arn).
 
-
+-type(batch_entry() :: [{string(), string()}]).
 
 -spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
@@ -387,6 +394,125 @@ set_queue_attributes(QueueName, Attributes, Config)
                           erlcloud_aws:param_list([Value || {_, Value} <- Attributes], "Attribute.Value")),
 
     sqs_simple_request(Config, QueueName, "SetQueueAttributes", Params).
+
+-spec send_message_batch(string(), [batch_entry()]) -> proplist().
+send_message_batch(QueueName, BatchMessages) ->
+    send_message_batch(QueueName, BatchMessages, default_config()).
+
+-spec send_message_batch(string(), [batch_entry()], 0..900 | none | aws_config()) -> proplist().
+send_message_batch(QueueName, BatchMessages, Config)
+    when is_record(Config, aws_config) ->
+    send_message_batch(QueueName, BatchMessages, none, Config);
+send_message_batch(QueueName, BatchMessages, DelaySeconds) ->
+    send_message_batch(QueueName, BatchMessages, DelaySeconds, default_config()).
+
+-spec send_message_batch(string(), [batch_entry()], 0..900 | none, aws_config()) -> proplist().
+send_message_batch(QueueName, [{Id, Body}|_]=BatchMessages, DelaySeconds, Config)
+    when is_list(QueueName), is_list(Id), is_list(Body), is_record(Config, aws_config),
+         (DelaySeconds >= 0 andalso DelaySeconds =< 900) orelse
+         DelaySeconds =:= none ->
+
+    {_, BatchRequestEntries} =
+    lists:foldr(fun({BatchId, MessageBody}, {N, Acc}) ->
+                    {N + 1, [mk_send_batch_entry(N, BatchId, MessageBody, DelaySeconds)| Acc]}
+                end, {1, []}, BatchMessages),
+
+    Doc = sqs_xml_request(Config, QueueName, "SendMessageBatch",
+                          lists:flatten(BatchRequestEntries)),
+
+    BatchResponse =
+    [{successful, "SendMessageBatchResult/SendMessageBatchResultEntry", fun decode_send_batch_successful/1},
+     {failed, "SendMessageBatchResult/BatchResultErrorEntry", fun decode_batch_result_error/1}],
+
+    erlcloud_xml:decode(BatchResponse, Doc).
+
+-spec delete_message_batch(string(), [batch_entry()]) -> proplists:proplist().
+delete_message_batch(QueueName, BatchReceiptHandles) ->
+    delete_message_batch(QueueName, BatchReceiptHandles, default_config()).
+
+-spec delete_message_batch(string(), [batch_entry()], aws_config()) -> proplists:proplist() .
+delete_message_batch(QueueName, [{Id, Handle}|_]=BatchReceiptHandles, Config)
+    when is_list(QueueName), is_list(Id), is_list(Handle),
+         is_record(Config, aws_config) ->
+
+    {_, BatchRequestEntries} =
+    lists:foldr(fun({BatchId, MessageBody}, {N, Acc}) ->
+                    {N + 1, [mk_delete_batch_entry(N, BatchId, MessageBody)| Acc]}
+                end, {1, []}, BatchReceiptHandles),
+
+    Doc = sqs_xml_request(Config, QueueName, "DeleteMessageBatch",
+                          lists:flatten(BatchRequestEntries)),
+
+    BatchResponse =
+    [{successful, "DeleteMessageBatchResult/DeleteMessageBatchResultEntry", fun decode_id_batch_successful/1},
+     {failed, "DeleteMessageBatchResult/BatchResultErrorEntry", fun decode_batch_result_error/1}],
+    erlcloud_xml:decode(BatchResponse, Doc).
+
+-spec change_message_visibility_batch(string(), [batch_entry()], 0..43200) -> proplists:proplist().
+change_message_visibility_batch(QueueName, BatchReceiptHandles, VisibilityTimeout) ->
+    change_message_visibility_batch(QueueName, BatchReceiptHandles, VisibilityTimeout,
+                              default_config()).
+
+-spec change_message_visibility_batch(string(), [batch_entry()], 0..43200, aws_config()) -> proplists:proplist().
+change_message_visibility_batch(QueueName, [{Id, Handle}|_]=BatchReceiptHandles, VisibilityTimeout, Config)
+    when is_list(QueueName), is_list(Id), is_list(Handle), is_record(Config, aws_config) ->
+
+    {_, BatchRequestEntries} =
+    lists:foldr(fun({BatchId, MessageBody}, {N, Acc}) ->
+                    {N + 1, [mk_ch_visibility_batch_entry(N, BatchId, MessageBody, VisibilityTimeout)| Acc]}
+                end, {1, []}, BatchReceiptHandles),
+
+    Doc = sqs_xml_request(Config, QueueName, "ChangeMessageVisibilityBatch",
+                          lists:flatten(BatchRequestEntries)),
+
+    BatchResponse =
+    [{successful, "ChangeMessageVisibilityBatchResult/ChangeMessageVisibilityBatchResultEntry", fun decode_id_batch_successful/1},
+     {failed, "ChangeMessageVisibilityBatchResult/BatchResultErrorEntry", fun decode_batch_result_error/1}],
+    erlcloud_xml:decode(BatchResponse, Doc).
+
+-spec mk_send_batch_entry(integer(), string(), string(), 0..900 | none) -> [{string(), integer() | string()}].
+mk_send_batch_entry(N, MessageId, MessageBody, DelaySeconds) ->
+    N0 = integer_to_list(N),
+    [
+        ?SEND_BATCH_FIELD(N0, ".Id", MessageId),
+        ?SEND_BATCH_FIELD(N0, ".MessageBody", MessageBody),
+        ?SEND_BATCH_FIELD(N0, ".DelaySeconds", DelaySeconds)
+    ].
+
+-spec mk_delete_batch_entry(integer(), string(), string()) -> [{string(), string()}].
+mk_delete_batch_entry(N, MessageId, ReceiptHandle) ->
+    N0 = integer_to_list(N),
+    [
+        ?DELETE_BATCH_FIELD(N0, ".Id", MessageId),
+        ?DELETE_BATCH_FIELD(N0, ".ReceiptHandle", ReceiptHandle)
+    ].
+
+-spec mk_ch_visibility_batch_entry(integer(), string(), string(), 0..43200) -> [{string(), integer() | string()}].
+mk_ch_visibility_batch_entry(N, MessageId, ReceiptHandle, VisibilityTimeout) ->
+    N0 = integer_to_list(N),
+    [
+        ?CHANGE_VISIBILITY_BATCH_FIELD(N0, ".Id", MessageId),
+        ?CHANGE_VISIBILITY_BATCH_FIELD(N0, ".ReceiptHandle", ReceiptHandle),
+        ?CHANGE_VISIBILITY_BATCH_FIELD(N0, ".VisibilityTimeout", VisibilityTimeout)
+    ].
+
+decode_send_batch_successful(Nodes) ->
+    [erlcloud_xml:decode([
+                             {id, "Id", text},
+                             {message_id, "MessageId", text},
+                             {md5_of_message_body, "MD5OfMessageBody", text}
+                         ], Node) || Node <- Nodes].
+
+decode_id_batch_successful(Nodes) ->
+    [erlcloud_xml:decode([{id, "Id", text}], Node) || Node <- Nodes].
+
+decode_batch_result_error(Nodes) ->
+    [erlcloud_xml:decode([
+                             {id, "Id", text},
+                             {sender_fault, "SenderFault", boolean},
+                             {code, "Code", text},
+                             {message, "Message", text}
+                         ], Node) || Node <- Nodes].
 
 default_config() -> erlcloud_aws:default_config().
 
