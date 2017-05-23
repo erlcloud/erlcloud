@@ -20,7 +20,9 @@
          
          create_load_balancer_policy/3, create_load_balancer_policy/4, create_load_balancer_policy/5,
          delete_load_balancer_policy/2, delete_load_balancer_policy/3,
-         
+
+         describe_instance_health/1, describe_instance_health/2,
+
          describe_load_balancer_policies/0, describe_load_balancer_policies/1, 
          describe_load_balancer_policies/2, describe_load_balancer_policies/3,
          
@@ -143,6 +145,14 @@ configure_health_check(LB, Target, Config) when is_list(LB) ->
                        "ConfigureHealthCheck",
                        [{"LoadBalancerName", [LB]},
                         {"HealthCheck.Target", Target}]).
+
+describe_instance_health(LB) ->
+    describe_instance_health(LB, default_config()).
+describe_instance_health(LB, Config) ->
+    elb_request(Config,
+                       "DescribeInstanceHealth",
+                       [{"LoadBalancerName", LB}]).
+
 
 %% --------------------------------------------------------------------
 %% @doc describe_load_balancer with a specific balancer name or with a 
