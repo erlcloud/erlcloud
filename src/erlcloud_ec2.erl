@@ -99,12 +99,14 @@
 
          %% Security Groups
          authorize_security_group_ingress/2, authorize_security_group_ingress/3,
+         authorize_security_group_egress/2, authorize_security_group_egress/3,
          create_security_group/2, create_security_group/3, create_security_group/4,
          delete_security_group/1, delete_security_group/2, delete_security_group/3,
          describe_security_groups/0, describe_security_groups/1, describe_security_groups/2,
          describe_security_groups_filtered/1, describe_security_groups_filtered/2,
          describe_security_groups/4,
          revoke_security_group_ingress/2, revoke_security_group_ingress/3,
+         revoke_security_group_egress/2, revoke_security_group_egress/3,
 
          %% Spot Instances
          cancel_spot_instance_requests/1, cancel_spot_instance_requests/2,
@@ -383,6 +385,16 @@ extract_volume_status(Node) ->
       Node
      ).
 
+-spec authorize_security_group_egress(string(), [vpc_egress_spec()]) -> ok_error().
+authorize_security_group_egress(GroupName, EgressSpec) ->
+    authorize_security_group_egress(GroupName, EgressSpec, default_config()).
+
+-spec authorize_security_group_egress(string(), [vpc_egress_spec()], aws_config()) -> ok_error().
+authorize_security_group_egress(GroupID, VPCEgressSpec, Config)
+    when is_list(GroupID), is_list(VPCEgressSpec) ->
+    Params = [{"GroupId", GroupID} | vpc_egress_spec_to_params(VPCEgressSpec)],
+    ec2_simple_query(Config, "AuthorizeSecurityGroupEgress", Params, ?NEW_API_VERSION).
+
 -spec authorize_security_group_ingress(string(), ec2_ingress_spec()) -> ok_error().
 authorize_security_group_ingress(GroupName, IngressSpec) ->
     authorize_security_group_ingress(GroupName, IngressSpec, default_config()).
@@ -408,38 +420,73 @@ ingress_spec_params(Spec) ->
     ].
 
 vpc_ingress_spec_to_params(Spec) ->
-    vpc_ingress_spec_to_params(Spec, 1, []).
+    XgressSpec = lists:map(fun vpc_ingress_to_xgress/1, Spec),
+    vpc_xgress_spec_to_params(XgressSpec, 1, []).
 
-vpc_ingress_spec_to_params([], _, Res) -> Res;
-vpc_ingress_spec_to_params([H|T], Count, Res) ->
+vpc_egress_spec_to_params(Spec) ->
+    XgressSpec = lists:map(fun vpc_egress_to_xgress/1, Spec),
+    vpc_xgress_spec_to_params(XgressSpec, 1, []).
+
+vpc_xgress_spec_to_params([], _, Res) -> Res;
+vpc_xgress_spec_to_params([H|T], Count, Res) ->
     Prefix = lists:flatten(["IpPermissions", $., integer_to_list(Count), $.]),
     P1 = [ {lists:flatten([Prefix, "IpProtocol"]),
-            H#vpc_ingress_spec.ip_protocol},
-           {lists:flatten([Prefix, "FromPort"]), H#vpc_ingress_spec.from_port},
-           {lists:flatten([Prefix, "ToPort"]), H#vpc_ingress_spec.to_port}
+            H#vpc_xgress_internal_spec.ip_protocol},
+           {lists:flatten([Prefix, "FromPort"]), H#vpc_xgress_internal_spec.from_port},
+           {lists:flatten([Prefix, "ToPort"]), H#vpc_xgress_internal_spec.to_port}
          ],
-    UserP = vpc_ingress_details_to_params(
-              H#vpc_ingress_spec.user_id, Count, "Groups", "UserId"),
-    GNameP = vpc_ingress_details_to_params(
-               H#vpc_ingress_spec.group_name, Count, "Groups", "GroupName"),
-    GIdP = vpc_ingress_details_to_params(
-             H#vpc_ingress_spec.group_id, Count, "Groups", "GroupId"),
-    CidrP = vpc_ingress_details_to_params(
-              H#vpc_ingress_spec.cidr_ip, Count, "IpRanges", "CidrIp"),
-    vpc_ingress_spec_to_params(T, Count + 1, lists:flatten([P1, UserP, GNameP,
+    UserP = vpc_xgress_details_to_params(
+        H#vpc_xgress_internal_spec.user_id, Count, "Groups", "UserId"),
+    GNameP = vpc_xgress_details_to_params(
+        H#vpc_xgress_internal_spec.group_name, Count, "Groups", "GroupName"),
+    GIdP = vpc_xgress_details_to_params(
+        H#vpc_xgress_internal_spec.group_id, Count, "Groups", "GroupId"),
+    CidrP = vpc_xgress_details_to_params(
+        H#vpc_xgress_internal_spec.cidr_ip, Count, "IpRanges", "CidrIp"),
+    vpc_xgress_spec_to_params(T, Count + 1, lists:flatten([P1, UserP, GNameP,
                                                             GIdP, CidrP, Res])).
 
-vpc_ingress_details_to_params(Values, Count, Prefix, Suffix) ->
-    vpc_ingress_details_to_params(Values, Count, Prefix, Suffix, 1, []).
+vpc_xgress_details_to_params(Values, Count, Prefix, Suffix) ->
+    vpc_xgress_details_to_params(Values, Count, Prefix, Suffix, 1, []).
 
-vpc_ingress_details_to_params(undefined, _, _, _, _, _) -> [];
-vpc_ingress_details_to_params([], _, _, _, _, Res) -> lists:flatten(Res);
-vpc_ingress_details_to_params([H|T], Count, Prefix, Suffix, DetailCount, Res) ->
+vpc_xgress_details_to_params(undefined, _, _, _, _, _) -> [];
+vpc_xgress_details_to_params([], _, _, _, _, Res) -> lists:flatten(Res);
+vpc_xgress_details_to_params([H|T], Count, Prefix, Suffix, DetailCount, Res) ->
     Key = lists:flatten(["IpPermissions", $., integer_to_list(Count), $.,
                          Prefix, $., integer_to_list(DetailCount), $., Suffix]),
     Param = { Key, H },
-    vpc_ingress_details_to_params(T, Count, Prefix, Suffix, DetailCount + 1,
+    vpc_xgress_details_to_params(T, Count, Prefix, Suffix, DetailCount + 1,
                                   [ Param | Res ]).
+
+vpc_ingress_to_xgress(#vpc_ingress_spec{user_id = UserP,
+                                       group_name = GNameP,
+                                       group_id = GIdP,
+                                       cidr_ip = CidrP,
+                                       ip_protocol = IpProtocol,
+                                       from_port = FromPort,
+                                       to_port = ToPort}) ->
+    #vpc_xgress_internal_spec{user_id     = UserP,
+                              group_name  = GNameP,
+                              group_id    = GIdP,
+                              cidr_ip     = CidrP,
+                              ip_protocol = IpProtocol,
+                              from_port   = FromPort,
+                              to_port     = ToPort}.
+
+vpc_egress_to_xgress(#vpc_egress_spec{user_id = UserP,
+                                       group_name = GNameP,
+                                       group_id = GIdP,
+                                       cidr_ip = CidrP,
+                                       ip_protocol = IpProtocol,
+                                       from_port = FromPort,
+                                       to_port = ToPort}) ->
+    #vpc_xgress_internal_spec{user_id     = UserP,
+                              group_name  = GNameP,
+                              group_id    = GIdP,
+                              cidr_ip     = CidrP,
+                              ip_protocol = IpProtocol,
+                              from_port   = FromPort,
+                              to_port     = ToPort}.
 
 -spec bundle_instance(string(), string(), string(), string(), string(), string()) -> ok_error(proplist()).
 bundle_instance(InstanceID, Bucket, Prefix, AccessKeyID, UploadPolicy,
@@ -2917,11 +2964,26 @@ reset_snapshot_attribute(SnapshotID, create_volume_permission, Config)
 revoke_security_group_ingress(GroupName, IngressSpec) ->
     revoke_security_group_ingress(GroupName, IngressSpec, default_config()).
 
--spec revoke_security_group_ingress(string(), ec2_ingress_spec(), aws_config()) -> ok.
+-spec revoke_security_group_ingress(string(), ec2_ingress_spec() | [vpc_ingress_spec()], aws_config()) -> ok.
 revoke_security_group_ingress(GroupName, IngressSpec, Config)
   when is_list(GroupName), is_record(IngressSpec, ec2_ingress_spec) ->
     Params = [{"GroupName", GroupName}|ingress_spec_params(IngressSpec)],
-    ec2_simple_query(Config, "RevokeSecurityGroupIngress", Params).
+    ec2_simple_query(Config, "RevokeSecurityGroupIngress", Params);
+
+revoke_security_group_ingress(GroupId, VpcIngressSpec, Config)
+  when is_list(GroupId), is_list(VpcIngressSpec) ->
+    Params = [{"GroupId", GroupId} |vpc_ingress_spec_to_params(VpcIngressSpec)],
+    ec2_simple_query(Config, "RevokeSecurityGroupIngress", Params, ?NEW_API_VERSION).
+
+-spec revoke_security_group_egress(string(), [vpc_egress_spec()]) -> ok.
+revoke_security_group_egress(GroupName, VpcEgressSpec) ->
+    revoke_security_group_egress(GroupName, VpcEgressSpec, default_config()).
+
+-spec revoke_security_group_egress(string(), [vpc_egress_spec()], aws_config()) -> ok.
+revoke_security_group_egress(GroupId, VpcEgressSpec, Config)
+  when is_list(GroupId), is_list(VpcEgressSpec) ->
+    Params = [{"GroupId", GroupId} |vpc_egress_spec_to_params(VpcEgressSpec)],
+    ec2_simple_query(Config, "RevokeSecurityGroupEgress", Params, ?NEW_API_VERSION).
 
 -spec run_instances(ec2_instance_spec()) -> ok_error(proplist()).
 run_instances(InstanceSpec) -> run_instances(InstanceSpec, default_config()).
