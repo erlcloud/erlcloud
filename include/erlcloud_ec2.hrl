@@ -95,6 +95,24 @@
           group_id::[string()],
           cidr_ip::[string()]
          }).
+-record(vpc_egress_spec, {
+          ip_protocol::tcp|udp|icmp,
+          from_port::-1 | 0..65535,
+          to_port::-1 | 0..65535,
+          user_id::[string()],
+          group_name::[string()],
+          group_id::[string()],
+          cidr_ip::[string()]
+         }).
+-record(vpc_xgress_internal_spec, {
+          ip_protocol::tcp|udp|icmp,
+          from_port::-1 | 0..65535,
+          to_port::-1 | 0..65535,
+          user_id::[string()],
+          group_name::[string()],
+          group_id::[string()],
+          cidr_ip::[string()]
+         }).
 
 -record(ec2_network_acl_spec, {
           network_acl_id::string(),
@@ -115,6 +133,7 @@
 -type(ec2_spot_instance_request() :: #ec2_spot_instance_request{}).
 -type(ec2_spot_fleet_request() :: #ec2_spot_fleet_request{}).
 -type(vpc_ingress_spec() :: #vpc_ingress_spec{}).
+-type(vpc_egress_spec() :: #vpc_egress_spec{}).
 -type(ec2_network_acl_spec() :: #ec2_network_acl_spec{}).
 
 -record(ec2_tag, {
