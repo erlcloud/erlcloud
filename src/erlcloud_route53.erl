@@ -182,8 +182,9 @@ describe_zones_all(Options, Config) when is_list(Options),
 %% --------------------------------------------------------------------
 -spec describe_resource_sets(ZoneId :: string()) ->
              {ok, list(aws_route53_resourceset())} |
+             {ok, list(aws_route53_resourceset()), string()} |
              {ok, list(aws_route53_resourceset()), {string(), string()}} |
-             {ok ,list(aws_route53_resourceset()), string()} |
+             {ok, list(aws_route53_resourceset()), {string(), string(), string()}} |
              {error, term()}.
 describe_resource_sets(ZoneId) ->
     describe_resource_sets(ZoneId, erlcloud_aws:default_config()).
@@ -195,8 +196,9 @@ describe_resource_sets(ZoneId) ->
 -spec describe_resource_sets(ZoneId :: string(),
                              AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_resourceset())} |
+             {ok, list(aws_route53_resourceset()), string()} |
              {ok, list(aws_route53_resourceset()), {string(), string()}} |
-             {ok ,list(aws_route53_resourceset()), string()} |
+             {ok, list(aws_route53_resourceset()), {string(), string(), string()}} |
              {error, term()}.
 describe_resource_sets(ZoneId, AwsConfig) ->
     describe_resource_sets(ZoneId, [], AwsConfig).
@@ -210,8 +212,9 @@ describe_resource_sets(ZoneId, AwsConfig) ->
                              Options   :: list({string(), string()}),
                              AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_resourceset())} |
+             {ok, list(aws_route53_resourceset()), string()} |
              {ok, list(aws_route53_resourceset()), {string(), string()}} |
-             {ok ,list(aws_route53_resourceset()), string()} |
+             {ok, list(aws_route53_resourceset()), {string(), string(), string()}} |
              {error, term()}.
 describe_resource_sets(ZoneId, Options, AwsConfig) ->
     do_describe_resource_sets(ZoneId, Options, AwsConfig).
@@ -343,12 +346,16 @@ do_describe_resource_sets(ZoneId, Params, AwsConfig) ->
             Marker = case {erlcloud_xml:get_text(?DESCRIBE_RS_NEXT_NAME,
                                                  Doc, undefined),
                            erlcloud_xml:get_text(?DESCRIBE_RS_NEXT_TYPE,
-                                                 Doc, undefined)} of
-                         {undefined, undefined} ->
-                             erlcloud_xml:get_text(
-                               ?DESCRIBE_RS_NEXT_ID, Doc);
-                         {NextName, NextType} ->
-                             {NextName, NextType}
+                                                 Doc, undefined),
+                           erlcloud_xml:get_text(?DESCRIBE_RS_NEXT_ID,
+                                                 Doc, undefined)
+						 } of
+                         {NextName, NextType, undefined} ->
+                             {NextName, NextType};
+                         {undefined, undefined, NextId} ->
+                             NextId;
+                         {NextName, NextType, NextId} ->
+                             {NextName, NextType, NextId}
                      end,
             make_response(Doc, ?DESCRIBE_RS_IS_TRUNCATED, Marker,
                           [extract_resource_set(X) || X <- Sets]);
@@ -471,6 +478,11 @@ describe_all(Fun, Args, Options, Config, Acc) when is_list(Args) ->
             Options1 = key_replace_or_add("name", Name, Options),
             Options2 = key_replace_or_add("type", Type, Options1),
             describe_all(Fun, Args, Options2, Config, [Res | Acc]);
+        {ok, Res, {Name, Type, Id}} ->
+            Options1 = key_replace_or_add("name", Name, Options),
+            Options2 = key_replace_or_add("type", Type, Options1),
+            Options3 = key_replace_or_add("identifier", Id, Options2),
+            describe_all(Fun, Args, Options3, Config, [Res | Acc]);
         {ok, Res, Marker} ->
             Options1 = key_replace_or_add("marker", Marker, Options),
             describe_all(Fun, Args, Options1,
