@@ -18,6 +18,7 @@ mocks() ->
     [mocked_zone(), mocked_zone1(), mocked_zone2(),
      mocked_zones1(), mocked_zones2(), mocked_zones3(),
      mocked_resource_set1(), mocked_resource_set2(), mocked_resource_set3(),
+     mocked_resource_set4(),
      mocked_delegation_set()].
 
 setup() ->
@@ -345,6 +346,43 @@ mocked_resource_set3() ->
    <NextRecordIdentifier>NEXTSETID</NextRecordIdentifier>
 </ListResourceRecordSetsResponse>")}.
 
+mocked_resource_set4() ->
+    {[get, '_', "/2013-04-01/hostedzone/TESTID/rrset",
+      [{"Action", "ListResourceRecordSets"},
+       {"Version", '_'},
+       {"name", "example2.com."},
+       {"type", "NS"}], '_', '_'],
+     make_response("<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<ListResourceRecordSetsResponse xmlns=\"https://route53.amazonaws.com/doc/2013-04-01/\">
+   <ResourceRecordSets>
+      <ResourceRecordSet>
+         <Name>example.com.</Name>
+         <Type>NS</Type>
+         <TTL>172800</TTL>
+         <SetIdentifier>SETID</SetIdentifier>
+         <ResourceRecords>
+            <ResourceRecord>
+               <Value>ns-2048.awsdns-64.com.</Value>
+            </ResourceRecord>
+            <ResourceRecord>
+               <Value>ns-2049.awsdns-65.net.</Value>
+            </ResourceRecord>
+            <ResourceRecord>
+               <Value>ns-2050.awsdns-66.org.</Value>
+            </ResourceRecord>
+            <ResourceRecord>
+               <Value>ns-2051.awsdns-67.co.uk.</Value>
+            </ResourceRecord>
+         </ResourceRecords>
+      </ResourceRecordSet>
+   </ResourceRecordSets>
+   <IsTruncated>true</IsTruncated>
+   <MaxItems>10</MaxItems>
+   <NextRecordName>testdoc3.example.com</NextRecordName>
+   <NextRecordType>A</NextRecordType>
+   <NextRecordIdentifier>NEXTSETID</NextRecordIdentifier>
+</ListResourceRecordSetsResponse>")}.
+
 make_response(Xml) ->
     {ok, element(1, xmerl_scan:string(Xml))}.
 
@@ -476,7 +514,24 @@ describe_resource_set_tests(_) ->
                                               "ns-2051.awsdns-67.co.uk."]}]],
                          "NEXTSETID"},
               ?assertEqual(Expected, Result)
+     end,
+     fun() ->
+             Result = erlcloud_route53:describe_resource_sets(
+                        "TESTID", [{"name", "example2.com."}, {"type", "NS"}],
+                        #aws_config{}),
+             Expected = {ok,
+                         [[{name,"example.com."},
+                           {type,"NS"},
+                           {set_identifier,"SETID"},
+                           {ttl,172800},
+                           {resource_records,["ns-2048.awsdns-64.com.",
+                                              "ns-2049.awsdns-65.net.",
+                                              "ns-2050.awsdns-66.org.",
+                                              "ns-2051.awsdns-67.co.uk."]}]],
+                         {"testdoc3.example.com", "A", "NEXTSETID"}},
+              ?assertEqual(Expected, Result)
      end
+
     ].
 
 describe_zone_tests(_) ->
