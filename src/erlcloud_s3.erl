@@ -36,14 +36,19 @@
          abort_multipart/3, abort_multipart/6,
          list_multipart_uploads/1, list_multipart_uploads/2,
          get_object_url/2, get_object_url/3,
-         get_bucket_and_key/1
-        ]).
+         get_bucket_and_key/1,
+         list_bucket_inventory/1, list_bucket_inventory/2, list_bucket_inventory/3,
+         get_bucket_inventory/2, get_bucket_inventory/3,
+         put_bucket_inventory/2, put_bucket_inventory/3,
+         delete_bucket_inventory/2, delete_bucket_inventory/3
+    ]).
 
 -ifdef(TEST).
 -export([encode_lifecycle/1]).
 -export([get_bucket_notification/1]).
 -export([create_notification_xml/1]).
 -export([create_notification_param_xml/2]).
+-export([encode_inventory/1]).
 -endif.
 
 -include("erlcloud.hrl").
@@ -1226,6 +1231,228 @@ set_bucket_attribute(BucketName, AttributeName, Value, Config)
     POSTData = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
     Headers = [{"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, "/", Subresource, [], POSTData, Headers).
+
+-spec list_bucket_inventory(string()) ->
+    {ok, Result:: list(term())} | {error, Reason::term()}.
+list_bucket_inventory(BucketName) when is_list(BucketName) ->
+    list_bucket_inventory(BucketName, default_config()).
+
+-spec list_bucket_inventory(string(), string() | aws_config()) ->
+    {ok, Result:: list(term())} | {error, Reason::term()}.
+list_bucket_inventory(BucketName, #aws_config{} = Config) when is_list(BucketName) ->
+    list_bucket_inventory(BucketName, undefined, Config);
+list_bucket_inventory(BucketName, Token) when is_list(BucketName), is_list(Token) ->
+    list_bucket_inventory(BucketName, Token,  default_config()).
+
+-spec list_bucket_inventory(string(), string(), aws_config()) ->
+    {ok, Result:: list(term())} | {error, Reason::term()}.
+list_bucket_inventory(BucketName, Token, #aws_config{} = Config) when is_list(BucketName) ->
+    Params = [{"continuation-token", Token}],
+    case s3_request2(Config, get, BucketName, "/", "inventory", Params, <<>>, []) of
+        {ok, {_Headers, Body}} ->
+            list_inventory_result(element(1, xmerl_scan:string(binary_to_list(Body))));
+        Error ->
+            Error
+    end.
+
+list_inventory_result(Response) ->
+    ParsedResponse = extract_list_inventory_result(Response),
+    Truncated = proplists:get_value(is_truncated, ParsedResponse, false),
+    ContinuationToken = proplists:get_value(continuation_token, ParsedResponse, []),
+    NextContinuationToken = proplists:get_value(next_continuation_token, ParsedResponse, []),
+    UpdatedResponse = lists:keydelete(
+        is_truncated,
+        1,
+        lists:keydelete(
+            continuation_token,
+            1,
+            lists:keydelete(next_continuation_token, 1, ParsedResponse)
+        )
+    ),
+    make_list_inventory_result(
+        Truncated,
+        ContinuationToken,
+        NextContinuationToken,
+        UpdatedResponse
+    ).
+
+make_list_inventory_result(false, _, _, Result)->
+    {ok, Result};
+make_list_inventory_result(_, ContinuationToken, [], Result)->
+    {ok, Result, ContinuationToken};
+make_list_inventory_result(_, [], NextContinuationToken, Result)->
+    {ok, Result, NextContinuationToken}.
+
+
+extract_list_inventory_result(Result) ->
+    [Content] = xmerl_xpath:string("/ListInventoryConfigurationsResult", Result),
+    extract_list_inventory_result_content(Content).
+
+extract_list_inventory_result_content(Content) ->
+    Attributes = [
+        {
+            inventory_configuration,
+            "InventoryConfiguration",
+            fun extract_inventory_configuration_content/1
+        },
+        {is_truncated, "IsTruncated", boolean},
+        {continuation_token, "ContinuationToken", text},
+        {next_continuation_token, "NextContinuationToken", text}
+    ],
+    erlcloud_xml:decode(Attributes, Content).
+
+extract_inventory_configuration(Configuration) ->
+    [Content] = xmerl_xpath:string("/InventoryConfiguration", Configuration),
+    extract_inventory_configuration_content(Content).
+
+extract_inventory_configuration_content(Contents) when is_list(Contents)->
+    [extract_inventory_configuration_content(Content) || Content <- Contents];
+extract_inventory_configuration_content(Content) ->
+    Attributes = [
+        {id, "Id", text},
+        {is_enabled, "IsEnabled", text},
+        {filter, "Filter", fun extract_filter/1},
+        {destination, "Destination", fun extract_destination/1},
+        {schedule, "Schedule", fun extract_schedule/1},
+        {included_object_versions, "IncludedObjectVersions", text},
+        {optional_fields, "OptionalFields", fun extract_optional_fields/1}
+    ],
+    erlcloud_xml:decode(Attributes, Content).
+
+extract_destination([Destination]) ->
+    Attributes = [{s3_bucket_destination, "S3BucketDestination", fun extract_s3_bucket_destination/1}],
+    erlcloud_xml:decode(Attributes, Destination).
+
+extract_s3_bucket_destination([S3BucketDestination]) ->
+    Attributes = [
+        {format, "Format", text},
+        {account_id, "AccountId", text},
+        {bucket, "Bucket", text},
+        {prefix, "Prefix", text}
+    ],
+    erlcloud_xml:decode(Attributes, S3BucketDestination).
+
+extract_schedule([Schedule]) ->
+    Attributes = [{frequency, "Frequency", text}],
+    erlcloud_xml:decode(Attributes, Schedule).
+
+extract_filter([Filter]) ->
+    Attributes = [{prefix, "Prefix", text}],
+    erlcloud_xml:decode(Attributes, Filter).
+
+extract_optional_fields([OptionalFields]) ->
+    Attributes = [{field, "Field", list}],
+    erlcloud_xml:decode(Attributes, OptionalFields).
+
+-spec get_bucket_inventory(string(), string()) ->
+    {ok, Result:: list(term())} | {error, Reason::term()}.
+get_bucket_inventory(BucketName, InventoryId) when is_list(BucketName), is_list(InventoryId) ->
+    get_bucket_inventory(BucketName, InventoryId, default_config()).
+
+-spec get_bucket_inventory(string(), string(), aws_config()) ->
+    {ok, Result:: list(term())} | {error, Reason::term()}.
+get_bucket_inventory(BucketName, InventoryId, #aws_config{} = Config)
+    when is_list(BucketName), is_list(InventoryId) ->
+
+    Params = [{"id", InventoryId}],
+    case s3_request2(Config, get, BucketName, "/", "inventory", Params, <<>>, []) of
+        {ok, {_Headers, Body}} ->
+            {ok, extract_inventory_configuration(element(1, xmerl_scan:string(binary_to_list(Body))))};
+        Error ->
+            Error
+    end.
+
+-spec put_bucket_inventory(string(), list()) -> ok | {error, Reason::term()}.
+put_bucket_inventory(BucketName, Inventory)
+    when is_list(BucketName), is_list(Inventory) ->
+
+    put_bucket_inventory(BucketName, default_config()).
+
+-spec put_bucket_inventory(string(), list(), aws_config())
+        -> ok | {error, Reason::term()}.
+put_bucket_inventory(BucketName, Inventory, #aws_config{} = Config)
+    when is_list(BucketName), is_list(Inventory) ->
+
+    InventoryId = proplists:get_value(id, Inventory),
+    XmlInventory = encode_inventory(Inventory),
+    put_bucket_inventory(BucketName, InventoryId, list_to_binary(XmlInventory), Config).
+
+-spec put_bucket_inventory(string(), string(), binary(), aws_config())
+        -> ok | {error, Reason::term()}.
+put_bucket_inventory(BucketName, InventoryId, XmlInventory, #aws_config{} = Config)
+    when is_list(BucketName), is_list(InventoryId), is_binary(XmlInventory) ->
+    Md5 = base64:encode(crypto:hash(md5, XmlInventory)),
+    Params = [{"id", InventoryId}],
+    Headers = [{"Content-MD5", Md5}, {"content-type", "application/xml"}],
+    s3_simple_request(Config, put, BucketName, "/", "inventory", Params, XmlInventory, Headers).
+
+-spec delete_bucket_inventory(string(), string()) -> ok | {error, Reason::term()}.
+delete_bucket_inventory(BucketName, InventoryId) when is_list(BucketName), is_list(InventoryId) ->
+    delete_bucket_inventory(BucketName, InventoryId, default_config()).
+
+-spec delete_bucket_inventory(string(), string(), aws_config()) -> ok | {error, Reason::term()}.
+delete_bucket_inventory(BucketName, InventoryId, #aws_config{} = Config)
+    when is_list(BucketName), is_list(InventoryId) ->
+
+    Params = [{"id", InventoryId}],
+    s3_simple_request(Config, delete, BucketName, "/", "inventory", Params, <<>>, []).
+
+encode_inventory(Inventory) ->
+    lists:flatten(
+        xmerl:export_simple(
+            [{
+                'InventoryConfiguration',
+                [{xmlns, "http://s3.amazonaws.com/doc/2006-03-01/"}],
+                inv_encode_subtype(Inventory)
+            }],
+            xmerl_xml
+        )
+    ).
+
+inv_encode_subtype([{_, _} | _] = Proplist) ->
+    lists:flatten(lists:map(
+        fun(Elem) ->
+            inv_encode_subtype(Elem)
+        end,
+        Proplist
+    ));
+inv_encode_subtype({Key, [{_, _} | _] = Proplist}) ->
+    {inv_key_to_name(Key), inv_encode_subtype(Proplist)};
+inv_encode_subtype({Key, [[{_, _} | _], _] = ListOfProplist}) ->
+    lists:map(
+        fun(List) ->
+            {inv_key_to_name(Key), inv_encode_subtype(List)}
+        end,
+        ListOfProplist
+    );
+inv_encode_subtype({Key, [Val | _] = ListOfValues}) when is_list(Val) ->
+    lists:map(
+        fun(Value) ->
+            {inv_key_to_name(Key), inv_encode_subtype(Value)}
+        end,
+        ListOfValues
+    );
+inv_encode_subtype({Key, Value}) ->
+    {inv_key_to_name(Key), inv_encode_subtype(Value)};
+inv_encode_subtype(Value) ->
+    [erlcloud_util:to_string(Value)].
+
+inv_key_to_name(inventory_configuration) ->  'InventoryConfiguration';
+inv_key_to_name(id) ->                       'Id';
+inv_key_to_name(is_enabled) ->               'IsEnabled';
+inv_key_to_name(included_object_versions) -> 'IncludedObjectVersions';
+inv_key_to_name(destination) ->              'Destination';
+inv_key_to_name(schedule) ->                 'Schedule';
+inv_key_to_name(frequency) ->                'Frequency';
+inv_key_to_name(filter) ->                   'Filter';
+inv_key_to_name(optional_fields) ->          'OptionalFields';
+inv_key_to_name(s3_bucket_destination) ->    'S3BucketDestination';
+inv_key_to_name(format) ->                   'Format';
+inv_key_to_name(account_id) ->               'AccountId';
+inv_key_to_name(bucket) ->                   'Bucket';
+inv_key_to_name(prefix) ->                   'Prefix';
+inv_key_to_name(field) ->                    'Field'.
+
 
 %% takes an S3 bucket notification configuration and creates an xmerl simple
 %% form out of it.
