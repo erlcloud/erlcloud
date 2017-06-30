@@ -37,7 +37,8 @@
     configure/2,
     configure/3,
     new/2,
-    new/3
+    new/3,
+    set_cloudwatch_host/2
 ]).
 
 
@@ -47,7 +48,8 @@
     describe_log_groups/1,
     describe_log_groups/2,
     describe_log_groups/3,
-    describe_log_groups/4
+    describe_log_groups/4,
+    create_log_stream/3
 ]).
 
 
@@ -84,7 +86,11 @@ new(AccessKeyID, SecretAccessKey, Host) ->
         cloudwatch_logs_host = Host
     }.
 
-
+-spec set_cloudwatch_host(cw_host(), aws_config()) -> aws_config().
+set_cloudwatch_host(Host, AwsConfig) ->
+    AwsConfig#aws_config{
+        cloudwatch_logs_host = Host
+    }.
 %%==============================================================================
 %% CloudWatch API
 %%==============================================================================
@@ -150,6 +156,12 @@ describe_log_groups(LogGroupNamePrefix, Limit, PrevToken, Config) ->
     end.
 
 
+create_log_stream(LogGroupName, LogStreamName, Config) ->
+    cw_request(Config, "CreateLogStream", [
+      {<<"logGroupName">>, LogGroupName},
+      {<<"logStreamName">>, LogStreamName}
+    ]).
+
 %%==============================================================================
 %% Internal functions
 %%==============================================================================
@@ -178,6 +190,8 @@ cw_request(Config, Action, Params) ->
                 RequestHeaders,
                 NewConfig
             ) of
+                {ok, <<>>} ->
+                    ok;
                 {ok, ResponseBody} ->
                     {ok, jsx:decode(ResponseBody)};
                 {error, Reason} ->

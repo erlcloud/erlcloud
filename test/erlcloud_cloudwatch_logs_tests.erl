@@ -38,17 +38,18 @@
 -define(LOG_GROUP_NAME_PREFIX, <<"/aws/apigateway/welcome">>).
 -define(PAGING_TOKEN, <<"arn:aws:logs:us-east-1:352773894028:log-group:/aws/apigateway/welcome:*">>).
 
+-define(LOG_GROUP_NAME, ?LOG_GROUP_NAME_PREFIX).
 
 -define(LOG_GROUP, [
     {<<"arn">>, <<"arn:aws:logs:us-east-1:352773894028:log-group:/aws/apigateway/welcome:*">>},
     {<<"creationTime">>, 1476283527335},
-    {<<"logGroupName">>, <<"/aws/apigateway/welcome">>},
+    {<<"logGroupName">>, ?LOG_GROUP_NAME},
     {<<"metricFilterCount">>, 0},
     {<<"retentionInDays">>, 10},
     {<<"storedBytes">>, 85}
 ]).
 
-
+-define(LOG_STREAM_NAME, <<"logstream">>).
 %%==============================================================================
 %% Test generator functions
 %%==============================================================================
@@ -57,7 +58,8 @@
 erlcloud_cloudwatch_test_() ->
     {foreach, fun start/0, fun stop/1, [
         fun describe_log_groups_input_tests/1,
-        fun describe_log_groups_output_tests/1
+        fun describe_log_groups_output_tests/1,
+        fun create_log_stream_input_tests/1
     ]}.
 
 
@@ -158,6 +160,23 @@ describe_log_groups_output_tests(_) ->
              {ok, [?LOG_GROUP], undefined}}
         )
     ]).
+
+
+create_log_stream_input_tests(_) ->
+    input_tests(<<>>, [
+        ?_cloudwatch_test(
+            {"Tests describing log groups with custom AWS config provided",
+             ?_f(erlcloud_cloudwatch_logs:create_log_stream(
+                 ?LOG_GROUP_NAME,
+                 ?LOG_STREAM_NAME,
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"CreateLogStream">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME},
+              {<<"logStreamName">>, ?LOG_STREAM_NAME}]}
+        )
+      ]).
 
 
 %%==============================================================================
