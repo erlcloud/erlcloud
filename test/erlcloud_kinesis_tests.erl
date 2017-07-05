@@ -363,22 +363,42 @@ describe_stream_output_tests(_) ->
 %% GetShardIterator test based on the API examples:
 %% http://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetShardIterator.html
 get_shard_iterator_input_tests(_) ->
+    Stream = <<"test">>,
+    Shard = <<"shardId-000000000000">>,
     Tests =
         [?_kinesis_test(
-            {"GetShardIterator example request",
-             ?_f(erlcloud_kinesis:get_shard_iterator(<<"test">>, <<"shardId-000000000000">>, <<"TRIM_HORIZON">>)), "
-{
-  \"StreamName\": \"test\",
-  \"ShardId\": \"shardId-000000000000\",
-  \"ShardIteratorType\": \"TRIM_HORIZON\"
-}"
-            })
+            {"GetShardIterator example request for TRIM_HORIZON",
+             ?_f(erlcloud_kinesis:get_shard_iterator(Stream,
+                                                     Shard,
+                                                     <<"TRIM_HORIZON">>)),
+             "{\"StreamName\": \"test\","
+              "\"ShardId\": \"shardId-000000000000\","
+              "\"ShardIteratorType\": \"TRIM_HORIZON\"}"}
+        ),
+         ?_kinesis_test(
+             {"GetShardIterator example request for AT_TIMESTAMP",
+              ?_f(erlcloud_kinesis:get_shard_iterator(Stream,
+                                                      Shard,
+                                                      <<"AT_TIMESTAMP">>,
+                                                      1499263032)),
+              "{\"StreamName\": \"test\","
+               "\"ShardId\": \"shardId-000000000000\","
+               "\"ShardIteratorType\": \"AT_TIMESTAMP\","
+               "\"Timestamp\":1499263032}"}
+         ),
+         ?_kinesis_test(
+             {"GetShardIterator example request for AT_SEQUENCE_NUMBER",
+              ?_f(erlcloud_kinesis:get_shard_iterator(Stream,
+                                                      Shard,
+                                                      <<"AT_SEQUENCE_NUMBER">>,
+                                                      <<"123">>)),
+              "{\"StreamName\": \"test\","
+               "\"ShardId\": \"shardId-000000000000\","
+               "\"ShardIteratorType\": \"AT_SEQUENCE_NUMBER\","
+               "\"StartingSequenceNumber\":\"123\"}"}
+         )
         ],
-
-    Response = "
-{
-  \"ShardIterator\": \"AAAAAAAAAAFHJejL6/AjDShV3pIXsxYZT7Xj2G6EHxokHqT2D1stIOVYUEyprlUGWUepKqUDaR0+hB6qTlKvZa+fsBRqgHi4\"
-}",
+    Response = "{\"ShardIterator\": \"AAAAAAAAAAFHJejL6/AjDShV3pIXsxYZT7Xj2G6EHxokHqT2D1stIOVYUEyprlUGWUepKqUDaR0+hB6qTlKvZa+fsBRqgHi4\"}",
     input_tests(Response, Tests).
 
 get_shard_iterator_output_tests(_) ->
