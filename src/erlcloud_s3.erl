@@ -1278,10 +1278,10 @@ list_inventory_result(Response) ->
 
 make_list_inventory_result(false, _, _, Result)->
     {ok, Result};
-make_list_inventory_result(_, ContinuationToken, [], Result)->
-    {ok, Result, ContinuationToken};
 make_list_inventory_result(_, [], NextContinuationToken, Result)->
-    {ok, Result, NextContinuationToken}.
+    {ok, Result, NextContinuationToken};
+make_list_inventory_result(_, ContinuationToken, [], Result)->
+    {ok, Result, ContinuationToken}.
 
 
 extract_list_inventory_result(Result) ->
@@ -1336,9 +1336,12 @@ extract_schedule([Schedule]) ->
     Attributes = [{frequency, "Frequency", text}],
     erlcloud_xml:decode(Attributes, Schedule).
 
+extract_filter([]) ->
+    [{prefix, ""}];
 extract_filter([Filter]) ->
     Attributes = [{prefix, "Prefix", text}],
     erlcloud_xml:decode(Attributes, Filter).
+
 
 extract_optional_fields([OptionalFields]) ->
     Attributes = [{field, "Field", list}],
