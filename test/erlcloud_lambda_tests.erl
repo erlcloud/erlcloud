@@ -154,8 +154,8 @@ mocked_get_function_configuration() ->
 
 mocked_invoke() ->
   {
-    [?BASE_URL ++ "functions/name/invocations", post, '_', <<>>, '_', '_'],
-    make_response(<<"{\"Hello World!\"}">>)
+    [?BASE_URL ++ "functions/name/invocations", post, '_', <<"{}">>, '_', '_'],
+    make_response(<<"{\"message\":\"Hello World!\"}">>)
   }.
 
 
@@ -629,7 +629,7 @@ api_tests(_) ->
      end,
      fun() ->
              Result = erlcloud_lambda:invoke(<<"name">>, []),
-             Expected = {ok, [{<<"Hello Word!">>}]},
+             Expected = {ok, [{<<"message">>, <<"Hello World!">>}]},
              ?assertEqual(Expected, Result)
      end,
      fun() ->
