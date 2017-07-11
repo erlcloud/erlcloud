@@ -33,7 +33,7 @@
 %%% Test entry points
 %%%===================================================================
 
-describe_tags_test_() ->
+describe_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
@@ -1116,9 +1116,9 @@ describe_flow_logs_output_tests(_) ->
     ],
     output_tests(?_f(erlcloud_ec2:describe_flow_logs()), Tests).
 
-describe_instances_test() ->
+describe_instances_test_() ->
     Tests = [{30,6},{22,5},{3,7},{10,10},{0,10},{0,5},{0,1000}],
-    test_pagination(Tests, generate_instances_response, describe_instances, [], [[]])
+    {timeout, 60, fun () -> test_pagination(Tests, generate_instances_response, describe_instances, [], [[]]) end}
 .
 
 describe_instances_boundaries_test_() ->
@@ -1127,9 +1127,9 @@ describe_instances_boundaries_test_() ->
         ?_assertException(error, function_clause, erlcloud_ec2:describe_instances([], 1001, undefined))
     ].
 
-describe_snapshots_test() ->
+describe_snapshots_test_() ->
     Tests = [{30,6},{22,5},{3,7},{10,10},{0,10},{0,5},{0,1000}],
-    test_pagination(Tests, generate_snapshots_response, describe_snapshots, [], ["self", []])
+    {timeout, 60, fun () -> test_pagination(Tests, generate_snapshots_response, describe_snapshots, [], ["self", []]) end}
 .
 
 describe_snapshots_boundaries_test_() ->
@@ -1138,9 +1138,9 @@ describe_snapshots_boundaries_test_() ->
         ?_assertException(error, function_clause, erlcloud_ec2:describe_snapshots("self", [], 1001, undefined))
     ].
 
-describe_tags_test() ->
+describe_tags_test_() ->
     Tests = [{30,6},{22,5},{3,7},{10,10},{0,10},{0,5},{0,1000}],
-    test_pagination(Tests, generate_tags_response, describe_tags, [], [[]])
+    {timeout, 60, fun () -> test_pagination(Tests, generate_tags_response, describe_tags, [], [[]]) end}
 .
 
 describe_tags_boundaries_test_() ->
@@ -1148,9 +1148,9 @@ describe_tags_boundaries_test_() ->
         ?_assertException(error, function_clause, erlcloud_ec2:describe_tags([], 4, undefined)),
         ?_assertException(error, function_clause, erlcloud_ec2:describe_tags([], 1001, undefined))
     ].
-describe_spot_price_history_test() ->
+describe_spot_price_history_test_() ->
     Tests = [{30,6},{22,5},{3,7},{10,10},{0,10},{0,5},{0,1000}],
-    test_pagination(Tests, generate_spot_price_history_response, describe_spot_price_history, [], ["", "", [], ""])
+    {timeout, 60, fun () -> test_pagination(Tests, generate_spot_price_history_response, describe_spot_price_history, [], ["", "", [], ""]) end}
 .
 
 describe_spot_price_history_boundaries_test_() ->
@@ -1159,9 +1159,9 @@ describe_spot_price_history_boundaries_test_() ->
         ?_assertException(error, function_clause, erlcloud_ec2:describe_spot_price_history(["", "", [], ""], 1001, undefined))
     ].
 
-describe_instance_status_test() ->
+describe_instance_status_test_() ->
     Tests = [{30,6},{22,5},{3,7},{10,10},{0,10},{0,5},{0,1000}],
-    test_pagination(Tests, generate_instance_status_response, describe_instance_status, [[], []], [[], []])
+    {timeout, 60, fun () -> test_pagination(Tests, generate_instance_status_response, describe_instance_status, [[], []], [[], []]) end}
 .
 
 describe_instance_status_boundaries_test_() ->
@@ -1170,9 +1170,9 @@ describe_instance_status_boundaries_test_() ->
         ?_assertException(error, function_clause, erlcloud_ec2:describe_instance_status([], [], 1001, undefined))
     ].
 
-describe_reserved_instances_offerings_test() ->
+describe_reserved_instances_offerings_test_() ->
     Tests = [{30,6},{22,5},{3,7},{10,10},{0,10},{0,5},{0,1000}],
-    test_pagination(Tests, generate_reserved_instances_offerings_response, describe_reserved_instances_offerings, [], [[]])
+    {timeout, 60, fun () -> test_pagination(Tests, generate_reserved_instances_offerings_response, describe_reserved_instances_offerings, [], [[]]) end}
 .
 
 describe_reserved_instances_offerings_boundaries_test_() ->
