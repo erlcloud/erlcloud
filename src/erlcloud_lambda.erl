@@ -346,7 +346,7 @@ invoke(FunctionName) ->
 -spec invoke(FunctionName :: binary(),
              Config :: aws_config() | list()) -> return_val().
 invoke(FunctionName, Config = #aws_config{}) ->
-    invoke(FunctionName, <<>>, Config);
+    invoke(FunctionName, [], Config);
 invoke(FunctionName, Payload) when is_list(Payload)->
     invoke(FunctionName, Payload, default_config()).
 
