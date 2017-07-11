@@ -24,6 +24,7 @@ mocks() ->
      mocked_get_event_source_mapping(),
      mocked_get_function(),
      mocked_get_function_configuration(),
+     mocked_invoke(),
      mocked_list_aliases(),
      mocked_list_event_source_mappings(),
      mocked_list_function(),
@@ -150,6 +151,13 @@ mocked_get_function_configuration() ->
 "",\"Runtime\":\"nodejs\",\"Timeout\":30,\"Version\":\"$LATEST\",\"VpcConfig\""
 ":null}">>)
     }.
+
+mocked_invoke() ->
+  {
+    [?BASE_URL ++ "functions/name/invocations?", post, '_', <<>>, '_', '_'],
+    make_response(<<"{\"Hello World!\"}">>)
+  }.
+
 
 mocked_list_aliases() ->
     {
@@ -617,6 +625,11 @@ api_tests(_) ->
                               {<<"Timeout">>,30},
                               {<<"Version">>,<<"$LATEST">>},
                               {<<"VpcConfig">>,null}]},
+             ?assertEqual(Expected, Result)
+     end,
+     fun() ->
+             Result = erlcloud_lambda:invoke(<<"name">>, <<>>),
+             Expected = {ok, [{<<"Hello Word!">>}]},
              ?assertEqual(Expected, Result)
      end,
      fun() ->
