@@ -732,6 +732,8 @@ lambda_request_no_update(Config, Method, Path, Hdrs, Body, QParam) ->
     case erlcloud_aws:aws_request_form_raw(
            Method, Config#aws_config.lambda_scheme, Config#aws_config.lambda_host,
            Config#aws_config.lambda_port, Path, Form, Headers, Config) of
+        {ok, <<"">>} ->
+            {ok, []};
         {ok, Data} ->
             {ok, jsx:decode(Data)};
         E ->
