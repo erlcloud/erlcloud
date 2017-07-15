@@ -410,6 +410,18 @@ auto_config_profile( ProfileOptions ) ->
     Profile = proplists:get_value( profile, ProfileOptions, default ),
     case profile( Profile, ProfileOptions ) of
         {ok, _Config} = Result -> Result;
+        {error, _} -> auto_config_task_metadata()
+    end.
+
+auto_config_task_metadata() ->
+    case erlcloud_ecs_container_credentials:task_credentials_available() of
+        ok -> perform_config_task_metadata();
+        error -> auto_config_metadata()
+    end.
+
+perform_config_task_metadata() ->
+    case config_task_metadata() of
+        {ok, _Config} = Result -> Result;
         {error, _} -> auto_config_metadata()
     end.
 
@@ -447,6 +459,20 @@ config_metadata() ->
         {error, _Reason} = Error -> Error
     end.
 
+config_task_metadata() ->
+    Config = #aws_config{},
+    case get_task_metadata_credentials( Config ) of
+        {ok, #metadata_credentials{
+                access_key_id = Id,
+                secret_access_key = Secret,
+                security_token = Token,
+                expiration_gregorian_seconds = GregorianSecs}} ->
+            EpochTimeout = GregorianSecs - ?GREGORIAN_EPOCH_OFFSET,
+            {ok, Config#aws_config {
+                   access_key_id = Id, secret_access_key = Secret,
+                   security_token = Token, expiration = EpochTimeout }};
+        {error, _Reason} = Error -> Error
+    end.
 
 -spec update_config(aws_config()) -> {ok, aws_config()} | {error, term()}.
 update_config(#aws_config{assume_role =
@@ -664,6 +690,21 @@ get_metadata_credentials(Config) ->
             get_credentials_from_metadata(Config)
     end.
 
+-spec get_task_metadata_credentials(aws_config()) -> {ok, #metadata_credentials{}} | {error, term()}.
+get_task_metadata_credentials(Config) ->
+    %% See if we have cached credentials
+    case application:get_env(erlcloud, task_metadata_credentials) of
+        {ok, #metadata_credentials{expiration_gregorian_seconds = Expiration} = Credentials} ->
+            Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
+            %% Get new credentials if these will expire in less than 5 minutes
+            case Expiration - Now < 300 of
+                true -> get_credentials_from_task_metadata(Config);
+                false -> {ok, Credentials}
+            end;
+        undefined ->
+            get_credentials_from_task_metadata(Config)
+    end.
+
 timestamp_to_gregorian_seconds(undefined) -> undefined;
 timestamp_to_gregorian_seconds(Timestamp) ->
     {ok, [Yr, Mo, Da, H, M, S], []} = io_lib:fread("~d-~d-~dT~d:~d:~dZ", binary_to_list(Timestamp)),
@@ -687,6 +728,18 @@ get_credentials_from_metadata(Config) ->
                     Creds = jsx:decode(Json),
                     get_credentials_from_metadata_xform( Creds )
             end
+    end.
+
+-spec get_credentials_from_task_metadata(aws_config())
+                                   -> {ok, #metadata_credentials{}} | {error, term()}.
+get_credentials_from_task_metadata(Config) ->
+    %% TODO this function should retry on errors getting credentials
+    case erlcloud_ecs_container_credentials:get_container_credentials(Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            Creds = jsx:decode(Json),
+            get_credentials_from_metadata_xform( Creds )
     end.
 
 get_credentials_from_metadata_xform( Creds ) ->
