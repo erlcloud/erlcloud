@@ -414,19 +414,13 @@ auto_config_profile( ProfileOptions ) ->
     end.
 
 auto_config_task_metadata() ->
-    case erlcloud_ecs_container_credentials:task_credentials_available() of
-        ok -> perform_config_task_metadata();
-        error -> auto_config_metadata()
-    end.
-
-perform_config_task_metadata() ->
-    case config_task_metadata() of
+    case config_metadata(fun get_task_metadata_credentials/1) of
         {ok, _Config} = Result -> Result;
         {error, _} -> auto_config_metadata()
     end.
 
 auto_config_metadata() ->
-    case config_metadata() of
+    case config_metadata(fun get_metadata_credentials/1) of
         {ok, _Config} = Result -> Result;
         {error, _} -> undefined
     end.
@@ -444,24 +438,9 @@ config_env() ->
         _ -> {error, environment_config_unavailable}
     end.
 
-config_metadata() ->
+config_metadata(Fun) ->
     Config = #aws_config{},
-    case get_metadata_credentials( Config ) of
-        {ok, #metadata_credentials{
-                access_key_id = Id,
-                secret_access_key = Secret,
-                security_token = Token,
-                expiration_gregorian_seconds = GregorianSecs}} ->
-            EpochTimeout = GregorianSecs - ?GREGORIAN_EPOCH_OFFSET,
-            {ok, Config#aws_config {
-                   access_key_id = Id, secret_access_key = Secret,
-                   security_token = Token, expiration = EpochTimeout }};
-        {error, _Reason} = Error -> Error
-    end.
-
-config_task_metadata() ->
-    Config = #aws_config{},
-    case get_task_metadata_credentials( Config ) of
+    case Fun( Config ) of
         {ok, #metadata_credentials{
                 access_key_id = Id,
                 secret_access_key = Secret,
@@ -693,7 +672,7 @@ get_metadata_credentials(Config) ->
 -spec get_task_metadata_credentials(aws_config()) -> {ok, #metadata_credentials{}} | {error, term()}.
 get_task_metadata_credentials(Config) ->
     %% See if we have cached credentials
-    case application:get_env(erlcloud, task_metadata_credentials) of
+    case application:get_env(erlcloud, metadata_credentials) of
         {ok, #metadata_credentials{expiration_gregorian_seconds = Expiration} = Credentials} ->
             Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
             %% Get new credentials if these will expire in less than 5 minutes
