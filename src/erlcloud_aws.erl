@@ -476,7 +476,16 @@ update_config(#aws_config{access_key_id = KeyId} = Config)
     {ok, Config};
 update_config(#aws_config{} = Config) ->
     %% AccessKey is not set. Try to read from role metadata.
-    case get_metadata_credentials(instance_metadata, Config) of
+    case get_metadata_credentials(task_credentials, Config) of
+        {error, _Reason} ->
+            case get_metadata_credentials(instance_metadata, Config) of
+                {error, _Reason} = Error -> Error;
+                {ok, Credentials} ->
+                    {ok, Config#aws_config {
+                           access_key_id = Credentials#metadata_credentials.access_key_id,
+                           secret_access_key = Credentials#metadata_credentials.secret_access_key,
+                           security_token = Credentials#metadata_credentials.security_token}}
+            end;
         {ok, Credentials} ->
             {ok, Config#aws_config {
                    access_key_id = Credentials#metadata_credentials.access_key_id,
