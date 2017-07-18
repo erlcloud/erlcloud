@@ -414,13 +414,13 @@ auto_config_profile( ProfileOptions ) ->
     end.
 
 auto_config_task_metadata() ->
-    case config_metadata(fun get_task_metadata_credentials/1) of
+    case config_metadata(task_credentials) of
         {ok, _Config} = Result -> Result;
         {error, _} -> auto_config_metadata()
     end.
 
 auto_config_metadata() ->
-    case config_metadata(fun get_metadata_credentials/1) of
+    case config_metadata(instance_metadata) of
         {ok, _Config} = Result -> Result;
         {error, _} -> undefined
     end.
@@ -438,9 +438,10 @@ config_env() ->
         _ -> {error, environment_config_unavailable}
     end.
 
-config_metadata(Fun) ->
+-spec config_metadata(task_credentials | instance_metadata) -> {ok, #metadata_credentials{}} | {error, atom()}.
+config_metadata(Source) ->
     Config = #aws_config{},
-    case Fun( Config ) of
+    case get_metadata_credentials( Source, Config ) of
         {ok, #metadata_credentials{
                 access_key_id = Id,
                 secret_access_key = Secret,
@@ -475,9 +476,7 @@ update_config(#aws_config{access_key_id = KeyId} = Config)
     {ok, Config};
 update_config(#aws_config{} = Config) ->
     %% AccessKey is not set. Try to read from role metadata.
-    case get_metadata_credentials(Config) of
-        {error, Reason} ->
-            {error, Reason};
+    case get_metadata_credentials(instance_metadata, Config) of
         {ok, Credentials} ->
             {ok, Config#aws_config {
                    access_key_id = Credentials#metadata_credentials.access_key_id,
@@ -654,34 +653,23 @@ configure(#aws_config{} = Config) ->
     put(aws_config, Config),
     {ok, default_config()}.
 
--spec get_metadata_credentials(aws_config()) -> {ok, #metadata_credentials{}} | {error, term()}.
-get_metadata_credentials(Config) ->
+-spec get_metadata_credentials(instance_metadata | task_credentials, aws_config()) -> {ok, #metadata_credentials{}} | {error, term()}.
+get_metadata_credentials(Source, Config) ->
     %% See if we have cached credentials
+    Fun = case Source of
+        instance_metadata -> fun get_credentials_from_metadata/1;
+        task_credentials -> fun get_credentials_from_task_metadata/1
+    end,
     case application:get_env(erlcloud, metadata_credentials) of
         {ok, #metadata_credentials{expiration_gregorian_seconds = Expiration} = Credentials} ->
             Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
             %% Get new credentials if these will expire in less than 5 minutes
             case Expiration - Now < 300 of
-                true -> get_credentials_from_metadata(Config);
+                true -> Fun(Config);
                 false -> {ok, Credentials}
             end;
         undefined ->
-            get_credentials_from_metadata(Config)
-    end.
-
--spec get_task_metadata_credentials(aws_config()) -> {ok, #metadata_credentials{}} | {error, term()}.
-get_task_metadata_credentials(Config) ->
-    %% See if we have cached credentials
-    case application:get_env(erlcloud, metadata_credentials) of
-        {ok, #metadata_credentials{expiration_gregorian_seconds = Expiration} = Credentials} ->
-            Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
-            %% Get new credentials if these will expire in less than 5 minutes
-            case Expiration - Now < 300 of
-                true -> get_credentials_from_task_metadata(Config);
-                false -> {ok, Credentials}
-            end;
-        undefined ->
-            get_credentials_from_task_metadata(Config)
+            Fun(Config)
     end.
 
 timestamp_to_gregorian_seconds(undefined) -> undefined;
