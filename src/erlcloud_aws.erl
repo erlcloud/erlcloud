@@ -333,6 +333,8 @@ default_config_assert(Id, Key, Token) ->
                 security_token = Token}.
 
 %% call service_config/3 with our Region for all services
+default_config_region(undefined, _) ->
+    undefined;
 default_config_region(AwsConfig, undefined) ->
     AwsConfig;
 default_config_region(AwsConfig, Region) ->
@@ -372,11 +374,19 @@ default_config_region_services() ->
 %%     {@link profile/0} function, if available for the current user.</p>
 %%   </li>
 %%
+%%   <li>ECS Task Role
+%%     <p>The credentials available via ECS Task Role will be sourced, if
+%%     available.</p>
+%%   </li>
+%%
 %%   <li>Host Metadata
 %%     <p>The credentials available via host metadata will be sourced, if
 %%     available.</p>
 %%   </li>
 %% </ol>
+%%
+%% Alike {@link default_config/0} this function will also check <code>AWS_REGION</code> variable and
+%% will try to set the appropriate URL for this region for each service.
 %%
 %% If none of these credential sources are available, this function will
 %% return <code>undefined</code>.
@@ -401,10 +411,11 @@ auto_config() ->
 %% @see profile/2
 %%
 auto_config( ProfileOptions ) ->
-    case config_env() of
+    {ok, Cfg } = case config_env() of
         {ok, _Config} = Result -> Result;
         {error, _} -> auto_config_profile( ProfileOptions )
-    end.
+    end,
+    {ok, default_config_region(Cfg, default_config_get("AWS_REGION", aws_region))}.
 
 auto_config_profile( ProfileOptions ) ->
     Profile = proplists:get_value( profile, ProfileOptions, default ),
@@ -475,11 +486,11 @@ update_config(#aws_config{access_key_id = KeyId} = Config)
     %% then we should get the new config.
     {ok, Config};
 update_config(#aws_config{} = Config) ->
-    %% AccessKey is not set. Try to read from role metadata.
+    %% AccessKey is not set. Try to read from ECS and than metadata.
     case get_metadata_credentials(task_credentials, Config) of
-        {error, _Reason} ->
+        {error, _} ->
             case get_metadata_credentials(instance_metadata, Config) of
-                {error, _Reason} = Error -> Error;
+                {error, _} = Error -> Error;
                 {ok, Credentials} ->
                     {ok, Config#aws_config {
                            access_key_id = Credentials#metadata_credentials.access_key_id,
@@ -537,7 +548,7 @@ service_config( <<"as">>, Region, Config ) ->
     service_config( <<"autoscaling">>, Region, Config );
 service_config( <<"autoscaling">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
-    Config#aws_config{ as_host = Host };
+    Config#aws_config{ as_host = Host , autoscaling_host = Host};
 service_config( <<"cloudformation">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ cloudformation_host = Host };
