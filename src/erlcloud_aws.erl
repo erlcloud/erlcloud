@@ -333,6 +333,8 @@ default_config_assert(Id, Key, Token) ->
                 security_token = Token}.
 
 %% call service_config/3 with our Region for all services
+default_config_region(undefined, _) ->
+    undefined;
 default_config_region(AwsConfig, undefined) ->
     AwsConfig;
 default_config_region(AwsConfig, Region) ->
@@ -372,11 +374,19 @@ default_config_region_services() ->
 %%     {@link profile/0} function, if available for the current user.</p>
 %%   </li>
 %%
+%%   <li>ECS Task Role
+%%     <p>The credentials available via ECS Task Role will be sourced, if
+%%     available.</p>
+%%   </li>
+%%
 %%   <li>Host Metadata
 %%     <p>The credentials available via host metadata will be sourced, if
 %%     available.</p>
 %%   </li>
 %% </ol>
+%%
+%% Alike {@link default_config/0} this function will also check <code>AWS_REGION</code> variable and
+%% will try to set the appropriate URL for this region for each service.
 %%
 %% If none of these credential sources are available, this function will
 %% return <code>undefined</code>.
@@ -401,20 +411,27 @@ auto_config() ->
 %% @see profile/2
 %%
 auto_config( ProfileOptions ) ->
-    case config_env() of
+    {ok, Cfg } = case config_env() of
         {ok, _Config} = Result -> Result;
         {error, _} -> auto_config_profile( ProfileOptions )
-    end.
+    end,
+    {ok, default_config_region(Cfg, default_config_get("AWS_REGION", aws_region))}.
 
 auto_config_profile( ProfileOptions ) ->
     Profile = proplists:get_value( profile, ProfileOptions, default ),
     case profile( Profile, ProfileOptions ) of
         {ok, _Config} = Result -> Result;
+        {error, _} -> auto_config_task_metadata()
+    end.
+
+auto_config_task_metadata() ->
+    case config_metadata(task_credentials) of
+        {ok, _Config} = Result -> Result;
         {error, _} -> auto_config_metadata()
     end.
 
 auto_config_metadata() ->
-    case config_metadata() of
+    case config_metadata(instance_metadata) of
         {ok, _Config} = Result -> Result;
         {error, _} -> undefined
     end.
@@ -432,9 +449,10 @@ config_env() ->
         _ -> {error, environment_config_unavailable}
     end.
 
-config_metadata() ->
+-spec config_metadata(task_credentials | instance_metadata) -> {ok, #metadata_credentials{}} | {error, atom()}.
+config_metadata(Source) ->
     Config = #aws_config{},
-    case get_metadata_credentials( Config ) of
+    case get_metadata_credentials( Source, Config ) of
         {ok, #metadata_credentials{
                 access_key_id = Id,
                 secret_access_key = Secret,
@@ -446,7 +464,6 @@ config_metadata() ->
                    security_token = Token, expiration = EpochTimeout }};
         {error, _Reason} = Error -> Error
     end.
-
 
 -spec update_config(aws_config()) -> {ok, aws_config()} | {error, term()}.
 update_config(#aws_config{assume_role =
@@ -469,10 +486,17 @@ update_config(#aws_config{access_key_id = KeyId} = Config)
     %% then we should get the new config.
     {ok, Config};
 update_config(#aws_config{} = Config) ->
-    %% AccessKey is not set. Try to read from role metadata.
-    case get_metadata_credentials(Config) of
-        {error, Reason} ->
-            {error, Reason};
+    %% AccessKey is not set. Try to read from ECS and than metadata.
+    case get_metadata_credentials(task_credentials, Config) of
+        {error, _} ->
+            case get_metadata_credentials(instance_metadata, Config) of
+                {error, _} = Error -> Error;
+                {ok, Credentials} ->
+                    {ok, Config#aws_config {
+                           access_key_id = Credentials#metadata_credentials.access_key_id,
+                           secret_access_key = Credentials#metadata_credentials.secret_access_key,
+                           security_token = Credentials#metadata_credentials.security_token}}
+            end;
         {ok, Credentials} ->
             {ok, Config#aws_config {
                    access_key_id = Credentials#metadata_credentials.access_key_id,
@@ -524,7 +548,7 @@ service_config( <<"as">>, Region, Config ) ->
     service_config( <<"autoscaling">>, Region, Config );
 service_config( <<"autoscaling">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
-    Config#aws_config{ as_host = Host };
+    Config#aws_config{ as_host = Host , autoscaling_host = Host};
 service_config( <<"cloudformation">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ cloudformation_host = Host };
@@ -649,19 +673,23 @@ configure(#aws_config{} = Config) ->
     put(aws_config, Config),
     {ok, default_config()}.
 
--spec get_metadata_credentials(aws_config()) -> {ok, #metadata_credentials{}} | {error, term()}.
-get_metadata_credentials(Config) ->
+-spec get_metadata_credentials(instance_metadata | task_credentials, aws_config()) -> {ok, #metadata_credentials{}} | {error, term()}.
+get_metadata_credentials(Source, Config) ->
     %% See if we have cached credentials
+    Fun = case Source of
+        instance_metadata -> fun get_credentials_from_metadata/1;
+        task_credentials -> fun get_credentials_from_task_metadata/1
+    end,
     case application:get_env(erlcloud, metadata_credentials) of
         {ok, #metadata_credentials{expiration_gregorian_seconds = Expiration} = Credentials} ->
             Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
             %% Get new credentials if these will expire in less than 5 minutes
             case Expiration - Now < 300 of
-                true -> get_credentials_from_metadata(Config);
+                true -> Fun(Config);
                 false -> {ok, Credentials}
             end;
         undefined ->
-            get_credentials_from_metadata(Config)
+            Fun(Config)
     end.
 
 timestamp_to_gregorian_seconds(undefined) -> undefined;
@@ -687,6 +715,18 @@ get_credentials_from_metadata(Config) ->
                     Creds = jsx:decode(Json),
                     get_credentials_from_metadata_xform( Creds )
             end
+    end.
+
+-spec get_credentials_from_task_metadata(aws_config())
+                                   -> {ok, #metadata_credentials{}} | {error, term()}.
+get_credentials_from_task_metadata(Config) ->
+    %% TODO this function should retry on errors getting credentials
+    case erlcloud_ecs_container_credentials:get_container_credentials(Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            Creds = jsx:decode(Json),
+            get_credentials_from_metadata_xform( Creds )
     end.
 
 get_credentials_from_metadata_xform( Creds ) ->
