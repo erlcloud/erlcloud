@@ -4,7 +4,7 @@
          aws_request_xml/5, aws_request_xml/6, aws_request_xml/7, aws_request_xml/8,
          aws_request2/7,
          aws_request_xml2/5, aws_request_xml2/7,
-         aws_request4/8, aws_request4/9,
+         aws_request4/8, aws_request4/9, aws_request4/10,
          aws_request_xml4/6, aws_request_xml4/8,
          aws_region_from_host/1,
          aws_request_form/8,
@@ -153,18 +153,24 @@ aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) ->
     aws_request4(Method, Protocol, Host, Port, Path, Params, Service, [], Config).
 
 aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Headers, Config) ->
+    aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Headers, Config, undefined).
+
+aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Headers, Config, AwsRegion) ->
     case update_config(Config) of
         {ok, Config1} ->
             aws_request4_no_update(Method, Protocol, Host, Port, Path, Params,
-                                   Service, Headers, Config1);
+                                   Service, Headers, Config1, AwsRegion);
         {error, Reason} ->
             {error, Reason}
     end.
 
 aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service,
-                       Headers, #aws_config{} = Config) ->
+                       Headers, #aws_config{} = Config, AwsRegion) ->
     Query = erlcloud_http:make_query_string(Params),
-    Region = aws_region_from_host(Host),
+    Region = case AwsRegion of
+        undefined -> aws_region_from_host(Host);
+        _ -> AwsRegion
+    end,
     SignedHeaders = case Method of
         M when M =:= get orelse M =:= head orelse M =:= delete ->
             sign_v4(M, Path, Config, [{"host", Host}],
