@@ -25,7 +25,7 @@ assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds) ->
 -spec assume_role(#aws_config{}, string(), string(), 900..3600, undefined | string()) -> {#aws_config{}, proplist()}.
 assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds, ExternalId)
     when length(RoleArn) >= 20,
-         length(RoleSessionName) >= 2, length(RoleSessionName) =< 32,
+         length(RoleSessionName) >= 2, length(RoleSessionName) =< 64,
          DurationSeconds >= 900, DurationSeconds =< 3600 ->
 
     Params =
@@ -148,7 +148,7 @@ expiration_tosecs( Timestamp ) ->
     {ok, [Year,Month,Day,Hour,Min,Sec,_Ms],[]} =
         io_lib:fread( "~4d-~2d-~2dT~2d:~2d:~2d.~3dZ", Timestamp ),
     expiration_tosecs( {{Year,Month,Day},{Hour,Min,Sec}} ).
-    
+
 
 -ifdef(TEST).
 
