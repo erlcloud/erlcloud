@@ -45,7 +45,7 @@
                                     created_timestamp | last_modified_timestamp | policy |
                                     queue_arn).
 
--type(batch_entry() :: [{string(), string()}]).
+-type(batch_entry() :: {string(), string()}).
 
 -spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
