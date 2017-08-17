@@ -162,7 +162,7 @@ aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Headers, Confi
     end.
 
 aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service,
-                       Headers, #aws_config{region = AwsRegion} = Config) ->
+                       Headers, #aws_config{aws_region = AwsRegion} = Config) ->
     Query = erlcloud_http:make_query_string(Params),
     Region = case AwsRegion of
       undefined -> aws_region_from_host(Host);
