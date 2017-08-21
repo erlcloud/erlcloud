@@ -165,12 +165,13 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service,
                        Headers, #aws_config{} = Config) ->
     Query = erlcloud_http:make_query_string(Params),
     Region = aws_region_from_host(Host),
+    Uri = erlcloud_http:url_encode_loose(Path),
     SignedHeaders = case Method of
         M when M =:= get orelse M =:= head orelse M =:= delete ->
-            sign_v4(M, Path, Config, [{"host", Host}],
+            sign_v4(M, Uri, Config, [{"host", Host}],
                     [], Region, Service, Params);
         _ ->
-            sign_v4(Method, Path, Config,
+            sign_v4(Method, Uri, Config,
                     [{"host", Host}], list_to_binary(Query),
                     Region, Service, [])
     end,
