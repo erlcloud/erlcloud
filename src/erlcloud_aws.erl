@@ -146,7 +146,7 @@ aws_region_from_host(Host) ->
         [_, Value, _, _ | _Rest] ->
             Value;
         _ ->
-            "us-east-1"
+            application:get_env(erlcloud, aws_region, "us-east-1")
     end.
 
 aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) ->
@@ -162,10 +162,14 @@ aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Headers, Confi
     end.
 
 aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service,
-                       Headers, #aws_config{} = Config) ->
+                       Headers, #aws_config{aws_region = AwsRegion} = Config) ->
     Query = erlcloud_http:make_query_string(Params),
     Region = aws_region_from_host(Host),
     Uri = erlcloud_http:url_encode_loose(Path),
+    Region = case AwsRegion of
+      undefined -> aws_region_from_host(Host);
+      _ -> AwsRegion
+    end,
     SignedHeaders = case Method of
         M when M =:= get orelse M =:= head orelse M =:= delete ->
             sign_v4(M, Uri, Config, [{"host", Host}],
