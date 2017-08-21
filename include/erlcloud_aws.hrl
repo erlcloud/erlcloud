@@ -118,8 +118,10 @@
           %% Currently matches DynamoDB retry
           %% It's likely this is too many retries for other services
           retry_num=10::non_neg_integer(),
-          assume_role = #aws_assume_role{} :: aws_assume_role() %% If a role to be assumed is given
+          assume_role = #aws_assume_role{} :: aws_assume_role(), %% If a role to be assumed is given
           %% then we will try to assume the role during the update_config
+          %% region override for API gateway type requests
+          aws_region=undefined::string()|undefined
          }).
 -type(aws_config() :: #aws_config{}).
 
@@ -146,5 +148,3 @@
           should_retry :: boolean() | undefined
         }).
 -type(aws_request() :: #aws_request{}).
-
-
