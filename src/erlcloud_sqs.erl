@@ -14,9 +14,9 @@
          get_queue_attributes/1, get_queue_attributes/2, get_queue_attributes/3,
          list_queues/0, list_queues/1, list_queues/2,
          receive_message/1, receive_message/2, receive_message/3, receive_message/4,
-         receive_message/5, receive_message/6,
+         receive_message/5, receive_message/6, receive_message/7,
          remove_permission/2, remove_permission/3,
-         send_message/2, send_message/3, send_message/4,
+         send_message/2, send_message/3, send_message/4, send_message/5,
          set_queue_attributes/2, set_queue_attributes/3,
          send_message_batch/2, send_message_batch/3, send_message_batch/4,
          delete_message_batch/2, delete_message_batch/3,
@@ -46,6 +46,7 @@
                                     queue_arn).
 
 -type(batch_entry() :: {string(), string()}).
+-type(message_attribute() :: {string(), string() | integer() | float() | binary()}).
 
 -spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
@@ -282,13 +283,19 @@ receive_message(QueueName, all, MaxNumberOfMessages, VisibilityTimeout,
     receive_message(QueueName, [all], MaxNumberOfMessages,
                     VisibilityTimeout, WaitTimeoutSeconds, Config);
 receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
-                VisibilityTimeout, WaitTimeSeconds, Config)
+                VisibilityTimeout, WaitTimeSeconds, Config) ->
+    receive_message(QueueName, AttributeNames, MaxNumberOfMessages, VisibilityTimeout,
+                    WaitTimeSeconds, [all], Config).
+
+receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
+                VisibilityTimeout, WaitTimeSeconds, MessageAttributeNames, Config)
   when is_record(Config, aws_config), (is_list(AttributeNames) orelse AttributeNames =:= all),
        MaxNumberOfMessages >= 1, MaxNumberOfMessages =< 10,
        (VisibilityTimeout >= 0 andalso VisibilityTimeout =< 43200) orelse
        VisibilityTimeout =:= none,
        (WaitTimeSeconds >= 0 andalso WaitTimeSeconds =< 20) orelse
-       WaitTimeSeconds =:= none ->
+       WaitTimeSeconds =:= none,
+       (is_list(MessageAttributeNames) orelse MessageAttributeNames =:= all) ->
     InitialTimeout = erlcloud_aws:get_timeout(Config),
     TotalTimeout = if
        (WaitTimeSeconds =/= none andalso WaitTimeSeconds >= 0 andalso InitialTimeout =/= infinity) ->
@@ -299,8 +306,9 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
                           [
                            {"MaxNumberOfMessages", MaxNumberOfMessages},
                            {"VisibilityTimeout", VisibilityTimeout},
-                           {"WaitTimeSeconds", WaitTimeSeconds}|
-                           erlcloud_aws:param_list([encode_msg_attribute_name(N) || N <- AttributeNames], "AttributeName")
+                           {"WaitTimeSeconds", WaitTimeSeconds} |
+                           erlcloud_aws:param_list(encode_msg_attribute_names(MessageAttributeNames), "MessageAttributeName") ++
+                               erlcloud_aws:param_list(encode_msg_attribute_names(AttributeNames), "AttributeName")
                           ]
                          ),
     erlcloud_xml:decode(
@@ -311,16 +319,23 @@ receive_message(QueueName, AttributeNames, MaxNumberOfMessages,
      ).
 
 
+encode_msg_attribute_names(all) ->
+    [encode_msg_attribute_name(all)];
+encode_msg_attribute_names(Names) when is_list(Names) ->
+    [encode_msg_attribute_name(Name) || Name <- Names].
+
 encode_msg_attribute_name(all) -> "All";
 encode_msg_attribute_name(sender_id) -> "SenderId";
 encode_msg_attribute_name(sent_timestamp) -> "SentTimestamp";
 encode_msg_attribute_name(approximate_receive_count) -> "ApproximateReceiveCount";
-encode_msg_attribute_name(approximate_first_receive_timestamp) -> "ApproximateFirstReceiveTimestamp".
+encode_msg_attribute_name(approximate_first_receive_timestamp) -> "ApproximateFirstReceiveTimestamp";
+encode_msg_attribute_name(Name) when is_list(Name) -> Name.
 
 decode_msg_attribute_name("SenderId") -> sender_id;
 decode_msg_attribute_name("SentTimestamp") -> sent_timestamp;
 decode_msg_attribute_name("ApproximateReceiveCount") -> approximate_receive_count;
-decode_msg_attribute_name("ApproximateFirstReceiveTimestamp") -> approximate_first_receive_timestamp.
+decode_msg_attribute_name("ApproximateFirstReceiveTimestamp") -> approximate_first_receive_timestamp;
+decode_msg_attribute_name(Name) when is_list(Name) -> Name.
 
 decode_messages(Messages) ->
     [decode_message(Message) || Message <- Messages].
@@ -332,10 +347,27 @@ decode_message(Message) ->
        {md5_of_body, "MD5OfBody", text},
        {message_id, "MessageId", text},
        {receipt_handle, "ReceiptHandle", text},
-       {attributes, "Attribute", fun decode_msg_attributes/1}
+       {attributes, "Attribute", fun decode_msg_attributes/1},
+       {message_attributes, "MessageAttribute", fun decode_message_attributes/1}
       ],
       Message
      ).
+
+decode_message_attributes(Attributes) ->
+    [{decode_msg_attribute_name(Name), decode_message_attribute_value(DataType, StringValue)} ||
+        {Name, DataType, StringValue} <- decode_message_attribute(Attributes)].
+
+decode_message_attribute(Attributes) ->
+    [{erlcloud_xml:get_text("Name", Attr),
+      erlcloud_xml:get_text("Value/DataType", Attr),
+      erlcloud_xml:get_text("Value/StringValue", Attr)} || Attr <- Attributes].
+
+decode_message_attribute_value("Number", Value) ->
+    list_to_integer(Value);
+decode_message_attribute_value("Binary", Value) ->
+    list_to_binary(Value);
+decode_message_attribute_value("String", Value) ->
+    Value.
 
 decode_msg_attributes(Attrs)  ->
     [{decode_msg_attribute_name(Name),
@@ -368,13 +400,18 @@ send_message(QueueName, MessageBody, DelaySeconds) ->
     send_message(QueueName, MessageBody, DelaySeconds, default_config()).
 
 -spec send_message(string(), string(), 0..900 | none, aws_config()) -> proplist().
-send_message(QueueName, MessageBody, DelaySeconds, Config)
+send_message(QueueName, MessageBody, DelaySeconds, Config) ->
+    send_message(QueueName, MessageBody, DelaySeconds, [], Config).
+
+-spec send_message(string(), string(), 0..900 | none, [message_attribute()], aws_config()) -> proplist().
+send_message(QueueName, MessageBody, DelaySeconds, MessageAttributes, Config)
   when is_list(QueueName), is_list(MessageBody), is_record(Config, aws_config),
        (DelaySeconds >= 0 andalso DelaySeconds =< 900) orelse
-       DelaySeconds =:= none ->
+       DelaySeconds =:= none andalso is_list(MessageAttributes) ->
+    EncodedMessageAttributes = encode_message_attributes(MessageAttributes),
     Doc = sqs_xml_request(Config, QueueName, "SendMessage",
                           [{"MessageBody", MessageBody},
-                           {"DelaySeconds", DelaySeconds}]),
+                           {"DelaySeconds", DelaySeconds} | EncodedMessageAttributes]),
     erlcloud_xml:decode(
       [
        {message_id, "SendMessageResult/MessageId", text},
@@ -550,3 +587,41 @@ queue_path([$/|QueueName]) -> [$/ |erlcloud_http:url_encode(QueueName)];
 queue_path([$h,$t,$t,$p|_] = URL) ->
     re:replace(URL, "^https?://[^/]*", "", [{return, list}]);
 queue_path(QueueName) -> [$/ | erlcloud_http:url_encode(QueueName)].
+
+encode_message_attributes(Attributes) ->
+    Map = fun(Attribute, Acc) ->
+                  [encode_message_attribute(Attribute) | Acc]
+          end,
+    erlcloud_aws:param_list(lists:reverse(lists:foldl(Map, [], Attributes)), "MessageAttribute").
+
+encode_message_attribute({Key, Value}) ->
+    [
+      {message_attribute_title(datatype), encode_message_attribute_type(Value)},
+      {message_attribute_title(string_value), encode_message_attribute_value(Value)},
+      {message_attribute_title(name), Key}
+    ].
+
+message_attribute_title(datatype) ->
+    "Value.DataType";
+message_attribute_title(string_value) ->
+    "Value.StringValue";
+message_attribute_title(name) ->
+    "Name".
+
+encode_message_attribute_value(Value) when is_integer(Value) ->
+    integer_to_list(Value);
+encode_message_attribute_value(Value) when is_float(Value) ->
+    float_to_list(Value, [{decimals, 12}, compact]);
+encode_message_attribute_value(Value) when is_list(Value) ->
+    Value;
+encode_message_attribute_value(Value) when is_binary(Value) ->
+    binary_to_list(Value).
+
+encode_message_attribute_type(Value) when is_integer(Value) ->
+    "Number";
+encode_message_attribute_type(Value) when is_float(Value) ->
+    "Number";
+encode_message_attribute_type(Value) when is_list(Value) ->
+    "String";
+encode_message_attribute_type(Value) when is_binary(Value) ->
+    "Binary".
