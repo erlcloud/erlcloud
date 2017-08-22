@@ -2,7 +2,7 @@
 %% @doc
 %% An Erlang interface to Marketplace Entitlement Service.
 %%
-%% TODO: Verify URL's
+%% TODO: Verify URLs
 %% [http://docs.aws.amazon.com/marketplaceentitlement/latest/APIReference/API_GetEntitement.html]
 %%
 %% [http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/MarketplaceEntitlement.html]
@@ -27,20 +27,13 @@
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
+-include("erlcloud_mes.hrl").
 
 %%% Library initialization.
 -export([configure/2, configure/3, new/2, new/3]).
 
-%%% Marketplace Metering API
--export([get_entitlement/1, get_entitlement/2, get_entitlement/3
-        ]).
-
--export_type(
-   [filter_value/0,
-    filter_value_list/0,
-    entitlment_filter/0,
-    entitlment_filter_list/0
-   ]).
+%%% Marketplace Entitlement API
+-export([get_entitlement/1, get_entitlement/2]).
 
 %%%------------------------------------------------------------------------------
 %%% Library initialization.
@@ -69,65 +62,28 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
 
-default_config() -> erlcloud_aws:default_config().
-
-%%%------------------------------------------------------------------------------
-%%% Shared Types
-%%%------------------------------------------------------------------------------
-
--type filter_value() :: binary().
--type filter_value_list() :: [filter_value()].
-
--type filter_type() :: customer_identifier | dimension.
-
--type entitlment_filter() :: {filter_type(), filter_value_list()}.
--type entitlment_filter_list() :: [entitlment_filter()].
-
--type json_term() :: jsx:json_term().
-
-%%%------------------------------------------------------------------------------
-%%% Helper Functions
-%%%------------------------------------------------------------------------------
-
--spec dynamize_filter_type(filter_type()) -> binary().
-dynamize_filter_type(customer_identifier) ->
-    <<"CUSTOMER_IDENTIFIER">>;
-dynamize_filter_type(dimension) ->
-    <<"DIMENSION">>.
-
--spec dynamize_filters(entitlment_filter_list()) -> [{binary(), filter_value_list()}].
-dynamize_filters([]) ->
-    [];
-dynamize_filters(EntitlmentFilters) ->
-    [{<<"Filter">>, [{dynamize_filter_type(FT), FVL} || {FT, FVL} <- EntitlmentFilters]}].
-
 %%%------------------------------------------------------------------------------
 %%% @doc
-%%% Batch Meter Usage
+%%% Get Entitlements
 %%%
-%%% HTTP Documentation is still missing. Please see Java Script SDK Documentation
-%%% [http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/MarketplaceMetering.html#batchMeterUsage-property]
+%%% [http://docs.aws.amazon.com/marketplaceentitlement/latest/APIReference/API_GetEntitlements.html]
 %%%------------------------------------------------------------------------------
 
--spec get_entitlement(ProductCode :: binary()) -> json_return().
-get_entitlement(ProductCode) ->
-    get_entitlement(ProductCode, [], default_config()).
+-spec get_entitlement(Request :: entitlement_request()) -> json_return().
+get_entitlement(#entitlement_request{} = Request) ->
+    get_entitlement(Request, default_config()).
 
--spec get_entitlement(ProductCode :: binary(),
-                      EntitlmentFilters :: entitlment_filter_list()) -> json_return().
-get_entitlement(ProductCode, EntitlmentFilters) ->
-    get_entitlement(ProductCode, EntitlmentFilters, default_config()).
 
--spec get_entitlement(ProductCode :: binary(),
-                      EntitlmentFilters :: entitlment_filter_list(),
-                      aws_config()) -> json_return().
-get_entitlement(ProductCode, EntitlmentFilters, Config) ->
-    DynamizedFilters = dynamize_filters(EntitlmentFilters),
-    Json = [{<<"ProductCode">>, ProductCode} | DynamizedFilters],
-
+-spec get_entitlement(EntitlementRequest :: entitlement_request(), aws_config()) -> json_return().
+get_entitlement(#entitlement_request{} = Request, #aws_config{} = Config) ->
+    DynamizedFilters = dynamize_filters(Request#entitlement_request.filter),
+    Params = filter_undefined([{<<"MaxResults">>, Request#entitlement_request.max_results},
+                               {<<"NextToken">>, Request#entitlement_request.next_token},
+                               {<<"ProductCode">>, Request#entitlement_request.product_code}
+                              ]) ++ DynamizedFilters,
     mes_request(Config,
-            "AWSMPEntitlementService.GetEntitlements",
-            Json).
+                "AWSMPEntitlementService.GetEntitlements",
+                Params).
 
 %%%------------------------------------------------------------------------------
 %%% Request
@@ -165,3 +121,32 @@ headers(Config, Operation, Body) ->
     erlcloud_aws:sign_v4_headers(Config, Headers, Body, Region, "aws-marketplace").
 
 
+%%%------------------------------------------------------------------------------
+%%% Helper Functions
+%%%------------------------------------------------------------------------------
+
+default_config() -> erlcloud_aws:default_config().
+
+-spec dynamize_filter_type(filter_type()) -> binary().
+dynamize_filter_type(customer_identifier) ->
+    <<"CUSTOMER_IDENTIFIER">>;
+dynamize_filter_type(dimension) ->
+    <<"DIMENSION">>.
+
+-spec dynamize_filters(entitlement_filter_list()) -> [{binary(), filter_value_list()}].
+dynamize_filters([]) ->
+    [];
+dynamize_filters(entitlementFilters) ->
+    [{<<"Filter">>, [{dynamize_filter_type(FT), FVL} || {FT, FVL} <- entitlementFilters]}].
+
+
+filter_undefined(Params) ->
+    filter_undefined(Params, []).
+
+
+filter_undefined([], Acc) ->
+    Acc;
+filter_undefined([{_, undefined} | T], Acc) ->
+    filter_undefined(T, Acc);
+filter_undefined([H | T], Acc) ->
+    filter_undefined(T, [H | Acc]).
