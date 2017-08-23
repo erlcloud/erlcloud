@@ -596,17 +596,10 @@ encode_message_attributes(Attributes) ->
 
 encode_message_attribute({Key, Value}) ->
     [
-      {message_attribute_title(datatype), encode_message_attribute_type(Value)},
-      {message_attribute_title(string_value), encode_message_attribute_value(Value)},
-      {message_attribute_title(name), Key}
+      {"Value.DataType", encode_message_attribute_type(Value)},
+      {"Value.StringValue", encode_message_attribute_value(Value)},
+      {"Name", Key}
     ].
-
-message_attribute_title(datatype) ->
-    "Value.DataType";
-message_attribute_title(string_value) ->
-    "Value.StringValue";
-message_attribute_title(name) ->
-    "Name".
 
 encode_message_attribute_value(Value) when is_integer(Value) ->
     integer_to_list(Value);
