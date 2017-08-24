@@ -3,8 +3,10 @@
 
 -export([start/0]).
 -export([stop/1]).
+-export([send_message_batch/1]).
 -export([send_message_with_message_attributes/1]).
 -export([receive_messages_with_message_attributes/1]).
+-export([send_message_batch_with_message_attributes/1]).
 
 -define(_sqs_test(T), {?LINE, T}).
 -define(_f(F), fun() -> F end).
@@ -15,7 +17,9 @@ erlcloud_api_test_() ->
      fun stop/1,
      [
       fun send_message_with_message_attributes/1,
-      fun receive_messages_with_message_attributes/1
+      fun receive_messages_with_message_attributes/1,
+      fun send_message_batch/1,
+      fun send_message_batch_with_message_attributes/1
      ]}.
 
 start() ->
@@ -263,3 +267,94 @@ receive_messages_with_message_attributes(_) ->
             {"Test receives a message with message attributes.",
              MessageResponse, Expected})],
     output_tests(?_f(erlcloud_sqs:receive_message("Queue", all, 1, 30, none, all, erlcloud_aws:default_config())), Tests).
+
+send_message_batch(_) ->
+    Batch = [{"batch-message-01", "Hello"}, {"batch-message-02", "World"}],
+    Expected = [
+                {"Action", "SendMessageBatch"},
+                {"SendMessageBatchRequestEntry.1.Id", "batch-message-02"},
+                {"SendMessageBatchRequestEntry.1.MessageBody", "World"},
+                {"SendMessageBatchRequestEntry.2.Id", "batch-message-01"},
+                {"SendMessageBatchRequestEntry.2.MessageBody", "Hello"}
+               ],
+    Tests =
+        [?_sqs_test(
+            {"Test sends messages in a batch.",
+             ?_f(erlcloud_sqs:send_message_batch("Queue", Batch, none,
+                                                 erlcloud_aws:default_config())),
+             Expected})],
+    Response = "
+<SendMessageBatchResponse>
+    <SendMessageBatchResult>
+        <SendMessageBatchResultEntry>
+            <Id>batch-message-01</Id>
+            <MessageId>0a5231c7-8bff-4955-be2e-8dc7c50a25fa</MessageId>
+            <MD5OfMessageBody>8b1a9953c4611296a827abf8c47804d7</MD5OfMessageBody>
+        </SendMessageBatchResultEntry>
+        <SendMessageBatchResultEntry>
+            <Id>batch-message-02</Id>
+            <MessageId>15ee1ed3-87e7-40c1-bdaa-2e49968ea7e9</MessageId>
+            <MD5OfMessageBody>f5a7924e621e84c9280a9a27e1bcb7f6</MD5OfMessageBody>
+        </SendMessageBatchResultEntry>
+    </SendMessageBatchResult>
+    <ResponseMetadata>
+        <RequestId>
+            27daac76-34dd-47df-bd01-1f6e873584a0
+        </RequestId>
+    </ResponseMetadata>
+</SendMessageBatchResponse>",
+    input_tests(Response, Tests).
+
+send_message_batch_with_message_attributes(_) ->
+    Batch = [
+             {"batch-message-01", "Hello", [{"correlationId", "1234"},
+                                            {"content-type", "application/json"}]},
+             {"batch-message-02", "World", [{"correlationId", "5678"},
+                                            {"content-type", "text/xml"}]}
+            ],
+    Expected = [
+                {"Action", "SendMessageBatch"},
+                {"SendMessageBatchRequestEntry.1.Id", "batch-message-02"},
+                {"SendMessageBatchRequestEntry.1.MessageBody", "World"},
+                {"SendMessageBatchRequestEntry.1.MessageAttribute.1.Name", "correlationId"},
+                {"SendMessageBatchRequestEntry.1.MessageAttribute.1.Value.StringValue", "5678"},
+                {"SendMessageBatchRequestEntry.1.MessageAttribute.1.Value.DataType", "String"},
+                {"SendMessageBatchRequestEntry.1.MessageAttribute.2.Name", "content-type"},
+                {"SendMessageBatchRequestEntry.1.MessageAttribute.2.Value.StringValue", "text%2Fxml"},
+                {"SendMessageBatchRequestEntry.1.MessageAttribute.2.Value.DataType", "String"},
+                {"SendMessageBatchRequestEntry.2.Id", "batch-message-01"},
+                {"SendMessageBatchRequestEntry.2.MessageBody", "Hello"},
+                {"SendMessageBatchRequestEntry.2.MessageAttribute.1.Name", "correlationId"},
+                {"SendMessageBatchRequestEntry.2.MessageAttribute.1.Value.StringValue", "1234"},
+                {"SendMessageBatchRequestEntry.2.MessageAttribute.1.Value.DataType", "String"},
+                {"SendMessageBatchRequestEntry.2.MessageAttribute.2.Name", "content-type"},
+                {"SendMessageBatchRequestEntry.2.MessageAttribute.2.Value.StringValue", "application%2Fjson"},
+                {"SendMessageBatchRequestEntry.2.MessageAttribute.2.Value.DataType", "String"}
+               ],
+    Tests =
+        [?_sqs_test(
+            {"Test sends messages in a batch.",
+             ?_f(erlcloud_sqs:send_message_batch("Queue", Batch, none,
+                                                 erlcloud_aws:default_config())),
+             Expected})],
+    Response = "
+<SendMessageBatchResponse>
+    <SendMessageBatchResult>
+        <SendMessageBatchResultEntry>
+            <Id>batch-message-01</Id>
+            <MessageId>0a5231c7-8bff-4955-be2e-8dc7c50a25fa</MessageId>
+            <MD5OfMessageBody>8b1a9953c4611296a827abf8c47804d7</MD5OfMessageBody>
+        </SendMessageBatchResultEntry>
+        <SendMessageBatchResultEntry>
+            <Id>batch-message-02</Id>
+            <MessageId>15ee1ed3-87e7-40c1-bdaa-2e49968ea7e9</MessageId>
+            <MD5OfMessageBody>f5a7924e621e84c9280a9a27e1bcb7f6</MD5OfMessageBody>
+        </SendMessageBatchResultEntry>
+    </SendMessageBatchResult>
+    <ResponseMetadata>
+        <RequestId>
+            27daac76-34dd-47df-bd01-1f6e873584a0
+        </RequestId>
+    </ResponseMetadata>
+</SendMessageBatchResponse>",
+    input_tests(Response, Tests).

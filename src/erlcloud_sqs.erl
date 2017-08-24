@@ -45,7 +45,7 @@
                                     created_timestamp | last_modified_timestamp | policy |
                                     queue_arn).
 
--type(batch_entry() :: {string(), string()}).
+-type(batch_entry() :: {string(), string()} | {string(), string(), [message_attribute()]}).
 -type(message_attribute() :: {string(), string() | integer() | float() | binary()}).
 
 -spec new(string(), string()) -> aws_config().
@@ -449,14 +449,13 @@ send_message_batch(QueueName, BatchMessages, DelaySeconds) ->
     send_message_batch(QueueName, BatchMessages, DelaySeconds, default_config()).
 
 -spec send_message_batch(string(), [batch_entry()], 0..900 | none, aws_config()) -> proplist().
-send_message_batch(QueueName, [{Id, Body}|_]=BatchMessages, DelaySeconds, Config)
-    when is_list(QueueName), is_list(Id), is_list(Body), is_record(Config, aws_config),
+send_message_batch(QueueName, BatchMessages, DelaySeconds, Config)
+    when is_list(QueueName), is_record(Config, aws_config),
          (DelaySeconds >= 0 andalso DelaySeconds =< 900) orelse
          DelaySeconds =:= none ->
-
     {_, BatchRequestEntries} =
-    lists:foldr(fun({BatchId, MessageBody}, {N, Acc}) ->
-                    {N + 1, [mk_send_batch_entry(N, BatchId, MessageBody, DelaySeconds)| Acc]}
+    lists:foldr(fun(Message, {N, Acc}) ->
+                    {N + 1, [mk_send_batch_entry(N, Message, DelaySeconds)| Acc]}
                 end, {1, []}, BatchMessages),
 
     Doc = sqs_xml_request(Config, QueueName, "SendMessageBatch",
@@ -512,14 +511,20 @@ change_message_visibility_batch(QueueName, [{Id, Handle}|_]=BatchReceiptHandles,
      {failed, "ChangeMessageVisibilityBatchResult/BatchResultErrorEntry", fun decode_batch_result_error/1}],
     erlcloud_xml:decode(BatchResponse, Doc).
 
--spec mk_send_batch_entry(integer(), string(), string(), 0..900 | none) -> [{string(), integer() | string()}].
-mk_send_batch_entry(N, MessageId, MessageBody, DelaySeconds) ->
+-spec mk_send_batch_entry(integer(), batch_entry(), 0..900 | none) -> [{string(), integer() | string()}].
+mk_send_batch_entry(N, {MessageId, MessageBody}, DelaySeconds) ->
+    mk_send_batch_entry(N, {MessageId, MessageBody, []}, DelaySeconds);
+mk_send_batch_entry(N, {MessageId, MessageBody, MessageAttributes}, DelaySeconds)
+  when is_list(MessageId), is_list(MessageBody), is_list(MessageAttributes) ->
     N0 = integer_to_list(N),
-    [
-        ?SEND_BATCH_FIELD(N0, ".Id", MessageId),
-        ?SEND_BATCH_FIELD(N0, ".MessageBody", MessageBody),
-        ?SEND_BATCH_FIELD(N0, ".DelaySeconds", DelaySeconds)
-    ].
+    Base = [
+            ?SEND_BATCH_FIELD(N0, ".Id", MessageId),
+            ?SEND_BATCH_FIELD(N0, ".MessageBody", MessageBody),
+            ?SEND_BATCH_FIELD(N0, ".DelaySeconds", DelaySeconds)
+           ],
+    lists:foldl(fun({Field, Value}, Acc) ->
+                        [?SEND_BATCH_FIELD(N0, [$., Field], Value) | Acc]
+                end, Base, encode_message_attributes(MessageAttributes)).
 
 -spec mk_delete_batch_entry(integer(), string(), string()) -> [{string(), string()}].
 mk_delete_batch_entry(N, MessageId, ReceiptHandle) ->
