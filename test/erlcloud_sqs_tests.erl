@@ -213,6 +213,27 @@ receive_messages_with_message_attributes(_) ->
           <StringValue>application/json</StringValue>
         </Value>
       </MessageAttribute>
+      <MessageAttribute>
+        <Name>float</Name>
+        <Value>
+          <DataType>Number</DataType>
+          <StringValue>3.1415926</StringValue>
+        </Value>
+      </MessageAttribute>
+      <MessageAttribute>
+        <Name>integer</Name>
+        <Value>
+          <DataType>Number</DataType>
+          <StringValue>42</StringValue>
+        </Value>
+      </MessageAttribute>
+      <MessageAttribute>
+        <Name>binary</Name>
+        <Value>
+          <DataType>Binary</DataType>
+          <StringValue>Binary string</StringValue>
+        </Value>
+      </MessageAttribute>
     </Message>
   </ReceiveMessageResult>
   <ResponseMetadata>
@@ -230,7 +251,12 @@ receive_messages_with_message_attributes(_) ->
                                            {sent_timestamp, 1238099229000},
                                            {approximate_receive_count, 5},
                                            {approximate_first_receive_timestamp, 1250700979248}]},
-                             {message_attributes, [{"content-type", "application/json"}]}
+                             {message_attributes, [
+                                                   {"content-type", "application/json"},
+                                                   {"float", 3.1415926},
+                                                   {"integer", 42},
+                                                   {"binary", <<"Binary string">>}
+                                                  ]}
                             ]]}],
     Tests =
         [?_sqs_test(

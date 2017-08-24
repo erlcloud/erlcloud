@@ -363,7 +363,12 @@ decode_message_attribute(Attributes) ->
       erlcloud_xml:get_text("Value/StringValue", Attr)} || Attr <- Attributes].
 
 decode_message_attribute_value("Number", Value) ->
-    list_to_integer(Value);
+    case lists:member($., Value) of
+        true ->
+            list_to_float(Value);
+        false ->
+            list_to_integer(Value)
+    end;
 decode_message_attribute_value("Binary", Value) ->
     list_to_binary(Value);
 decode_message_attribute_value("String", Value) ->
