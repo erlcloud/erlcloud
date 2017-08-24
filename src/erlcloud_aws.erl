@@ -146,10 +146,7 @@ aws_region_from_host(Host) ->
         [_, Value, _, _ | _Rest] ->
             Value;
         _ ->
-            case default_config_get("AWS_REGION", aws_region) of
-                undefined -> "us-east-1";
-                R -> R
-            end
+            default_config_get("AWS_REGION", aws_region, "us-east-1")
     end.
 
 aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) ->
@@ -327,10 +324,12 @@ default_config_wrap() ->
 %% try to get config value from OS env, failing that try app env, else
 %% return undefined
 default_config_get(OsVar, EnvVar) ->
-    case {os:getenv(OsVar), application:get_env(erlcloud, EnvVar)} of
+    default_config_get(OsVar, EnvVar, undefined).
+
+default_config_get(OsVar, EnvVar, Default) ->
+    case {os:getenv(OsVar), application:get_env(erlcloud, EnvVar, Default)} of
         {OsVal,  _} when OsVal /= false -> OsVal;
-        {_, {ok, EnvVal}} -> EnvVal;
-        _ -> undefined
+        {_, EnvVal} -> EnvVal
     end.
 
 default_config_assert(undefined, _Key, _Token) -> #aws_config{};
