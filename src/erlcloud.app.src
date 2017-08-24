@@ -2,7 +2,7 @@
 %% ex: ts=4 sw=4 ft=erlang et
 
 {application, erlcloud,
- [{description, "Erlang cloud computing library"},
+ [{description, "AWS APIs library for Erlang"},
   {vsn, git},
   {registered, []},
   {applications, [stdlib,
