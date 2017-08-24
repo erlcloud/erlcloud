@@ -146,7 +146,7 @@ aws_region_from_host(Host) ->
         [_, Value, _, _ | _Rest] ->
             Value;
         _ ->
-            application:get_env(erlcloud, aws_region, "us-east-1")
+            default_config_get("AWS_REGION", aws_region, "us-east-1")
     end.
 
 aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) ->
@@ -324,10 +324,12 @@ default_config_wrap() ->
 %% try to get config value from OS env, failing that try app env, else
 %% return undefined
 default_config_get(OsVar, EnvVar) ->
-    case {os:getenv(OsVar), application:get_env(erlcloud, EnvVar)} of
+    default_config_get(OsVar, EnvVar, undefined).
+
+default_config_get(OsVar, EnvVar, Default) ->
+    case {os:getenv(OsVar), application:get_env(erlcloud, EnvVar, Default)} of
         {OsVal,  _} when OsVal /= false -> OsVal;
-        {_, {ok, EnvVal}} -> EnvVal;
-        _ -> undefined
+        {_, EnvVal} -> EnvVal
     end.
 
 default_config_assert(undefined, _Key, _Token) -> #aws_config{};
@@ -456,7 +458,7 @@ config_env() ->
 
 -spec config_metadata(task_credentials | instance_metadata) -> {ok, #metadata_credentials{}} | {error, atom()}.
 config_metadata(Source) ->
-    Config = #aws_config{},
+    Config = default_config(),
     case get_metadata_credentials( Source, Config ) of
         {ok, #metadata_credentials{
                 access_key_id = Id,
@@ -1201,7 +1203,7 @@ profiles_credentials( Keys, SourceProfile ) ->
     {cont, SourceProfile, RoleArn, ExternalId}.
 
 profiles_assume( Credential, undefined, __ExternalId, _Options ) ->
-    Config = config_credential(Credential, #aws_config{}),
+    Config = config_credential(Credential, default_config()),
     {ok, Config};
 profiles_assume( Credential, Role, ExternalId,
                  #profile_options{ session_name = Name,
@@ -1210,7 +1212,7 @@ profiles_assume( Credential, Role, ExternalId,
     ExtId = if ExternalId =/= undefined -> ExternalId;
                ExternalId =:= undefined -> DefaultExternalId
             end,
-    Config = config_credential(Credential, #aws_config{}),
+    Config = config_credential(Credential, default_config()),
     {AssumedConfig, _Creds} =
         erlcloud_sts:assume_role( Config, Role, Name, Duration, ExtId ),
     {ok, AssumedConfig}.
