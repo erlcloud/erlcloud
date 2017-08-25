@@ -179,6 +179,39 @@ get_entitlement_input_tests(_) ->
          \"DIMENSION\": [\"string\"]
         }
 }"
+            }),
+        ?_mes_test(
+            {"GetEntitlements example request by next_token",
+             ?_f(erlcloud_mes:get_entitlement(
+                    <<"string">>,
+                    [{customer_identifier, [<<"string">>]}, {dimension, [<<"string">>]}],
+                    [{next_token, <<"token">>}])),
+"{
+    \"ProductCode\":\"string\",
+    \"Filter\":
+        {
+         \"CUSTOMER_IDENTIFIER\": [\"string\"],
+         \"DIMENSION\": [\"string\"]
+        },
+    \"NextToken\":\"token\"
+}"
+            }),
+        ?_mes_test(
+            {"GetEntitlements example request by next_token and max_results",
+             ?_f(erlcloud_mes:get_entitlement(
+                    <<"string">>,
+                    [{customer_identifier, [<<"string">>]}, {dimension, [<<"string">>]}],
+                    [{next_token, <<"token">>}, {max_results, 10}])),
+"{
+    \"ProductCode\":\"string\",
+    \"Filter\":
+        {
+         \"CUSTOMER_IDENTIFIER\": [\"string\"],
+         \"DIMENSION\": [\"string\"]
+        },
+    \"NextToken\":\"token\",
+    \"MaxResults\":10
+}"
             })
         ],
 
@@ -232,8 +265,46 @@ get_entitlement_output_tests(_) ->
         }
     ]
 }">>)}}
+        ),
+        ?_mes_test(
+            {"GetEntitlements example response with NextToken","
+{
+    \"Entitlements\": [
+        {
+            \"ProductCode\": \"string\",
+            \"Dimension\": \"string\",
+            \"CustomerIdentifier\": \"string\",
+            \"Value\": {
+                \"EntitlementValueType\": \"string\",
+                \"IntegerValue\": 5
+            },
+            \"NextToken\": \"token\",
+            \"ExpirationDate\": 1485477404000
+        }
+    ]
+}",
+             {ok, jsx:decode(<<"
+{
+    \"Entitlements\": [
+        {
+            \"ProductCode\": \"string\",
+            \"Dimension\": \"string\",
+            \"CustomerIdentifier\": \"string\",
+            \"Value\": {
+                \"EntitlementValueType\": \"string\",
+                \"IntegerValue\": 5
+            },
+            \"NextToken\": \"token\",
+            \"ExpirationDate\": 1485477404000
+        }
+    ]
+}">>)}}
         )],
 
     output_tests(?_f(erlcloud_mes:get_entitlement(
            <<"string">>,
-           [{customer_identifier, [<<"string">>]}, {dimension, [<<"string">>]}])), Tests).
+           [{customer_identifier, [<<"string">>]}, {dimension, [<<"string">>]}])), Tests) ++
+    output_tests(?_f(erlcloud_mes:get_entitlement(
+           <<"string">>,
+           [{customer_identifier, [<<"string">>]}, {dimension, [<<"string">>]}],
+           [{next_token, <<"token">>}])), Tests).
