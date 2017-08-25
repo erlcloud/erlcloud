@@ -85,6 +85,9 @@ default_config() -> erlcloud_aws:default_config().
 
 -type json_term() :: jsx:json_term().
 
+-type option_type() :: max_results | next_token.
+-type options() :: [{option_type(), any()}].
+
 %%%------------------------------------------------------------------------------
 %%% Helper Functions
 %%%------------------------------------------------------------------------------
@@ -100,6 +103,17 @@ dynamize_filters([]) ->
     [];
 dynamize_filters(EntitlmentFilters) ->
     [{<<"Filter">>, [{dynamize_filter_type(FT), FVL} || {FT, FVL} <- EntitlmentFilters]}].
+
+
+-spec dynamize_option_type(option_type()) -> binary().
+dynamize_option_type(max_results) ->
+    <<"MaxResults">>;
+dynamize_option_type(next_token) ->
+    <<"NextToken">>.
+
+-spec dynamize_options(options()) -> [{binary(), any()}].
+dynamize_options(Options) ->
+    [{dynamize_option_type(Option), V} || {Option, V} <- Options].
 
 %%%------------------------------------------------------------------------------
 %%% @doc
@@ -119,17 +133,18 @@ get_entitlement(ProductCode, EntitlementFilters) ->
 
 -spec get_entitlement(ProductCode :: binary(),
                       EntitlementFilters :: entitlment_filter_list(),
-                      Options :: proplist()) -> json_return().
+                      Options :: options()) -> json_return().
 get_entitlement(ProductCode, EntitlementFilters, Options) ->
     get_entitlement(ProductCode, EntitlementFilters, Options, default_config()).
 
 -spec get_entitlement(ProductCode :: binary(),
                       EntitlementFilters :: entitlment_filter_list(),
-                      Options :: proplist(),
+                      Options :: options(),
                       aws_config()) -> json_return().
 get_entitlement(ProductCode, EntitlementFilters, Options, Config) ->
     DynamizedFilters = dynamize_filters(EntitlementFilters),
-    Json = [{<<"ProductCode">>, ProductCode} | DynamizedFilters ++ Options],
+    DynamizedOptions = dynamize_options(Options),
+    Json = [{<<"ProductCode">>, ProductCode} | DynamizedFilters ++ DynamizedOptions],
 
     mes_request(Config,
                 "AWSMPEntitlementService.GetEntitlements",
