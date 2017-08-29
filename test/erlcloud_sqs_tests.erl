@@ -140,7 +140,8 @@ send_message_with_message_attributes(_) ->
     MessageAttributes = [{"first", "value"},
                          {"second", 1},
                          {"third", 3.14159265359},
-                         {"fourth", <<"binary">>}],
+                         {"fourth", <<"binary">>},
+                         {"uuid", {"uuid", <<"db3bf1fc-0cac-4cf8-8d2c-5c307ad4ac3a">>}}],
     Expected = [
                 {"Action", "SendMessage"},
                 {"MessageAttribute.1.Name", "first"},
@@ -148,13 +149,16 @@ send_message_with_message_attributes(_) ->
                 {"MessageAttribute.1.Value.DataType", "String"},
                 {"MessageAttribute.2.Name", "second"},
                 {"MessageAttribute.2.Value.StringValue", "1"},
-                {"MessageAttribute.2.Value.DataType", "Number"},
+                {"MessageAttribute.2.Value.DataType", "Number.int"},
                 {"MessageAttribute.3.Name", "third"},
                 {"MessageAttribute.3.Value.StringValue", "3.14159265359"},
-                {"MessageAttribute.3.Value.DataType", "Number"},
+                {"MessageAttribute.3.Value.DataType", "Number.float"},
                 {"MessageAttribute.4.Name", "fourth"},
-                {"MessageAttribute.4.Value.StringValue", "binary"},
+                {"MessageAttribute.4.Value.BinaryValue", "binary"},
                 {"MessageAttribute.4.Value.DataType", "Binary"},
+                {"MessageAttribute.5.Name", "uuid"},
+                {"MessageAttribute.5.Value.DataType", "Binary.uuid"},
+                {"MessageAttribute.5.Value.BinaryValue", "db3bf1fc-0cac-4cf8-8d2c-5c307ad4ac3a"},
                 {"MessageBody", MessageBody}
                ],
     Tests =
@@ -220,14 +224,14 @@ receive_messages_with_message_attributes(_) ->
       <MessageAttribute>
         <Name>float</Name>
         <Value>
-          <DataType>Number</DataType>
+          <DataType>Number.float</DataType>
           <StringValue>3.1415926</StringValue>
         </Value>
       </MessageAttribute>
       <MessageAttribute>
         <Name>integer</Name>
         <Value>
-          <DataType>Number</DataType>
+          <DataType>Number.int</DataType>
           <StringValue>42</StringValue>
         </Value>
       </MessageAttribute>
@@ -235,7 +239,14 @@ receive_messages_with_message_attributes(_) ->
         <Name>binary</Name>
         <Value>
           <DataType>Binary</DataType>
-          <StringValue>Binary string</StringValue>
+          <BinaryValue>Binary string</BinaryValue>
+        </Value>
+      </MessageAttribute>
+      <MessageAttribute>
+        <Name>uuid</Name>
+        <Value>
+          <DataType>Binary.uuid</DataType>
+          <BinaryValue>db3bf1fc-0cac-4cf8-8d2c-5c307ad4ac3a</BinaryValue>
         </Value>
       </MessageAttribute>
     </Message>
@@ -259,7 +270,8 @@ receive_messages_with_message_attributes(_) ->
                                                    {"content-type", "application/json"},
                                                    {"float", 3.1415926},
                                                    {"integer", 42},
-                                                   {"binary", <<"Binary string">>}
+                                                   {"binary", <<"Binary string">>},
+                                                   {"uuid", {"uuid", <<"db3bf1fc-0cac-4cf8-8d2c-5c307ad4ac3a">>}}
                                                   ]}
                             ]]}],
     Tests =
