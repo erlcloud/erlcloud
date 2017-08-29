@@ -164,7 +164,6 @@ aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Headers, Confi
 aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service,
                        Headers, #aws_config{aws_region = AwsRegion} = Config) ->
     Query = erlcloud_http:make_query_string(Params),
-    Region = aws_region_from_host(Host),
     Uri = erlcloud_http:url_encode_loose(Path),
     Region = case AwsRegion of
       undefined -> aws_region_from_host(Host);
@@ -458,7 +457,7 @@ config_env() ->
 
 -spec config_metadata(task_credentials | instance_metadata) -> {ok, #metadata_credentials{}} | {error, atom()}.
 config_metadata(Source) ->
-    Config = default_config(),
+    Config = #aws_config{},
     case get_metadata_credentials( Source, Config ) of
         {ok, #metadata_credentials{
                 access_key_id = Id,
@@ -1203,7 +1202,7 @@ profiles_credentials( Keys, SourceProfile ) ->
     {cont, SourceProfile, RoleArn, ExternalId}.
 
 profiles_assume( Credential, undefined, __ExternalId, _Options ) ->
-    Config = config_credential(Credential, default_config()),
+    Config = config_credential(Credential, #aws_config{}),
     {ok, Config};
 profiles_assume( Credential, Role, ExternalId,
                  #profile_options{ session_name = Name,
@@ -1212,7 +1211,7 @@ profiles_assume( Credential, Role, ExternalId,
     ExtId = if ExternalId =/= undefined -> ExternalId;
                ExternalId =:= undefined -> DefaultExternalId
             end,
-    Config = config_credential(Credential, default_config()),
+    Config = config_credential(Credential, #aws_config{}),
     {AssumedConfig, _Creds} =
         erlcloud_sts:assume_role( Config, Role, Name, Duration, ExtId ),
     {ok, AssumedConfig}.
