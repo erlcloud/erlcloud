@@ -361,11 +361,11 @@ decode_message_attribute(Attributes) ->
     F = fun(Attr) ->
                 Name = erlcloud_xml:get_text("Name", Attr),
                 DataType = erlcloud_xml:get_text("Value/DataType", Attr),
-                Value = case string:find(DataType, "Binary") of
-                            nomatch ->
-                                erlcloud_xml:get_text("Value/StringValue", Attr);
+                Value = case string:rstr(DataType, "Binary") of
+                            1 ->
+                                erlcloud_xml:get_text("Value/BinaryValue", Attr);
                             _ ->
-                                erlcloud_xml:get_text("Value/BinaryValue", Attr)
+                                erlcloud_xml:get_text("Value/StringValue", Attr)
                         end,
                 {Name, DataType, Value}
         end,
