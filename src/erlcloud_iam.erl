@@ -165,15 +165,15 @@ singular_result({ok, [Res]}) ->
 singular_result({error, _} = Error) ->
     Error.
 
--spec list_users() -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
+-spec list_users() -> {ok, [proplist()]} | {ok, [proplist()], string()} |  {error, any()}.
 list_users() -> list_users("/").
--spec list_users(string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
+-spec list_users(string() | aws_config()) -> {ok, [proplist()]} | {ok, [proplist()], string()} |  {error, any()}.
 list_users(#aws_config{} = Config) ->
     list_users("/", Config);
 list_users(PathPrefix) ->
     list_users(PathPrefix, default_config()).
 
--spec list_users(string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
+-spec list_users(string(), aws_config()) -> {ok, [proplist()]} | {ok, [proplist()], string()} |  {error, any()}.
 list_users(PathPrefix, #aws_config{} = Config)
   when is_list(PathPrefix) ->
     ItemPath = "/ListUsersResponse/ListUsersResult/Users/member",

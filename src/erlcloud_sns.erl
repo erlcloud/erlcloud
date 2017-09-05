@@ -506,11 +506,11 @@ get_notification_attribute(Attribute, Notification) ->
 
 
 
--spec set_topic_attributes(sns_topic_attribute_name(), string(), string()) -> ok.
+-spec set_topic_attributes(sns_topic_attribute_name(), string()|binary(), string()) -> ok.
 set_topic_attributes(AttributeName, AttributeValue, TopicArn) ->
     set_topic_attributes(AttributeName, AttributeValue, TopicArn, default_config()).
 
--spec set_topic_attributes(sns_topic_attribute_name(), string(), string(), aws_config()) -> ok.
+-spec set_topic_attributes(sns_topic_attribute_name(), string()|binary(), string(), aws_config()) -> ok.
 set_topic_attributes(AttributeName, AttributeValue, TopicArn, Config)
     when is_record(Config, aws_config) ->
         sns_simple_request(Config, "SetTopicAttributes", [
