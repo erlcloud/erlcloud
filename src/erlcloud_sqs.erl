@@ -425,11 +425,11 @@ send_message(QueueName, MessageBody, DelaySeconds, MessageAttributes, Config)
       Doc
      ).
 
--spec set_queue_attributes(string(), [{visibility_timeout, integer()} | {policy, string()}]) -> ok.
+-spec set_queue_attributes(string(), [{visibility_timeout, integer()} | {policy, string()|binary()}]) -> ok.
 set_queue_attributes(QueueName, Attributes) ->
     set_queue_attributes(QueueName, Attributes, default_config()).
 
--spec set_queue_attributes(string(), [{visibility_timeout, integer()} | {policy, string()}], aws_config()) -> ok.
+-spec set_queue_attributes(string(), [{visibility_timeout, integer()} | {policy, string()|binary()}], aws_config()) -> ok.
 set_queue_attributes(QueueName, Attributes, Config)
   when is_list(QueueName), is_list(Attributes), is_record(Config, aws_config) ->
     Params = lists:flatten(erlcloud_aws:param_list([encode_attribute_name(Name) || {Name, _} <- Attributes], "Attribute.Name"),
