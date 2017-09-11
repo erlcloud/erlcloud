@@ -388,7 +388,7 @@ decode_message_attribute_value(["Binary"], Value) ->
 decode_message_attribute_value(["Binary", CustomType], Value) ->
     {CustomType, list_to_binary(Value)};
 decode_message_attribute_value(DataType, Value) ->
-    decode_message_attribute_value(string:split(DataType, "."), Value).
+    decode_message_attribute_value(string:tokens(DataType, "."), Value).
 
 decode_msg_attributes(Attrs)  ->
     [{decode_msg_attribute_name(Name),
