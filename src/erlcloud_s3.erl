@@ -959,7 +959,10 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
     POSTData = iolist_to_binary(Value),
     {Headers, _Body} = s3_request(Config, put, BucketName, [$/|Key], "", [],
                                   POSTData, RequestHeaders),
-    [{version_id, proplists:get_value("x-amz-version-id", Headers, "null")}].
+    case proplists:is_defined(return_all_headers, Options) of
+        true -> Headers;
+        false -> [{version_id, proplists:get_value("x-amz-version-id", Headers, "null")}]
+    end.
 
 -spec set_object_acl(string(), string(), proplist()) -> ok.
 
