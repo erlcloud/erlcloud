@@ -358,21 +358,37 @@ decode_message_attributes(Attributes) ->
         {Name, DataType, StringValue} <- decode_message_attribute(Attributes)].
 
 decode_message_attribute(Attributes) ->
-    [{erlcloud_xml:get_text("Name", Attr),
-      erlcloud_xml:get_text("Value/DataType", Attr),
-      erlcloud_xml:get_text("Value/StringValue", Attr)} || Attr <- Attributes].
+    F = fun(Attr) ->
+                Name = erlcloud_xml:get_text("Name", Attr),
+                DataType = erlcloud_xml:get_text("Value/DataType", Attr),
+                Value = case string:rstr(DataType, "Binary") of
+                            1 ->
+                                erlcloud_xml:get_text("Value/BinaryValue", Attr);
+                            _ ->
+                                erlcloud_xml:get_text("Value/StringValue", Attr)
+                        end,
+                {Name, DataType, Value}
+        end,
+    [F(Attr) || Attr <- Attributes].
 
-decode_message_attribute_value("Number", Value) ->
-    case lists:member($., Value) of
-        true ->
-            list_to_float(Value);
-        false ->
-            list_to_integer(Value)
-    end;
-decode_message_attribute_value("Binary", Value) ->
+decode_message_attribute_value(["Number", "int"], Value) ->
+    list_to_integer(Value);
+decode_message_attribute_value(["Number", "int", CustomType], Value) ->
+    {CustomType, list_to_integer(Value)};
+decode_message_attribute_value(["Number", "float"], Value) ->
+    list_to_float(Value);
+decode_message_attribute_value(["Number", "float", CustomType], Value) ->
+    {CustomType, list_to_float(Value)};
+decode_message_attribute_value(["String"], Value) ->
+    Value;
+decode_message_attribute_value(["String", CustomType], Value) ->
+    {CustomType, Value};
+decode_message_attribute_value(["Binary"], Value) ->
     list_to_binary(Value);
-decode_message_attribute_value("String", Value) ->
-    Value.
+decode_message_attribute_value(["Binary", CustomType], Value) ->
+    {CustomType, list_to_binary(Value)};
+decode_message_attribute_value(DataType, Value) ->
+    decode_message_attribute_value(string:tokens(DataType, "."), Value).
 
 decode_msg_attributes(Attrs)  ->
     [{decode_msg_attribute_name(Name),
@@ -607,23 +623,37 @@ encode_message_attributes(Attributes) ->
 encode_message_attribute({Key, Value}) ->
     [
       {"Value.DataType", encode_message_attribute_type(Value)},
-      {"Value.StringValue", encode_message_attribute_value(Value)},
+     encode_message_attribute_value(Value),
       {"Name", Key}
     ].
 
+encode_message_attribute_value({_CustomType, Value}) ->
+    encode_message_attribute_value(Value);
 encode_message_attribute_value(Value) when is_integer(Value) ->
-    integer_to_list(Value);
+    {"Value.StringValue", integer_to_list(Value)};
 encode_message_attribute_value(Value) when is_float(Value) ->
-    float_to_list(Value, [{decimals, 12}, compact]);
+    {"Value.StringValue", float_to_list(Value, [{decimals, 12}, compact])};
 encode_message_attribute_value(Value) when is_list(Value) ->
-    Value;
+    {"Value.StringValue", Value};
 encode_message_attribute_value(Value) when is_binary(Value) ->
-    binary_to_list(Value).
+    {"Value.BinaryValue", binary_to_list(Value)}.
 
+encode_message_attribute_type({CustomType, Value})
+  when is_list(CustomType) andalso is_integer(Value) ->
+    ["Number.int.", CustomType];
+encode_message_attribute_type({CustomType, Value})
+  when is_list(CustomType) andalso is_float(Value) ->
+    ["Number.float.", CustomType];
+encode_message_attribute_type({CustomType, Value})
+  when is_list(CustomType) andalso is_list(Value) ->
+    ["String.", CustomType];
+encode_message_attribute_type({CustomType, Value})
+  when is_list(CustomType) andalso is_binary(Value) ->
+    ["Binary.", CustomType];
 encode_message_attribute_type(Value) when is_integer(Value) ->
-    "Number";
+    "Number.int";
 encode_message_attribute_type(Value) when is_float(Value) ->
-    "Number";
+    "Number.float";
 encode_message_attribute_type(Value) when is_list(Value) ->
     "String";
 encode_message_attribute_type(Value) when is_binary(Value) ->
