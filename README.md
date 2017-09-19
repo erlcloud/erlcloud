@@ -102,7 +102,7 @@ You can provide your amazon credentials in OS environmental variables
 ```
 export AWS_ACCESS_KEY_ID=<Your AWS Access Key>
 export AWS_SECRET_ACCESS_KEY=<Your AWS Secret Access Key>
-export AWS_SECURITY_TOKEN=<Your AWS Security Token>
+export AWS_SESSION_TOKEN=<Your AWS Security Token>
 export AWS_REGION=<Your region>
 ```
 If you did not provide your amazon credentials in the OS environmental variables, then you need to provide configuration read from your profile:
@@ -114,7 +114,7 @@ Or you can provide them via `erlcloud` application environment variables.
 ```erlang
 application:set_env(erlcloud, aws_access_key_id, "your key"),
 application:set_env(erlcloud, aws_secret_access_key, "your secret key"),
-application:set_env(erlcloud, aws_security_token, "your token"),
+application:set_env(erlcloud, aws_session_token, "your token"),
 application:set_env(erlcloud, aws_region, "your region"),
 ```
 ### Using Access Key ###
