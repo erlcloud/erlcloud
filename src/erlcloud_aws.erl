@@ -30,6 +30,13 @@
 -define(ERLCLOUD_RETRY_TIMEOUT, 10000).
 -define(GREGORIAN_EPOCH_OFFSET, 62167219200).
 
+%% 
+%% environment variables
+-define(AWS_ACCESS,  ["AWS_ACCESS_KEY_ID"]).
+-define(AWS_SECRET,  ["AWS_SECRET_ACCESS_KEY"]).
+-define(AWS_SESSION, ["AWS_SESSION_TOKEN", "AWS_SECURITY_TOKEN"]).
+-define(AWS_REGION,  ["AWS_DEFAULT_REGION", "AWS_REGION"]).
+
 -record(metadata_credentials, {
          access_key_id :: string(),
          secret_access_key :: string(),
@@ -146,7 +153,7 @@ aws_region_from_host(Host) ->
         [_, Value, _, _ | _Rest] ->
             Value;
         _ ->
-            default_config_get("AWS_REGION", aws_region, "us-east-1")
+            default_config_get(?AWS_REGION, aws_region, "us-east-1")
     end.
 
 aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) ->
@@ -296,7 +303,7 @@ format_timestamp({{Yr, Mo, Da}, {H, M, S}}) ->
 %% record.
 %% The credentials are; Id, Key, Token, and Region. For each credential we
 %% will first look for the environment variables "AWS_ACCESS_KEY_ID",
-%% "AWS_SECRET_ACCESS_KEY", "AWS_SECURITY_TOKEN", and "AWS_REGION",
+%% "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", and "AWS_REGION",
 %% respectively. If no value is found, we look at the erlcloud application
 %% environment for the keys aws_access_key_id, aws_secret_access_key,
 %% aws_security_token, and aws_region, respectively. If still no value is
@@ -314,10 +321,10 @@ default_config() ->
     end.
 
 default_config_wrap() ->
-    Id = default_config_get("AWS_ACCESS_KEY_ID", aws_access_key_id),
-    Key = default_config_get("AWS_SECRET_ACCESS_KEY", aws_secret_access_key),
-    Token = default_config_get("AWS_SECURITY_TOKEN", aws_security_token),
-    Region = default_config_get("AWS_REGION", aws_region),
+    Id = default_config_get(?AWS_ACCESS, aws_access_key_id),
+    Key = default_config_get(?AWS_SECRET, aws_secret_access_key),
+    Token = default_config_get(?AWS_SESSION, aws_session_token),
+    Region = default_config_get(?AWS_REGION, aws_region),
     default_config_region(default_config_assert(Id, Key, Token), Region).
 
 %% try to get config value from OS env, failing that try app env, else
@@ -326,10 +333,19 @@ default_config_get(OsVar, EnvVar) ->
     default_config_get(OsVar, EnvVar, undefined).
 
 default_config_get(OsVar, EnvVar, Default) ->
-    case {os:getenv(OsVar), application:get_env(erlcloud, EnvVar, Default)} of
+    case {os_getenv(OsVar), application:get_env(erlcloud, EnvVar, Default)} of
         {OsVal,  _} when OsVal /= false -> OsVal;
         {_, EnvVal} -> EnvVal
     end.
+
+os_getenv([Head | Tail]) ->
+    case os:getenv(Head) of
+        false -> os_getenv(Tail);
+        Value -> Value
+    end;
+os_getenv([]) ->
+    false.
+
 
 default_config_assert(undefined, _Key, _Token) -> #aws_config{};
 default_config_assert(_Id, undefined, _Token) -> #aws_config{};
@@ -421,7 +437,7 @@ auto_config( ProfileOptions ) ->
         {ok, _Config} = Result -> Result;
         {error, _} -> auto_config_profile( ProfileOptions )
     end,
-    {ok, default_config_region(Cfg, default_config_get("AWS_REGION", aws_region))}.
+    {ok, default_config_region(Cfg, default_config_get(?AWS_REGION, aws_region))}.
 
 auto_config_profile( ProfileOptions ) ->
     Profile = proplists:get_value( profile, ProfileOptions, default ),
@@ -439,13 +455,13 @@ auto_config_task_metadata() ->
 auto_config_metadata() ->
     case config_metadata(instance_metadata) of
         {ok, _Config} = Result -> Result;
-        {error, _} -> undefined
+        {error, _} -> {ok, undefined}
     end.
 
 
 config_env() ->
-    case {os:getenv("AWS_ACCESS_KEY_ID"), os:getenv("AWS_SECRET_ACCESS_KEY"),
-          os:getenv("AWS_SECURITY_TOKEN")} of
+    case {os_getenv(?AWS_ACCESS), os_getenv(?AWS_SECRET),
+          os_getenv(?AWS_SESSION)} of
         {KeyId, Secret, T} when is_list(KeyId), is_list(Secret) ->
             Token = if is_list(T) -> T; true -> undefined end,
             Config = #aws_config{access_key_id = KeyId,
