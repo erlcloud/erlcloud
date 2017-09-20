@@ -323,7 +323,7 @@ default_config() ->
 default_config_wrap() ->
     Id = default_config_get(?AWS_ACCESS, aws_access_key_id),
     Key = default_config_get(?AWS_SECRET, aws_secret_access_key),
-    Token = default_config_get(?AWS_SESSION, aws_session_token),
+    Token = default_config_get(?AWS_SESSION, aws_security_token),
     Region = default_config_get(?AWS_REGION, aws_region),
     default_config_region(default_config_assert(Id, Key, Token), Region).
 
