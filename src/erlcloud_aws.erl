@@ -10,6 +10,7 @@
          aws_request_form/8,
          aws_request_form_raw/8,
          param_list/2, default_config/0, auto_config/0, auto_config/1,
+         default_config_region/2,
          update_config/1,clear_config/1, clear_expired_configs/0,
          service_config/3, service_host/2,
          configure/1, format_timestamp/1,
@@ -343,7 +344,7 @@ default_config_region(undefined, _) ->
     undefined;
 default_config_region(AwsConfig, undefined) ->
     AwsConfig;
-default_config_region(AwsConfig, Region) ->
+default_config_region(AwsConfig, Region) when is_record(AwsConfig, aws_config) ->
     ConfF = fun(Service, C0) -> service_config(Service, Region, C0) end,
     lists:foldl(ConfF, AwsConfig, default_config_region_services()).
 
