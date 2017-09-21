@@ -344,7 +344,7 @@ default_config_region(undefined, _) ->
     undefined;
 default_config_region(AwsConfig, undefined) ->
     AwsConfig;
-default_config_region(AwsConfig, Region) ->
+default_config_region(AwsConfig, Region) when is_record(AwsConfig, aws_config) ->
     ConfF = fun(Service, C0) -> service_config(Service, Region, C0) end,
     lists:foldl(ConfF, AwsConfig, default_config_region_services()).
 
