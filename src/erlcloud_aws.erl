@@ -1219,7 +1219,7 @@ profiles_credentials( Keys, SourceProfile ) ->
     {cont, SourceProfile, RoleArn, ExternalId}.
 
 profiles_assume( Credential, undefined, __ExternalId, _Options ) ->
-    RCfg = default_config_region(#aws_config{}, default_config_get("AWS_REGION", aws_region)),
+    RCfg = default_config_region(#aws_config{}, default_config_get(?AWS_REGION, aws_region)),
     Config = config_credential(Credential, RCfg),
     {ok, Config};
 profiles_assume( Credential, Role, ExternalId,
@@ -1229,7 +1229,7 @@ profiles_assume( Credential, Role, ExternalId,
     ExtId = if ExternalId =/= undefined -> ExternalId;
                ExternalId =:= undefined -> DefaultExternalId
             end,
-    RCfg = default_config_region(#aws_config{}, default_config_get("AWS_REGION", aws_region)),
+    RCfg = default_config_region(#aws_config{}, default_config_get(?AWS_REGION, aws_region)),
     Config = config_credential(Credential, RCfg),
     {AssumedConfig, _Creds} =
         erlcloud_sts:assume_role( Config, Role, Name, Duration, ExtId ),
