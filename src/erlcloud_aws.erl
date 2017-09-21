@@ -344,7 +344,7 @@ default_config_region(undefined, _) ->
     undefined;
 default_config_region(AwsConfig, undefined) ->
     AwsConfig;
-default_config_region(AwsConfig, Region) when is_record(AwsConfig, aws_config) ->
+default_config_region(AwsConfig, Region) ->
     ConfF = fun(Service, C0) -> service_config(Service, Region, C0) end,
     lists:foldl(ConfF, AwsConfig, default_config_region_services()).
 
@@ -1203,7 +1203,8 @@ profiles_credentials( Keys, SourceProfile ) ->
     {cont, SourceProfile, RoleArn, ExternalId}.
 
 profiles_assume( Credential, undefined, __ExternalId, _Options ) ->
-    Config = config_credential(Credential, #aws_config{}),
+    RCfg = default_config_region(#aws_config{}, default_config_get("AWS_REGION", aws_region)),
+    Config = config_credential(Credential, RCfg),
     {ok, Config};
 profiles_assume( Credential, Role, ExternalId,
                  #profile_options{ session_name = Name,
@@ -1212,7 +1213,8 @@ profiles_assume( Credential, Role, ExternalId,
     ExtId = if ExternalId =/= undefined -> ExternalId;
                ExternalId =:= undefined -> DefaultExternalId
             end,
-    Config = config_credential(Credential, #aws_config{}),
+    RCfg = default_config_region(#aws_config{}, default_config_get("AWS_REGION", aws_region)),
+    Config = config_credential(Credential, RCfg),
     {AssumedConfig, _Creds} =
         erlcloud_sts:assume_role( Config, Role, Name, Duration, ExtId ),
     {ok, AssumedConfig}.
