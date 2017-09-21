@@ -102,8 +102,8 @@ You can provide your amazon credentials in OS environmental variables
 ```
 export AWS_ACCESS_KEY_ID=<Your AWS Access Key>
 export AWS_SECRET_ACCESS_KEY=<Your AWS Secret Access Key>
-export AWS_SECURITY_TOKEN=<Your AWS Security Token>
-export AWS_REGION=<Your region>
+export AWS_SESSION_TOKEN=<Your AWS Security Token>
+export AWS_DEFAULT_REGION=<Your region>
 ```
 If you did not provide your amazon credentials in the OS environmental variables, then you need to provide configuration read from your profile:
 ```

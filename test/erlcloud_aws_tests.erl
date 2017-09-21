@@ -11,7 +11,8 @@ request_test_() ->
       fun request_retry_test/1,
       fun request_prot_host_port_str_test/1,
       fun request_prot_host_port_int_test/1,
-      fun get_service_status_test/1]}.
+      fun get_service_status_test/1,
+      fun auto_config_with_env/1]}.
 
 start() ->
     meck:new(erlcloud_httpc),
@@ -142,6 +143,30 @@ get_service_status_test(_) ->
      ?_assertEqual(OKStatusEmpty, ok),
      ?_assertEqual(OKStatus, ok)
      ].
+
+auto_config_with_env(_) ->
+    % Note: meck do not support os module
+    X_AWS_ACCESS  = os:getenv("AWS_ACCESS_KEY_ID"),
+    X_AWS_SECRET  = os:getenv("AWS_SECRET_ACCESS_KEY"),
+    X_AWS_SESSION = os:getenv("AWS_SESSION_TOKEN"),
+
+    os:putenv("AWS_ACCESS_KEY_ID", "access"),
+    os:putenv("AWS_SECRET_ACCESS_KEY", "secret"),
+    os:putenv("AWS_SESSION_TOKEN", "token"),
+    Config = erlcloud_aws:auto_config(),
+    os_rstenv("AWS_ACCESS_KEY_ID", X_AWS_ACCESS),
+    os_rstenv("AWS_SECRET_ACCESS_KEY", X_AWS_SECRET),
+    os_rstenv("AWS_SESSION_TOKEN", X_AWS_SESSION),
+
+    [?_assertMatch("access", element(#aws_config.access_key_id, element(2, Config))),
+     ?_assertMatch("secret", element(#aws_config.secret_access_key, element(2, Config))),
+     ?_assertMatch("token", element(#aws_config.security_token, element(2, Config)))
+    ].
+
+os_rstenv(Var, false) ->
+  os:unsetenv(Var);
+os_rstenv(Var, Value) ->
+  os:putenv(Var, Value).
 
 % ==================
 % Internal functions
