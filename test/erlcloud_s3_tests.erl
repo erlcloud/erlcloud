@@ -194,7 +194,9 @@ put_object_tests(_) ->
     Response = {ok, {{200, "OK"}, [{"x-amz-version-id", "version_id"}], <<>>}},
     meck:expect(erlcloud_httpc, request, httpc_expect(put, Response)),
     Result = erlcloud_s3:put_object("BucketName", "Key", "Data", config()),
-    ?_assertEqual([{version_id, "version_id"}], Result).
+    ?_assertEqual([{version_id, "version_id"}
+                  ,{"x-amz-version-id", "version_id"}
+                  ], Result).
 
 dns_compliant_name_tests(_) ->
     [?_assertEqual(true,  erlcloud_util:is_dns_compliant_name("goodname123")),
