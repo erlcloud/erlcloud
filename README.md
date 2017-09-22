@@ -24,6 +24,7 @@ Service APIs implemented:
 - ElasticLoadBalancing (ELB)
 - Identity and Access Management (IAM)
 - Kinesis
+- Athena
 - CloudWatch
 - MechanicalTurk
 - Simple DB (SDB)
