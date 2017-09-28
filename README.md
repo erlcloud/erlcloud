@@ -46,31 +46,26 @@ The libraries can be used two ways:
 
 Below is the library roadmap update along with regular features and fixes.
 
-- 0.13.10
- * pre Alert Logic Fork merge
+- 3.0.X __R16 deprecation is scheduled on October 9, 2017__
+  - Remove R16 support
+  - Support maps
 
-- 2.0.0
- Existing code
- merge of [Alert Logic](https://github.com/alertlogic/erlcloud/tree/v1.2.4) fork into upstream.
- This is a major version bump which contains lots of new features and functionality.
- Unfortunately, it also contains quite a number of low level APIs incompatibilities since the fork diverged for a long while.
- Making it backward compatible does not seem feasible and valuable at the moment.
- * No APIs have been removed and it's on branched of 0.13.10 at the moment. Any minor version delta added during notice time will be compensated before the merge.
- * intentionally jumping to 2.0.0 as AL fork has v1.X.X
-
-- 2.1.X
- * fix dialyzer findings and make it mandatory for the library
- * ~~make full support of Mix/HEX~~ done
-
-- 2.2.X
- * Further deprecation of legacy functionality
- * ~~remove R14/R15 support.~~ done
- * Only SigV4 signing and generalised in one module. Keep SigV2 in SBD section only
- * No more `erlang:error()` use and use of regular tuples as error API. Breaking change.
+- 3.X.X
+  - Fix dialyzer findings and make it mandatory for the library
+  - Only SigV4 signing and generalised in one module. Keep SigV2 in SBD section only
+  - No more `erlang:error()` use and use of regular tuples as error API. Breaking change.
 
 ### Major API compatibility changes between 0.13.X and 2.0.x
  - ELB APIs
  - ... list to be filled shortly
+
+### Supported Erlang versions
+At the moment we support the following OTP releases:
+ - R16B03-1 __Please note that we stop supporting R16 starting from October 9, 2017__
+ - 17.5
+ - 18.1
+ - 19.1
+ - 20.0
 
 ## Getting started ##
 You need to clone the repository and download rebar/rebar3 (if it's not already available in your path).
