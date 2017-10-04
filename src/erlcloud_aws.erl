@@ -32,7 +32,7 @@
 -define(GREGORIAN_EPOCH_OFFSET, 62167219200).
 -define(DEFAULT_CONTENT_TYPE, "application/x-www-form-urlencoded; charset=utf-8").
 
-%% 
+%%
 %% environment variables
 -define(AWS_ACCESS,  ["AWS_ACCESS_KEY_ID"]).
 -define(AWS_SECRET,  ["AWS_SECRET_ACCESS_KEY"]).
@@ -160,6 +160,8 @@ aws_region_from_host(Host) ->
 aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) ->
     aws_request4(Method, Protocol, Host, Port, Path, Params, Service, [], Config).
 
+% If `content-type` is specified in the Headers,
+% this is developer's responsibility to encode params properly
 aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Headers, Config) ->
     case update_config(Config) of
         {ok, Config1} ->
@@ -194,11 +196,15 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service,
                         Port :: undefined | integer() | string(), Path :: string(), Form :: string(),
                         Headers :: list(), Config :: aws_config()) -> {ok, binary()} | {error, tuple()}.
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
+    RequestHeaders = case proplists:is_defined("content-type", Headers) of
+      false -> [{"content-type", ?DEFAULT_CONTENT_TYPE} | Headers];
+      true -> Headers
+    end,
     Scheme = case Protocol of
         undefined -> "https://";
         _ -> [Protocol, "://"]
     end,
-aws_request_form_raw(Method, Scheme, Host, Port, Path, list_to_binary(Form), Headers, Config).
+aws_request_form_raw(Method, Scheme, Host, Port, Path, list_to_binary(Form), RequestHeaders, Config).
 
 -spec aws_request_form_raw(Method :: atom(), Scheme :: string() | [string()],
                         Host :: string(), Port :: undefined | integer() | string(),
@@ -292,10 +298,10 @@ format_timestamp({{Yr, Mo, Da}, {H, M, S}}) ->
 
 encode_params(Params, Headers) ->
   LowerCaseHeaders = lists:map(fun({K, V}) -> {string:to_lower(K), V} end, Headers),
-  case proplists:get_value(<<"content-type">>, LowerCaseHeaders) of
+  case proplists:get_value("content-type", LowerCaseHeaders) of
     undefined -> {erlcloud_http:make_query_string(Params),
                   [{"content-type", ?DEFAULT_CONTENT_TYPE} | LowerCaseHeaders]};
-    % when `content-type` is specified, this is developer's responsibility to encode params properly
+    ?DEFAULT_CONTENT_TYPE -> {erlcloud_http:make_query_string(Params), LowerCaseHeaders};
     _ContentType -> {Params, LowerCaseHeaders}
   end.
 
