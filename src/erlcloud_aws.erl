@@ -32,7 +32,7 @@
 -define(GREGORIAN_EPOCH_OFFSET, 62167219200).
 -define(DEFAULT_CONTENT_TYPE, "application/x-www-form-urlencoded; charset=utf-8").
 
-%%
+%% 
 %% environment variables
 -define(AWS_ACCESS,  ["AWS_ACCESS_KEY_ID"]).
 -define(AWS_SECRET,  ["AWS_SECRET_ACCESS_KEY"]).
@@ -204,7 +204,7 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
         undefined -> "https://";
         _ -> [Protocol, "://"]
     end,
-aws_request_form_raw(Method, Scheme, Host, Port, Path, list_to_binary(Form), RequestHeaders, Config).
+    aws_request_form_raw(Method, Scheme, Host, Port, Path, list_to_binary(Form), RequestHeaders, Config).
 
 -spec aws_request_form_raw(Method :: atom(), Scheme :: string() | [string()],
                         Host :: string(), Port :: undefined | integer() | string(),
