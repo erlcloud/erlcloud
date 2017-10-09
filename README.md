@@ -46,8 +46,8 @@ The libraries can be used two ways:
 
 Below is the library roadmap update along with regular features and fixes.
 
-- 3.0.X __R16 deprecation is scheduled on October 9, 2017__
-  - Remove R16 support
+- 3.0.X
+  - ~~Remove R16 support~~ __done__
   - Support maps
 
 - 3.X.X
@@ -61,7 +61,6 @@ Below is the library roadmap update along with regular features and fixes.
 
 ### Supported Erlang versions
 At the moment we support the following OTP releases:
- - R16B03-1 __Please note that we stop supporting R16 starting from October 9, 2017__
  - 17.5
  - 18.1
  - 19.1
