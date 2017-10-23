@@ -16,27 +16,25 @@
 
 -define(API_VERSION, "2016-12-16").
 
--type headers() :: [{string(), string()}].
-
 -type gd_return() :: {ok, proplist()} | {error, term()}.
 
--spec(new/2 :: (string(), string()) -> aws_config()).
+-spec new(AccessKeyID ::string(), SecretAccessKey :: string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey}.
 
--spec(new/3 :: (string(), string(), string()) -> aws_config()).
+-spec new(AccessKeyID :: string(), SecretAccessKey :: string(), Host :: string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
                 guardduty_host=Host}.
 
--spec(configure/2 :: (string(), string()) -> ok).
+-spec configure(AccessKeyID :: string(), SecretAccessKey :: string()) -> ok.
 configure(AccessKeyID, SecretAccessKey) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey)),
     ok.
 
--spec(configure/3 :: (string(), string(), string()) -> ok).
+-spec configure(AccessKeyID :: string(), SecretAccessKey :: string(), Host :: string()) -> ok.
 configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
@@ -74,10 +72,10 @@ describe_detector(DetectorId, Config) ->
 %%
 %%------------------------------------------------------------------------------
 
--spec(list_detectors/0 :: () -> gd_return()).
+-spec list_detectors() -> gd_return().
 list_detectors() -> list_detectors(default_config()).
 
--spec(list_detectors/1 :: (aws_config()) -> gd_return()).
+-spec list_detectors(Config :: aws_config()) -> gd_return().
 list_detectors(Config) ->
     list_detectors(undefined, undefined, Config).
 
