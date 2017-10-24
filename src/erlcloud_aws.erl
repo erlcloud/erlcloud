@@ -665,6 +665,12 @@ service_config( <<"sqs">> = Service, Region, Config ) ->
 service_config( <<"sts">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ sts_host = Host };
+service_config( <<"glue">> = Service, Region, Config ) ->
+  Host = service_host( Service, Region ),
+  Config#aws_config{ glue_host = Host };
+service_config( <<"athena">> = Service, Region, Config ) ->
+  Host = service_host( Service, Region ),
+  Config#aws_config{ athena_host = Host };
 service_config(<<"cloudwatch_logs">>, Region, Config)->
     Host = service_host(<<"logs">>, Region),
     Config#aws_config{cloudwatch_logs_host = Host};
