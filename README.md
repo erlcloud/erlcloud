@@ -25,6 +25,7 @@ Service APIs implemented:
 - Identity and Access Management (IAM)
 - Kinesis
 - Glue (Catalog table and Job APIs initial support)
+- Athena
 - CloudWatch
 - MechanicalTurk
 - Simple DB (SDB)
