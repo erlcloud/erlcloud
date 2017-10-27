@@ -88,10 +88,10 @@ list_detectors(Marker, MaxItems) ->
                      MaxItems :: integer(),
                      Config   :: aws_config()) -> gd_return().
 list_detectors(Marker, MaxItems, Config) ->
-    Path = base_path() ++ "detector/list",
+    Path = base_path() ++ "detector",
     QParams = filter_undef([{"Marker", Marker},
                             {"MaxItems", MaxItems}]),
-    guardduty_request(Config, post, Path, undefined, QParams).
+    guardduty_request(Config, get, Path, undefined, QParams).
 
 
 filter_undef(List) ->
