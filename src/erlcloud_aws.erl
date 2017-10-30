@@ -631,7 +631,9 @@ service_config( <<"lambda">> = Service, Region, Config ) ->
     Config#aws_config{ lambda_host = Host };
 service_config( <<"mon">>, Region, Config ) ->
     service_config( <<"monitoring">>, Region, Config );
-service_config( <<"monitoring">>, _Region, Config ) -> Config;
+service_config( <<"monitoring">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ mon_host = Host };
 service_config( <<"mturk">>, Region, Config ) ->
     service_config( <<"mechanicalturk">>, Region, Config );
 service_config( <<"mechanicalturk">>, _Region, Config ) -> Config;
