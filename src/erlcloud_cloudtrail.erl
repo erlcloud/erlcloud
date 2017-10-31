@@ -11,7 +11,7 @@
     %% Users
     create_trail/3, create_trail/4, create_trail/5, create_trail/6,
     delete_trail/1, delete_trail/2,
-    describe_trails/0, describe_trails/1, describe_trails/2,
+    describe_trails/0, describe_trails/1, describe_trails/2, describe_trails/3,
     get_trail_status/1, get_trail_status/2,
     start_logging/1, start_logging/2,
     stop_logging/1, stop_logging/2,
@@ -114,6 +114,14 @@ describe_trails(Trails, Config) ->
     %% Json = [{<<"TrailNameList">>, jsx:encode(list_to_binary([Trails]))}],
     Json = [{<<"TrailNameList">>, [list_to_binary(T) || T <- Trails]}],
     ct_request("DescribeTrails", Json, Config).
+
+-spec describe_trails([string()], aws_config(), boolean()) -> ct_return().
+describe_trails([], Config, IncludeShadowTrails)
+        when IncludeShadowTrails =:= false ->
+    Json = [{<<"includeShadowTrails">>, false}],
+    ct_request("DescribeTrails", Json, Config);
+describe_trails([], Config, _IncludeShadowTrails) ->
+    ct_request("DescribeTrails", [], Config).
 
 -spec get_trail_status([string()] ) -> ct_return().
 get_trail_status(Trail) ->
