@@ -279,7 +279,7 @@ describe_trails_input_tests(_) ->
              ?_f(erlcloud_cloudtrail:describe_trails(["test"], erlcloud_aws:default_config())), "
 {
 
-    \"TrailNameList\": [\"test\"]
+    \"trailNameList\": [\"test\"]
 }"
             })
         ],

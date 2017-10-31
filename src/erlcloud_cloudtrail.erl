@@ -11,7 +11,7 @@
     %% Users
     create_trail/3, create_trail/4, create_trail/5, create_trail/6,
     delete_trail/1, delete_trail/2,
-    describe_trails/0, describe_trails/1, describe_trails/2,
+    describe_trails/0, describe_trails/1, describe_trails/2, describe_trails/3,
     get_trail_status/1, get_trail_status/2,
     start_logging/1, start_logging/2,
     stop_logging/1, stop_logging/2,
@@ -101,18 +101,22 @@ describe_trails() -> describe_trails([]).
 describe_trails(Config) when is_record(Config, aws_config) ->
     describe_trails([], Config);
 
-%% It appears that CloudTrail API doesn't honor TrailNameList parameter.
-%% TODO: Open a ticket with AWS.
 describe_trails(Trails) ->
     describe_trails(Trails, default_config()).
 
 -spec describe_trails([string()], aws_config()) -> ct_return().
-describe_trails([], Config) ->
-    ct_request("DescribeTrails", [], Config);
-
 describe_trails(Trails, Config) ->
-    %% Json = [{<<"TrailNameList">>, jsx:encode(list_to_binary([Trails]))}],
-    Json = [{<<"TrailNameList">>, [list_to_binary(T) || T <- Trails]}],
+    Json = trail_name_list(Trails),
+    ct_request("DescribeTrails", Json, Config).
+
+-spec describe_trails([string()], boolean(), aws_config()) -> ct_return().
+describe_trails(Trails, IncludeShadowTrails, Config) ->
+    TrailNameList = trail_name_list(Trails),
+    Json =
+        case IncludeShadowTrails of
+            true -> TrailNameList;
+            false -> [{<<"includeShadowTrails">>, false} | TrailNameList]
+        end,
     ct_request("DescribeTrails", Json, Config).
 
 -spec get_trail_status([string()] ) -> ct_return().
@@ -214,3 +218,8 @@ port_spec(#aws_config{cloudtrail_port=80}) ->
     undefined;
 port_spec(#aws_config{cloudtrail_port=Port}) ->
     Port.
+
+trail_name_list([]) ->
+    [];
+trail_name_list(Trails) ->
+    [{<<"trailNameList">>, [list_to_binary(T) || T <- Trails]}].
