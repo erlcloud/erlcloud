@@ -119,14 +119,6 @@ describe_trails(Trails, IncludeShadowTrails, Config) ->
         end,
     ct_request("DescribeTrails", Json, Config).
 
--spec describe_trails([string()], boolean(), aws_config()) -> ct_return().
-describe_trails([], IncludeShadowTrails, Config)
-        when IncludeShadowTrails =:= false ->
-    Json = [{<<"includeShadowTrails">>, false}],
-    ct_request("DescribeTrails", Json, Config);
-describe_trails([], _IncludeShadowTrails, Config) ->
-    ct_request("DescribeTrails", [], Config).
-
 -spec get_trail_status([string()] ) -> ct_return().
 get_trail_status(Trail) ->
     get_trail_status(Trail, default_config()).
