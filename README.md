@@ -82,11 +82,12 @@ make
 make run
 ```
 
-If you're using erlcloud in your application, add it as a dependency in your application's configuration file.
+If you're using erlcloud in your application, add it as a dependency in your application's configuration file. You must also have an http client running (default lhttpc).
 To use erlcloud in the shell, you can start it by calling:
 
 ```
 application:ensure_all_started(erlcloud).
+application:start(HttpClientOfChoice).
 ```
 ### Using Temporary Security Credentials
 
@@ -131,6 +132,10 @@ Configuration object usage:
 EC2 = erlcloud_ec2:new(AccessKeyId, SecretAccessKey [, Hostname])
 erlcloud_ec2:describe_images(EC2).
 ```
+
+### Changing HTTP Client ###
+
+The default for requests sent by erlcloud is to use lhttpc as a client. This can be changed by setting the `http_client` element of the [aws_config](https://github.com/erlcloud/erlcloud/blob/master/include/erlcloud_aws.hrl) record sent with requests. Currently it supports being set to `lhttpc`, `hackney`, `{Module, FunName}` or `Function`. In the case of providing a Function or Module:Function the function should return `{ok, {ResponseHeaders, ResponseBody}}` or `{error, Reason}`.
 
 ### Basic use ###
 Then you can start making api calls, like:
