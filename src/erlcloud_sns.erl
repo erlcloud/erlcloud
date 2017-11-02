@@ -342,7 +342,7 @@ list_subscriptions_by_topic(TopicArn, NextToken, Config) when is_record(Config, 
     Doc = sns_xml_request(Config, "ListSubscriptionsByTopic", [{"TopicArn", TopicArn}| Params]),
     Decoded =
         erlcloud_xml:decode(
-            [{subsriptions, "ListSubscriptionsByTopicResult/Subscriptions/member",
+            [{subscriptions, "ListSubscriptionsByTopicResult/Subscriptions/member",
                 fun extract_subscription/1
                 },
             {next_token, "ListSubscriptionsByTopicResult/NextToken", text}],
@@ -357,7 +357,7 @@ list_subscriptions_by_topic_all(TopicArn) ->
 list_subscriptions_by_topic_all(TopicArn, Config) ->
     list_all(fun (Token, Cfg) ->
             list_subscriptions_by_topic(TopicArn, Token, Cfg) end,
-        subsriptions, Config, undefined, []).
+             subscriptions, Config, undefined, []).
 
 
 

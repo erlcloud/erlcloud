@@ -494,7 +494,7 @@ list_subscriptions_by_topic_output_tests(_) ->
             <RequestId>b9275252-3774-11df-9540-99d0768312d3</RequestId>
           </ResponseMetadata>
         </ListSubscriptionsByTopicResponse>",
-        [{subsriptions,
+        [{subscriptions,
           [
             [{topic_arn, "arn:aws:sns:us-east-1:123456789012:My-Topic"},
              {protocol, "email"},
@@ -523,7 +523,7 @@ list_subscriptions_by_topic_output_tests(_) ->
               <RequestId>b9275252-3774-11df-9540-99d0768312d3</RequestId>
             </ResponseMetadata>
           </ListSubscriptionsByTopicResponse>",
-          [{subsriptions,
+          [{subscriptions,
             [
               [{topic_arn, "arn:aws:sns:us-east-1:123456789012:My-Topic"},
                 {protocol, "email"},
