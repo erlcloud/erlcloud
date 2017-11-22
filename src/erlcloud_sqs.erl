@@ -425,10 +425,11 @@ send_message(QueueName, MessageBody, DelaySeconds, Config) ->
     send_message(QueueName, MessageBody, DelaySeconds, [], Config).
 
 -spec send_message(string(), string(), 0..900 | none, [message_attribute()], aws_config()) -> proplist().
-send_message(QueueName, MessageBody, DelaySeconds, MessageAttributes, Config)
-  when is_list(QueueName), is_list(MessageBody), is_record(Config, aws_config),
-       (DelaySeconds >= 0 andalso DelaySeconds =< 900) orelse
-       DelaySeconds =:= none andalso is_list(MessageAttributes) ->
+send_message(QueueName, MessageBody, DelaySeconds, MessageAttributes, #aws_config{}=Config)
+  when is_list(QueueName) andalso 
+       is_list(MessageBody) andalso
+       ((DelaySeconds >= 0 andalso DelaySeconds =< 900) orelse DelaySeconds =:= none) andalso 
+       is_list(MessageAttributes) ->
     EncodedMessageAttributes = encode_message_attributes(MessageAttributes),
     Doc = sqs_xml_request(Config, QueueName, "SendMessage",
                           [{"MessageBody", MessageBody},
