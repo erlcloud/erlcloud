@@ -36,6 +36,11 @@
       <<"UpdateTime">> => 1506697886.0}
 ).
 
+-define(DB_INPUT,
+    #{<<"Name">>        => ?DB_NAME,
+      <<"Description">> => <<"Database description">>}
+).
+
 -define(JOB_INPUT,
     #{<<"AllocatedCapacity">> => 10,
       <<"Connections">>       => #{},
@@ -80,6 +85,7 @@ erlcloud_glue_test_() ->
         fun setup/0,
         fun meck:unload/1,
         [
+            fun test_create_database/0,
             fun test_create_job/0,
             fun test_create_table/0,
             fun test_delete_job/0,
@@ -104,6 +110,10 @@ erlcloud_glue_test_() ->
             fun test_error_retry/0
         ]
     }.
+
+test_create_database() ->
+    TestFun  = fun() -> erlcloud_glue:create_database(?DB_INPUT) end,
+    do_test(#{<<"DatabaseInput">> => ?DB_INPUT}, ok, TestFun).
 
 test_create_job() ->
     TestFun  = fun() -> erlcloud_glue:create_job(?JOB_INPUT) end,
@@ -297,6 +307,7 @@ do_erlcloud_httpc_request(_, post, Headers, _, _, _) ->
     ["AWSGlue", Operation] = string:tokens(Target, "."),
     RespBody =
         case Operation of
+            "CreateDatabase"   -> #{};
             "CreateJob"        -> ?CREATE_JOB;
             "CreateTable"      -> #{};
             "DeleteJob"        -> #{};
