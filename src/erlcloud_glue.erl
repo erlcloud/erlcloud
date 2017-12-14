@@ -7,6 +7,10 @@
          new/2, new/3, new/4, new/5]).
 
 -export([
+    create_database/1,
+    create_database/2,
+    create_database/3,
+
     create_job/1,
     create_job/2,
 
@@ -113,6 +117,37 @@ configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
 
 %% @doc
 %% Glue API:
+%% https://docs.aws.amazon.com/glue/latest/webapi/API_CreateDatabase.html
+%%
+%% `
+%% erlcloud_glue:create_database(#{<<"Description">> => <<"some-desc">>,
+%%                                 <<"Name">>        => <<"db-name">>},
+%%                               <<"catalog-id">>).
+%% '
+%%
+-spec create_database(map()) -> ok | {error, any()}.
+create_database(TableInput) ->
+    create_database(TableInput, undefined, default_config()).
+
+-spec create_database(map(), binary() | aws_config()) ->
+    ok | {error, any()}.
+create_database(TableInput, CatalogId) when is_binary(CatalogId) ->
+    create_database(TableInput, CatalogId, default_config());
+create_database(TableInput, Config) when is_record(Config, aws_config) ->
+    create_database(TableInput, undefined, Config).
+
+-spec create_database(map(), binary() | undefined, aws_config()) ->
+    ok | {error, any()}.
+create_database(DatabaseInput, CatalogId, Config) ->
+    Request0 = #{<<"DatabaseInput">> => DatabaseInput},
+    Request1 = update_catalog_id(CatalogId, Request0),
+    case request(Config, "CreateDatabase", Request1) of
+        {ok, _} -> ok;
+        Error   -> Error
+    end.
+
+%% @doc
+%% Glue API:
 %% https://docs.aws.amazon.com/glue/latest/webapi/API_CreateJob.html
 %%
 %% `
@@ -156,7 +191,7 @@ create_table(DbName, TableInput) ->
 create_table(DbName, TableInput, CatalogId) when is_binary(CatalogId) ->
     create_table(DbName, TableInput, CatalogId, default_config());
 create_table(DbName, TableInput, Config) when is_record(Config, aws_config) ->
-    create_table(DbName, TableInput, undefined, default_config()).
+    create_table(DbName, TableInput, undefined, Config).
 
 -spec create_table(binary(), map(), binary() | undefined, aws_config()) ->
     ok | {error, any()}.
@@ -199,7 +234,7 @@ delete_table(DbName, TableName) ->
 delete_table(DbName, TableName, CatalogId) when is_binary(CatalogId) ->
     delete_table(DbName, TableName, CatalogId, default_config());
 delete_table(DbName, TableName, Config) when is_record(Config, aws_config) ->
-    delete_table(DbName, TableName, undefined, default_config()).
+    delete_table(DbName, TableName, undefined, Config).
 
 -spec delete_table(binary(), binary(), binary() | undefined, aws_config()) ->
     ok | {error, any()}.
@@ -313,7 +348,7 @@ get_table(DbName, TableName) ->
 get_table(DbName, TableName, CatalogId) when is_binary(CatalogId) ->
     get_table(DbName, TableName, CatalogId, default_config());
 get_table(DbName, TableName, Config) when is_record(Config, aws_config) ->
-    get_table(DbName, TableName, undefined, default_config()).
+    get_table(DbName, TableName, undefined, Config).
 
 -spec get_table(binary(), binary(), binary() | undefined, aws_config()) ->
     {ok, map()} | {error, any()}.
