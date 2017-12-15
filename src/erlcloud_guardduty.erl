@@ -46,7 +46,7 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 %%------------------------------------------------------------------------------
 %% @doc
 %% GuardDuty API:
-%% [http://docs.aws.amazon.com/guardduty/....html]
+%% [https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_api_ref.html]
 %%
 %% ===Example===
 %%
@@ -66,7 +66,7 @@ describe_detector(DetectorId, Config) ->
 %%------------------------------------------------------------------------------
 %% @doc
 %% GuardDuty API:
-%% [http://docs.aws.amazon.com/guardduty/....html]
+%% [https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_api_ref.html]
 %%
 %% ===Example===
 %%
