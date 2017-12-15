@@ -30,6 +30,7 @@
 
 -define(ERLCLOUD_RETRY_TIMEOUT, 10000).
 -define(GREGORIAN_EPOCH_OFFSET, 62167219200).
+-define(DEFAULT_CONTENT_TYPE, "application/x-www-form-urlencoded; charset=utf-8").
 
 %% 
 %% environment variables
@@ -127,15 +128,14 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
                         undefined -> [];
                         Token -> [{"SecurityToken", Token}]
                     end),
-
-    QueryToSign = erlcloud_http:make_query_string(QParams),
+    {QueryToSign, Headers} = encode_params(QParams, []),
     RequestToSign = [string:to_upper(atom_to_list(Method)), $\n,
                      string:to_lower(Host), $\n, Path, $\n, QueryToSign],
     Signature = base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, RequestToSign)),
 
     Query = [QueryToSign, "&Signature=", erlcloud_http:url_encode(Signature)],
 
-    aws_request_form(Method, Protocol, Host, Port, Path, Query, [], Config).
+    aws_request_form(Method, Protocol, Host, Port, Path, Query, Headers, Config).
 
 aws_region_from_host(Host) ->
     case string:tokens(Host, ".") of
@@ -160,6 +160,8 @@ aws_region_from_host(Host) ->
 aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) ->
     aws_request4(Method, Protocol, Host, Port, Path, Params, Service, [], Config).
 
+% If `content-type` is specified in the Headers,
+% this is developer's responsibility to encode params properly
 aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Headers, Config) ->
     case update_config(Config) of
         {ok, Config1} ->
@@ -171,7 +173,7 @@ aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Headers, Confi
 
 aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service,
                        Headers, #aws_config{aws_region = AwsRegion} = Config) ->
-    Query = erlcloud_http:make_query_string(Params),
+    {Query, RequestHeaders} = encode_params(Params, Headers),
     Uri = erlcloud_http:url_encode_loose(Path),
     Region = case AwsRegion of
       undefined -> aws_region_from_host(Host);
@@ -187,16 +189,17 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service,
                     Region, Service, [])
     end,
     aws_request_form(Method, Protocol, Host, Port, Path, Query,
-                     SignedHeaders ++ Headers, Config).
+                     SignedHeaders ++ RequestHeaders, Config).
 
 
 -spec aws_request_form(Method :: atom(), Protocol :: undefined | string(), Host :: string(),
                         Port :: undefined | integer() | string(), Path :: string(), Form :: string(),
                         Headers :: list(), Config :: aws_config()) -> {ok, binary()} | {error, tuple()}.
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
-    RequestHeaders = [{"content-type",
-                      "application/x-www-form-urlencoded; charset=utf-8"} |
-                     Headers],
+    RequestHeaders = case proplists:is_defined("content-type", Headers) of
+      false -> [{"content-type", ?DEFAULT_CONTENT_TYPE} | Headers];
+      true -> Headers
+    end,
     Scheme = case Protocol of
         undefined -> "https://";
         _ -> [Protocol, "://"]
@@ -292,6 +295,15 @@ format_timestamp({{Yr, Mo, Da}, {H, M, S}}) ->
     lists:flatten(
       io_lib:format("~4.10.0b-~2.10.0b-~2.10.0bT~2.10.0b:~2.10.0b:~2.10.0bZ",
                     [Yr, Mo, Da, H, M, S])).
+
+encode_params(Params, Headers) ->
+  LowerCaseHeaders = lists:map(fun({K, V}) -> {string:to_lower(K), V} end, Headers),
+  case proplists:get_value("content-type", LowerCaseHeaders) of
+    undefined -> {erlcloud_http:make_query_string(Params),
+                  [{"content-type", ?DEFAULT_CONTENT_TYPE} | LowerCaseHeaders]};
+    ?DEFAULT_CONTENT_TYPE -> {erlcloud_http:make_query_string(Params), LowerCaseHeaders};
+    _ContentType -> {Params, LowerCaseHeaders}
+  end.
 
 %%%---------------------------------------------------------------------------
 -spec default_config() -> aws_config().
