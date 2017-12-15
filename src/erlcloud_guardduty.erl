@@ -117,7 +117,6 @@ guardduty_request_no_update(Config, Method, Path, Body, QParam) ->
                Value  -> Value
            end,
     Headers = headers(Method, Path, Config, encode_body(Body), QParam),
-    io:format("HEADERS: ~p~n", [Headers]),
     case erlcloud_aws:aws_request_form_raw(
            Method, Config#aws_config.guardduty_scheme, Config#aws_config.guardduty_host,
            Config#aws_config.guardduty_port, Path, Form, Headers, Config) of
