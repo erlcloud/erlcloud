@@ -59,7 +59,7 @@ describe_detector(DetectorId) ->
 -spec describe_detector(DetectorId :: binary(),
                         Config       :: aws_config()) -> gd_return().
 describe_detector(DetectorId, Config) ->
-    Path = base_path() ++ "detector/" ++ binary_to_list(DetectorId),
+    Path = base_path() ++ "/" ++ binary_to_list(DetectorId),
     guardduty_request(Config, get, Path, undefined).
 
 
@@ -88,7 +88,7 @@ list_detectors(Marker, MaxItems) ->
                      MaxItems :: integer(),
                      Config   :: aws_config()) -> gd_return().
 list_detectors(Marker, MaxItems, Config) ->
-    Path = base_path() ++ "detector",
+    Path = base_path(),
     QParams = filter_undef([{"Marker", Marker},
                             {"MaxItems", MaxItems}]),
     guardduty_request(Config, get, Path, undefined, QParams).
@@ -98,7 +98,7 @@ filter_undef(List) ->
     lists:filter(fun({_Name, Value}) -> Value =/= undefined end, List).
 
 base_path() ->
-    "/".
+    "/detector".
 
 guardduty_request(Config, Method, Path, Body) ->
     guardduty_request(Config, Method, Path, Body, []).
