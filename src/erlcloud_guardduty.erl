@@ -9,7 +9,7 @@
 %% EC2 API Functions
 -export([
     %% Users
-    describe_detector/1, describe_detector/2,
+    get_detector/1, get_detector/2,
     list_detectors/0, list_detectors/1, list_detectors/2, list_detectors/3
 ]).
 
@@ -52,13 +52,13 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 %%
 %%------------------------------------------------------------------------------
 
--spec describe_detector(DetectorId :: binary()) -> gd_return().
-describe_detector(DetectorId) ->
-    describe_detector(DetectorId, default_config()).
+-spec get_detector(DetectorId :: binary()) -> gd_return().
+get_detector(DetectorId) ->
+    get_detector(DetectorId, default_config()).
 
--spec describe_detector(DetectorId :: binary(),
-                        Config       :: aws_config()) -> gd_return().
-describe_detector(DetectorId, Config) ->
+-spec get_detector(DetectorId :: binary(),
+                   Config     :: aws_config()) -> gd_return().
+get_detector(DetectorId, Config) ->
     Path = base_path() ++ "detector/" ++ binary_to_list(DetectorId),
     guardduty_request(Config, get, Path, undefined).
 
