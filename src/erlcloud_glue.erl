@@ -7,6 +7,9 @@
          new/2, new/3, new/4, new/5]).
 
 -export([
+    create_crawler/1,
+    create_crawler/2,
+
     create_database/1,
     create_database/2,
     create_database/3,
@@ -18,12 +21,27 @@
     create_table/3,
     create_table/4,
 
+    delete_crawler/1,
+    delete_crawler/2,
+
     delete_job/1,
     delete_job/2,
 
     delete_table/2,
     delete_table/3,
     delete_table/4,
+
+    get_crawler/1,
+    get_crawler/2,
+
+    get_crawler_metrics/0,
+    get_crawler_metrics/1,
+    get_crawler_metrics/2,
+    get_crawler_metrics/3,
+
+    get_crawlers/0,
+    get_crawlers/1,
+    get_crawlers/2,
 
     get_job/1,
     get_job/2,
@@ -52,9 +70,28 @@
     reset_job_bookmark/1,
     reset_job_bookmark/2,
 
+    start_crawler/1,
+    start_crawler/2,
+
+    start_crawler_schedule/1,
+    start_crawler_schedule/2,
+
     start_job_run/1,
     start_job_run/2,
     start_job_run/5,
+
+    stop_crawler/1,
+    stop_crawler/2,
+
+    stop_crawler_schedule/1,
+    stop_crawler_schedule/2,
+
+    update_crawler/1,
+    update_crawler/2,
+
+    update_crawler_schedule/1,
+    update_crawler_schedule/2,
+    update_crawler_schedule/3,
 
     update_job/2,
     update_job/3,
@@ -117,6 +154,30 @@ configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
 
 %% @doc
 %% Glue API:
+%% https://docs.aws.amazon.com/glue/latest/webapi/API_CreateCrawler.html
+%%
+%% `
+%% erlcloud_glue:create_crawler(#{<<"Classifiers">>   => [],
+%%                                <<"Configuration">> => <<"some-config">>},
+%%                                <<"DatabaseName">>  => <<"db-name">>,
+%%                                <<"Name">>          => <<"crawler-name">>,
+%%                                ...
+%%                                <<"Targets">>       => {}}).
+%% '
+%%
+-spec create_crawler(map()) -> ok | {error, any()}.
+create_crawler(CrawlerInput) ->
+    create_crawler(CrawlerInput, default_config()).
+
+-spec create_crawler(map(), aws_config()) -> ok | {error, any()}.
+create_crawler(CrawlerInput, Config) ->
+    case request(Config, "CreateCrawler", CrawlerInput) of
+        {ok, _} -> ok;
+        Error   -> Error
+    end.
+
+%% @doc
+%% Glue API:
 %% https://docs.aws.amazon.com/glue/latest/webapi/API_CreateDatabase.html
 %%
 %% `
@@ -126,15 +187,15 @@ configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
 %% '
 %%
 -spec create_database(map()) -> ok | {error, any()}.
-create_database(TableInput) ->
-    create_database(TableInput, undefined, default_config()).
+create_database(DatabaseInput) ->
+    create_database(DatabaseInput, undefined, default_config()).
 
 -spec create_database(map(), binary() | aws_config()) ->
     ok | {error, any()}.
-create_database(TableInput, CatalogId) when is_binary(CatalogId) ->
-    create_database(TableInput, CatalogId, default_config());
-create_database(TableInput, Config) when is_record(Config, aws_config) ->
-    create_database(TableInput, undefined, Config).
+create_database(DatabaseInput, CatalogId) when is_binary(CatalogId) ->
+    create_database(DatabaseInput, CatalogId, default_config());
+create_database(DatabaseInput, Config) when is_record(Config, aws_config) ->
+    create_database(DatabaseInput, undefined, Config).
 
 -spec create_database(map(), binary() | undefined, aws_config()) ->
     ok | {error, any()}.
@@ -206,6 +267,22 @@ create_table(DbName, TableInput, CatalogId, Config) ->
 
 %% @doc
 %% Glue API:
+%% https://docs.aws.amazon.com/glue/latest/webapi/API_DeleteCrawler.html
+%%
+-spec delete_crawler(binary()) -> ok | {error, any()}.
+delete_crawler(CrawlerName) ->
+    delete_crawler(CrawlerName, default_config()).
+
+-spec delete_crawler(binary(), aws_config()) -> ok | {error, any()}.
+delete_crawler(CrawlerName, Config) ->
+    Request = #{<<"Name">> => CrawlerName},
+    case request(Config, "DeleteCrawler", Request) of
+        {ok, _} -> ok;
+        Error   -> Error
+    end.
+
+%% @doc
+%% Glue API:
 %% https://docs.aws.amazon.com/glue/latest/webapi/API_DeleteJob.html
 %%
 -spec delete_job(binary()) -> ok | {error, any()}.
@@ -246,6 +323,83 @@ delete_table(DbName, TableName, CatalogId, Config) ->
         {ok, _} -> ok;
         Error   -> Error
     end.
+
+%% @doc
+%% Glue API:
+%% https://docs.aws.amazon.com/glue/latest/webapi/API_GetCrawler.html
+%%
+-spec get_crawler(binary()) -> {ok, map()} | {error, any()}.
+get_crawler(CrawlerName) ->
+    get_crawler(CrawlerName, default_config()).
+
+-spec get_crawler(binary(), aws_config()) -> {ok, map()} | {error, any()}.
+get_crawler(CrawlerName, Config) ->
+    request(Config, "GetCrawler", #{<<"Name">> => CrawlerName}).
+
+%% @doc
+%% Glue API:
+%% https://docs.aws.amazon.com/glue/latest/webapi/API_GetCrawlerMetrics.html
+%% `
+%% erlcloud_glue:get_crawler_metrics(
+%%                        [<<"crawler-name-1">>, <<"crawl}er-name-2">>],
+%%                        #{<<"MaxResults">> => 1,
+%%                          <<"NextToken">>  => <<"some-token">>}
+%% ).
+%% '
+%%
+-spec get_crawler_metrics() -> {ok, map()} | {error, any()}.
+get_crawler_metrics() ->
+    get_crawler_metrics(default_config()).
+
+-spec get_crawler_metrics(list() | map() | aws_config()) ->
+    {ok, map()} | {error, any()}.
+get_crawler_metrics(NameList) when is_list(NameList) ->
+    get_crawler_metrics(NameList, #{}, default_config());
+get_crawler_metrics(PaginationMap) when is_map(PaginationMap) ->
+    get_crawler_metrics([], PaginationMap, default_config());
+get_crawler_metrics(Config) when is_record(Config, aws_config) ->
+    get_crawler_metrics([], #{}, Config).
+
+-spec get_crawler_metrics(list() | map(), map() | aws_config()) ->
+    {ok, map()} | {error, any()}.
+get_crawler_metrics(NameList, PaginationMap)
+  when is_list(NameList), is_map(PaginationMap) ->
+    get_crawler_metrics(NameList, PaginationMap, default_config());
+get_crawler_metrics(NameList, Config)
+  when is_list(NameList), is_record(Config, aws_config) ->
+    get_crawler_metrics(NameList, #{}, default_config());
+get_crawler_metrics(PaginationMap, Config)
+  when is_map(PaginationMap), is_record(Config, aws_config) ->
+    get_crawler_metrics([], PaginationMap, default_config()).
+
+-spec get_crawler_metrics(list(), map(), aws_config()) ->
+    {ok, map()} | {error, any()}.
+get_crawler_metrics(NameList, PaginationMap, Config) ->
+    Request = PaginationMap#{<<"CrawlerNameList">> => NameList},
+    request(Config, "GetCrawlerMetrics", Request).
+
+%% @doc
+%% Glue API:
+%% https://docs.aws.amazon.com/glue/latest/webapi/API_GetCrawlers.html
+%%
+%% `
+%% erlcloud_glue:get_crawlers(#{<<"MaxResults">> => 1,
+%%                              <<"NextToken">>  => <<"some-token">>}).
+%% '
+%%
+-spec get_crawlers() -> {ok, map()} | {error, any()}.
+get_crawlers() ->
+    get_crawlers(default_config()).
+
+-spec get_crawlers(map() | aws_config()) -> {ok, map()} | {error, any()}.
+get_crawlers(PaginationMap) when is_map(PaginationMap) ->
+    get_crawlers(PaginationMap, default_config());
+get_crawlers(Config) when is_record(Config, aws_config) ->
+    get_crawlers(#{}, Config).
+
+-spec get_crawlers(map(), aws_config()) -> {ok, map()} | {error, any()}.
+get_crawlers(PaginationMap, Config) ->
+    request(Config, "GetCrawlers", PaginationMap).
 
 %% @doc
 %% Glue API:
@@ -422,6 +576,37 @@ reset_job_bookmark(JobName, Config) ->
 
 %% @doc
 %% Glue API:
+%% https://docs.aws.amazon.com/glue/latest/webapi/API_StartCrawler.html
+%%
+-spec start_crawler(binary()) -> ok | {error, any()}.
+start_crawler(CrawlerName) ->
+    start_crawler(CrawlerName, default_config()).
+
+-spec start_crawler(binary(), aws_config()) -> ok | {error, any()}.
+start_crawler(CrawlerName, Config) ->
+    case request(Config, "StartCrawler", #{<<"Name">> => CrawlerName}) of
+        {ok, _} -> ok;
+        Error   -> Error
+    end.
+
+%% @doc
+%% Glue API:
+%% https://docs.aws.amazon.com/glue/latest/webapi/API_StartCrawlerSchedule.html
+%%
+-spec start_crawler_schedule(binary()) -> ok | {error, any()}.
+start_crawler_schedule(CrawlerName) ->
+    start_crawler_schedule(CrawlerName, default_config()).
+
+-spec start_crawler_schedule(binary(), aws_config()) -> ok | {error, any()}.
+start_crawler_schedule(CrawlerName, Config) ->
+    Request = #{<<"CrawlerName">> => CrawlerName},
+    case request(Config, "StartCrawlerSchedule", Request) of
+        {ok, _} -> ok;
+        Error   -> Error
+    end.
+
+%% @doc
+%% Glue API:
 %% https://docs.aws.amazon.com/glue/latest/webapi/API_StartJobRun.html
 %%
 %% `
@@ -455,10 +640,96 @@ start_job_run(JobName, Config) when is_record(Config, aws_config) ->
                     aws_config()) ->
     {ok, map()} | {error, any()}.
 start_job_run(JobName, JobRunId, AllocatedCapacity, Arguments, Config) ->
-    Request0 = update_run_id(JobRunId, #{<<"JobName">> => JobName}),
-    Request1 = update_capacity(AllocatedCapacity, Request0),
-    Request2 = Request1#{<<"Arguments">> => Arguments},
-    request(Config, "StartJobRun", Request2).
+    Request0 = #{<<"JobName">>   => JobName,
+                 <<"Arguments">> => Arguments},
+    Request1 = update_map([{<<"JobRunId">>,          JobRunId},
+                           {<<"AllocatedCapacity">>, AllocatedCapacity}],
+                          Request0),
+    request(Config, "StartJobRun", Request1).
+
+%% @doc
+%% Glue API:
+%% https://docs.aws.amazon.com/glue/latest/webapi/API_StopCrawler.html
+%%
+-spec stop_crawler(binary()) -> ok | {error, any()}.
+stop_crawler(CrawlerName) ->
+    stop_crawler(CrawlerName, default_config()).
+
+-spec stop_crawler(binary(), aws_config()) -> ok | {error, any()}.
+stop_crawler(CrawlerName, Config) ->
+    case request(Config, "StopCrawler", #{<<"Name">> => CrawlerName}) of
+        {ok, _} -> ok;
+        Error   -> Error
+    end.
+
+%% @doc
+%% Glue API:
+%% https://docs.aws.amazon.com/glue/latest/webapi/API_StopCrawlerSchedule.html
+%%
+-spec stop_crawler_schedule(binary()) -> ok | {error, any()}.
+stop_crawler_schedule(CrawlerName) ->
+    stop_crawler_schedule(CrawlerName, default_config()).
+
+-spec stop_crawler_schedule(binary(), aws_config()) -> ok | {error, any()}.
+stop_crawler_schedule(CrawlerName, Config) ->
+    Request = #{<<"CrawlerName">> => CrawlerName},
+    case request(Config, "StopCrawlerSchedule", Request) of
+        {ok, _} -> ok;
+        Error   -> Error
+    end.
+
+%% @doc
+%% Glue API:
+%% https://docs.aws.amazon.com/glue/latest/webapi/API_UpdateCrawler.html
+%%
+%% `
+%% erlcloud_glue:update_crawler(#{<<"Classifiers">>   => [],
+%%                                <<"Configuration">> => <<"some-config">>},
+%%                                <<"DatabaseName">>  => <<"db-name">>,
+%%                                <<"Name">>          => <<"crawler-name">>,
+%%                                ...
+%%                                <<"Targets">>       => {}}).
+%% '
+%%
+-spec update_crawler(map()) -> ok | {error, any()}.
+update_crawler(CrawlerInput) ->
+    update_crawler(CrawlerInput, default_config()).
+
+-spec update_crawler(map(), aws_config()) -> ok | {error, any()}.
+update_crawler(CrawlerInput, Config) ->
+    case request(Config, "UpdateCrawler", CrawlerInput) of
+        {ok, _} -> ok;
+        Error   -> Error
+    end.
+
+%% @doc
+%% Glue API:
+%% https://docs.aws.amazon.com/glue/latest/webapi/API_UpdateCrawlerSchedule.html
+%%
+%% `
+%% erlcloud_glue:update_crawler_schedule(<<"crawler-name-1">>,
+%%                                       <<"cron(15 12 * * ? *)">>).
+%% '
+%%
+-spec update_crawler_schedule(binary()) -> ok | {error, any()}.
+update_crawler_schedule(CrawlerName) ->
+    update_crawler_schedule(CrawlerName, undefined, default_config()).
+
+-spec update_crawler_schedule(binary(), binary() | undefined) ->
+    ok | {error, any()}.
+update_crawler_schedule(CrawlerName, Schedule)
+  when is_binary(CrawlerName), is_binary(Schedule) ->
+    update_crawler_schedule(CrawlerName, Schedule, default_config()).
+
+-spec update_crawler_schedule(binary(), binary() | undefined, aws_config()) ->
+    ok | {error, any()}.
+update_crawler_schedule(CrawlerName, Schedule, Config) ->
+    Request0 = #{<<"CrawlerName">> => CrawlerName},
+    Request1 = update_map({<<"Schedule">>, Schedule}, Request0),
+    case request(Config, "UpdateCrawlerSchedule", Request1) of
+        {ok, _} -> ok;
+        Error   -> Error
+    end.
 
 %% @doc
 %% Glue API:
@@ -523,15 +794,15 @@ update_table(DbName, TableInput, CatalogId, Config) ->
 %%------------------------------------------------------------------------------
 %% Internal Functions
 %%------------------------------------------------------------------------------
-update_catalog_id(undefined, Request) -> Request;
-update_catalog_id(CatalogId, Request) -> Request#{<<"CatalogId">> => CatalogId}.
+update_map(KeyValues, Map) when is_list(KeyValues) ->
+    lists:foldl(fun update_map/2, Map, KeyValues);
+update_map({_, undefined}, Map) ->
+    Map;
+update_map({Key, Value}, Map) ->
+    maps:put(Key, Value, Map).
 
-update_run_id(undefined, Request) -> Request;
-update_run_id(JobRunId,  Request) -> Request#{<<"JobRunId">> => JobRunId}.
-
-update_capacity(undefined, Request) -> Request;
-update_capacity(Capacity,  Request) ->
-    Request#{<<"AllocatedCapacity">> => Capacity}.
+update_catalog_id(CatalogId, Request) ->
+    update_map({<<"CatalogId">>, CatalogId}, Request).
 
 default_config() -> erlcloud_aws:default_config().
 

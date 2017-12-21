@@ -24,7 +24,7 @@ Service APIs implemented:
 - ElasticLoadBalancing (ELB)
 - Identity and Access Management (IAM)
 - Kinesis
-- Glue (Catalog table and Job APIs initial support)
+- Glue (Catalog table, Crawlers and Job APIs support)
 - Athena
 - CloudWatch
 - MechanicalTurk
