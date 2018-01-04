@@ -39,6 +39,8 @@ sns_api_test_() ->
       fun subscribe_output_tests/1,
       fun set_topic_attributes_input_tests/1,
       fun set_topic_attributes_output_tests/1,
+      fun set_subscription_attributes_input_tests/1,
+      fun set_subscription_attributes_output_tests/1,
       fun list_topics_input_tests/1,
       fun list_topics_output_tests/1,
       fun list_subscriptions_by_topic_input_tests/1,
@@ -310,6 +312,44 @@ set_topic_attributes_output_tests(_) ->
                 ok})
             ],
     output_tests(?_f(erlcloud_sns:set_topic_attributes("DisplayName", "MyTopicName", "arn:aws:sns:us-west-2:123456789012:MyTopic")), Tests).
+
+
+%% Set subscription attributes test based on the API examples:
+%% https://docs.aws.amazon.com/sns/latest/api/API_SetSubscriptionAttributes.html
+set_subscription_attributes_input_tests(_) ->
+    Tests =
+    [?_sns_test(
+        {"Test sets subscriptions's attribute.",
+         ?_f(erlcloud_sns:set_subscription_attributes("FilterPolicy", "{\"a\": [\"b\"]}", "arn:aws:sns:us-east-1:123456789012:My-Topic:80289ba6-0fd4-4079-afb4-ce8c8260f0ca")),
+         [
+             {"Action", "SetSubscriptionAttributes"},
+             {"AttributeName", "FilterPolicy"},
+             {"AttributeValue", "%7B%22a%22%3A%20%5B%22b%22%5D%7D"},    % Url encoded version of above filter policy
+             {"SubscriptionArn", "arn%3Aaws%3Asns%3Aus-east-1%3A123456789012%3AMy-Topic%3A80289ba6-0fd4-4079-afb4-ce8c8260f0ca"}
+         ]})
+    ],
+
+    Response = "
+               <SetSubscriptionAttributesResponse xmlns=\"http://sns.amazonaws.com/doc/2010-03-31/\">
+                  <ResponseMetadata>
+                    <RequestId>a8763b99-33a7-11df-a9b7-05d48da6f042</RequestId>
+                  </ResponseMetadata>
+               </SetSubscriptionAttributesResponse> ",
+
+    input_tests(Response, Tests).
+
+set_subscription_attributes_output_tests(_) ->
+    Tests = [?_sns_test(
+        {"This test sets subscription's attribute.",
+         "<SetSubscriptionAttributesResponse xmlns=\"http://sns.amazonaws.com/doc/2010-03-31/\">
+          <ResponseMetadata>
+            <RequestId>a8763b99-33a7-11df-a9b7-05d48da6f042</RequestId>
+          </ResponseMetadata>
+        </SetSubscriptionAttributesResponse>",
+         ok})
+    ],
+    output_tests(?_f(erlcloud_sns:set_subscription_attributes("FilterPolicy", "{\"a\": [\"b\"]}", "arn:aws:sns:us-east-1:123456789012:My-Topic:80289ba6-0fd4-4079-afb4-ce8c8260f0ca")), Tests).
+
 
 %% List topics test based on the API example:
 %% http://docs.aws.amazon.com/sns/latest/APIReference/API_ListTopics.html
