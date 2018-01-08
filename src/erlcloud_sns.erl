@@ -38,6 +38,8 @@
          confirm_subscription2/2, confirm_subscription2/3, confirm_subscription2/4,
          set_topic_attributes/3, set_topic_attributes/4,
          get_topic_attributes/1, get_topic_attributes/2,
+         set_subscription_attributes/3, set_subscription_attributes/4,
+         get_subscription_attributes/1, get_subscription_attributes/2,
          subscribe/3, subscribe/4,
          unsubscribe/1, unsubscribe/2
          ]).
@@ -99,6 +101,8 @@
 -type sns_application() :: [{arn, string()} | {attributes, [{arn|sns_application_attribute(), string()}]}].
 
 -type(sns_topic_attribute_name () :: 'Policy' | 'DisplayName' | 'DeliveryPolicy').
+
+-type(sns_subscription_attribute_name () :: 'DeliveryPolicy' | 'RawMessageDelivery' | 'FilterPolicy').
 
 -type(sns_subscribe_protocol_type () :: http | https | email | 'email-json' | sms | sqs | application).
 
@@ -537,6 +541,37 @@ get_topic_attributes(TopicArn, Config)
     Decoded.
 
 
+
+-spec set_subscription_attributes(sns_subscription_attribute_name(), string()|binary(), string()) -> ok.
+set_subscription_attributes(AttributeName, AttributeValue, SubscriptionArn) ->
+    set_subscription_attributes(AttributeName, AttributeValue, SubscriptionArn, default_config()).
+
+-spec set_subscription_attributes(sns_subscription_attribute_name(), string()|binary(), string(), aws_config()) -> ok.
+set_subscription_attributes(AttributeName, AttributeValue, SubscriptionArn, Config)
+    when is_record(Config, aws_config) ->
+    sns_simple_request(Config, "SetSubscriptionAttributes", [
+        {"AttributeName", AttributeName},
+        {"AttributeValue", AttributeValue},
+        {"SubscriptionArn", SubscriptionArn}]).
+
+
+-spec get_subscription_attributes (string()) -> [{attributes, [{sns_subscription_attribute_name() | atom(), string()}]}].
+get_subscription_attributes(SubscriptionArn) ->
+    get_subscription_attributes(SubscriptionArn, default_config()).
+
+-spec get_subscription_attributes(string(), aws_config()) -> [{attributes, [{sns_subscription_attribute_name() | atom(), string()}]}].
+get_subscription_attributes(SubscriptionArn, Config)
+    when is_record(Config, aws_config) ->
+    Params = [{"SubscriptionArn", SubscriptionArn}],
+    Doc = sns_xml_request(Config, "GetSubscriptionAttributes", Params),
+    Decoded =
+    erlcloud_xml:decode(
+        [{attributes, "GetSubscriptionAttributesResult/Attributes/entry",
+          fun extract_attribute/1
+         }],
+        Doc),
+    Decoded.
+
 -spec subscribe(string(), sns_subscribe_protocol_type(), string()) -> Arn::string().
 subscribe(Endpoint, Protocol, TopicArn) ->
     subscribe(Endpoint, Protocol, TopicArn, default_config()).
@@ -731,7 +766,13 @@ parse_key("Token") -> token;
 parse_key("EventEndpointCreated") -> event_endpoint_created;
 parse_key("EventEndpointDeleted") -> event_endpoint_deleted;
 parse_key("EventEndpointUpdated") -> event_endpoint_updated;
-parse_key("EVentDeliveryFailure") -> event_delivery_failure;
+parse_key("EventDeliveryFailure") -> event_delivery_failure;
+
+% Subscription attribute names.
+parse_key("RawMessageDelivery") -> 'RawMessageDelivery';
+parse_key("ConfirmationWasAuthenticated") -> 'ConfirmationWasAuthenticated';
+parse_key("FilterPolicy") -> 'FilterPolicy';
+parse_key("DeliveryPolicy") -> 'DeliveryPolicy';
 parse_key(OtherKey) -> list_to_atom(string:to_lower(OtherKey)).
 
 scheme_to_protocol(S) when is_list(S) -> s2p(string:to_lower(S));
