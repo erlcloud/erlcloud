@@ -427,7 +427,12 @@ default_config_region_services() ->
 %% return <code>undefined</code>.
 %%
 auto_config() ->
-    auto_config( [] ).
+    case auto_config( [] ) of
+        {ok, #aws_config{}} = Res ->
+            Res;
+        _ ->
+            undefined
+    end.
 
 
 %%%---------------------------------------------------------------------------
