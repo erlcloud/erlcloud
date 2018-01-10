@@ -446,11 +446,21 @@ auto_config() ->
 %% @see profile/2
 %%
 auto_config( ProfileOptions ) ->
-    {ok, Cfg } = case config_env() of
-        {ok, _Config} = Result -> Result;
-        {error, _} -> auto_config_profile( ProfileOptions )
-    end,
-    {ok, default_config_region(Cfg, default_config_get(?AWS_REGION, aws_region))}.
+    {ok, Cfg } =
+        case config_env() of
+            {ok, _Config} = Result ->
+                Result;
+            {error, _} ->
+                auto_config_profile( ProfileOptions )
+        end,
+    % Since default_config_region/2 can return undefined we cannot blindly wrap
+    % the result in a {ok, ...} tuple.
+    case default_config_region(Cfg, default_config_get(?AWS_REGION, aws_region)) of
+        undefined  ->
+            undefined
+        Other ->
+            Other
+    end.
 
 auto_config_profile( ProfileOptions ) ->
     Profile = proplists:get_value( profile, ProfileOptions, default ),
