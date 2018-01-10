@@ -456,8 +456,8 @@ auto_config( ProfileOptions ) ->
     % Since default_config_region/2 can return undefined we cannot blindly wrap
     % the result in a {ok, ...} tuple.
     case default_config_region(Cfg, default_config_get(?AWS_REGION, aws_region)) of
-        undefined  ->
-            undefined;
+        #aws_config{} = Config ->
+            {ok, Config};
         Other ->
             Other
     end.
