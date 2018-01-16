@@ -57,7 +57,9 @@
     generate_credential_report/0, generate_credential_report/1,
     get_credential_report/0, get_credential_report/1,
     simulate_principal_policy/2, simulate_principal_policy/3,
-    simulate_custom_policy/2, simulate_custom_policy/3
+    simulate_custom_policy/2, simulate_custom_policy/3,
+    list_virtual_mfa_devices/0, list_virtual_mfa_devices/1, list_virtual_mfa_devices/2, 
+    list_virtual_mfa_devices/3, list_virtual_mfa_devices/4
 ]).
 
 -export([get_uri/2]).
@@ -128,6 +130,35 @@ list_access_keys(UserName, #aws_config{} = Config) when is_list(UserName) ->
              end,
     ItemPath = "/ListAccessKeysResponse/ListAccessKeysResult/AccessKeyMetadata/member",
     iam_query(Config, "ListAccessKeys", Params, ItemPath, data_type("AccessKeyMetadata")).
+
+-spec list_virtual_mfa_devices() -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
+list_virtual_mfa_devices() ->
+    list_virtual_mfa_devices(default_config()).
+    
+-spec list_virtual_mfa_devices(string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
+list_virtual_mfa_devices(#aws_config{} = Config) ->
+    list_virtual_mfa_devices(undefined, undefined, undefined, Config);
+list_virtual_mfa_devices(AssignmentStatus) ->
+    list_virtual_mfa_devices(AssignmentStatus, undefined, undefined, default_config()).
+    
+-spec list_virtual_mfa_devices(string(), string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
+list_virtual_mfa_devices(AssignmentStatus, #aws_config{} = Config) ->
+    list_virtual_mfa_devices(AssignmentStatus, undefined, undefined, Config);
+list_virtual_mfa_devices(AssignmentStatus, Marker) ->
+    list_virtual_mfa_devices(AssignmentStatus, Marker, undefined, default_config()).
+    
+-spec list_virtual_mfa_devices(string(), string(), string()| aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
+list_virtual_mfa_devices(AssignmentStatus, Marker, #aws_config{} = Config) ->
+    list_virtual_mfa_devices(AssignmentStatus, Marker, undefined, Config);
+list_virtual_mfa_devices(AssignmentStatus, Marker, MaxItems) ->
+    list_virtual_mfa_devices(AssignmentStatus, Marker, MaxItems, default_config()).
+    
+-spec list_virtual_mfa_devices(string(), string(), string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
+list_virtual_mfa_devices(AssignmentStatus, Marker, MaxItems, #aws_config{} = Config) ->
+    Params = make_list_virtual_mfa_devices_params(AssignmentStatus, Marker, MaxItems),
+    ItemPath = "/ListVirtualMFADevicesResponse/ListVirtualMFADevicesResult/VirtualMFADevices/member",
+    iam_query(Config, "ListVirtualMFADevices", Params, ItemPath, data_type("VirtualMFADeviceMetadata")).
+
 
 -spec list_access_keys_all() -> {ok, proplist()} |  {error, any()}.
 list_access_keys_all() ->
@@ -833,6 +864,10 @@ extract_account_summary(Item) ->
       end, [], Entries).
 
 
+data_type("VirtualMFADeviceMetadata") ->
+    [{"SerialNumber", serial_number, "String"},
+     {"EnableDate", enable_date, "DateTime"},
+     {"User", user, data_type("UserDetail")}];
 data_type("AccountAuthorizationDetails") ->
     [{"UserDetailList/member", users, data_type("UserDetail")},
      {"GroupDetailList/member", groups, data_type("GroupDetail")},
@@ -965,3 +1000,16 @@ data_fun("Uri") -> {?MODULE, get_uri}.
 
 get_uri(Key, Item) ->
     http_uri:decode(erlcloud_xml:get_text(Key, Item)).
+
+
+make_list_virtual_mfa_devices_params(undefined, undefined, undefined) ->
+    [];
+make_list_virtual_mfa_devices_params(AssignmentStatus, Marker, MaxItems) ->
+    make_list_virtual_mfa_devices_param(AssignmentStatus, "AssignmentStatus") ++ 
+    make_list_virtual_mfa_devices_param(Marker ,"Marker") ++ 
+    make_list_virtual_mfa_devices_param(MaxItems, "MaxItems").
+
+make_list_virtual_mfa_devices_param(undefined, _) ->
+    [];
+make_list_virtual_mfa_devices_param(Param, ParamString) ->
+    [{ParamString, Param}].
