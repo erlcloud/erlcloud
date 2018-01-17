@@ -131,29 +131,29 @@ list_access_keys(UserName, #aws_config{} = Config) when is_list(UserName) ->
     ItemPath = "/ListAccessKeysResponse/ListAccessKeysResult/AccessKeyMetadata/member",
     iam_query(Config, "ListAccessKeys", Params, ItemPath, data_type("AccessKeyMetadata")).
 
--spec list_virtual_mfa_devices() -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
+-spec list_virtual_mfa_devices() -> {ok, proplist()} |  {error, any()}.
 list_virtual_mfa_devices() ->
     list_virtual_mfa_devices(default_config()).
     
--spec list_virtual_mfa_devices(string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
+-spec list_virtual_mfa_devices(string() | aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_virtual_mfa_devices(#aws_config{} = Config) ->
     list_virtual_mfa_devices(undefined, undefined, undefined, Config);
 list_virtual_mfa_devices(AssignmentStatus) ->
     list_virtual_mfa_devices(AssignmentStatus, undefined, undefined, default_config()).
     
--spec list_virtual_mfa_devices(string(), string() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
+-spec list_virtual_mfa_devices(string(), string() | aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_virtual_mfa_devices(AssignmentStatus, #aws_config{} = Config) ->
     list_virtual_mfa_devices(AssignmentStatus, undefined, undefined, Config);
 list_virtual_mfa_devices(AssignmentStatus, Marker) ->
     list_virtual_mfa_devices(AssignmentStatus, Marker, undefined, default_config()).
     
--spec list_virtual_mfa_devices(string(), string(), string()| aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
+-spec list_virtual_mfa_devices(string(), string(), string()| aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_virtual_mfa_devices(AssignmentStatus, Marker, #aws_config{} = Config) ->
     list_virtual_mfa_devices(AssignmentStatus, Marker, undefined, Config);
 list_virtual_mfa_devices(AssignmentStatus, Marker, MaxItems) ->
     list_virtual_mfa_devices(AssignmentStatus, Marker, MaxItems, default_config()).
     
--spec list_virtual_mfa_devices(string(), string(), string(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
+-spec list_virtual_mfa_devices(string(), string(), string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 list_virtual_mfa_devices(AssignmentStatus, Marker, MaxItems, #aws_config{} = Config) ->
     Params = make_list_virtual_mfa_devices_params(AssignmentStatus, Marker, MaxItems),
     ItemPath = "/ListVirtualMFADevicesResponse/ListVirtualMFADevicesResult/VirtualMFADevices/member",
