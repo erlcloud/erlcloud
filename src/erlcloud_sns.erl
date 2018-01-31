@@ -568,11 +568,11 @@ set_topic_attributes(AttributeName, AttributeValue, TopicArn, Config)
             {"TopicArn", TopicArn}]).
 
 
--spec get_topic_attributes (string()) -> ok.
+-spec get_topic_attributes (string()) -> [{attributes, [{atom(), string()}]}].
 get_topic_attributes(TopicArn) ->
     get_topic_attributes(TopicArn, default_config()).
 
--spec get_topic_attributes(string(), aws_config()) -> ok.
+-spec get_topic_attributes(string(), aws_config()) -> [{attributes, [{atom(), string()}]}].
 get_topic_attributes(TopicArn, Config)
     when is_record(Config, aws_config) ->
     Params = [{"TopicArn", TopicArn}],
