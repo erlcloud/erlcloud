@@ -36,7 +36,7 @@
 -define(BATCH_GET_LIMIT, 100).
 
 -type typed_out() :: {typed_out, boolean()}.
--type batch_read_ddb_opt() :: typed_out() | erlcloud_ddb2:ddb_opt().
+-type batch_read_ddb_opt() :: typed_out() | erlcloud_ddb2:out_opt().
 -type batch_read_ddb_opts() :: [batch_read_ddb_opt()].
 
 -type conditions() :: erlcloud_ddb2:conditions().
