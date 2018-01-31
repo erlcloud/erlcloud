@@ -74,6 +74,7 @@
 ]).
 
 -export_type([
+    arn/0,
     attr_name/0,
     cluster_opt/0,
     client_token_opt/0,
