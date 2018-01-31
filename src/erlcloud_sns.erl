@@ -475,7 +475,7 @@ publish_to_target(TargetArn, Message, Subject, AccessKeyID, SecretAccessKey) ->
 %% TargetArn can be a phone number string, e.g. "+55 (11) 9999-7777"
 -spec publish_to_phone(string(), sns_message()) -> string().
 publish_to_phone(TargetArn, Message) ->
-    publish_to_phone(TargetArn, Message, undefined, default_config()).
+    publish_to_phone(TargetArn, Message, default_config()).
 
 -spec publish_to_phone(string(), sns_message(), aws_config()) -> string().
 publish_to_phone(TargetArn, Message, Config) ->
