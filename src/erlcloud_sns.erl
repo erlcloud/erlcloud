@@ -820,7 +820,8 @@ parse_key("FilterPolicy") -> 'FilterPolicy';
 parse_key("DeliveryPolicy") -> 'DeliveryPolicy';
 parse_key(OtherKey) -> list_to_atom(string:to_lower(OtherKey)).
 
-scheme_to_protocol(S) when is_list(S) -> s2p(string:to_lower(S)).
+scheme_to_protocol(S) when is_list(S) -> s2p(string:to_lower(S));
+scheme_to_protocol(_)                 -> erlang:error({sns_error, badarg}).
 
 s2p("http://")  -> "http";
 s2p("https://") -> "https";
