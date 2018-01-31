@@ -2417,7 +2417,6 @@ ecs_request(Config, Operation, Body) ->
 
 ecs_request_no_update(Config, Operation, Body) ->
     Payload = case Body of
-               <<>> -> <<"{}">>;
                [] -> <<"{}">>;
                _ -> jsx:encode(lists:flatten(Body))
            end,
