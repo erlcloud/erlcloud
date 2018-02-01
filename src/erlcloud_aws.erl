@@ -1227,12 +1227,9 @@ profiles_recurse( Keys, Profiles, Role, ExternalId, Options ) ->
         {ok, Credential} ->
             profiles_assume( Credential, Role, ExternalId, Options );
         {cont, ProfileName, NextRole, NextExternalId} ->
-            case profiles_resolve( ProfileName, Profiles,
-                                   NextRole, NextExternalId, Options ) of
-                {ok, Config} ->
-                    profiles_assume( Config, Role, ExternalId, Options );
-                Otherwise -> Otherwise
-            end
+            {ok, Config} = profiles_resolve( ProfileName, Profiles,
+                                             NextRole, NextExternalId, Options ),
+            profiles_assume( Config, Role, ExternalId, Options )
     end.
 
 profiles_credentials( Keys ) ->
