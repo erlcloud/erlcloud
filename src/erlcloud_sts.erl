@@ -22,7 +22,7 @@ assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds) ->
 
 
 % See http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html
--spec assume_role(#aws_config{}, string(), string(), 900..3600, undefined | string()) -> {#aws_config{}, proplist()}.
+-spec assume_role(#aws_config{}, string(), string(), 900..3600, undefined | string()) -> {#aws_config{}, proplist()} | no_return().
 assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds, ExternalId)
     when length(RoleArn) >= 20,
          length(RoleSessionName) >= 2, length(RoleSessionName) =< 64,
@@ -69,7 +69,7 @@ assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds, ExternalId)
 -type caller_identity_prop() :: {account, string()}
                               | {arn, string()}
                               | {userId, string()}.
--spec get_caller_identity(#aws_config{}) -> {ok, [caller_identity_prop()]}.
+-spec get_caller_identity(#aws_config{}) -> {ok, [caller_identity_prop()]} | no_return().
 get_caller_identity(AwsConfig) ->
     Xml = sts_query(AwsConfig, "GetCallerIdentity", []),
     Proplists = erlcloud_xml:decode(
@@ -85,7 +85,7 @@ get_federation_token(AwsConfig, DurationSeconds, Name) ->
         get_federation_token(AwsConfig, DurationSeconds, Name, undefined).
 
 % See http://docs.aws.amazon.com/STS/latest/APIReference/API_GetFederationToken.html
--spec get_federation_token(#aws_config{}, 900..129600, string(), undefined | string()) -> {#aws_config{}, proplist()}.
+-spec get_federation_token(#aws_config{}, 900..129600, string(), undefined | string()) -> {#aws_config{}, proplist()} | no_return().
 get_federation_token(AwsConfig, DurationSeconds, Name, Policy)
   when length(Name) >= 2, length(Name) =< 32,
        DurationSeconds >= 900, DurationSeconds =< 129600 ->

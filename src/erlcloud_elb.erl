@@ -108,11 +108,11 @@ delete_load_balancer(LB, Config) when is_list(LB) ->
                        [{"LoadBalancerName", LB}]).
 
 
--spec register_instance(string(), string()) -> ok.
+-spec register_instance(string(), string()) -> ok | no_return().
 register_instance(LB, InstanceId) ->
     register_instance(LB, InstanceId, default_config()).
 
--spec register_instance(string(), string(), aws_config()) -> ok.
+-spec register_instance(string(), string(), aws_config()) -> ok | no_return().
 register_instance(LB, InstanceId, Config) when is_list(LB) ->
     elb_simple_request(Config,
                        "RegisterInstancesWithLoadBalancer",
@@ -120,11 +120,11 @@ register_instance(LB, InstanceId, Config) when is_list(LB) ->
                         erlcloud_aws:param_list([[{"InstanceId", InstanceId}]], "Instances.member")]).
 
 
--spec deregister_instance(string(), string()) -> ok.
+-spec deregister_instance(string(), string()) -> ok | no_return().
 deregister_instance(LB, InstanceId) ->
     deregister_instance(LB, InstanceId, default_config()).
 
--spec deregister_instance(string(), string(), aws_config()) -> ok.
+-spec deregister_instance(string(), string(), aws_config()) -> ok | no_return().
 deregister_instance(LB, InstanceId, Config) when is_list(LB) ->
     elb_simple_request(Config,
                        "DeregisterInstancesFromLoadBalancer",
@@ -133,13 +133,13 @@ deregister_instance(LB, InstanceId, Config) when is_list(LB) ->
 
 
 
--spec configure_health_check(string(), string()) -> ok.
+-spec configure_health_check(string(), string()) -> ok | no_return().
 configure_health_check(LB, Target) when is_list(LB),
                                         is_list(Target) ->
     configure_health_check(LB, Target, default_config()).
 
 
--spec configure_health_check(string(), string(), aws_config()) -> ok.
+-spec configure_health_check(string(), string(), aws_config()) -> ok | no_return().
 configure_health_check(LB, Target, Config) when is_list(LB) ->
     elb_simple_request(Config,
                        "ConfigureHealthCheck",
@@ -447,11 +447,11 @@ create_load_balancer_policy(LB, PolicyName, PolicyTypeName, AttrList, Config)
     ok.
 
 
--spec describe_load_balancer_attributes(string()) -> proplist().
+-spec describe_load_balancer_attributes(string()) -> proplist() | no_return().
 describe_load_balancer_attributes(Name) ->
     describe_load_balancer_attributes(Name, default_config()).
 
--spec describe_load_balancer_attributes(string(), aws_config()) -> proplist().
+-spec describe_load_balancer_attributes(string(), aws_config()) -> proplist() | no_return().
 describe_load_balancer_attributes(Name, Config) ->
     Node = elb_request(Config,
         "DescribeLoadBalancerAttributes",
@@ -494,7 +494,7 @@ delete_load_balancer_policy(LB, PolicyName) when is_list(LB),
 %% This policy must not be enabled for any listeners.
 %% @end
 %% --------------------------------------------------------------------
--spec delete_load_balancer_policy(string(), string(), aws_config()) -> ok.
+-spec delete_load_balancer_policy(string(), string(), aws_config()) -> ok | no_return().
 delete_load_balancer_policy(LB, PolicyName, Config) when is_list(LB),
                                              is_list(PolicyName)->
     elb_simple_request(Config,

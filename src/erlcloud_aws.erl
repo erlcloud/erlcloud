@@ -48,6 +48,7 @@
                             | {socket_error, Reason :: term()}.
 -export_type([httpc_result_error/0]).
 -type httpc_result() :: {ok, httpc_result_ok()} | {error, httpc_result_error()}.
+-export_type([httpc_result/0]).
 
 -record(metadata_credentials, {
          access_key_id :: string(),

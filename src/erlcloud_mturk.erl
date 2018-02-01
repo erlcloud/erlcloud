@@ -92,22 +92,22 @@ configure(AccessKeyId, SecretAccessKey, Host) ->
 
 default_config() -> erlcloud_aws:default_config().
 
--spec approve_assignment(string(), string() | none) -> ok.
+-spec approve_assignment(string(), string() | none) -> ok | no_return().
 approve_assignment(AssignmentId, RequesterFeedback) ->
     approve_assignment(AssignmentId, RequesterFeedback, default_config()).
 
--spec approve_assignment(string(), string() | none, aws_config()) -> ok.
+-spec approve_assignment(string(), string() | none, aws_config()) -> ok | no_return().
 approve_assignment(AssignmentId, RequesterFeedback, Config)
   when is_list(AssignmentId),
        is_list(RequesterFeedback) orelse RequesterFeedback =:= none ->
     mturk_simple_request(Config, "ApproveAssignment",
                          [{"AssignmentId", AssignmentId}, {"RequesterFeedback", RequesterFeedback}]).
 
--spec assign_qualification(string(), string()) -> ok.
+-spec assign_qualification(string(), string()) -> ok | no_return().
 assign_qualification(QualificationTypeId, WorkerId) ->
     assign_qualification(QualificationTypeId, WorkerId, default_config()).
 
--spec assign_qualification(string(), string(), integer() | aws_config()) -> ok.
+-spec assign_qualification(string(), string(), integer() | aws_config()) -> ok | no_return().
 assign_qualification(QualificationTypeId, WorkerId, Config)
   when is_record(Config, aws_config) ->
     assign_qualification(QualificationTypeId, WorkerId, 1, Config);
@@ -115,7 +115,7 @@ assign_qualification(QualificationTypeId, WorkerId, IntegerValue) ->
     assign_qualification(QualificationTypeId, WorkerId, IntegerValue, false).
 
 
--spec assign_qualification(string(), string(), integer(), boolean() | aws_config()) -> ok.
+-spec assign_qualification(string(), string(), integer(), boolean() | aws_config()) -> ok | no_return().
 assign_qualification(QualificationTypeId, WorkerId, IntegerValue, Config)
   when is_record(Config, aws_config) ->
     assign_qualification(QualificationTypeId, WorkerId, IntegerValue, false, Config);
@@ -123,7 +123,7 @@ assign_qualification(QualificationTypeId, WorkerId, IntegerValue, SendNotificati
     assign_qualification(QualificationTypeId, WorkerId, IntegerValue,
                          SendNotification, default_config()).
 
--spec assign_qualification(string(), string(), integer(), boolean(), aws_config()) -> ok.
+-spec assign_qualification(string(), string(), integer(), boolean(), aws_config()) -> ok | no_return().
 assign_qualification(QualificationTypeId, WorkerId, IntegerValue, SendNotification,
                      Config)
   when is_list(QualificationTypeId), is_list(WorkerId),
@@ -134,34 +134,34 @@ assign_qualification(QualificationTypeId, WorkerId, IntegerValue, SendNotificati
                           {"IntegerValue", IntegerValue},
                           {"SendNotification", SendNotification}]).
 
--spec block_worker(string(), string()) -> ok.
+-spec block_worker(string(), string()) -> ok | no_return().
 block_worker(WorkerId, Reason) -> block_worker(WorkerId, Reason, default_config()).
 
--spec block_worker(string(), string(), aws_config()) -> ok.
+-spec block_worker(string(), string(), aws_config()) -> ok | no_return().
 block_worker(WorkerId, Reason, Config)
   when is_list(WorkerId), is_list(Reason) ->
     mturk_simple_request(Config, "BlockWorker",
                          [{"WorkerId", WorkerId}, {"Reason", Reason}]).
 
--spec change_hit_type_of_hit(string(), string()) -> ok.
+-spec change_hit_type_of_hit(string(), string()) -> ok | no_return().
 change_hit_type_of_hit(HITId, HITTypeId) ->
     change_hit_type_of_hit(HITId, HITTypeId, default_config()).
 
--spec change_hit_type_of_hit(string(), string(), aws_config()) -> ok.
+-spec change_hit_type_of_hit(string(), string(), aws_config()) -> ok | no_return().
 change_hit_type_of_hit(HITId, HITTypeId, Config)
   when is_list(HITId), is_list(HITTypeId) ->
     mturk_simple_request(Config, "ChangeHITTypeOfHIT",
                          [{"HITId", HITId}, {"HITTypeId", HITTypeId}]).
 
 -spec create_hit(string(), mturk_question(), 30..3153600,
-                       1..1000000000, string() | none) -> proplist().
+                       1..1000000000, string() | none) -> proplist() | no_return().
 create_hit(HITTypeId, Question, LifetimeInSeconds, MaxAssignments,
            RequesterAnnotation) ->
     create_hit(HITTypeId, Question, LifetimeInSeconds, MaxAssignments,
                RequesterAnnotation, default_config()).
 
 -spec create_hit(string(), mturk_question(), 30..3153600,
-                       1..1000000000, string() | none, aws_config()) -> proplist().
+                       1..1000000000, string() | none, aws_config()) -> proplist() | no_return().
 create_hit(HITTypeId, Question, LifetimeInSeconds, MaxAssignments,
            RequesterAnnotation, Config)
   when is_list(HITTypeId),
@@ -187,11 +187,11 @@ create_hit(HITTypeId, Question, LifetimeInSeconds, MaxAssignments,
       Doc
      ).
 
--spec create_hit(#mturk_hit{}) -> proplist().
+-spec create_hit(#mturk_hit{}) -> proplist() | no_return().
 create_hit(HIT) ->
     create_hit(HIT, default_config()).
 
--spec create_hit(#mturk_hit{}, aws_config()) -> proplist().
+-spec create_hit(#mturk_hit{}, aws_config()) -> proplist() | no_return().
 create_hit(HIT, Config) ->
     QuestionXML = xml_to_string(encode_xml(HIT#mturk_hit.question)),
     Params = [
@@ -245,11 +245,11 @@ encode_locale_value(undefined) -> [];
 encode_locale_value(#mturk_locale{country_code=Country}) ->
     [{"Country", Country}].
 
--spec create_qualification_type(#mturk_qualification_type{}) -> proplist().
+-spec create_qualification_type(#mturk_qualification_type{}) -> proplist() | no_return().
 create_qualification_type(QType) ->
     create_qualification_type(QType, default_config()).
 
--spec create_qualification_type(#mturk_qualification_type{}, aws_config()) -> proplist().
+-spec create_qualification_type(#mturk_qualification_type{}, aws_config()) -> proplist() | no_return().
 create_qualification_type(QType, Config)
   when is_record(QType, mturk_qualification_type) ->
     Doc = mturk_xml_request(Config, "CreateQualificationType",
@@ -274,38 +274,38 @@ qualification_type_params(QType) ->
      {"AutoGrantedValue", case AutoGranted of true -> AutoGrantedValue; false -> undefined end}
     ].
 
--spec disable_hit(string()) -> ok.
+-spec disable_hit(string()) -> ok | no_return().
 disable_hit(HITId) -> disable_hit(HITId, default_config()).
 
--spec disable_hit(string(), aws_config()) -> ok.
+-spec disable_hit(string(), aws_config()) -> ok | no_return().
 disable_hit(HITId, Config)
   when is_list(HITId) ->
     mturk_simple_request(Config, "DisableHIT", [{"HITId", HITId}]).
 
--spec dispose_hit(string()) -> ok.
+-spec dispose_hit(string()) -> ok | no_return().
 dispose_hit(HITId) -> dispose_hit(HITId, default_config()).
 
--spec dispose_hit(string(), aws_config()) -> ok.
+-spec dispose_hit(string(), aws_config()) -> ok | no_return().
 dispose_hit(HITId, Config)
   when is_list(HITId) ->
     mturk_simple_request(Config, "DisposeHIT", [{"HITId", HITId}]).
 
--spec dispose_qualification_type(string()) -> ok.
+-spec dispose_qualification_type(string()) -> ok | no_return().
 dispose_qualification_type(QualificationTypeId) ->
     dispose_qualification_type(QualificationTypeId, default_config()).
 
--spec dispose_qualification_type(string(), aws_config()) -> ok.
+-spec dispose_qualification_type(string(), aws_config()) -> ok | no_return().
 dispose_qualification_type(QualificationTypeId, Config)
   when is_list(QualificationTypeId) ->
     mturk_simple_request(Config, "DisposeQualificationType",
                          [{"QualificationTypeId", QualificationTypeId}]).
 
--spec extend_hit(string(), 1..1000000000 | none, 3600..31536000 | none) -> ok.
+-spec extend_hit(string(), 1..1000000000 | none, 3600..31536000 | none) -> ok | no_return().
 extend_hit(HITId, MaxAssignmentsIncrement, ExpirationIncrementInSeconds) ->
     extend_hit(HITId, MaxAssignmentsIncrement, ExpirationIncrementInSeconds,
                default_config()).
 
--spec extend_hit(string(), 1..1000000000 | none, 3600..31536000 | none, aws_config()) -> ok.
+-spec extend_hit(string(), 1..1000000000 | none, 3600..31536000 | none, aws_config()) -> ok | no_return().
 extend_hit(HITId, MaxAssignmentsIncrement, ExpirationIncrementInSeconds, Config)
   when is_list(HITId),
        (MaxAssignmentsIncrement >= 1 andalso MaxAssignmentsIncrement =< 1000000000) orelse MaxAssignmentsIncrement =:= none,
@@ -316,19 +316,19 @@ extend_hit(HITId, MaxAssignmentsIncrement, ExpirationIncrementInSeconds, Config)
                           {"MaxAssignmentsIncrement", MaxAssignmentsIncrement},
                           {"ExpirationIncrementInSeconds", ExpirationIncrementInSeconds}]).
 
--spec force_expire_hit(string()) -> ok.
+-spec force_expire_hit(string()) -> ok | no_return().
 force_expire_hit(HITId) -> force_expire_hit(HITId, default_config()).
 
--spec force_expire_hit(string(), aws_config()) -> ok.
+-spec force_expire_hit(string(), aws_config()) -> ok | no_return().
 force_expire_hit(HITId, Config)
   when is_list(HITId) ->
     mturk_simple_request(Config, "ForceExpireHIT", [{"HITId", HITId}]).
 
--spec get_account_balance() -> proplist().
+-spec get_account_balance() -> proplist() | no_return().
 get_account_balance() ->
     get_account_balance(default_config()).
 
--spec get_account_balance(aws_config()) -> proplist().
+-spec get_account_balance(aws_config()) -> proplist() | no_return().
 get_account_balance(Config) ->
     Doc = mturk_xml_request(Config, "GetAccountBalance", []),
     erlcloud_xml:decode(
@@ -339,18 +339,18 @@ get_account_balance(Config) ->
       Doc
      ).
 
--spec get_assignments_for_hit(string()) -> proplist().
+-spec get_assignments_for_hit(string()) -> proplist() | no_return().
 get_assignments_for_hit(HITId) ->
     get_assignments_for_hit(HITId, []).
 
--spec get_assignments_for_hit(string(), proplist() | aws_config()) -> proplist().
+-spec get_assignments_for_hit(string(), proplist() | aws_config()) -> proplist() | no_return().
 get_assignments_for_hit(HITId, Config)
   when is_record(Config, aws_config) ->
     get_assignments_for_hit(HITId, [], Config);
 get_assignments_for_hit(HITId, Options) ->
     get_assignments_for_hit(HITId, Options, default_config()).
 
--spec get_assignments_for_hit(string(), proplist(), aws_config()) -> proplist().
+-spec get_assignments_for_hit(string(), proplist(), aws_config()) -> proplist() | no_return().
 get_assignments_for_hit(HITId, Options, Config)
   when is_list(HITId), is_list(Options) ->
     Params = [
@@ -411,11 +411,11 @@ extract_assignment(Assignment) ->
       Assignment
      ).
 
--spec get_bonus_payments_for_hit(string(), proplist()) -> proplist().
+-spec get_bonus_payments_for_hit(string(), proplist()) -> proplist() | no_return().
 get_bonus_payments_for_hit(HITId, Options) ->
     get_bonus_payments_for_hit(HITId, Options, default_config()).
 
--spec get_bonus_payments_for_hit(string(), proplist(), aws_config()) -> proplist().
+-spec get_bonus_payments_for_hit(string(), proplist(), aws_config()) -> proplist() | no_return().
 get_bonus_payments_for_hit(HITId, Options, Config)
   when is_list(HITId), is_list(Options) ->
     Params = [
@@ -426,11 +426,11 @@ get_bonus_payments_for_hit(HITId, Options, Config)
     Doc = mturk_xml_request(Config, "GetBonusPayments", Params),
     extract_bonus_payments(Doc).
 
--spec get_bonus_payments_for_assignment(string(), proplist()) -> proplist().
+-spec get_bonus_payments_for_assignment(string(), proplist()) -> proplist() | no_return().
 get_bonus_payments_for_assignment(AssignmentId, Options) ->
     get_bonus_payments_for_assignment(AssignmentId, Options, default_config()).
 
--spec get_bonus_payments_for_assignment(string(), proplist(), aws_config()) -> proplist().
+-spec get_bonus_payments_for_assignment(string(), proplist(), aws_config()) -> proplist() | no_return().
 get_bonus_payments_for_assignment(AssignmentId, Options, Config)
   when is_list(AssignmentId), is_list(Options) ->
     Params = [
@@ -466,11 +466,11 @@ extract_bonus_payment(Payment) ->
       Payment
      ).
 
--spec get_file_upload_url(string(), string()) -> string().
+-spec get_file_upload_url(string(), string()) -> string() | no_return().
 get_file_upload_url(AssignmentId, QuestionIdentifier) ->
     get_file_upload_url(AssignmentId, QuestionIdentifier, default_config()).
 
--spec get_file_upload_url(string(), string(), aws_config()) -> string().
+-spec get_file_upload_url(string(), string(), aws_config()) -> string() | no_return().
 get_file_upload_url(AssignmentId, QuestionIdentifier, Config)
   when is_record(Config, aws_config) ->
     Params = [
@@ -480,27 +480,27 @@ get_file_upload_url(AssignmentId, QuestionIdentifier, Config)
     Doc = mturk_xml_request(Config, "GetFileUploadURL", Params),
     erlcloud_xml:get_text("FileUploadURL", Doc).
 
--spec get_hit(string()) -> #mturk_hit{}.
+-spec get_hit(string()) -> #mturk_hit{} | no_return().
 get_hit(HITId) -> get_hit(HITId, default_config()).
 
--spec get_hit(string(), aws_config()) -> #mturk_hit{}.
+-spec get_hit(string(), aws_config()) -> #mturk_hit{} | no_return().
 get_hit(HITId, Config)
   when is_list(HITId) ->
     Doc = mturk_xml_request(Config, "GetHIT", [{"HITId", HITId}]),
     hd(extract_hits([Doc])).
 
--spec get_hits_for_qualification_type(string()) -> proplist().
+-spec get_hits_for_qualification_type(string()) -> proplist() | no_return().
 get_hits_for_qualification_type(QualificationTypeId) ->
     get_hits_for_qualification_type(QualificationTypeId, []).
 
--spec get_hits_for_qualification_type(string(), proplist() | aws_config()) -> proplist().
+-spec get_hits_for_qualification_type(string(), proplist() | aws_config()) -> proplist() | no_return().
 get_hits_for_qualification_type(QualificationTypeId, Config)
   when is_record(Config, aws_config) ->
     get_hits_for_qualification_type(QualificationTypeId, [], Config);
 get_hits_for_qualification_type(QualificationTypeId, Options) ->
     get_hits_for_qualification_type(QualificationTypeId, Options, default_config()).
 
--spec get_hits_for_qualification_type(string(), proplist(), aws_config()) -> proplist().
+-spec get_hits_for_qualification_type(string(), proplist(), aws_config()) -> proplist() | no_return().
 get_hits_for_qualification_type(QualificationTypeId, Options, Config)
   when is_list(Options) ->
     Params = [
@@ -519,18 +519,18 @@ get_hits_for_qualification_type(QualificationTypeId, Options, Config)
       Doc
      ).
 
--spec get_reviewable_hits() -> proplist().
+-spec get_reviewable_hits() -> proplist() | no_return().
 get_reviewable_hits() ->
     get_reviewable_hits([]).
 
--spec get_reviewable_hits(proplist() | aws_config()) -> proplist().
+-spec get_reviewable_hits(proplist() | aws_config()) -> proplist() | no_return().
 get_reviewable_hits(Config)
   when is_record(Config, aws_config) ->
     get_reviewable_hits([], Config);
 get_reviewable_hits(Options) ->
     get_reviewable_hits(Options, default_config()).
 
--spec get_reviewable_hits(proplist(), aws_config()) -> proplist().
+-spec get_reviewable_hits(proplist(), aws_config()) -> proplist() | no_return().
 get_reviewable_hits(Options, Config)
   when is_list(Options) ->
     Params = [
@@ -573,11 +573,11 @@ get_reviewable_hits(Options, Config)
       Doc
      ).
 
--spec get_qualification_score(string(), string()) -> proplist().
+-spec get_qualification_score(string(), string()) -> proplist() | no_return().
 get_qualification_score(QualificationTypeId, SubjectId) ->
     get_qualification_score(QualificationTypeId, SubjectId, default_config()).
 
--spec get_qualification_score(string(), string(), aws_config()) -> proplist().
+-spec get_qualification_score(string(), string(), aws_config()) -> proplist() | no_return().
 get_qualification_score(QualificationTypeId, SubjectId, Config)
   when is_list(QualificationTypeId), is_list(SubjectId) ->
     Doc = mturk_xml_request(Config, "GetQualificationScore",
@@ -596,11 +596,11 @@ get_qualification_score(QualificationTypeId, SubjectId, Config)
       Doc
      ).
 
--spec get_qualification_type(string()) -> #mturk_qualification_type{}.
+-spec get_qualification_type(string()) -> #mturk_qualification_type{} | no_return().
 get_qualification_type(QualificationTypeId) ->
     get_qualification_type(QualificationTypeId, default_config()).
 
--spec get_qualification_type(string(), aws_config()) -> #mturk_qualification_type{}.
+-spec get_qualification_type(string(), aws_config()) -> #mturk_qualification_type{} | no_return().
 get_qualification_type(QualificationTypeId, Config)
   when is_record(Config, aws_config) ->
     Doc = mturk_xml_request(Config, "GetQualificationType",
@@ -635,18 +635,18 @@ extract_qualification_type(Node) ->
 decode_keywords(String) ->
     [string:strip(Keyword) || Keyword <- string:tokens(String, ",")].
 
--spec get_qualifications_for_qualification_type(string()) -> [proplist()].
+-spec get_qualifications_for_qualification_type(string()) -> [proplist()] | no_return().
 get_qualifications_for_qualification_type(QualificationTypeId) ->
     get_qualifications_for_qualification_type(QualificationTypeId, default_config()).
 
--spec get_qualifications_for_qualification_type(string(), proplist() | aws_config()) -> [proplist()].
+-spec get_qualifications_for_qualification_type(string(), proplist() | aws_config()) -> [proplist()] | no_return().
 get_qualifications_for_qualification_type(QualificationTypeId, Config)
   when is_record(Config, aws_config) ->
     get_qualifications_for_qualification_type(QualificationTypeId, [], Config);
 get_qualifications_for_qualification_type(QualificationTypeId, Options) ->
     get_qualifications_for_qualification_type(QualificationTypeId, Options, default_config()).
 
--spec get_qualifications_for_qualification_type(string(), proplist(), aws_config()) -> [proplist()].
+-spec get_qualifications_for_qualification_type(string(), proplist(), aws_config()) -> [proplist()] | no_return().
 get_qualifications_for_qualification_type(QualificationTypeId, Options, Config)
   when is_list(QualificationTypeId), is_list(Options) ->
     Params = [
@@ -672,18 +672,18 @@ get_qualifications_for_qualification_type(QualificationTypeId, Options, Config)
        Item
       ) || Item <- xmerl_xpath:string("Qualification", Doc)].
 
--spec get_qualification_requests() -> proplist().
+-spec get_qualification_requests() -> proplist() | no_return().
 get_qualification_requests() ->
     get_qualification_requests([]).
 
--spec get_qualification_requests(proplist() | aws_config()) -> proplist().
+-spec get_qualification_requests(proplist() | aws_config()) -> proplist() | no_return().
 get_qualification_requests(Config)
   when is_record(Config, aws_config) ->
     get_qualification_requests([], Config);
 get_qualification_requests(Options) ->
     get_qualification_requests(Options, default_config()).
 
--spec get_qualification_requests(proplist(), aws_config()) -> proplist().
+-spec get_qualification_requests(proplist(), aws_config()) -> proplist() | no_return().
 get_qualification_requests(Options, Config)
   when is_list(Options) ->
     Params = [
@@ -732,18 +732,18 @@ extract_qualification_request(Request) ->
       Request
      ).
 
--spec get_requester_statistic(string(), one_day | seven_days | thirty_days | life_to_date) -> [{datetime(), float()}].
+-spec get_requester_statistic(string(), one_day | seven_days | thirty_days | life_to_date) -> [{datetime(), float()}] | no_return().
 get_requester_statistic(Statistic, TimePeriod) ->
     get_requester_statistic(Statistic, TimePeriod, default_config()).
 
--spec get_requester_statistic(string(), one_day | seven_days | thirty_days | life_to_date, pos_integer() | aws_config()) -> [{datetime(), float()}].
+-spec get_requester_statistic(string(), one_day | seven_days | thirty_days | life_to_date, pos_integer() | aws_config()) -> [{datetime(), float()}] | no_return().
 get_requester_statistic(Statistic, TimePeriod, Config)
   when is_record(Config, aws_config) ->
     get_requester_statistic(Statistic, TimePeriod, 1, Config);
 get_requester_statistic(Statistic, TimePeriod, Count) ->
     get_requester_statistic(Statistic, TimePeriod, Count, default_config()).
 
--spec get_requester_statistic(string(), one_day | seven_days | thirty_days | life_to_date, pos_integer(), aws_config()) -> [{datetime(), float()}].
+-spec get_requester_statistic(string(), one_day | seven_days | thirty_days | life_to_date, pos_integer(), aws_config()) -> [{datetime(), float()}] | no_return().
 get_requester_statistic(Statistic, TimePeriod, Count, Config)
   when is_list(Statistic),
        TimePeriod =:= one_day orelse TimePeriod =:= seven_days orelse
@@ -769,11 +769,11 @@ get_requester_statistic(Statistic, TimePeriod, Count, Config)
       end} ||
         DP <- xmerl_xpath:string("DataPoint", Doc)].
 
--spec grant_bonus(string(), string(), #mturk_money{}, string()) -> ok.
+-spec grant_bonus(string(), string(), #mturk_money{}, string()) -> ok | no_return().
 grant_bonus(WorkerId, AssignmentId, BonusAmount, Reason) ->
     grant_bonus(WorkerId, AssignmentId, BonusAmount, Reason, default_config()).
 
--spec grant_bonus(string(), string(), #mturk_money{}, string(), aws_config()) -> ok.
+-spec grant_bonus(string(), string(), #mturk_money{}, string(), aws_config()) -> ok | no_return().
 grant_bonus(WorkerId, AssignmentId, BonusAmount, Reason, Config) ->
     mturk_simple_request(Config, "GrantBonus",
                          [
@@ -784,18 +784,18 @@ grant_bonus(WorkerId, AssignmentId, BonusAmount, Reason, Config) ->
                          ]
                         ).
 
--spec grant_qualification(string()) -> ok.
+-spec grant_qualification(string()) -> ok | no_return().
 grant_qualification(QualificationRequestId) ->
     grant_qualification(QualificationRequestId, none).
 
--spec grant_qualification(string(), integer() | none | aws_config()) -> ok.
+-spec grant_qualification(string(), integer() | none | aws_config()) -> ok | no_return().
 grant_qualification(QualificationRequestId, Config)
   when is_record(Config, aws_config) ->
     grant_qualification(QualificationRequestId, none, Config);
 grant_qualification(QualificationRequestId, Value) ->
     grant_qualification(QualificationRequestId, Value, default_config()).
 
--spec grant_qualification(string(), integer() | none, aws_config()) -> ok.
+-spec grant_qualification(string(), integer() | none, aws_config()) -> ok | no_return().
 grant_qualification(QualificationRequestId, Value, Config)
   when is_list(QualificationRequestId),
        is_integer(Value) orelse Value =:= none ->
@@ -1090,11 +1090,11 @@ extract_money(Money) ->
 encode_money(#mturk_money{amount=Amount, currency_code=CurrencyCode}) ->
     [{"Amount", Amount}, {"CurrencyCode", CurrencyCode}].
 
--spec notify_workers(string(), string(), [string()]) -> ok.
+-spec notify_workers(string(), string(), [string()]) -> ok | no_return().
 notify_workers(Subject, MessageText, WorkerIds) ->
     notify_workers(Subject, MessageText, WorkerIds, default_config()).
 
--spec notify_workers(string(), string(), [string()], aws_config()) -> ok.
+-spec notify_workers(string(), string(), [string()], aws_config()) -> ok | no_return().
 notify_workers(Subject, MessageText, WorkerIds, Config)
   when is_list(Subject), is_list(MessageText),
        is_list(WorkerIds), length(WorkerIds) =< 100 ->
@@ -1106,11 +1106,11 @@ notify_workers(Subject, MessageText, WorkerIds, Config)
                          ]
                         ).
 
--spec register_hit_type(#mturk_hit{}) -> proplist().
+-spec register_hit_type(#mturk_hit{}) -> proplist() | no_return().
 register_hit_type(HIT) ->
     register_hit_type(HIT, default_config()).
 
--spec register_hit_type(#mturk_hit{}, aws_config()) -> proplist().
+-spec register_hit_type(#mturk_hit{}, aws_config()) -> proplist() | no_return().
 register_hit_type(HIT, Config) ->
     Params = [
               {"Title", HIT#mturk_hit.title},
@@ -1130,18 +1130,18 @@ register_hit_type(HIT, Config) ->
       Doc
      ).
 
--spec reject_assignment(string()) -> ok.
+-spec reject_assignment(string()) -> ok | no_return().
 reject_assignment(AssignmentId) ->
     reject_assignment(AssignmentId, none).
 
--spec reject_assignment(string(), string() | none | aws_config()) -> ok.
+-spec reject_assignment(string(), string() | none | aws_config()) -> ok | no_return().
 reject_assignment(AssignmentId, Config)
   when is_record(Config, aws_config) ->
     reject_assignment(AssignmentId, none, Config);
 reject_assignment(AssignmentId, Reason) ->
     reject_assignment(AssignmentId, Reason, default_config()).
 
--spec reject_assignment(string(), string() | none, aws_config()) -> ok.
+-spec reject_assignment(string(), string() | none, aws_config()) -> ok | no_return().
 reject_assignment(AssignmentId, Reason, Config)
   when is_list(AssignmentId),
        is_list(Reason) orelse Reason =:= none ->
@@ -1152,18 +1152,18 @@ reject_assignment(AssignmentId, Reason, Config)
                          ]
                         ).
 
--spec reject_qualification_request(string()) -> ok.
+-spec reject_qualification_request(string()) -> ok | no_return().
 reject_qualification_request(QualificationRequestId) ->
     reject_qualification_request(QualificationRequestId, none).
 
--spec reject_qualification_request(string(), string() | none | aws_config()) -> ok.
+-spec reject_qualification_request(string(), string() | none | aws_config()) -> ok | no_return().
 reject_qualification_request(QualificationRequestId, Config)
   when is_record(Config, aws_config) ->
     reject_qualification_request(QualificationRequestId, none, Config);
 reject_qualification_request(QualificationRequestId, Reason) ->
     reject_qualification_request(QualificationRequestId, Reason, default_config()).
 
--spec reject_qualification_request(string(), string() | none, aws_config()) -> ok.
+-spec reject_qualification_request(string(), string() | none, aws_config()) -> ok | no_return().
 reject_qualification_request(QualificationRequestId, Reason, Config)
   when is_list(QualificationRequestId),
        is_list(Reason) orelse Reason =:= none ->
@@ -1174,18 +1174,18 @@ reject_qualification_request(QualificationRequestId, Reason, Config)
                          ]
                         ).
 
--spec revoke_qualification(string(), string()) -> ok.
+-spec revoke_qualification(string(), string()) -> ok | no_return().
 revoke_qualification(QualificationTypeId, WorkerId) ->
     revoke_qualification(QualificationTypeId, WorkerId, none).
 
--spec revoke_qualification(string(), string(), string() | none | aws_config()) -> ok.
+-spec revoke_qualification(string(), string(), string() | none | aws_config()) -> ok | no_return().
 revoke_qualification(QualificationTypeId, WorkerId, Config)
   when is_record(Config, aws_config) ->
     revoke_qualification(QualificationTypeId, WorkerId, none, Config);
 revoke_qualification(QualificationTypeId, WorkerId, Reason) ->
     revoke_qualification(QualificationTypeId, WorkerId, Reason, default_config()).
 
--spec revoke_qualification(string(), string(), string() | none, aws_config()) -> ok.
+-spec revoke_qualification(string(), string(), string() | none, aws_config()) -> ok | no_return().
 revoke_qualification(QualificationTypeId, WorkerId, Reason, Config) ->
     mturk_simple_request(Config, "RevokeQualification",
                          [
@@ -1195,18 +1195,18 @@ revoke_qualification(QualificationTypeId, WorkerId, Reason, Config) ->
                          ]
                         ).
 
--spec search_hits() -> proplist().
+-spec search_hits() -> proplist() | no_return().
 search_hits() ->
     search_hits([]).
 
--spec search_hits(proplist() | aws_config()) -> proplist().
+-spec search_hits(proplist() | aws_config()) -> proplist() | no_return().
 search_hits(Config)
   when is_record(Config, aws_config) ->
     search_hits([], Config);
 search_hits(Options) ->
     search_hits(Options, default_config()).
 
--spec search_hits(proplist(), aws_config()) -> proplist().
+-spec search_hits(proplist(), aws_config()) -> proplist() | no_return().
 search_hits(Options, Config)
   when is_list(Options) ->
     Params = [
@@ -1241,18 +1241,18 @@ search_hits(Options, Config)
       Doc
      ).
 
--spec search_qualification_types() -> proplist().
+-spec search_qualification_types() -> proplist() | no_return().
 search_qualification_types() ->
     search_qualification_types([]).
 
--spec search_qualification_types(proplist() | aws_config()) -> proplist().
+-spec search_qualification_types(proplist() | aws_config()) -> proplist() | no_return().
 search_qualification_types(Config)
   when is_record(Config, aws_config) ->
     search_qualification_types([], Config);
 search_qualification_types(Options) ->
     search_qualification_types(Options, default_config()).
 
--spec search_qualification_types(proplist(), aws_config()) -> proplist().
+-spec search_qualification_types(proplist(), aws_config()) -> proplist() | no_return().
 search_qualification_types(Options, Config) ->
     Params = [
               {"Query", proplists:get_value(search_query, Options)},
@@ -1285,11 +1285,11 @@ search_qualification_types(Options, Config) ->
       Doc
      ).
 
--spec send_test_event_notification(proplist(), mturk_event_type()) -> ok.
+-spec send_test_event_notification(proplist(), mturk_event_type()) -> ok | no_return().
 send_test_event_notification(Notificaiton, TestEventType) ->
     send_test_event_notification(Notificaiton, TestEventType, default_config()).
 
--spec send_test_event_notification(proplist(), mturk_event_type(), aws_config()) -> ok.
+-spec send_test_event_notification(proplist(), mturk_event_type(), aws_config()) -> ok | no_return().
 send_test_event_notification(Notification, TestEventType, Config) ->
     mturk_simple_request(Config, "SendTestEventNotification",
                          [
@@ -1301,18 +1301,18 @@ send_test_event_notification(Notification, TestEventType, Config) ->
                          ]
                         ).
 
--spec set_hit_as_reviewing(string()) -> ok.
+-spec set_hit_as_reviewing(string()) -> ok | no_return().
 set_hit_as_reviewing(HITId) ->
     set_hit_as_reviewing(HITId, false).
 
--spec set_hit_as_reviewing(string(), boolean() | aws_config()) -> ok.
+-spec set_hit_as_reviewing(string(), boolean() | aws_config()) -> ok | no_return().
 set_hit_as_reviewing(HITId, Config)
   when is_record(Config, aws_config) ->
     set_hit_as_reviewing(HITId, false, Config);
 set_hit_as_reviewing(HITId, Revert) ->
     set_hit_as_reviewing(HITId, Revert, default_config()).
 
--spec set_hit_as_reviewing(string(), boolean(), aws_config()) -> ok.
+-spec set_hit_as_reviewing(string(), boolean(), aws_config()) -> ok | no_return().
 set_hit_as_reviewing(HITId, Revert, Config) ->
     mturk_simple_request(Config, "SetHITAsReviewing",
                          [
@@ -1321,18 +1321,18 @@ set_hit_as_reviewing(HITId, Revert, Config) ->
                          ]
                         ).
 
--spec set_hit_type_notification(string(), proplist()) -> ok.
+-spec set_hit_type_notification(string(), proplist()) -> ok | no_return().
 set_hit_type_notification(HITTypeId, Notification) ->
     set_hit_type_notification(HITTypeId, Notification, undefined).
 
--spec set_hit_type_notification(string(), proplist(), boolean() | undefined | aws_config()) -> ok.
+-spec set_hit_type_notification(string(), proplist(), boolean() | undefined | aws_config()) -> ok | no_return().
 set_hit_type_notification(HITTypeId, Notification, Config)
   when is_record(Config, aws_config) ->
     set_hit_type_notification(HITTypeId, Notification, undefined, Config);
 set_hit_type_notification(HITTypeId, Notification, Active) ->
     set_hit_type_notification(HITTypeId, Notification, Active, default_config()).
 
--spec set_hit_type_notification(string(), proplist(), boolean() | undefined, aws_config()) -> ok.
+-spec set_hit_type_notification(string(), proplist(), boolean() | undefined, aws_config()) -> ok | no_return().
 set_hit_type_notification(HITTypeId, Notification, Active, Config)
   when is_list(HITTypeId), is_list(Notification),
        is_boolean(Active) orelse Active =:= undefined ->
@@ -1358,29 +1358,29 @@ encode_transport(email) -> "Email";
 encode_transport(soap) -> "SOAP";
 encode_transport(rest) -> "REST".
 
--spec unblock_worker(string()) -> ok.
+-spec unblock_worker(string()) -> ok | no_return().
 unblock_worker(WorkerId) -> unblock_worker(WorkerId, none).
 
--spec unblock_worker(string(), string() | none | aws_config()) -> ok.
+-spec unblock_worker(string(), string() | none | aws_config()) -> ok | no_return().
 unblock_worker(WorkerId, Config)
   when is_record(Config, aws_config) ->
     unblock_worker(WorkerId, none, Config);
 unblock_worker(WorkerId, Reason) ->
     unblock_worker(WorkerId, Reason, default_config()).
 
--spec unblock_worker(string(), string() | none, aws_config()) -> ok.
+-spec unblock_worker(string(), string() | none, aws_config()) -> ok | no_return().
 unblock_worker(WorkerId, Reason, Config)
   when is_list(WorkerId),
        is_list(Reason) orelse Reason =:= none ->
     mturk_simple_request(Config, "UnblockWorker",
                          [{"WorkerId", WorkerId}, {"Reason", Reason}]).
 
--spec update_qualification_score(string(), string(), integer()) -> ok.
+-spec update_qualification_score(string(), string(), integer()) -> ok | no_return().
 update_qualification_score(QualificationTypeId, SubjectId, IntegerValue) ->
     update_qualification_score(QualificationTypeId, SubjectId,
                                IntegerValue, default_config()).
 
--spec update_qualification_score(string(), string(), integer(), aws_config()) -> ok.
+-spec update_qualification_score(string(), string(), integer(), aws_config()) -> ok | no_return().
 update_qualification_score(QualificationTypeId, SubjectId, IntegerValue, Config)
   when is_list(SubjectId), is_list(QualificationTypeId),
        is_integer(IntegerValue) ->
@@ -1392,11 +1392,11 @@ update_qualification_score(QualificationTypeId, SubjectId, IntegerValue, Config)
                          ]
                         ).
 
--spec update_qualification_type(#mturk_qualification_type{}) -> #mturk_qualification_type{}.
+-spec update_qualification_type(#mturk_qualification_type{}) -> #mturk_qualification_type{} | no_return().
 update_qualification_type(QType) ->
     update_qualification_type(QType, default_config()).
 
--spec update_qualification_type(#mturk_qualification_type{}, aws_config()) -> #mturk_qualification_type{}.
+-spec update_qualification_type(#mturk_qualification_type{}, aws_config()) -> #mturk_qualification_type{} | no_return().
 update_qualification_type(QType, Config) ->
     Doc = mturk_xml_request(Config, "UpdateQualificationType",
                             [
