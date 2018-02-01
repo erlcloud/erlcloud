@@ -335,12 +335,12 @@ get_metric_statistics(
 -spec get_metric_statistics(
         Namespace   ::string(),
         MetricName  ::string(),
-        StartTime   ::string(),
-        EndTime     ::string(),
+        StartTime   ::datetime() | string(),
+        EndTime     ::datetime() | string(),
         Period      ::pos_integer(),
         Unit        ::string(),
         Statistics  ::[string()],
-        Dimensions  ::[string()],
+        Dimensions  ::[{string(), string()}],
         Config      ::aws_config()
                       ) -> term().
 
