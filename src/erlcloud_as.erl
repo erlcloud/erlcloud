@@ -3,6 +3,7 @@
 -include("erlcloud_aws.hrl").
 -include("erlcloud_as.hrl").
 
+-include("erlcloud_xmerl.hrl").
 
 %% AWS Autoscaling functions
 -export([describe_groups/0, describe_groups/1, describe_groups/2, describe_groups/4,
