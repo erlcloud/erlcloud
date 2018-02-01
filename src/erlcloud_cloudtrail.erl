@@ -203,7 +203,7 @@ request_impl(Method, Scheme, Host, Port, Path, Operation, Params, Body, #aws_con
             {error, Reason}
     end.
 
--spec headers(aws_config(), string(), proplist(), binary(), string()) -> headers().
+-spec headers(aws_config(), string(), proplist(), string() | binary(), string()) -> headers().
 headers(Config, Operation, _Params, Body, Service) ->
     Headers = [
                {"host", Config#aws_config.cloudtrail_host},
