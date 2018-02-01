@@ -1,6 +1,6 @@
 -module(erlcloud_ec2).
 
--include_lib("xmerl/include/xmerl.hrl").
+-include("erlcloud_xmerl.hrl").
 
 %% Library initialization.
 -export([configure/2, configure/3, new/2, new/3]).
@@ -1712,7 +1712,7 @@ describe_network_interfaces_filtered(NetworkInterfacesIds, Filter, Config)
               Error
        end.
 
--spec extract_network_interface(Node::list()) -> proplist().
+-spec extract_network_interface(Node::xmerl_xpath_doc_nodes()) -> proplist().
 extract_network_interface(Node) ->
     [
      {network_interface_id, get_text("networkInterfaceId", Node)},
@@ -1734,7 +1734,7 @@ extract_network_interface(Node) ->
             [extract_private_ip_address(Item) || Item <- xmerl_xpath:string("privateIpAddressesSet/item", Node)]}
     ].
 
--spec extract_attachment(Node::list()) -> proplist().
+-spec extract_attachment(Node::xmerl_xpath_doc_nodes()) -> proplist().
 extract_attachment(Node) ->
     [
      {attachment_id, get_text("attachment/attachmentId", Node)},
@@ -1746,14 +1746,14 @@ extract_attachment(Node) ->
      {delete_on_termination, get_bool("attachment/deleteOnTermination", Node)}
     ].
 
--spec extract_private_ip_address(Node::list()) -> proplist().
+-spec extract_private_ip_address(Node::xmerl_xpath_doc_nodes()) -> proplist().
 extract_private_ip_address(Node) ->
     [
      {private_ip_address, get_text("privateIpAddress", Node)},
      {primary, get_bool("primary", Node)}
     ].
 
--spec extract_association(Node::list()) -> proplist().
+-spec extract_association(Node::xmerl_xpath_doc_nodes()) -> proplist().
 extract_association(Node) ->
     [
      {public_ip, get_text("association/publicIp", Node)},
