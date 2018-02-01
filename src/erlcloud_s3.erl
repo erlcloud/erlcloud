@@ -1369,7 +1369,7 @@ get_bucket_inventory(BucketName, InventoryId, #aws_config{} = Config)
 put_bucket_inventory(BucketName, Inventory)
     when is_list(BucketName), is_list(Inventory) ->
 
-    put_bucket_inventory(BucketName, default_config()).
+    put_bucket_inventory(BucketName, Inventory, default_config()).
 
 -spec put_bucket_inventory(string(), list(), aws_config())
         -> ok | {error, Reason::term()}.
