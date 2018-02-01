@@ -108,11 +108,11 @@ delete_load_balancer(LB, Config) when is_list(LB) ->
                        [{"LoadBalancerName", LB}]).
 
 
--spec register_instance(string(), string()) -> proplist().
+-spec register_instance(string(), string()) -> ok.
 register_instance(LB, InstanceId) ->
     register_instance(LB, InstanceId, default_config()).
 
--spec register_instance(string(), string(), aws_config()) -> proplist().
+-spec register_instance(string(), string(), aws_config()) -> ok.
 register_instance(LB, InstanceId, Config) when is_list(LB) ->
     elb_simple_request(Config,
                        "RegisterInstancesWithLoadBalancer",
@@ -120,11 +120,11 @@ register_instance(LB, InstanceId, Config) when is_list(LB) ->
                         erlcloud_aws:param_list([[{"InstanceId", InstanceId}]], "Instances.member")]).
 
 
--spec deregister_instance(string(), string()) -> proplist().
+-spec deregister_instance(string(), string()) -> ok.
 deregister_instance(LB, InstanceId) ->
     deregister_instance(LB, InstanceId, default_config()).
 
--spec deregister_instance(string(), string(), aws_config()) -> proplist().
+-spec deregister_instance(string(), string(), aws_config()) -> ok.
 deregister_instance(LB, InstanceId, Config) when is_list(LB) ->
     elb_simple_request(Config,
                        "DeregisterInstancesFromLoadBalancer",
@@ -133,13 +133,13 @@ deregister_instance(LB, InstanceId, Config) when is_list(LB) ->
 
 
 
--spec configure_health_check(string(), string()) -> proplist().
+-spec configure_health_check(string(), string()) -> ok.
 configure_health_check(LB, Target) when is_list(LB),
                                         is_list(Target) ->
     configure_health_check(LB, Target, default_config()).
 
 
--spec configure_health_check(string(), string(), aws_config()) -> proplist().
+-spec configure_health_check(string(), string(), aws_config()) -> ok.
 configure_health_check(LB, Target, Config) when is_list(LB) ->
     elb_simple_request(Config,
                        "ConfigureHealthCheck",
