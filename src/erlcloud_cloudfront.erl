@@ -187,7 +187,7 @@ list_distributions(Config) when
 list_distributions(MaxResults, Marker) ->
     list_distributions(MaxResults, Marker, erlcloud_aws:default_config()).
 
--spec list_distributions(integer(), string(), aws_config()) -> ok_error(proplist(), string()).
+-spec list_distributions(integer(), undefined | string(), aws_config()) -> ok_error(proplist(), string()).
 list_distributions(MaxResults, Marker, Config) when
       is_list(Marker) orelse Marker =:= undefined,
       is_integer(MaxResults),
