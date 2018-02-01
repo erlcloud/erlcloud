@@ -97,7 +97,7 @@ delete_trail(Trail, Config) ->
 -spec describe_trails() -> ct_return().
 describe_trails() -> describe_trails([]).
 
--spec describe_trails(aws_config()) -> ct_return().
+-spec describe_trails([] | aws_config()) -> ct_return().
 describe_trails(Config) when is_record(Config, aws_config) ->
     describe_trails([], Config);
 
