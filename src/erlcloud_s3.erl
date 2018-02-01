@@ -587,7 +587,7 @@ get_bucket_attribute(BucketName, AttributeName, Config)
 
 %% gets the notifications configuration of an S3 bucket.
 %% for an example of the returned data, see tests.
--spec get_bucket_notification(#xmlElement{}) -> proplist().
+-spec get_bucket_notification(#xmlElement{}) -> [proplist()].
 get_bucket_notification(Doc) ->
     SNSNotifications =
         get_notifications_config(topic_configuration, topic,
