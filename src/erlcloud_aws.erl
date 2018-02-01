@@ -909,7 +909,7 @@ request_to_return(#aws_request{response_type = error,
 sign_v4_headers(Config, Headers, Payload, Region, Service) ->
     sign_v4(post, "/", Config, Headers, Payload, Region, Service, []).
 
--spec sign_v4(atom(), list(), aws_config(), headers(), binary(), string(), string(), list()) -> headers().
+-spec sign_v4(atom(), list(), aws_config(), headers(), string() | binary(), string(), string(), list()) -> headers().
 sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams) ->
     Date = iso_8601_basic_time(),
     {PayloadHash, Headers1} =
