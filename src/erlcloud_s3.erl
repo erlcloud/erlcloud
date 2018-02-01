@@ -1244,7 +1244,7 @@ list_bucket_inventory(BucketName, #aws_config{} = Config) when is_list(BucketNam
 list_bucket_inventory(BucketName, Token) when is_list(BucketName), is_list(Token) ->
     list_bucket_inventory(BucketName, Token,  default_config()).
 
--spec list_bucket_inventory(string(), string(), aws_config()) ->
+-spec list_bucket_inventory(string(), undefined | string(), aws_config()) ->
     {ok, Result:: list(term())} | {error, Reason::term()}.
 list_bucket_inventory(BucketName, Token, #aws_config{} = Config) when is_list(BucketName) ->
     Params = [{"continuation-token", Token}],
