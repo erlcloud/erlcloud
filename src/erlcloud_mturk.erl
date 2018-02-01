@@ -635,18 +635,18 @@ extract_qualification_type(Node) ->
 decode_keywords(String) ->
     [string:strip(Keyword) || Keyword <- string:tokens(String, ",")].
 
--spec get_qualifications_for_qualification_type(string()) -> proplist().
+-spec get_qualifications_for_qualification_type(string()) -> [proplist()].
 get_qualifications_for_qualification_type(QualificationTypeId) ->
     get_qualifications_for_qualification_type(QualificationTypeId, default_config()).
 
--spec get_qualifications_for_qualification_type(string(), proplist() | aws_config()) -> proplist().
+-spec get_qualifications_for_qualification_type(string(), proplist() | aws_config()) -> [proplist()].
 get_qualifications_for_qualification_type(QualificationTypeId, Config)
   when is_record(Config, aws_config) ->
     get_qualifications_for_qualification_type(QualificationTypeId, [], Config);
 get_qualifications_for_qualification_type(QualificationTypeId, Options) ->
     get_qualifications_for_qualification_type(QualificationTypeId, Options, default_config()).
 
--spec get_qualifications_for_qualification_type(string(), proplist(), aws_config()) -> proplist().
+-spec get_qualifications_for_qualification_type(string(), proplist(), aws_config()) -> [proplist()].
 get_qualifications_for_qualification_type(QualificationTypeId, Options, Config)
   when is_list(QualificationTypeId), is_list(Options) ->
     Params = [
