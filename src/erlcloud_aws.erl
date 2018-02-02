@@ -204,7 +204,7 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service,
 
 
 -spec aws_request_form(Method :: atom(), Protocol :: undefined | string(), Host :: string(),
-                        Port :: undefined | integer() | string(), Path :: string(), Form :: string(),
+                        Port :: undefined | integer() | string(), Path :: string(), Form :: [string()],
                         Headers :: list(), Config :: aws_config()) -> {ok, Body :: binary()} | {error, httpc_result_error()}.
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
     RequestHeaders = case proplists:is_defined("content-type", Headers) of
