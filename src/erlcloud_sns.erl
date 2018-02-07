@@ -13,6 +13,11 @@
          delete_topic/1, delete_topic/2,
          list_topics/0, list_topics/1, list_topics/2,
          list_topics_all/0, list_topics_all/1,
+         list_subscriptions/0,
+         list_subscriptions/1,
+         list_subscriptions/2,
+         list_subscriptions_all/0,
+         list_subscriptions_all/1,
          list_subscriptions_by_topic/1,
          list_subscriptions_by_topic/2,
          list_subscriptions_by_topic/3,
@@ -323,6 +328,46 @@ list_topics_all() ->
 -spec list_topics_all(aws_config()) -> [[{arn, string()}]].
 list_topics_all(Config) ->
     list_all(fun list_topics/2, topics, Config, undefined, []).
+
+
+-spec list_subscriptions() -> proplist().
+list_subscriptions()  ->
+    list_subscriptions(default_config()).
+
+-spec list_subscriptions(string() | aws_config()) -> proplist().
+list_subscriptions(Config) when is_record(Config, aws_config) ->
+    list_subscriptions(undefined, Config);
+
+list_subscriptions(NextToken) when is_list(NextToken) ->
+    list_subscriptions(NextToken, default_config()).
+
+-spec list_subscriptions(undefined | string(), aws_config()) -> proplist().
+list_subscriptions(NextToken, Config) when is_record(Config, aws_config) ->
+    Params =
+        case NextToken of
+            undefined -> [];
+            NextToken -> [{"NextToken", NextToken}]
+        end,
+    Doc = sns_xml_request(Config, "ListSubscriptions", Params),
+    Decoded =
+        erlcloud_xml:decode(
+            [{subscriptions, "ListSubscriptionsResult/Subscriptions/member",
+                fun extract_subscription/1
+                },
+            {next_token, "ListSubscriptionsResult/NextToken", text}],
+            Doc),
+    Decoded.
+
+-spec list_subscriptions_all() -> proplist().
+list_subscriptions_all() ->
+    list_subscriptions_all(default_config()).
+
+-spec list_subscriptions_all(aws_config()) -> proplist().
+list_subscriptions_all(Config) ->
+    list_all(fun (Token, Cfg) ->
+            list_subscriptions(Token, Cfg) end,
+             subscriptions, Config, undefined, []).
+
 
 
 -spec list_subscriptions_by_topic(string()) -> proplist().
