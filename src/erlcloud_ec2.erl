@@ -1390,21 +1390,21 @@ attribute_xpath(_, AttributeName) ->
 %% Function for making calls to DescribeInstances action
 %% DescribeInstances Documentation: docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html
 %%
--spec describe_instances() -> ok_error(proplist()).
+-spec describe_instances() -> ok_error([proplist()]).
 describe_instances() ->
     describe_instances([],[],default_config()).
 
--spec describe_instances(aws_config()) -> ok_error(proplist());
-                        (ec2_instances_ids()) -> ok_error(proplist()).
+-spec describe_instances(aws_config()) -> ok_error([proplist()]);
+                        (ec2_instances_ids()) -> ok_error([proplist()]).
 describe_instances(Config)
     when is_record(Config, aws_config) ->
     describe_instances([], Config);
 describe_instances(InstanceIDs) ->
     describe_instances(InstanceIDs, [], default_config()).
 
--spec describe_instances(ec2_instances_ids(), filter_list()) -> ok_error(proplist());
-                        (ec2_instances_ids(), aws_config()) -> ok_error(proplist());
-                        (ec2_max_result(), ec2_token()) -> ok_error(proplist(), ec2_token()).
+-spec describe_instances(ec2_instances_ids(), filter_list()) -> ok_error([proplist()]);
+                        (ec2_instances_ids(), aws_config()) -> ok_error([proplist()]);
+                        (ec2_max_result(), ec2_token()) -> ok_error([proplist()], ec2_token()).
 describe_instances(InstanceIDs, Filter)
     when is_list(InstanceIDs), is_list(Filter) orelse Filter =:= none ->
     describe_instances(InstanceIDs, Filter, default_config());
@@ -1412,8 +1412,8 @@ describe_instances(InstanceIDs, Config)
     when is_list(InstanceIDs), is_record(Config, aws_config) ->
     describe_instances(InstanceIDs, [], Config).
 
--spec describe_instances(ec2_instances_ids(), filter_list(), aws_config()) -> ok_error(proplist());
-                        (filter_list(), ec2_max_result(), ec2_token()) -> ok_error(proplist(), ec2_token()).
+-spec describe_instances(ec2_instances_ids(), filter_list(), aws_config()) -> ok_error([proplist()]);
+                        (filter_list(), ec2_max_result(), ec2_token()) -> ok_error([proplist()], ec2_token()).
 describe_instances(InstanceIDs, Filter, Config)
     when is_list(InstanceIDs), is_list(Filter) orelse Filter =:= none , is_record(Config, aws_config) ->
     Params = erlcloud_aws:param_list(InstanceIDs, "InstanceId") ++ list_to_ec2_filter(Filter),
@@ -1430,7 +1430,7 @@ describe_instances(Filter, MaxResults, NextToken)
     describe_instances(Filter, MaxResults, NextToken, default_config()).
 
 -spec describe_instances(filter_list(), ec2_max_result(), ec2_token(), aws_config())
-    -> ok_error(proplist(), ec2_token()).
+    -> ok_error([proplist()], ec2_token()).
 describe_instances(Filter, MaxResults, NextToken, Config)
     when is_list(Filter) orelse Filter =:= none,
          is_integer(MaxResults) andalso MaxResults >= ?INSTANCES_MR_MIN andalso MaxResults =< ?INSTANCES_MR_MAX,
