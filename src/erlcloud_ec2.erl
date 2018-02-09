@@ -1508,18 +1508,18 @@ extract_block_device_mapping_status(Node) ->
      {delete_on_termination, get_bool("ebs/deleteOnTermination", Node)}
     ].
 
--spec describe_instance_status(instance_id()) -> ok_error(proplist()).
+-spec describe_instance_status(instance_id()) -> ok_error([proplist()]).
 describe_instance_status(InstanceID)
     when is_list(InstanceID) ->
     describe_instance_status([{"InstanceId", InstanceID}], [], default_config()).
 
--spec describe_instance_status(ec2_param_list(), filter_list()) -> ok_error(proplist());
-                              (ec2_max_result(), ec2_token()) -> ok_error(proplist(), ec2_token()).
+-spec describe_instance_status(ec2_param_list(), filter_list()) -> ok_error([proplist()]);
+                              (ec2_max_result(), ec2_token()) -> ok_error([proplist()], ec2_token()).
 describe_instance_status(Params, Filter)
     when is_list(Params), is_list(Filter) orelse Filter =:= none ->
     describe_instance_status(Params, Filter, default_config()).
 
--spec describe_instance_status(ec2_param_list(), filter_list(), aws_config()) -> ok_error(proplist()).
+-spec describe_instance_status(ec2_param_list(), filter_list(), aws_config()) -> ok_error([proplist()]).
 describe_instance_status(Params, Filter, Config)
     when is_list(Params), is_list(Filter) orelse Filter =:= none, is_record(Config, aws_config) ->
     AllParams = Params ++ list_to_ec2_filter(Filter),
@@ -1531,7 +1531,7 @@ describe_instance_status(Params, Filter, Config)
     end.
 
 -spec describe_instance_status(ec2_param_list(), filter_list(), ec2_max_result(), ec2_token())
-    -> ok_error(proplist(), ec2_token()).
+    -> ok_error([proplist()], ec2_token()).
 describe_instance_status(Params, Filter, MaxResults, NextToken)
     when is_list(Params),
          is_list(Filter) orelse Filter =:= none,
@@ -1540,7 +1540,7 @@ describe_instance_status(Params, Filter, MaxResults, NextToken)
     describe_instance_status(Params, Filter, MaxResults, NextToken, default_config()).
 
 -spec describe_instance_status(ec2_param_list(), filter_list(), ec2_max_result(), ec2_token(), aws_config())
-    -> ok_error(proplist(), ec2_token()).
+    -> ok_error([proplist()], ec2_token()).
 describe_instance_status(Params, Filter, MaxResults, NextToken, Config)
     when is_list(Params),
          is_list(Filter) orelse Filter =:= none,
@@ -1798,11 +1798,11 @@ extract_reserved_instance(Node) ->
      {state, get_text("state", Node)}
     ].
 
--spec describe_reserved_instances_offerings() -> ok_error(proplist()).
+-spec describe_reserved_instances_offerings() -> ok_error([proplist()]).
 describe_reserved_instances_offerings() ->
     describe_reserved_instances_offerings([], default_config()).
 
--spec describe_reserved_instances_offerings(ec2_selector()) -> ok_error(proplist());
+-spec describe_reserved_instances_offerings(ec2_selector()) -> ok_error([proplist()]);
 (aws_config()) -> ok_error(proplist()).
 describe_reserved_instances_offerings(Selector)
     when is_list(Selector) ->
@@ -1812,7 +1812,7 @@ describe_reserved_instances_offerings(Config)
     describe_reserved_instances_offerings([], Config).
 
 -spec describe_reserved_instances_offerings(ec2_selector(), aws_config())
-    -> ok_error(proplist()) | ok_error(proplist(), ec2_token()).
+    -> ok_error([proplist()]) | ok_error([proplist()], ec2_token()).
 describe_reserved_instances_offerings(Selector, Config)
     when is_list(Selector), is_record(Config, aws_config) ->
     InstanceTypes = proplists:get_all_values(instance_type, Selector),
@@ -1839,13 +1839,13 @@ describe_reserved_instances_offerings(Selector, Config)
     end.
 
 -spec describe_reserved_instances_offerings(ec2_selector(), ec2_max_result(), ec2_token())
-    -> ok_error(proplist(), ec2_token()).
+    -> ok_error([proplist()], ec2_token()).
 describe_reserved_instances_offerings(Selector, MaxResults, NextToken)
     when is_list(Selector), is_integer(MaxResults), is_list(NextToken) orelse NextToken =:= undefined ->
     describe_reserved_instances_offerings(Selector, MaxResults, NextToken, default_config()).
 
 -spec describe_reserved_instances_offerings(ec2_selector(), ec2_max_result(), ec2_token(), aws_config())
-    -> ok_error(proplist(), ec2_token()).
+    -> ok_error([proplist()], ec2_token()).
 describe_reserved_instances_offerings(Selector, MaxResults, NextToken, Config)
     when is_list(Selector), is_integer(MaxResults),
          MaxResults >= ?RESERVED_INSTANCES_OFFERINGS_MR_MIN,
@@ -1868,17 +1868,17 @@ describe_reserved_instances_offerings(Selector, MaxResults, NextToken, Config)
         {error, _} = E -> E
     end.
 
--spec describe_reserved_instances_offerings_all() -> ok_error(proplist()).
+-spec describe_reserved_instances_offerings_all() -> ok_error([proplist()]).
 describe_reserved_instances_offerings_all() -> describe_reserved_instances_offerings_all([]).
 
--spec describe_reserved_instances_offerings_all([{atom(), string()}] | aws_config()) -> ok_error(proplist()).
+-spec describe_reserved_instances_offerings_all([{atom(), string()}] | aws_config()) -> ok_error([proplist()]).
 describe_reserved_instances_offerings_all(Config)
   when is_record(Config, aws_config) ->
     describe_reserved_instances_offerings_all([], Config);
 describe_reserved_instances_offerings_all(Selector) ->
     describe_reserved_instances_offerings_all(Selector, default_config()).
 
--spec describe_reserved_instances_offerings_all([{atom(), string()}], aws_config()) -> ok_error(proplist()).
+-spec describe_reserved_instances_offerings_all([{atom(), string()}], aws_config()) -> ok_error([proplist()]).
 describe_reserved_instances_offerings_all(Selector, Config) ->
     describe_reserved_instances_offerings_all(Selector, Config, []).
 
@@ -2053,11 +2053,11 @@ describe_snapshot_attribute(SnapshotID, create_volume_permission, Config)
             Error
     end.
 
--spec describe_snapshots() -> ok_error(proplist()).
+-spec describe_snapshots() -> ok_error([proplist()]).
 describe_snapshots() -> describe_snapshots([], "self", none, default_config()).
 
--spec describe_snapshots(ec2_snapshot_ids()) -> ok_error(proplist());
-                        (aws_config()) -> ok_error(proplist()).
+-spec describe_snapshots(ec2_snapshot_ids()) -> ok_error([proplist()]);
+                        (aws_config()) -> ok_error([proplist()]).
 describe_snapshots(SnapshotIDs)
     when is_list(SnapshotIDs) ->
     describe_snapshots(SnapshotIDs, "self", none, default_config());
@@ -2065,8 +2065,8 @@ describe_snapshots(Config)
     when is_record(Config, aws_config) ->
     describe_snapshots([], "self", none, Config).
 
--spec describe_snapshots(ec2_snapshot_ids(), ec2_snapshot_owner()) -> ok_error(proplist());
-                        (ec2_snapshot_ids(), aws_config()) -> ok_error(proplist()).
+-spec describe_snapshots(ec2_snapshot_ids(), ec2_snapshot_owner()) -> ok_error([proplist()]);
+                        (ec2_snapshot_ids(), aws_config()) -> ok_error([proplist()]).
 describe_snapshots(SnapshotIDs, Owner)
     when is_list(SnapshotIDs), is_list(Owner) ->
     describe_snapshots(SnapshotIDs, Owner, none, default_config());
@@ -2075,9 +2075,9 @@ describe_snapshots(SnapshotIDs, Config)
     describe_snapshots(SnapshotIDs, "self", none, Config).
 
 -spec describe_snapshots(ec2_snapshot_ids(), ec2_snapshot_owner(), ec2_snapshot_restorable_by())
-                            -> ok_error(proplist());
+                            -> ok_error([proplist()]);
                         (ec2_snapshot_ids(), ec2_snapshot_owner(), aws_config())
-                            -> ok_error(proplist()).
+                            -> ok_error([proplist()]).
 describe_snapshots(SnapshotIDs, Owner, RestorableBy)
     when is_list(SnapshotIDs), is_list(Owner), is_list(RestorableBy) ->
     describe_snapshots(SnapshotIDs, Owner, RestorableBy, default_config());
@@ -2086,9 +2086,9 @@ describe_snapshots(SnapshotIDs, Owner, Config)
     describe_snapshots(SnapshotIDs, Owner, none, Config).
 
 -spec describe_snapshots(ec2_snapshot_ids(), ec2_snapshot_owner(), ec2_snapshot_restorable_by(), aws_config())
-                            -> ok_error(proplist());
+                            -> ok_error([proplist()]);
                         (ec2_snapshot_owner(), ec2_snapshot_restorable_by(), ec2_max_result(), ec2_token())
-                            -> ok_error(proplist(), ec2_token()).
+                            -> ok_error([proplist()], ec2_token()).
 describe_snapshots(SnapshotIDs, Owner, RestorableBy, Config)
     when is_list(SnapshotIDs),
          is_list(Owner) orelse Owner =:= none,
@@ -2113,7 +2113,7 @@ describe_snapshots(Owner, RestorableBy, MaxResults, NextToken)
                          ec2_max_result(),
                          ec2_token(),
                          aws_config()
-                        ) -> ok_error(proplist(), ec2_token()).
+                        ) -> ok_error([proplist()], ec2_token()).
 describe_snapshots(Owner, RestorableBy, MaxResults, NextToken, Config)
     when is_list(Owner) orelse Owner =:= none,
          is_list(RestorableBy) orelse RestorableBy =:= none,
@@ -2214,20 +2214,20 @@ extract_launch_specification(Node) ->
      {subnet_id, get_text("subnetId", Node)}
     ].
 
--spec describe_spot_price_history() -> ok_error(proplist()).
+-spec describe_spot_price_history() -> ok_error([proplist()]).
 describe_spot_price_history() ->
     describe_spot_price_history(none).
 
--spec describe_spot_price_history(aws_config()) -> ok_error(proplist());
-                                 (ec2_spot_price_time()) -> ok_error(proplist()).
+-spec describe_spot_price_history(aws_config()) -> ok_error([proplist()]);
+                                 (ec2_spot_price_time()) -> ok_error([proplist()]).
 describe_spot_price_history(Config)
     when is_record(Config, aws_config) ->
     describe_spot_price_history(none, Config);
 describe_spot_price_history(StartTime) ->
     describe_spot_price_history(StartTime, none).
 
--spec describe_spot_price_history(ec2_spot_price_time(), aws_config()) -> ok_error(proplist());
-                                 (ec2_spot_price_time(), ec2_spot_price_time()) -> ok_error(proplist()).
+-spec describe_spot_price_history(ec2_spot_price_time(), aws_config()) -> ok_error([proplist()]);
+                                 (ec2_spot_price_time(), ec2_spot_price_time()) -> ok_error([proplist()]).
 describe_spot_price_history(StartTime, Config)
     when is_record(Config, aws_config) ->
     describe_spot_price_history(StartTime, none, Config);
@@ -2236,9 +2236,9 @@ describe_spot_price_history(StartTime, EndTime) ->
 
 
 -spec describe_spot_price_history(ec2_spot_price_time(), ec2_spot_price_time(), aws_config())
-                                     -> ok_error(proplist());
+                                     -> ok_error([proplist()]);
                                  (ec2_spot_price_time(), ec2_spot_price_time(), ec2_instance_types())
-                                     -> ok_error(proplist()).
+                                     -> ok_error([proplist()]).
 describe_spot_price_history(StartTime, EndTime, Config)
     when is_record(Config, aws_config) ->
     describe_spot_price_history(StartTime, EndTime, [], Config);
@@ -2247,9 +2247,9 @@ describe_spot_price_history(StartTime, EndTime, InstanceTypes) ->
 
 -spec describe_spot_price_history
                          (ec2_spot_price_time(), ec2_spot_price_time(), ec2_instance_types(), aws_config())
-                             -> ok_error(proplist());
+                             -> ok_error([proplist()]);
                          (ec2_spot_price_time(), ec2_spot_price_time(), ec2_instance_types(), ec2_product_description())
-                             -> ok_error(proplist()).
+                             -> ok_error([proplist()]).
 describe_spot_price_history(StartTime, EndTime, InstanceTypes, Config)
     when is_record(Config, aws_config) ->
     describe_spot_price_history(StartTime, EndTime, InstanceTypes, none, Config);
@@ -2258,7 +2258,7 @@ describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescriptio
 
 -spec describe_spot_price_history
     (ec2_spot_price_time(), ec2_spot_price_time(), ec2_instance_types(), ec2_product_description(), aws_config())
-        -> ok_error(proplist()).
+        -> ok_error([proplist()]).
 describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescription, Config)
     when is_list(InstanceTypes),
          is_list(ProductDescription) orelse ProductDescription =:= none,
@@ -2279,7 +2279,7 @@ describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescriptio
                                   ec2_product_description(),
                                   ec2_max_result(),
                                   ec2_token()
-                                 )  -> ok_error(proplist(), ec2_token()).
+                                 )  -> ok_error([proplist()], ec2_token()).
 describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescription, MaxResults, NextToken)
     when is_integer(MaxResults), is_list(NextToken) orelse NextToken =:= undefined ->
     describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescription, MaxResults, NextToken, default_config()).
@@ -2291,7 +2291,7 @@ describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescriptio
                                   ec2_max_result(),
                                   ec2_token(),
                                   aws_config()
-                                 )  -> ok_error(proplist(), ec2_token()).
+                                 )  -> ok_error([proplist()], ec2_token()).
 describe_spot_price_history(StartTime, EndTime, InstanceTypes, ProductDescription, MaxResults, NextToken, Config)
     when is_list(InstanceTypes),
          is_list(ProductDescription) orelse ProductDescription =:= none,
@@ -3150,13 +3150,13 @@ delete_flow_logs(FlowIDs, Config) when is_record(Config, aws_config) ->
 %% Function for making calls to DescribeFlowLogs action
 %% DescribeFlowLogs Documentation: http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeFlowLogs.html
 %%
--spec describe_flow_logs() -> ok_error(proplist()).
+-spec describe_flow_logs() -> ok_error([proplist()]).
 describe_flow_logs() ->
     describe_flow_logs([]).
 
--spec describe_flow_logs(aws_config()) -> ok_error(proplist());
-                        (filter_list()) -> ok_error(proplist());
-                        (ec2_max_result()) -> ok_error(proplist(), ec2_token()).
+-spec describe_flow_logs(aws_config()) -> ok_error([proplist()]);
+                        (filter_list()) -> ok_error([proplist()]);
+                        (ec2_max_result()) -> ok_error([proplist()], ec2_token()).
 describe_flow_logs(Config)
     when is_record(Config, aws_config) ->
     describe_flow_logs([], Config);
@@ -3167,11 +3167,11 @@ describe_flow_logs(MaxResults)
     when is_integer(MaxResults) ->
     describe_flow_logs([], MaxResults).
 
--spec describe_flow_logs(ec2_flow_ids(), filter_list()) -> ok_error(proplist());
-                        (filter_list(), aws_config()) -> ok_error(proplist());
-                        (filter_list(), ec2_max_result()) -> ok_error(proplist(), ec2_token());
-                        (ec2_max_result(), aws_config()) -> ok_error(proplist(), ec2_token());
-                        (ec2_max_result(), ec2_token()) -> ok_error(proplist(), ec2_token()).
+-spec describe_flow_logs(ec2_flow_ids(), filter_list()) -> ok_error([proplist()]);
+                        (filter_list(), aws_config()) -> ok_error([proplist()]);
+                        (filter_list(), ec2_max_result()) -> ok_error([proplist()], ec2_token());
+                        (ec2_max_result(), aws_config()) -> ok_error([proplist()], ec2_token());
+                        (ec2_max_result(), ec2_token()) -> ok_error([proplist()], ec2_token()).
 describe_flow_logs(FlowIDs, Filter)
     when is_list(FlowIDs),
          is_list(Filter) orelse Filter =:= none ->
@@ -3193,10 +3193,10 @@ describe_flow_logs(MaxResults, NextToken)
          is_list(NextToken) ->
     describe_flow_logs([], MaxResults, NextToken).
 
--spec describe_flow_logs(ec2_flow_ids(), filter_list(), aws_config()) -> ok_error(proplist());
-                        (filter_list(), ec2_max_result(), aws_config()) -> ok_error(proplist(), ec2_token());
-                        (filter_list(), ec2_max_result(), ec2_token()) -> ok_error(proplist(), ec2_token());
-                        (ec2_max_result(), ec2_token(), aws_config()) -> ok_error(proplist(), ec2_token()).
+-spec describe_flow_logs(ec2_flow_ids(), filter_list(), aws_config()) -> ok_error([proplist()]);
+                        (filter_list(), ec2_max_result(), aws_config()) -> ok_error([proplist()], ec2_token());
+                        (filter_list(), ec2_max_result(), ec2_token()) -> ok_error([proplist()], ec2_token());
+                        (ec2_max_result(), ec2_token(), aws_config()) -> ok_error([proplist()], ec2_token()).
 describe_flow_logs(FlowIDs, Filter, Config)
     when is_list(FlowIDs),
          is_list(Filter) orelse Filter =:= none,
@@ -3224,7 +3224,7 @@ describe_flow_logs(MaxResults, NextToken, Config)
          is_record(Config, aws_config) ->
     describe_flow_logs([], MaxResults, NextToken, Config).
 
--spec describe_flow_logs(filter_list(), ec2_max_result(), ec2_token(), aws_config()) -> ok_error(proplist(), ec2_token()).
+-spec describe_flow_logs(filter_list(), ec2_max_result(), ec2_token(), aws_config()) -> ok_error([proplist()], ec2_token()).
 describe_flow_logs(Filter, MaxResults, NextToken, Config)
     when is_list(Filter) orelse Filter =:= none,
          is_integer(MaxResults) andalso MaxResults >= ?FLOWS_MR_MIN andalso MaxResults =< ?FLOWS_MR_MAX,
@@ -3299,11 +3299,11 @@ delete_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
             Error
     end.
 
--spec describe_tags() -> ok_error(proplist()).
+-spec describe_tags() -> ok_error([#ec2_tag{}]).
 describe_tags() ->
     describe_tags([]).
 
--spec describe_tags(filter_list()) -> ok_error(proplist());
+-spec describe_tags(filter_list()) -> ok_error([#ec2_tag{}]);
 (aws_config()) -> ok_error(proplist()).
 describe_tags(Filters)
     when is_list(Filters) orelse Filters =:= none ->
@@ -3312,7 +3312,7 @@ describe_tags(Config)
     when is_record(Config, aws_config) ->
     describe_tags([], Config)     .
 
--spec describe_tags(filter_list(), aws_config()) -> ok_error(proplist()).
+-spec describe_tags(filter_list(), aws_config()) -> ok_error([#ec2_tag{}]).
 describe_tags(Filters, Config)
     when is_list(Filters) orelse Filters =:= none, is_record(Config, aws_config) ->
     Params = list_to_ec2_filter(Filters),
@@ -3323,13 +3323,13 @@ describe_tags(Filters, Config)
         {error, _} = E -> E
     end.
 
--spec describe_tags(filter_list(), ec2_max_result(), ec2_token()) -> ok_error(proplist(), ec2_token()).
+-spec describe_tags(filter_list(), ec2_max_result(), ec2_token()) -> ok_error([#ec2_tag{}], ec2_token()).
 describe_tags(Filters, MaxResults, NextToken)
     when is_list(Filters) orelse Filters =:= none, is_integer(MaxResults), is_list(NextToken)  orelse NextToken =:= undefined ->
     describe_tags(Filters, MaxResults, NextToken, default_config()).
 
 -spec describe_tags(filter_list(), ec2_max_result(), ec2_token(), aws_config())
-    -> ok_error(proplist(), ec2_token()).
+    -> ok_error([#ec2_tag{}], ec2_token()).
 describe_tags(Filters, MaxResults, NextToken, Config)
     when is_list(Filters) orelse Filters =:= none,
          is_integer(MaxResults), MaxResults >= ?TAGS_MR_MIN, MaxResults =< ?TAGS_MR_MAX,
@@ -3798,7 +3798,7 @@ extract_vpc_peering_connection_info(Node) ->
         {vpc_id, get_text("vpcId", Node)}
     ].
 
--spec extract_results(string(), string(), function(), any()) -> proplist().
+-spec extract_results(string(), string(), function(), any()) -> list().
 extract_results(ResponseName, SetName, ExtractFunction, Doc)
     when is_list(ResponseName), is_list(SetName), is_function(ExtractFunction), is_record(Doc, xmlElement)->
     Results = xmerl_xpath:string("/" ++ ResponseName ++ "/" ++ SetName ++ "/item", Doc),
