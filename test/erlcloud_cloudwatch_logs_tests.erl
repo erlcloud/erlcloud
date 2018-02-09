@@ -36,6 +36,10 @@
 -define(DEFAULT_LIMIT, 50).
 -define(NON_DEFAULT_LIMIT, 100).
 -define(LOG_GROUP_NAME_PREFIX, <<"/aws/apigateway/welcome">>).
+-define(LOG_GROUP_NAME, <<"CloudTrail/TestCtLogGroup">>).
+-define(FILTER_NAME_PREFIX, <<"aws/apigateway/welcome">>).
+-define(METRIC_NAME, <<"ct_test_metric">>).
+-define(METRIC_NAMESPACE, <<"CISBenchmark">>).
 -define(PAGING_TOKEN, <<"arn:aws:logs:us-east-1:352773894028:log-group:/aws/apigateway/welcome:*">>).
 
 
@@ -47,6 +51,19 @@
     {<<"retentionInDays">>, 10},
     {<<"storedBytes">>, 85}
 ]).
+-define(METRIC_FILTER, [
+    {<<"creationTime">>, 1518024063379},
+    {<<"filterName">>, <<"ct_test_filter">>},
+    {<<"filterPattern">>, <<"{ ($.errorCode = \"*UnauthorizedOperation\") "
+                            "|| ($.errorCode = \"AccessDenied*\") }">>},
+    {<<"logGroupName">>, ?LOG_GROUP_NAME},
+    {<<"metricTransformations">>, [
+        {<<"defaultValue">>, <<"0">>},
+        {<<"metricValue">>, <<"1">>},
+        {<<"metricNamespace">>, ?METRIC_NAMESPACE},
+        {<<"metricName">>, ?METRIC_NAME}
+    ]}
+]).
 
 
 %%==============================================================================
@@ -57,7 +74,9 @@
 erlcloud_cloudwatch_test_() ->
     {foreach, fun start/0, fun stop/1, [
         fun describe_log_groups_input_tests/1,
-        fun describe_log_groups_output_tests/1
+        fun describe_log_groups_output_tests/1,
+        fun describe_metric_filters_input_tests/1,
+        fun describe_metric_filters_output_tests/1
     ]}.
 
 
@@ -150,12 +169,135 @@ describe_log_groups_input_tests(_) ->
     ]).
 
 
+describe_metric_filters_input_tests(_) ->
+    input_tests(jsx:encode([{<<"metricFilters">>, []}]), [
+        ?_cloudwatch_test(
+            {"Tests describing metric filters with no parameters",
+             ?_f(erlcloud_cloudwatch_logs:describe_metric_filters()),
+             [{<<"Action">>, <<"DescribeMetricFilters">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"limit">>, ?DEFAULT_LIMIT}]}
+        ),
+        ?_cloudwatch_test(
+            {"Tests describing metric filters with custom AWS config provided",
+             ?_f(erlcloud_cloudwatch_logs:describe_metric_filters(
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"DescribeMetricFilters">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"limit">>, ?DEFAULT_LIMIT}]}
+        ),
+        ?_cloudwatch_test(
+            {"Tests describing metric filters with log group name provided",
+             ?_f(erlcloud_cloudwatch_logs:describe_metric_filters(
+                 ?LOG_GROUP_NAME
+             )),
+             [{<<"Action">>, <<"DescribeMetricFilters">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"limit">>, ?DEFAULT_LIMIT},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME}]}
+        ),
+        ?_cloudwatch_test(
+            {"Tests describing metric filters with custom AWS config and "
+             "log group name provided",
+             ?_f(erlcloud_cloudwatch_logs:describe_metric_filters(
+                 ?LOG_GROUP_NAME,
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"DescribeMetricFilters">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"limit">>, ?DEFAULT_LIMIT},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME}]}
+        ),
+        ?_cloudwatch_test(
+            {"Tests describing metric filters with custom AWS config, "
+             "log group name and limit provided",
+             ?_f(erlcloud_cloudwatch_logs:describe_metric_filters(
+                 ?LOG_GROUP_NAME,
+                 ?NON_DEFAULT_LIMIT,
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"DescribeMetricFilters">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"limit">>, ?NON_DEFAULT_LIMIT},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME}]}
+        ),
+        ?_cloudwatch_test(
+            {"Tests describing metric filters with custom AWS config, "
+             "log group name, limit and filter name prefix provided",
+             ?_f(erlcloud_cloudwatch_logs:describe_metric_filters(
+                 ?LOG_GROUP_NAME,
+                 ?NON_DEFAULT_LIMIT,
+                 ?FILTER_NAME_PREFIX,
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"DescribeMetricFilters">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"filterNamePrefix">>, ?FILTER_NAME_PREFIX},
+              {<<"limit">>, ?NON_DEFAULT_LIMIT},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME}]}
+        ),
+        ?_cloudwatch_test(
+            {"Tests describing metric filters with custom AWS config, "
+             "log group name, limit, filter name prefix, metric name and "
+             "metric namespace provided",
+             ?_f(erlcloud_cloudwatch_logs:describe_metric_filters(
+                 ?LOG_GROUP_NAME,
+                 ?NON_DEFAULT_LIMIT,
+                 ?FILTER_NAME_PREFIX,
+                 ?METRIC_NAME,
+                 ?METRIC_NAMESPACE,
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"DescribeMetricFilters">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"limit">>, ?NON_DEFAULT_LIMIT},
+              {<<"filterNamePrefix">>, ?FILTER_NAME_PREFIX},
+              {<<"metricName">>, ?METRIC_NAME},
+              {<<"metricNamespace">>, ?METRIC_NAMESPACE},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME}]}
+        ),
+        ?_cloudwatch_test(
+            {"Tests describing metric filters with custom AWS config, "
+             "log group name, limit, filter name prefix, metric name, "
+             "metric namespace and pagination token provided",
+             ?_f(erlcloud_cloudwatch_logs:describe_metric_filters(
+                 ?LOG_GROUP_NAME,
+                 ?NON_DEFAULT_LIMIT,
+                 ?FILTER_NAME_PREFIX,
+                 ?METRIC_NAME,
+                 ?METRIC_NAMESPACE,
+                 ?PAGING_TOKEN,
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"DescribeMetricFilters">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"limit">>, ?NON_DEFAULT_LIMIT},
+              {<<"filterNamePrefix">>, ?FILTER_NAME_PREFIX},
+              {<<"metricName">>, ?METRIC_NAME},
+              {<<"metricNamespace">>, ?METRIC_NAMESPACE},
+              {<<"nextToken">>, ?PAGING_TOKEN},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME}]}
+        )
+    ]).
+
+
 describe_log_groups_output_tests(_) ->
     output_tests(?_f(erlcloud_cloudwatch_logs:describe_log_groups()), [
         ?_cloudwatch_test(
             {"Tests describing all log groups",
              jsx:encode([{<<"logGroups">>, [?LOG_GROUP]}]),
              {ok, [?LOG_GROUP], undefined}}
+        )
+    ]).
+
+
+describe_metric_filters_output_tests(_) ->
+    output_tests(?_f(erlcloud_cloudwatch_logs:describe_metric_filters()), [
+        ?_cloudwatch_test(
+            {"Tests describing all metric filters",
+             jsx:encode([{<<"metricFilters">>, [?METRIC_FILTER]}]),
+             {ok, [?METRIC_FILTER], undefined}}
         )
     ]).
 
