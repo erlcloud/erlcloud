@@ -2793,6 +2793,7 @@ simulate_custom_policy_input_test(_) ->
     PolicyDoc1 = "policy_doc1",
     PolicyDoc2 = "policy_doc2",
     Action = "s3:ListBucket",
+    ContextEntries = "context",
     Tests =
         [?_iam_test(
             {"SimulateCustomPolicy input",
@@ -2805,7 +2806,17 @@ simulate_custom_policy_input_test(_) ->
               {"PolicyInputList.member.1", PolicyDoc1},
               {"PolicyInputList.member.2", PolicyDoc2},
               {"MaxItems", "1000"}
-              ]})
+              ]}),
+         ?_iam_test(
+             {"SimulateCustomPolicy input",
+              ?_f(erlcloud_iam:simulate_custom_policy([Action],
+                                                      [PolicyDoc1],
+                                                      [ContextEntries])),
+              [{"Action", "SimulateCustomPolicy"},
+               {"ActionNames.member.1", http_uri:encode(Action)},
+               {"PolicyInputList.member.1","policy_doc1"},
+               {"ContextEntries.member.1","context"},
+               {"MaxItems", "1000"}]})
         ],
     input_tests(?SIMULATE_CUSTOM_POLICY_RESP, Tests).
 

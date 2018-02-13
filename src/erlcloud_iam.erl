@@ -57,7 +57,7 @@
     generate_credential_report/0, generate_credential_report/1,
     get_credential_report/0, get_credential_report/1,
     simulate_principal_policy/2, simulate_principal_policy/3,
-    simulate_custom_policy/2, simulate_custom_policy/3,
+    simulate_custom_policy/2, simulate_custom_policy/3, simulate_custom_policy/4,
     list_virtual_mfa_devices/0, list_virtual_mfa_devices/1, list_virtual_mfa_devices/2, 
     list_virtual_mfa_devices/3, list_virtual_mfa_devices/4
 ]).
@@ -774,6 +774,18 @@ simulate_custom_policy(ActionNames, PolicyInputList, #aws_config{} = Config)
                "EvaluationResults/member",
     Params = erlcloud_util:encode_list("ActionNames", ActionNames) ++ 
              erlcloud_util:encode_list("PolicyInputList", PolicyInputList),
+    iam_query_all(Config, "SimulateCustomPolicy", Params,
+                  ItemPath, data_type("EvaluationResult"));
+simulate_custom_policy(ActionNames, PolicyInputList, ContextEntries) ->
+    simulate_custom_policy(ActionNames, PolicyInputList, ContextEntries, default_config()).
+
+simulate_custom_policy(ActionNames, PolicyInputList, ContextEntries, #aws_config{} = Config)
+  when is_list(ActionNames), is_list(PolicyInputList) ->
+    ItemPath = "/SimulateCustomPolicyResponse/SimulateCustomPolicyResult/"
+               "EvaluationResults/member",
+    Params = erlcloud_util:encode_list("ActionNames", ActionNames) ++ 
+             erlcloud_util:encode_list("PolicyInputList", PolicyInputList) ++
+             erlcloud_util:encode_list("ContextEntries", ContextEntries),
     iam_query_all(Config, "SimulateCustomPolicy", Params,
                   ItemPath, data_type("EvaluationResult")).
 
