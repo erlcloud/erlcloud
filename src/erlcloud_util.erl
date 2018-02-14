@@ -95,28 +95,9 @@ query_all(QueryFun, Config, Action, Params, MaxItems, Marker, Acc) ->
     end.
 
 encode_list(ElementName, Elements) ->
-    encode_list(ElementName, Elements, 1, []).
-encode_list(_, [], _, Acc) ->
-    Acc;
-encode_list(ElementName, [{Key, Val} | Elements], N, Acc) ->
-    ElementName2 = ElementName ++ "." ++ Key,
-    Acc2 = Acc ++ encode_element(ElementName2, Val),
-    encode_list(ElementName, Elements, N, Acc2);
-encode_list(ElementName, [Element | Elements], N, Acc) ->
-    ElementName2 = ElementName ++ ".member." ++ integer_to_list(N),
-    Acc2 = Acc ++ encode_element(ElementName2, Element),
-    encode_list(ElementName, Elements, N+1, Acc2).
-
-encode_element(ElementName, Element) when is_boolean(Element) or
-                                          is_integer(Element) ->
-    [{ElementName, Element}];
-encode_element(ElementName, Element) when is_list(Element) ->
-    case io_lib:printable_list(Element) of
-        true ->
-            [{ElementName, Element}];
-        false -> 
-            encode_list(ElementName, Element)
-    end.
+    Numbered = lists:zip(lists:seq(1, length(Elements)), Elements),
+    [{ElementName ++ ".member." ++ integer_to_list(N), Element} ||
+        {N, Element} <- Numbered].
 
 make_response(Xml, Result) ->
     IsTruncated = erlcloud_xml:get_bool("/*/*/IsTruncated", Xml),
