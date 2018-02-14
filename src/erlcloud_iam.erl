@@ -783,15 +783,39 @@ simulate_custom_policy(ActionNames, PolicyInputList, ContextEntries, #aws_config
   when is_list(ActionNames), is_list(PolicyInputList) ->
     ItemPath = "/SimulateCustomPolicyResponse/SimulateCustomPolicyResult/"
                "EvaluationResults/member",
+
     Params = erlcloud_util:encode_list("ActionNames", ActionNames) ++ 
              erlcloud_util:encode_list("PolicyInputList", PolicyInputList) ++
-             erlcloud_util:encode_list("ContextEntries", ContextEntries),
+             encode_context_entries(ContextEntries),
     iam_query_all(Config, "SimulateCustomPolicy", Params,
                   ItemPath, data_type("EvaluationResult")).
 
 %
 % Utils
 %
+
+encode_context_entries(ContextEntries) ->
+    ParsedContextEntriesValues = [ [{"ContextKeyName", ContextKeyName},
+                                    {"ContextKeyType", ContextKeyType},
+                                    {"ContextKeyValues", erlcloud_util:encode_list("", ContextKeyValues)}] ||
+                                   [{"ContextKeyName", ContextKeyName},
+                                    {"ContextKeyType", ContextKeyType},
+                                    {"ContextKeyValues", ContextKeyValues}] <-
+                                   ContextEntries],
+    EncodedContextEntries = erlcloud_aws:param_list(ParsedContextEntriesValues, "ContextEntries.member"),
+    lists:flatten([flatten_encoded_context_value(Key, Value) || {Key, Value} <- EncodedContextEntries]).
+
+flatten_encoded_context_value(Key, Value) ->
+   flatten_encoded_context_value(Key, Value, []).
+
+flatten_encoded_context_value(_, [], Acc) ->
+    Acc;
+flatten_encoded_context_value(Key, [{SubKey, Val} | Values], Acc) ->
+    Acc2 = [{Key++SubKey, Val}] ++ Acc,
+    flatten_encoded_context_value(Key, Values, Acc2);
+flatten_encoded_context_value(Key, Val, _) ->
+    [{Key, Val}].
+
 iam_query(Config, Action, Params) ->
     iam_query(Config, Action, Params, ?API_VERSION).
 
