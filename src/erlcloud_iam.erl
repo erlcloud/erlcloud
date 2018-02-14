@@ -4,6 +4,7 @@
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
+-include("erlcloud_iam.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
 %% Library initialization.
@@ -768,6 +769,7 @@ simulate_principal_policy(PolicySourceArn, ActionNames, #aws_config{} = Config)
 simulate_custom_policy(ActionNames, PolicyInputList) ->
     simulate_custom_policy(ActionNames, PolicyInputList, default_config()).
 
+-spec simulate_custom_policy(list(), list(), aws_config() | context_entries()) -> {ok, proplist()} |  {error, any()}.
 simulate_custom_policy(ActionNames, PolicyInputList, #aws_config{} = Config)
   when is_list(ActionNames), is_list(PolicyInputList) ->
     ItemPath = "/SimulateCustomPolicyResponse/SimulateCustomPolicyResult/"
@@ -798,9 +800,9 @@ encode_context_entries(ContextEntries) ->
     ParsedContextEntriesValues = [ [{"ContextKeyName", ContextKeyName},
                                     {"ContextKeyType", ContextKeyType},
                                     {"ContextKeyValues", erlcloud_util:encode_list("", ContextKeyValues)}] ||
-                                   [{"ContextKeyName", ContextKeyName},
-                                    {"ContextKeyType", ContextKeyType},
-                                    {"ContextKeyValues", ContextKeyValues}] <-
+                                   [{context_key_name, ContextKeyName},
+                                    {context_key_type, ContextKeyType},
+                                    {context_key_values, ContextKeyValues}] <-
                                    ContextEntries],
     EncodedContextEntries = erlcloud_aws:param_list(ParsedContextEntriesValues, "ContextEntries.member"),
     lists:flatten([flatten_encoded_context_value(Key, Value) || {Key, Value} <- EncodedContextEntries]).
