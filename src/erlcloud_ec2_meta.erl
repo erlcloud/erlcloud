@@ -7,8 +7,7 @@
         get_instance_user_data/0, get_instance_user_data/1,
         get_instance_dynamic_data/0, get_instance_dynamic_data/1, get_instance_dynamic_data/2]).
 
-
-
+-define(DEFAULT_EC2_METADATA_URI, "http://169.254.169.254").
 
 -spec get_instance_metadata() -> {ok, binary()} | {error, tuple()}.
 get_instance_metadata() ->
@@ -30,7 +29,7 @@ get_instance_metadata(Config) ->
 %%
 %%
 get_instance_metadata(ItemPath, Config) ->
-    MetaDataPath = "http://169.254.169.254/latest/meta-data/" ++ ItemPath,
+    MetaDataPath = unicode:characters_to_list([get_ec2_metadata_uri(),  "/latest/meta-data/", ItemPath]),
     erlcloud_aws:http_body(erlcloud_httpc:request(MetaDataPath, get, [], <<>>, erlcloud_aws:get_timeout(Config), Config)).
 
 
@@ -48,7 +47,7 @@ get_instance_user_data() ->
 %%
 %%
 get_instance_user_data(Config) ->
-    UserDataPath = "http://169.254.169.254/latest/user-data/",
+    UserDataPath = unicode:characters_to_list([get_ec2_metadata_uri(), "/latest/user-data/"]),
     erlcloud_aws:http_body(erlcloud_httpc:request(UserDataPath, get, [], <<>>, erlcloud_aws:get_timeout(Config), Config)).
 
 
@@ -66,6 +65,15 @@ get_instance_dynamic_data(Config) ->
 %%%---------------------------------------------------------------------------
 
 get_instance_dynamic_data(ItemPath, Config) ->
-    DynamicDataPath = "http://169.254.169.254/latest/dynamic/" ++ ItemPath,
+    DynamicDataPath = unicode:characters_to_list([get_ec2_metadata_uri(), "/latest/dynamic/", ItemPath]),
     erlcloud_aws:http_body(erlcloud_httpc:request(DynamicDataPath, get, [], <<>>, erlcloud_aws:get_timeout(Config), Config)).
 
+
+-spec get_ec2_metadata_uri() -> string().
+get_ec2_metadata_uri() ->
+    case application:get_env(?APP, ec2_metadata_url) of
+        {ok, Val} ->
+            Val;
+        undefined ->
+            ?DEFAULT_EC2_METADATA_URI
+    end.

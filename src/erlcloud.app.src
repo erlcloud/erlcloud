@@ -17,6 +17,7 @@
                   base16,
                   %% hackney,
                   lhttpc]},
+  {mod, {'erlcloud_app', []}},
   {modules, []},
   {env, []},
   {licenses, ["MIT"]},
