@@ -190,6 +190,8 @@
     scan_opt/0,
     scan_opts/0,
     scan_return/0,
+    sse_description/0,
+    sse_specification/0,
     stream_specification/0,
     select/0,
     table_name/0,
@@ -309,6 +311,10 @@ default_config() -> erlcloud_aws:default_config().
                       all.
 
 -type global_secondary_index_def() :: {index_name(), key_schema(), projection(), read_units(), write_units()}.
+
+-type sse_description_status() :: enabling | enabled | disabling | disabled.
+-type sse_description() :: {status, sse_description_status()}.
+-type sse_specification() :: {enabled, boolean()}.
 
 -type stream_view_type() :: keys_only | new_image | old_image | new_and_old_images.
 -type stream_specification() :: false | {true, stream_view_type()}.
@@ -727,6 +733,16 @@ undynamize_key_schema([Key1, Key2], _) ->
             {key_name(Key2), key_name(Key1)}
     end.
 
+-spec undynamize_sse_description_status(binary(), undynamize_opts()) -> sse_description_status().
+undynamize_sse_description_status(<<"ENABLING">>, _) -> enabling;
+undynamize_sse_description_status(<<"ENABLED">>, _) -> enabled;
+undynamize_sse_description_status(<<"DISABLING">>, _) -> disabling;
+undynamize_sse_description_status(<<"DISABLED">>, _) -> disabled.
+
+-spec undynamize_sse_description(jsx:json_term(), undynamize_opts()) -> sse_description().
+undynamize_sse_description(Json, Opts) ->
+    {status, undynamize_sse_description_status(proplists:get_value(<<"Status">>, Json), Opts)}.
+
 -spec undynamize_stream_view_type(binary(), undynamize_opts()) -> stream_view_type().
 undynamize_stream_view_type(<<"KEYS_ONLY">>, _) -> keys_only;
 undynamize_stream_view_type(<<"NEW_IMAGE">>, _) -> new_image;
@@ -1109,6 +1125,7 @@ table_description_record() ->
        fun(V, Opts) -> [undynamize_record(local_secondary_index_description_record(), I, Opts) || I <- V] end},
       {<<"ProvisionedThroughput">>, #ddb2_table_description.provisioned_throughput,
        fun(V, Opts) -> undynamize_record(provisioned_throughput_description_record(), V, Opts) end},
+      {<<"SSEDescription">>, #ddb2_table_description.sse_description, fun undynamize_sse_description/2},
       {<<"StreamSpecification">>, #ddb2_table_description.stream_specification, fun undynamize_stream_specification/2},
       {<<"TableArn">>, #ddb2_table_description.table_arn, fun id/2},
       {<<"TableName">>, #ddb2_table_description.table_name, fun id/2},
@@ -1402,8 +1419,13 @@ dynamize_local_secondary_indexes({HashKey, _RangeKey}, Value) ->
 dynamize_global_secondary_indexes(Value) ->
     dynamize_maybe_list(fun dynamize_global_secondary_index/1, Value).
 
+-spec dynamize_sse_specification(sse_specification()) -> jsx:json_term().
+dynamize_sse_specification({enabled, Enabled}) when is_boolean(Enabled) ->
+    [{<<"Enabled">>, Enabled}].
+
 -type create_table_opt() :: {local_secondary_indexes, local_secondary_indexes()} |
                             {global_secondary_indexes, global_secondary_indexes()} |
+                            {sse_specification, sse_specification()} |
                             {stream_specification, stream_specification()}.
 -type create_table_opts() :: [create_table_opt()].
 
@@ -1413,6 +1435,7 @@ create_table_opts(KeySchema) ->
       fun(V) -> dynamize_local_secondary_indexes(KeySchema, V) end},
      {global_secondary_indexes, <<"GlobalSecondaryIndexes">>,
       fun dynamize_global_secondary_indexes/1},
+     {sse_specification, <<"SSESpecification">>, fun dynamize_sse_specification/1},
      {stream_specification, <<"StreamSpecification">>, fun dynamize_stream_specification/1}].
 
 -spec create_table_record() -> record_desc().
