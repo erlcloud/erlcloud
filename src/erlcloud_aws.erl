@@ -698,7 +698,10 @@ service_config( <<"athena">> = Service, Region, Config ) ->
 service_config(<<"cloudwatch_logs">>, Region, Config)->
     Host = service_host(<<"logs">>, Region),
     Config#aws_config{cloudwatch_logs_host = Host};
-service_config( <<"waf">>, _Region, Config ) -> Config.
+service_config( <<"waf">>, _Region, Config ) -> Config;
+service_config( <<"cur">>, Region, Config ) ->
+    Host = service_host(<<"cur">>, Region),
+    Config#aws_config{cur_host = Host}.
 
 %%%---------------------------------------------------------------------------
 -spec service_host( Service :: binary(),
