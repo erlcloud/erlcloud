@@ -213,6 +213,7 @@ output_test(Fun, {Line, {Description, Response, Result}}, OutputFun) ->
     {Description,
      {Line,
       fun() ->
+             
               meck:expect(erlcloud_httpc, request, 6, OutputFun(Response)),
               erlcloud_ec2:configure(string:copies("A", 20), string:copies("a", 40)),
               Actual = Fun(),
@@ -2793,7 +2794,9 @@ simulate_custom_policy_input_test(_) ->
     PolicyDoc1 = "policy_doc1",
     PolicyDoc2 = "policy_doc2",
     Action = "s3:ListBucket",
-    ContextEntries = "context",
+    ContextEntries = [[{context_key_name,"aws:MultiFactorAuthPresent"},
+                       {context_key_type,"boolean"},
+                       {context_key_values,[true]}]],
     Tests =
         [?_iam_test(
             {"SimulateCustomPolicy input",
@@ -2811,18 +2814,32 @@ simulate_custom_policy_input_test(_) ->
              {"SimulateCustomPolicy2 input",
               ?_f(erlcloud_iam:simulate_custom_policy([Action],
                                                       [PolicyDoc1],
-                                                      [ContextEntries])),
-              [{"Action", "SimulateCustomPolicy"},
+                                                      ContextEntries)),
+              [{"Action","SimulateCustomPolicy"},
                {"ActionNames.member.1", http_uri:encode(Action)},
                {"PolicyInputList.member.1","policy_doc1"},
-               {"MaxItems", "1000"}]})
+               {"ContextEntries.member.1.ContextKeyName",http_uri:encode("aws:MultiFactorAuthPresent")},
+               {"ContextEntries.member.1.ContextKeyType","boolean"},
+               {"ContextEntries.member.1.ContextKeyValues.member.1","true"},
+               {"MaxItems","1000"}]})
         ],
     input_tests(?SIMULATE_CUSTOM_POLICY_RESP, Tests).
 
 simulate_custom_policy_output_test(_) ->
+    ContextEntries = [[{context_key_name,"aws:MultiFactorAuthPresent"},
+                       {context_key_type,"boolean"},
+                       {context_key_values,[true]}]],
     Tests =
         [?_iam_test(
             {"SimulateCustomPolicy output",
+            ?SIMULATE_CUSTOM_POLICY_RESP,
+            {ok, [[{eval_action_name, "s3:ListBucket"},
+                   {eval_decision, "allowed"},
+                   {eval_resource_name, "arn:aws:s3:::teambucket"},
+                   {matched_statements_list,
+                    [[{source_policy_id, "PolicyInputList.1"}]]}]]}}),
+         ?_iam_test(
+            {"SimulateCustomPolicy2 output",
             ?SIMULATE_CUSTOM_POLICY_RESP,
             {ok, [[{eval_action_name, "s3:ListBucket"},
                    {eval_decision, "allowed"},
@@ -2832,7 +2849,8 @@ simulate_custom_policy_output_test(_) ->
         ],
     output_tests(?_f(erlcloud_iam:simulate_custom_policy(["s3:ListBucket"],
                                                          ["policy_doc1",
-                                                          "policy_doc2"])),
+                                                          "policy_doc2"],
+                                                         ContextEntries)),
                  Tests).
 
 simulate_principal_policy_input_test(_) ->
