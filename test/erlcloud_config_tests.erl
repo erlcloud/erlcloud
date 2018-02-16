@@ -8,6 +8,7 @@
 
 -define(COMPLIANCE_TYPES, <<"ComplianceTypes">>).
 -define(CONFIG_RULE_NAMES, <<"ConfigRuleNames">>).
+-define(CONFIG_RULE_NAME, <<"ConfigRuleName">>).
 -define(LIMIT, <<"Limit">>).
 -define(RESOURCE_ID, <<"ResourceId">>).
 -define(RESOURCE_TYPE, <<"ResourceType">>).
@@ -23,6 +24,7 @@
 
 -define(TEST_COMPLIANCE_TYPES, [<<"COMPLIANT">>, <<"NON_COMPLIANT">>]).
 -define(TEST_CONFIG_RULE_NAMES, [<<"acm-certificate-expiration-check">>, <<"autoscaling-group-elb-healthcheck-required">>]).
+-define(TEST_CONFIG_RULE_NAME, <<"acm-certificate-expiration-check">>).
 -define(TEST_LIMIT, 99).
 -define(TEST_RESOURCE_NAME, <<"string">>).
 -define(TEST_RESOURCE_ID, <<"i-0160f625a53e99c41">>).
@@ -338,10 +340,11 @@ test_describe_compliance_by_config_rule() ->
     Request = #{?COMPLIANCE_TYPES => ?TEST_COMPLIANCE_TYPES,
         ?CONFIG_RULE_NAMES        => ?TEST_CONFIG_RULE_NAMES,
         ?NEXT_TOKEN_LABEL         => <<"">>},
-    Expected = {ok, ?DESCRIBE_COMPLIANCE_BY_CONFIG_RULE_RESP, <<"">>},
-    TestFun  = fun() ->
-        erlcloud_config:describe_compliance_by_config_rule(Request)
-               end,
+    Expected = {ok, ?DESCRIBE_COMPLIANCE_BY_CONFIG_RULE_RESP},
+    TestFun  =
+        fun() ->
+            erlcloud_config:describe_compliance_by_config_rule(Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 test_describe_compliance_by_resource() ->
@@ -350,72 +353,80 @@ test_describe_compliance_by_resource() ->
         ?RESOURCE_ID              => ?TEST_RESOURCE_ID,
         ?RESOURCE_TYPE            => ?TEST_RESOURCE_TYPE,
         ?NEXT_TOKEN_LABEL         => <<"">>},
-    Expected = {ok, ?DESCRIBE_COMPLIANCE_BY_RESOURCE_RESP, <<"">>},
-    TestFun  = fun() ->
-        erlcloud_config:describe_compliance_by_resource(Request)
-               end,
+    Expected = {ok, ?DESCRIBE_COMPLIANCE_BY_RESOURCE_RESP},
+    TestFun  =
+        fun() ->
+            erlcloud_config:describe_compliance_by_resource(Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 test_describe_config_rule_evaluation_status() ->
     Request = #{?CONFIG_RULE_NAMES => ?TEST_CONFIG_RULE_NAMES,
         ?LIMIT => 10,
         ?NEXT_TOKEN_LABEL          => <<"">>},
-    Expected = {ok, ?DESCRIBE_CONFIG_RULE_EVALUATION_STATUS_RESP, <<"string">>},
-    TestFun  = fun() ->
-        erlcloud_config:describe_config_rule_evaluation_status(Request)
-               end,
+    Expected = {ok, ?DESCRIBE_CONFIG_RULE_EVALUATION_STATUS_RESP},
+    TestFun  =
+        fun() ->
+            erlcloud_config:describe_config_rule_evaluation_status(Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 test_describe_config_rules() ->
     Request = #{?CONFIG_RULE_NAMES => ?TEST_CONFIG_RULE_NAMES,
         ?NEXT_TOKEN_LABEL          => <<"">>},
-    Expected = {ok, ?DESCRIBE_CONFIG_RULES_RESP, <<"string">>},
-    TestFun  = fun() ->
-        erlcloud_config:describe_config_rules(Request)
-               end,
+    Expected = {ok, ?DESCRIBE_CONFIG_RULES_RESP},
+    TestFun  =
+        fun() ->
+            erlcloud_config:describe_config_rules(Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 test_describe_configuration_recorders() ->
     Request = #{?CONFIGURATION_RECORDER_NAMES => [<<"name1">>, <<"name2">>]},
-    Expected = {ok, ?DESCRIBE_CONFIGURATION_RECORDERS_RESP, <<"">>},
-    TestFun  = fun() ->
-        erlcloud_config:describe_configuration_recorders(Request)
-               end,
+    Expected = {ok, ?DESCRIBE_CONFIGURATION_RECORDERS_RESP},
+    TestFun  =
+        fun() ->
+            erlcloud_config:describe_configuration_recorders(Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 test_describe_configuration_recorder_status() ->
     Request = #{?CONFIGURATION_RECORDER_NAMES => [<<"name1">>, <<"name2">>]},
-    Expected = {ok, ?DESCRIBE_CONFIGURATION_RECORDER_STATUS_RESP, <<"">>},
-    TestFun  = fun() ->
-        erlcloud_config:describe_configuration_recorder_status(Request)
-               end,
+    Expected = {ok, ?DESCRIBE_CONFIGURATION_RECORDER_STATUS_RESP},
+    TestFun  =
+        fun() ->
+            erlcloud_config:describe_configuration_recorder_status(Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 test_describe_delivery_channels() ->
     Request = #{?DELIVERY_CHANNEL_NAMES => [<<"name1">>, <<"name2">>]},
-    Expected = {ok, ?DESCRIBE_DELIVERY_CHANNELS_RESP, <<"">>},
-    TestFun  = fun() ->
-        erlcloud_config:describe_delivery_channels(Request)
-               end,
+    Expected = {ok, ?DESCRIBE_DELIVERY_CHANNELS_RESP},
+    TestFun  =
+        fun() ->
+            erlcloud_config:describe_delivery_channels(Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 test_describe_delivery_channel_status() ->
     Request = #{?DELIVERY_CHANNEL_NAMES => [<<"name1">>, <<"name2">>]},
-    Expected = {ok, ?DESCRIBE_DELIVERY_CHANNEL_STATUS_RESP, <<"">>},
-    TestFun  = fun() ->
-        erlcloud_config:describe_delivery_channel_status(Request)
-               end,
+    Expected = {ok, ?DESCRIBE_DELIVERY_CHANNEL_STATUS_RESP},
+    TestFun  =
+        fun() ->
+            erlcloud_config:describe_delivery_channel_status(Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 test_get_compliance_details_by_config_rule() ->
     Request = #{?COMPLIANCE_TYPES => ?TEST_COMPLIANCE_TYPES,
-        ?CONFIG_RULE_NAMES        => ?TEST_CONFIG_RULE_NAMES,
+        ?CONFIG_RULE_NAME         => ?TEST_CONFIG_RULE_NAME,
         ?LIMIT                    => 88,
         ?NEXT_TOKEN_LABEL         => <<"">>},
-    Expected = {ok, ?GET_COMPLIANCE_DETAILS_BY_CONFIG_RULE_RESP, <<"">>},
-    TestFun  = fun() ->
-        erlcloud_config:get_compliance_details_by_config_rule(Request)
-               end,
+    Expected = {ok, ?GET_COMPLIANCE_DETAILS_BY_CONFIG_RULE_RESP},
+    TestFun  =
+        fun() ->
+            erlcloud_config:get_compliance_details_by_config_rule(?TEST_CONFIG_RULE_NAME, Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 test_get_compliance_details_by_resource() ->
@@ -423,36 +434,40 @@ test_get_compliance_details_by_resource() ->
         ?NEXT_TOKEN_LABEL         => <<"">>,
         ?RESOURCE_ID              => ?TEST_RESOURCE_ID,
         ?RESOURCE_TYPE            => ?TEST_RESOURCE_TYPE},
-    Expected = {ok, ?GET_COMPLIANCE_DETAILS_BY_RESOURCE_RESP, <<"">>},
-    TestFun  = fun() ->
-        erlcloud_config:get_compliance_details_by_resource(Request)
-               end,
+    Expected = {ok, ?GET_COMPLIANCE_DETAILS_BY_RESOURCE_RESP},
+    TestFun  =
+        fun() ->
+            erlcloud_config:get_compliance_details_by_resource(?TEST_RESOURCE_ID, ?TEST_RESOURCE_TYPE, Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 test_get_compliance_summary_by_config_rule() ->
     Request = #{},
     Expected = {ok, ?GET_COMPLIANCE_SUMMARY_BY_CONFIG_RULE_RESP},
-    TestFun  = fun() ->
-        erlcloud_config:get_compliance_summary_by_config_rule()
-               end,
+    TestFun  =
+        fun() ->
+            erlcloud_config:get_compliance_summary_by_config_rule()
+        end,
     do_test(Request, Expected, TestFun).
 
 test_get_compliance_summary_by_resource_type() ->
     Request = #{?RESOURCE_TYPES => ?TEST_RESOURCE_TYPES},
     Expected = {ok, ?GET_COMPLIANCE_SUMMARY_BY_RESOURCE_TYPE_RESP},
-    TestFun  = fun() ->
-        erlcloud_config:get_compliance_summary_by_resource_type(Request)
-               end,
+    TestFun  =
+        fun() ->
+            erlcloud_config:get_compliance_summary_by_resource_type(Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 test_get_discovered_resource_counts() ->
     Request = #{?LIMIT => 77,
         ?NEXT_TOKEN_LABEL         => <<"">>,
         ?RESOURCE_TYPES => ?TEST_RESOURCE_TYPES},
-    Expected = {ok, ?GET_DISCOVERED_RESOURCE_COUNTS_RESP, <<"">>},
-    TestFun  = fun() ->
-        erlcloud_config:get_discovered_resource_counts(Request)
-               end,
+    Expected = {ok, ?GET_DISCOVERED_RESOURCE_COUNTS_RESP},
+    TestFun  =
+        fun() ->
+            erlcloud_config:get_discovered_resource_counts(Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 test_get_resource_config_history() ->
@@ -463,10 +478,11 @@ test_get_resource_config_history() ->
         ?NEXT_TOKEN_LABEL            => <<"">>,
         ?RESOURCE_ID                 => ?TEST_RESOURCE_ID,
         ?RESOURCE_TYPE               => ?TEST_RESOURCE_TYPE},
-    Expected = {ok, ?GET_RESOURCE_CONFIG_HISTORY_RESP, <<"">>},
-    TestFun  = fun() ->
-        erlcloud_config:get_resource_config_history(Request)
-               end,
+    Expected = {ok, ?GET_RESOURCE_CONFIG_HISTORY_RESP},
+    TestFun  =
+        fun() ->
+            erlcloud_config:get_resource_config_history(?TEST_RESOURCE_ID, ?TEST_RESOURCE_TYPE, Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 test_list_discovered_resources() ->
@@ -476,10 +492,11 @@ test_list_discovered_resources() ->
         ?RESOURCE_IDS                      => [],
         ?RESOURCE_NAME                     => ?TEST_RESOURCE_NAME,
         ?RESOURCE_TYPE                     => ?TEST_RESOURCE_TYPE},
-    Expected = {ok, ?LIST_DISCOVERED_RESOURCES_RESP, <<"">>},
-    TestFun  = fun() ->
-        erlcloud_config:list_discovered_resources(Request)
-               end,
+    Expected = {ok, ?LIST_DISCOVERED_RESOURCES_RESP},
+    TestFun  =
+        fun() ->
+            erlcloud_config:list_discovered_resources(?TEST_RESOURCE_TYPE, Request)
+        end,
     do_test(Request, Expected, TestFun).
 
 do_test(Request, ExpectedResult, TestedFun) ->

@@ -40,13 +40,13 @@
     describe_delivery_channel_status/1,
     describe_delivery_channel_status/2,
 
-    get_compliance_details_by_config_rule/0,
     get_compliance_details_by_config_rule/1,
     get_compliance_details_by_config_rule/2,
+    get_compliance_details_by_config_rule/3,
 
-    get_compliance_details_by_resource/0,
-    get_compliance_details_by_resource/1,
     get_compliance_details_by_resource/2,
+    get_compliance_details_by_resource/3,
+    get_compliance_details_by_resource/4,
 
     get_compliance_summary_by_config_rule/0,
     get_compliance_summary_by_config_rule/1,
@@ -59,18 +59,19 @@
     get_discovered_resource_counts/1,
     get_discovered_resource_counts/2,
 
-    get_resource_config_history/0,
-    get_resource_config_history/1,
     get_resource_config_history/2,
+    get_resource_config_history/3,
+    get_resource_config_history/4,
 
-    list_discovered_resources/0,
     list_discovered_resources/1,
-    list_discovered_resources/2
+    list_discovered_resources/2,
+    list_discovered_resources/3
 
 ]).
 
 -define(LIMIT_MAX, 100).
 -define(CONFIG_RULE_NAMES, <<"ConfigRuleNames">>).
+-define(CONFIG_RULE_NAME, <<"ConfigRuleName">>).
 -define(COMPLIANCE_TYPES, <<"ComplianceTypes">>).
 -define(LIMIT, <<"Limit">>).
 -define(RESOURCE_NAME, <<"ResourceName">>).
@@ -169,11 +170,7 @@ describe_compliance_by_config_rule(Opts, Config) when is_map(Opts) orelse Opts =
         ?CONFIG_RULE_NAMES        => maps:get(?CONFIG_RULE_NAMES, Opts, []),
         ?NEXT_TOKEN_LABEL         => maps:get(?NEXT_TOKEN_LABEL, Opts, <<"">>)
     },
-    case request(Config, "DescribeComplianceByConfigRule", Request) of
-        {ok, Res} ->
-            {ok, Res, get_next_token(Res)};
-        {error,  _} = E -> E
-    end.
+    request(Config, "DescribeComplianceByConfigRule", Request).
 
 
 %%------------------------------------------------------------------------------
@@ -202,11 +199,7 @@ describe_compliance_by_resource(Opts, Config) when is_map(Opts) orelse Opts =:= 
         ?RESOURCE_ID              => maps:get(?RESOURCE_ID, Opts, null),
         ?RESOURCE_TYPE            => maps:get(?RESOURCE_TYPE, Opts, null)
     },
-    case request(Config, "DescribeComplianceByResource", Request) of
-        {ok, Res} ->
-            {ok, Res, get_next_token(Res)};
-        {error,  _} = E -> E
-    end.
+    request(Config, "DescribeComplianceByResource", Request).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -232,11 +225,7 @@ describe_config_rule_evaluation_status(Opts, Config) when is_map(Opts) orelse Op
         ?LIMIT                    => maps:get(?LIMIT, Opts, ?LIMIT_MAX),
         ?NEXT_TOKEN_LABEL         => maps:get(?NEXT_TOKEN_LABEL, Opts, <<"">>)
     },
-    case request(Config, "DescribeConfigRuleEvaluationStatus", Request) of
-        {ok, Res} ->
-            {ok, Res, get_next_token(Res)};
-        {error,  _} = E -> E
-    end.
+    request(Config, "DescribeConfigRuleEvaluationStatus", Request).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -259,15 +248,10 @@ describe_config_rules(Opts) ->
     result_paged(map()).
 describe_config_rules(Opts, Config)
     when is_map(Opts) orelse Opts =:= #{} ->
-    Request = #{?CONFIG_RULE_NAMES    => maps:get(?CONFIG_RULE_NAMES, Opts, <<"">>),
+    Request = #{?CONFIG_RULE_NAMES    => maps:get(?CONFIG_RULE_NAMES, Opts, []),
         ?NEXT_TOKEN_LABEL             => maps:get(?NEXT_TOKEN_LABEL, Opts, <<"">>)
     },
-    case request(Config, "DescribeConfigRules", Request) of
-        {ok, Res} ->
-            NewNextToken = get_next_token(Res),
-            {ok, Res, NewNextToken};
-        {error,  _} = E -> E
-    end.
+    request(Config, "DescribeConfigRules", Request).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -290,11 +274,7 @@ describe_configuration_recorders(Opts) ->
     result_paged(map()).
 describe_configuration_recorders(Opts, Config) when is_map(Opts) orelse Opts =:= #{} ->
     Request = #{?CONFIGURATION_RECORDER_NAMES => maps:get(?CONFIGURATION_RECORDER_NAMES, Opts, [])},
-    case request(Config, "DescribeConfigurationRecorders", Request) of
-        {ok, Res} ->
-            {ok, Res, get_next_token(Res)};
-        {error,  _} = E -> E
-    end.
+    request(Config, "DescribeConfigurationRecorders", Request).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -317,11 +297,7 @@ describe_configuration_recorder_status(Opts) ->
     result_paged(map()).
 describe_configuration_recorder_status(Opts, Config) when is_map(Opts) orelse Opts =:= #{} ->
     Request = #{?CONFIGURATION_RECORDER_NAMES => maps:get(?CONFIGURATION_RECORDER_NAMES, Opts, [])},
-    case request(Config, "DescribeConfigurationRecorderStatus", Request) of
-        {ok, Res} ->
-            {ok, Res, get_next_token(Res)};
-        {error,  _} = E -> E
-    end.
+    request(Config, "DescribeConfigurationRecorderStatus", Request).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -344,11 +320,7 @@ describe_delivery_channels(Opts) ->
     result_paged(map()).
 describe_delivery_channels(Opts, Config) when is_map(Opts) orelse Opts =:= #{} ->
     Request = #{?DELIVERY_CHANNEL_NAMES => maps:get(?DELIVERY_CHANNEL_NAMES, Opts, [])},
-    case request(Config, "DescribeDeliveryChannels", Request) of
-        {ok, Res} ->
-            {ok, Res, get_next_token(Res)};
-        {error,  _} = E -> E
-    end.
+    request(Config, "DescribeDeliveryChannels", Request).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -371,11 +343,7 @@ describe_delivery_channel_status(Opts) ->
     result_paged(map()).
 describe_delivery_channel_status(Opts, Config) when is_map(Opts) orelse Opts =:= #{} ->
     Request = #{?DELIVERY_CHANNEL_NAMES => maps:get(?DELIVERY_CHANNEL_NAMES, Opts, [])},
-    case request(Config, "DescribeDeliveryChannelStatus", Request) of
-        {ok, Res} ->
-            {ok, Res, get_next_token(Res)};
-        {error,  _} = E -> E
-    end.
+    request(Config, "DescribeDeliveryChannelStatus", Request).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -383,29 +351,26 @@ describe_delivery_channel_status(Opts, Config) when is_map(Opts) orelse Opts =:=
 %%
 %% https://docs.aws.amazon.com/config/latest/APIReference/API_GetComplianceDetailsByConfigRule.html
 %%------------------------------------------------------------------------------
--spec get_compliance_details_by_config_rule() ->
+-spec get_compliance_details_by_config_rule(ConfigRuleName :: binary()) ->
     result_paged(map()).
-get_compliance_details_by_config_rule() ->
-    get_compliance_details_by_config_rule(#{}).
+get_compliance_details_by_config_rule(ConfigRuleName) ->
+    get_compliance_details_by_config_rule(ConfigRuleName, #{}).
 
--spec get_compliance_details_by_config_rule(Opts :: map()) ->
+-spec get_compliance_details_by_config_rule(ConfigRuleName :: binary(), Opts :: map()) ->
     result_paged(map()).
-get_compliance_details_by_config_rule(Opts) ->
-    get_compliance_details_by_config_rule(Opts, default_config()).
+get_compliance_details_by_config_rule(ConfigRuleName, Opts) ->
+    get_compliance_details_by_config_rule(ConfigRuleName, Opts, default_config()).
 
--spec get_compliance_details_by_config_rule(Opts :: map(),
+-spec get_compliance_details_by_config_rule(ConfigRuleName :: binary(),
+    Opts :: map(),
     Config :: aws_config()) ->
     result_paged(map()).
-get_compliance_details_by_config_rule(Opts, Config) when is_map(Opts) orelse Opts =:= #{} ->
+get_compliance_details_by_config_rule(ConfigRuleName, Opts, Config) when is_map(Opts) orelse Opts =:= #{} ->
     Request = #{?COMPLIANCE_TYPES => maps:get(?COMPLIANCE_TYPES, Opts, []),
-        ?CONFIG_RULE_NAMES        => maps:get(?CONFIG_RULE_NAMES, Opts, []),
+        ?CONFIG_RULE_NAME         => ConfigRuleName,
         ?LIMIT                    => maps:get(?LIMIT, Opts, ?LIMIT_MAX),
         ?NEXT_TOKEN_LABEL         => maps:get(?NEXT_TOKEN_LABEL, Opts, <<"">>)},
-    case request(Config, "GetComplianceDetailsByConfigRule", Request) of
-        {ok, Res} ->
-            {ok, Res, get_next_token(Res)};
-        {error,  _} = E -> E
-    end.
+    request(Config, "GetComplianceDetailsByConfigRule", Request).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -413,29 +378,30 @@ get_compliance_details_by_config_rule(Opts, Config) when is_map(Opts) orelse Opt
 %%
 %% https://docs.aws.amazon.com/config/latest/APIReference/API_GetComplianceDetailsByResource.html
 %%------------------------------------------------------------------------------
--spec get_compliance_details_by_resource() ->
+-spec get_compliance_details_by_resource(ResourceId :: binary(),
+    ResourceType :: binary()) ->
     result_paged(map()).
-get_compliance_details_by_resource() ->
-    get_compliance_details_by_resource(#{}).
+get_compliance_details_by_resource(ResourceId, ResourceType) ->
+    get_compliance_details_by_resource(ResourceId, ResourceType, #{}).
 
--spec get_compliance_details_by_resource(Opts :: map()) ->
+-spec get_compliance_details_by_resource(ResourceId :: binary(),
+    ResourceType :: binary(),
+    Opts :: map()) ->
     result_paged(map()).
-get_compliance_details_by_resource(Opts) ->
-    get_compliance_details_by_resource(Opts, default_config()).
+get_compliance_details_by_resource(ResourceId, ResourceType, Opts) ->
+    get_compliance_details_by_resource(ResourceId, ResourceType, Opts, default_config()).
 
--spec get_compliance_details_by_resource(Opts :: map(),
+-spec get_compliance_details_by_resource(ResourceId :: binary(),
+    ResourceType :: binary(),
+    Opts :: map(),
     Config :: aws_config()) ->
     result_paged(map()).
-get_compliance_details_by_resource(Opts, Config) when is_map(Opts) orelse Opts =:= #{} ->
+get_compliance_details_by_resource(ResourceId, ResourceType, Opts, Config) when is_map(Opts) orelse Opts =:= #{} ->
     Request = #{?COMPLIANCE_TYPES => maps:get(?COMPLIANCE_TYPES, Opts, []),
         ?NEXT_TOKEN_LABEL         => maps:get(?NEXT_TOKEN_LABEL, Opts, <<"">>),
-        ?RESOURCE_ID              => maps:get(?RESOURCE_ID, Opts, null),
-        ?RESOURCE_TYPE            => maps:get(?RESOURCE_TYPE, Opts, null)},
-    case request(Config, "GetComplianceDetailsByResource", Request) of
-        {ok, Res} ->
-            {ok, Res, get_next_token(Res)};
-        {error,  _} = E -> E
-    end.
+        ?RESOURCE_ID              => ResourceId,
+        ?RESOURCE_TYPE            => ResourceType},
+    request(Config, "GetComplianceDetailsByResource", Request).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -499,11 +465,7 @@ get_discovered_resource_counts(Opts, Config) when is_map(Opts) orelse Opts =:= #
     Request = #{?LIMIT     => maps:get(?LIMIT, Opts, ?LIMIT_MAX),
         ?NEXT_TOKEN_LABEL  => maps:get(?NEXT_TOKEN_LABEL, Opts, <<"">>),
         ?RESOURCE_TYPES    => maps:get(?RESOURCE_TYPES, Opts, null)},
-    case request(Config, "GetDiscoveredResourceCounts", Request) of
-        {ok, Res} ->
-            {ok, Res, get_next_token(Res)};
-        {error,  _} = E -> E
-    end.
+    request(Config, "GetDiscoveredResourceCounts", Request).
 
 
 %%------------------------------------------------------------------------------
@@ -512,32 +474,33 @@ get_discovered_resource_counts(Opts, Config) when is_map(Opts) orelse Opts =:= #
 %%
 %% https://docs.aws.amazon.com/config/latest/APIReference/API_GetResourceConfigHistory.html
 %%------------------------------------------------------------------------------
--spec get_resource_config_history() ->
+-spec get_resource_config_history(ResourceId :: binary(),
+    ResourceType :: binary()) ->
     result_paged(map()).
-get_resource_config_history() ->
-    get_resource_config_history(#{}).
+get_resource_config_history(ResourceId, ResourceType) ->
+    get_resource_config_history(ResourceId, ResourceType, #{}).
 
--spec get_resource_config_history(Opts :: map()) ->
+-spec get_resource_config_history(ResourceId :: binary(),
+    ResourceType :: binary(),
+    Opts :: map()) ->
     result_paged(map()).
-get_resource_config_history(Opts) ->
-    get_resource_config_history(Opts, default_config()).
+get_resource_config_history(ResourceId, ResourceType, Opts) ->
+    get_resource_config_history(ResourceId, ResourceType, Opts, default_config()).
 
--spec get_resource_config_history(Opts :: map(),
+-spec get_resource_config_history(ResourceId :: binary(),
+    ResourceType :: binary(),
+    Opts :: map(),
     Config :: aws_config()) ->
     result_paged(map()).
-get_resource_config_history(Opts, Config) when is_map(Opts) orelse Opts =:= #{} ->
+get_resource_config_history(ResourceId, ResourceType, Opts, Config) when is_map(Opts) orelse Opts =:= #{} ->
     Request = #{?CHRONOLOGICAL_ORDER => maps:get(?CHRONOLOGICAL_ORDER, Opts, null),
         ?EARLIER_TIME                => maps:get(?EARLIER_TIME, Opts, null),
         ?LATER_TIME                  => maps:get(?LATER_TIME, Opts, null),
         ?LIMIT                       => maps:get(?LIMIT, Opts, ?LIMIT_MAX),
         ?NEXT_TOKEN_LABEL            => maps:get(?NEXT_TOKEN_LABEL, Opts, <<"">>),
-        ?RESOURCE_ID                 => maps:get(?RESOURCE_ID, Opts, null),
-        ?RESOURCE_TYPE               => maps:get(?RESOURCE_TYPE, Opts, null)},
-    case request(Config, "GetResourceConfigHistory", Request) of
-        {ok, Res} ->
-            {ok, Res, get_next_token(Res)};
-        {error,  _} = E -> E
-    end.
+        ?RESOURCE_ID                 => ResourceId,
+        ?RESOURCE_TYPE               => ResourceType},
+    request(Config, "GetResourceConfigHistory", Request).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -545,31 +508,29 @@ get_resource_config_history(Opts, Config) when is_map(Opts) orelse Opts =:= #{} 
 %%
 %% https://docs.aws.amazon.com/config/latest/APIReference/API_ListDiscoveredResources.html
 %%------------------------------------------------------------------------------
--spec list_discovered_resources() ->
+-spec list_discovered_resources(ResourceType :: binary()) ->
     result_paged(map()).
-list_discovered_resources() ->
-    list_discovered_resources(#{}).
+list_discovered_resources(ResourceType) ->
+    list_discovered_resources(ResourceType, #{}).
 
--spec list_discovered_resources(Opts :: map()) ->
+-spec list_discovered_resources(ResourceType :: binary(),
+    Opts :: map()) ->
     result_paged(map()).
-list_discovered_resources(Opts) ->
-    list_discovered_resources(Opts, default_config()).
+list_discovered_resources(ResourceType, Opts) ->
+    list_discovered_resources(ResourceType, Opts, default_config()).
 
--spec list_discovered_resources(Opts :: map(),
+-spec list_discovered_resources(ResourceType :: binary(),
+    Opts :: map(),
     Config :: aws_config()) ->
     result_paged(map()).
-list_discovered_resources(Opts, Config) when is_map(Opts) orelse Opts =:= #{} ->
+list_discovered_resources(ResourceType, Opts, Config) when is_map(Opts) orelse Opts =:= #{} ->
     Request = #{?INCLUDE_DELETED_RESOURCES => maps:get(?INCLUDE_DELETED_RESOURCES, Opts, true),
         ?LIMIT                             => maps:get(?LIMIT, Opts, ?LIMIT_MAX),
         ?NEXT_TOKEN_LABEL                  => maps:get(?NEXT_TOKEN_LABEL, Opts, <<"">>),
         ?RESOURCE_IDS                      => maps:get(?RESOURCE_IDS, Opts, []),
         ?RESOURCE_NAME                     => maps:get(?RESOURCE_NAME, Opts, null),
-        ?RESOURCE_TYPE                     => maps:get(?RESOURCE_TYPE, Opts, null)},
-    case request(Config, "ListDiscoveredResources", Request) of
-        {ok, Res} ->
-            {ok, Res, get_next_token(Res)};
-        {error,  _} = E -> E
-    end.
+        ?RESOURCE_TYPE                     => ResourceType},
+    request(Config, "ListDiscoveredResources", Request).
 
 %%%------------------------------------------------------------------------------
 %%% @doc
@@ -624,9 +585,4 @@ get_url(#aws_config{config_scheme = Scheme,
     config_host   = Host,
     config_port   = Port}) ->
     Scheme ++ Host ++ ":" ++ integer_to_list(Port).
-
--spec get_next_token(Map :: map()) ->
-    Value :: term().
-get_next_token(Map) when is_map(Map) ->
-    maps:get(?NEXT_TOKEN_LABEL, Map, <<"">>).
 
