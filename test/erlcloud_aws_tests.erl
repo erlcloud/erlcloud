@@ -360,6 +360,10 @@ profiles_assume_cleanup(P) ->
     profiles_test_cleanup(P),
     meck:unload( erlcloud_sts ).
 
+default_config_region_sunny_test() ->
+    Region = <<"ca-central-1">>,
+    ?assertMatch(#aws_config{},
+        erlcloud_aws:default_config_region(#aws_config{}, Region)).
 
 service_config_autoscaling_test() ->
     Service = <<"autoscaling">>,

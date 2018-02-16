@@ -108,11 +108,11 @@ delete_load_balancer(LB, Config) when is_list(LB) ->
                        [{"LoadBalancerName", LB}]).
 
 
--spec register_instance(string(), string()) -> proplist().
+-spec register_instance(string(), string()) -> ok | no_return().
 register_instance(LB, InstanceId) ->
     register_instance(LB, InstanceId, default_config()).
 
--spec register_instance(string(), string(), aws_config()) -> proplist().
+-spec register_instance(string(), string(), aws_config()) -> ok | no_return().
 register_instance(LB, InstanceId, Config) when is_list(LB) ->
     elb_simple_request(Config,
                        "RegisterInstancesWithLoadBalancer",
@@ -120,11 +120,11 @@ register_instance(LB, InstanceId, Config) when is_list(LB) ->
                         erlcloud_aws:param_list([[{"InstanceId", InstanceId}]], "Instances.member")]).
 
 
--spec deregister_instance(string(), string()) -> proplist().
+-spec deregister_instance(string(), string()) -> ok | no_return().
 deregister_instance(LB, InstanceId) ->
     deregister_instance(LB, InstanceId, default_config()).
 
--spec deregister_instance(string(), string(), aws_config()) -> proplist().
+-spec deregister_instance(string(), string(), aws_config()) -> ok | no_return().
 deregister_instance(LB, InstanceId, Config) when is_list(LB) ->
     elb_simple_request(Config,
                        "DeregisterInstancesFromLoadBalancer",
@@ -133,13 +133,13 @@ deregister_instance(LB, InstanceId, Config) when is_list(LB) ->
 
 
 
--spec configure_health_check(string(), string()) -> proplist().
+-spec configure_health_check(string(), string()) -> ok | no_return().
 configure_health_check(LB, Target) when is_list(LB),
                                         is_list(Target) ->
     configure_health_check(LB, Target, default_config()).
 
 
--spec configure_health_check(string(), string(), aws_config()) -> proplist().
+-spec configure_health_check(string(), string(), aws_config()) -> ok | no_return().
 configure_health_check(LB, Target, Config) when is_list(LB) ->
     elb_simple_request(Config,
                        "ConfigureHealthCheck",
@@ -151,7 +151,7 @@ configure_health_check(LB, Target, Config) when is_list(LB) ->
 %% specific configuration and specific balancer name. 
 %% @end
 %% --------------------------------------------------------------------
--spec describe_load_balancer(string()) -> proplist().
+-spec describe_load_balancer(string()) -> {ok, term()} | {{paged, string()}, term()} | {error, metadata_not_available | container_credentials_unavailable | erlcloud_aws:httpc_result_error()}.
 describe_load_balancer(Name) ->
     describe_load_balancer(Name, default_config()).
 describe_load_balancer(Name, Config) ->
@@ -185,7 +185,7 @@ describe_load_balancers(Config = #aws_config{}) ->
 %% @end
 %% --------------------------------------------------------------------
 -spec describe_load_balancers(list(string()), aws_config()) -> 
-                             {ok, term()} | {{paged, string()}, term()} | {error, term()}.
+                             {ok, term()} | {{paged, string()}, term()} | {error, metadata_not_available | container_credentials_unavailable | erlcloud_aws:httpc_result_error()}.
 describe_load_balancers(Names, Config) ->
     describe_load_balancers(Names, ?DEFAULT_MAX_RECORDS, none, Config).
 
@@ -195,14 +195,14 @@ describe_load_balancers(Names, Config) ->
 %% @end
 %% --------------------------------------------------------------------
 -spec describe_load_balancers(list(string()), integer(), string() | none, aws_config()) -> 
-                             {ok, term()} | {{paged, string()}, term()} | {error, term()}.
+                             {ok, term()} | {{paged, string()}, term()} | {error, metadata_not_available | container_credentials_unavailable | erlcloud_aws:httpc_result_error()}.
 describe_load_balancers(Names, PageSize, none, Config) ->
     describe_load_balancers(Names, [{"PageSize", PageSize}], Config);
 describe_load_balancers(Names, PageSize, Marker, Config) ->
     describe_load_balancers(Names, [{"Marker", Marker}, {"PageSize", PageSize}], Config).
 
 -spec describe_load_balancers(list(string()), list({string(), term()}), aws_config()) -> 
-                             {ok, term()} | {{paged, string()}, term()} | {error, term()}.
+                             {ok, term()} | {{paged, string()}, term()} | {error, metadata_not_available | container_credentials_unavailable | erlcloud_aws:httpc_result_error()}.
 describe_load_balancers(Names, Params, Config) ->
     P = member_params("LoadBalancerNames.member.", Names) ++ Params,
     case elb_query(Config, "DescribeLoadBalancers", P) of
@@ -403,7 +403,7 @@ extract_policy_type_attribute(Item) ->
 %% @end
 %% --------------------------------------------------------------------
 -spec create_load_balancer_policy(string(), string(), string()) -> 
-                                    ok | {error, term()}.
+                                    ok | {error, term()} | no_return().
 create_load_balancer_policy(LB, PolicyName, PolicyTypeName) 
     when is_list(LB),
          is_list(PolicyName),
@@ -415,7 +415,7 @@ create_load_balancer_policy(LB, PolicyName, PolicyTypeName)
 %% @end
 %% --------------------------------------------------------------------
 -spec create_load_balancer_policy(string(), string(), string(), list({string(), string()})) -> 
-                                    ok | {error, term()}.
+                                    ok | {error, term()} | no_return().
 create_load_balancer_policy(LB, PolicyName, PolicyTypeName, Attrs) 
     when is_list(LB),
          is_list(PolicyName),
@@ -429,7 +429,7 @@ create_load_balancer_policy(LB, PolicyName, PolicyTypeName, Attrs)
 %% @end
 %% --------------------------------------------------------------------
 -spec create_load_balancer_policy(string(), string(), string(), list({string(), string()}), aws_config()) -> 
-                                    ok | {error, term()}.
+                                    ok | {error, term()} | no_return().
 create_load_balancer_policy(LB, PolicyName, PolicyTypeName, AttrList, Config) 
     when is_list(LB),
          is_list(PolicyName),
@@ -447,11 +447,11 @@ create_load_balancer_policy(LB, PolicyName, PolicyTypeName, AttrList, Config)
     ok.
 
 
--spec describe_load_balancer_attributes(string()) -> proplist().
+-spec describe_load_balancer_attributes(string()) -> proplist() | no_return().
 describe_load_balancer_attributes(Name) ->
     describe_load_balancer_attributes(Name, default_config()).
 
--spec describe_load_balancer_attributes(string(), aws_config()) -> proplist().
+-spec describe_load_balancer_attributes(string(), aws_config()) -> proplist() | no_return().
 describe_load_balancer_attributes(Name, Config) ->
     Node = elb_request(Config,
         "DescribeLoadBalancerAttributes",
@@ -484,7 +484,7 @@ extract_elb_attribs(Node) ->
 %% @doc Calls delete_load_balancer_policy() with default aws config.
 %% @end
 %% --------------------------------------------------------------------
--spec delete_load_balancer_policy(string(), string()) -> ok.
+-spec delete_load_balancer_policy(string(), string()) -> ok | no_return().
 delete_load_balancer_policy(LB, PolicyName) when is_list(LB), 
                                                  is_list(PolicyName) ->
     delete_load_balancer_policy(LB, PolicyName, default_config()).
@@ -494,7 +494,7 @@ delete_load_balancer_policy(LB, PolicyName) when is_list(LB),
 %% This policy must not be enabled for any listeners.
 %% @end
 %% --------------------------------------------------------------------
--spec delete_load_balancer_policy(string(), string(), aws_config()) -> ok.
+-spec delete_load_balancer_policy(string(), string(), aws_config()) -> ok | no_return().
 delete_load_balancer_policy(LB, PolicyName, Config) when is_list(LB),
                                              is_list(PolicyName)->
     elb_simple_request(Config,

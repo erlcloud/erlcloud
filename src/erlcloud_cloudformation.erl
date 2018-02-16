@@ -9,11 +9,10 @@
 -type secret_access_key() :: string().
 
 -type params() :: proplists:proplist().
--type cloudformation_list() :: proplists:proplist().
+-type cloudformation_list() :: [proplists:proplist()].
 
 
-%% lhttpc possible error reasons for lhttpc:request()
--type error_reason() :: connection_closed | connect_timeout | timeout.
+-type error_reason() :: metadata_not_available | container_credentials_unavailable | erlcloud_aws:httpc_result_error().
 
 %% Library initialization
 -export([
@@ -76,20 +75,20 @@ new(AccessKeyID, SecretAccessKey) ->
 %%==============================================================================
 %% Cloud Formation API Functions
 %%==============================================================================
--spec list_stacks_all(params()) -> {ok, cloudformation_list()}.
+-spec list_stacks_all(params()) -> {ok, cloudformation_list()} | {error, error_reason()}.
 list_stacks_all(Params) ->
     list_stacks_all(Params, default_config()).
 
--spec list_stacks_all(params(), aws_config()) -> {ok, cloudformation_list()}.
+-spec list_stacks_all(params(), aws_config()) -> {ok, cloudformation_list()} | {error, error_reason()}.
 list_stacks_all(Params, Config = #aws_config{}) ->
     list_all(fun list_stacks/2, Params, Config, []).
 
--spec list_stacks(params()) -> {ok, cloudformation_list()}
+-spec list_stacks(params()) -> {ok, cloudformation_list(), NextToken :: undefined | string()}
 | {error, error_reason()}.
 list_stacks(Params) ->
     list_stacks(Params, default_config()).
 
--spec list_stacks(params(), aws_config()) -> {ok, cloudformation_list()}
+-spec list_stacks(params(), aws_config()) -> {ok, cloudformation_list(), NextToken :: undefined | string()}
     | {error, error_reason()}.
 list_stacks(Params, Config = #aws_config{}) ->
 
@@ -135,12 +134,12 @@ list_stack_resources_all(Params, StackName, Config = #aws_config{}) ->
     list_all(fun list_stack_resources/2, FullParams, Config, []).
 
 -spec list_stack_resources(params()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    {ok, cloudformation_list(), NextToken :: undefined | string()} | {error, error_reason()}.
 list_stack_resources(Params) ->
     list_stack_resources(Params, default_config()).
 
 -spec list_stack_resources(params(), aws_config()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    {ok, cloudformation_list(), NextToken :: undefined | string()} | {error, error_reason()}.
 list_stack_resources(Params, Config = #aws_config{}) ->
 
     case cloudformation_request(Config, "ListStackResources", Params) of
@@ -161,12 +160,12 @@ list_stack_resources(Params, Config = #aws_config{}) ->
     end.
 
 -spec describe_stack_resources(params(), string()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    cloudformation_list() | {error, error_reason()}.
 describe_stack_resources(Params, StackName) ->
     describe_stack_resources(Params, StackName, default_config()).
 
 -spec describe_stack_resources(params(), string(), aws_config()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    cloudformation_list() | {error, error_reason()}.
 describe_stack_resources(Params, StackName, Config = #aws_config{}) ->
 
     FullParams = [{"StackName", StackName}
@@ -186,13 +185,13 @@ describe_stack_resources(Params, StackName, Config = #aws_config{}) ->
     end.
 
 -spec describe_stack_resource(params(), string(), string()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    cloudformation_list() | {error, error_reason()}.
 describe_stack_resource(Params, StackName, LogicalResourceId) ->
     describe_stack_resource(Params, StackName, LogicalResourceId,
         default_config()).
 
 -spec describe_stack_resource(params(), string(), string(), aws_config()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    cloudformation_list() | {error, error_reason()}.
 describe_stack_resource(Params, StackName, LogicalResourceId,
     Config = #aws_config{}) ->
 
@@ -227,12 +226,12 @@ describe_stacks_all(Params, Config = #aws_config{}) ->
     list_all(fun describe_stacks/2, RequestParams, Config, []).
 
 -spec describe_stacks(params()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    {ok, cloudformation_list(), NextToken :: undefined | string()} | {error, error_reason()}.
 describe_stacks(Params) ->
     describe_stacks(Params, default_config()).
 
 -spec describe_stacks(params(), aws_config()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    {ok, cloudformation_list(), NextToken :: undefined | string()} | {error, error_reason()}.
 describe_stacks(Params, Config = #aws_config{}) ->
 
     case cloudformation_request(Config, "DescribeStacks", Params) of
@@ -254,12 +253,12 @@ describe_stacks(Params, Config = #aws_config{}) ->
     end.
 
 -spec get_stack_policy(params(), string()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    cloudformation_list() | {error, error_reason()}.
 get_stack_policy(Params, StackName) ->
     get_stack_policy(Params, StackName, default_config()).
 
 -spec get_stack_policy(params(), string(), aws_config()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    cloudformation_list() | {error, error_reason()}.
 get_stack_policy(Params, StackName, Config = #aws_config{}) ->
     FullParams = [{"StackName", StackName}
         | lists:map(
@@ -294,12 +293,12 @@ describe_stack_events_all(Params, Config = #aws_config{}) ->
     list_all(fun describe_stack_events/2, RequestParams, Config, []).
 
 -spec describe_stack_events(params()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    {ok, cloudformation_list(), NextToken :: undefined | string()} | {error, error_reason()}.
 describe_stack_events(Params) ->
     describe_stack_events(Params, default_config()).
 
 -spec describe_stack_events(params(), aws_config()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    {ok, cloudformation_list(), NextToken :: undefined | string()} | {error, error_reason()}.
 describe_stack_events(Params, Config = #aws_config{}) ->
 
     case cloudformation_request(Config, "DescribeStackEvents", Params) of
@@ -318,12 +317,12 @@ describe_stack_events(Params, Config = #aws_config{}) ->
     end.
 
 -spec get_template(string()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    cloudformation_list() | {error, error_reason()}.
 get_template(StackName) ->
     get_template(StackName, default_config()).
 
 -spec get_template(string(), aws_config()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    cloudformation_list() | {error, error_reason()}.
 get_template(StackName, Config = #aws_config{}) ->
 
     case cloudformation_request(Config, "GetTemplate",
@@ -335,12 +334,12 @@ get_template(StackName, Config = #aws_config{}) ->
     end.
 
 -spec get_template_summary(params(), string()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    cloudformation_list() | {error, error_reason()}.
 get_template_summary(Params, StackName) ->
     get_template_summary(Params, StackName, default_config()).
 
 -spec get_template_summary(params(), string(), aws_config()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+    cloudformation_list() | {error, error_reason()}.
 get_template_summary(Params, StackName, Config = #aws_config{}) ->
 
     FullParams = [{"StackName", StackName}
@@ -366,13 +365,13 @@ describe_account_limits_all() ->
 describe_account_limits_all(Config = #aws_config{}) ->
     list_all(fun describe_account_limits/2, [], Config, []).
 
--spec describe_account_limits(params) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+-spec describe_account_limits(params()) ->
+    {ok, cloudformation_list(), NextToken :: undefined | string()} | {error, error_reason()}.
 describe_account_limits(Params) ->
     describe_account_limits(Params, default_config()).
 
--spec describe_account_limits(params, aws_config()) ->
-    {ok, cloudformation_list()} | {error, error_reason()}.
+-spec describe_account_limits(params(), aws_config()) ->
+    {ok, cloudformation_list(), NextToken :: undefined | string()} | {error, error_reason()}.
 describe_account_limits(Params, Config = #aws_config{}) ->
 
     RequestParams = lists:map(fun(T) -> convert_param(T) end, Params),

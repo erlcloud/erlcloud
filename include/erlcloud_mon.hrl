@@ -57,13 +57,13 @@
 %% @end
 %%------------------------------------------------------------------------------
 -record(metric_datum, {
-          metric_name       ::string(),         %% The name of the metric.
+          metric_name       ::string(),                    %% The name of the metric.
           %% Length constraints: Minimum value of 1. Maximum value of 255.
-          dimensions      ::[dimension()],    %% A list of dimensions associated with the metric.
+          dimensions      ::[dimension()],                 %% A list of dimensions associated with the metric.
           %% Length constraints: Minimum of 0 item(s) in the list. Maximum of 10 item(s) in the list.
-          statistic_values::statistic_set(),  %% A set of statistical values describing the metric.
-          timestamp       ::datetime()|string(),%% The time stamp used for the metric. If not specified, the default value is set to the time the metric data was received.
-          unit            ::unit(),           %% The unit of the metric.
-          value           ::float()           %% The value for the metric.
+          statistic_values::undefined|statistic_set(),     %% A set of statistical values describing the metric.
+          timestamp       ::undefined|datetime()|string(), %% The time stamp used for the metric. If not specified, the default value is set to the time the metric data was received.
+          unit            ::unit(),                        %% The unit of the metric.
+          value           ::undefined|float()              %% The value for the metric.
          }).
 -type metric_datum() :: #metric_datum{}.

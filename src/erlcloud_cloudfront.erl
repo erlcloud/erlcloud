@@ -1,6 +1,6 @@
 -module(erlcloud_cloudfront).
 
--include_lib("xmerl/include/xmerl.hrl").
+-include("erlcloud_xmerl.hrl").
 
 %% Library initialization.
 -export([configure/2, configure/3, new/2, new/3]).
@@ -46,7 +46,7 @@ extract_distribution_summary(Node) ->
     ], Node).
 
 
--spec extract_distribution(Node :: list()) -> proplist().
+-spec extract_distribution(Node :: xmerl_xpath_doc_nodes()) -> proplist().
 extract_distribution(Node) ->
     erlcloud_xml:decode(
       [
@@ -187,7 +187,7 @@ list_distributions(Config) when
 list_distributions(MaxResults, Marker) ->
     list_distributions(MaxResults, Marker, erlcloud_aws:default_config()).
 
--spec list_distributions(integer(), string(), aws_config()) -> ok_error(proplist(), string()).
+-spec list_distributions(integer(), undefined | string(), aws_config()) -> ok_error(proplist(), string()).
 list_distributions(MaxResults, Marker, Config) when
       is_list(Marker) orelse Marker =:= undefined,
       is_integer(MaxResults),

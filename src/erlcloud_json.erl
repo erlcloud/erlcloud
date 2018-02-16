@@ -3,10 +3,12 @@
 
 -include("erlcloud.hrl").
 
--type decode_value() :: {atom(), JsonField :: binary(), Type :: atom()}.
+-type decode_return() :: [{Name :: atom(), Value :: string() | integer()}].
+-type decode_value_type() :: optional_string | optional_integer | {optional_map, fun(([{Key :: binary(), Value :: string() | integer()}]) -> decode_return())}.
+-type decode_value() :: {atom(), JsonField :: binary(), Type :: decode_value_type()}.
 -type decode_value_r() :: {pos_integer(), JsonField :: binary(), Type :: atom()}.
 
--spec decode([decode_value()], proplist()) -> proplist().
+-spec decode([decode_value()], proplist()) -> decode_return().
 decode(Values, Json) ->
     lists:foldr(
         fun ({Name, JsonField, Type}, Output) ->

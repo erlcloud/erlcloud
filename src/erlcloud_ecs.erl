@@ -74,6 +74,7 @@
 ]).
 
 -export_type([
+    arn/0,
     attr_name/0,
     cluster_opt/0,
     client_token_opt/0,
@@ -228,7 +229,7 @@ default_config() ->
 -type attr_name() :: binary() | string().
 -type arn() :: binary().
 
--type json_pair() :: {binary(), jsx:json_term()}.
+-type json_pair() :: {binary() | atom(), jsx:json_term()}.
 -type json_return() :: {ok, jsx:json_term()} | {error, term()}.
 -type ecs_return(Record) :: {ok, jsx:json_term() | Record } | {error, term()}.
 -type decode_fun() :: fun((jsx:json_term(), decode_opts()) -> tuple()).
@@ -340,7 +341,6 @@ target_group_arn_opt() ->
                               target_group_arn_opt().
 -type load_balancers_opts() :: [load_balancers_opt()].
 
--type load_balancers() :: {load_balancers, maybe_list(load_balancers_opts())}.
 -spec load_balancers_opt() -> opt_table_entry().
 load_balancers_opt() ->
     {load_balancers, <<"loadBalancers">>, fun encode_load_balancers/1}.
@@ -536,7 +536,7 @@ task_overrides_opt() ->
 %%%------------------------------------------------------------------------------
 %%% Shared Encoders 
 %%%------------------------------------------------------------------------------
--spec encode_deployment_configuration(deployment_configuration()) -> [json_pair()].
+-spec encode_deployment_configuration(deployment_configuration_opts()) -> [json_pair()].
 encode_deployment_configuration(Config) ->
     DeploymentConfigrationOpts = [
         maximum_percent_opt(),
@@ -546,7 +546,7 @@ encode_deployment_configuration(Config) ->
     {AwsOpts, _EcsOpts} = opts(DeploymentConfigrationOpts, Config),
     AwsOpts.
 
--spec encode_load_balancers(load_balancers()) -> [json_pair()].
+-spec encode_load_balancers(load_balancers_opts()) -> [aws_opts()].
 encode_load_balancers(Balancers) ->
     LoadBalancerOpts = [
         container_name_opt(),
@@ -566,7 +566,7 @@ encode_volume_host([{source_path, Path}]) ->
 encode_volume_host([]) ->
     [].
 
--spec encode_volumes(volumes()) -> [json_pair()].
+-spec encode_volumes(volumes_opts()) -> [aws_opts()].
 encode_volumes(Volumes) ->
     VolumesOpts = [
         volume_name_opt(),
@@ -578,19 +578,19 @@ encode_volumes(Volumes) ->
         end, 
     Volumes).
         
--spec encode_ecs_volume_from_list(ecs_volume_from_opts()) -> [json_pair()].
+-spec encode_ecs_volume_from_list(ecs_volume_from_opts()) -> [aws_opts()].
 encode_ecs_volume_from_list(VolumesFrom) ->
     encode_maybe_list(fun ecs_volume_from_opt/0, VolumesFrom).
 
--spec encode_ecs_ulimit_list(ecs_ulimit_opts()) -> [json_pair()].
+-spec encode_ecs_ulimit_list(ecs_ulimit_opts()) -> [aws_opts()].
 encode_ecs_ulimit_list(Ulimits) ->
     encode_maybe_list(fun ecs_ulimit_opt/0, Ulimits).
 
--spec encode_ecs_port_mapping_list(ecs_port_mapping_opts()) -> [json_pair()].
+-spec encode_ecs_port_mapping_list(ecs_port_mapping_opts()) -> [aws_opts()].
 encode_ecs_port_mapping_list(PortMappings) ->
     encode_maybe_list(fun ecs_port_mapping_opt/0, PortMappings).
 
--spec encode_ecs_mount_point_list(ecs_mount_point_opts()) -> [json_pair()].
+-spec encode_ecs_mount_point_list(ecs_mount_point_opts()) -> [aws_opts()].
 encode_ecs_mount_point_list(MountPoints) ->
     encode_maybe_list(fun ecs_mount_point_opt/0, MountPoints).
 
@@ -603,11 +603,11 @@ encode_log_configuration(Config) ->
     {AwsOpts, _EcsOpts} = opts(ecs_log_configuration_opts(), Config),
     AwsOpts.
 
--spec encode_ecs_host_list(ecs_host_entry_opts()) -> [json_pair()].
+-spec encode_ecs_host_list(ecs_host_entry_opts()) -> [aws_opts()].
 encode_ecs_host_list(Hosts) ->
     encode_maybe_list(fun ecs_host_entry_opt/0, Hosts).
 
--spec encode_key_value_pair_list(key_value_pair_opts()) -> [json_pair()].
+-spec encode_key_value_pair_list(key_value_pair_opts()) -> [aws_opts()].
 encode_key_value_pair_list(Pairs) ->
     encode_maybe_list(fun key_value_opt/0, Pairs).
     
@@ -642,7 +642,7 @@ container_definition_opts() ->
         {working_directory, <<"workingDirectory">>, fun to_binary/1}
     ].
 
--spec encode_container_definitions(Defs :: container_definition_opts()) -> jsx:json_term().
+-spec encode_container_definitions(Defs :: container_definition_opts()) -> [aws_opts()].
 encode_container_definitions(Defs) ->
     encode_maybe_list(fun container_definition_opts/0, Defs).
     
@@ -651,11 +651,11 @@ encode_ecs_task_overrides(Overrides) ->
     {AwsOpts, _EcsOpts} = opts(ecs_task_override_opt(), Overrides),
     AwsOpts.
 
--spec encode_ecs_container_overrides_list(ContainerOverrides :: ecs_container_override_opts()) -> jsx:json_term().
+-spec encode_ecs_container_overrides_list(ContainerOverrides :: ecs_container_override_opts()) -> [aws_opts()].
 encode_ecs_container_overrides_list(ContainerOverrides) ->
     encode_maybe_list(fun ecs_container_override_opt/0, ContainerOverrides).
 
--spec encode_maybe_list(fun((A) -> B), maybe_list(A)) -> [B].
+-spec encode_maybe_list(fun(() -> opt_table()), maybe_list(proplist())) -> [aws_opts()].
 encode_maybe_list(Fun, List) when is_list(List), is_list(hd(List)) ->
     lists:map(
         fun(Item) ->
@@ -2417,7 +2417,6 @@ ecs_request(Config, Operation, Body) ->
 
 ecs_request_no_update(Config, Operation, Body) ->
     Payload = case Body of
-               <<>> -> <<"{}">>;
                [] -> <<"{}">>;
                _ -> jsx:encode(lists:flatten(Body))
            end,
