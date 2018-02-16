@@ -97,7 +97,7 @@ delete_trail(Trail, Config) ->
 -spec describe_trails() -> ct_return().
 describe_trails() -> describe_trails([]).
 
--spec describe_trails(aws_config()) -> ct_return().
+-spec describe_trails([] | aws_config()) -> ct_return().
 describe_trails(Config) when is_record(Config, aws_config) ->
     describe_trails([], Config);
 
@@ -203,7 +203,7 @@ request_impl(Method, Scheme, Host, Port, Path, Operation, Params, Body, #aws_con
             {error, Reason}
     end.
 
--spec headers(aws_config(), string(), proplist(), binary(), string()) -> headers().
+-spec headers(aws_config(), string(), proplist(), string() | binary(), string()) -> headers().
 headers(Config, Operation, _Params, Body, Service) ->
     Headers = [
                {"host", Config#aws_config.cloudtrail_host},

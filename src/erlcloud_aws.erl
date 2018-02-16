@@ -27,6 +27,7 @@
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
+-include_lib("lhttpc/include/lhttpc_types.hrl").
 
 -define(ERLCLOUD_RETRY_TIMEOUT, 10000).
 -define(GREGORIAN_EPOCH_OFFSET, 62167219200).
@@ -38,6 +39,16 @@
 -define(AWS_SECRET,  ["AWS_SECRET_ACCESS_KEY"]).
 -define(AWS_SESSION, ["AWS_SESSION_TOKEN", "AWS_SECURITY_TOKEN"]).
 -define(AWS_REGION,  ["AWS_DEFAULT_REGION", "AWS_REGION"]).
+
+%% types
+-type http_client_result() :: result(). % from lhttpc_types.hrl
+-type http_client_headers() :: [{string(), string()}].
+-type httpc_result_ok() :: {http_client_headers(), binary()}.
+-type httpc_result_error() :: {http_error, Status :: pos_integer(), StatusLine :: string(), Body :: binary()}
+                            | {socket_error, Reason :: term()}.
+-export_type([httpc_result_error/0]).
+-type httpc_result() :: {ok, httpc_result_ok()} | {error, httpc_result_error()}.
+-export_type([httpc_result/0]).
 
 -record(metadata_credentials, {
          access_key_id :: string(),
@@ -193,8 +204,8 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service,
 
 
 -spec aws_request_form(Method :: atom(), Protocol :: undefined | string(), Host :: string(),
-                        Port :: undefined | integer() | string(), Path :: string(), Form :: string(),
-                        Headers :: list(), Config :: aws_config()) -> {ok, binary()} | {error, tuple()}.
+                        Port :: undefined | integer() | string(), Path :: string(), Form :: [string()],
+                        Headers :: list(), Config :: aws_config()) -> {ok, Body :: binary()} | {error, httpc_result_error()}.
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
     RequestHeaders = case proplists:is_defined("content-type", Headers) of
       false -> [{"content-type", ?DEFAULT_CONTENT_TYPE} | Headers];
@@ -209,7 +220,7 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
 -spec aws_request_form_raw(Method :: atom(), Scheme :: string() | [string()],
                         Host :: string(), Port :: undefined | integer() | string(),
                         Path :: string(), Form :: iodata(), Headers :: list(),
-                        Config :: aws_config()) -> {ok, binary()} | {error, tuple()}.
+                        Config :: aws_config()) -> {ok, Body :: binary()} | {error, httpc_result_error()}.
 aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config) ->
     URL = case Port of
         undefined -> [Scheme, Host, Path];
@@ -494,7 +505,7 @@ config_env() ->
         _ -> {error, environment_config_unavailable}
     end.
 
--spec config_metadata(task_credentials | instance_metadata) -> {ok, #metadata_credentials{}} | {error, atom()}.
+-spec config_metadata(task_credentials | instance_metadata) -> {ok, #metadata_credentials{}} | {error, metadata_not_available | container_credentials_unavailable | httpc_result_error()}.
 config_metadata(Source) ->
     Config = #aws_config{},
     case get_metadata_credentials( Source, Config ) of
@@ -510,20 +521,16 @@ config_metadata(Source) ->
         {error, _Reason} = Error -> Error
     end.
 
--spec update_config(aws_config()) -> {ok, aws_config()} | {error, term()}.
+-spec update_config(aws_config()) -> {ok, aws_config()} | {error, metadata_not_available | container_credentials_unavailable | httpc_result_error()}.
 update_config(#aws_config{assume_role =
                           #aws_assume_role{role_arn = RoleArn}} = Config)
     when RoleArn /= undefined ->
     %% The assume role options are defined lets try to assume a role
-    case get_role_credentials(Config) of
-        {error, Reason} ->
-            {error, Reason};
-        {ok, Credentials} ->
-            {ok, Config#aws_config {
-                access_key_id = Credentials#role_credentials.access_key_id,
-                secret_access_key = Credentials#role_credentials.secret_access_key,
-                security_token = Credentials#role_credentials.session_token}}
-    end;
+    {ok, Credentials} = get_role_credentials(Config),
+    {ok, Config#aws_config {
+        access_key_id = Credentials#role_credentials.access_key_id,
+        secret_access_key = Credentials#role_credentials.secret_access_key,
+        security_token = Credentials#role_credentials.session_token}};
 update_config(#aws_config{access_key_id = KeyId} = Config)
   when is_list(KeyId), KeyId /= [] ->
     %% In order to support caching of the aws_config, we could store the expiration_time
@@ -729,7 +736,7 @@ configure(#aws_config{} = Config) ->
     put(aws_config, Config),
     {ok, default_config()}.
 
--spec get_metadata_credentials(instance_metadata | task_credentials, aws_config()) -> {ok, #metadata_credentials{}} | {error, term()}.
+-spec get_metadata_credentials(instance_metadata | task_credentials, aws_config()) -> {ok, #metadata_credentials{}} | {error, metadata_not_available | container_credentials_unavailable | httpc_result_error()}.
 get_metadata_credentials(Source, Config) ->
     %% See if we have cached credentials
     Fun = case Source of
@@ -754,7 +761,7 @@ timestamp_to_gregorian_seconds(Timestamp) ->
     calendar:datetime_to_gregorian_seconds({{Yr, Mo, Da}, {H, M, S}}).
 
 -spec get_credentials_from_metadata(aws_config())
-                                   -> {ok, #metadata_credentials{}} | {error, term()}.
+                                   -> {ok, #metadata_credentials{}} | {error, metadata_not_available | httpc_result_error()}.
 get_credentials_from_metadata(Config) ->
     %% TODO this function should retry on errors getting credentials
     %% First get the list of roles
@@ -774,7 +781,7 @@ get_credentials_from_metadata(Config) ->
     end.
 
 -spec get_credentials_from_task_metadata(aws_config())
-                                   -> {ok, #metadata_credentials{}} | {error, term()}.
+                                   -> {ok, #metadata_credentials{}} | {error, metadata_not_available | container_credentials_unavailable | httpc_result_error()}.
 get_credentials_from_task_metadata(Config) ->
     %% TODO this function should retry on errors getting credentials
     case erlcloud_ecs_container_credentials:get_container_credentials(Config) of
@@ -810,7 +817,7 @@ prop_to_list_defined( Name, Props ) ->
     end.
 
 
--spec get_role_credentials(aws_config()) -> {ok, #role_credentials{}} | {error, term()}.
+-spec get_role_credentials(aws_config()) -> {ok, #role_credentials{}}.
 get_role_credentials(#aws_config{assume_role = AssumeRole} = Config) ->
     case application:get_env(erlcloud,
                              {role_credentials,
@@ -827,8 +834,7 @@ get_role_credentials(#aws_config{assume_role = AssumeRole} = Config) ->
             get_credentials_from_role(Config)
     end.
 
--spec get_credentials_from_role(aws_config()) -> {ok, #role_credentials{}} |
-                                                 {error, term()}.
+-spec get_credentials_from_role(aws_config()) -> {ok, #role_credentials{}}.
 get_credentials_from_role(#aws_config{assume_role = AssumeRole} = Config) ->
     %% We have to reset the assume role to make sure we do not
     %% enter in a infinite loop because erlcloud_sts:assume_role also calls
@@ -858,8 +864,8 @@ port_to_str(Port) when is_integer(Port) ->
 port_to_str(Port) when is_list(Port) ->
     Port.
 
--spec http_body({ok, tuple()} | {error, term()})
-               -> {ok, binary()} | {error, tuple()}.
+-spec http_body(http_client_result())
+               -> {ok, Body :: binary()} | {error, httpc_result_error()}.
 %% Extract the body and do error handling on the return of a httpc:request call.
 http_body(Return) ->
     case http_headers_body(Return) of
@@ -869,9 +875,8 @@ http_body(Return) ->
             {error, Reason}
     end.
 
--type headers() :: [{string(), string()}].
--spec http_headers_body({ok, tuple()} | {error, term()})
-                       -> {ok, {headers(), binary()}} | {error, tuple()}.
+-spec http_headers_body(http_client_result())
+                       -> httpc_result().
 %% Extract the headers and body and do error handling on the return of a httpc:request call.
 http_headers_body({ok, {{OKStatus, _StatusLine}, Headers, Body}})
   when OKStatus >= 200, OKStatus =< 299 ->
@@ -904,11 +909,11 @@ request_to_return(#aws_request{response_type = error,
     {error, {http_error, Status, StatusLine, Body, Headers}}.
 
 %% http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
--spec sign_v4_headers(aws_config(), headers(), binary(), string(), string()) -> headers().
+-spec sign_v4_headers(aws_config(), headers(), string() | binary(), string(), string()) -> headers().
 sign_v4_headers(Config, Headers, Payload, Region, Service) ->
     sign_v4(post, "/", Config, Headers, Payload, Region, Service, []).
 
--spec sign_v4(atom(), list(), aws_config(), headers(), binary(), string(), string(), list()) -> headers().
+-spec sign_v4(atom(), list(), aws_config(), headers(), string() | binary(), string(), string(), list()) -> headers().
 sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams) ->
     Date = iso_8601_basic_time(),
     {PayloadHash, Headers1} =
@@ -1226,12 +1231,9 @@ profiles_recurse( Keys, Profiles, Role, ExternalId, Options ) ->
         {ok, Credential} ->
             profiles_assume( Credential, Role, ExternalId, Options );
         {cont, ProfileName, NextRole, NextExternalId} ->
-            case profiles_resolve( ProfileName, Profiles,
-                                   NextRole, NextExternalId, Options ) of
-                {ok, Config} ->
-                    profiles_assume( Config, Role, ExternalId, Options );
-                Otherwise -> Otherwise
-            end
+            {ok, Config} = profiles_resolve( ProfileName, Profiles,
+                                             NextRole, NextExternalId, Options ),
+            profiles_assume( Config, Role, ExternalId, Options )
     end.
 
 profiles_credentials( Keys ) ->

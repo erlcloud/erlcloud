@@ -294,7 +294,7 @@ get_function(FunctionName, Config) ->
     get_function(FunctionName, undefined, Config).
 
 -spec get_function(FunctionName :: binary(),
-                   Qualifier    :: binary(),
+                   Qualifier    :: undefined | binary(),
                    Config       :: aws_config()) -> return_val().
 get_function(FunctionName, Qualifier, Config) ->
     Path = base_path() ++ "functions/" ++ binary_to_list(FunctionName),
@@ -478,8 +478,8 @@ list_functions() ->
 list_functions(Marker, MaxItems) ->
     list_functions(Marker, MaxItems, default_config()).
 
--spec list_functions(Marker   :: binary(),
-                     MaxItems :: integer(),
+-spec list_functions(Marker   :: undefined | binary(),
+                     MaxItems :: undefined | integer(),
                      Config   :: aws_config()) -> return_val().
 list_functions(Marker, MaxItems, Config) ->
     Path = base_path() ++ "functions/",
