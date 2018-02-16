@@ -51,6 +51,7 @@
          latest_stream_label :: undefined | binary(),
          local_secondary_indexes :: undefined | [#ddb2_local_secondary_index_description{}],
          provisioned_throughput :: undefined | #ddb2_provisioned_throughput_description{},
+         sse_description :: undefined | erlcloud_ddb2:sse_description(),
          stream_specification :: undefined | erlcloud_ddb2:stream_specification(),
          table_arn :: undefined | binary(),
          table_name :: undefined | binary(),
