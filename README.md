@@ -21,6 +21,7 @@ Service APIs implemented:
 - Amazon Autoscaling (AS)
 - Amazon CloudTrail (CT)
 - Cloud Formation (CFN)
+- Config
 - ElasticLoadBalancing (ELB)
 - Identity and Access Management (IAM)
 - Kinesis

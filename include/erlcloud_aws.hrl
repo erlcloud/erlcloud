@@ -100,6 +100,9 @@
           cur_scheme="https://"::string(),
           cur_host="cur.us-east-1.amazonaws.com"::string(),
           cur_port=443::non_neg_integer(),
+          config_scheme="https://"::string(),
+          config_host="config.us-east-1.amazonaws.com"::string(),
+          config_port=443::non_neg_integer(),
           access_key_id::string()|undefined|false,
           secret_access_key::string()|undefined|false,
           security_token=undefined::string()|undefined,
@@ -157,3 +160,4 @@
           should_retry :: boolean() | undefined
         }).
 -type(aws_request() :: #aws_request{}).
+-define(NEXT_TOKEN_LABEL, <<"NextToken">>).
