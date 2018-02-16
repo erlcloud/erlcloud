@@ -64,7 +64,7 @@
                 <<"ResourceType">> => ?TEST_RESOURCE_TYPE
             }
         ],
-        <<"NextToken">> => <<"">>
+        <<"NextToken">> => <<"string">>
     }
 ).
 
@@ -234,7 +234,7 @@
                 <<"ResultToken">> => <<"string">>
             }
         ],
-        <<"NextToken">> => <<"">>
+        <<"NextToken">> => <<"string">>
     }
 ).
 
@@ -307,7 +307,7 @@
 ).
 
 setup() ->
-    erlcloud_config:configure("test-access-key", "test-secret-key"),
+    configure("test-access-key", "test-secret-key"),
     meck:new(?EHTTPC, [passthrough]),
     meck:expect(?EHTTPC, request, 6, fun do_erlcloud_httpc_request/6),
     [?EHTTPC].
@@ -343,41 +343,41 @@ test_describe_compliance_by_config_rule() ->
     Expected = {ok, ?DESCRIBE_COMPLIANCE_BY_CONFIG_RULE_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:describe_compliance_by_config_rule(Request)
+            erlcloud_config:describe_compliance_by_config_rule(Request, default_config())
         end,
     do_test(Request, Expected, TestFun).
 
 test_describe_compliance_by_resource() ->
     Request = #{?COMPLIANCE_TYPES => ?TEST_COMPLIANCE_TYPES,
         ?LIMIT                    => ?TEST_LIMIT,
+        ?NEXT_TOKEN_LABEL         => <<"string">>,
         ?RESOURCE_ID              => ?TEST_RESOURCE_ID,
-        ?RESOURCE_TYPE            => ?TEST_RESOURCE_TYPE,
-        ?NEXT_TOKEN_LABEL         => <<"">>},
+        ?RESOURCE_TYPE            => ?TEST_RESOURCE_TYPE},
     Expected = {ok, ?DESCRIBE_COMPLIANCE_BY_RESOURCE_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:describe_compliance_by_resource(Request)
+            erlcloud_config:describe_compliance_by_resource(Request, default_config())
         end,
     do_test(Request, Expected, TestFun).
 
 test_describe_config_rule_evaluation_status() ->
     Request = #{?CONFIG_RULE_NAMES => ?TEST_CONFIG_RULE_NAMES,
-        ?LIMIT => 10,
-        ?NEXT_TOKEN_LABEL          => <<"">>},
+        ?LIMIT                     => 10,
+        ?NEXT_TOKEN_LABEL          => <<"string">>},
     Expected = {ok, ?DESCRIBE_CONFIG_RULE_EVALUATION_STATUS_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:describe_config_rule_evaluation_status(Request)
+            erlcloud_config:describe_config_rule_evaluation_status(Request, default_config())
         end,
     do_test(Request, Expected, TestFun).
 
 test_describe_config_rules() ->
     Request = #{?CONFIG_RULE_NAMES => ?TEST_CONFIG_RULE_NAMES,
-        ?NEXT_TOKEN_LABEL          => <<"">>},
+        ?NEXT_TOKEN_LABEL          => <<"string">>},
     Expected = {ok, ?DESCRIBE_CONFIG_RULES_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:describe_config_rules(Request)
+            erlcloud_config:describe_config_rules(Request, default_config())
         end,
     do_test(Request, Expected, TestFun).
 
@@ -386,7 +386,7 @@ test_describe_configuration_recorders() ->
     Expected = {ok, ?DESCRIBE_CONFIGURATION_RECORDERS_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:describe_configuration_recorders(Request)
+            erlcloud_config:describe_configuration_recorders(Request, default_config())
         end,
     do_test(Request, Expected, TestFun).
 
@@ -395,7 +395,7 @@ test_describe_configuration_recorder_status() ->
     Expected = {ok, ?DESCRIBE_CONFIGURATION_RECORDER_STATUS_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:describe_configuration_recorder_status(Request)
+            erlcloud_config:describe_configuration_recorder_status(Request, default_config())
         end,
     do_test(Request, Expected, TestFun).
 
@@ -404,7 +404,7 @@ test_describe_delivery_channels() ->
     Expected = {ok, ?DESCRIBE_DELIVERY_CHANNELS_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:describe_delivery_channels(Request)
+            erlcloud_config:describe_delivery_channels(Request, default_config())
         end,
     do_test(Request, Expected, TestFun).
 
@@ -413,7 +413,7 @@ test_describe_delivery_channel_status() ->
     Expected = {ok, ?DESCRIBE_DELIVERY_CHANNEL_STATUS_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:describe_delivery_channel_status(Request)
+            erlcloud_config:describe_delivery_channel_status(Request, default_config())
         end,
     do_test(Request, Expected, TestFun).
 
@@ -425,19 +425,22 @@ test_get_compliance_details_by_config_rule() ->
     Expected = {ok, ?GET_COMPLIANCE_DETAILS_BY_CONFIG_RULE_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:get_compliance_details_by_config_rule(?TEST_CONFIG_RULE_NAME, Request)
+            erlcloud_config:get_compliance_details_by_config_rule(?TEST_CONFIG_RULE_NAME, Request, default_config())
         end,
     do_test(Request, Expected, TestFun).
 
 test_get_compliance_details_by_resource() ->
     Request = #{?COMPLIANCE_TYPES => ?TEST_COMPLIANCE_TYPES,
-        ?NEXT_TOKEN_LABEL         => <<"">>,
+        ?NEXT_TOKEN_LABEL         => <<"string">>,
         ?RESOURCE_ID              => ?TEST_RESOURCE_ID,
         ?RESOURCE_TYPE            => ?TEST_RESOURCE_TYPE},
     Expected = {ok, ?GET_COMPLIANCE_DETAILS_BY_RESOURCE_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:get_compliance_details_by_resource(?TEST_RESOURCE_ID, ?TEST_RESOURCE_TYPE, Request)
+            erlcloud_config:get_compliance_details_by_resource(?TEST_RESOURCE_ID,
+                ?TEST_RESOURCE_TYPE,
+                Request,
+                default_config())
         end,
     do_test(Request, Expected, TestFun).
 
@@ -446,7 +449,7 @@ test_get_compliance_summary_by_config_rule() ->
     Expected = {ok, ?GET_COMPLIANCE_SUMMARY_BY_CONFIG_RULE_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:get_compliance_summary_by_config_rule()
+            erlcloud_config:get_compliance_summary_by_config_rule(default_config())
         end,
     do_test(Request, Expected, TestFun).
 
@@ -455,18 +458,18 @@ test_get_compliance_summary_by_resource_type() ->
     Expected = {ok, ?GET_COMPLIANCE_SUMMARY_BY_RESOURCE_TYPE_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:get_compliance_summary_by_resource_type(Request)
+            erlcloud_config:get_compliance_summary_by_resource_type(Request, default_config())
         end,
     do_test(Request, Expected, TestFun).
 
 test_get_discovered_resource_counts() ->
-    Request = #{?LIMIT => 77,
-        ?NEXT_TOKEN_LABEL         => <<"">>,
-        ?RESOURCE_TYPES => ?TEST_RESOURCE_TYPES},
+    Request = #{?LIMIT      => 77,
+        ?NEXT_TOKEN_LABEL   => <<"string">>,
+        ?RESOURCE_TYPES     => ?TEST_RESOURCE_TYPES},
     Expected = {ok, ?GET_DISCOVERED_RESOURCE_COUNTS_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:get_discovered_resource_counts(Request)
+            erlcloud_config:get_discovered_resource_counts(Request, default_config())
         end,
     do_test(Request, Expected, TestFun).
 
@@ -475,32 +478,37 @@ test_get_resource_config_history() ->
         ?EARLIER_TIME                => 1234567890,
         ?LATER_TIME                  => 1234567890,
         ?LIMIT                       => 66,
-        ?NEXT_TOKEN_LABEL            => <<"">>,
+        ?NEXT_TOKEN_LABEL            => <<"string">>,
         ?RESOURCE_ID                 => ?TEST_RESOURCE_ID,
         ?RESOURCE_TYPE               => ?TEST_RESOURCE_TYPE},
     Expected = {ok, ?GET_RESOURCE_CONFIG_HISTORY_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:get_resource_config_history(?TEST_RESOURCE_ID, ?TEST_RESOURCE_TYPE, Request)
+            erlcloud_config:get_resource_config_history(?TEST_RESOURCE_ID,
+                ?TEST_RESOURCE_TYPE,
+                Request,
+                default_config())
         end,
     do_test(Request, Expected, TestFun).
 
 test_list_discovered_resources() ->
     Request = #{?INCLUDE_DELETED_RESOURCES => true,
         ?LIMIT                             => ?TEST_LIMIT,
-        ?NEXT_TOKEN_LABEL                  => <<"">>,
+        ?NEXT_TOKEN_LABEL                  => <<"string">>,
         ?RESOURCE_IDS                      => [],
         ?RESOURCE_NAME                     => ?TEST_RESOURCE_NAME,
         ?RESOURCE_TYPE                     => ?TEST_RESOURCE_TYPE},
     Expected = {ok, ?LIST_DISCOVERED_RESOURCES_RESP},
     TestFun  =
         fun() ->
-            erlcloud_config:list_discovered_resources(?TEST_RESOURCE_TYPE, Request)
+            erlcloud_config:list_discovered_resources(?TEST_RESOURCE_TYPE,
+                Request,
+                default_config())
         end,
     do_test(Request, Expected, TestFun).
 
 do_test(Request, ExpectedResult, TestedFun) ->
-    erlcloud_config:configure("test-access-key", "test-secret-key"),
+    configure("test-access-key", "test-secret-key"),
     ?assertEqual(ExpectedResult, TestedFun()),
     Encoded = jsx:encode(Request),
     ?assertMatch([{_, {?EHTTPC, request, [_, post, _, Encoded, _, _]}, _}],
@@ -528,3 +536,10 @@ do_erlcloud_httpc_request(_, post, Headers, _, _, _) ->
             "ListDiscoveredResources"             -> ?LIST_DISCOVERED_RESOURCES_RESP
         end,
     {ok, {{200, "OK"}, [], jsx:encode(RespBody)}}.
+
+configure(AccessKeyId, SecretAccessKey) ->
+    put(aws_config, #aws_config{access_key_id = AccessKeyId,
+        secret_access_key = SecretAccessKey,
+        retry             = fun erlcloud_retry:default_retry/1}).
+
+default_config() -> erlcloud_aws:default_config().
