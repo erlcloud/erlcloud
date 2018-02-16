@@ -4,6 +4,7 @@
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
+-include("erlcloud_iam.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
 %% Library initialization.
@@ -57,7 +58,7 @@
     generate_credential_report/0, generate_credential_report/1,
     get_credential_report/0, get_credential_report/1,
     simulate_principal_policy/2, simulate_principal_policy/3,
-    simulate_custom_policy/2, simulate_custom_policy/3,
+    simulate_custom_policy/2, simulate_custom_policy/3, simulate_custom_policy/4,
     list_virtual_mfa_devices/0, list_virtual_mfa_devices/1, list_virtual_mfa_devices/2, 
     list_virtual_mfa_devices/3, list_virtual_mfa_devices/4
 ]).
@@ -768,6 +769,7 @@ simulate_principal_policy(PolicySourceArn, ActionNames, #aws_config{} = Config)
 simulate_custom_policy(ActionNames, PolicyInputList) ->
     simulate_custom_policy(ActionNames, PolicyInputList, default_config()).
 
+-spec simulate_custom_policy(list(), list(), aws_config() | context_entries()) -> {ok, proplist()} |  {error, any()}.
 simulate_custom_policy(ActionNames, PolicyInputList, #aws_config{} = Config)
   when is_list(ActionNames), is_list(PolicyInputList) ->
     ItemPath = "/SimulateCustomPolicyResponse/SimulateCustomPolicyResult/"
@@ -775,11 +777,47 @@ simulate_custom_policy(ActionNames, PolicyInputList, #aws_config{} = Config)
     Params = erlcloud_util:encode_list("ActionNames", ActionNames) ++ 
              erlcloud_util:encode_list("PolicyInputList", PolicyInputList),
     iam_query_all(Config, "SimulateCustomPolicy", Params,
+                  ItemPath, data_type("EvaluationResult"));
+simulate_custom_policy(ActionNames, PolicyInputList, ContextEntries) ->
+    simulate_custom_policy(ActionNames, PolicyInputList, ContextEntries, default_config()).
+
+simulate_custom_policy(ActionNames, PolicyInputList, ContextEntries, #aws_config{} = Config)
+  when is_list(ActionNames), is_list(PolicyInputList) ->
+    ItemPath = "/SimulateCustomPolicyResponse/SimulateCustomPolicyResult/"
+               "EvaluationResults/member",
+
+    Params = erlcloud_util:encode_list("ActionNames", ActionNames) ++ 
+             erlcloud_util:encode_list("PolicyInputList", PolicyInputList) ++
+             encode_context_entries(ContextEntries),
+    iam_query_all(Config, "SimulateCustomPolicy", Params,
                   ItemPath, data_type("EvaluationResult")).
 
 %
 % Utils
 %
+
+encode_context_entries(ContextEntries) ->
+    ParsedContextEntriesValues = [ [{"ContextKeyName", ContextKeyName},
+                                    {"ContextKeyType", ContextKeyType},
+                                    {"ContextKeyValues", erlcloud_util:encode_list("", ContextKeyValues)}] ||
+                                   [{context_key_name, ContextKeyName},
+                                    {context_key_type, ContextKeyType},
+                                    {context_key_values, ContextKeyValues}] <-
+                                   ContextEntries],
+    EncodedContextEntries = erlcloud_aws:param_list(ParsedContextEntriesValues, "ContextEntries.member"),
+    lists:flatten([flatten_encoded_context_value(Key, Value) || {Key, Value} <- EncodedContextEntries]).
+
+flatten_encoded_context_value(Key, Value) ->
+   flatten_encoded_context_value(Key, Value, []).
+
+flatten_encoded_context_value(_, [], Acc) ->
+    Acc;
+flatten_encoded_context_value(Key, [{SubKey, Val} | Values], Acc) ->
+    Acc2 = [{Key++SubKey, Val}] ++ Acc,
+    flatten_encoded_context_value(Key, Values, Acc2);
+flatten_encoded_context_value(Key, Val, _) ->
+    [{Key, Val}].
+
 iam_query(Config, Action, Params) ->
     iam_query(Config, Action, Params, ?API_VERSION).
 
