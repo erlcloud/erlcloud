@@ -89,19 +89,23 @@
 %%% DynamoDB API
 -export([batch_get_item/1, batch_get_item/2, batch_get_item/3,
          batch_write_item/1, batch_write_item/2, batch_write_item/3,
+         create_global_table/2, create_global_table/3, create_global_table/4,
          create_table/5, create_table/6, create_table/7,
          delete_item/2, delete_item/3, delete_item/4,
          delete_table/1, delete_table/2, delete_table/3,
+         describe_global_table/1, describe_global_table/2, describe_global_table/3,
          describe_limits/0, describe_limits/1, describe_limits/2,
          describe_table/1, describe_table/2, describe_table/3,
          describe_time_to_live/1, describe_time_to_live/2, describe_time_to_live/3,
          get_item/2, get_item/3, get_item/4,
+         list_global_tables/0, list_global_tables/1, list_global_tables/2,
          list_tables/0, list_tables/1, list_tables/2,
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
          q/2, q/3, q/4,
          scan/1, scan/2, scan/3,
          update_item/3, update_item/4, update_item/5,
+         update_global_table/2, update_global_table/3, update_global_table/4,
          update_table/2, update_table/3, update_table/4, update_table/5,
          update_time_to_live/2, update_time_to_live/3, update_time_to_live/4
         ]).
@@ -182,6 +186,9 @@
     q_return/0,
     range_key_name/0,
     read_units/0,
+    replica/0,
+    replica_description/0,
+    replica_update/0,
     return_consumed_capacity/0,
     return_consumed_capacity_opt/0,
     return_item_collection_metrics/0,
@@ -318,6 +325,10 @@ default_config() -> erlcloud_aws:default_config().
 
 -type stream_view_type() :: keys_only | new_image | old_image | new_and_old_images.
 -type stream_specification() :: false | {true, stream_view_type()}.
+
+-type replica() :: {region_name, binary()} | #ddb2_replica{}.
+-type replica_update() :: {create | delete, replica()}.
+-type replica_description() :: #ddb2_replica_description{}.
 
 -type return_value() :: none | all_old | updated_old | all_new | updated_new.
 
@@ -766,6 +777,29 @@ undynamize_expression(Expression, _) ->
 undynamize_expression_attribute_names(Names, _) ->
     Names.
 
+-spec undynamize_global_table_status(binary(), undynamize_opts()) -> table_status().
+undynamize_global_table_status(<<"CREATING">>, _) -> creating;
+undynamize_global_table_status(<<"UPDATING">>, _) -> updating;
+undynamize_global_table_status(<<"DELETING">>, _) -> deleting;
+undynamize_global_table_status(<<"ACTIVE">>, _)   -> active.
+
+-spec undynamize_replica_description(jsx:json_term(), undynamize_opts()) -> replica_description().
+undynamize_replica_description(ReplicaDescription, _) ->
+    #ddb2_replica_description{region_name = proplists:get_value(<<"RegionName">>, ReplicaDescription)}.
+
+-spec undynamize_replica_descriptions(jsx:json_term(), undynamize_opts()) -> [replica_description()].
+undynamize_replica_descriptions(ReplicaDescriptions, Opts) ->
+    [undynamize_replica_description(ReplicaDescription, Opts)
+     || ReplicaDescription <- ReplicaDescriptions].
+
+-spec undynamize_replica(jsx:json_term(), undynamize_opts()) -> replica().
+undynamize_replica(Replica, _) ->
+    #ddb2_replica{region_name = proplists:get_value(<<"RegionName">>, Replica)}.
+
+-spec undynamize_replicas(jsx:json_term(), undynamize_opts()) -> [replica_description()].
+undynamize_replicas(Replicas, Opts) ->
+    [undynamize_replica(Replica, Opts) || Replica <- Replicas].
+
 -spec undynamize_table_status(binary(), undynamize_opts()) -> table_status().
 undynamize_table_status(<<"CREATING">>, _) -> creating;
 undynamize_table_status(<<"UPDATING">>, _) -> updating;
@@ -1109,6 +1143,22 @@ provisioned_throughput_description_record() ->
       {<<"ReadCapacityUnits">>, #ddb2_provisioned_throughput_description.read_capacity_units, fun id/2},
       {<<"WriteCapacityUnits">>, #ddb2_provisioned_throughput_description.write_capacity_units, fun id/2}
      ]}.
+-spec global_table_description_record() -> record_desc().
+global_table_description_record() ->
+    {#ddb2_global_table_description{},
+     [{<<"CreationDateTime">>, #ddb2_global_table_description.creation_date_time, fun id/2},
+      {<<"GlobalTableArn">>, #ddb2_global_table_description.global_table_arn, fun id/2},
+      {<<"GlobalTableName">>, #ddb2_global_table_description.global_table_name, fun id/2},
+      {<<"GlobalTableStatus">>, #ddb2_global_table_description.global_table_status, fun undynamize_global_table_status/2},
+      {<<"ReplicationGroup">>,  #ddb2_global_table_description.replication_group, fun undynamize_replica_descriptions/2}
+    ]}.
+
+-spec global_table_record() -> record_desc().
+global_table_record() ->
+    {#ddb2_global_table{},
+     [{<<"GlobalTableName">>, #ddb2_global_table.global_table_name, fun id/2},
+      {<<"ReplicationGroup">>,  #ddb2_global_table.replication_group, fun undynamize_replicas/2}
+    ]}.
 
 -spec table_description_record() -> record_desc().
 table_description_record() ->
@@ -1398,6 +1448,69 @@ batch_write_item(RequestItems, Opts, Config) ->
     end.
 
 %%%------------------------------------------------------------------------------
+%%% CreateGlobalTable
+%%%------------------------------------------------------------------------------
+
+-spec dynamize_replica(replica()) -> jsx:json_term().
+dynamize_replica(#ddb2_replica{region_name = Region}) ->
+    [{<<"RegionName">>, Region}];
+dynamize_replica({region_name, Region}) ->
+    [{<<"RegionName">>, Region}].
+
+-spec create_global_table_record() -> record_desc().
+create_global_table_record() ->
+    {#ddb2_create_global_table{},
+     [{<<"GlobalTableDescription">>, #ddb2_create_global_table.global_table_description, 
+       fun(V, Opts) -> undynamize_record(global_table_description_record(), V, Opts) end}
+     ]}. 
+
+-type create_global_table_return() :: ddb_return(#ddb2_create_global_table{}, #ddb2_global_table_description{}).
+
+-spec create_global_table(table_name(), maybe_list(replica()))
+                         -> create_global_table_return().
+create_global_table(GlobalTableName, ReplicationGroup) ->
+    create_global_table(GlobalTableName, ReplicationGroup, [], default_config()).
+
+-spec create_global_table(table_name(), maybe_list(replica()), 
+                          ddb_opts() | aws_config())
+                         -> create_global_table_return().
+create_global_table(GlobalTableName, ReplicationGroup, Opts) when is_list(Opts) ->
+    create_global_table(GlobalTableName, ReplicationGroup, Opts, default_config());
+create_global_table(GlobalTableName, ReplicationGroup, Config) when is_record(Config, aws_config) ->
+    create_global_table(GlobalTableName, ReplicationGroup, [], Config).
+
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateGlobalTable.html]
+%%
+%% ===Example===
+%%
+%% Create a global table called "Thread" in us-east-1 and eu-west-1.
+%%
+%% `
+%% {ok, Record} =
+%%     erlcloud_ddb2:create_global_table(<<"Thread">>,
+%%                                       [{region_name, <<"us-east-1">>},
+%%                                        {region_name, <<"eu-west-1">>}]),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec create_global_table(table_name(), [replica()], ddb_opts(),
+                          aws_config())
+                         -> create_global_table_return().
+create_global_table(GlobalTableName, ReplicationGroup, Opts, Config) ->
+    {[], DdbOpts} = opts([], Opts),
+    Return = erlcloud_ddb_impl:request(
+               Config,
+               "DynamoDB_20120810.CreateGlobalTable",
+               [{<<"GlobalTableName">>, GlobalTableName},
+                {<<"ReplicationGroup">>, dynamize_maybe_list(fun dynamize_replica/1, ReplicationGroup)}]),
+    out(Return, fun(Json, UOpts) -> undynamize_record(create_global_table_record(), Json, UOpts) end, 
+        DdbOpts, #ddb2_create_global_table.global_table_description).
+
+%%%------------------------------------------------------------------------------
 %%% CreateTable
 %%%------------------------------------------------------------------------------
 
@@ -1490,7 +1603,7 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec create_table(table_name(), attr_defs(), key_schema(), read_units(), write_units(),
-                   create_table_opts(), aws_config()) 
+                   create_table_opts(), aws_config())
                   -> create_table_return().
 create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(create_table_opts(KeySchema), Opts),
@@ -1643,6 +1756,56 @@ delete_table(Table, Opts, Config) ->
                [{<<"TableName">>, Table}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(delete_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_delete_table.table_description).
+
+%%%------------------------------------------------------------------------------
+%%% DescribeGlobalTable
+%%%------------------------------------------------------------------------------
+
+-spec describe_global_table_record() -> record_desc().
+describe_global_table_record() ->
+    {#ddb2_describe_global_table{},
+     [{<<"GlobalTableDescription">>, #ddb2_describe_global_table.global_table_description, 
+       fun(V, Opts) -> undynamize_record(global_table_description_record(), V, Opts) end}
+     ]}. 
+
+-type describe_global_table_return() :: ddb_return(#ddb2_describe_global_table{}, #ddb2_global_table_description{}).
+
+-spec describe_global_table(table_name()) -> describe_table_return().
+describe_global_table(GlobalTableName) ->
+    describe_global_table(GlobalTableName, [], default_config()).
+
+-spec describe_global_table(table_name(), ddb_opts() | aws_config())
+                           -> describe_table_return().
+describe_global_table(GlobalTableName, Opts) when is_list(Opts) ->
+    describe_global_table(GlobalTableName, Opts, default_config());
+describe_global_table(GlobalTableName, Config) when is_record(Config, aws_config) ->
+    describe_global_table(GlobalTableName, [], Config).
+
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeGlobalTable.html]
+%%
+%% ===Example===
+%%
+%% Describe "Thread" global table.
+%%
+%% `
+%% {ok, Description} =
+%%     erlcloud_ddb2:describe_table(<<"Thread">>),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+-spec describe_global_table(table_name(), ddb_opts(), aws_config())
+                           -> describe_global_table_return().
+describe_global_table(GlobalTableName, Opts, Config) ->
+    {[], DdbOpts} = opts([], Opts),
+    Return = erlcloud_ddb_impl:request(
+               Config,
+               "DynamoDB_20120810.DescribeGlobalTable",
+               [{<<"GlobalTableName">>, GlobalTableName}]),
+    out(Return, fun(Json, UOpts) -> undynamize_record(describe_global_table_record(), Json, UOpts) end, 
+        DdbOpts, #ddb2_describe_table.table).
 
 %%%------------------------------------------------------------------------------
 %%% DescribeLimits
@@ -1870,6 +2033,72 @@ get_item(Table, Key, Opts, Config) ->
                ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(get_item_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_get_item.item, {ok, []}).
+
+%%%------------------------------------------------------------------------------
+%%% ListGlobalTables
+%%%------------------------------------------------------------------------------
+
+-type list_global_tables_opt() :: {limit, pos_integer()} | 
+                                  {exclusive_start_global_table_name, table_name() | undefined} |
+                                  out_opt().
+-type list_global_tables_opts() :: [list_global_tables_opt()].
+
+-spec list_global_tables_opts() -> opt_table().
+list_global_tables_opts() ->
+    [{limit, <<"Limit">>, fun id/1},
+     {exclusive_start_global_table_name, <<"ExclusiveStartGlobalTableName">>, fun id/1}].
+
+-spec undynamize_global_tables(jsx:json_term(), undynamize_opts()) -> [#ddb2_global_table{}].
+undynamize_global_tables(Tables, Opts) ->
+    [undynamize_record(global_table_record(), T, Opts) || T <- Tables].
+
+-spec list_global_tables_record() -> record_desc().
+list_global_tables_record() ->
+    {#ddb2_list_global_tables{},
+     [{<<"GlobalTables">>, #ddb2_list_global_tables.global_tables, fun undynamize_global_tables/2},
+      {<<"LastEvaluatedGlobalTableName">>, #ddb2_list_global_tables.last_evaluated_global_table_name, fun id/2}
+     ]}.
+
+-type list_global_tables_return() :: ddb_return(#ddb2_list_global_tables{}, [#ddb2_global_table{}]).
+
+-spec list_global_tables() -> list_global_tables_return().
+list_global_tables() ->
+    list_global_tables([], default_config()).
+
+-spec list_global_tables(list_global_tables_opts() | aws_config())
+                        -> list_global_tables_return().
+list_global_tables(Opts) when is_list(Opts) ->
+    list_global_tables(Opts, default_config());
+list_global_tables(Config) when is_record(Config, aws_config) ->
+    list_global_tables([], Config).
+
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_ListGlobalTables.html]
+%%
+%% ===Example===
+%%
+%% Get the next 3 global table names after "Thread".
+%%
+%% `
+%% {ok, Tables} = 
+%%     erlcloud_ddb2:list_global_tables(
+%%       [{limit, 3}, 
+%%        {exclusive_start_global_table_name, <<"Thread">>}]),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+-spec list_global_tables(list_global_tables_opts(), aws_config())
+                        -> list_global_tables_return().
+list_global_tables(Opts, Config) ->
+    {AwsOpts, DdbOpts} = opts(list_global_tables_opts(), Opts),
+    Return = erlcloud_ddb_impl:request(
+               Config,
+               "DynamoDB_20120810.ListGlobalTables",
+               AwsOpts),
+    out(Return, fun(Json, UOpts) -> undynamize_record(list_global_tables_record(), Json, UOpts) end, 
+        DdbOpts, #ddb2_list_global_tables.global_tables, {ok, []}).
 
 %%%------------------------------------------------------------------------------
 %%% ListTables
@@ -2355,6 +2584,69 @@ update_item(Table, Key, UpdatesOrExpression, Opts, Config) ->
                ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_item_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_update_item.attributes, {ok, []}).
+
+%%%------------------------------------------------------------------------------
+%%% UpdateGlobalTable
+%%%------------------------------------------------------------------------------
+
+-spec dynamize_replica_update(replica_update()) -> jsx:json_term().
+dynamize_replica_update({create, Replica}) ->
+    [{<<"Create">>, dynamize_replica(Replica)}];
+dynamize_replica_update({delete, Replica}) ->
+    [{<<"Delete">>, dynamize_replica(Replica)}].
+
+-spec update_global_table_record() -> record_desc().
+update_global_table_record() ->
+    {#ddb2_update_global_table{},
+     [{<<"GlobalTableDescription">>, #ddb2_update_global_table.global_table_description, 
+       fun(V, Opts) -> undynamize_record(global_table_description_record(), V, Opts) end}
+     ]}. 
+
+-type update_global_table_return() :: ddb_return(#ddb2_update_global_table{}, #ddb2_global_table_description{}).
+
+-spec update_global_table(table_name(), maybe_list(replica_update()))
+                         -> update_global_table_return().
+update_global_table(GlobalTableName, ReplicaUpdates) ->
+    update_global_table(GlobalTableName, ReplicaUpdates, [], default_config()).
+
+-spec update_global_table(table_name(), maybe_list(replica_update()),
+                          ddb_opts() | aws_config())
+                         -> update_global_table_return().
+update_global_table(GlobalTableName, ReplicaUpdates, Opts) when is_list(Opts) ->
+    update_global_table(GlobalTableName, ReplicaUpdates, Opts, default_config());
+update_global_table(GlobalTableName, ReplicaUpdates, Config) when is_record(Config, aws_config) ->
+    update_global_table(GlobalTableName, ReplicaUpdates, [], default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateGlobalTable.html]
+%%
+%% ===Example===
+%%
+%% Update a global table called "Thread" in us-east-1 and eu-west-1.
+%%
+%% `
+%% {ok, Record} =
+%%     erlcloud_ddb2:update_global_table(<<"Thread">>,
+%%                                       [{create, {region_name, <<"us-east-1">>}},
+%%                                        {delete, {region_name, <<"eu-west-1">>}}]),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec update_global_table(table_name(), [replica_update()], ddb_opts(),
+                          aws_config())
+                         -> update_global_table_return().
+update_global_table(GlobalTableName, ReplicaUpdates, Opts, Config) ->
+    {[], DdbOpts} = opts([], Opts),
+    Return = erlcloud_ddb_impl:request(
+               Config,
+               "DynamoDB_20120810.UpdateGlobalTable",
+               [{<<"GlobalTableName">>, GlobalTableName},
+                {<<"ReplicaUpdates">>, dynamize_maybe_list(fun dynamize_replica_update/1, ReplicaUpdates)}]),
+    out(Return, fun(Json, UOpts) -> undynamize_record(update_global_table_record(), Json, UOpts) end, 
+        DdbOpts, #ddb2_update_global_table.global_table_description).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateTable
