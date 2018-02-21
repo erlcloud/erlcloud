@@ -12,9 +12,25 @@
         }).
 
 -type date_time() :: number().
+-type global_table_status() :: creating | active | deleting | updating.
 -type table_status() :: creating | updating | deleting | active.
 -type index_status() :: creating | updating | deleting | active.
 
+-record(ddb2_replica_description,
+        {region_name :: undefined | binary()}).
+-record(ddb2_global_table_description,
+        {creation_date_time :: undefined | number(),
+         global_table_arn :: undefined | binary(),
+         global_table_name :: undefined | erlcloud_ddb2:table_name(),
+         global_table_status :: undefined | erlcloud_ddb2:global_table_status(),
+         replication_group :: undefined | [#ddb2_replica_description{}]
+        }).
+-record(ddb2_replica,
+        {region_name :: undefined | binary()}).
+-record(ddb2_global_table,
+        {global_table_name :: undefined | erlcloud_ddb2:table_name(),
+         replication_group :: undefined | [#ddb2_replica{}]
+        }).
 -record(ddb2_provisioned_throughput_description,
         {last_decrease_date_time :: undefined | date_time(),
          last_increase_date_time :: undefined | date_time(),
@@ -86,6 +102,10 @@
          unprocessed_items = [] :: [erlcloud_ddb2:batch_write_item_request_item()]
         }).
 
+-record(ddb2_create_global_table,
+        {global_table_description :: undefined | #ddb2_global_table_description{}
+        }).
+
 -record(ddb2_create_table,
         {table_description :: undefined | #ddb2_table_description{}
         }).
@@ -98,6 +118,10 @@
 
 -record(ddb2_delete_table,
         {table_description :: undefined | #ddb2_table_description{}
+        }).
+
+-record(ddb2_describe_global_table,
+        {global_table_description :: undefined | #ddb2_global_table_description{}
         }).
 
 -record(ddb2_describe_limits,
@@ -123,6 +147,11 @@
 -record(ddb2_get_item,
         {item :: undefined | erlcloud_ddb2:out_item(),
          consumed_capacity :: undefined | #ddb2_consumed_capacity{}
+        }).
+
+-record(ddb2_list_global_tables,
+        {global_tables :: undefined | [#ddb2_global_table{}],
+         last_evaluated_global_table_name :: undefined | erlcloud_ddb2:table_name()
         }).
 
 -record(ddb2_list_tables,
@@ -156,6 +185,10 @@
         {attributes :: undefined | erlcloud_ddb2:out_item(),
          consumed_capacity :: undefined | #ddb2_consumed_capacity{},
          item_collection_metrics :: undefined | #ddb2_item_collection_metrics{}
+        }).
+
+-record(ddb2_update_global_table,
+        {global_table_description :: undefined | #ddb2_global_table_description{}
         }).
 
 -record(ddb2_update_table,
