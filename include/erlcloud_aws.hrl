@@ -1,3 +1,6 @@
+-ifndef(erlcloud_aws_hrl).
+-define(erlcloud_aws_hrl, 0).
+
 -record(aws_assume_role,{
     role_arn :: string() | undefined,
     session_name = "erlcloud" :: string(),
@@ -161,3 +164,5 @@
         }).
 -type(aws_request() :: #aws_request{}).
 -define(NEXT_TOKEN_LABEL, <<"NextToken">>).
+
+-endif.

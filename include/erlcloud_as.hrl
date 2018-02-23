@@ -1,4 +1,6 @@
-%% need this include for datetime() type:
+-ifndef(erlcloud_as_hrl).
+-define(erlcloud_as_hrl, 0).
+
 -include("erlcloud.hrl").
 
 -record(aws_autoscaling_tag, {
@@ -73,3 +75,5 @@
           lifecycle_transition :: string()
          }).
 -type(aws_autoscaling_lifecycle_hook() :: #aws_autoscaling_lifecycle_hook{}).
+
+-endif.
