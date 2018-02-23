@@ -777,7 +777,7 @@ undynamize_expression(Expression, _) ->
 undynamize_expression_attribute_names(Names, _) ->
     Names.
 
--spec undynamize_global_table_status(binary(), undynamize_opts()) -> table_status().
+-spec undynamize_global_table_status(binary(), undynamize_opts()) -> global_table_status().
 undynamize_global_table_status(<<"CREATING">>, _) -> creating;
 undynamize_global_table_status(<<"UPDATING">>, _) -> updating;
 undynamize_global_table_status(<<"DELETING">>, _) -> deleting;

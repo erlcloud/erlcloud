@@ -22,7 +22,7 @@
         {creation_date_time :: undefined | number(),
          global_table_arn :: undefined | binary(),
          global_table_name :: undefined | erlcloud_ddb2:table_name(),
-         global_table_status :: undefined | erlcloud_ddb2:global_table_status(),
+         global_table_status :: undefined | global_table_status(),
          replication_group :: undefined | [#ddb2_replica_description{}]
         }).
 -record(ddb2_replica,
