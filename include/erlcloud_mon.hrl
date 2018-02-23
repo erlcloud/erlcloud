@@ -1,6 +1,8 @@
 -ifndef(erlcloud_mon_hrl).
 -define(erlcloud_mon_hrl, 0).
 
+-include("erlcloud.hrl").
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% File: erlcloud_mon.hrl
 %% Date: 18-Sep-2011

@@ -1,6 +1,8 @@
 -ifndef(erlcloud_ec2_hrl).
 -define(erlcloud_ec2_hrl, 0).
 
+-include("erlcloud.hrl").
+
 -type(ec2_shutdown_behavior() :: stop | terminate | undefined).
 -type(ec2_volume_size() :: 1..1024).
 

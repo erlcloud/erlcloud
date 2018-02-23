@@ -1,6 +1,8 @@
 -ifndef(erlcloud_mturk_hrl).
 -define(erlcloud_mturk_hrl, 0).
 
+-include("erlcloud.hrl").
+
 -record(mturk_mime_type, {type=""::string(), sub_type=""::string()}).
 
 -record(mturk_binary, {
