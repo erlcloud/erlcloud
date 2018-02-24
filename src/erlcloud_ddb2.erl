@@ -796,7 +796,7 @@ undynamize_replica_descriptions(ReplicaDescriptions, Opts) ->
 undynamize_replica(Replica, _) ->
     #ddb2_replica{region_name = proplists:get_value(<<"RegionName">>, Replica)}.
 
--spec undynamize_replicas(jsx:json_term(), undynamize_opts()) -> [replica_description()].
+-spec undynamize_replicas([jsx:json_term()], undynamize_opts()) -> [replica()].
 undynamize_replicas(Replicas, Opts) ->
     [undynamize_replica(Replica, Opts) || Replica <- Replicas].
 
