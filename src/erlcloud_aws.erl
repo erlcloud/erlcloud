@@ -241,7 +241,7 @@ aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config) ->
                          response_status = Status} = Request) when
                 %% Retry for 400, Bad Request is needed due to Amazon
                 %% returns it in case of throttling
-                    Status == 400 ->
+                    Status == 400; Status == 429 ->
                 ShouldRetry = is_throttling_error_response(Request),
                 Request#aws_request{should_retry = ShouldRetry};
            (#aws_request{response_type = error} = Request) ->
@@ -1059,6 +1059,8 @@ get_filtered_statuses(ServiceNames, Statuses) ->
     Statuses).
 
 -spec is_throttling_error_response(aws_request()) -> true | false.
+is_throttling_error_response(#aws_request{response_status = 429}) ->
+    true;
 is_throttling_error_response(RequestResponse) ->
     #aws_request{
          response_type = error,
