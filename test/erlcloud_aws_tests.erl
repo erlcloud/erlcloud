@@ -52,17 +52,29 @@ request_retry_test(_) ->
                 "<Detail/>"
             "</Error>
           <RequestId>87503803-73c7-5e4d-8619-76be476a7915</RequestId></ErrorResponse>">>}},
+    Response429 = {ok, {{429, "Too Many Requests"}, [],
+        <<"{"
+             "\"Reason\":\"ReservedFunctionConcurrentInvocationLimitExceeded\","
+             "\"Type\":\"User\","
+             "\"message\":\"Rate Exceeded.\""
+          "}">>}},
     Response200 = {ok, {{200, "OK"}, [], <<"OkBody">>}},
-    meck:sequence(erlcloud_httpc, request, 6, [Response400, Response200]),
-    <<"OkBody">> = erlcloud_aws:aws_request(get, "host", "/", [], config()),
+    MeckAndRequest =
+        fun
+          ({ResponseSeq, xml4}) ->
+              meck:sequence(erlcloud_httpc, request, 6, ResponseSeq),
+              erlcloud_aws:aws_request_xml4(get, "host", "/", [], "any", config());
+          (ResponseSeq) ->
+              meck:sequence(erlcloud_httpc, request, 6, ResponseSeq),
+              erlcloud_aws:aws_request(get, "host", "/", [], config())
+        end,
+    [?_assertNotException(_, _, <<"OkBody">> = MeckAndRequest([Response400, Response200])),
+     ?_assertNotException(_, _, <<"OkBody">> = MeckAndRequest([Response400, Response500, Response200])),
+     ?_assertNotException(_, _, <<"OkBody">> = MeckAndRequest([Response429, Response200])),
+     ?_assertMatch({error, {http_error, 400, "Bad Request", _ErrorMsg}},
+                   MeckAndRequest({[Response400, Response500, Response400, Response200], xml4}))
+     ].
 
-    meck:sequence(erlcloud_httpc, request, 6, [Response400, Response500, Response200]),
-    <<"OkBody">> = erlcloud_aws:aws_request(get, "host", "/", [], config()),
-
-    
-    meck:sequence(erlcloud_httpc, request, 6, [Response400, Response500, Response400, Response200]),
-    Result3 = erlcloud_aws:aws_request_xml4(get, "host", "/", [], "any", config()),
-    ?_assertMatch({error, {http_error, 400, "Bad Request", _ErrorMsg}}, Result3).
 
 request_prot_host_port_str_test(_) ->
     ok = erlcloud_aws:aws_request(get, "http", "host1", "9999", "/path1", [], "id", "key"),
