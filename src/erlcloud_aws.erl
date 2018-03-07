@@ -156,12 +156,13 @@ aws_region_from_host(Host) ->
         %%  cn-north-1 (AWS China): s3.cn-north-1.amazonaws.com.cn
         %% it's assumed that the first element is the aws service (s3, ec2, etc),
         %% the second is the region identifier, the rest is ignored
-        %% the exception (of course) is the dynamodb streams which follows a different
-        %% format
+        %% the exception (of course) is the dynamodb streams and the marketplace which follows a
+        %% different format
         ["streams", "dynamodb", Value | _Rest] ->
             Value;
-        ["metering", "marketplace", Value | _Rest] ->
-            Value;
+        [Prefix, "marketplace", Value | _Rest]
+            when Prefix =:= "metering"; Prefix =:= "entitlement" ->
+                Value;
         [_, Value, _, _ | _Rest] ->
             Value;
         _ ->
@@ -700,6 +701,11 @@ service_config( <<"monitoring">> = Service, Region, Config ) ->
 service_config( <<"mturk">>, Region, Config ) ->
     service_config( <<"mechanicalturk">>, Region, Config );
 service_config( <<"mechanicalturk">>, _Region, Config ) -> Config;
+service_config( <<"mes">>, Region, Config ) ->
+    service_config( <<"entitlement.marketplace">>, Region, Config );
+service_config( <<"entitlement.marketplace">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ mes_host = Host };
 service_config( <<"mms">>, Region, Config ) ->
     service_config( <<"metering.marketplace">>, Region, Config );
 service_config( <<"metering.marketplace">> = Service, Region, Config ) ->
