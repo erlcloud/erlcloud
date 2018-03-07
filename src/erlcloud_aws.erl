@@ -336,6 +336,10 @@ encode_params(Params, Headers) ->
 %% access_key_id, secret_access_key, and security_token, respectively.
 %% If Region is set, we will attempt to set the appropriate URL for this
 %% region for each service.
+%% Default values may be tweaked if there is `aws_config' proplist is present
+%% in application environment. Keys of this proplist must have same names
+%% as `#aws_config{}' fields. All the values defined there would override
+%% appropriate fields in `#aws_config{}' record produced byt this function.
 
 %% check the cache
 default_config() ->
@@ -349,7 +353,9 @@ default_config_wrap() ->
     Key = default_config_get(?AWS_SECRET, aws_secret_access_key),
     Token = default_config_get(?AWS_SESSION, aws_security_token),
     Region = default_config_get(?AWS_REGION, aws_region),
-    default_config_region(default_config_assert(Id, Key, Token), Region).
+    default_config_override(
+        default_config_region(default_config_assert(Id, Key, Token), Region)
+    ).
 
 %% try to get config value from OS env, failing that try app env, else
 %% return undefined
@@ -377,6 +383,34 @@ default_config_assert(Id, Key, Token) ->
     #aws_config{access_key_id = Id,
                 secret_access_key = Key,
                 security_token = Token}.
+
+
+default_config_override(AwsConfig) ->
+    case application:get_env(erlcloud, aws_config) of
+        undefined ->
+            AwsConfig;
+        {ok, DeltaCfgPL} ->
+            map_to_record(
+                maps:merge(record_to_map(AwsConfig), maps:from_list(DeltaCfgPL)),
+                aws_config
+            )
+    end.
+
+
+record_to_map(R) when is_record(R, aws_config) ->
+    [aws_config | Vs] = tuple_to_list(R),
+    Ks = record_info(fields, aws_config),
+    maps:from_list(lists:zip(Ks, Vs)).
+
+
+map_to_record(M, aws_config) ->
+    Vs = lists:map(
+        fun(K) ->
+            maps:get(K, M)
+        end, record_info(fields, aws_config)
+    ),
+    list_to_tuple([aws_config | Vs]).
+
 
 %% call service_config/3 with our Region for all services
 default_config_region(undefined, _) ->

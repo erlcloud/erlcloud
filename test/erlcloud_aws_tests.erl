@@ -156,6 +156,7 @@ get_service_status_test(_) ->
      ?_assertEqual(OKStatus, ok)
      ].
 
+
 auto_config_with_env(_) ->
     % Note: meck do not support os module
     X_AWS_ACCESS  = os:getenv("AWS_ACCESS_KEY_ID"),
@@ -371,6 +372,38 @@ profiles_assume_setup() ->
 profiles_assume_cleanup(P) ->
     profiles_test_cleanup(P),
     meck:unload( erlcloud_sts ).
+
+
+%% Tests that if application environment variable "erlcloud.aws_config" contains
+%% overrides for default `#aws_config{}', those overrides are indeed applied.
+default_config_override_test() ->
+    %% in case if any of previous tests have used `erlcloud_aws:configure/1'
+    _ = erase(aws_config),
+
+    %% everything still works, when the overrides are not provided
+    ?assertEqual(undefined, application:get_env(erlcloud, aws_config)),
+    ?assert(
+        is_record(erlcloud_aws:default_config(), aws_config)
+    ),
+
+    Keys = record_info(fields, aws_config),
+    KeysLen = length(Keys),
+    Nums = lists:seq(1, KeysLen),
+
+    %% reshuffling keys just to make sure that order of arguments
+    %% doesn't matter
+    {LeftKVs, RightKVs} = lists:split(
+        erlang:round(KeysLen/2), lists:zip(Keys, Nums)
+    ),
+
+    %% assigning each record's field an unique number
+    ok = application:set_env(erlcloud, aws_config, RightKVs ++ LeftKVs),
+
+    %% checking that each field was changed and has appropriate number
+    ?assertEqual(
+        [aws_config | Nums], tuple_to_list(erlcloud_aws:default_config())
+    ).
+
 
 default_config_region_sunny_test() ->
     Region = <<"ca-central-1">>,
