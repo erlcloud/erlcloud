@@ -1,3 +1,6 @@
+-ifndef(erlcloud_ddb_streams_hrl).
+-define(erlcloud_ddb_streams_hrl, 0).
+
 -record(ddb_streams_stream,
         {stream_arn :: undefined | erlcloud_ddb_streams:stream_arn(),
          stream_label :: undefined | erlcloud_ddb_streams:stream_label(),
@@ -49,3 +52,5 @@
         {last_evaluated_stream_arn :: undefined | erlcloud_ddb_streams:stream_arn(),
          streams :: undefined | [#ddb_streams_stream{}]
         }).
+
+-endif.

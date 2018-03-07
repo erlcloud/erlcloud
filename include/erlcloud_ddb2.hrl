@@ -1,3 +1,6 @@
+-ifndef(erlcloud_ddb2_hrl).
+-define(erlcloud_ddb2_hrl, 0).
+
 -record(ddb2_error,
         {attempt :: pos_integer(),
          error_type :: undefined | ddb | http | httpc,
@@ -204,3 +207,4 @@
         {time_to_live_specification :: undefined | #ddb2_time_to_live_specification{}
         }).
 
+-endif.

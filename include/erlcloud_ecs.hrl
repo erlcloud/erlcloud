@@ -1,3 +1,6 @@
+-ifndef(erlcloud_ecs_hrl).
+-define(erlcloud_ecs_hrl, 0).
+
 -include("erlcloud.hrl").
 
 -define(LIMIT_MAX, 100).
@@ -304,3 +307,5 @@
     tasks :: undefined | [#ecs_task{}],
     failures :: undefined | [#ecs_failure{}]
 }).
+
+-endif.

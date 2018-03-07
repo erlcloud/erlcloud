@@ -1,3 +1,6 @@
+-ifndef(erlcloud_ddb).
+-define(erlcloud_ddb, 0).
+
 -record(ddb_provisioned_throughput,
         {read_capacity_units :: undefined | pos_integer(),
          write_capacity_units :: undefined | pos_integer(),
@@ -96,3 +99,4 @@
         {table_description :: undefined | #ddb_table_description{}
         }).
 
+-endif.
