@@ -671,7 +671,7 @@ service_config( <<"mes">>, Region, Config ) ->
     service_config( <<"entitlement.marketplace">>, Region, Config );
 service_config( <<"entitlement.marketplace">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
-    Config#aws_config{ mms_host = Host };
+    Config#aws_config{ mes_host = Host };
 service_config( <<"mms">>, Region, Config ) ->
     service_config( <<"metering.marketplace">>, Region, Config );
 service_config( <<"metering.marketplace">> = Service, Region, Config ) ->
