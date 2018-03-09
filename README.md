@@ -21,10 +21,11 @@ Service APIs implemented:
 - Amazon Autoscaling (AS)
 - Amazon CloudTrail (CT)
 - Cloud Formation (CFN)
+- Config
 - ElasticLoadBalancing (ELB)
 - Identity and Access Management (IAM)
 - Kinesis
-- Glue (Catalog table and Job APIs initial support)
+- Glue (Catalog table, Crawlers and Job APIs support)
 - Athena
 - CloudWatch
 - MechanicalTurk
@@ -34,6 +35,7 @@ Service APIs implemented:
 - Short Token Service (STS)
 - Simple Notification Service (SNS)
 - Web Application Firewall (WAF)
+- AWS Cost and Usage Report API
 - and more to come
 
 Majority of API functions have been implemented.
@@ -131,6 +133,29 @@ Configuration object usage:
 EC2 = erlcloud_ec2:new(AccessKeyId, SecretAccessKey [, Hostname])
 erlcloud_ec2:describe_images(EC2).
 ```
+
+### aws_config
+[aws_config](https://github.com/erlcloud/erlcloud/blob/master/include/erlcloud_aws.hrl) record contains many valuable defaults,
+such as protocols and ports for AWS services. You can always redefine them by making new `#aws_config{}` record and
+changing particular fields, then passing the result to any erlcloud function.
+But if you want to change something in runtime this might be tedious and/or not flexible enough.
+
+Alternative approach is to set default fields within the `app.config -> erlcloud -> aws_config` section and
+rely on the config, used by all functions by default.
+
+Example of such app.config:
+
+```erlang
+[
+  {erlcloud, [
+      {aws_config, [
+          {s3_scheme, "http://"},
+          {s3_host, "s3.example.com"}
+      ]}
+  ]}
+].
+```
+
 
 ### Basic use ###
 Then you can start making api calls, like:

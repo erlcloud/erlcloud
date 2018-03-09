@@ -821,7 +821,7 @@ list_tags_for_resource(ResourceArn, Options, Config) ->
           (LocalizedTexts :: [localized_text()]) ->
           inspector_return_val().
 localize_text(LocalizedTexts) ->
-    localize_text(LocalizedTexts, <<"en_US">>).
+    localize_text(LocalizedTexts, "en_US").
 
 
 -spec localize_text

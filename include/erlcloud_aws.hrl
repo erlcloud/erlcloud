@@ -1,3 +1,6 @@
+-ifndef(erlcloud_aws_hrl).
+-define(erlcloud_aws_hrl, 0).
+
 -record(aws_assume_role,{
     role_arn :: string() | undefined,
     session_name = "erlcloud" :: string(),
@@ -33,7 +36,7 @@
           emr_scheme="https://"::string()|undefined,
           emr_host="elasticmapreduce.us-east-1.amazonaws.com"::string(),
           emr_port=undefined::non_neg_integer()|undefined,
-          sns_scheme="http://"::string(),
+          sns_scheme="http://"::undefined|string(),
           sns_host="sns.amazonaws.com"::string(),
           mturk_host="mechanicalturk.amazonaws.com"::string(),
           mon_host="monitoring.amazonaws.com"::string(),
@@ -94,12 +97,21 @@
           ecs_scheme="https://"::string(),
           ecs_host="ecs.us-east-1.amazonaws.com"::string(),
           ecs_port=443::non_neg_integer(),
+          mes_scheme="https://"::string(),
+          mes_host="entitlement.marketplace.us-east-1.amazonaws.com"::string(),
+          mes_port=443::non_neg_integer(),
           mms_scheme="https://"::string(),
           mms_host="metering.marketplace.us-east-1.amazonaws.com"::string(),
           mms_port=443::non_neg_integer(),
           guardduty_scheme="https://"::string(),
           guardduty_host="guardduty.us-east-1.amazonaws.com"::string(),
           guardduty_port=443::non_neg_integer(),
+          cur_scheme="https://"::string(),
+          cur_host="cur.us-east-1.amazonaws.com"::string(),
+          cur_port=443::non_neg_integer(),
+          config_scheme="https://"::string(),
+          config_host="config.us-east-1.amazonaws.com"::string(),
+          config_port=443::non_neg_integer(),
           access_key_id::string()|undefined|false,
           secret_access_key::string()|undefined|false,
           security_token=undefined::string()|undefined,
@@ -157,3 +169,6 @@
           should_retry :: boolean() | undefined
         }).
 -type(aws_request() :: #aws_request{}).
+-define(NEXT_TOKEN_LABEL, <<"NextToken">>).
+
+-endif.

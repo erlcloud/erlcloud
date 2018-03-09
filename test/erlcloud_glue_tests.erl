@@ -8,12 +8,13 @@
 
 -define(EHTTPC, erlcloud_httpc).
 
--define(DB_NAME,    <<"db-1">>).
--define(TBL_NAME,   <<"test_tbl">>).
--define(JOB_NAME,   <<"job-name">>).
--define(LOCATION,   <<"s3://tst/">>).
--define(CATALOG_ID, <<"catalog-1">>).
--define(JOB_RUN_ID, <<"job-run-1">>).
+-define(DB_NAME,      <<"db-1">>).
+-define(TBL_NAME,     <<"test_tbl">>).
+-define(JOB_NAME,     <<"job-name">>).
+-define(CRAWLER_NAME, <<"crawler-name">>).
+-define(LOCATION,     <<"s3://tst/">>).
+-define(CATALOG_ID,   <<"catalog-1">>).
+-define(JOB_RUN_ID,   <<"job-run-1">>).
 
 -define(TBL_INPUT,
     #{<<"CreateTime">> => 1506697886.0,
@@ -36,6 +37,11 @@
       <<"UpdateTime">> => 1506697886.0}
 ).
 
+-define(DB_INPUT,
+    #{<<"Name">>        => ?DB_NAME,
+      <<"Description">> => <<"Database description">>}
+).
+
 -define(JOB_INPUT,
     #{<<"AllocatedCapacity">> => 10,
       <<"Connections">>       => #{},
@@ -46,6 +52,28 @@
       <<"Role">>              => <<"Glue-Test-Role">>,
       <<"Command">>           => #{<<"Name">>           => <<"glueetl">>,
                                    <<"ScriptLocation">> => ?LOCATION}}
+).
+
+-define(CRAWLER_INPUT,
+    #{<<"DatabaseName">> => ?DB_NAME,
+      <<"Name">>         => ?CRAWLER_NAME,
+      <<"Role">>         => <<"some-iam-role">>,
+      <<"Targets">>      =>
+          #{<<"S3Targets">> => [
+              #{<<"Path">>       => ?LOCATION,
+                <<"Exclusions">> => [<<"**.json">>]}
+          ]}
+    }
+).
+
+-define(CRAWLER_METRIC,
+    #{<<"CrawlerName">>          => ?CRAWLER_NAME,
+      <<"LastRuntimeSeconds">>   => 10,
+      <<"MedianRuntimeSeconds">> => 8,
+      <<"StillEstimating">>      => false,
+      <<"TablesCreated">>        => 2,
+      <<"TablesDeleted">>        => 2,
+      <<"TablesUpdated">>        => 2}
 ).
 
 -define(JOB_RUN,
@@ -60,6 +88,8 @@
 
 -define(GET_TABLE,     #{<<"Table">>     => ?TBL_INPUT}).
 -define(GET_TABLES,    #{<<"TableList">> => [?TBL_INPUT]}).
+-define(GET_CRAWLER,   #{<<"Crawler">>   => ?CRAWLER_INPUT}).
+-define(GET_CRAWLERS,  #{<<"Crawlers">>  => [?CRAWLER_INPUT]}).
 -define(GET_JOB,       #{<<"Job">>       => ?JOB_INPUT}).
 -define(GET_JOBS,      #{<<"Jobs">>      => [?JOB_INPUT]}).
 -define(GET_JOB_RUN,   #{<<"JobRun">>    => ?JOB_RUN}).
@@ -67,6 +97,8 @@
 -define(START_JOB_RUN, #{<<"JobRunId">>  => ?JOB_RUN_ID}).
 -define(UPDATE_JOB,    #{<<"JobName">>   => ?JOB_NAME}).
 -define(CREATE_JOB,    #{<<"Name">>      => ?JOB_NAME}).
+
+-define(GET_CRAWLER_METRICS, #{<<"CrawlerMetricsList">> => [?CRAWLER_METRIC]}).
 
 setup() ->
     erlcloud_glue:configure("test-access-key", "test-secret-key"),
@@ -80,10 +112,16 @@ erlcloud_glue_test_() ->
         fun setup/0,
         fun meck:unload/1,
         [
+            fun test_create_crawler/0,
+            fun test_create_database/0,
             fun test_create_job/0,
             fun test_create_table/0,
+            fun test_delete_crawler/0,
             fun test_delete_job/0,
             fun test_delete_table/0,
+            fun test_get_crawler/0,
+            fun test_get_crawler_metrics/0,
+            fun test_get_crawlers/0,
             fun test_get_job/0,
             fun test_get_jobs/0,
             fun test_get_jobs_pagination/0,
@@ -94,16 +132,30 @@ erlcloud_glue_test_() ->
             fun test_get_tables_no_options/0,
             fun test_get_tables_with_options/0,
             fun test_reset_job_bookmark/0,
+            fun test_start_crawler/0,
+            fun test_start_crawler_schedule/0,
             fun test_start_job_run/0,
             fun test_start_job_run_with_run_id/0,
             fun test_start_job_run_with_alloc_capacity/0,
             fun test_start_job_run_with_arguments/0,
+            fun test_stop_crawler/0,
+            fun test_stop_crawler_schedule/0,
+            fun test_update_crawler/0,
+            fun test_update_crawler_schedule/0,
             fun test_update_job/0,
             fun test_update_table/0,
             fun test_error_no_retry/0,
             fun test_error_retry/0
         ]
     }.
+
+test_create_crawler() ->
+    TestFun = fun() -> erlcloud_glue:create_crawler(?CRAWLER_INPUT) end,
+    do_test(?CRAWLER_INPUT, ok, TestFun).
+
+test_create_database() ->
+    TestFun = fun() -> erlcloud_glue:create_database(?DB_INPUT) end,
+    do_test(#{<<"DatabaseInput">> => ?DB_INPUT}, ok, TestFun).
 
 test_create_job() ->
     TestFun  = fun() -> erlcloud_glue:create_job(?JOB_INPUT) end,
@@ -119,6 +171,11 @@ test_create_table() ->
               end,
     do_test(Request, ok, TestFun).
 
+test_delete_crawler() ->
+    Request = #{<<"Name">> => ?CRAWLER_NAME},
+    TestFun = fun() -> erlcloud_glue:delete_crawler(?CRAWLER_NAME) end,
+    do_test(Request, ok, TestFun).
+
 test_delete_job() ->
     Request = #{<<"JobName">> => ?JOB_NAME},
     TestFun = fun() -> erlcloud_glue:delete_job(?JOB_NAME) end,
@@ -132,6 +189,24 @@ test_delete_table() ->
                   erlcloud_glue:delete_table(?DB_NAME, ?TBL_NAME, ?CATALOG_ID)
               end,
     do_test(Request, ok, TestFun).
+
+test_get_crawler() ->
+    Request  = #{<<"Name">> => ?CRAWLER_NAME},
+    Expected = {ok, ?GET_CRAWLER},
+    TestFun  = fun() -> erlcloud_glue:get_crawler(?CRAWLER_NAME) end,
+    do_test(Request, Expected, TestFun).
+
+test_get_crawler_metrics() ->
+    Request  = #{<<"CrawlerNameList">> => [?CRAWLER_NAME]},
+    Expected = {ok, ?GET_CRAWLER_METRICS},
+    TestFun  = fun() -> erlcloud_glue:get_crawler_metrics([?CRAWLER_NAME]) end,
+    do_test(Request, Expected, TestFun).
+
+test_get_crawlers() ->
+    Request  = #{},
+    Expected = {ok, ?GET_CRAWLERS},
+    TestFun  = fun() -> erlcloud_glue:get_crawlers() end,
+    do_test(Request, Expected, TestFun).
 
 test_get_job() ->
     Request  = #{<<"JobName">> => ?JOB_NAME},
@@ -212,9 +287,19 @@ test_reset_job_bookmark() ->
     TestFun = fun() -> erlcloud_glue:reset_job_bookmark(?JOB_NAME) end,
     do_test(Request, ok, TestFun).
 
+test_start_crawler() ->
+    Request = #{<<"Name">> => ?CRAWLER_NAME},
+    TestFun = fun() -> erlcloud_glue:start_crawler(?CRAWLER_NAME) end,
+    do_test(Request, ok, TestFun).
+
+test_start_crawler_schedule() ->
+    Request = #{<<"CrawlerName">> => ?CRAWLER_NAME},
+    TestFun = fun() -> erlcloud_glue:start_crawler_schedule(?CRAWLER_NAME) end,
+    do_test(Request, ok, TestFun).
+
 test_start_job_run() ->
     Request  = #{<<"JobName">>   => ?JOB_NAME,
-                <<"Arguments">> => #{}},
+                 <<"Arguments">> => #{}},
     Expected = {ok, ?START_JOB_RUN},
     TestFun  = fun() -> erlcloud_glue:start_job_run(?JOB_NAME) end,
     do_test(Request, Expected, TestFun).
@@ -242,6 +327,29 @@ test_start_job_run_with_arguments() ->
     Expected = {ok, ?START_JOB_RUN},
     TestFun  = fun() -> erlcloud_glue:start_job_run(?JOB_NAME, Args) end,
     do_test(Request, Expected, TestFun).
+
+test_stop_crawler() ->
+    Request = #{<<"Name">> => ?CRAWLER_NAME},
+    TestFun = fun() -> erlcloud_glue:stop_crawler(?CRAWLER_NAME) end,
+    do_test(Request, ok, TestFun).
+
+test_stop_crawler_schedule() ->
+    Request = #{<<"CrawlerName">> => ?CRAWLER_NAME},
+    TestFun = fun() -> erlcloud_glue:stop_crawler_schedule(?CRAWLER_NAME) end,
+    do_test(Request, ok, TestFun).
+
+test_update_crawler() ->
+    TestFun = fun() -> erlcloud_glue:update_crawler(?CRAWLER_INPUT) end,
+    do_test(?CRAWLER_INPUT, ok, TestFun).
+
+test_update_crawler_schedule() ->
+    Schedule = <<"cron(15 12 * * ? *)">>,
+    Request  = #{<<"CrawlerName">> => ?CRAWLER_NAME,
+                 <<"Schedule">>    => Schedule},
+    TestFun = fun() ->
+                  erlcloud_glue:update_crawler_schedule(?CRAWLER_NAME, Schedule)
+              end,
+    do_test(Request, ok, TestFun).
 
 test_update_job() ->
     Request  = #{<<"JobName">>   => ?JOB_NAME,
@@ -297,19 +405,31 @@ do_erlcloud_httpc_request(_, post, Headers, _, _, _) ->
     ["AWSGlue", Operation] = string:tokens(Target, "."),
     RespBody =
         case Operation of
-            "CreateJob"        -> ?CREATE_JOB;
-            "CreateTable"      -> #{};
-            "DeleteJob"        -> #{};
-            "DeleteTable"      -> #{};
-            "GetJob"           -> ?GET_JOB;
-            "GetJobs"          -> ?GET_JOBS;
-            "GetJobRun"        -> ?GET_JOB_RUN;
-            "GetJobRuns"       -> ?GET_JOB_RUNS;
-            "GetTable"         -> ?GET_TABLE;
-            "GetTables"        -> ?GET_TABLES;
-            "ResetJobBookmark" -> #{};
-            "StartJobRun"      -> ?START_JOB_RUN;
-            "UpdateJob"        -> ?UPDATE_JOB;
-            "UpdateTable"      -> #{}
+            "CreateCrawler"         -> #{};
+            "CreateDatabase"        -> #{};
+            "CreateJob"             -> ?CREATE_JOB;
+            "CreateTable"           -> #{};
+            "DeleteCrawler"         -> #{};
+            "DeleteJob"             -> #{};
+            "DeleteTable"           -> #{};
+            "GetCrawler"            -> ?GET_CRAWLER;
+            "GetCrawlerMetrics"     -> ?GET_CRAWLER_METRICS;
+            "GetCrawlers"           -> ?GET_CRAWLERS;
+            "GetJob"                -> ?GET_JOB;
+            "GetJobs"               -> ?GET_JOBS;
+            "GetJobRun"             -> ?GET_JOB_RUN;
+            "GetJobRuns"            -> ?GET_JOB_RUNS;
+            "GetTable"              -> ?GET_TABLE;
+            "GetTables"             -> ?GET_TABLES;
+            "ResetJobBookmark"      -> #{};
+            "StartCrawler"          -> #{};
+            "StartCrawlerSchedule"  -> #{};
+            "StartJobRun"           -> ?START_JOB_RUN;
+            "StopCrawler"           -> #{};
+            "StopCrawlerSchedule"   -> #{};
+            "UpdateCrawler"         -> #{};
+            "UpdateCrawlerSchedule" -> #{};
+            "UpdateJob"             -> ?UPDATE_JOB;
+            "UpdateTable"           -> #{}
         end,
     {ok, {{200, "OK"}, [], jsx:encode(RespBody)}}.

@@ -1,11 +1,13 @@
-%% need this include for datetime() type:
+-ifndef(erlcloud_as_hrl).
+-define(erlcloud_as_hrl, 0).
+
 -include("erlcloud.hrl").
 
 -record(aws_autoscaling_tag, {
           key :: string(),
-          propogate_at_launch :: boolean(),
-          resource_id :: string(),
-          resource_type :: string(),
+          propogate_at_launch :: undefined | boolean(),
+          resource_id :: undefined | string(),
+          resource_type :: undefined | string(),
           value :: string()
 }).
 -type(aws_autoscaling_tag() :: #aws_autoscaling_tag{}).
@@ -23,14 +25,14 @@
 
 -record(aws_autoscaling_group, {
           group_name :: string(),
-          availability_zones :: list(string()),
+          availability_zones :: undefined | list(string()),
           load_balancer_names :: list(string()),
           tags :: list(aws_autoscaling_tag()),
-          desired_capacity :: integer(),
-          min_size :: integer(),
-          max_size :: integer(),
-          launch_configuration_name :: string(),
-          vpc_zone_id :: list(string()),
+          desired_capacity :: undefined | integer(),
+          min_size :: undefined | integer(),
+          max_size :: undefined | integer(),
+          launch_configuration_name :: undefined | string(),
+          vpc_zone_id :: undefined | list(string()),
           instances :: list(aws_autoscaling_instance()),
           status :: string()
          }).
@@ -41,11 +43,11 @@
           image_id :: string(),
           instance_type :: string(),
           tenancy :: string(),
-          user_data :: string(),
+          user_data :: undefined | string(),
           security_groups = [] :: list(string()),
-          public_ip_address = false :: boolean(),
-          monitoring = false :: boolean(),
-          key_name :: string()
+          public_ip_address = false :: undefined | boolean(),
+          monitoring = false :: undefined | boolean(),
+          key_name :: undefined | string()
          }).
 -type(aws_launch_config() :: #aws_launch_config{}).
 
@@ -73,3 +75,5 @@
           lifecycle_transition :: string()
          }).
 -type(aws_autoscaling_lifecycle_hook() :: #aws_autoscaling_lifecycle_hook{}).
+
+-endif.

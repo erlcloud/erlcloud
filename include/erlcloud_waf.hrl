@@ -1,3 +1,6 @@
+-ifndef(erlcloud_waf_hrl).
+-define(erlcloud_waf_hrl, 0).
+
 -type waf_update_action() :: insert | delete.
 -type waf_text_transformation() :: none | compress_white_space | html_entity_decode | lowercase | cmd_line | url_decode.
 -type waf_positional_constraint() :: exactly | starts_with | ends_with | contains | contains_word.
@@ -139,3 +142,5 @@
         xss_match_tuple :: waf_xss_match_tuple()
 }).
 -type(waf_xss_match_set_update() :: #waf_xss_match_set_update{}).
+
+-endif.

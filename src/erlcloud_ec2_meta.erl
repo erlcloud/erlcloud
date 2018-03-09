@@ -10,17 +10,17 @@
 
 
 
--spec get_instance_metadata() -> {ok, binary()} | {error, tuple()}.
+-spec get_instance_metadata() -> {ok, binary()} | {error, erlcloud_aws:httpc_result_error()}.
 get_instance_metadata() ->
    get_instance_metadata(erlcloud_aws:default_config()).
 
--spec get_instance_metadata(Config :: aws_config() ) -> {ok, binary()} | {error, tuple()}.
+-spec get_instance_metadata(Config :: aws_config() ) -> {ok, binary()} | {error, erlcloud_aws:httpc_result_error()}.
 get_instance_metadata(Config) ->
    get_instance_metadata("", Config).
 
 
 %%%---------------------------------------------------------------------------
--spec get_instance_metadata( ItemPath :: string(), Config :: aws_config() ) -> {ok, binary()} | {error, tuple()}.
+-spec get_instance_metadata( ItemPath :: string(), Config :: aws_config() ) -> {ok, binary()} | {error, erlcloud_aws:httpc_result_error()}.
 %%%---------------------------------------------------------------------------
 %% @doc Retrieve the instance meta data for the instance this code is running on. Will fail if not an EC2 instance.
 %%
@@ -34,12 +34,12 @@ get_instance_metadata(ItemPath, Config) ->
     erlcloud_aws:http_body(erlcloud_httpc:request(MetaDataPath, get, [], <<>>, erlcloud_aws:get_timeout(Config), Config)).
 
 
--spec get_instance_user_data() -> {ok, binary()} | {error, tuple()}.
+-spec get_instance_user_data() -> {ok, binary()} | {error, erlcloud_aws:httpc_result_error()}.
 get_instance_user_data() ->
    get_instance_user_data(erlcloud_aws:default_config()).
 
 %%%---------------------------------------------------------------------------
--spec get_instance_user_data( Config :: aws_config() ) -> {ok, binary()} | {error, tuple()}.
+-spec get_instance_user_data( Config :: aws_config() ) -> {ok, binary()} | {error, erlcloud_aws:httpc_result_error()}.
 %%%---------------------------------------------------------------------------
 %% @doc Retrieve the user data for the instance this code is running on. Will fail if not an EC2 instance.
 %%
@@ -52,17 +52,17 @@ get_instance_user_data(Config) ->
     erlcloud_aws:http_body(erlcloud_httpc:request(UserDataPath, get, [], <<>>, erlcloud_aws:get_timeout(Config), Config)).
 
 
--spec get_instance_dynamic_data() -> {ok, binary()} | {error, tuple()}.
+-spec get_instance_dynamic_data() -> {ok, binary()} | {error, erlcloud_aws:httpc_result_error()}.
 get_instance_dynamic_data() ->
    get_instance_dynamic_data(erlcloud_aws:default_config()).
 
--spec get_instance_dynamic_data(Config :: aws_config() ) -> {ok, binary()} | {error, tuple()}.
+-spec get_instance_dynamic_data(Config :: aws_config() ) -> {ok, binary()} | {error, erlcloud_aws:httpc_result_error()}.
 get_instance_dynamic_data(Config) ->
    get_instance_dynamic_data("", Config).
 
 
 %%%---------------------------------------------------------------------------
--spec get_instance_dynamic_data( ItemPath :: string(), Config :: aws_config() ) -> {ok, binary()} | {error, tuple()}.
+-spec get_instance_dynamic_data( ItemPath :: string(), Config :: aws_config() ) -> {ok, binary()} | {error, erlcloud_aws:httpc_result_error()}.
 %%%---------------------------------------------------------------------------
 
 get_instance_dynamic_data(ItemPath, Config) ->
