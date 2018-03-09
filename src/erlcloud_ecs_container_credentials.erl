@@ -6,7 +6,7 @@
 -export([get_container_credentials/1]).
 
 %%%---------------------------------------------------------------------------
--spec get_container_credentials( Config :: aws_config() ) -> {ok, binary()} | {error, tuple()}.
+-spec get_container_credentials( Config :: aws_config() ) -> {ok, binary()} | {error, container_credentials_unavailable | erlcloud_aws:httpc_result_error()}.
 %%%---------------------------------------------------------------------------
 %% @doc Retrieve the container credentials. Will fail if not an ECS task.
 %%

@@ -58,7 +58,7 @@
         MetricName      ::string(),
         DimensionFilter ::[{string(),string()}],
         NextToken       ::string()
-                          ) -> term().
+                          ) -> term() | no_return().
 
 list_metrics(
   Namespace,
@@ -74,7 +74,7 @@ list_metrics(
         DimensionFilter ::[{string(),string()}],
         NextToken       ::string(),
         Config          ::aws_config()
-                          ) -> term().
+                          ) -> term() | no_return().
 
 list_metrics(
   Namespace,
@@ -320,7 +320,7 @@ extract_actions_dafm(Node) ->
 -spec put_metric_data(
         Namespace   ::string(),
         MetricData  ::[metric_datum()]
-                      ) -> term().
+                      ) -> term() | no_return().
 
 put_metric_data(Namespace, MetricData) ->
     put_metric_data(Namespace, MetricData, default_config()).
@@ -329,7 +329,7 @@ put_metric_data(Namespace, MetricData) ->
         Namespace   ::string(),
         MetricData  ::[metric_datum()],
         Config      ::aws_config()
-                      ) -> term().
+                      ) -> term() | no_return().
 
 put_metric_data(Namespace, MetricData, #aws_config{} = Config) ->
 
@@ -406,7 +406,7 @@ params_stat(Prefix, StatisticValues) ->
         Value       ::string(),
         Unit        ::unit(),
         Timestamp   ::datetime()|string()
-                      ) -> term().
+                      ) -> term() | no_return().
 
 put_metric_data(Namespace, MetricName, Value, Unit, Timestamp) ->
     put_metric_data(Namespace, MetricName, Value, Unit, Timestamp, default_config()).
@@ -418,7 +418,7 @@ put_metric_data(Namespace, MetricName, Value, Unit, Timestamp) ->
         Unit        ::unit(),
         Timestamp   ::datetime()|string(),
         Config      ::aws_config()
-                      ) -> term().
+                      ) -> term() | no_return().
 
 put_metric_data(Namespace, MetricName, Value, Unit, Timestamp, #aws_config{} = Config) ->
     Params =
@@ -445,7 +445,7 @@ put_metric_data(Namespace, MetricName, Value, Unit, Timestamp, #aws_config{} = C
         StartTime   ::datetime() | string(),
         EndTime     ::datetime() | string(),
         InstanceId  ::string()
-       ) -> term().
+       ) -> term() | no_return().
 
 get_metric_statistics(
   MetricName,
@@ -489,7 +489,7 @@ get_metric_statistics(
         Unit        ::string(),
         Statistics  ::[string()],
         Dimensions  ::[{string(), string()}]
-                      ) -> term().
+                      ) -> term() | no_return().
 
 get_metric_statistics(
   Namespace,
@@ -516,14 +516,14 @@ get_metric_statistics(
 -spec get_metric_statistics(
         Namespace   ::string(),
         MetricName  ::string(),
-        StartTime   ::string(),
-        EndTime     ::string(),
+        StartTime   ::datetime() | string(),
+        EndTime     ::datetime() | string(),
         Period      ::pos_integer(),
         Unit        ::string(),
         Statistics  ::[string()],
-        Dimensions  ::[string()],
+        Dimensions  ::[{string(), string()}],
         Config      ::aws_config()
-                      ) -> term().
+                      ) -> term() | no_return().
 
 get_metric_statistics(
   Namespace,

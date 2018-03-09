@@ -52,17 +52,29 @@ request_retry_test(_) ->
                 "<Detail/>"
             "</Error>
           <RequestId>87503803-73c7-5e4d-8619-76be476a7915</RequestId></ErrorResponse>">>}},
+    Response429 = {ok, {{429, "Too Many Requests"}, [],
+        <<"{"
+             "\"Reason\":\"ReservedFunctionConcurrentInvocationLimitExceeded\","
+             "\"Type\":\"User\","
+             "\"message\":\"Rate Exceeded.\""
+          "}">>}},
     Response200 = {ok, {{200, "OK"}, [], <<"OkBody">>}},
-    meck:sequence(erlcloud_httpc, request, 6, [Response400, Response200]),
-    <<"OkBody">> = erlcloud_aws:aws_request(get, "host", "/", [], config()),
+    MeckAndRequest =
+        fun
+          ({ResponseSeq, xml4}) ->
+              meck:sequence(erlcloud_httpc, request, 6, ResponseSeq),
+              erlcloud_aws:aws_request_xml4(get, "host", "/", [], "any", config());
+          (ResponseSeq) ->
+              meck:sequence(erlcloud_httpc, request, 6, ResponseSeq),
+              erlcloud_aws:aws_request(get, "host", "/", [], config())
+        end,
+    [?_assertNotException(_, _, <<"OkBody">> = MeckAndRequest([Response400, Response200])),
+     ?_assertNotException(_, _, <<"OkBody">> = MeckAndRequest([Response400, Response500, Response200])),
+     ?_assertNotException(_, _, <<"OkBody">> = MeckAndRequest([Response429, Response200])),
+     ?_assertMatch({error, {http_error, 400, "Bad Request", _ErrorMsg}},
+                   MeckAndRequest({[Response400, Response500, Response400, Response200], xml4}))
+     ].
 
-    meck:sequence(erlcloud_httpc, request, 6, [Response400, Response500, Response200]),
-    <<"OkBody">> = erlcloud_aws:aws_request(get, "host", "/", [], config()),
-
-    
-    meck:sequence(erlcloud_httpc, request, 6, [Response400, Response500, Response400, Response200]),
-    Result3 = erlcloud_aws:aws_request_xml4(get, "host", "/", [], "any", config()),
-    ?_assertMatch({error, {http_error, 400, "Bad Request", _ErrorMsg}}, Result3).
 
 request_prot_host_port_str_test(_) ->
     ok = erlcloud_aws:aws_request(get, "http", "host1", "9999", "/path1", [], "id", "key"),
@@ -143,6 +155,7 @@ get_service_status_test(_) ->
      ?_assertEqual(OKStatusEmpty, ok),
      ?_assertEqual(OKStatus, ok)
      ].
+
 
 auto_config_with_env(_) ->
     % Note: meck do not support os module
@@ -360,6 +373,42 @@ profiles_assume_cleanup(P) ->
     profiles_test_cleanup(P),
     meck:unload( erlcloud_sts ).
 
+
+%% Tests that if application environment variable "erlcloud.aws_config" contains
+%% overrides for default `#aws_config{}', those overrides are indeed applied.
+default_config_override_test() ->
+    %% in case if any of previous tests have used `erlcloud_aws:configure/1'
+    _ = erase(aws_config),
+
+    %% everything still works, when the overrides are not provided
+    ?assertEqual(undefined, application:get_env(erlcloud, aws_config)),
+    ?assert(
+        is_record(erlcloud_aws:default_config(), aws_config)
+    ),
+
+    Keys = record_info(fields, aws_config),
+    KeysLen = length(Keys),
+    Nums = lists:seq(1, KeysLen),
+
+    %% reshuffling keys just to make sure that order of arguments
+    %% doesn't matter
+    {LeftKVs, RightKVs} = lists:split(
+        erlang:round(KeysLen/2), lists:zip(Keys, Nums)
+    ),
+
+    %% assigning each record's field an unique number
+    ok = application:set_env(erlcloud, aws_config, RightKVs ++ LeftKVs),
+
+    %% checking that each field was changed and has appropriate number
+    ?assertEqual(
+        [aws_config | Nums], tuple_to_list(erlcloud_aws:default_config())
+    ).
+
+
+default_config_region_sunny_test() ->
+    Region = <<"ca-central-1">>,
+    ?assertMatch(#aws_config{},
+        erlcloud_aws:default_config_region(#aws_config{}, Region)).
 
 service_config_autoscaling_test() ->
     Service = <<"autoscaling">>,

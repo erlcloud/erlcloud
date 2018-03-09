@@ -33,6 +33,8 @@ operation_test_() ->
       fun batch_get_item_output_tests/1,
       fun batch_write_item_input_tests/1,
       fun batch_write_item_output_tests/1,
+      fun create_global_table_input_tests/1,
+      fun create_global_table_output_tests/1,
       fun create_table_input_tests/1,
       fun create_table_output_tests/1,
       fun delete_item_input_tests/1,
@@ -41,6 +43,8 @@ operation_test_() ->
       fun delete_table_output_tests/1,
       fun describe_limits_input_tests/1,
       fun describe_limits_output_tests/1,
+      fun describe_global_table_input_tests/1,
+      fun describe_global_table_output_tests/1,
       fun describe_table_input_tests/1,
       fun describe_table_output_tests/1,
       fun describe_time_to_live_input_tests/1,
@@ -48,6 +52,8 @@ operation_test_() ->
       fun get_item_input_tests/1,
       fun get_item_output_tests/1,
       fun get_item_output_typed_tests/1,
+      fun list_global_tables_input_tests/1,
+      fun list_global_tables_output_tests/1,
       fun list_tables_input_tests/1,
       fun list_tables_output_tests/1,
       fun put_item_input_tests/1,
@@ -58,6 +64,8 @@ operation_test_() ->
       fun scan_output_tests/1,
       fun update_item_input_tests/1,
       fun update_item_output_tests/1,
+      fun update_global_table_input_tests/1,
+      fun update_global_table_output_tests/1,
       fun update_table_input_tests/1,
       fun update_table_output_tests/1,
       fun update_time_to_live_input_tests/1,
@@ -833,6 +841,105 @@ batch_write_item_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb2:batch_write_item([], [{out, record}])), Tests).
+
+%% CreateGlobalTable input test:
+create_global_table_input_tests(_) ->
+    Tests =
+          [?_ddb_test(
+              {"CreateGlobalTable example request (2 regions)",
+               ?_f(erlcloud_ddb2:create_global_table(<<"Thread">>, [{region_name, <<"us-east-1">>},
+                                                                    {region_name, <<"us-west-2">>}])), "
+{
+   \"GlobalTableName\": \"Thread\",
+   \"ReplicationGroup\": [ 
+      { 
+         \"RegionName\": \"us-east-1\"
+      },{ 
+         \"RegionName\": \"us-west-2\"
+      }
+   ]
+}"
+              }),
+           ?_ddb_test(
+              {"CreateGlobalTable example request (1 region)",
+               ?_f(erlcloud_ddb2:create_global_table(<<"Thread">>, #ddb2_replica{region_name = <<"us-west-2">>})), "
+{
+   \"GlobalTableName\": \"Thread\",
+   \"ReplicationGroup\": [ 
+      { 
+         \"RegionName\": \"us-west-2\"
+      }
+   ]
+}"
+              })],
+      Response = "
+{
+   \"GlobalTableDescription\": { 
+      \"CreationDateTime\": 1519161181.107,
+      \"GlobalTableArn\": \"arn:aws:dynamodb::111122223333:global-table/Thread\",
+      \"GlobalTableName\": \"Thread\",
+      \"GlobalTableStatus\": \"CREATING\",
+      \"ReplicationGroup\": [ 
+          { 
+             \"RegionName\": \"us-east-1\"
+          },{ 
+             \"RegionName\": \"us-west-2\"
+          }
+      ]
+   }
+}",
+      input_tests(Response, Tests).
+
+%% CreateGlobalTable output test:
+create_global_table_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"CreateGlobalTable example response with CREATING status ", "
+{
+   \"GlobalTableDescription\": { 
+      \"CreationDateTime\": 1519161181.107,
+      \"GlobalTableArn\": \"arn:aws:dynamodb::111122223333:global-table/Thread\",
+      \"GlobalTableName\": \"Thread\",
+      \"GlobalTableStatus\": \"CREATING\",
+      \"ReplicationGroup\": [ 
+          { 
+             \"RegionName\": \"us-east-1\"
+          }
+      ]
+   }
+}",
+              {ok, #ddb2_global_table_description{
+                creation_date_time = 1519161181.107,
+                global_table_arn = <<"arn:aws:dynamodb::111122223333:global-table/Thread">>,
+                global_table_name = <<"Thread">>,
+                global_table_status = creating,
+                replication_group = [#ddb2_replica_description{region_name = <<"us-east-1">>}]}}}),
+
+         ?_ddb_test(
+            {"CreateGlobalTable example response with ACTIVE status ", "
+{
+   \"GlobalTableDescription\": { 
+      \"CreationDateTime\": 1519161181.107,
+      \"GlobalTableArn\": \"arn:aws:dynamodb::111122223333:global-table/Thread\",
+      \"GlobalTableName\": \"Thread\",
+      \"GlobalTableStatus\": \"ACTIVE\",
+      \"ReplicationGroup\": [ 
+          { 
+             \"RegionName\": \"us-east-1\"
+          },{ 
+             \"RegionName\": \"eu-west-1\"
+          }
+      ]
+   }
+}",
+              {ok, #ddb2_global_table_description{
+                creation_date_time = 1519161181.107,
+                global_table_arn = <<"arn:aws:dynamodb::111122223333:global-table/Thread">>,
+                global_table_name = <<"Thread">>,
+                global_table_status = active,
+                replication_group = [#ddb2_replica_description{region_name = <<"us-east-1">>},
+                                     #ddb2_replica_description{region_name = <<"eu-west-1">>}]}}})],
+    output_tests(?_f(erlcloud_ddb2:create_global_table(<<"Thread">>, {region_name, <<"us-east-1">>})), Tests).
 
 %% CreateTable test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html
@@ -1673,6 +1780,85 @@ describe_limits_output_tests(_) ->
 
     output_tests(?_f(erlcloud_ddb2:describe_limits()), Tests).
 
+%% DescribeGlobalTable input test:
+describe_global_table_input_tests(_) ->
+    Tests =
+          [?_ddb_test(
+              {"DescribeGlobalTable example request",
+               ?_f(erlcloud_ddb2:describe_global_table(<<"Thread">>)), "
+{
+   \"GlobalTableName\": \"Thread\"
+}"
+              })],
+      Response = "
+{
+   \"GlobalTableDescription\": { 
+      \"CreationDateTime\": 1519161181.107,
+      \"GlobalTableArn\": \"arn:aws:dynamodb::111122223333:global-table/Thread\",
+      \"GlobalTableName\": \"Thread\",
+      \"GlobalTableStatus\": \"ACTIVE\",
+      \"ReplicationGroup\": [ 
+          { 
+             \"RegionName\": \"us-east-1\"
+          },{ 
+             \"RegionName\": \"us-west-2\"
+          }
+      ]
+   }
+}",
+      input_tests(Response, Tests).
+
+%% DescribeGlobalTable output test:
+describe_global_table_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"DescribeGlobalTable example response with CREATING status ", "
+{
+   \"GlobalTableDescription\": { 
+      \"CreationDateTime\": 1519161181.107,
+      \"GlobalTableArn\": \"arn:aws:dynamodb::111122223333:global-table/Thread\",
+      \"GlobalTableName\": \"Thread\",
+      \"GlobalTableStatus\": \"CREATING\",
+      \"ReplicationGroup\": [ 
+          { 
+             \"RegionName\": \"us-east-1\"
+          }
+      ]
+   }
+}",
+              {ok, #ddb2_global_table_description{
+                creation_date_time = 1519161181.107,
+                global_table_arn = <<"arn:aws:dynamodb::111122223333:global-table/Thread">>,
+                global_table_name = <<"Thread">>,
+                global_table_status = creating,
+                replication_group = [#ddb2_replica_description{region_name = <<"us-east-1">>}]}}}),
+
+         ?_ddb_test(
+            {"DescribeGlobalTable example response with ACTIVE status ", "
+{
+   \"GlobalTableDescription\": { 
+      \"CreationDateTime\": 1519161181.107,
+      \"GlobalTableArn\": \"arn:aws:dynamodb::111122223333:global-table/Thread\",
+      \"GlobalTableName\": \"Thread\",
+      \"GlobalTableStatus\": \"ACTIVE\",
+      \"ReplicationGroup\": [ 
+          { 
+             \"RegionName\": \"us-east-1\"
+          },{ 
+             \"RegionName\": \"eu-west-1\"
+          }
+      ]
+   }
+}",
+              {ok, #ddb2_global_table_description{
+                creation_date_time = 1519161181.107,
+                global_table_arn = <<"arn:aws:dynamodb::111122223333:global-table/Thread">>,
+                global_table_name = <<"Thread">>,
+                global_table_status = active,
+                replication_group = [#ddb2_replica_description{region_name = <<"us-east-1">>},
+                                     #ddb2_replica_description{region_name = <<"eu-west-1">>}]}}})],
+    output_tests(?_f(erlcloud_ddb2:describe_global_table(<<"Thread">>)), Tests).
+
 %% DescribeTable test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeTable.html
 describe_table_input_tests(_) ->
@@ -2160,6 +2346,96 @@ get_item_output_typed_tests(_) ->
     
     output_tests(?_f(erlcloud_ddb2:get_item(
                        <<"table">>, {<<"k">>, <<"v">>}, [{out, typed_record}])), Tests).
+
+%% ListGlobalTables input test:
+list_global_tables_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"ListGlobalTables example request",
+             ?_f(erlcloud_ddb2:list_global_tables([{exclusive_start_global_table_name, <<"Forum">>},
+                                                   {limit, 3}])), "
+{
+    \"ExclusiveStartGlobalTableName\": \"Forum\",
+    \"Limit\": 3
+}"
+            }),
+         ?_ddb_test(
+            {"ListGlobalTables empty request",
+             ?_f(erlcloud_ddb2:list_global_tables()), 
+             "{}"
+            })
+
+        ],
+
+    Response = "
+{
+   \"GlobalTables\": [ 
+      { 
+         \"GlobalTableName\": \"Forum\",
+         \"ReplicationGroup\": [ 
+            { 
+               \"RegionName\": \"us-west-2\"
+            },{ 
+               \"RegionName\": \"us-east-1\"
+            }
+         ]
+      },{ 
+         \"GlobalTableName\": \"Thread\",
+         \"ReplicationGroup\": [ 
+            { 
+               \"RegionName\": \"us-east-1\"
+            },{ 
+               \"RegionName\": \"eu-west-1\"
+            }
+         ]
+      }
+   ],
+    \"LastEvaluatedGlobalTableName\": \"Thread\"
+}",
+    input_tests(Response, Tests).
+
+%% ListGlobalTables output test:
+list_global_tables_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"ListGlobalTables example response", "
+{
+   \"GlobalTables\": [ 
+      { 
+         \"GlobalTableName\": \"Forum\",
+         \"ReplicationGroup\": [ 
+            { 
+               \"RegionName\": \"us-west-2\"
+            },{ 
+               \"RegionName\": \"us-east-1\"
+            }
+         ]
+      },{ 
+         \"GlobalTableName\": \"Thread\",
+         \"ReplicationGroup\": [ 
+            { 
+               \"RegionName\": \"us-east-1\"
+            },{ 
+               \"RegionName\": \"eu-west-1\"
+            }
+         ]
+      }
+   ],
+    \"LastEvaluatedGlobalTableName\": \"Thread\"
+}",
+             {ok, #ddb2_list_global_tables
+              {last_evaluated_global_table_name = <<"Thread">>,
+               global_tables = [#ddb2_global_table
+                                 {global_table_name = <<"Forum">>,
+                                  replication_group = [#ddb2_replica{region_name = <<"us-west-2">>},
+                                                       #ddb2_replica{region_name = <<"us-east-1">>}]},
+                                #ddb2_global_table
+                                 {global_table_name = <<"Thread">>,
+                                  replication_group = [#ddb2_replica{region_name = <<"us-east-1">>},
+                                                       #ddb2_replica{region_name = <<"eu-west-1">>}]}]}}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb2:list_global_tables([{out, record}])), Tests).
 
 %% ListTables test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_ListTables.html
@@ -3263,6 +3539,120 @@ update_item_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb2:update_item(<<"table">>, {<<"k">>, <<"v">>}, [])), Tests).
+
+%% UpdateGlobalTable input test:
+update_global_table_input_tests(_) ->
+    Tests =
+          [?_ddb_test(
+              {"UpdateGlobalTable example request (create)",
+               ?_f(erlcloud_ddb2:update_global_table(<<"Thread">>, [{create, {region_name, <<"us-east-1">>}}])), "
+{
+   \"GlobalTableName\": \"Thread\",
+   \"ReplicaUpdates\": [ 
+      { 
+         \"Create\": { 
+            \"RegionName\": \"us-east-1\"
+         }
+      }
+  ]
+}"
+              }),
+           ?_ddb_test(
+              {"UpdateGlobalTable example request (delete)",
+               ?_f(erlcloud_ddb2:update_global_table(<<"Thread">>, {delete, #ddb2_replica{region_name = <<"us-west-2">>}})), "
+{
+   \"GlobalTableName\": \"Thread\",
+   \"ReplicaUpdates\": [ 
+      { 
+         \"Delete\": { 
+            \"RegionName\": \"us-west-2\"
+         }
+      }
+  ]
+}"
+              }),
+           ?_ddb_test(
+              {"UpdateGlobalTable example request (multiple)",
+               ?_f(erlcloud_ddb2:update_global_table(<<"Thread">>, [{create, {region_name, <<"us-east-1">>}},
+                                                                    {delete, {region_name, <<"eu-west-1">>}}])), "
+{
+   \"GlobalTableName\": \"Thread\",
+   \"ReplicaUpdates\": [ 
+      { 
+         \"Create\": { 
+            \"RegionName\": \"us-east-1\"
+         }
+      },{ 
+         \"Delete\": { 
+            \"RegionName\": \"eu-west-1\"
+         }
+      }
+  ]
+}"
+              })],
+      Response = "
+{
+   \"GlobalTableDescription\": { 
+      \"CreationDateTime\": 1519161181.107,
+      \"GlobalTableArn\": \"arn:aws:dynamodb::111122223333:global-table/Thread\",
+      \"GlobalTableName\": \"Thread\",
+      \"GlobalTableStatus\": \"UPDATING\",
+      \"ReplicationGroup\": [ 
+          { 
+             \"RegionName\": \"us-east-1\"
+          }
+      ]
+   }
+}",
+      input_tests(Response, Tests).
+
+%% UpdateGlobalTable output test:
+update_global_table_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"UpdateGlobalTable example response with UPDATING status", "
+{
+   \"GlobalTableDescription\": { 
+      \"CreationDateTime\": 1519161181.107,
+      \"GlobalTableArn\": \"arn:aws:dynamodb::111122223333:global-table/Thread\",
+      \"GlobalTableName\": \"Thread\",
+      \"GlobalTableStatus\": \"UPDATING\",
+      \"ReplicationGroup\": [ 
+          { 
+             \"RegionName\": \"us-east-1\"
+          }
+      ]
+   }
+}",
+              {ok, #ddb2_global_table_description{
+                creation_date_time = 1519161181.107,
+                global_table_arn = <<"arn:aws:dynamodb::111122223333:global-table/Thread">>,
+                global_table_name = <<"Thread">>,
+                global_table_status = updating,
+                replication_group = [#ddb2_replica_description{region_name = <<"us-east-1">>}]}}}),
+
+         ?_ddb_test(
+            {"UpdateGlobalTable example response with DELETING status", "
+{
+   \"GlobalTableDescription\": { 
+      \"CreationDateTime\": 1519161181.107,
+      \"GlobalTableArn\": \"arn:aws:dynamodb::111122223333:global-table/Thread\",
+      \"GlobalTableName\": \"Thread\",
+      \"GlobalTableStatus\": \"DELETING\",
+      \"ReplicationGroup\": [ 
+          { 
+             \"RegionName\": \"eu-west-1\"
+          }
+      ]
+   }
+}",
+              {ok, #ddb2_global_table_description{
+                creation_date_time = 1519161181.107,
+                global_table_arn = <<"arn:aws:dynamodb::111122223333:global-table/Thread">>,
+                global_table_name = <<"Thread">>,
+                global_table_status = deleting,
+                replication_group = [#ddb2_replica_description{region_name = <<"eu-west-1">>}]}}})],
+    output_tests(?_f(erlcloud_ddb2:update_global_table(<<"Thread">>, {create, {region_name, <<"us-east-1">>}})), Tests).
 
 %% UpdateTable test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTable.html

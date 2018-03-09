@@ -1,3 +1,8 @@
+-ifndef(erlcloud_ec2_hrl).
+-define(erlcloud_ec2_hrl, 0).
+
+-include("erlcloud.hrl").
+
 -type(ec2_shutdown_behavior() :: stop | terminate | undefined).
 -type(ec2_volume_size() :: 1..1024).
 
@@ -26,7 +31,7 @@
           max_count=1::pos_integer(),
           key_name::string(),
           group_set=["default"]::[string()],
-          user_data::binary(),
+          user_data::undefined|binary(),
           instance_type::string(),
           availability_zone::string(),
           placement_group::string(),
@@ -64,7 +69,7 @@
           launch_specification::#ec2_instance_spec{}
          }).
 -record(spot_fleet_request_config_spec, {
-          allocation_strategy::lowest_price|diversified,
+          allocation_strategy::undefined|lowest_price|diversified,
           client_token::string(),
           excess_capacity_termination_policy::no_termination|default,
           iam_fleet_role::string(),
@@ -90,10 +95,10 @@
           ip_protocol::tcp|udp|icmp,
           from_port::-1 | 0..65535,
           to_port::-1 | 0..65535,
-          user_id::[string()],
-          group_name::[string()],
-          group_id::[string()],
-          cidr_ip::[string()]
+          user_id::undefined|[string()],
+          group_name::undefined|[string()],
+          group_id::undefined|[string()],
+          cidr_ip::undefined|[string()]
          }).
 -record(vpc_egress_spec, {
           ip_protocol::tcp|udp|icmp,
@@ -108,10 +113,10 @@
           ip_protocol::tcp|udp|icmp,
           from_port::-1 | 0..65535,
           to_port::-1 | 0..65535,
-          user_id::[string()],
-          group_name::[string()],
-          group_id::[string()],
-          cidr_ip::[string()]
+          user_id::undefined|[string()],
+          group_name::undefined|[string()],
+          group_id::undefined|[string()],
+          cidr_ip::undefined|[string()]
          }).
 
 -record(ec2_network_acl_spec, {
@@ -143,4 +148,4 @@
           value :: string()
          }).
 
-
+-endif.

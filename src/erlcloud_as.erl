@@ -3,6 +3,7 @@
 -include("erlcloud_aws.hrl").
 -include("erlcloud_as.hrl").
 
+-include("erlcloud_xmerl.hrl").
 
 %% AWS Autoscaling functions
 -export([describe_groups/0, describe_groups/1, describe_groups/2, describe_groups/4,
@@ -134,11 +135,11 @@ describe_groups(GN, Params, Config) ->
             {error, Reason}
     end.
     
--spec extract_instance(string()) -> aws_autoscaling_instance().
+-spec extract_instance(xmerl_xpath_doc_entity() | xmerl_xpath_node_entity()) -> aws_autoscaling_instance().
 extract_instance(I) ->
     extract_instance(I, erlcloud_xml:get_text("AutoScalingGroupName", I)).
 
--spec extract_instance(string(), string()) -> aws_autoscaling_instance().
+-spec extract_instance(xmerl_xpath_doc_entity() | xmerl_xpath_node_entity(), string()) -> aws_autoscaling_instance().
 extract_instance(I, GroupName) ->
     #aws_autoscaling_instance{
        instance_id = erlcloud_xml:get_text("InstanceId", I),
@@ -734,7 +735,7 @@ get_text(Label, Doc) ->
     erlcloud_xml:get_text(Label, Doc).
 
 %% @TODO:  spec is too general with terms I think
--spec as_query(aws_config(), string(), list({string(), term()}), string()) -> {ok, term()} | {error, term()}.
+-spec as_query(aws_config(), string(), list({string(), term()}), string()) -> {ok, #xmlElement{}} | {error, term()}.
 as_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
     erlcloud_aws:aws_request_xml4(post, Config#aws_config.as_host,

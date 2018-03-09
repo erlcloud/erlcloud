@@ -1,3 +1,6 @@
+-ifndef(erlcloud_ecs_hrl).
+-define(erlcloud_ecs_hrl, 0).
+
 -include("erlcloud.hrl").
 
 -define(LIMIT_MAX, 100).
@@ -21,8 +24,8 @@
 -type(ecs_pagination_options() :: #ecs_pagination_options{}).
 
 -record(ecs_attribute, {
-    name :: binary(),
-    value :: binary()
+    name :: undefined | binary(),
+    value :: undefined | binary()
 }).
 %% helper record
 -record(ecs_single_return, {
@@ -30,277 +33,279 @@
 }).
 
 -record(ecs_deployment_configuration, {
-    maximum_percent :: pos_integer(),
-    minimum_healthy_percent :: pos_integer()
+    maximum_percent :: undefined | pos_integer(),
+    minimum_healthy_percent :: undefined | pos_integer()
 }).
 
 -record(ecs_deployment, {
-    created_at :: pos_integer(),
-    desired_count :: pos_integer(),
-    id :: binary(),
-    pending_count :: pos_integer(),
-    running_count :: pos_integer(),
-    status :: binary(),
-    task_definition:: binary(),
-    updated_at :: pos_integer()
+    created_at :: undefined | pos_integer(),
+    desired_count :: undefined | pos_integer(),
+    id :: undefined | binary(),
+    pending_count :: undefined | pos_integer(),
+    running_count :: undefined | pos_integer(),
+    status :: undefined | binary(),
+    task_definition:: undefined | binary(),
+    updated_at :: undefined | pos_integer()
 }).
 
 -record(ecs_event, {
-    created_at :: pos_integer(),
-    id :: binary(),
-    message :: binary()
+    created_at :: undefined | pos_integer(),
+    id :: undefined | binary(),
+    message :: undefined | binary()
 }).
 
 -record(ecs_load_balancer, {
-    container_name :: binary(),
-    container_port :: pos_integer(),
-    load_balancer_name :: binary(),
-    target_group_arn :: binary()
+    container_name :: undefined | binary(),
+    container_port :: undefined | pos_integer(),
+    load_balancer_name :: undefined | binary(),
+    target_group_arn :: undefined | binary()
 }).
 
 -record(ecs_cluster, {
-    active_services_count :: pos_integer(),
-    cluster_arn :: binary(),
-    cluster_name :: binary(),
-    pending_tasks_count :: pos_integer(),
-    registered_container_instances_count :: pos_integer(),
-    running_tasks_count :: pos_integer(),
-    status :: binary()
+    active_services_count :: undefined | pos_integer(),
+    cluster_arn :: undefined | binary(),
+    cluster_name :: undefined | binary(),
+    pending_tasks_count :: undefined | pos_integer(),
+    registered_container_instances_count :: undefined | pos_integer(),
+    running_tasks_count :: undefined | pos_integer(),
+    status :: undefined | binary()
 }).
 
 -record(ecs_service, {
-    cluster_arn :: binary(),
-    created_at :: pos_integer(),
-    deployment_configuration :: #ecs_deployment_configuration{},
-    deployments :: [#ecs_deployment{}],
-    desired_count :: pos_integer(),
-    events :: [#ecs_event{}],
-    load_balancers :: [#ecs_load_balancer{}],
-    pending_count :: pos_integer(),
-    role_arn :: binary(),
-    running_count :: pos_integer(),
-    service_arn :: binary(),
-    service_name :: binary(),
-    status :: binary(),
-    task_definition :: binary()
+    cluster_arn :: undefined | binary(),
+    created_at :: undefined | pos_integer(),
+    deployment_configuration :: undefined | #ecs_deployment_configuration{},
+    deployments :: undefined | [#ecs_deployment{}],
+    desired_count :: undefined | pos_integer(),
+    events :: undefined | [#ecs_event{}],
+    load_balancers :: undefined | [#ecs_load_balancer{}],
+    pending_count :: undefined | pos_integer(),
+    role_arn :: undefined | binary(),
+    running_count :: undefined | pos_integer(),
+    service_arn :: undefined | binary(),
+    service_name :: undefined | binary(),
+    status :: undefined | binary(),
+    task_definition :: undefined | binary()
 }).
 
 -record(ecs_resource, {
-   double_value :: pos_integer(),
-   integer_value :: pos_integer(),
-   long_value :: pos_integer(),
-   name :: binary(),
-   string_set_value :: binary(),
-   type :: binary()
+   double_value :: undefined | pos_integer(),
+   integer_value :: undefined | pos_integer(),
+   long_value :: undefined | pos_integer(),
+   name :: undefined | binary(),
+   string_set_value :: undefined | binary(),
+   type :: undefined | binary()
 }).
 
 -record(ecs_version_info, {
-    agent_hash :: binary(),
-    agent_version :: binary(),
-    docker_version :: binary()
+    agent_hash :: undefined | binary(),
+    agent_version :: undefined | binary(),
+    docker_version :: undefined | binary()
 }).
 
 -record(ecs_container_instance, {
-    agent_connected :: boolean(),
-    agent_update_status :: binary(),
-    attributes :: [#ecs_attribute{}],
-    container_instance_arn :: binary(),
-    ec2_instance_id :: binary(),
-    pending_tasks_count :: pos_integer(),
-    registered_resources :: [#ecs_resource{}],
-    remaining_resources :: [#ecs_resource{}],
-    running_tasks_count :: pos_integer(),
-    status :: binary(),
-    version_info :: #ecs_version_info{}
+    agent_connected :: undefined | boolean(),
+    agent_update_status :: undefined | binary(),
+    attributes :: undefined | [#ecs_attribute{}],
+    container_instance_arn :: undefined | binary(),
+    ec2_instance_id :: undefined | binary(),
+    pending_tasks_count :: undefined | pos_integer(),
+    registered_resources :: undefined | [#ecs_resource{}],
+    remaining_resources :: undefined | [#ecs_resource{}],
+    running_tasks_count :: undefined | pos_integer(),
+    status :: undefined | binary(),
+    version_info :: undefined | #ecs_version_info{}
 }).
 
 -record(ecs_failure, {
-    arn :: binary(),
-    reason :: binary()
+    arn :: undefined | binary(),
+    reason :: undefined | binary()
 }).
 
 -record(ecs_describe_clusters, {
-    clusters :: [#ecs_cluster{}],
-    failures :: [#ecs_failure{}]
+    clusters :: undefined | [#ecs_cluster{}],
+    failures :: undefined | [#ecs_failure{}]
 }).
 
 -record(ecs_describe_container_instances, {
-    container_instances :: [#ecs_container_instance{}],
-    failures :: [#ecs_failure{}]
+    container_instances :: undefined | [#ecs_container_instance{}],
+    failures :: undefined | [#ecs_failure{}]
 }).
 
 -record(ecs_describe_services, {
-    services :: [#ecs_service{}],
-    failures :: [#ecs_failure{}]
+    services :: undefined | [#ecs_service{}],
+    failures :: undefined | [#ecs_failure{}]
 }).
 
 -record(ecs_host, {
-    host_name :: binary(),
-    ip_address :: binary()
+    host_name :: undefined | binary(),
+    ip_address :: undefined | binary()
 }).
 
 -record(ecs_log_configuration, {
-    log_driver :: binary(),
-    options :: [{binary(), binary()}]
+    log_driver :: undefined | binary(),
+    options :: undefined | [{binary(), binary()}]
 }).
 
 -record(ecs_mount_point, {
-    container_path :: binary(),
-    read_only :: boolean(),
-    source_volume :: binary()
+    container_path :: undefined | binary(),
+    read_only :: undefined | boolean(),
+    source_volume :: undefined | binary()
 }).
 
 -record(ecs_port_mapping, {
-    container_port :: pos_integer(),
-    host_port :: pos_integer(),
-    protocol :: ecs_protocol()
+    container_port :: undefined | pos_integer(),
+    host_port :: undefined | pos_integer(),
+    protocol :: undefined | ecs_protocol()
 }).
 
 -record(ecs_ulimit, {
-    hard_limit :: pos_integer(),
+    hard_limit :: undefined | pos_integer(),
     name :: ecs_ulimit_name(),
-    soft_limit :: pos_integer()
+    soft_limit :: undefined | pos_integer()
 }).
 
 -record(ecs_volume_from, {
-    read_only :: boolean(),
-    source_container :: binary()
+    read_only :: undefined | boolean(),
+    source_container :: undefined | binary()
 }).
 
 -record(ecs_container_definition, {
-    command :: [binary()],
-    cpu :: pos_integer(),
-    disable_networking :: boolean(),
-    dns_search_domains :: [binary()],
-    docker_labels :: [{binary(), binary()}],
-    docker_security_options :: [binary()],
-    entry_point :: [binary()],
-    environment :: [#ecs_attribute{}],
-    essential :: boolean(),
-    extra_hosts :: [#ecs_host{}],
-    host_name :: binary(),
-    image :: binary(),
-    links :: [binary()],
-    log_configuration :: #ecs_log_configuration{},
-    memory :: pos_integer(),
-    memory_reservation :: pos_integer(),
-    mount_points :: [#ecs_mount_point{}],
-    name :: binary(),
-    port_mappings :: [#ecs_port_mapping{}],
-    privileged :: boolean(),
-    readonly_root_filesystem :: boolean(),
-    ulimits :: [#ecs_ulimit{}], 
-    user :: binary(),
-    volumes_from :: [#ecs_volume_from{}],
-    working_directory :: binary()
+    command :: undefined | [binary()],
+    cpu :: undefined | pos_integer(),
+    disable_networking :: undefined | boolean(),
+    dns_search_domains :: undefined | [binary()],
+    docker_labels :: undefined | [{binary(), binary()}],
+    docker_security_options :: undefined | [binary()],
+    entry_point :: undefined | [binary()],
+    environment :: undefined | [#ecs_attribute{}],
+    essential :: undefined | boolean(),
+    extra_hosts :: undefined | [#ecs_host{}],
+    host_name :: undefined | binary(),
+    image :: undefined | binary(),
+    links :: undefined | [binary()],
+    log_configuration :: undefined | #ecs_log_configuration{},
+    memory :: undefined | pos_integer(),
+    memory_reservation :: undefined | pos_integer(),
+    mount_points :: undefined | [#ecs_mount_point{}],
+    name :: undefined | binary(),
+    port_mappings :: undefined | [#ecs_port_mapping{}],
+    privileged :: undefined | boolean(),
+    readonly_root_filesystem :: undefined | boolean(),
+    ulimits :: undefined | [#ecs_ulimit{}], 
+    user :: undefined | binary(),
+    volumes_from :: undefined | [#ecs_volume_from{}],
+    working_directory :: undefined | binary()
 }).
 
 -record(ecs_volume_host, {
-    source_path :: binary()
+    source_path :: undefined | binary()
 }).
 
 -record(ecs_volume, {
-    host :: #ecs_volume_host{},
-    name :: binary()
+    host :: undefined | #ecs_volume_host{},
+    name :: undefined | binary()
 }).
 
 -record(ecs_task_definition, {
-    container_definitions :: [#ecs_container_definition{}],
-    family :: binary(),
-    network_mode :: binary(),
-    requires_attributes :: [#ecs_attribute{}],
-    revision :: pos_integer(),
-    status :: binary(),
-    task_definition_arn :: binary(),
-    task_role_arn :: binary(),
-    volumes :: [#ecs_volume{}]
+    container_definitions :: undefined | [#ecs_container_definition{}],
+    family :: undefined | binary(),
+    network_mode :: undefined | binary(),
+    requires_attributes :: undefined | [#ecs_attribute{}],
+    revision :: undefined | pos_integer(),
+    status :: undefined | binary(),
+    task_definition_arn :: undefined | binary(),
+    task_role_arn :: undefined | binary(),
+    volumes :: undefined | [#ecs_volume{}]
 }).
 
 -record(ecs_network_binding, {
-    bind_ip :: binary(),
-    container_port :: pos_integer(),
-    host_port :: pos_integer(),
-    protocol :: ecs_protocol()
+    bind_ip :: undefined | binary(),
+    container_port :: undefined | pos_integer(),
+    host_port :: undefined | pos_integer(),
+    protocol :: undefined | ecs_protocol()
 }).
 
 -record(ecs_container, {
-    container_arn :: binary(),
-    exit_code :: pos_integer(),
-    last_status :: binary(),
-    name :: binary(),
-    network_bindings :: [#ecs_network_binding{}],
-    reason :: binary(),
-    task_arn :: binary()
+    container_arn :: undefined | binary(),
+    exit_code :: undefined | pos_integer(),
+    last_status :: undefined | binary(),
+    name :: undefined | binary(),
+    network_bindings :: undefined | [#ecs_network_binding{}],
+    reason :: undefined | binary(),
+    task_arn :: undefined | binary()
 }).
 
 -record(ecs_container_override, {
-    command :: [binary()],
-    environment :: [#ecs_attribute{}],
-    name :: binary()
+    command :: undefined | [binary()],
+    environment :: undefined | [#ecs_attribute{}],
+    name :: undefined | binary()
 }).
 
 -record(ecs_task_override, {
-    container_overrides :: [#ecs_container_override{}],
-    task_role_arn :: binary() 
+    container_overrides :: undefined | [#ecs_container_override{}],
+    task_role_arn :: undefined | binary() 
 }).
 
 -record(ecs_task, {
-    cluster_arn :: binary(),
-    container_instance_arn :: binary(),
-    containers :: [#ecs_container{}],
-    created_at :: pos_integer(),
-    desired_status:: binary(),
-    last_status :: binary(),
-    overrides :: #ecs_task_override{},
-    started_at :: pos_integer(),
-    started_by :: binary(),
-    stopped_at :: pos_integer(),
-    stopped_reason :: binary(),
-    task_arn :: binary(),
-    task_definition_arn :: binary()
+    cluster_arn :: undefined | binary(),
+    container_instance_arn :: undefined | binary(),
+    containers :: undefined | [#ecs_container{}],
+    created_at :: undefined | pos_integer(),
+    desired_status:: undefined | binary(),
+    last_status :: undefined | binary(),
+    overrides :: undefined | #ecs_task_override{},
+    started_at :: undefined | pos_integer(),
+    started_by :: undefined | binary(),
+    stopped_at :: undefined | pos_integer(),
+    stopped_reason :: undefined | binary(),
+    task_arn :: undefined | binary(),
+    task_definition_arn :: undefined | binary()
 }).
 
 -record(ecs_describe_tasks, {
-    tasks :: [#ecs_task{}],
-    failures :: [#ecs_failure{}]
+    tasks :: undefined | [#ecs_task{}],
+    failures :: undefined | [#ecs_failure{}]
 }).
 
 -record(ecs_list_clusters, {
-    cluster_arns :: [erlcloud_ecs:arn()],
-    next_token :: token()
+    cluster_arns :: undefined | [erlcloud_ecs:arn()],
+    next_token :: undefined | token()
 }).
 
 -record(ecs_list_container_instances, {
-    container_instance_arns:: [erlcloud_ecs:arn()],
-    next_token :: token()
+    container_instance_arns:: undefined | [erlcloud_ecs:arn()],
+    next_token :: undefined | token()
 }).
 
 -record(ecs_list_services, {
-    service_arns:: [erlcloud_ecs:arn()],
-    next_token :: token()
+    service_arns:: undefined | [erlcloud_ecs:arn()],
+    next_token :: undefined | token()
 }).
 
 -record(ecs_list_task_definition_families, {
-    families :: [erlcloud_ecs:arn()],
-    next_token :: token()
+    families :: undefined | [erlcloud_ecs:arn()],
+    next_token :: undefined | token()
 }).
 
 -record(ecs_list_task_definitions, {
-    task_definition_arns :: [erlcloud_ecs:arn()],
-    next_token :: token()
+    task_definition_arns :: undefined | [erlcloud_ecs:arn()],
+    next_token :: undefined | token()
 }).
 
 -record(ecs_list_tasks, {
-    task_arns :: [erlcloud_ecs:arn()],
-    next_token :: token()
+    task_arns :: undefined | [erlcloud_ecs:arn()],
+    next_token :: undefined | token()
 }).
 
 -record(ecs_run_task, {
-    tasks :: [#ecs_task{}],
-    failures :: [#ecs_failure{}]
+    tasks :: undefined | [#ecs_task{}],
+    failures :: undefined | [#ecs_failure{}]
 }).
 
 -record(ecs_start_task, {
-    tasks :: [#ecs_task{}],
-    failures :: [#ecs_failure{}]
+    tasks :: undefined | [#ecs_task{}],
+    failures :: undefined | [#ecs_failure{}]
 }).
+
+-endif.

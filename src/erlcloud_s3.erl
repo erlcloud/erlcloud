@@ -155,12 +155,12 @@ configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
 -define(XMLNS_S3, "http://s3.amazonaws.com/doc/2006-03-01/").
 -define(XMLNS_SCHEMA_INSTANCE, "http://www.w3.org/2001/XMLSchema-instance").
 
--spec copy_object(string(), string(), string(), string()) -> proplist().
+-spec copy_object(string(), string(), string(), string()) -> proplist() | no_return().
 
 copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName) ->
     copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, []).
 
--spec copy_object(string(), string(), string(), string(), proplist() | aws_config()) -> proplist().
+-spec copy_object(string(), string(), string(), string(), proplist() | aws_config()) -> proplist() | no_return().
 
 copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, Config)
   when is_record(Config, aws_config) ->
@@ -170,7 +170,7 @@ copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, Options) ->
     copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName,
                 Options, default_config()).
 
--spec copy_object(string(), string(), string(), string(), proplist(), aws_config()) -> proplist().
+-spec copy_object(string(), string(), string(), string(), proplist(), aws_config()) -> proplist() | no_return().
 copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, Options, Config) ->
     SrcVersion = case proplists:get_value(version_id, Options) of
                      undefined -> "";
@@ -189,12 +189,12 @@ copy_object(DestBucketName, DestKeyName, SrcBucketName, SrcKeyName, Options, Con
     [{copy_source_version_id, proplists:get_value("x-amz-copy-source-version-id", Headers, "false")},
      {version_id, proplists:get_value("x-amz-version-id", Headers, "null")}].
 
--spec create_bucket(string()) -> ok.
+-spec create_bucket(string()) -> ok | no_return().
 
 create_bucket(BucketName) ->
     create_bucket(BucketName, private).
 
--spec create_bucket(string(), s3_bucket_acl() | aws_config()) -> ok.
+-spec create_bucket(string(), s3_bucket_acl() | aws_config()) -> ok | no_return().
 
 create_bucket(BucketName, Config)
   when is_record(Config, aws_config) ->
@@ -203,7 +203,7 @@ create_bucket(BucketName, Config)
 create_bucket(BucketName, ACL) ->
     create_bucket(BucketName, ACL, none).
 
--spec create_bucket(string(), s3_bucket_acl(), s3_location_constraint() | aws_config()) -> ok.
+-spec create_bucket(string(), s3_bucket_acl(), s3_location_constraint() | aws_config()) -> ok | no_return().
 
 create_bucket(BucketName, ACL, Config)
   when is_record(Config, aws_config) ->
@@ -212,7 +212,7 @@ create_bucket(BucketName, ACL, Config)
 create_bucket(BucketName, ACL, LocationConstraint) ->
     create_bucket(BucketName, ACL, LocationConstraint, default_config()).
 
--spec create_bucket(string(), s3_bucket_acl(), s3_location_constraint(), aws_config()) -> ok.
+-spec create_bucket(string(), s3_bucket_acl(), s3_location_constraint(), aws_config()) -> ok | no_return().
 
 create_bucket(BucketName, ACL, LocationConstraint, Config)
   when is_list(BucketName), is_atom(ACL), is_atom(LocationConstraint) ->
@@ -254,12 +254,12 @@ encode_acl(authenticated_read)        -> "authenticated-read";
 encode_acl(bucket_owner_read)         -> "bucket-owner-read";
 encode_acl(bucket_owner_full_control) -> "bucket-owner-full-control".
 
--spec delete_bucket(string()) -> ok.
+-spec delete_bucket(string()) -> ok | no_return().
 
 delete_bucket(BucketName) ->
     delete_bucket(BucketName, default_config()).
 
--spec delete_bucket(string(), aws_config()) -> ok.
+-spec delete_bucket(string(), aws_config()) -> ok | no_return().
 
 delete_bucket(BucketName, Config)
   when is_list(BucketName) ->
@@ -283,11 +283,11 @@ check_bucket_access(BucketName, Config)
     end.
 
 
--spec delete_objects_batch(string(), list()) -> no_return().
+-spec delete_objects_batch(string(), list()) -> erlcloud_aws:httpc_result() | no_return().
 delete_objects_batch(Bucket, KeyList) ->
     delete_objects_batch(Bucket, KeyList, default_config()).
 
--spec delete_objects_batch(string(), list(), aws_config()) -> no_return().
+-spec delete_objects_batch(string(), list(), aws_config()) -> erlcloud_aws:httpc_result() | no_return().
 delete_objects_batch(Bucket, KeyList, Config) ->
     Data = lists:map(fun(Item) ->
             lists:concat(["<Object><Key>", Item, "</Key></Object>"]) end,
@@ -322,11 +322,11 @@ delete_objects_batch_timeout(#aws_config{timeout = Timeout}) ->
 %     "sailfish/deleteme/deep/ZZZ_0.txt"]
 %    ok
 %
--spec explore_dirstructure(string(), list(), list()) -> list().
+-spec explore_dirstructure(string(), list(), list()) -> list() | no_return().
 explore_dirstructure(Bucketname, Branches, Accum) ->
     explore_dirstructure(Bucketname, Branches, Accum, default_config()).
 
--spec explore_dirstructure(string(), list(), list(), aws_config()) -> list().
+-spec explore_dirstructure(string(), list(), list(), aws_config()) -> list() | no_return().
 explore_dirstructure(_, [], Result, _Config) ->
                                     lists:append(Result);
 explore_dirstructure(Bucketname, [Branch|Tail], Accum, Config)
@@ -348,12 +348,12 @@ explore_dirstructure(Bucketname, [Branch|Tail], Accum, Config)
             explore_dirstructure(Bucketname, Tail, [Result, Files|Accum], Config)
     end.
 
--spec delete_object(string(), string()) -> proplist().
+-spec delete_object(string(), string()) -> proplist() | no_return().
 
 delete_object(BucketName, Key) ->
     delete_object(BucketName, Key, default_config()).
 
--spec delete_object(string(), string(), aws_config()) -> proplist().
+-spec delete_object(string(), string(), aws_config()) -> proplist() | no_return().
 
 delete_object(BucketName, Key, Config)
   when is_list(BucketName), is_list(Key) ->
@@ -363,12 +363,12 @@ delete_object(BucketName, Key, Config)
     [{delete_marker, list_to_existing_atom(Marker)},
      {version_id, Id}].
 
--spec delete_object_version(string(), string(), string()) -> proplist().
+-spec delete_object_version(string(), string(), string()) -> proplist() | no_return().
 
 delete_object_version(BucketName, Key, Version) ->
     delete_object_version(BucketName, Key, Version, default_config()).
 
--spec delete_object_version(string(), string(), string(), aws_config()) -> proplist().
+-spec delete_object_version(string(), string(), string(), aws_config()) -> proplist() | no_return().
 
 delete_object_version(BucketName, Key, Version, Config)
   when is_list(BucketName),
@@ -381,12 +381,12 @@ delete_object_version(BucketName, Key, Version, Config)
     [{delete_marker, list_to_existing_atom(Marker)},
      {version_id, Id}].
 
--spec list_buckets() -> proplist().
+-spec list_buckets() -> proplist() | no_return().
 
 list_buckets() ->
     list_buckets(default_config()).
 
--spec list_buckets(aws_config()) -> proplist().
+-spec list_buckets(aws_config()) -> proplist() | no_return().
 
 list_buckets(Config) ->
     Doc = s3_xml_request(Config, get, "", "/", "", [], <<>>, []),
@@ -424,11 +424,11 @@ get_bucket_policy(BucketName, Config)
                 Error
         end.
 
--spec put_bucket_policy(string(), binary()) -> ok.
+-spec put_bucket_policy(string(), binary()) -> ok | no_return().
 put_bucket_policy(BucketName, Policy) ->
     put_bucket_policy(BucketName, Policy, default_config()).
 
--spec put_bucket_policy(string(), binary(), aws_config()) -> ok.
+-spec put_bucket_policy(string(), binary(), aws_config()) -> ok | no_return().
 put_bucket_policy(BucketName, Policy, Config)
   when is_list(BucketName), is_binary(Policy), is_record(Config, aws_config) ->
     s3_simple_request(Config, put, BucketName, "/", "policy", [], Policy, []).
@@ -447,11 +447,11 @@ get_bucket_lifecycle(BucketName, Config)
                 Error
         end.
 
--spec put_bucket_lifecycle(string(), binary()) -> ok | {error, Reason::term()}.
+-spec put_bucket_lifecycle(string(), binary()) -> ok | {error, Reason::term()} | no_return().
 put_bucket_lifecycle(BucketName, Policy) ->
     put_bucket_lifecycle(BucketName, Policy, default_config()).
 
--spec put_bucket_lifecycle(string(), list() | binary(), aws_config()) -> ok | {error, Reason::term()}.
+-spec put_bucket_lifecycle(string(), list() | binary(), aws_config()) -> ok | {error, Reason::term()} | no_return().
 put_bucket_lifecycle(BucketName, Policy, Config)
   when is_list(BucketName), is_list(Policy), is_record(Config, aws_config) ->
     XmlPolicy = encode_lifecycle(Policy),
@@ -462,21 +462,21 @@ put_bucket_lifecycle(BucketName, XmlPolicy, Config)
     s3_simple_request(Config, put, BucketName, "/", "lifecycle",
                       [], XmlPolicy, [{"Content-MD5", Md5}]).
 
--spec delete_bucket_lifecycle(string()) -> ok | {error, Reason::term()}.
+-spec delete_bucket_lifecycle(string()) -> ok | {error, Reason::term()} | no_return().
 delete_bucket_lifecycle(BucketName) ->
 delete_bucket_lifecycle(BucketName, default_config()).
 
 -spec delete_bucket_lifecycle(string(), #aws_config{})
-    -> ok | {error, Reason::term()}.
+    -> ok | {error, Reason::term()} | no_return().
 delete_bucket_lifecycle(BucketName, AwsConfig) ->
     s3_simple_request(AwsConfig, delete, BucketName,
                       "/", "lifecycle", [], <<>>, []).
 
--spec list_objects(string()) -> proplist().
+-spec list_objects(string()) -> proplist() | no_return().
 
 list_objects(BucketName) ->
     list_objects(BucketName, []).
--spec list_objects(string(), proplist() | aws_config()) -> proplist().
+-spec list_objects(string(), proplist() | aws_config()) -> proplist() | no_return().
 
 list_objects(BucketName, Config)
   when is_record(Config, aws_config) ->
@@ -485,7 +485,7 @@ list_objects(BucketName, Config)
 list_objects(BucketName, Options) ->
     list_objects(BucketName, Options, default_config()).
 
--spec list_objects(string(), proplist(), aws_config()) -> proplist().
+-spec list_objects(string(), proplist(), aws_config()) -> proplist() | no_return().
 
 list_objects(BucketName, Options, Config)
   when is_list(BucketName),
@@ -528,12 +528,12 @@ extract_user([Node]) ->
                  ],
     erlcloud_xml:decode(Attributes, Node).
 
--spec get_bucket_attribute(string(), s3_bucket_attribute_name()) -> term().
+-spec get_bucket_attribute(string(), s3_bucket_attribute_name()) -> term() | no_return().
 
 get_bucket_attribute(BucketName, AttributeName) ->
     get_bucket_attribute(BucketName, AttributeName, default_config()).
 
--spec get_bucket_attribute(string(), s3_bucket_attribute_name(), aws_config()) -> term().
+-spec get_bucket_attribute(string(), s3_bucket_attribute_name(), aws_config()) -> term() | no_return().
 
 get_bucket_attribute(BucketName, AttributeName, Config)
   when is_list(BucketName), is_atom(AttributeName) ->
@@ -587,7 +587,7 @@ get_bucket_attribute(BucketName, AttributeName, Config)
 
 %% gets the notifications configuration of an S3 bucket.
 %% for an example of the returned data, see tests.
--spec get_bucket_notification(#xmlElement{}) -> proplist().
+-spec get_bucket_notification(#xmlElement{}) -> [proplist()].
 get_bucket_notification(Doc) ->
     SNSNotifications =
         get_notifications_config(topic_configuration, topic,
@@ -742,12 +742,12 @@ decode_permission("WRITE_ACP")    -> write_acp;
 decode_permission("READ")         -> read;
 decode_permission("READ_ACP")     -> read_acp.
 
--spec get_object(string(), string()) -> proplist().
+-spec get_object(string(), string()) -> proplist() | no_return().
 
 get_object(BucketName, Key) ->
     get_object(BucketName, Key, []).
 
--spec get_object(string(), string(), proplist() | aws_config()) -> proplist().
+-spec get_object(string(), string(), proplist() | aws_config()) -> proplist() | no_return().
 
 get_object(BucketName, Key, Config)
   when is_record(Config, aws_config) ->
@@ -756,7 +756,7 @@ get_object(BucketName, Key, Config)
 get_object(BucketName, Key, Options) ->
     get_object(BucketName, Key, Options, default_config()).
 
--spec get_object(string(), string(), proplist(), aws_config()) -> proplist().
+-spec get_object(string(), string(), proplist(), aws_config()) -> proplist() | no_return().
 
 get_object(BucketName, Key, Options, Config) ->
     RequestHeaders = [{"Range", proplists:get_value(range, Options)},
@@ -782,12 +782,12 @@ get_object(BucketName, Key, Options, Config) ->
      {content, Body}|
      extract_metadata(Headers)].
 
--spec get_object_acl(string(), string()) -> proplist().
+-spec get_object_acl(string(), string()) -> proplist() | no_return().
 
 get_object_acl(BucketName, Key) ->
     get_object_acl(BucketName, Key, default_config()).
 
--spec get_object_acl(string(), string(), proplist() | aws_config()) -> proplist().
+-spec get_object_acl(string(), string(), proplist() | aws_config()) -> proplist() | no_return().
 
 get_object_acl(BucketName, Key, Config)
   when is_record(Config, aws_config) ->
@@ -796,7 +796,7 @@ get_object_acl(BucketName, Key, Config)
 get_object_acl(BucketName, Key, Options) ->
     get_object_acl(BucketName, Key, Options, default_config()).
 
--spec get_object_acl(string(), string(), proplist(), aws_config()) -> proplist().
+-spec get_object_acl(string(), string(), proplist(), aws_config()) -> proplist() | no_return().
 
 get_object_acl(BucketName, Key, Options, Config)
   when is_list(BucketName), is_list(Key), is_list(Options) ->
@@ -809,12 +809,12 @@ get_object_acl(BucketName, Key, Options, Config)
                   {access_control_list, "AccessControlList/Grant", fun extract_acl/1}],
     erlcloud_xml:decode(Attributes, Doc).
 
--spec get_object_metadata(string(), string()) -> proplist().
+-spec get_object_metadata(string(), string()) -> proplist() | no_return().
 
 get_object_metadata(BucketName, Key) ->
     get_object_metadata(BucketName, Key, []).
 
--spec get_object_metadata(string(), string(), proplist() | aws_config()) -> proplist().
+-spec get_object_metadata(string(), string(), proplist() | aws_config()) -> proplist() | no_return().
 
 get_object_metadata(BucketName, Key, Config)
   when is_record(Config, aws_config) ->
@@ -823,7 +823,7 @@ get_object_metadata(BucketName, Key, Config)
 get_object_metadata(BucketName, Key, Options) ->
     get_object_metadata(BucketName, Key, Options, default_config()).
 
--spec get_object_metadata(string(), string(), proplist(), proplist() | aws_config()) -> proplist().
+-spec get_object_metadata(string(), string(), proplist(), proplist() | aws_config()) -> proplist() | no_return().
 
 get_object_metadata(BucketName, Key, Options, Config) ->
     RequestHeaders = [{"If-Modified-Since", proplists:get_value(if_modified_since, Options)},
@@ -847,12 +847,12 @@ get_object_metadata(BucketName, Key, Options, Config) ->
 extract_metadata(Headers) ->
     [{Key, Value} || {Key = "x-amz-meta-" ++ _, Value} <- Headers].
 
--spec get_object_torrent(string(), string()) -> proplist().
+-spec get_object_torrent(string(), string()) -> proplist() | no_return().
 
 get_object_torrent(BucketName, Key) ->
     get_object_torrent(BucketName, Key, default_config()).
 
--spec get_object_torrent(string(), string(), aws_config()) -> proplist().
+-spec get_object_torrent(string(), string(), aws_config()) -> proplist() | no_return().
 
 get_object_torrent(BucketName, Key, Config) ->
     {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], "torrent", [], <<>>, []),
@@ -860,12 +860,12 @@ get_object_torrent(BucketName, Key, Config) ->
      {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
      {torrent, Body}].
 
--spec list_object_versions(string()) -> proplist().
+-spec list_object_versions(string()) -> proplist() | no_return().
 
 list_object_versions(BucketName) ->
     list_object_versions(BucketName, []).
 
--spec list_object_versions(string(), proplist() | aws_config()) -> proplist().
+-spec list_object_versions(string(), proplist() | aws_config()) -> proplist() | no_return().
 
 list_object_versions(BucketName, Config)
   when is_record(Config, aws_config) ->
@@ -874,7 +874,7 @@ list_object_versions(BucketName, Config)
 list_object_versions(BucketName, Options) ->
     list_object_versions(BucketName, Options, default_config()).
 
--spec list_object_versions(string(), proplist(), aws_config()) -> proplist().
+-spec list_object_versions(string(), proplist(), aws_config()) -> proplist() | no_return().
 
 list_object_versions(BucketName, Options, Config)
   when is_list(BucketName), is_list(Options) ->
@@ -925,12 +925,12 @@ extract_bucket(Node) ->
                          {creation_date, "CreationDate", time}],
                         Node).
 
--spec put_object(string(), string(), iodata()) -> proplist().
+-spec put_object(string(), string(), iodata()) -> proplist() | no_return().
 
 put_object(BucketName, Key, Value) ->
     put_object(BucketName, Key, Value, []).
 
--spec put_object(string(), string(), iodata(), proplist() | aws_config()) -> proplist().
+-spec put_object(string(), string(), iodata(), proplist() | aws_config()) -> proplist() | no_return().
 
 put_object(BucketName, Key, Value, Config)
   when is_record(Config, aws_config) ->
@@ -939,7 +939,7 @@ put_object(BucketName, Key, Value, Config)
 put_object(BucketName, Key, Value, Options) ->
     put_object(BucketName, Key, Value, Options, default_config()).
 
--spec put_object(string(), string(), iodata(), proplist(), [{string(), string()}] | aws_config()) -> proplist().
+-spec put_object(string(), string(), iodata(), proplist(), [{string(), string()}] | aws_config()) -> proplist() | no_return().
 
 put_object(BucketName, Key, Value, Options, Config)
   when is_record(Config, aws_config) ->
@@ -948,7 +948,7 @@ put_object(BucketName, Key, Value, Options, Config)
 put_object(BucketName, Key, Value, Options, HTTPHeaders) ->
     put_object(BucketName, Key, Value, Options, HTTPHeaders, default_config()).
 
--spec put_object(string(), string(), iodata(), proplist(), [{string(), string()}], aws_config()) -> proplist().
+-spec put_object(string(), string(), iodata(), proplist(), [{string(), string()}], aws_config()) -> proplist() | no_return().
 
 put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
   when is_list(BucketName), is_list(Key), is_list(Value) orelse is_binary(Value),
@@ -961,12 +961,12 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
                                   POSTData, RequestHeaders),
     [{version_id, proplists:get_value("x-amz-version-id", Headers, "null")} | Headers].
 
--spec set_object_acl(string(), string(), proplist()) -> ok.
+-spec set_object_acl(string(), string(), proplist()) -> ok | no_return().
 
 set_object_acl(BucketName, Key, ACL) ->
     set_object_acl(BucketName, Key, ACL, default_config()).
 
--spec set_object_acl(string(), string(), proplist(), aws_config()) -> ok.
+-spec set_object_acl(string(), string(), proplist(), aws_config()) -> ok | no_return().
 
 set_object_acl(BucketName, Key, ACL, Config)
   when is_list(BucketName), is_list(Key), is_list(ACL) ->
@@ -1167,12 +1167,12 @@ list_multipart_uploads(BucketName, Options, HTTPHeaders, Config)
     end.
 
 
--spec set_bucket_attribute(string(), atom(), term()) -> ok.
+-spec set_bucket_attribute(string(), atom(), term()) -> ok | no_return().
 
 set_bucket_attribute(BucketName, AttributeName, Value) ->
     set_bucket_attribute(BucketName, AttributeName, Value, default_config()).
 
--spec set_bucket_attribute(string(), atom(), term(), aws_config()) -> ok.
+-spec set_bucket_attribute(string(), atom(), term(), aws_config()) -> ok | no_return().
 
 set_bucket_attribute(BucketName, AttributeName, Value, Config)
   when is_list(BucketName) ->
@@ -1244,7 +1244,7 @@ list_bucket_inventory(BucketName, #aws_config{} = Config) when is_list(BucketNam
 list_bucket_inventory(BucketName, Token) when is_list(BucketName), is_list(Token) ->
     list_bucket_inventory(BucketName, Token,  default_config()).
 
--spec list_bucket_inventory(string(), string(), aws_config()) ->
+-spec list_bucket_inventory(string(), undefined | string(), aws_config()) ->
     {ok, Result:: list(term())} | {error, Reason::term()}.
 list_bucket_inventory(BucketName, Token, #aws_config{} = Config) when is_list(BucketName) ->
     Params = [{"continuation-token", Token}],
@@ -1365,14 +1365,14 @@ get_bucket_inventory(BucketName, InventoryId, #aws_config{} = Config)
             Error
     end.
 
--spec put_bucket_inventory(string(), list()) -> ok | {error, Reason::term()}.
+-spec put_bucket_inventory(string(), list()) -> ok | {error, Reason::term()} | no_return().
 put_bucket_inventory(BucketName, Inventory)
     when is_list(BucketName), is_list(Inventory) ->
 
-    put_bucket_inventory(BucketName, default_config()).
+    put_bucket_inventory(BucketName, Inventory, default_config()).
 
 -spec put_bucket_inventory(string(), list(), aws_config())
-        -> ok | {error, Reason::term()}.
+        -> ok | {error, Reason::term()} | no_return().
 put_bucket_inventory(BucketName, Inventory, #aws_config{} = Config)
     when is_list(BucketName), is_list(Inventory) ->
 
@@ -1381,7 +1381,7 @@ put_bucket_inventory(BucketName, Inventory, #aws_config{} = Config)
     put_bucket_inventory(BucketName, InventoryId, list_to_binary(XmlInventory), Config).
 
 -spec put_bucket_inventory(string(), string(), binary(), aws_config())
-        -> ok | {error, Reason::term()}.
+        -> ok | {error, Reason::term()} | no_return().
 put_bucket_inventory(BucketName, InventoryId, XmlInventory, #aws_config{} = Config)
     when is_list(BucketName), is_list(InventoryId), is_binary(XmlInventory) ->
     Md5 = base64:encode(crypto:hash(md5, XmlInventory)),
@@ -1389,11 +1389,11 @@ put_bucket_inventory(BucketName, InventoryId, XmlInventory, #aws_config{} = Conf
     Headers = [{"Content-MD5", Md5}, {"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, "/", "inventory", Params, XmlInventory, Headers).
 
--spec delete_bucket_inventory(string(), string()) -> ok | {error, Reason::term()}.
+-spec delete_bucket_inventory(string(), string()) -> ok | {error, Reason::term()} | no_return().
 delete_bucket_inventory(BucketName, InventoryId) when is_list(BucketName), is_list(InventoryId) ->
     delete_bucket_inventory(BucketName, InventoryId, default_config()).
 
--spec delete_bucket_inventory(string(), string(), aws_config()) -> ok | {error, Reason::term()}.
+-spec delete_bucket_inventory(string(), string(), aws_config()) -> ok | {error, Reason::term()} | no_return().
 delete_bucket_inventory(BucketName, InventoryId, #aws_config{} = Config)
     when is_list(BucketName), is_list(InventoryId) ->
 

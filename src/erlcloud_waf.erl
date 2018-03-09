@@ -1175,7 +1175,6 @@ waf_request(Config, Operation, Body) ->
 -spec waf_request_no_update(aws_config(), string(), json_proplist()) -> {error, term()}|{ok, json_proplist()}.
 waf_request_no_update(Config, Operation, Body) ->
     Payload = case Body of
-               <<>> -> <<"{}">>;
                [] -> <<"{}">>;
                _ -> jsx:encode(Body)
            end,

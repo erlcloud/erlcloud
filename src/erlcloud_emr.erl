@@ -218,7 +218,5 @@ request_no_update(Action, Json, Scheme, Host, Port, Service, Opts, Cfg) ->
         {error, {http_error, _Code, _StatusLine, ErrBody}} ->
             {error, {aws_error, jsx:decode(ErrBody)}};
         {error, {socket_error, Reason}} ->
-            {error, {socket_error, Reason}};
-        {error, Unexpected} ->
-            {error, Unexpected}
+            {error, {socket_error, Reason}}
     end.
