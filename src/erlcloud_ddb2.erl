@@ -2615,7 +2615,7 @@ update_global_table(GlobalTableName, ReplicaUpdates) ->
 update_global_table(GlobalTableName, ReplicaUpdates, Opts) when is_list(Opts) ->
     update_global_table(GlobalTableName, ReplicaUpdates, Opts, default_config());
 update_global_table(GlobalTableName, ReplicaUpdates, Config) when is_record(Config, aws_config) ->
-    update_global_table(GlobalTableName, ReplicaUpdates, [], default_config()).
+    update_global_table(GlobalTableName, ReplicaUpdates, [], Config).
 
 %%------------------------------------------------------------------------------
 %% @doc 
