@@ -32,7 +32,11 @@ operation_test_() ->
             fun get_inventory_configuration_test/1,
             fun put_bucket_inventory_test/1,
             fun delete_bucket_inventory_test/1,
-            fun encode_inventory_test/1
+            fun encode_inventory_test/1,
+            fun delete_objects_batch_tests/1,
+            fun delete_objects_batch_single_tests/1,
+            fun delete_objects_batch_with_err_tests/1,
+            fun delete_objects_batch_mixed_tests/1
         ]}.
 
 start() ->
@@ -723,3 +727,27 @@ delete_bucket_inventory_test(_) ->
     Result = erlcloud_s3:delete_bucket_inventory("BucketName", "report1", config()),
     ?_assertEqual(ok, Result).
 
+delete_objects_batch_single_tests(_) ->
+  Response = {ok, {{200, "OK"}, [], <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?><DeleteResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Deleted><Key>sample1.txt</Key></Deleted></DeleteResult>">>}},
+  meck:expect(erlcloud_httpc, request, httpc_expect(post, Response)),
+  Result = erlcloud_s3:delete_objects_batch("BucketName",["sample1.txt"], config()),
+  ?_assertEqual([{deleted,["sample1.txt"]},{error,[]}], Result).
+
+delete_objects_batch_tests(_) ->
+  Response = {ok, {{200, "OK"}, [], <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<DeleteResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Deleted><Key>sample1.txt</Key></Deleted><Deleted><Key>sample2.txt</Key></Deleted><Deleted><Key>sample3.txt</Key></Deleted></DeleteResult>">>}},
+  meck:expect(erlcloud_httpc, request, httpc_expect(post, Response)),
+  Result = erlcloud_s3:delete_objects_batch("BucketName",["sample1.txt","sample2.txt","sample3.txt"], config()),
+  ?_assertEqual([{deleted,["sample1.txt", "sample2.txt","sample3.txt"]},{error,[]}], Result).
+
+delete_objects_batch_with_err_tests(_) ->
+  Response = {ok, {{200, "OK"}, [], <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?><DeleteResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Error><Key>sample2.txt</Key><Code>AccessDenied</Code><Message>Access Denied</Message></Error></DeleteResult>">>}},
+  meck:expect(erlcloud_httpc, request, httpc_expect(post, Response)),
+  Result = erlcloud_s3:delete_objects_batch("BucketName",["sample2.txt"], config()),
+  ?_assertEqual([{deleted,[]}, {error,[{"sample2.txt","AccessDenied","Access Denied"}]}], Result).
+
+delete_objects_batch_mixed_tests(_) ->
+  Response = {ok, {{200, "OK"}, [], <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?><DeleteResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Deleted><Key>sample1.txt</Key></Deleted><Error><Key>sample2.txt</Key><Code>AccessDenied</Code><Message>Access Denied</Message></Error></DeleteResult>">>}},
+  meck:expect(erlcloud_httpc, request, httpc_expect(post, Response)),
+  Result = erlcloud_s3:delete_objects_batch("BucketName",["sample2.txt"], config()),
+  ?_assertEqual([{deleted,["sample1.txt"]}, {error,[{"sample2.txt","AccessDenied","Access Denied"}]}], Result).

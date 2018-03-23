@@ -283,35 +283,41 @@ check_bucket_access(BucketName, Config)
     end.
 
 
--spec delete_objects_batch(string(), list()) -> erlcloud_aws:httpc_result() | no_return().
-delete_objects_batch(Bucket, KeyList) ->
-    delete_objects_batch(Bucket, KeyList, default_config()).
+-spec delete_objects_batch(string(), list()) -> proplist() | no_return().
+delete_objects_batch(BucketName, KeyList) ->
+  delete_objects_batch(BucketName, KeyList, default_config()).
 
--spec delete_objects_batch(string(), list(), aws_config()) -> erlcloud_aws:httpc_result() | no_return().
-delete_objects_batch(Bucket, KeyList, Config) ->
-    Data = lists:map(fun(Item) ->
-            lists:concat(["<Object><Key>", Item, "</Key></Object>"]) end,
-                KeyList),
-    Payload = unicode:characters_to_list(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Delete>" ++ Data ++ "</Delete>",
-                utf8),
+-spec delete_objects_batch(string(), list(), aws_config()) -> proplist() | no_return().
+delete_objects_batch(BucketName, KeyList, Config)
+  when is_list(BucketName), is_list(KeyList) ->
+  Data = lists:map(fun(Item) ->
+    lists:concat(["<Object><Key>", Item, "</Key></Object>"]) end,
+    KeyList),
+  Payload = unicode:characters_to_list(
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Delete>" ++ Data ++ "</Delete>",
+    utf8),
+  Headers = [{"content-md5", base64:encode(erlcloud_util:md5(Payload))},
+    {"content-length", integer_to_list(string:len(Payload))},
+    {"content-type", "application/xml"}],
+  Doc =  s3_xml_request(Config, post, BucketName, [$/], "delete", [], Payload, Headers),
+  Attributes = [{deleted, "Deleted", fun extract_delete_objects_batch_key_contents/1},
+    {error, "Error", fun extract_delete_objects_batch_err_contents/1}],
+  erlcloud_xml:decode(Attributes, Doc).
 
-    Len = integer_to_list(string:len(Payload)),
-    Url = lists:flatten([Config#aws_config.s3_scheme,
-                Bucket, ".", Config#aws_config.s3_host, port_spec(Config), "/?delete"]),
-    Host = Bucket ++ "." ++ Config#aws_config.s3_host,
-    ContentMD5 = base64:encode(erlcloud_util:md5(Payload)),
-    Headers = [{"host", Host},
-               {"content-md5", binary_to_list(ContentMD5)},
-               {"content-length", Len}],
-    Result = erlcloud_httpc:request(
-        Url, "POST", Headers, Payload, delete_objects_batch_timeout(Config), Config),
-    erlcloud_aws:http_headers_body(Result).
 
-delete_objects_batch_timeout(#aws_config{timeout = undefined}) ->
-    1000;
-delete_objects_batch_timeout(#aws_config{timeout = Timeout}) ->
-    Timeout.
+extract_delete_objects_batch_key_contents(Nodes) ->
+  Attributes = [{key, "Key", text}],
+  [Key || X <- [erlcloud_xml:decode(Attributes, Node) || Node <- Nodes], {_,Key} <- X].
+
+extract_delete_objects_batch_err_contents(Nodes) ->
+  Attributes = [
+    {key, "Key", text},
+    {code, "Code", text},
+    {message, "Message", text}],
+  [to_flat_format(erlcloud_xml:decode(Attributes, Node)) || Node <- Nodes].
+
+to_flat_format([{key,Key},{code,Code},{message,Message}]) ->
+  {Key,Code,Message}.
 
 % returns paths list from AWS S3 root directory, used as input to delete_objects_batch
 % example :
