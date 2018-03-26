@@ -40,7 +40,8 @@
          list_bucket_inventory/1, list_bucket_inventory/2, list_bucket_inventory/3,
          get_bucket_inventory/2, get_bucket_inventory/3,
          put_bucket_inventory/2, put_bucket_inventory/3,
-         delete_bucket_inventory/2, delete_bucket_inventory/3
+         delete_bucket_inventory/2, delete_bucket_inventory/3,
+         s3_request/8, s3_request2/8
     ]).
 
 -ifdef(TEST).
