@@ -285,39 +285,39 @@ check_bucket_access(BucketName, Config)
 
 -spec delete_objects_batch(string(), list()) -> proplist() | no_return().
 delete_objects_batch(BucketName, KeyList) ->
-  delete_objects_batch(BucketName, KeyList, default_config()).
+    delete_objects_batch(BucketName, KeyList, default_config()).
 
 -spec delete_objects_batch(string(), list(), aws_config()) -> proplist() | no_return().
 delete_objects_batch(BucketName, KeyList, Config)
-  when is_list(BucketName), is_list(KeyList) ->
-  Data = lists:map(fun(Item) ->
-    lists:concat(["<Object><Key>", Item, "</Key></Object>"]) end,
-    KeyList),
-  Payload = unicode:characters_to_list(
-    "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Delete>" ++ Data ++ "</Delete>",
-    utf8),
-  Headers = [{"content-md5", base64:encode(erlcloud_util:md5(Payload))},
-    {"content-length", integer_to_list(string:len(Payload))},
-    {"content-type", "application/xml"}],
-  Doc =  s3_xml_request(Config, post, BucketName, [$/], "delete", [], Payload, Headers),
-  Attributes = [{deleted, "Deleted", fun extract_delete_objects_batch_key_contents/1},
-    {error, "Error", fun extract_delete_objects_batch_err_contents/1}],
-  erlcloud_xml:decode(Attributes, Doc).
+    when is_list(BucketName), is_list(KeyList) ->
+    Data = lists:map(fun(Item) ->
+      lists:concat(["<Object><Key>", Item, "</Key></Object>"]) end,
+      KeyList),
+    Payload = unicode:characters_to_list(
+      "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Delete>" ++ Data ++ "</Delete>",
+      utf8),
+    Headers = [{"content-md5", base64:encode(erlcloud_util:md5(Payload))},
+      {"content-length", integer_to_list(string:len(Payload))},
+      {"content-type", "application/xml"}],
+    Doc =  s3_xml_request(Config, post, BucketName, [$/], "delete", [], Payload, Headers),
+    Attributes = [{deleted, "Deleted", fun extract_delete_objects_batch_key_contents/1},
+      {error, "Error", fun extract_delete_objects_batch_err_contents/1}],
+    erlcloud_xml:decode(Attributes, Doc).
 
 
 extract_delete_objects_batch_key_contents(Nodes) ->
-  Attributes = [{key, "Key", text}],
-  [Key || X <- [erlcloud_xml:decode(Attributes, Node) || Node <- Nodes], {_,Key} <- X].
+    Attributes = [{key, "Key", text}],
+    [Key || X <- [erlcloud_xml:decode(Attributes, Node) || Node <- Nodes], {_,Key} <- X].
 
 extract_delete_objects_batch_err_contents(Nodes) ->
-  Attributes = [
-    {key, "Key", text},
-    {code, "Code", text},
-    {message, "Message", text}],
-  [to_flat_format(erlcloud_xml:decode(Attributes, Node)) || Node <- Nodes].
+    Attributes = [
+      {key, "Key", text},
+      {code, "Code", text},
+      {message, "Message", text}],
+    [to_flat_format(erlcloud_xml:decode(Attributes, Node)) || Node <- Nodes].
 
 to_flat_format([{key,Key},{code,Code},{message,Message}]) ->
-  {Key,Code,Message}.
+    {Key,Code,Message}.
 
 % returns paths list from AWS S3 root directory, used as input to delete_objects_batch
 % example :
