@@ -610,6 +610,7 @@ sqs_request(Config, QueueName, Action, Params) ->
             erlang:error({aws_error, Reason})
     end.
 
+queue_path([_|$/] = [H|_]) -> queue_path(H);
 queue_path([$/|QueueName]) -> [$/ |erlcloud_http:url_encode(QueueName)];
 queue_path([$h,$t,$t,$p|_] = URL) ->
     re:replace(URL, "^https?://[^/]*", "", [{return, list}]);
