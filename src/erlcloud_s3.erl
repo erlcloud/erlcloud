@@ -40,7 +40,10 @@
          list_bucket_inventory/1, list_bucket_inventory/2, list_bucket_inventory/3,
          get_bucket_inventory/2, get_bucket_inventory/3,
          put_bucket_inventory/2, put_bucket_inventory/3,
-         delete_bucket_inventory/2, delete_bucket_inventory/3
+         delete_bucket_inventory/2, delete_bucket_inventory/3,
+         put_bucket_encryption/2, put_bucket_encryption/3, put_bucket_encryption/4,
+         get_bucket_encryption/1, get_bucket_encryption/2,
+         delete_bucket_encryption/1, delete_bucket_encryption/2
     ]).
 
 -ifdef(TEST).
@@ -1462,6 +1465,99 @@ inv_key_to_name(bucket) ->                   'Bucket';
 inv_key_to_name(prefix) ->                   'Prefix';
 inv_key_to_name(field) ->                    'Field'.
 
+%% @doc
+%% S3 API:
+%% https://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketPUTencryption.html
+%%
+%% `
+%% ok = erlcloud_s3:put_bucket_encryption("bucket-name",
+%%                                        "aws:kms",
+%%                                        "arn:aws:kms:us-east-1:1234/example").
+%% '
+%%
+-spec put_bucket_encryption(string(), string()) -> ok | {error, any()}.
+put_bucket_encryption(BucketName, SSEAlgorithm) ->
+    put_bucket_encryption(BucketName, SSEAlgorithm, undefined, default_config()).
+
+-spec put_bucket_encryption(string(), string(), string() | aws_config()) ->
+    ok | {error, any()}.
+put_bucket_encryption(BucketName, SSEAlgorithm, KMSMasterKeyId)
+  when is_list(KMSMasterKeyId) ->
+    Config = default_config(),
+    put_bucket_encryption(BucketName, SSEAlgorithm, KMSMasterKeyId, Config);
+put_bucket_encryption(BucketName, SSEAlgorithm, Config)
+  when is_record(Config, aws_config) ->
+    put_bucket_encryption(BucketName, SSEAlgorithm, undefined, Config).
+
+-spec put_bucket_encryption(string(), string(), string() | undefined,
+                            aws_config()) ->
+    ok | {error, any()}.
+put_bucket_encryption(BucketName, SSEAlgorithm, KMSMasterKeyId, Config) ->
+    ApplySSEOPts = build_apply_sse_opts(SSEAlgorithm, KMSMasterKeyId),
+    XML = {
+        'ApplyServerSideEncryptionByDefault',
+        [{'xmlns', ?XMLNS_S3}],
+        [{'Rule', [
+            {'ApplyServerSideEncryptionByDefault', ApplySSEOPts}
+        ]}]
+    },
+    Attrs = [{prolog, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"}],
+    Data  = list_to_binary(xmerl:export_simple([XML], xmerl_xml, Attrs)),
+    s3_xml_request2(Config, put, BucketName, "/", "encryption", [], Data, []).
+
+build_apply_sse_opts(SSEAlgorithm, undefined) ->
+    [{'SSEAlgorithm', [SSEAlgorithm]}];
+build_apply_sse_opts(SSEAlgorithm, KMSMasterKeyId) ->
+    [{'SSEAlgorithm',   [SSEAlgorithm]},
+     {'KMSMasterKeyID', [KMSMasterKeyId]}].
+
+%% @doc
+%% S3 API:
+%% https://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGETencryption.html
+%%
+%% `
+%% {ok, [{sse_algorithm,     "AES256"},
+%%       {kms_master_key_id, undefined}]} = erlcloud_s3:get_bucket_encryption("bucket-name").
+%% '
+%%
+-spec get_bucket_encryption(string()) ->
+    {ok, proplists:proplist()} | {error, any()}.
+get_bucket_encryption(BucketName) ->
+    get_bucket_encryption(BucketName, default_config()).
+
+-spec get_bucket_encryption(string(), aws_config()) ->
+    {ok, proplists:proplist()} | {error, any()}.
+get_bucket_encryption(BucketName, Config) ->
+    case s3_xml_request2(Config, get, BucketName, "/", "encryption", [], <<>>, []) of
+        {ok, XML} ->
+            XPath = "/ServerSideEncryptionConfiguration"
+                    "/Rule"
+                    "/ApplyServerSideEncryptionByDefault",
+            Algorithm = XPath ++ "/SSEAlgorithm",
+            KMSKey    = XPath ++ "/KMSMasterKeyID",
+            {ok, [
+                {sse_algorithm,     erlcloud_xml:get_text(Algorithm, XML)},
+                {kms_master_key_id, erlcloud_xml:get_text(KMSKey, XML, undefined)}
+            ]};
+        Error ->
+            Error
+    end.
+
+%% @doc
+%% S3 API:
+%% https://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketDELETEencryption.html
+%%
+%% `
+%% ok = erlcloud_s3:delete_bucket_encryption("bucket-name").
+%% '
+%%
+-spec delete_bucket_encryption(string()) -> ok | {error, any()}.
+delete_bucket_encryption(BucketName) ->
+    delete_bucket_encryption(BucketName, default_config()).
+
+-spec delete_bucket_encryption(string(), aws_config()) -> ok | {error, any()}.
+delete_bucket_encryption(BucketName, Config) ->
+    s3_xml_request2(Config, delete, BucketName, "/", "encryption", [], <<>>, []).
 
 %% takes an S3 bucket notification configuration and creates an xmerl simple
 %% form out of it.
@@ -1602,6 +1698,7 @@ s3_request2(Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers
 
 s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
+        {ok, {_Headers, <<>>}} -> ok;
         {ok, {_Headers, Body}} ->
             XML = element(1,xmerl_scan:string(binary_to_list(Body))),
             case XML of
