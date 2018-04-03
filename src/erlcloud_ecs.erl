@@ -562,7 +562,7 @@ encode_load_balancers(Balancers) ->
 
 -spec encode_volume_host([{source_path, string_param()}]) -> [json_pair()].
 encode_volume_host([{source_path, Path}]) ->
-    [{source_path, to_binary(Path)}];
+    [{<<"sourcePath">>, to_binary(Path)}];
 encode_volume_host([]) ->
     [].
 
