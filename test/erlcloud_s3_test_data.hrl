@@ -145,3 +145,23 @@
             {cloud_function,"arn:aws:lambda:us-east-1:000000000000:function:s3collectTestFunction"},
             {id,"meowpeow"},
             {event,["s3:ObjectRemoved:Delete"]}]}]]).
+
+-define(S3_BUCKET_ENCRYPTION,
+    <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n
+       <ServerSideEncryptionConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">
+       <Rule><ApplyServerSideEncryptionByDefault>
+       <SSEAlgorithm>aws:kms</SSEAlgorithm>
+       <KMSMasterKeyID>arn:aws:kms:us-east-1:1234/5678example</KMSMasterKeyID>
+       </ApplyServerSideEncryptionByDefault></Rule>
+       </ServerSideEncryptionConfiguration>">>
+).
+
+-define(S3_BUCKET_ENCRYPTION_NOT_FOUND,
+    <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Error>
+       <Code>ServerSideEncryptionConfigurationNotFoundError</Code>
+       <Message>The server side encryption configuration was not found</Message>
+       <BucketName>an-tst</BucketName>
+       <RequestId>07E119038B9C6DEA</RequestId>
+       <HostId>M0Ku/hb8gttb6U+RBk/P7m0=</HostId>
+       </Error>">>
+).
