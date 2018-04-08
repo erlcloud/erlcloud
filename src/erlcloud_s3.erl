@@ -22,6 +22,7 @@
          explore_dirstructure/3, explore_dirstructure/4,
          delete_object/2, delete_object/3,
          delete_object_version/3, delete_object_version/4,
+         head_object/2, head_object/3, head_object/4,
          get_object/2, get_object/3, get_object/4,
          get_object_acl/2, get_object_acl/3, get_object_acl/4,
          get_object_torrent/2, get_object_torrent/3,
@@ -751,6 +752,24 @@ decode_permission("WRITE_ACP")    -> write_acp;
 decode_permission("READ")         -> read;
 decode_permission("READ_ACP")     -> read_acp.
 
+-spec head_object(string(), string()) -> proplist() | no_return().
+
+head_object(BucketName, Key) ->
+    head_object(BucketName, Key, []).
+
+-spec head_object(string(), string(), proplist() | aws_config()) -> proplist() | no_return().
+
+head_object(BucketName, Key, Config)
+  when is_record(Config, aws_config) ->
+    head_object(BucketName, Key, [], Config);
+head_object(BucketName, Key, Options) ->
+    head_object(BucketName, Key, Options, default_config()).
+
+-spec head_object(string(), string(), proplist(), aws_config()) -> proplist() | no_return().
+
+head_object(BucketName, Key, Options, Config) ->
+    get_or_head(head, BucketName, Key, Options, Config).
+
 -spec get_object(string(), string()) -> proplist() | no_return().
 
 get_object(BucketName, Key) ->
@@ -768,6 +787,9 @@ get_object(BucketName, Key, Options) ->
 -spec get_object(string(), string(), proplist(), aws_config()) -> proplist() | no_return().
 
 get_object(BucketName, Key, Options, Config) ->
+    get_or_head(get, BucketName, Key, Options, Config).
+
+get_or_head(Method, BucketName, Key, Options, Config) ->
     RequestHeaders = [{"Range", proplists:get_value(range, Options)},
                       {"If-Modified-Since", proplists:get_value(if_modified_since, Options)},
                       {"If-Unmodified-Since", proplists:get_value(if_unmodified_since, Options)},
@@ -780,7 +802,7 @@ get_object(BucketName, Key, Options, Config) ->
                       undefined -> "";
                       Version   -> ["versionId=", Version]
                   end,
-    {Headers, Body} = s3_request(Config, get, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders),
+    {Headers, Body} = s3_request(Config, Method, BucketName, [$/|Key], Subresource, [], <<>>, RequestHeaders),
     [{last_modified, proplists:get_value("last-modified", Headers)},
      {etag, proplists:get_value("etag", Headers)},
      {content_length, proplists:get_value("content-length", Headers)},
