@@ -21,6 +21,7 @@
 
 -record(ddb2_replica_description,
         {region_name :: undefined | binary()}).
+
 -record(ddb2_global_table_description,
         {creation_date_time :: undefined | number(),
          global_table_arn :: undefined | binary(),
@@ -28,12 +29,15 @@
          global_table_status :: undefined | global_table_status(),
          replication_group :: undefined | [#ddb2_replica_description{}]
         }).
+
 -record(ddb2_replica,
         {region_name :: undefined | binary()}).
+
 -record(ddb2_global_table,
         {global_table_name :: undefined | erlcloud_ddb2:table_name(),
          replication_group :: undefined | [#ddb2_replica{}]
         }).
+
 -record(ddb2_provisioned_throughput_description,
         {last_decrease_date_time :: undefined | date_time(),
          last_increase_date_time :: undefined | date_time(),
@@ -41,6 +45,7 @@
          read_capacity_units :: undefined | pos_integer(),
          write_capacity_units :: undefined | pos_integer()
         }).
+
 -record(ddb2_global_secondary_index_description,
         {backfilling :: undefined | boolean(),
          index_arn :: undefined | binary(),
@@ -52,6 +57,7 @@
          projection :: undefined | erlcloud_ddb2:projection(),
          provisioned_throughput :: undefined | #ddb2_provisioned_throughput_description{}
         }).
+
 -record(ddb2_local_secondary_index_description,
         {index_arn :: undefined | binary(),
          index_name :: undefined | erlcloud_ddb2:index_name(),
@@ -60,6 +66,7 @@
          key_schema :: undefined | erlcloud_ddb2:key_schema(),
          projection :: undefined | erlcloud_ddb2:projection()
         }).
+
 -record(ddb2_table_description,
         {attribute_definitions :: undefined | erlcloud_ddb2:attr_defs(),
          creation_date_time :: undefined | number(),
@@ -77,6 +84,7 @@
          table_size_bytes :: undefined | integer(),
          table_status :: undefined | table_status()
         }).
+
 -record(ddb2_consumed_capacity,
         {capacity_units :: undefined | number(),
          global_secondary_indexes :: undefined | [{erlcloud_ddb2:index_name(), number()}],
@@ -84,6 +92,7 @@
          table :: undefined | number(),
          table_name :: undefined | erlcloud_ddb2:table_name()
         }).
+
 -record(ddb2_item_collection_metrics,
         {item_collection_key :: erlcloud_ddb2:out_attr_value(),
          size_estimate_range_gb :: undefined | {number(), number()}
@@ -93,6 +102,7 @@
         {table :: erlcloud_ddb2:table_name(),
          items :: [erlcloud_ddb2:out_item()]
         }).
+
 -record(ddb2_batch_get_item,
         {consumed_capacity :: undefined | [#ddb2_consumed_capacity{}],
          responses :: undefined | [#ddb2_batch_get_item_response{}],
@@ -218,7 +228,6 @@
          table_name:: undefined | binary()
         }).
 
-
 -record(ddb2_list_backups,
         {backup_summaries :: undefined | [#ddb2_backup_summaries{}],
          last_evaluated_backup_arn :: undefined | erlcloud_ddb2:table_name()
@@ -232,12 +241,9 @@
          backup_status:: undefined | binary()
         }).
 
-
 -record(ddb2_create_backup,
         {backup_details :: undefined | #ddb2_backup_details{}
         }).
-
-
 
 -record(ddb2_provisioned_throughput,
         {read_capacity_units :: undefined | pos_integer(),
@@ -287,18 +293,15 @@
          source_table_feature_details :: undefined | #ddb2_source_table_feature_details{}
         }).
 
-
 -record(ddb2_delete_backup,
         {backup_description :: undefined | #ddb2_delete_backup_record{}
         }).
-
 
 -record(point_in_time_recovery_description,
         {earliest_restorable_date_time :: undefined | number(),
          latest_restorable_date_time :: undefined | number(),
          point_in_time_recovery_status :: undefined | binary()
         }).
-
 
 -record(continuous_backups_description,
         {continuous_backups_status :: undefined | binary(),
