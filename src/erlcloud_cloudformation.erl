@@ -60,7 +60,8 @@
 %%==============================================================================
 
 -spec configure(access_key_id(), secret_access_key()) -> ok.
-configure(AccessKeyID, SecretAccessKey) ->
+configure(AccessKeyID, SecretAccessKey)
+    when is_list(AccessKeyID), is_list(SecretAccessKey) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey)),
     ok.
 

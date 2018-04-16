@@ -48,22 +48,26 @@ new(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
                 emr_scheme=Scheme}.
 
 -spec configure(string(), string()) -> ok.
-configure(AccessKeyID, SecretAccessKey) ->
+configure(AccessKeyID, SecretAccessKey)
+    when is_list(AccessKeyID), is_list(SecretAccessKey) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey)),
     ok.
 
 -spec configure(string(), string(), string()) -> ok.
-configure(AccessKeyID, SecretAccessKey, Host) ->
+configure(AccessKeyID, SecretAccessKey, Host)
+    when is_list(AccessKeyID), is_list(SecretAccessKey), is_list(Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
 
 -spec configure(string(), string(), string(), non_neg_integer()) -> ok.
-configure(AccessKeyID, SecretAccessKey, Host, Port) ->
+configure(AccessKeyID, SecretAccessKey, Host, Port)
+    when is_list(AccessKeyID), is_list(SecretAccessKey), is_list(Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port)),
     ok.
 
 -spec configure(string(), string(), string(), non_neg_integer(), string()) -> ok.
-configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
+configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme)
+    when is_list(AccessKeyID), is_list(SecretAccessKey), is_list(Host), is_list(Scheme) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port, Scheme)),
     ok.
 

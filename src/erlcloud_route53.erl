@@ -65,12 +65,14 @@ new(AccessKeyID, SecretAccessKey, Host) ->
                 route53_host=Host}.
 
 -spec configure(string(), string()) -> ok.
-configure(AccessKeyID, SecretAccessKey) ->
+configure(AccessKeyID, SecretAccessKey)
+    when is_list(AccessKeyID), is_list(SecretAccessKey) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey)),
     ok.
 
 -spec configure(string(), string(), string()) -> ok.
-configure(AccessKeyID, SecretAccessKey, Host) ->
+configure(AccessKeyID, SecretAccessKey, Host)
+    when is_list(AccessKeyID), is_list(SecretAccessKey), is_list(Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
 
