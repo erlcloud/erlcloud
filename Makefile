@@ -39,7 +39,7 @@ run:
 ifeq ($(REBAR_VSN),2)
 	erl -pa deps/*/ebin -pa ./ebin
 else
-	$(REBAR) shell
+	$(REBAR) shell --config config/sys.config
 endif
 
 check_warnings:
