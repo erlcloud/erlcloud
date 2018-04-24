@@ -1,3 +1,20 @@
+%% @doc
+%% An Erlang interface to AWS GuardDuty.
+%%
+%% [https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_api_ref.html]
+%%
+%% Currently lhttp client does not work correctly AWS GuardDuty endpoints, see:
+%% https://github.com/erlcloud/lhttpc/pull/13
+%%
+%% please use Hackney http client instead. It shloud be added as a dependency in
+%% your app since it is not a direct dependency of erlcloud.
+%% [https://github.com/benoitc/hackney]
+%% 
+%% AwsConfig = #aws_config{http_client = hackney},
+%% Detectors = erlcloud_guardduty:list_detectors(AwsConfig).
+%% 
+%% @end
+
 -module(erlcloud_guardduty).
 
 -include_lib("erlcloud/include/erlcloud.hrl").
