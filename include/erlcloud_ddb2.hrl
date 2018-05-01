@@ -162,6 +162,10 @@
          last_evaluated_table_name :: undefined | erlcloud_ddb2:table_name()
         }).
 
+-record(ddb2_list_tags_of_resource,
+        {next_token :: undefined | binary(),
+         tags :: undefined | [erlcloud_ddb2:tag()]}).
+
 -record(ddb2_put_item,
         {attributes :: undefined | erlcloud_ddb2:out_item(),
          consumed_capacity :: undefined | #ddb2_consumed_capacity{},
