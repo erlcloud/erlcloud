@@ -634,7 +634,7 @@ api_tests(_) ->
      end,
      fun() ->
              Result = erlcloud_lambda:invoke(<<"name">>, [], [{show_headers, true}], #aws_config{}),
-             Expected = {ok, [], {<<"message">>, <<"Hello World!">>}},
+             Expected = {ok, [], [{<<"message">>, <<"Hello World!">>}]},
              ?assertEqual(Expected, Result)
      end,
      fun() ->
