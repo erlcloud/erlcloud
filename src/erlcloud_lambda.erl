@@ -715,27 +715,33 @@ lambda_request(Config, Method, Path, Body) ->
 lambda_request(Config, Method, Path, Body, QParams) ->
     lambda_request(Config, Method, Path, [], Body, QParams).
 
-lambda_request(Config, Method, Path, Hdrs, Body, QParam) ->
+lambda_request(Config, Method, Path, Options, Body, QParam) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
-            lambda_request_no_update(Config1, Method, Path, Hdrs, Body, QParam);
+            lambda_request_no_update(Config1, Method, Path, Options, Body, QParam);
         {error, Reason} ->
             {error, Reason}
     end.
 
-lambda_request_no_update(Config, Method, Path, Hdrs, Body, QParam) ->
+lambda_request_no_update(Config, Method, Path, Options, Body, QParam) ->
     Form = case encode_body(Body) of
                <<>>   -> erlcloud_http:make_query_string(QParam);
                Value  -> Value
            end,
+    ShowRespHeaders = proplists:get_value(show_headers, Options, false),
+    Hdrs = proplists:delete(show_headers, Options),
     Headers = headers(Method, Path, Hdrs, Config, encode_body(Body), QParam),
     case erlcloud_aws:do_aws_request_form_raw(
            Method, Config#aws_config.lambda_scheme, Config#aws_config.lambda_host,
-           Config#aws_config.lambda_port, Path, Form, Headers, Config, true) of
+           Config#aws_config.lambda_port, Path, Form, Headers, Config, ShowRespHeaders) of
         {ok, <<"">>} ->
             {ok, []};
-        {ok, {Headers, Data}} ->
-            {ok, {Headers, jsx:decode(Data)}};
+        {ok, Data} ->
+            {ok, jsx:decode(Data)};
+        {ok, Headers, <<"">>} ->
+            {ok, Headers, []};
+        {ok, Headers, Data} ->
+            {ok, Headers, jsx:decode(Data)};
         E ->
             E
     end.

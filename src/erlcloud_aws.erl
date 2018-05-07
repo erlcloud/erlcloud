@@ -226,7 +226,7 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
 aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config) ->
     do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config, false).
 
-do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config, IsHdrs4Return) ->
+do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config, ShowRespHeaders) ->
     URL = case Port of
         undefined -> [Scheme, Host, Path];
         _ -> [Scheme, Host, $:, port_to_str(Port), Path]
@@ -272,16 +272,20 @@ do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config,
                                           request_body = Form},
                 erlcloud_retry:request(Config, AwsRequest, ResultFun)
         end,
-    request_to_return_headers(request_to_return(Response), IsHdrs4Return).
 
-request_to_return_headers({ok, {_, Body}}, false) ->
-    {ok, Body};
-request_to_return_headers({ok, {Headers, Body}}, true) ->
-    {ok, {Headers, Body}};
-request_to_return_headers({error, {Error, StatusCode, StatusLine, Body, _Headers}}, _) ->
-    {error, {Error, StatusCode, StatusLine, Body}};
-request_to_return_headers({error, Reason}, _) ->
-    {error, Reason}.
+    case request_to_return(Response) of
+        {ok, _} = SuccessRes ->
+            show_headers(ShowRespHeaders, SuccessRes);
+        {error, {Error, StatusCode, StatusLine, Body, _Headers}} ->
+            {error, {Error, StatusCode, StatusLine, Body}};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+show_headers(true, {ok, {Headers, Body}}) ->
+    {ok, Headers, Body};
+show_headers(false, {ok, {_, Body}}) ->
+    {ok, Body}.
 
 param_list([], _Key) -> [];
 param_list(Values, Key) when is_tuple(Key) ->
