@@ -729,13 +729,13 @@ lambda_request_no_update(Config, Method, Path, Hdrs, Body, QParam) ->
                Value  -> Value
            end,
     Headers = headers(Method, Path, Hdrs, Config, encode_body(Body), QParam),
-    case erlcloud_aws:aws_request_form_raw(
+    case erlcloud_aws:do_aws_request_form_raw(
            Method, Config#aws_config.lambda_scheme, Config#aws_config.lambda_host,
-           Config#aws_config.lambda_port, Path, Form, Headers, Config) of
+           Config#aws_config.lambda_port, Path, Form, Headers, Config, true) of
         {ok, <<"">>} ->
             {ok, []};
-        {ok, Data} ->
-            {ok, jsx:decode(Data)};
+        {ok, {Headers, Data}} ->
+            {ok, {Headers, jsx:decode(Data)}};
         E ->
             E
     end.
