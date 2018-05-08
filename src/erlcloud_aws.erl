@@ -9,6 +9,7 @@
          aws_region_from_host/1,
          aws_request_form/8,
          aws_request_form_raw/8,
+         do_aws_request_form_raw/9,
          param_list/2, default_config/0, auto_config/0, auto_config/1,
          default_config_region/2,
          update_config/1,clear_config/1, clear_expired_configs/0,
@@ -223,6 +224,9 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
                         Path :: string(), Form :: iodata(), Headers :: list(),
                         Config :: aws_config()) -> {ok, Body :: binary()} | {error, httpc_result_error()}.
 aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config) ->
+    do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config, false).
+
+do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config, ShowRespHeaders) ->
     URL = case Port of
         undefined -> [Scheme, Host, Path];
         _ -> [Scheme, Host, $:, port_to_str(Port), Path]
@@ -270,13 +274,18 @@ aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config) ->
         end,
 
     case request_to_return(Response) of
-        {ok, {_, Body}} ->
-            {ok, Body};
+        {ok, _} = SuccessRes ->
+            show_headers(ShowRespHeaders, SuccessRes);
         {error, {Error, StatusCode, StatusLine, Body, _Headers}} ->
             {error, {Error, StatusCode, StatusLine, Body}};
         {error, Reason} ->
             {error, Reason}
     end.
+
+show_headers(true, {ok, {Headers, Body}}) ->
+    {ok, Headers, Body};
+show_headers(false, {ok, {_, Body}}) ->
+    {ok, Body}.
 
 param_list([], _Key) -> [];
 param_list(Values, Key) when is_tuple(Key) ->

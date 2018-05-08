@@ -333,10 +333,22 @@ get_function_configuration(Function, Qualifier, Config) ->
 %% Lambda API:
 %% [http://docs.aws.amazon.com/lambda/latest/dg/API_Invoke.html]
 %%
-%% ===Example===
+%% option {show_headers, true|false} may be used for invoking Lambdas
+%% this option changes returned spec of successfull Lambda invocation
+%%      false(default): output spec is {ok, Data}
+%%      true: output spec is {ok, Headers, Data} where additional headers of
+%%            Lambda invocation is returned
+%%
+%%
+%% ===Examples===
 %% Async invoke with no logs and empty event
 %% erlcloud_lambda:invoke(<<"my_lambda">>, [],
 %%    [{"X-Amz-Invocation-Type", "Event"}, {"X-Amz-Log-Type", "None"}], AwsCfg).
+%% Sync invoke returned invocation headers (contains logs)
+%% erlcloud_lambda:invoke(<<"my_lambda">>, [],
+%%    [{show_headers, true}, {"X-Amz-Log-Type", "Tail"},
+%%    {"X-Amz-Invocation-Type", "RequestResponse"}], AwsCfg).
+%%
 %%
 %%-----------------------------------------------------------------------------
 -spec invoke(FunctionName :: binary()) -> return_val().
@@ -715,30 +727,37 @@ lambda_request(Config, Method, Path, Body) ->
 lambda_request(Config, Method, Path, Body, QParams) ->
     lambda_request(Config, Method, Path, [], Body, QParams).
 
-lambda_request(Config, Method, Path, Hdrs, Body, QParam) ->
+lambda_request(Config, Method, Path, Options, Body, QParam) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
-            lambda_request_no_update(Config1, Method, Path, Hdrs, Body, QParam);
+            lambda_request_no_update(Config1, Method, Path, Options, Body, QParam);
         {error, Reason} ->
             {error, Reason}
     end.
 
-lambda_request_no_update(Config, Method, Path, Hdrs, Body, QParam) ->
+lambda_request_no_update(Config, Method, Path, Options, Body, QParam) ->
     Form = case encode_body(Body) of
                <<>>   -> erlcloud_http:make_query_string(QParam);
                Value  -> Value
            end,
+    ShowRespHeaders = proplists:get_value(show_headers, Options, false),
+    Hdrs = proplists:delete(show_headers, Options),
     Headers = headers(Method, Path, Hdrs, Config, encode_body(Body), QParam),
-    case erlcloud_aws:aws_request_form_raw(
+    case erlcloud_aws:do_aws_request_form_raw(
            Method, Config#aws_config.lambda_scheme, Config#aws_config.lambda_host,
-           Config#aws_config.lambda_port, Path, Form, Headers, Config) of
-        {ok, <<"">>} ->
-            {ok, []};
-        {ok, Data} ->
-            {ok, jsx:decode(Data)};
+           Config#aws_config.lambda_port, Path, Form, Headers, Config, ShowRespHeaders) of
+        {ok, RespHeaders, RespBody} ->
+            {ok, RespHeaders, decode_body(RespBody)};
+        {ok, RespBody} ->
+            {ok, decode_body(RespBody)};
         E ->
             E
     end.
+
+decode_body(<<>>) ->
+    [];
+decode_body(BinData) ->
+    jsx:decode(BinData).
 
 encode_body(undefined) ->
     <<>>;
