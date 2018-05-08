@@ -114,7 +114,7 @@
          scan/1, scan/2, scan/3,
          tag_resource/2, tag_resource/3,
          update_continuous_backups/2,update_continuous_backups/3,update_continuous_backups/4,
-         untag_reource/2, untag_resource/3
+         untag_resource/2, untag_resource/3,
          update_item/3, update_item/4, update_item/5,
          update_global_table/2, update_global_table/3, update_global_table/4,
          update_table/2, update_table/3, update_table/4, update_table/5,
