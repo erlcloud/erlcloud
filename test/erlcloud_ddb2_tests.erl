@@ -66,6 +66,8 @@ operation_test_() ->
       fun list_global_tables_output_tests/1,
       fun list_tables_input_tests/1,
       fun list_tables_output_tests/1,
+      fun list_tags_of_resource_input_tests/1,
+      fun list_tags_of_resource_output_tests/1,      
       fun put_item_input_tests/1,
       fun put_item_output_tests/1,
       fun q_input_tests/1,
@@ -76,8 +78,12 @@ operation_test_() ->
       fun restore_table_to_point_in_time_output_tests/1,
       fun scan_input_tests/1,
       fun scan_output_tests/1,
+      fun tag_resource_input_tests/1,
+      fun tag_resource_output_tests/1,
       fun update_continuous_backups_input_tests/1,
       fun update_continuous_backups_output_tests/1,
+      fun untag_resource_input_tests/1,
+      fun untag_resource_output_tests/1,
       fun update_item_input_tests/1,
       fun update_item_output_tests/1,
       fun update_global_table_input_tests/1,
@@ -113,6 +119,10 @@ sort_json(V) ->
 
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
+validate_body(<<>>, "") -> ok;
+validate_body(<<>> = Actual, Want) ->
+  ?debugFmt("~nEXPECTED~n~p~nACTUAL~n~p~n", [Want, Actual]),
+  ?assertEqual(Want, Actual);
 validate_body(Body, Expected) ->
     Want = sort_json(jsx:decode(list_to_binary(Expected))),
     Actual = sort_json(jsx:decode(Body)),
@@ -3112,6 +3122,62 @@ list_tables_output_tests(_) ->
     
     output_tests(?_f(erlcloud_ddb2:list_tables([{out, record}])), Tests).
 
+%% ListTagsOfResource test based on the API:
+%% https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_ListTagsOfResource.html
+list_tags_of_resource_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"ListTagsOfResource example request",
+             ?_f(erlcloud_ddb2:list_tags_of_resource(<<"arn:aws:dynamodb:us-east-1:111122223333:table/Forum">>,
+                                                     [{next_token, <<"TestToken">>}])), "
+{
+    \"ResourceArn\": \"arn:aws:dynamodb:us-east-1:111122223333:table/Forum\",
+    \"NextToken\": \"TestToken\"
+}"
+            }),
+         ?_ddb_test(
+            {"ListTagsOfResource example request (no NextToken)",
+             ?_f(erlcloud_ddb2:list_tags_of_resource(<<"arn:aws:dynamodb:us-east-1:111122223333:table/Forum">>)), "
+{
+    \"ResourceArn\": \"arn:aws:dynamodb:us-east-1:111122223333:table/Forum\"
+}"
+            })
+
+        ],
+
+    Response = "
+{
+    \"Tags\": []
+}",
+    input_tests(Response, Tests).
+
+list_tags_of_resource_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"ListTagsOfResource example response", "
+{
+    \"NextToken\": \"TestToken\",
+    \"Tags\": [
+      {
+          \"Key\": \"example_key1\",
+          \"Value\": \"example_value1\"
+      },
+      {
+          \"Key\": \"example_key2\",
+          \"Value\": \"example_value2\"
+      }
+    ]
+}",
+             {ok, #ddb2_list_tags_of_resource
+              {next_token = <<"TestToken">>,
+               tags = [{<<"example_key1">>, <<"example_value1">>},
+                       {<<"example_key2">>, <<"example_value2">>}]}}})
+        ],
+    
+    output_tests(?_f(erlcloud_ddb2:list_tags_of_resource(<<"arn:aws:dynamodb:us-east-1:111122223333:table/Forum">>,
+                                                         [{out, record}])),
+                     Tests).
+
 %% PutItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html
 put_item_input_tests(_) ->
@@ -4511,6 +4577,44 @@ scan_output_tests(_) ->
     
     output_tests(?_f(erlcloud_ddb2:scan(<<"name">>, [{out, record}])), Tests).
 
+%% TagResource test based on the API:
+%% https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TagResource.html
+tag_resource_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"ListTagsOfResource example request",
+             ?_f(erlcloud_ddb2:tag_resource(<<"arn:aws:dynamodb:us-east-1:111122223333:table/Forum">>,
+                                            [{<<"example_key1">>, <<"example_value1">>},
+                                             {<<"example_key2">>, <<"example_value2">>}])), "
+{
+    \"ResourceArn\": \"arn:aws:dynamodb:us-east-1:111122223333:table/Forum\",
+    \"Tags\": [
+      {
+          \"Key\": \"example_key1\",
+          \"Value\": \"example_value1\"
+      },
+      {
+          \"Key\": \"example_key2\",
+          \"Value\": \"example_value2\"
+      }
+    ]
+}"
+            })
+        ],
+    Response = "",
+    input_tests(Response, Tests).
+
+tag_resource_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"ListTagsOfResource example response", "",
+             ok})
+        ],
+    output_tests(?_f(erlcloud_ddb2:tag_resource(<<"arn:aws:dynamodb:us-east-1:111122223333:table/Forum">>,
+                                                [{<<"example_key1">>, <<"example_value1">>},
+                                                 {<<"example_key2">>, <<"example_value2">>}])),
+                     Tests).
+
 %% UpdateContinuousBackups test based on the API examples:
 %% https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateContinuousBackups.html
 update_continuous_backups_input_tests(_) ->
@@ -4562,6 +4666,36 @@ update_continuous_backups_output_tests(_) ->
   ],
 
  output_tests(?_f(erlcloud_ddb2:update_continuous_backups(<<"Thread">>,true)), Tests).
+
+%% UntagResource test based on the API:
+%% https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UntagResource.html
+untag_resource_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"ListTagsOfResource example request",
+             ?_f(erlcloud_ddb2:untag_resource(<<"arn:aws:dynamodb:us-east-1:111122223333:table/Forum">>,
+                                              [<<"example_key1">>, <<"example_key2">>])), "
+{
+    \"ResourceArn\": \"arn:aws:dynamodb:us-east-1:111122223333:table/Forum\",
+    \"TagKeys\": [
+        \"example_key1\",
+        \"example_key2\"
+    ]
+}"
+            })
+        ],
+    Response = "",
+    input_tests(Response, Tests).
+
+untag_resource_output_tests(_) ->
+    Tests = 
+        [?_ddb_test(
+            {"ListTagsOfResource example response", "",
+             ok})
+        ],
+    output_tests(?_f(erlcloud_ddb2:untag_resource(<<"arn:aws:dynamodb:us-east-1:111122223333:table/Forum">>,
+                                                  [<<"example_key1">>, <<"example_key2">>])),
+                     Tests).
 
 %% UpdateItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateItem.html

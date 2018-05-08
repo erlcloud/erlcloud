@@ -105,13 +105,16 @@
          list_backups/0, list_backups/1, list_backups/2,
          list_global_tables/0, list_global_tables/1, list_global_tables/2,
          list_tables/0, list_tables/1, list_tables/2,
+         list_tags_of_resource/1, list_tags_of_resource/2, list_tags_of_resource/3,
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
          q/2, q/3, q/4,
          restore_table_from_backup/2, restore_table_from_backup/3, restore_table_from_backup/4,
          restore_table_to_point_in_time/2,restore_table_to_point_in_time/3,restore_table_to_point_in_time/4,
          scan/1, scan/2, scan/3,
+         tag_resource/2, tag_resource/3,
          update_continuous_backups/2,update_continuous_backups/3,update_continuous_backups/4,
+         untag_reource/2, untag_resource/3
          update_item/3, update_item/4, update_item/5,
          update_global_table/2, update_global_table/3, update_global_table/4,
          update_table/2, update_table/3, update_table/4, update_table/5,
@@ -210,6 +213,10 @@
     stream_specification/0,
     select/0,
     table_name/0,
+    tag_key/0,
+    tag_value/0,
+    tag/0,
+    tags/0,
     time_to_live_status/0,
     update_action/0,
     update_item_opt/0,
@@ -360,6 +367,11 @@ default_config() -> erlcloud_aws:default_config().
 
 -type return_consumed_capacity() :: none | total | indexes.
 -type return_item_collection_metrics() :: none | size.
+
+-type tag_key() :: binary().
+-type tag_value() :: binary().
+-type tag() :: {tag_key(), tag_value()}.
+-type tags() :: [tag()].
 
 -type out_attr_value() :: binary() | number() | boolean() | undefined |
                           [binary()] | [number()] | [out_attr_value()] | [out_attr()].
@@ -1031,6 +1043,8 @@ return_item_collection_metrics_opt() ->
             {error, term()}.
 out({error, Reason}, _, _) ->
     {error, Reason};
+out(ok, _, _) ->
+    {error, unexpected_empty_response};
 out({ok, Json}, Undynamize, Opts) ->
     case proplists:get_value(out, Opts, simple) of
         json ->
@@ -2078,12 +2092,12 @@ describe_global_table_record() ->
 
 -type describe_global_table_return() :: ddb_return(#ddb2_describe_global_table{}, #ddb2_global_table_description{}).
 
--spec describe_global_table(table_name()) -> describe_table_return().
+-spec describe_global_table(table_name()) -> describe_global_table_return().
 describe_global_table(GlobalTableName) ->
     describe_global_table(GlobalTableName, [], default_config()).
 
 -spec describe_global_table(table_name(), ddb_opts() | aws_config())
-                           -> describe_table_return().
+                           -> describe_global_table_return().
 describe_global_table(GlobalTableName, Opts) when is_list(Opts) ->
     describe_global_table(GlobalTableName, Opts, default_config());
 describe_global_table(GlobalTableName, Config) when is_record(Config, aws_config) ->
@@ -2549,6 +2563,72 @@ list_tables(Opts, Config) ->
         DdbOpts, #ddb2_list_tables.table_names, {ok, []}).
 
 %%%------------------------------------------------------------------------------
+%%% ListTagsOfResource
+%%%------------------------------------------------------------------------------
+
+-type list_tags_of_resource_opt() :: {next_token, binary()} | out_opt().
+-type list_tags_of_resource_opts() :: [list_tags_of_resource_opt()].
+
+-spec list_tags_of_resource_opts() -> opt_table().
+list_tags_of_resource_opts() ->
+    [{next_token, <<"NextToken">>, fun id/1}].
+
+-spec undynamize_tag(jsx:json_term(), undynamize_opts()) -> tag().
+undynamize_tag(Tag, _) ->
+    {proplists:get_value(<<"Key">>, Tag),
+     proplists:get_value(<<"Value">>, Tag)}.
+
+-spec undynamize_tags([jsx:json_term()], undynamize_opts()) -> tags().
+undynamize_tags(Tags, Opts) ->
+    [undynamize_tag(Tag, Opts) || Tag <- Tags].
+
+-spec list_tags_of_resource_record() -> record_desc().
+list_tags_of_resource_record() ->
+    {#ddb2_list_tags_of_resource{},
+     [{<<"NextToken">>, #ddb2_list_tags_of_resource.next_token, fun id/2},
+      {<<"Tags">>, #ddb2_list_tags_of_resource.tags, fun undynamize_tags/2}
+     ]}.
+
+-type list_tags_of_resource_return() :: ddb_return(#ddb2_list_tags_of_resource{}, tags()).
+
+-spec list_tags_of_resource(binary()) -> list_tags_of_resource_return().
+list_tags_of_resource(ResourceArn) ->
+    list_tags_of_resource(ResourceArn, [], default_config()).
+
+-spec list_tags_of_resource(binary(), list_tags_of_resource_opts())
+                           -> list_tags_of_resource_return().
+list_tags_of_resource(ResourceArn, Opts) ->
+    list_tags_of_resource(ResourceArn, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_ListTagsOfResource.html]
+%%
+%% ===Example===
+%%
+%% List the tags for "Forum".
+%%
+%% `
+%% {ok, Tags} = 
+%%     erlcloud_ddb2:list_tags_of_resource(
+%%       <<"arn:aws:dynamodb:us-west-2:111122223333:table/Forum">>,
+%%       [{next_token, <<"TestToken">>}]),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+-spec list_tags_of_resource(binary(), list_tags_of_resource_opts(), aws_config())
+                           -> list_tags_of_resource_return().
+list_tags_of_resource(ResourceArn, Opts, Config) ->
+    {AwsOpts, DdbOpts} = opts(list_tags_of_resource_opts(), Opts),
+    Return = erlcloud_ddb_impl:request(
+               Config,
+               "DynamoDB_20120810.ListTagsOfResource",
+               [{<<"ResourceArn">>, ResourceArn} | AwsOpts]),
+    out(Return, fun(Json, UOpts) -> undynamize_record(list_tags_of_resource_record(), Json, UOpts) end, 
+        DdbOpts, #ddb2_list_tags_of_resource.tags, {ok, []}).
+
+%%%------------------------------------------------------------------------------
 %%% PutItem
 %%%------------------------------------------------------------------------------
 
@@ -2979,6 +3059,50 @@ scan(Table, Opts, Config) ->
         #ddb2_scan.items, {ok, []}).
 
 %%%------------------------------------------------------------------------------
+%%% TagResource
+%%%------------------------------------------------------------------------------
+
+-type tag_resource_return() :: ok | {error, term()}.
+
+-spec dynamize_tag(tag()) -> jsx:json_term().
+dynamize_tag({Key, Value}) when is_binary(Key), is_binary(Value) ->
+    [{<<"Key">>, Key},
+     {<<"Value">>, Value}].
+
+-spec dynamize_tags(tags()) -> [jsx:json_term()].
+dynamize_tags(Tags) ->
+    [dynamize_tag(Tag) || Tag <- Tags]. 
+
+-spec tag_resource(binary(), tags()) -> tag_resource_return().
+tag_resource(ResourceArn, Tags) ->
+    tag_resource(ResourceArn, Tags, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TagResource.html]
+%%
+%% ===Example===
+%%
+%% Tag the Forum table with example keys.
+%%
+%% `
+%% ok = erlcloud_ddb2:tag_resource(
+%%        <<"arn:aws:dynamodb:us-west-2:111122223333:table/Forum">>, 
+%%        [{<<"example_key1">>, <<"example_value1">>},
+%%         {<<"example_key2">>, <<"example_value2">>}]),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+-spec tag_resource(binary(), tags(), aws_config())
+                  -> tag_resource_return().
+tag_resource(ResourceArn, Tags, Config) ->
+    erlcloud_ddb_impl:request(
+      Config,
+      "DynamoDB_20120810.TagResource",
+      [{<<"ResourceArn">>, ResourceArn},
+       {<<"Tags">>, dynamize_tags(Tags)}]).
+
 %%% UpdateContinuousBackups
 %%%------------------------------------------------------------------------------
 %%------------------------------------------------------------------------------
@@ -3024,6 +3148,41 @@ update_continuous_backups(TableName, PointInTimeRecoveryEnabled, Opts, Config)
        {<<"PointInTimeRecoverySpecification">>, dynamize_point_in_time_recovery_enabled(PointInTimeRecoveryEnabled)}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(continuous_backups_record(), Json, UOpts) end,
       DdbOpts, #ddb2_describe_continuous_backups.continuous_backups_description).
+
+%%%------------------------------------------------------------------------------
+%%% UntagResource
+%%%------------------------------------------------------------------------------
+
+-type untag_resource_return() :: ok | {error, term()}.
+
+-spec untag_resource(binary(), [tag_key()]) -> untag_resource_return().
+untag_resource(ResourceArn, TagKeys) ->
+    untag_resource(ResourceArn, TagKeys, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc 
+%% DynamoDB API:
+%% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UntagResource.html]
+%%
+%% ===Example===
+%%
+%% Untag the example keys of the Forum table.
+%%
+%% `
+%% ok = erlcloud_ddb2:untag_resource(
+%%        <<"arn:aws:dynamodb:us-west-2:111122223333:table/Forum">>, 
+%%        [<<"example_key1">>, <<"example_key2">>]),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+-spec untag_resource(binary(), [tag_key()], aws_config())
+                  -> untag_resource_return().
+untag_resource(ResourceArn, TagKeys, Config) ->
+    erlcloud_ddb_impl:request(
+      Config,
+      "DynamoDB_20120810.UntagResource",
+      [{<<"ResourceArn">>, ResourceArn},
+       {<<"TagKeys">>, TagKeys}]).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateItem

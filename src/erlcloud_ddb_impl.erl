@@ -72,7 +72,7 @@
 
 -export_type([json_return/0, attempt/0, retry_fun/0]).
 
--type json_return() :: {ok, jsx:json_term()} | {error, term()}.
+-type json_return() :: ok | {ok, jsx:json_term()} | {error, term()}.
 
 -type operation() :: string().
 -spec request(aws_config(), operation(), jsx:json_term()) -> json_return().
@@ -178,7 +178,7 @@ retry_v1_wrap(Error, RetryFun) ->
 
 -type headers() :: [{string(), string()}].
 -spec request_and_retry(aws_config(), headers(), jsx:json_text(), attempt()) ->
-                               {ok, jsx:json_term()} | {error, term()}.
+                               ok | {ok, jsx:json_term()} | {error, term()}.
 request_and_retry(_, _, _, {error, Reason}) ->
     {error, Reason};
 request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
@@ -187,6 +187,9 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
            url(Config), post,
            [{<<"content-type">>, <<"application/x-amz-json-1.0">>} | Headers],
            Body, timeout(Attempt, Config), Config) of
+
+        {ok, {{200, _}, _, <<>>}} ->
+            ok;
 
         {ok, {{200, _}, _, RespBody}} ->
             %% TODO check crc
