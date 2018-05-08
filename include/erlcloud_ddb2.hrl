@@ -17,7 +17,10 @@
 -type date_time() :: number().
 -type global_table_status() :: creating | active | deleting | updating.
 -type table_status() :: creating | updating | deleting | active.
+-type backup_status() :: creating | deleted | avaliable.
 -type index_status() :: creating | updating | deleting | active.
+-type continuous_backups_status() :: enabled | disabled.
+-type point_in_time_recovery_status() :: enabling | enabled | disabled.
 
 -record(ddb2_replica_description,
         {region_name :: undefined | binary()}).
@@ -67,6 +70,13 @@
          projection :: undefined | erlcloud_ddb2:projection()
         }).
 
+-record(ddb2_restore_summary,
+        {restore_date_time ::undefined | date_time(),
+         restore_in_progress :: undefined | boolean(),
+         source_backup_arn :: undefined | binary(),
+         source_table_arn :: undefined | binary()
+        }).
+
 -record(ddb2_table_description,
         {attribute_definitions :: undefined | erlcloud_ddb2:attr_defs(),
          creation_date_time :: undefined | number(),
@@ -77,6 +87,7 @@
          latest_stream_label :: undefined | binary(),
          local_secondary_indexes :: undefined | [#ddb2_local_secondary_index_description{}],
          provisioned_throughput :: undefined | #ddb2_provisioned_throughput_description{},
+         restore_summary :: undefined | #ddb2_restore_summary{},
          sse_description :: undefined | erlcloud_ddb2:sse_description(),
          stream_specification :: undefined | erlcloud_ddb2:stream_specification(),
          table_arn :: undefined | binary(),
@@ -217,19 +228,19 @@
         {time_to_live_specification :: undefined | #ddb2_time_to_live_specification{}
         }).
 
--record(ddb2_backup_summaries,
+-record(ddb2_backup_summary,
         {backup_arn:: undefined | binary(),
          backup_creation_date_time :: undefined | date_time(),
          backup_name:: undefined | binary(),
          backup_size_bytes :: undefined | pos_integer(),
-         backup_status:: undefined | binary(),
+         backup_status:: undefined | backup_status(),
          table_arn:: undefined | binary(),
          table_id:: undefined | binary(),
          table_name:: undefined | binary()
         }).
 
 -record(ddb2_list_backups,
-        {backup_summaries :: undefined | [#ddb2_backup_summaries{}],
+        {backup_summaries :: undefined | [#ddb2_backup_summary{}],
          last_evaluated_backup_arn :: undefined | erlcloud_ddb2:table_name()
         }).
 
@@ -287,29 +298,40 @@
          time_to_live_description :: undefined | #ddb2_time_to_live_description{}
         }).
 
--record(ddb2_delete_backup_record,
-        {dackup_details :: undefined | #ddb2_backup_details{},
+-record(ddb2_backup_description,
+        {backup_details :: undefined | #ddb2_backup_details{},
          source_table_details :: undefined | #ddb2_source_table_details{},
          source_table_feature_details :: undefined | #ddb2_source_table_feature_details{}
         }).
 
 -record(ddb2_delete_backup,
-        {backup_description :: undefined | #ddb2_delete_backup_record{}
+        {backup_description :: undefined | #ddb2_backup_description{}
         }).
 
--record(point_in_time_recovery_description,
+-record(ddb2_describe_backup,
+        {backup_description :: undefined | #ddb2_backup_description{}
+        }).
+
+-record(ddb2_point_in_time_recovery_description,
         {earliest_restorable_date_time :: undefined | number(),
          latest_restorable_date_time :: undefined | number(),
-         point_in_time_recovery_status :: undefined | binary()
+         point_in_time_recovery_status :: undefined | point_in_time_recovery_status()
         }).
 
--record(continuous_backups_description,
-        {continuous_backups_status :: undefined | binary(),
-         point_in_time_recovery_description :: undefined | #point_in_time_recovery_description{}
+-record(ddb2_continuous_backups_description,
+        {continuous_backups_status :: undefined | continuous_backups_status(),
+         point_in_time_recovery_description :: undefined | #ddb2_point_in_time_recovery_description{}
         }).
 
--record(ddb2_continuous_backups_record,
-        {continuous_backups_description :: undefined | #continuous_backups_description{}
+-record(ddb2_describe_continuous_backups,
+        {continuous_backups_description :: undefined | #ddb2_continuous_backups_description{}
         }).
 
+-record(ddb2_restore_table_from_backup,
+        {table_description :: undefined | #ddb2_table_description{}
+        }).
+
+-record(ddb2_restore_table_to_point_in_time,
+       {table_description :: undefined | #ddb2_table_description{}
+       }).
 -endif.

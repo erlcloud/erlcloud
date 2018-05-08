@@ -89,27 +89,29 @@
 %%% DynamoDB API
 -export([batch_get_item/1, batch_get_item/2, batch_get_item/3,
          batch_write_item/1, batch_write_item/2, batch_write_item/3,
-         create_backup/2, create_backup/3,
+         create_backup/2, create_backup/3, create_backup/4,
          create_global_table/2, create_global_table/3, create_global_table/4,
          create_table/5, create_table/6, create_table/7,
-         delete_backup/1, delete_backup/2,
+         delete_backup/1, delete_backup/2, delete_backup/3,
          delete_item/2, delete_item/3, delete_item/4,
          delete_table/1, delete_table/2, delete_table/3,
          describe_backup/1, describe_backup/2, describe_backup/3,
-         describe_continuous_backups/1,describe_continuous_backups/2,describe_continuous_backups/3,
+         describe_continuous_backups/1, describe_continuous_backups/2, describe_continuous_backups/3,
          describe_global_table/1, describe_global_table/2, describe_global_table/3,
          describe_limits/0, describe_limits/1, describe_limits/2,
          describe_table/1, describe_table/2, describe_table/3,
          describe_time_to_live/1, describe_time_to_live/2, describe_time_to_live/3,
          get_item/2, get_item/3, get_item/4,
-         list_backups/0,list_backups/1,list_backups/2,
+         list_backups/0, list_backups/1, list_backups/2,
          list_global_tables/0, list_global_tables/1, list_global_tables/2,
          list_tables/0, list_tables/1, list_tables/2,
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
          q/2, q/3, q/4,
-         restore_table_from_backup/2,restore_table_from_backup/3,restore_table_from_backup/4,
+         restore_table_from_backup/2, restore_table_from_backup/3, restore_table_from_backup/4,
+         restore_table_to_point_in_time/2,restore_table_to_point_in_time/3,restore_table_to_point_in_time/4,
          scan/1, scan/2, scan/3,
+         update_continuous_backups/2,update_continuous_backups/3,update_continuous_backups/4,
          update_item/3, update_item/4, update_item/5,
          update_global_table/2, update_global_table/3, update_global_table/4,
          update_table/2, update_table/3, update_table/4, update_table/5,
@@ -811,7 +813,21 @@ undynamize_table_status(<<"CREATING">>, _) -> creating;
 undynamize_table_status(<<"UPDATING">>, _) -> updating;
 undynamize_table_status(<<"DELETING">>, _) -> deleting;
 undynamize_table_status(<<"ACTIVE">>, _)   -> active.
-    
+
+-spec undynamize_continuous_backups_status(binary(), undynamize_opts()) -> continuous_backups_status().
+undynamize_continuous_backups_status(<<"ENABLED">>, _) -> enabled;
+undynamize_continuous_backups_status(<<"DISABLED">>, _) -> disabled.
+
+-spec undynamize_point_in_time_recovery_status(binary(), undynamize_opts()) -> point_in_time_recovery_status().
+undynamize_point_in_time_recovery_status(<<"ENABLING">>, _) -> enabling;
+undynamize_point_in_time_recovery_status(<<"ENABLED">>, _) -> enabled;
+undynamize_point_in_time_recovery_status(<<"DISABLED">>, _) -> disabled.
+
+-spec undynamize_backup_status(binary(), undynamize_opts()) -> backup_status().
+undynamize_backup_status(<<"CREATING">>, _) -> creating;
+undynamize_backup_status(<<"AVAILABLE">>, _) -> avaliable;
+undynamize_backup_status(<<"DELETED">>, _) -> deleted.
+
 -type field_table() :: [{binary(), pos_integer(), 
                          fun((jsx:json_term(), undynamize_opts()) -> term())}].
 
@@ -1166,6 +1182,15 @@ global_table_record() ->
       {<<"ReplicationGroup">>,  #ddb2_global_table.replication_group, fun undynamize_replicas/2}
     ]}.
 
+-spec restore_summary_record() -> record_desc().
+restore_summary_record() ->
+  {#ddb2_restore_summary{},
+    [{<<"RestoreDateTime">>, #ddb2_restore_summary.restore_date_time, fun id/2},
+      {<<"RestoreInProgress">>,  #ddb2_restore_summary.restore_in_progress, fun id/2},
+      {<<"SourceBackupArn">>,  #ddb2_restore_summary.source_backup_arn, fun id/2},
+      {<<"SourceTableArn">>,  #ddb2_restore_summary.source_table_arn, fun id/2}
+    ]}.
+
 -spec table_description_record() -> record_desc().
 table_description_record() ->
     {#ddb2_table_description{},
@@ -1469,12 +1494,6 @@ batch_write_item(RequestItems, Opts, Config) ->
 %% @end
 %%-------------------------------------------------------------------------------
 
--spec create_backup_opts() -> opt_table().
-create_backup_opts() ->
-    [{backup_name, <<"BackupName">>, fun id/1},
-     {table_name, <<"TableName">>, fun id/1}
-    ].
-
 -spec undynamize_backup_details() -> record_desc().
 undynamize_backup_details() ->
     {#ddb2_backup_details{},
@@ -1482,10 +1501,10 @@ undynamize_backup_details() ->
       {<<"BackupCreationDateTime">>, #ddb2_backup_details.backup_creation_date_time, fun id/2},
       {<<"BackupName">>, #ddb2_backup_details.backup_name, fun id/2},
       {<<"BackupSizeBytes">>, #ddb2_backup_details.backup_size_Bytes, fun id/2},
-      {<<"BackupStatus">>, #ddb2_backup_details.backup_status, fun id/2}
+      {<<"BackupStatus">>, #ddb2_backup_details.backup_status, fun undynamize_backup_status/2}
      ]}.
 
--spec undynamize_create_backup(jsx:json_term(), undynamize_opts()) -> [#ddb2_backup_details{}].
+-spec undynamize_create_backup(jsx:json_term(), undynamize_opts())  -> record_desc().
 undynamize_create_backup(BackupInfo, Opts) ->
     undynamize_record(undynamize_backup_details(), BackupInfo, Opts).
 
@@ -1498,23 +1517,23 @@ create_backup_record() ->
 
 -spec create_backup(binary(), table_name()) -> create_backup_return().
 create_backup(BackupName, TableName)
-    when is_bitstring(BackupName), is_bitstring(TableName) ->
+    when is_binary(BackupName), is_binary(TableName) ->
     create_backup(BackupName, TableName,[], default_config()).
 
 -spec create_backup(binary(), table_name(), ddb_opts()) -> create_backup_return().
 create_backup(BackupName, TableName, Opts)
-    when is_bitstring(BackupName), is_bitstring(TableName) ->
+    when is_binary(BackupName), is_binary(TableName) ->
     create_backup(BackupName, TableName, Opts, default_config()).
 
 -spec create_backup(binary(), table_name(), ddb_opts(), aws_config()) -> create_backup_return().
 create_backup(BackupName, TableName, Opts, Config)
-    when is_bitstring(BackupName), is_bitstring(TableName) ->
-    {AwsOpts, DdbOpts} = opts(create_backup_opts(), Opts),
+    when is_binary(BackupName), is_binary(TableName) ->
+    {_AwsOpts, DdbOpts} = opts([], Opts),
     Return = erlcloud_ddb_impl:request(
      Config,
      "DynamoDB_20120810.CreateBackup",
      [{<<"TableName">>, TableName},
-      {<<"BackupName">>, BackupName}] ++ AwsOpts),
+      {<<"BackupName">>, BackupName}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(create_backup_record(), Json, UOpts) end,
      DdbOpts, #ddb2_create_backup.backup_details).
 
@@ -1704,11 +1723,6 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
 %% '
 %% @end
 %%-------------------------------------------------------------------------------
-
--spec delete_backup_opts() -> opt_table().
-delete_backup_opts() ->
-    [{backup_arn, <<"BackupArn">>, fun id/1}].
-
 -spec provisioned_throughput_description() -> record_desc().
 provisioned_throughput_description() ->
     {#ddb2_provisioned_throughput{},
@@ -1763,14 +1777,14 @@ undynamize_source_table_feature_details() ->
        fun(V, Opts) -> undynamize_record(time_to_live_description_record(), V, Opts) end}
      ]}.
 
--spec undynamize_delete_backup_record() -> record_desc().
-undynamize_delete_backup_record() ->
-    {#ddb2_delete_backup_record{},
-     [{<<"BackupDetails">>, #ddb2_delete_backup_record.dackup_details,
+-spec undynamize_backup_description() -> record_desc().
+undynamize_backup_description() ->
+    {#ddb2_backup_description{},
+     [{<<"BackupDetails">>, #ddb2_backup_description.backup_details,
       fun(V, Opts) -> undynamize_record(undynamize_backup_details(), V, Opts) end},
-      {<<"SourceTableDetails">>, #ddb2_delete_backup_record.source_table_details,
+      {<<"SourceTableDetails">>, #ddb2_backup_description.source_table_details,
        fun(V, Opts) -> undynamize_record(undynamize_source_table_details(), V, Opts) end},
-      {<<"SourceTableFeatureDetails">>, #ddb2_delete_backup_record.source_table_feature_details,
+      {<<"SourceTableFeatureDetails">>, #ddb2_backup_description.source_table_feature_details,
        fun(V, Opts) -> undynamize_record(undynamize_source_table_feature_details(), V, Opts) end}
      ]}.
 
@@ -1778,29 +1792,29 @@ undynamize_delete_backup_record() ->
 delete_backup_record() ->
     {#ddb2_delete_backup{},
      [{<<"BackupDescription">>, #ddb2_delete_backup.backup_description,
-      fun(V, Opts) -> undynamize_record(undynamize_delete_backup_record(), V, Opts) end}
+      fun(V, Opts) -> undynamize_record(undynamize_backup_description(), V, Opts) end}
      ]}.
 
--type delete_backup_return() :: ddb_return(#ddb2_delete_backup{}, #ddb2_delete_backup_record{}).
+-type delete_backup_return() :: ddb_return(#ddb2_delete_backup{}, #ddb2_backup_description{}).
 
 -spec delete_backup(binary()) -> delete_backup_return().
 delete_backup(BackupArn)
-    when is_bitstring(BackupArn) ->
+    when is_binary(BackupArn) ->
     delete_backup(BackupArn,[], default_config()).
 
 -spec delete_backup(binary(), ddb_opts()) -> delete_backup_return().
 delete_backup(BackupArn, Opts)
-    when is_bitstring(BackupArn) ->
+    when is_binary(BackupArn) ->
     delete_backup(BackupArn, Opts, default_config()).
 
 -spec delete_backup(binary(), ddb_opts(), aws_config()) -> delete_backup_return().
 delete_backup(BackupArn, Opts, Config)
-    when is_bitstring(BackupArn) ->
-    {AwsOpts, DdbOpts} = opts(delete_backup_opts(), Opts),
+    when is_binary(BackupArn) ->
+    {_AwsOpts, DdbOpts} = opts([], Opts),
     Return = erlcloud_ddb_impl:request(
      Config,
      "DynamoDB_20120810.DeleteBackup",
-     [{<<"BackupArn">>, BackupArn}] ++ AwsOpts),
+     [{<<"BackupArn">>, BackupArn}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(delete_backup_record(), Json, UOpts) end,
      DdbOpts, #ddb2_delete_backup.backup_description).
 
@@ -1959,32 +1973,35 @@ delete_table(Table, Opts, Config) ->
 %% @end
 %%-------------------------------------------------------------------------------
 
--spec describe_backup_opts() -> opt_table().
-describe_backup_opts() ->
-    [{backup_arn, <<"BackupArn">>, fun id/1}].
+-type describe_backup_return() :: ddb_return(#ddb2_describe_backup{}, #ddb2_backup_description{}).
 
--type describe_backup_return() :: ddb_return(#ddb2_delete_backup{}, #ddb2_delete_backup_record{}).
+-spec describe_backup_record() -> record_desc().
+describe_backup_record() ->
+  {#ddb2_describe_backup{},
+    [{<<"BackupDescription">>, #ddb2_describe_backup.backup_description,
+      fun(V, Opts) -> undynamize_record(undynamize_backup_description(), V, Opts) end}
+    ]}.
 
 -spec describe_backup(binary()) -> describe_backup_return().
 describe_backup(BackupArn)
-    when is_bitstring(BackupArn) ->
+    when is_binary(BackupArn) ->
     describe_backup(BackupArn,[], default_config()).
 
 -spec describe_backup(binary(), ddb_opts()) -> describe_backup_return().
 describe_backup(BackupArn, Opts)
-    when is_bitstring(BackupArn) ->
+    when is_binary(BackupArn) ->
     describe_backup(BackupArn, Opts, default_config()).
 
 -spec describe_backup(binary(), ddb_opts(), aws_config()) -> describe_backup_return().
 describe_backup(BackupArn, Opts, Config)
-    when is_bitstring(BackupArn) ->
-    {AwsOpts, DdbOpts} = opts(describe_backup_opts(), Opts),
+    when is_binary(BackupArn) ->
+    {_AwsOpts, DdbOpts} = opts([], Opts),
     Return = erlcloud_ddb_impl:request(
      Config,
      "DynamoDB_20120810.DescribeBackup",
-     [{<<"BackupArn">>, BackupArn}] ++ AwsOpts),
-    out(Return, fun(Json, UOpts) -> undynamize_record(delete_backup_record(), Json, UOpts) end,
-     DdbOpts, #ddb2_delete_backup.backup_description).
+     [{<<"BackupArn">>, BackupArn}]),
+    out(Return, fun(Json, UOpts) -> undynamize_record(describe_backup_record(), Json, UOpts) end,
+     DdbOpts, #ddb2_describe_backup.backup_description).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -2002,55 +2019,51 @@ describe_backup(BackupArn, Opts, Config)
 %% @end
 %%-------------------------------------------------------------------------------
 
--spec  describe_continuous_backup_opts() -> opt_table().
-describe_continuous_backup_opts() ->
-    [{table_name, <<"TableName">>, fun id/1}].
-
--spec  point_in_time_recovery_description() -> record_desc().
-point_in_time_recovery_description() ->
-    {#point_in_time_recovery_description{},
-     [{<<"EarliestRestorableDateTime">>, #point_in_time_recovery_description.earliest_restorable_date_time, fun id/2},
-      {<<"LatestRestorableDateTime">>, #point_in_time_recovery_description.latest_restorable_date_time, fun id/2},
-      {<<"PointInTimeRecoveryStatus">>, #point_in_time_recovery_description.point_in_time_recovery_status, fun id/2}
+-spec  ddb2_point_in_time_recovery_description() -> record_desc().
+ddb2_point_in_time_recovery_description() ->
+    {#ddb2_point_in_time_recovery_description{},
+     [{<<"EarliestRestorableDateTime">>, #ddb2_point_in_time_recovery_description.earliest_restorable_date_time, fun id/2},
+      {<<"LatestRestorableDateTime">>, #ddb2_point_in_time_recovery_description.latest_restorable_date_time, fun id/2},
+      {<<"PointInTimeRecoveryStatus">>, #ddb2_point_in_time_recovery_description.point_in_time_recovery_status, fun undynamize_point_in_time_recovery_status/2}
      ]}.
 
--spec continuous_backups_description() -> record_desc().
-continuous_backups_description() ->
-    {#continuous_backups_description{},
-     [{<<"ContinuousBackupsStatus">>, #continuous_backups_description.continuous_backups_status, fun id/2},
-      {<<"PointInTimeRecoveryDescription">>, #continuous_backups_description.point_in_time_recovery_description,
-       fun(V, Opts) -> undynamize_record(point_in_time_recovery_description(), V, Opts) end}
+-spec ddb2_continuous_backups_description() -> record_desc().
+ddb2_continuous_backups_description() ->
+    {#ddb2_continuous_backups_description{},
+     [{<<"ContinuousBackupsStatus">>, #ddb2_continuous_backups_description.continuous_backups_status, fun undynamize_continuous_backups_status/2},
+      {<<"PointInTimeRecoveryDescription">>, #ddb2_continuous_backups_description.point_in_time_recovery_description,
+       fun(V, Opts) -> undynamize_record(ddb2_point_in_time_recovery_description(), V, Opts) end}
      ]}.
 
 -spec continuous_backups_record() -> record_desc().
 continuous_backups_record() ->
-    {#ddb2_continuous_backups_record{},
-     [{<<"ContinuousBackupsDescription">>, #ddb2_continuous_backups_record.continuous_backups_description,
-      fun(V, Opts) -> undynamize_record(continuous_backups_description(), V, Opts) end}
+    {#ddb2_describe_continuous_backups{},
+     [{<<"ContinuousBackupsDescription">>, #ddb2_describe_continuous_backups.continuous_backups_description,
+      fun(V, Opts) -> undynamize_record(ddb2_continuous_backups_description(), V, Opts) end}
      ]}.
 
--type  describe_continuous_backup_return() :: ddb_return(#ddb2_create_backup{}, [table_name()]).
+-type  describe_continuous_backup_return() :: ddb_return(#ddb2_describe_continuous_backups{}, #ddb2_continuous_backups_description{}).
 
--spec  describe_continuous_backups(table_name()) -> list_backups_return().
+-spec  describe_continuous_backups(table_name()) -> describe_continuous_backup_return().
 describe_continuous_backups(TableName)
-    when is_bitstring(TableName) ->
+    when is_binary(TableName) ->
     describe_continuous_backups(TableName,[], default_config()).
 
 -spec  describe_continuous_backups(table_name(), ddb_opts()) -> describe_continuous_backup_return().
 describe_continuous_backups(TableName, Opts)
-    when is_bitstring(TableName) ->
+    when is_binary(TableName) ->
     describe_continuous_backups(TableName, Opts, default_config()).
 
 -spec  describe_continuous_backups(table_name(), ddb_opts(), aws_config()) -> describe_continuous_backup_return().
 describe_continuous_backups(TableName, Opts, Config)
-    when is_bitstring(TableName) ->
-    {AwsOpts, DdbOpts} = opts(describe_continuous_backup_opts(), Opts),
+    when is_binary(TableName) ->
+    {_AwsOpts, DdbOpts} = opts([], Opts),
     Return = erlcloud_ddb_impl:request(
      Config,
      "DynamoDB_20120810.DescribeContinuousBackups",
-     [{<<"TableName">>, TableName}] ++ AwsOpts),
+     [{<<"TableName">>, TableName}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(continuous_backups_record(), Json, UOpts) end,
-     DdbOpts, #ddb2_continuous_backups_record.continuous_backups_description).
+     DdbOpts, #ddb2_describe_continuous_backups.continuous_backups_description).
 
 %%%------------------------------------------------------------------------------
 %%% DescribeGlobalTable
@@ -2352,10 +2365,11 @@ get_item(Table, Key, Opts, Config) ->
 %% '
 %% @end
 %%------------------------------------------------------------------------------
--type list_backups_opt() :: {limit, pos_integer() | undefined} |
-{exclusive_start_backup_arn, binary() | undefined } | {table_name, table_name() | undefined} |
-{time_range_lower_bound,  number() | undefined} | {time_range_upper_bound,  number() | undefined}.
--type list_backups_opts() :: [list_backups_opt()].
+-type list_backups_opt() :: {limit, pos_integer()} |
+                            {exclusive_start_backup_arn, binary()} |
+                            {table_name, table_name()} |
+                            {time_range_lower_bound,  number()} |
+                            {time_range_upper_bound,  number()}.
 
 -spec list_backups_opts() -> opt_table().
 list_backups_opts() ->
@@ -2368,17 +2382,16 @@ list_backups_opts() ->
 
 -spec backup_record() -> record_desc().
 backup_record() ->
-    {#ddb2_backup_summaries{},
-     [{<<"BackupArn">>, #ddb2_backup_summaries.backup_arn, fun id/2},
-      {<<"BackupCreationDateTime">>, #ddb2_backup_summaries.backup_creation_date_time, fun id/2},
-      {<<"BackupName">>, #ddb2_backup_summaries.backup_name, fun id/2},
-      {<<"BackupSizeBytes">>, #ddb2_backup_summaries.backup_size_bytes, fun id/2},
-      {<<"BackupStatus">>, #ddb2_backup_summaries.backup_status, fun id/2},
-      {<<"TableArn">>, #ddb2_backup_summaries.table_arn, fun id/2},
-      {<<"TableId">>, #ddb2_backup_summaries.table_id, fun id/2},
-      {<<"TableName">>, #ddb2_backup_summaries.table_name, fun id/2}
+    {#ddb2_backup_summary{},
+     [{<<"BackupArn">>, #ddb2_backup_summary.backup_arn, fun id/2},
+      {<<"BackupCreationDateTime">>, #ddb2_backup_summary.backup_creation_date_time, fun id/2},
+      {<<"BackupName">>, #ddb2_backup_summary.backup_name, fun id/2},
+      {<<"BackupSizeBytes">>, #ddb2_backup_summary.backup_size_bytes, fun id/2},
+      {<<"BackupStatus">>, #ddb2_backup_summary.backup_status, fun id/2},
+      {<<"TableArn">>, #ddb2_backup_summary.table_arn, fun id/2},
+      {<<"TableId">>, #ddb2_backup_summary.table_id, fun id/2},
+      {<<"TableName">>, #ddb2_backup_summary.table_name, fun id/2}
      ]}.
-
 
 -spec undynamize_list_backups(jsx:json_term(), undynamize_opts()) -> [#ddb2_list_backups{}].
 undynamize_list_backups(BackupSummaries, Opts) ->
@@ -2391,17 +2404,17 @@ list_backups_record() ->
       {<<"LastEvaluatedBackupArn">>, #ddb2_list_backups.last_evaluated_backup_arn, fun id/2}
      ]}.
 
--type list_backups_return() :: ddb_return(#ddb2_list_backups{}, #ddb2_backup_summaries{}).
+-type list_backups_return() :: ddb_return(#ddb2_list_backups{}, #ddb2_backup_summary{}).
 
 -spec list_backups() -> list_backups_return().
 list_backups() ->
     list_backups([], default_config()).
 
--spec list_backups(list_backups_opts()) -> list_backups_return().
+-spec list_backups([list_backups_opt()]) -> list_backups_return().
 list_backups(Opts) ->
     list_backups(Opts, default_config()).
 
--spec list_backups(list_backups_opts(), aws_config()) -> list_backups_return().
+-spec list_backups([list_backups_opt()], aws_config()) -> list_backups_return().
 list_backups(Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(list_backups_opts(), Opts),
     Return = erlcloud_ddb_impl:request(
@@ -2764,36 +2777,116 @@ q(Table, KeyConditionsOrExpression, Opts, Config) ->
 %% '
 %% @end
 %%-------------------------------------------------------------------------------
+-type restore_table_from_backup_return() :: ddb_return(#ddb2_restore_table_from_backup{}, #ddb2_table_description{}).
 
--spec restore_table_from_backup_opts() -> opt_table().
-restore_table_from_backup_opts() ->
-    [{backup_arn, <<"BackupArn">>, fun id/1},
-     {target_table_name, <<"TargetTableName">>, fun id/1}
-    ].
+-spec table_description_with_restore_summary_record() -> record_desc().
+table_description_with_restore_summary_record() ->
+    {#ddb2_table_description{},
+     [{<<"AttributeDefinitions">>, #ddb2_table_description.attribute_definitions, fun undynamize_attr_defs/2},
+      {<<"CreationDateTime">>, #ddb2_table_description.creation_date_time, fun id/2},
+      {<<"GlobalSecondaryIndexes">>, #ddb2_table_description.global_secondary_indexes,
+       fun(V, Opts) -> [undynamize_record(global_secondary_index_description_record(), I, Opts) || I <- V] end},
+      {<<"ItemCount">>, #ddb2_table_description.item_count, fun id/2},
+      {<<"KeySchema">>, #ddb2_table_description.key_schema, fun undynamize_key_schema/2},
+      {<<"LatestStreamArn">>, #ddb2_table_description.latest_stream_arn, fun id/2},
+      {<<"LatestStreamLabel">>, #ddb2_table_description.latest_stream_label, fun id/2},
+      {<<"LocalSecondaryIndexes">>, #ddb2_table_description.local_secondary_indexes,
+       fun(V, Opts) -> [undynamize_record(local_secondary_index_description_record(), I, Opts) || I <- V] end},
+      {<<"ProvisionedThroughput">>, #ddb2_table_description.provisioned_throughput,
+       fun(V, Opts) -> undynamize_record(provisioned_throughput_description_record(), V, Opts) end},
+      {<<"RestoreSummary">>, #ddb2_table_description.restore_summary,
+       fun(V, Opts) -> undynamize_record(restore_summary_record(), V, Opts) end},
+      {<<"SSEDescription">>, #ddb2_table_description.sse_description, fun undynamize_sse_description/2},
+      {<<"StreamSpecification">>, #ddb2_table_description.stream_specification, fun undynamize_stream_specification/2},
+      {<<"TableArn">>, #ddb2_table_description.table_arn, fun id/2},
+      {<<"TableName">>, #ddb2_table_description.table_name, fun id/2},
+      {<<"TableSizeBytes">>, #ddb2_table_description.table_size_bytes, fun id/2},
+      {<<"TableStatus">>, #ddb2_table_description.table_status, fun undynamize_table_status/2}
+     ]}.
 
--type restore_table_from_backup_return() :: ddb_return(#ddb2_create_table{}, #ddb2_table_description{}).
+-spec restore_table_from_backup_record() -> record_desc().
+restore_table_from_backup_record() ->
+    {#ddb2_restore_table_from_backup{},
+      [{<<"TableDescription">>, #ddb2_restore_table_from_backup.table_description,
+        fun(V, Opts) -> undynamize_record(table_description_with_restore_summary_record(), V, Opts) end}
+      ]}.
 
 -spec restore_table_from_backup(binary(), table_name()) -> restore_table_from_backup_return().
 restore_table_from_backup(BackupArn, TargetTableName)
-    when is_bitstring(BackupArn), is_bitstring(TargetTableName) ->
-    restore_table_from_backup(BackupArn, TargetTableName,[], default_config()).
+    when is_binary(BackupArn), is_binary(TargetTableName) ->
+    restore_table_from_backup(BackupArn, TargetTableName, [], default_config()).
 
 -spec restore_table_from_backup(binary(), table_name(), ddb_opts()) -> restore_table_from_backup_return().
 restore_table_from_backup(BackupArn, TargetTableName, Opts)
-    when is_bitstring(BackupArn), is_bitstring(TargetTableName) ->
+    when is_binary(BackupArn), is_binary(TargetTableName) ->
     restore_table_from_backup(BackupArn, TargetTableName, Opts, default_config()).
 
 -spec restore_table_from_backup(binary(), table_name(), ddb_opts(), aws_config()) -> restore_table_from_backup_return().
 restore_table_from_backup(BackupArn, TargetTableName, Opts, Config)
-    when is_bitstring(BackupArn), is_bitstring(TargetTableName) ->
-    {AwsOpts, DdbOpts} = opts(restore_table_from_backup_opts(), Opts),
+    when is_binary(BackupArn), is_binary(TargetTableName) ->
+    {_AwsOpts, DdbOpts} = opts([], Opts),
     Return = erlcloud_ddb_impl:request(
      Config,
      "DynamoDB_20120810.RestoreTableFromBackup",
      [{<<"BackupArn">>, BackupArn},
-      {<<"TargetTableName">>, TargetTableName}] ++ AwsOpts),
-    out(Return, fun(Json, UOpts) -> undynamize_record(create_table_record(), Json, UOpts) end,
-     DdbOpts, #ddb2_create_table.table_description).
+      {<<"TargetTableName">>, TargetTableName}]),
+    out(Return, fun(Json, UOpts) -> undynamize_record(restore_table_from_backup_record(), Json, UOpts) end,
+     DdbOpts, #ddb2_restore_table_from_backup.table_description).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% DynamoDB API:
+%% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_RestoreTableToPointInTime.html]
+%%
+%% ===Example===
+%%
+%% Restores the specified table to the specified point in time within EarliestRestorableDateTime and LatestRestorableDateTime.
+%%
+%% `
+%% {ok, Table} =
+%%     erlcloud_ddb2:restore_table_to_point_in_time(<<"Thread">>, <<"ThreadTo">>, [{restore_date_time, 1522926603.688}, {use_latest_restorable_time, false}]),
+%% '
+%% @end
+%%-------------------------------------------------------------------------------
+-type restore_table_to_point_in_time_opt() :: {restore_date_time, date_time()} |
+                                              {use_latest_restorable_time, boolean()}.
+
+-spec restore_table_to_point_in_time_opts() -> opt_table().
+restore_table_to_point_in_time_opts() ->
+    [{restore_date_time, <<"RestoreDateTime">>, fun id/1},
+     {use_latest_restorable_time, <<"UseLatestRestorableTime">>, fun id/1}
+    ].
+
+-type restore_table_to_point_in_time_return() :: ddb_return(#ddb2_restore_table_to_point_in_time{}, #ddb2_table_description{}).
+
+-spec restore_table_to_point_in_time() -> record_desc().
+restore_table_to_point_in_time() ->
+    {#ddb2_restore_table_to_point_in_time{},
+      [{<<"TableDescription">>, #ddb2_restore_table_to_point_in_time.table_description,
+        fun(V, Opts) -> undynamize_record(table_description_with_restore_summary_record(), V, Opts) end}
+      ]}.
+
+-spec restore_table_to_point_in_time(table_name(), table_name()) -> restore_table_to_point_in_time_return().
+restore_table_to_point_in_time(SourceTableName, TargetTableName)
+    when is_binary(SourceTableName), is_binary(TargetTableName) ->
+    restore_table_to_point_in_time(SourceTableName, TargetTableName, [], default_config()).
+
+-spec restore_table_to_point_in_time(table_name(), table_name(), [restore_table_to_point_in_time_opt()]) -> restore_table_to_point_in_time_return().
+restore_table_to_point_in_time(SourceTableName, TargetTableName, Opts)
+    when is_binary(SourceTableName), is_binary(TargetTableName) ->
+    restore_table_to_point_in_time(SourceTableName, TargetTableName, Opts, default_config()).
+
+-spec restore_table_to_point_in_time(table_name(), table_name(), [restore_table_to_point_in_time_opt()], aws_config()) -> restore_table_to_point_in_time_return().
+restore_table_to_point_in_time(SourceTableName, TargetTableName, Opts, Config)
+    when is_binary(SourceTableName), is_binary(TargetTableName) ->
+    {AwsOpts, DdbOpts} = opts(restore_table_to_point_in_time_opts(), Opts),
+    Return = erlcloud_ddb_impl:request(
+      Config,
+      "DynamoDB_20120810.RestoreTableToPointInTime",
+      [{<<"SourceTableName">>, SourceTableName},
+        {<<"TargetTableName">>, TargetTableName}] ++ AwsOpts),
+    out(Return, fun(Json, UOpts) -> undynamize_record(restore_table_to_point_in_time(), Json, UOpts) end,
+      DdbOpts, #ddb2_restore_table_to_point_in_time.table_description).
 
 %%%------------------------------------------------------------------------------
 %%% Scan
@@ -2884,6 +2977,53 @@ scan(Table, Opts, Config) ->
                ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(scan_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_scan.items, {ok, []}).
+
+%%%------------------------------------------------------------------------------
+%%% UpdateContinuousBackups
+%%%------------------------------------------------------------------------------
+%%------------------------------------------------------------------------------
+%% @doc
+%% DynamoDB API:
+%% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateContinuousBackups.html]
+%%
+%% ===Example===
+%%
+%% Enables or disables point in time recovery for the specified table.
+%%
+%% `
+%% {ok, Record} =
+%%     erlcloud_ddb2:update_continuous_backups(<<"Thread">>,true),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec dynamize_point_in_time_recovery_enabled(boolean()) -> jsx:json_term().
+dynamize_point_in_time_recovery_enabled(Value) ->
+   [{<<"PointInTimeRecoveryEnabled">>, Value}].
+
+-type update_continuous_backups_return() :: ddb_return(#ddb2_describe_continuous_backups{}, #ddb2_continuous_backups_description{}).
+
+-spec update_continuous_backups(table_name(), boolean()) -> update_continuous_backups_return().
+update_continuous_backups(TableName, PointInTimeRecoverySpecification)
+    when is_binary(TableName), is_boolean(PointInTimeRecoverySpecification) ->
+    update_continuous_backups(TableName, PointInTimeRecoverySpecification, [], default_config()).
+
+-spec update_continuous_backups(table_name(), boolean(), ddb_opts()) -> update_continuous_backups_return().
+update_continuous_backups(TableName, PointInTimeRecoverySpecification, Opts)
+    when is_binary(TableName), is_boolean(PointInTimeRecoverySpecification) ->
+    update_continuous_backups(TableName, PointInTimeRecoverySpecification, Opts, default_config()).
+
+-spec update_continuous_backups(table_name(), boolean(), ddb_opts(), aws_config()) -> update_continuous_backups_return().
+update_continuous_backups(TableName, PointInTimeRecoveryEnabled, Opts, Config)
+    when is_binary(TableName), is_boolean(PointInTimeRecoveryEnabled) ->
+    {_AwsOpts, DdbOpts} = opts([], Opts),
+    Return = erlcloud_ddb_impl:request(
+      Config,
+      "DynamoDB_20120810.UpdateContinuousBackups",
+      [{<<"TableName">>, TableName},
+       {<<"PointInTimeRecoverySpecification">>, dynamize_point_in_time_recovery_enabled(PointInTimeRecoveryEnabled)}]),
+    out(Return, fun(Json, UOpts) -> undynamize_record(continuous_backups_record(), Json, UOpts) end,
+      DdbOpts, #ddb2_describe_continuous_backups.continuous_backups_description).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateItem
