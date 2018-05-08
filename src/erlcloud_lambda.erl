@@ -333,10 +333,22 @@ get_function_configuration(Function, Qualifier, Config) ->
 %% Lambda API:
 %% [http://docs.aws.amazon.com/lambda/latest/dg/API_Invoke.html]
 %%
-%% ===Example===
+%% option {show_headers, true|false} may be used for invoking Lambdas
+%% this option changes returned spec of successfull Lambda invocation
+%%      false(default): output spec is {ok, Data}
+%%      true: output spec is {ok, Headers, Data} where additional headers of
+%%            Lambda invocation is returned
+%%
+%%
+%% ===Examples===
 %% Async invoke with no logs and empty event
 %% erlcloud_lambda:invoke(<<"my_lambda">>, [],
 %%    [{"X-Amz-Invocation-Type", "Event"}, {"X-Amz-Log-Type", "None"}], AwsCfg).
+%% Sync invoke returned invocation headers (contains logs)
+%% erlcloud_lambda:invoke(<<"my_lambda">>, [],
+%%    [{show_headers, true}, {"X-Amz-Log-Type", "Tail"},
+%%    {"X-Amz-Invocation-Type", "RequestResponse"}], AwsCfg).
+%%
 %%
 %%-----------------------------------------------------------------------------
 -spec invoke(FunctionName :: binary()) -> return_val().
