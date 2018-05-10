@@ -102,32 +102,20 @@ new(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
       }.
 
 -spec configure(string(), string()) -> ok.
-
-configure(AccessKeyID, SecretAccessKey)
-    when is_list(AccessKeyID), is_list(SecretAccessKey) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey)),
-    ok.
+configure(AccessKeyID, SecretAccessKey) ->
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, fun new/2).
 
 -spec configure(string(), string(), string()) -> ok.
-
-configure(AccessKeyID, SecretAccessKey, Host)
-    when is_list(AccessKeyID), is_list(SecretAccessKey), is_list(Host) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
-    ok.
+configure(AccessKeyID, SecretAccessKey, Host) ->
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, Host, fun new/3).
 
 -spec configure(string(), string(), string(), non_neg_integer()) -> ok.
-
-configure(AccessKeyID, SecretAccessKey, Host, Port)
-    when is_list(AccessKeyID), is_list(SecretAccessKey), is_list(Host) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port)),
-    ok.
+configure(AccessKeyID, SecretAccessKey, Host, Port) ->
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, Host, Port, fun new/4).
 
 -spec configure(string(), string(), string(), non_neg_integer(), string()) -> ok.
-
-configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme)
-    when is_list(AccessKeyID), is_list(SecretAccessKey), is_list(Host), is_list(Scheme) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port, Scheme)),
-    ok.
+configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme, fun new/5).
 
 -type s3_bucket_attribute_name() :: acl
                                   | location

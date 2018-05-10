@@ -39,16 +39,12 @@ new(AccessKeyID, SecretAccessKey, Host) ->
                 cloudtrail_host=Host}.
 
 -spec configure(string(), string()) -> ok.
-configure(AccessKeyID, SecretAccessKey)
-    when is_list(AccessKeyID), is_list(SecretAccessKey) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey)),
-    ok.
+configure(AccessKeyID, SecretAccessKey) ->
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, fun new/2).
 
 -spec configure(string(), string(), string()) -> ok.
-configure(AccessKeyID, SecretAccessKey, Host)
-    when is_list(AccessKeyID), is_list(SecretAccessKey), is_list(Host) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
-    ok.
+configure(AccessKeyID, SecretAccessKey, Host) ->
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, Host, fun new/3).
 
 %%
 %% API

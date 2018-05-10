@@ -60,10 +60,8 @@
 %%==============================================================================
 
 -spec configure(access_key_id(), secret_access_key()) -> ok.
-configure(AccessKeyID, SecretAccessKey)
-    when is_list(AccessKeyID), is_list(SecretAccessKey) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey)),
-    ok.
+configure(AccessKeyID, SecretAccessKey) ->
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, fun new/2).
 
 
 -spec new(access_key_id(), secret_access_key()) -> #aws_config{}.

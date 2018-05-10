@@ -66,28 +66,18 @@ new(AccessKeyID, SecretAccessKey, Host, Port) ->
       }.
 
 -spec configure(string(), string()) -> ok.
-
-configure(AccessKeyID, SecretAccessKey)
-    when is_list(AccessKeyID), is_list(SecretAccessKey) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey)),
-    ok.
+configure(AccessKeyID, SecretAccessKey) ->
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, fun new/2).
 
 -spec configure(string(), string(), string()) -> ok.
-
-configure(AccessKeyID, SecretAccessKey, Host)
-    when is_list(AccessKeyID), is_list(SecretAccessKey), is_list(Host) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
-    ok.
+configure(AccessKeyID, SecretAccessKey, Host) ->
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, Host, fun new/3).
 
 -spec configure(string(), string(), string(), non_neg_integer()) -> ok.
+configure(AccessKeyID, SecretAccessKey, Host, Port) ->
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, Host, Port, fun new/4).
 
-configure(AccessKeyID, SecretAccessKey, Host, Port)
-    when is_list(AccessKeyID), is_list(SecretAccessKey), is_list(Host) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port)),
-    ok.
-
-default_config() ->
-    erlcloud_aws:default_config().
+default_config() -> erlcloud_aws:default_config().
 
 %%------------------------------------------------------------------------------
 %% CreateAlias
