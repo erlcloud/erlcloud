@@ -4,10 +4,10 @@
 -include("erlcloud.hrl").
 
 %% API
--export([new/2, new/3, new/4, new/5]).
+-export([new/2, new/3, new/4, new/5,
+         configure/3, configure/4, configure/5, configure/6]).
 
 -export([
-    configure/3,configure/4,configure/5,configure/6,
     describe_compliance_by_config_rule/2,
     describe_compliance_by_resource/2,
     describe_config_rule_evaluation_status/2,
