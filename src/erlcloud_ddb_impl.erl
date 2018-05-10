@@ -109,14 +109,6 @@ backoff(1) -> ok;
 backoff(Attempt) ->
     timer:sleep(erlcloud_util:rand_uniform((1 bsl (Attempt - 1)) * 100)).
 
-%% HTTPC timeout for a request
-timeout(1, #aws_config{timeout = undefined}) ->
-    %% Shorter timeout on first request. This is to avoid long (5s) failover when first DDB
-    %% endpoint doesn't respond
-    1000;
-timeout(_, #aws_config{} = Cfg) ->
-    erlcloud_aws:get_timeout(Cfg).
-
 -type attempt() :: {attempt, pos_integer()} | {error, term()}.
 
 -type retry_fun_v1() :: fun((pos_integer(), term()) -> attempt()).
@@ -186,7 +178,7 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
     case erlcloud_httpc:request(
            url(Config), post,
            [{<<"content-type">>, <<"application/x-amz-json-1.0">>} | Headers],
-           Body, timeout(Attempt, Config), Config) of
+           Body, erlcloud_aws:get_timeout(Config), Config) of
 
         {ok, {{200, _}, _, <<>>}} ->
             ok;
@@ -202,11 +194,22 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
             request_and_retry(Config, Headers, Body, RetryFun(to_ddb_error(Error, DDBError)))
     end.
 
+%% retry only known client errors
+to_ddb_error({error, connection_closed}, DDBError) ->
+    DDBError#ddb2_error{
+        error_type = httpc,
+        should_retry = true,
+        reason = connection_closed};
+to_ddb_error({error, connect_timeout}, DDBError) ->
+    DDBError#ddb2_error{
+        error_type = httpc,
+        should_retry = true,
+        reason = connect_timeout};
+%% do not retry unknown client errors
 to_ddb_error({error, Reason}, DDBError) ->
-    %% TODO there may be some httpc errors, such as certificate error, that we don't want to retry
     DDBError#ddb2_error{
       error_type = httpc, 
-      should_retry = true,
+      should_retry = false,
       reason = Reason};
 to_ddb_error({ok, {{Status, StatusLine}, RespHeaders, RespBody}}, DDBError) ->
     DDBError2 = DDBError#ddb2_error{

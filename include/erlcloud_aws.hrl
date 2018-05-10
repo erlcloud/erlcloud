@@ -115,7 +115,7 @@
           %% epoch seconds when temporary credentials will expire
           expiration=undefined :: pos_integer()|undefined,
           %% Network request timeout; if not specifed, the default timeout will be used:
-          %% ddb: 1s for initial call, 10s for subsequence;
+          %% ddb: 10s;
           %% s3:delete_objects_batch/{2,3}, cloudtrail: 1s;
           %% other services: 10s.
           timeout=undefined::timeout()|undefined,
