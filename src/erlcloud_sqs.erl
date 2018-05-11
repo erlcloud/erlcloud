@@ -414,10 +414,10 @@ send_message(QueueName, MessageBody) ->
     send_message(QueueName, MessageBody, default_config()).
 
 -spec send_message(string(), string(), 0..900 | none | aws_config()) -> proplist() | no_return().
-send_message(QueueName, MessageBody, Config)
-  when is_record(Config, aws_config) ->
+send_message(QueueName, MessageBody, #aws_config{} = Config) ->
     send_message(QueueName, MessageBody, none, Config);
-send_message(QueueName, MessageBody, DelaySeconds) ->
+send_message(QueueName, MessageBody, DelaySeconds) 
+  when ((DelaySeconds >= 0 andalso DelaySeconds =< 900) orelse DelaySeconds =:= none) ->
     send_message(QueueName, MessageBody, DelaySeconds, default_config()).
 
 -spec send_message(string(), string(), 0..900 | none, aws_config()) -> proplist() | no_return().
