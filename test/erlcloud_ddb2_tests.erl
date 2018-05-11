@@ -80,10 +80,10 @@ operation_test_() ->
       fun scan_output_tests/1,
       fun tag_resource_input_tests/1,
       fun tag_resource_output_tests/1,
-      fun update_continuous_backups_input_tests/1,
-      fun update_continuous_backups_output_tests/1,
       fun untag_resource_input_tests/1,
       fun untag_resource_output_tests/1,
+      fun update_continuous_backups_input_tests/1,
+      fun update_continuous_backups_output_tests/1,
       fun update_item_input_tests/1,
       fun update_item_output_tests/1,
       fun update_global_table_input_tests/1,
@@ -882,36 +882,36 @@ create_backup_input_tests(_) ->
    })
   ],
  Response = "
-    {
-   \"BackupDetails\": {
-      \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
-      \"BackupCreationDateTime\": 1523269031.475,
-      \"BackupName\": \"Forum_Backup\",
-      \"BackupSizeBytes\": 6,
-      \"BackupStatus\": \"CREATING\"
+{
+    \"BackupDetails\": {
+          \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
+          \"BackupCreationDateTime\": 1523269031.475,
+          \"BackupName\": \"Forum_Backup\",
+          \"BackupSizeBytes\": 6,
+          \"BackupStatus\": \"CREATING\"
       }
-   }",
+}",
  input_tests(Response, Tests).
 
 create_backup_output_tests(_) ->
  Tests =
   [?_ddb_test(
    {"CreateBackup example response", "
-    {
-   \"BackupDetails\": {
-      \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
-      \"BackupCreationDateTime\": 1523269031.475,
-      \"BackupName\": \"Forum_Backup\",
-      \"BackupSizeBytes\": 6,
-      \"BackupStatus\": \"CREATING\"
-      }
+{
+    \"BackupDetails\": {
+        \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
+        \"BackupCreationDateTime\": 1523269031.475,
+        \"BackupName\": \"Forum_Backup\",
+        \"BackupSizeBytes\": 6,
+        \"BackupStatus\": \"CREATING\"
+       }
 }",
     {ok,#ddb2_backup_details{
-     backup_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,
-     backup_creation_date_time = 1523269031.475,
-     backup_name = <<"Forum_Backup">>,
-     backup_size_Bytes = 6,
-     backup_status = creating}}
+        backup_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,
+        backup_creation_date_time = 1523269031.475,
+        backup_name = <<"Forum_Backup">>,
+        backup_size_Bytes = 6,
+        backup_status = creating}}
    })
   ],
 
@@ -1303,7 +1303,7 @@ delete_backup_input_tests(_) ->
    })
   ],
  Response = "
-    {
+{
    \"BackupDescription\": {
       \"BackupDetails\": {
          \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
@@ -1385,130 +1385,127 @@ delete_backup_output_tests(_) ->
  Tests =
   [?_ddb_test(
    {"DeleteBackup example response", "
-    {
+{
     \"BackupDescription\": {
-      \"BackupDetails\": {
-         \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
-         \"BackupCreationDateTime\": 1523269031.475,
-         \"BackupName\": \"Forum_Backup\",
-         \"BackupSizeBytes\": 1,
-         \"BackupStatus\": \"DELETED\"
-      },
-      \"SourceTableDetails\": {
-         \"ItemCount\": 0,
-         \"KeySchema\": [
-            {
-               \"AttributeName\": \"id\",
-               \"KeyType\": \"HASH\"
-            }
-         ],
-         \"ProvisionedThroughput\": {
-            \"ReadCapacityUnits\": 5,
-            \"WriteCapacityUnits\": 5
+         \"BackupDetails\": {
+             \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
+             \"BackupCreationDateTime\": 1523269031.475,
+             \"BackupName\": \"Forum_Backup\",
+             \"BackupSizeBytes\": 1,
+             \"BackupStatus\": \"DELETED\"
          },
-         \"TableArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum\",
-         \"TableCreationDateTime\": 1523269031.475,
-         \"TableId\": \"284a7e42-42ed-4854-b9fd-9a5a4b972dc4\",
-         \"TableName\": \"Forum\",
-         \"TableSizeBytes\": 1
-      },
-      \"SourceTableFeatureDetails\": {
-         \"GlobalSecondaryIndexes\": [
-            {
-               \"IndexName\": \"Idx\",
-               \"KeySchema\": [
-                  {
-                     \"AttributeName\": \"Atr\",
-                     \"KeyType\": \"HASH\"
+         \"SourceTableDetails\": {
+            \"ItemCount\": 0,
+            \"KeySchema\": [
+                {
+                   \"AttributeName\": \"id\",
+                   \"KeyType\": \"HASH\"
+                }
+             ],
+            \"ProvisionedThroughput\": {
+                \"ReadCapacityUnits\": 5,
+                \"WriteCapacityUnits\": 5
+            },
+            \"TableArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum\",
+            \"TableCreationDateTime\": 1523269031.475,
+            \"TableId\": \"284a7e42-42ed-4854-b9fd-9a5a4b972dc4\",
+            \"TableName\": \"Forum\",
+            \"TableSizeBytes\": 1
+         },
+        \"SourceTableFeatureDetails\": {
+            \"GlobalSecondaryIndexes\": [
+               {
+                  \"IndexName\": \"Idx\",
+                  \"KeySchema\": [
+                     {
+                        \"AttributeName\": \"Atr\",
+                        \"KeyType\": \"HASH\"
+                     }
+                  ],
+                  \"Projection\": {
+                     \"NonKeyAttributes\": [ \"Atr2\" ],
+                     \"ProjectionType\": \"ALL\"
+                  },
+                  \"ProvisionedThroughput\": {
+                     \"ReadCapacityUnits\": 5,
+                     \"WriteCapacityUnits\": 5
                   }
-               ],
-               \"Projection\": {
-                  \"NonKeyAttributes\": [ \"Atr2\" ],
-                  \"ProjectionType\": \"ALL\"
-               },
-               \"ProvisionedThroughput\": {
-                  \"ReadCapacityUnits\": 5,
-                  \"WriteCapacityUnits\": 5
                }
-            }
-         ],
-         \"LocalSecondaryIndexes\": [
-            {
-               \"IndexName\": \"Idx2\",
-               \"KeySchema\": [
-                  {
-                     \"AttributeName\": \"Atr3\",
-                     \"KeyType\": \"RANGE\"
+            ],
+            \"LocalSecondaryIndexes\": [
+               {
+                  \"IndexName\": \"Idx2\",
+                  \"KeySchema\": [
+                     {
+                        \"AttributeName\": \"Atr3\",
+                        \"KeyType\": \"RANGE\"
+                     }
+                  ],
+                  \"Projection\": {
+                     \"NonKeyAttributes\": [ \"Atr4\" ],
+                     \"ProjectionType\": \"KEYS_ONLY\"
                   }
-               ],
-               \"Projection\": {
-                  \"NonKeyAttributes\": [ \"Atr4\" ],
-                  \"ProjectionType\": \"KEYS_ONLY\"
                }
+            ],
+            \"SSEDescription\": {
+               \"Status\": \"DISABLED\"
+            },
+            \"StreamDescription\": {
+               \"StreamEnabled\": true,
+               \"StreamViewType\": \"NEW_AND_OLD_IMAGES\"
+            },
+            \"TimeToLiveDescription\": {
+               \"AttributeName\": \"none\",
+              \"TimeToLiveStatus\": \"DISABLED\"
             }
-         ],
-         \"SSEDescription\": {
-            \"Status\": \"DISABLED\"
-         },
-         \"StreamDescription\": {
-            \"StreamEnabled\": true,
-            \"StreamViewType\": \"NEW_AND_OLD_IMAGES\"
-         },
-         \"TimeToLiveDescription\": {
-            \"AttributeName\": \"none\",
-           \"TimeToLiveStatus\": \"DISABLED\"
-         }
-      }
+        }
    }
 }",
     {ok,#ddb2_backup_description{
      backup_details =
      #ddb2_backup_details{
-      backup_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,
-      backup_creation_date_time = 1523269031.475,
-      backup_name = <<"Forum_Backup">>,
-      backup_size_Bytes = 1,
-      backup_status = deleted},
+         backup_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,
+         backup_creation_date_time = 1523269031.475,
+         backup_name = <<"Forum_Backup">>,
+         backup_size_Bytes = 1,
+         backup_status = deleted},
      source_table_details =
      #ddb2_source_table_details{
-      item_count = 0,
-      key_schema = <<"id">>,
-      provisioned_throughput =
-      #ddb2_provisioned_throughput{
-       read_capacity_units = 5,
-       write_capacity_units = 5},
-      table_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum">>,
-      table_creation_date_time = 1523269031.475,
-      table_id = <<"284a7e42-42ed-4854-b9fd-9a5a4b972dc4">>,
-      table_name = <<"Forum">>,
-      table_size_bytes = 1},
+         item_count = 0,
+         key_schema = <<"id">>,
+         provisioned_throughput =
+         #ddb2_provisioned_throughput{
+             read_capacity_units = 5,
+             write_capacity_units = 5},
+         table_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum">>,
+         table_creation_date_time = 1523269031.475,
+         table_id = <<"284a7e42-42ed-4854-b9fd-9a5a4b972dc4">>,
+         table_name = <<"Forum">>,
+         table_size_bytes = 1},
      source_table_feature_details =
      #ddb2_source_table_feature_details{
-      global_secondary_indexes =
-      [
-       #ddb2_global_secondary_index_info{
-        index_name = <<"Idx">>,
-        key_schema = <<"Atr">>,
-        projection = all,
-        provisioned_throughput =
-        #ddb2_provisioned_throughput{
-         read_capacity_units = 5,
-         write_capacity_units = 5
-        }}
-      ],
-      local_secondary_indexes =
-      [
-       #ddb2_local_secondary_index_info{
-        index_name = <<"Idx2">>,
-        key_schema = <<"Atr3">>,
-        projection = keys_only
-       }],
-      sse_description = {status,disabled},
-      stream_description = {true,new_and_old_images},
-      time_to_live_description =
-      #ddb2_time_to_live_description{
-       attribute_name = <<"none">>,
-       time_to_live_status = disabled}}
+         global_secondary_indexes =
+         [#ddb2_global_secondary_index_info{
+              index_name = <<"Idx">>,
+              key_schema = <<"Atr">>,
+              projection = all,
+              provisioned_throughput =
+              #ddb2_provisioned_throughput{
+               read_capacity_units = 5,
+               write_capacity_units = 5
+              }}],
+         local_secondary_indexes =
+         [#ddb2_local_secondary_index_info{
+              index_name = <<"Idx2">>,
+              key_schema = <<"Atr3">>,
+              projection = keys_only
+             }],
+         sse_description = {status,disabled},
+         stream_description = {true,new_and_old_images},
+         time_to_live_description =
+         #ddb2_time_to_live_description{
+             attribute_name = <<"none">>,
+             time_to_live_status = disabled}}
     }}
    })
   ],
@@ -2053,81 +2050,81 @@ describe_backup_input_tests(_) ->
    })
   ],
  Response = "
-    {
-   \"BackupDescription\": {
-      \"BackupDetails\": {
-         \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
-         \"BackupCreationDateTime\": 1523269031.475,
-         \"BackupName\": \"Forum_Backup\",
-         \"BackupSizeBytes\": 1,
-         \"BackupStatus\": \"DELETED\"
-      },
-      \"SourceTableDetails\": {
-         \"ItemCount\": 0,
-         \"KeySchema\": [
-            {
-               \"AttributeName\": \"id\",
-               \"KeyType\": \"HASH\"
-            }
-         ],
-         \"ProvisionedThroughput\": {
-            \"ReadCapacityUnits\": 5,
-            \"WriteCapacityUnits\": 5
-         },
-         \"TableArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum\",
-         \"TableCreationDateTime\": 1523269031.475,
-         \"TableId\": \"284a7e42-42ed-4854-b9fd-9a5a4b972dc4\",
-         \"TableName\": \"Forum\",
-         \"TableSizeBytes\": 1
-      },
-      \"SourceTableFeatureDetails\": {
-         \"GlobalSecondaryIndexes\": [
-            {
-               \"IndexName\": \"Idx\",
-               \"KeySchema\": [
-                  {
-                     \"AttributeName\": \"Atr\",
-                     \"KeyType\": \"HASH\"
-                  }
-               ],
-               \"Projection\": {
-                  \"NonKeyAttributes\": [ \"Atr2\" ],
-                  \"ProjectionType\": \"ALL\"
-               },
-               \"ProvisionedThroughput\": {
-                  \"ReadCapacityUnits\": 5,
-                  \"WriteCapacityUnits\": 5
+{
+    \"BackupDescription\": {
+        \"BackupDetails\": {
+            \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
+            \"BackupCreationDateTime\": 1523269031.475,
+            \"BackupName\": \"Forum_Backup\",
+            \"BackupSizeBytes\": 1,
+            \"BackupStatus\": \"DELETED\"
+        },
+        \"SourceTableDetails\": {
+            \"ItemCount\": 0,
+            \"KeySchema\": [
+               {
+                  \"AttributeName\": \"id\",
+                  \"KeyType\": \"HASH\"
                }
-            }
-         ],
-         \"LocalSecondaryIndexes\": [
-            {
-               \"IndexName\": \"Idx2\",
-               \"KeySchema\": [
-                  {
-                     \"AttributeName\": \"Atr3\",
-                     \"KeyType\": \"RANGE\"
+            ],
+            \"ProvisionedThroughput\": {
+               \"ReadCapacityUnits\": 5,
+               \"WriteCapacityUnits\": 5
+            },
+            \"TableArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum\",
+            \"TableCreationDateTime\": 1523269031.475,
+            \"TableId\": \"284a7e42-42ed-4854-b9fd-9a5a4b972dc4\",
+            \"TableName\": \"Forum\",
+            \"TableSizeBytes\": 1
+        },
+       \"SourceTableFeatureDetails\": {
+           \"GlobalSecondaryIndexes\": [
+               {
+                  \"IndexName\": \"Idx\",
+                  \"KeySchema\": [
+                      {
+                          \"AttributeName\": \"Atr\",
+                          \"KeyType\": \"HASH\"
+                      }
+                  ],
+                  \"Projection\": {
+                      \"NonKeyAttributes\": [ \"Atr2\" ],
+                      \"ProjectionType\": \"ALL\"
+                  },
+                   \"ProvisionedThroughput\": {
+                      \"ReadCapacityUnits\": 5,
+                      \"WriteCapacityUnits\": 5
                   }
-               ],
-               \"Projection\": {
-                  \"NonKeyAttributes\": [ \"Atr4\" ],
-                  \"ProjectionType\": \"KEYS_ONLY\"
                }
-            }
-         ],
-         \"SSEDescription\": {
-            \"Status\": \"DISABLED\"
-         },
-         \"StreamDescription\": {
-            \"StreamEnabled\": true,
-            \"StreamViewType\": \"NEW_AND_OLD_IMAGES\"
-         },
-         \"TimeToLiveDescription\": {
-            \"AttributeName\": \"none\",
-           \"TimeToLiveStatus\": \"DISABLED\"
-         }
-      }
-   }
+           ],
+           \"LocalSecondaryIndexes\": [
+               {
+                   \"IndexName\": \"Idx2\",
+                    \"KeySchema\": [
+                        {
+                            \"AttributeName\": \"Atr3\",
+                            \"KeyType\": \"RANGE\"
+                        }
+                   ],
+                   \"Projection\": {
+                       \"NonKeyAttributes\": [ \"Atr4\" ],
+                       \"ProjectionType\": \"KEYS_ONLY\"
+                   }
+               }
+           ],
+           \"SSEDescription\": {
+               \"Status\": \"DISABLED\"
+           },
+           \"StreamDescription\": {
+               \"StreamEnabled\": true,
+               \"StreamViewType\": \"NEW_AND_OLD_IMAGES\"
+           },
+           \"TimeToLiveDescription\": {
+               \"AttributeName\": \"none\",
+               \"TimeToLiveStatus\": \"DISABLED\"
+           }
+       }
+    }
 }",
  input_tests(Response, Tests).
 
@@ -2135,131 +2132,128 @@ describe_backup_output_tests(_) ->
  Tests =
   [?_ddb_test(
    {"DescribeBackup example response", "
-   {
-   \"BackupDescription\": {
-      \"BackupDetails\": {
-         \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
-         \"BackupCreationDateTime\": 1523269031.475,
-         \"BackupName\": \"Forum_Backup\",
-         \"BackupSizeBytes\": 1,
-         \"BackupStatus\": \"DELETED\"
-      },
-      \"SourceTableDetails\": {
-         \"ItemCount\": 0,
-         \"KeySchema\": [
-            {
-               \"AttributeName\": \"id\",
-               \"KeyType\": \"HASH\"
-            }
-         ],
-         \"ProvisionedThroughput\": {
-            \"ReadCapacityUnits\": 5,
-            \"WriteCapacityUnits\": 5
+{
+     \"BackupDescription\": {
+         \"BackupDetails\": {
+             \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
+             \"BackupCreationDateTime\": 1523269031.475,
+             \"BackupName\": \"Forum_Backup\",
+             \"BackupSizeBytes\": 1,
+             \"BackupStatus\": \"DELETED\"
          },
-         \"TableArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum\",
-         \"TableCreationDateTime\": 1523269031.475,
-         \"TableId\": \"284a7e42-42ed-4854-b9fd-9a5a4b972dc4\",
-         \"TableName\": \"Forum\",
-         \"TableSizeBytes\": 1
-      },
-      \"SourceTableFeatureDetails\": {
-         \"GlobalSecondaryIndexes\": [
-            {
-               \"IndexName\": \"Idx\",
-               \"KeySchema\": [
-                  {
-                     \"AttributeName\": \"Atr\",
+         \"SourceTableDetails\": {
+             \"ItemCount\": 0,
+             \"KeySchema\": [
+                 {
+                     \"AttributeName\": \"id\",
                      \"KeyType\": \"HASH\"
-                  }
-               ],
-               \"Projection\": {
-                  \"NonKeyAttributes\": [ \"Atr2\" ],
-                  \"ProjectionType\": \"ALL\"
-               },
-               \"ProvisionedThroughput\": {
-                  \"ReadCapacityUnits\": 5,
-                  \"WriteCapacityUnits\": 5
-               }
-            }
-         ],
-         \"LocalSecondaryIndexes\": [
-            {
-               \"IndexName\": \"Idx2\",
-               \"KeySchema\": [
-                  {
-                     \"AttributeName\": \"Atr3\",
-                     \"KeyType\": \"RANGE\"
-                  }
-               ],
-               \"Projection\": {
-                  \"NonKeyAttributes\": [ \"Atr4\" ],
-                  \"ProjectionType\": \"KEYS_ONLY\"
-               }
-            }
-         ],
-         \"SSEDescription\": {
-            \"Status\": \"DISABLED\"
+                 }
+             ],
+             \"ProvisionedThroughput\": {
+                 \"ReadCapacityUnits\": 5,
+                 \"WriteCapacityUnits\": 5
+             },
+             \"TableArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum\",
+             \"TableCreationDateTime\": 1523269031.475,
+             \"TableId\": \"284a7e42-42ed-4854-b9fd-9a5a4b972dc4\",
+             \"TableName\": \"Forum\",
+             \"TableSizeBytes\": 1
          },
-         \"StreamDescription\": {
-            \"StreamEnabled\": true,
-            \"StreamViewType\": \"NEW_AND_OLD_IMAGES\"
-         },
-         \"TimeToLiveDescription\": {
-            \"AttributeName\": \"none\",
-           \"TimeToLiveStatus\": \"DISABLED\"
+         \"SourceTableFeatureDetails\": {
+             \"GlobalSecondaryIndexes\": [
+                {
+                    \"IndexName\": \"Idx\",
+                    \"KeySchema\": [
+                       {
+                           \"AttributeName\": \"Atr\",
+                           \"KeyType\": \"HASH\"
+                       }
+                    ],
+                    \"Projection\": {
+                        \"NonKeyAttributes\": [ \"Atr2\" ],
+                        \"ProjectionType\": \"ALL\"
+                    },
+                    \"ProvisionedThroughput\": {
+                        \"ReadCapacityUnits\": 5,
+                        \"WriteCapacityUnits\": 5
+                    }
+                }
+            ],
+            \"LocalSecondaryIndexes\": [
+                {
+                    \"IndexName\": \"Idx2\",
+                    \"KeySchema\": [
+                        {
+                            \"AttributeName\": \"Atr3\",
+                            \"KeyType\": \"RANGE\"
+                        }
+                    ],
+                    \"Projection\": {
+                        \"NonKeyAttributes\": [ \"Atr4\" ],
+                        \"ProjectionType\": \"KEYS_ONLY\"
+                    }
+                }
+            ],
+             \"SSEDescription\": {
+                 \"Status\": \"DISABLED\"
+             },
+             \"StreamDescription\": {
+                 \"StreamEnabled\": true,
+                 \"StreamViewType\": \"NEW_AND_OLD_IMAGES\"
+             },
+             \"TimeToLiveDescription\": {
+                 \"AttributeName\": \"none\",
+                 \"TimeToLiveStatus\": \"DISABLED\"
+             }
          }
-      }
-   }
+    }
 }",
     {ok,#ddb2_backup_description{
-     backup_details =
-     #ddb2_backup_details{
-      backup_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,
-      backup_creation_date_time = 1523269031.475,
-      backup_name = <<"Forum_Backup">>,
-      backup_size_Bytes = 1,
-      backup_status = deleted},
-     source_table_details =
-     #ddb2_source_table_details{
-      item_count = 0,
-      key_schema = <<"id">>,
-      provisioned_throughput =
-      #ddb2_provisioned_throughput{
-       read_capacity_units = 5,
-       write_capacity_units = 5},
-      table_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum">>,
-      table_creation_date_time = 1523269031.475,
-      table_id = <<"284a7e42-42ed-4854-b9fd-9a5a4b972dc4">>,
-      table_name = <<"Forum">>,
-      table_size_bytes = 1},
-     source_table_feature_details =
-     #ddb2_source_table_feature_details{
-      global_secondary_indexes =
-      [
-       #ddb2_global_secondary_index_info{
-        index_name = <<"Idx">>,
-        key_schema = <<"Atr">>,
-        projection = all,
-        provisioned_throughput =
-        #ddb2_provisioned_throughput{
-         read_capacity_units = 5,
-         write_capacity_units = 5
-        }}
-      ],
-      local_secondary_indexes =
-      [
-       #ddb2_local_secondary_index_info{
-        index_name = <<"Idx2">>,
-        key_schema = <<"Atr3">>,
-        projection = keys_only
-       }],
-      sse_description = {status,disabled},
-      stream_description = {true,new_and_old_images},
-      time_to_live_description =
-      #ddb2_time_to_live_description{
-       attribute_name = <<"none">>,
-       time_to_live_status = disabled}}
-    }}
+        backup_details =
+            #ddb2_backup_details{
+                backup_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,
+                backup_creation_date_time = 1523269031.475,
+                backup_name = <<"Forum_Backup">>,
+                backup_size_Bytes = 1,
+                backup_status = deleted},
+        source_table_details =
+            #ddb2_source_table_details{
+                item_count = 0,
+                key_schema = <<"id">>,
+                provisioned_throughput =
+                    #ddb2_provisioned_throughput{
+                     read_capacity_units = 5,
+                     write_capacity_units = 5},
+                table_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum">>,
+                table_creation_date_time = 1523269031.475,
+                table_id = <<"284a7e42-42ed-4854-b9fd-9a5a4b972dc4">>,
+                table_name = <<"Forum">>,
+                table_size_bytes = 1},
+        source_table_feature_details =
+            #ddb2_source_table_feature_details{
+             global_secondary_indexes =
+                 [#ddb2_global_secondary_index_info{
+                     index_name = <<"Idx">>,
+                     key_schema = <<"Atr">>,
+                     projection = all,
+                     provisioned_throughput =
+                        #ddb2_provisioned_throughput{
+                         read_capacity_units = 5,
+                         write_capacity_units = 5
+                      }}],
+             local_secondary_indexes =
+                 [#ddb2_local_secondary_index_info{
+                   index_name = <<"Idx2">>,
+                   key_schema = <<"Atr3">>,
+                   projection = keys_only
+                  }],
+             sse_description = {status,disabled},
+             stream_description = {true,new_and_old_images},
+             time_to_live_description =
+                 #ddb2_time_to_live_description{
+                  attribute_name = <<"none">>,
+                  time_to_live_status = disabled}}
+       }}
    })
   ],
 
@@ -2278,39 +2272,40 @@ describe_continuous_backups_input_tests(_) ->
    })
   ],
  Response = "
-    {
+{
    \"ContinuousBackupsDescription\": {
-      \"ContinuousBackupsStatus\": \"ENABLED\",
-      \"PointInTimeRecoveryDescription\": {
-         \"EarliestRestorableDateTime\": 1,
-         \"LatestRestorableDateTime\": 1,
-         \"PointInTimeRecoveryStatus\": \"DISABLED\"
+       \"ContinuousBackupsStatus\": \"ENABLED\",
+        \"PointInTimeRecoveryDescription\": {
+            \"EarliestRestorableDateTime\": 1,
+            \"LatestRestorableDateTime\": 1,
+            \"PointInTimeRecoveryStatus\": \"DISABLED\"
         }
-     }
-   }",
+   }
+}",
  input_tests(Response, Tests).
 
 describe_continuous_backups_output_tests(_) ->
  Tests =
   [?_ddb_test(
    {"DescribeContinuousBackups example response", "
-   {
+{
    \"ContinuousBackupsDescription\": {
-      \"ContinuousBackupsStatus\": \"ENABLED\",
-      \"PointInTimeRecoveryDescription\": {
-         \"EarliestRestorableDateTime\": 1,
-         \"LatestRestorableDateTime\": 1,
-         \"PointInTimeRecoveryStatus\": \"DISABLED\"
+       \"ContinuousBackupsStatus\": \"ENABLED\",
+        \"PointInTimeRecoveryDescription\": {
+            \"EarliestRestorableDateTime\": 1,
+            \"LatestRestorableDateTime\": 1,
+            \"PointInTimeRecoveryStatus\": \"DISABLED\"
         }
-     }
+   }
 }",
     {ok,#ddb2_continuous_backups_description{
-     continuous_backups_status = enabled,
-     point_in_time_recovery_description =
-     #ddb2_point_in_time_recovery_description{
-      earliest_restorable_date_time = 1,
-      latest_restorable_date_time = 1,
-      point_in_time_recovery_status = disabled}}}
+        continuous_backups_status = enabled,
+        point_in_time_recovery_description =
+            #ddb2_point_in_time_recovery_description{
+                earliest_restorable_date_time = 1,
+                latest_restorable_date_time = 1,
+                point_in_time_recovery_status = disabled}
+    }}
    })
   ],
 
@@ -2940,20 +2935,20 @@ list_backups_input_tests(_) ->
    })
   ],
  Response = "
-    {
-   \"BackupSummaries\": [
-      {
-         \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
-         \"BackupCreationDateTime\": 1522926603.688,
-         \"BackupName\": \"Forum_backup\",
-         \"BackupSizeBytes\": 1,
-         \"BackupStatus\": \"AVAILABLE\",
-         \"TableArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum\",
-         \"TableId\": \"64d52641-ca33-4d44-8620-c8eccf22ef3d\",
-         \"TableName\": \"Forum\"
-      }
-   ],
-   \"LastEvaluatedBackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b66bcb\"
+{
+    \"BackupSummaries\": [
+        {
+            \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
+            \"BackupCreationDateTime\": 1522926603.688,
+            \"BackupName\": \"Forum_backup\",
+            \"BackupSizeBytes\": 1,
+            \"BackupStatus\": \"AVAILABLE\",
+            \"TableArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum\",
+            \"TableId\": \"64d52641-ca33-4d44-8620-c8eccf22ef3d\",
+            \"TableName\": \"Forum\"
+        }
+    ],
+    \"LastEvaluatedBackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b66bcb\"
 }",
  input_tests(Response, Tests).
 
@@ -2961,30 +2956,32 @@ list_backups_output_tests(_) ->
  Tests =
   [?_ddb_test(
    {"ListBackups example response", "
-    {
-   \"BackupSummaries\": [
-      {
-         \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
-         \"BackupCreationDateTime\": 1522926603.688,
-         \"BackupName\": \"Forum_backup\",
-         \"BackupSizeBytes\": 1,
-         \"BackupStatus\": \"AVAILABLE\",
-         \"TableArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum\",
-         \"TableId\": \"64d52641-ca33-4d44-8620-c8eccf22ef3d\",
-         \"TableName\": \"Forum\"
-      }
-   ],
-   \"LastEvaluatedBackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b66bcb\"
+{
+    \"BackupSummaries\": [
+        {
+            \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
+            \"BackupCreationDateTime\": 1522926603.688,
+            \"BackupName\": \"Forum_backup\",
+            \"BackupSizeBytes\": 1,
+            \"BackupStatus\": \"AVAILABLE\",
+            \"TableArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum\",
+            \"TableId\": \"64d52641-ca33-4d44-8620-c8eccf22ef3d\",
+            \"TableName\": \"Forum\"
+        }
+    ],
+    \"LastEvaluatedBackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b66bcb\"
 }",
-    {ok,[#ddb2_backup_summary{
-     backup_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,
-     backup_creation_date_time = 1522926603.688,
-     backup_name = <<"Forum_backup">>,
-     backup_size_bytes = 1,
-     backup_status = <<"AVAILABLE">>,
-     table_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum">>,
-     table_id = <<"64d52641-ca33-4d44-8620-c8eccf22ef3d">>,
-     table_name = <<"Forum">>}]}
+    {ok,
+         [#ddb2_backup_summary{
+             backup_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,
+             backup_creation_date_time = 1522926603.688,
+             backup_name = <<"Forum_backup">>,
+             backup_size_bytes = 1,
+             backup_status = available,
+             table_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum">>,
+             table_id = <<"64d52641-ca33-4d44-8620-c8eccf22ef3d">>,
+             table_name = <<"Forum">>
+         }]}
    })
   ],
 
@@ -3876,53 +3873,55 @@ restore_table_from_backup_output_tests(_) ->
     }
 }",
     {ok, #ddb2_table_description
-    {attribute_definitions = [
-     {<<"ForumName">>, s},
-     {<<"LastPostDateTime">>, s},
-     {<<"Subject">>, s}
-    ],
-     creation_date_time = 1363728080.07,
-     item_count = 0,
-     key_schema = {<<"ForumName">>, <<"Subject">>},
-     local_secondary_indexes =
-     [#ddb2_local_secondary_index_description{
-      index_name = <<"LastPostIndex">>,
-      index_size_bytes = 0,
-      item_count = 0,
-      key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
-      projection = keys_only}],
-     global_secondary_indexes =
-     [#ddb2_global_secondary_index_description{
-      index_name = <<"SubjectIndex">>,
-      index_size_bytes = 2048,
-      index_status = creating,
-      item_count = 47,
-      key_schema = {<<"Subject">>, <<"LastPostDateTime">>},
-      projection = keys_only,
-      provisioned_throughput = #ddb2_provisioned_throughput_description{
-       last_decrease_date_time = 0,
-       last_increase_date_time = 1,
-       number_of_decreases_today = 2,
-       read_capacity_units = 3,
-       write_capacity_units = 4}
-     }],
-     provisioned_throughput =
-     #ddb2_provisioned_throughput_description{
-      last_decrease_date_time = undefined,
-      last_increase_date_time = undefined,
-      number_of_decreases_today = 0,
-      read_capacity_units = 5,
-      write_capacity_units = 5},
-     restore_summary =
-     #ddb2_restore_summary{
-      restore_date_time = 1363728080.07,
-      restore_in_progress = false,
-      source_backup_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,
-      source_table_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum">>
-     },
-     table_name = <<"Thread">>,
-     table_size_bytes = 0,
-     table_status = creating}}})
+        {attribute_definitions = [
+            {<<"ForumName">>, s},
+            {<<"LastPostDateTime">>, s},
+            {<<"Subject">>, s}
+        ],
+         creation_date_time = 1363728080.07,
+         item_count = 0,
+         key_schema = {<<"ForumName">>, <<"Subject">>},
+         local_secondary_indexes =
+             [#ddb2_local_secondary_index_description{
+                 index_name = <<"LastPostIndex">>,
+                 index_size_bytes = 0,
+                 item_count = 0,
+                 key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
+                 projection = keys_only}],
+         global_secondary_indexes =
+             [#ddb2_global_secondary_index_description{
+                 index_name = <<"SubjectIndex">>,
+                 index_size_bytes = 2048,
+                 index_status = creating,
+                 item_count = 47,
+                 key_schema = {<<"Subject">>, <<"LastPostDateTime">>},
+                 projection = keys_only,
+                 provisioned_throughput =
+                     #ddb2_provisioned_throughput_description{
+                      last_decrease_date_time = 0,
+                      last_increase_date_time = 1,
+                      number_of_decreases_today = 2,
+                      read_capacity_units = 3,
+                      write_capacity_units = 4}
+             }],
+         provisioned_throughput =
+             #ddb2_provisioned_throughput_description{
+              last_decrease_date_time = undefined,
+              last_increase_date_time = undefined,
+              number_of_decreases_today = 0,
+              read_capacity_units = 5,
+              write_capacity_units = 5},
+         restore_summary =
+             #ddb2_restore_summary{
+              restore_date_time = 1363728080.07,
+              restore_in_progress = false,
+              source_backup_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,
+              source_table_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum">>
+             },
+         table_name = <<"Thread">>,
+         table_size_bytes = 0,
+         table_status = creating}
+    }})
   ],
 
  output_tests(?_f(erlcloud_ddb2:restore_table_from_backup(<<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,<<"Thread">>)), Tests).
@@ -4132,53 +4131,53 @@ restore_table_to_point_in_time_output_tests(_) ->
     }
 }",
     {ok, #ddb2_table_description
-    {attribute_definitions = [
-     {<<"ForumName">>, s},
-     {<<"LastPostDateTime">>, s},
-     {<<"Subject">>, s}
-     ],
-     creation_date_time = 1363728080.07,
-     item_count = 0,
-     key_schema = {<<"ForumName">>, <<"Subject">>},
-     local_secondary_indexes =
-     [#ddb2_local_secondary_index_description{
-      index_name = <<"LastPostIndex">>,
-      index_size_bytes = 0,
-      item_count = 0,
-      key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
-      projection = keys_only}],
-     global_secondary_indexes =
-     [#ddb2_global_secondary_index_description{
-      index_name = <<"SubjectIndex">>,
-      index_size_bytes = 2048,
-      index_status = creating,
-      item_count = 47,
-      key_schema = {<<"Subject">>, <<"LastPostDateTime">>},
-      projection = keys_only,
-      provisioned_throughput = #ddb2_provisioned_throughput_description{
-       last_decrease_date_time = 0,
-       last_increase_date_time = 1,
-       number_of_decreases_today = 2,
-       read_capacity_units = 3,
-       write_capacity_units = 4}
-     }],
-     provisioned_throughput =
-     #ddb2_provisioned_throughput_description{
-      last_decrease_date_time = undefined,
-      last_increase_date_time = undefined,
-      number_of_decreases_today = 0,
-      read_capacity_units = 5,
-      write_capacity_units = 5},
-     restore_summary =
-     #ddb2_restore_summary{
-      restore_date_time = 1363728080.07,
-      restore_in_progress = false,
-      source_backup_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,
-      source_table_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum">>
-     },
-     table_name = <<"Thread">>,
-     table_size_bytes = 0,
-     table_status = creating}}})
+        {attribute_definitions = [
+             {<<"ForumName">>, s},
+             {<<"LastPostDateTime">>, s},
+             {<<"Subject">>, s}
+         ],
+        creation_date_time = 1363728080.07,
+        item_count = 0,
+        key_schema = {<<"ForumName">>, <<"Subject">>},
+        local_secondary_indexes =
+            [#ddb2_local_secondary_index_description{
+                index_name = <<"LastPostIndex">>,
+                index_size_bytes = 0,
+                item_count = 0,
+                key_schema = {<<"ForumName">>, <<"LastPostDateTime">>},
+                projection = keys_only}],
+        global_secondary_indexes =
+            [#ddb2_global_secondary_index_description{
+                index_name = <<"SubjectIndex">>,
+                index_size_bytes = 2048,
+                index_status = creating,
+                item_count = 47,
+                key_schema = {<<"Subject">>, <<"LastPostDateTime">>},
+                projection = keys_only,
+                provisioned_throughput = #ddb2_provisioned_throughput_description{
+                 last_decrease_date_time = 0,
+                 last_increase_date_time = 1,
+                 number_of_decreases_today = 2,
+                 read_capacity_units = 3,
+                 write_capacity_units = 4}
+            }],
+        provisioned_throughput =
+            #ddb2_provisioned_throughput_description{
+             last_decrease_date_time = undefined,
+             last_increase_date_time = undefined,
+             number_of_decreases_today = 0,
+             read_capacity_units = 5,
+             write_capacity_units = 5},
+        restore_summary =
+            #ddb2_restore_summary{
+             restore_date_time = 1363728080.07,
+             restore_in_progress = false,
+             source_backup_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,
+             source_table_arn = <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum">>
+            },
+        table_name = <<"Thread">>,
+        table_size_bytes = 0,
+        table_status = creating}}})
   ],
 
  output_tests(?_f(erlcloud_ddb2:restore_table_to_point_in_time(<<"Thread">>, <<"ThreadTo">>, [{restore_date_time, 1522926603.688}, {use_latest_restorable_time, false}])), Tests).
@@ -4614,6 +4613,35 @@ tag_resource_output_tests(_) ->
                                                 [{<<"example_key1">>, <<"example_value1">>},
                                                  {<<"example_key2">>, <<"example_value2">>}])),
                      Tests).
+%% UntagResource test based on the API:
+%% https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UntagResource.html
+untag_resource_input_tests(_) ->
+    Tests =
+     [?_ddb_test(
+      {"ListTagsOfResource example request",
+       ?_f(erlcloud_ddb2:untag_resource(<<"arn:aws:dynamodb:us-east-1:111122223333:table/Forum">>,
+        [<<"example_key1">>, <<"example_key2">>])), "
+   {
+       \"ResourceArn\": \"arn:aws:dynamodb:us-east-1:111122223333:table/Forum\",
+       \"TagKeys\": [
+           \"example_key1\",
+           \"example_key2\"
+       ]
+   }"
+      })
+     ],
+    Response = "",
+    input_tests(Response, Tests).
+
+untag_resource_output_tests(_) ->
+    Tests =
+     [?_ddb_test(
+      {"ListTagsOfResource example response", "",
+       ok})
+     ],
+    output_tests(?_f(erlcloud_ddb2:untag_resource(<<"arn:aws:dynamodb:us-east-1:111122223333:table/Forum">>,
+     [<<"example_key1">>, <<"example_key2">>])),
+     Tests).
 
 %% UpdateContinuousBackups test based on the API examples:
 %% https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateContinuousBackups.html
@@ -4631,71 +4659,41 @@ update_continuous_backups_input_tests(_) ->
    })
   ],
  Response = "{
-   \"ContinuousBackupsDescription\": {
-      \"ContinuousBackupsStatus\": \"ENABLED\",
-      \"PointInTimeRecoveryDescription\": {
-         \"EarliestRestorableDateTime\": 1,
-         \"LatestRestorableDateTime\": 1,
-         \"PointInTimeRecoveryStatus\": \"DISABLED\"
-        }
-     }
-   }",
+    \"ContinuousBackupsDescription\": {
+        \"ContinuousBackupsStatus\": \"ENABLED\",
+        \"PointInTimeRecoveryDescription\": {
+           \"EarliestRestorableDateTime\": 1,
+           \"LatestRestorableDateTime\": 1,
+           \"PointInTimeRecoveryStatus\": \"DISABLED\"
+          }
+      }
+}",
  input_tests(Response, Tests).
 
 update_continuous_backups_output_tests(_) ->
  Tests =
   [?_ddb_test(
    {"UpdateContinuousBackups example response", "{
-   \"ContinuousBackupsDescription\": {
-      \"ContinuousBackupsStatus\": \"ENABLED\",
-      \"PointInTimeRecoveryDescription\": {
-         \"EarliestRestorableDateTime\": 1,
-         \"LatestRestorableDateTime\": 1,
-         \"PointInTimeRecoveryStatus\": \"DISABLED\"
-        }
-     }
-   }",
+    \"ContinuousBackupsDescription\": {
+        \"ContinuousBackupsStatus\": \"ENABLED\",
+        \"PointInTimeRecoveryDescription\": {
+           \"EarliestRestorableDateTime\": 1,
+           \"LatestRestorableDateTime\": 1,
+           \"PointInTimeRecoveryStatus\": \"DISABLED\"
+          }
+      }
+}",
     {ok,#ddb2_continuous_backups_description{
-     continuous_backups_status = enabled,
-     point_in_time_recovery_description =
-     #ddb2_point_in_time_recovery_description{
-      earliest_restorable_date_time = 1,
-      latest_restorable_date_time = 1,
-      point_in_time_recovery_status = disabled}}}
-   })
+        continuous_backups_status = enabled,
+        point_in_time_recovery_description =
+            #ddb2_point_in_time_recovery_description{
+                earliest_restorable_date_time = 1,
+                latest_restorable_date_time = 1,
+                point_in_time_recovery_status = disabled}}}
+      })
   ],
 
  output_tests(?_f(erlcloud_ddb2:update_continuous_backups(<<"Thread">>,true)), Tests).
-
-%% UntagResource test based on the API:
-%% https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UntagResource.html
-untag_resource_input_tests(_) ->
-    Tests =
-        [?_ddb_test(
-            {"ListTagsOfResource example request",
-             ?_f(erlcloud_ddb2:untag_resource(<<"arn:aws:dynamodb:us-east-1:111122223333:table/Forum">>,
-                                              [<<"example_key1">>, <<"example_key2">>])), "
-{
-    \"ResourceArn\": \"arn:aws:dynamodb:us-east-1:111122223333:table/Forum\",
-    \"TagKeys\": [
-        \"example_key1\",
-        \"example_key2\"
-    ]
-}"
-            })
-        ],
-    Response = "",
-    input_tests(Response, Tests).
-
-untag_resource_output_tests(_) ->
-    Tests = 
-        [?_ddb_test(
-            {"ListTagsOfResource example response", "",
-             ok})
-        ],
-    output_tests(?_f(erlcloud_ddb2:untag_resource(<<"arn:aws:dynamodb:us-east-1:111122223333:table/Forum">>,
-                                                  [<<"example_key1">>, <<"example_key2">>])),
-                     Tests).
 
 %% UpdateItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateItem.html

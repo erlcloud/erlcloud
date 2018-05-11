@@ -17,13 +17,14 @@
 -type date_time() :: number().
 -type global_table_status() :: creating | active | deleting | updating.
 -type table_status() :: creating | updating | deleting | active.
--type backup_status() :: creating | deleted | avaliable.
+-type backup_status() :: creating | deleted | available.
 -type index_status() :: creating | updating | deleting | active.
 -type continuous_backups_status() :: enabled | disabled.
 -type point_in_time_recovery_status() :: enabling | enabled | disabled.
 
 -record(ddb2_replica_description,
-        {region_name :: undefined | binary()}).
+        {region_name :: undefined | binary()
+        }).
 
 -record(ddb2_global_table_description,
         {creation_date_time :: undefined | number(),
@@ -34,7 +35,8 @@
         }).
 
 -record(ddb2_replica,
-        {region_name :: undefined | binary()}).
+        {region_name :: undefined | binary()
+        }).
 
 -record(ddb2_global_table,
         {global_table_name :: undefined | erlcloud_ddb2:table_name(),
