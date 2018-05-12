@@ -257,32 +257,22 @@ default_config() ->
 
 
 cw_request(Config, Action, Params) ->
-    case erlcloud_aws:update_config(Config) of
-        {ok, NewConfig} ->
-            RequestBody = make_request_body(
-                Action, Params
-            ),
-            RequestHeaders = make_request_headers(
-                NewConfig, Action, RequestBody
-            ),
-            case erlcloud_aws:aws_request_form_raw(
-                post,
-                NewConfig#aws_config.cloudwatch_logs_scheme,
-                NewConfig#aws_config.cloudwatch_logs_host,
-                NewConfig#aws_config.cloudwatch_logs_port,
-                "/",
-                RequestBody,
-                RequestHeaders,
-                NewConfig
-            ) of
-                {ok, ResponseBody} ->
-                    {ok, jsx:decode(ResponseBody)};
-                {error, Reason} ->
-                    {error, Reason}
-            end;
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    [either ||
+        NewConfig <- erlcloud_aws:update_config(Config),
+        RequestBody =< make_request_body(Action, Params),
+        RequestHeaders =< make_request_headers(NewConfig, Action, RequestBody),
+        erlcloud_aws:aws_request_form_raw(
+            post,
+            NewConfig#aws_config.cloudwatch_logs_scheme,
+            NewConfig#aws_config.cloudwatch_logs_host,
+            NewConfig#aws_config.cloudwatch_logs_port,
+            "/",
+            RequestBody,
+            RequestHeaders,
+            NewConfig
+        ),
+        cats:unit( jsx:decode(_) )
+    ].
 
 
 make_request_headers(Config, Action, Body) ->
