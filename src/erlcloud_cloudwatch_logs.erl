@@ -1,6 +1,6 @@
 -module(erlcloud_cloudwatch_logs).
 
-
+-compile({parse_transform, category}).
 -include("erlcloud_aws.hrl").
 
 
@@ -20,8 +20,11 @@
 
 
 -type paging_token() :: string() | binary() | undefined.
+-type log_group_name() :: string() | binary() | undefined.
 -type log_group_name_prefix() :: string() | binary() | undefined.
+-type log_stream_prefix() :: string() | binary() | undefined.
 -type limit() :: pos_integer() | undefined.
+-type log_stream_order() :: log_stream_name | last_event_time | undefined.
 
 
 -type success_result_paged(ObjectType) :: {ok, [ObjectType], paging_token()}.
@@ -30,6 +33,7 @@
 
 
 -type log_group() :: jsx:json_term().
+-type log_stream() :: jsx:json_term().
 
 
 %% Library initialization
@@ -47,7 +51,14 @@
     describe_log_groups/1,
     describe_log_groups/2,
     describe_log_groups/3,
-    describe_log_groups/4
+    describe_log_groups/4,
+
+    describe_log_streams/1,
+    describe_log_streams/2,
+    describe_log_streams/3,
+    describe_log_streams/5,
+    describe_log_streams/6,
+    describe_log_streams/7
 ]).
 
 
@@ -135,19 +146,105 @@ describe_log_groups(LogGroupNamePrefix, Limit, Config) ->
     paging_token(),
     aws_config()
 ) -> result_paged(log_group()).
-describe_log_groups(LogGroupNamePrefix, Limit, PrevToken, Config) ->
-    case cw_request(Config, "DescribeLogGroups", [
+describe_log_groups(LogGroupNamePrefix, Limit, Token, Config) ->
+    [either ||
+        req_log_groups(LogGroupNamePrefix, Limit, Token),
+        Json <- cw_request(Config, "DescribeLogGroups", _),
+        cats:unit(
+            lens:get(lens:pair(<<"logGroups">>, []), Json),
+            lens:get(lens:pair(<<"nextToken">>), Json)
+        )
+    ].
+
+req_log_groups(LogGroupNamePrefix, Limit, Token) ->
+    {ok, [
         {<<"limit">>, Limit},
         {<<"logGroupNamePrefix">>, LogGroupNamePrefix},
-        {<<"nextToken">>, PrevToken}
-    ]) of
-        {ok, Data} ->
-            LogGroups = proplists:get_value(<<"logGroups">>, Data, []),
-            NextToken = proplists:get_value(<<"nextToken">>, Data, undefined),
-            {ok, LogGroups, NextToken};
-        {error, Reason} ->
-            {error, Reason}
-    end.
+        {<<"nextToken">>, Token}
+    ]}.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% DescribeLogStreams action
+%% https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeLogStreams.html
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec describe_log_streams(log_group_name()) -> result_paged(log_stream()).
+
+describe_log_streams(LogGroupName) ->
+    describe_log_streams(LogGroupName, default_config()).
+
+-spec describe_log_streams(
+    log_group_name(),
+    aws_config()
+) -> result_paged(log_stream()).
+describe_log_streams(LogGroupName, Config) ->
+    describe_log_streams(LogGroupName, undefined, Config).
+
+-spec describe_log_streams(
+    log_group_name(),
+    log_stream_prefix(),
+    aws_config()
+) -> result_paged(log_stream()).
+describe_log_streams(LogGroupName, LogStreamPrefix, Config) ->
+    describe_log_streams(LogGroupName, LogStreamPrefix, log_stream_name, false, Config).
+
+-spec describe_log_streams(
+    log_group_name(),
+    log_stream_prefix(),
+    log_stream_order(),
+    boolean(),
+    aws_config()
+) -> result_paged(log_stream()).
+describe_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Config) ->
+    describe_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, ?DEFAULT_LIMIT, Config).
+
+-spec describe_log_streams(
+    log_group_name(),
+    log_stream_prefix(),
+    log_stream_order(),
+    boolean(),
+    limit(),
+    aws_config()
+) -> result_paged(log_stream()).
+describe_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Limit, Config) ->
+    describe_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Limit, undefined, Config).
+
+-spec describe_log_streams(
+    log_group_name(),
+    log_stream_prefix(),
+    log_stream_order(),
+    boolean(),
+    limit(),
+    paging_token(),
+    aws_config()
+) -> result_paged(log_stream()).
+
+describe_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Limit, Token, Config) ->
+    [either ||
+        req_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Limit, Token),
+        Json <- cw_request(Config, "DescribeLogStreams", _),
+        cats:unit(
+            lens:get(lens:pair(<<"logStreams">>, []), Json),
+            lens:get(lens:pair(<<"nextToken">>), Json)
+        )
+    ].
+
+req_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Limit, Token) ->
+    {ok, [
+        {<<"descending">>, Desc},
+        {<<"limit">>, Limit},
+        {<<"logGroupName">>, LogGroupName},
+        {<<"logStreamNamePrefix">>, LogStreamPrefix},
+        {<<"nextToken">>, Token},
+        {<<"orderBy">>, log_stream_order_by(OrderBy)}
+    ]}.
+
+log_stream_order_by(undefined) -> <<"LogStreamName">>;
+log_stream_order_by(log_stream_name) -> <<"LogStreamName">>;
+log_stream_order_by(last_event_time) -> <<"LastEventTime">>.
 
 
 %%==============================================================================
