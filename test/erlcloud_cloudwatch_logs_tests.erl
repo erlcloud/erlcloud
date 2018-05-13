@@ -38,6 +38,7 @@
 -define(LOG_GROUP_NAME_PREFIX, <<"/aws/apigateway/welcome">>).
 -define(LOG_GROUP_NAME, <<"/aws/apigateway/welcome">>).
 -define(LOG_STREAM_NAME_PREFIX, <<"welcome">>).
+-define(LOG_STREAM_NAME, <<"welcome">>).
 -define(PAGING_TOKEN, <<"arn:aws:logs:us-east-1:352773894028:log-group:/aws/apigateway/welcome:*">>).
 
 
@@ -61,6 +62,10 @@
     {<<"uploadSequenceToken">>, <<"0123456789">>}
 ]).
 
+-define(LOG_SEQUENCE, <<"xxx">>).
+-define(LOG_BATCH, [#{timestamp => 1526233086694, message => <<"test">>}]).
+-define(LOG_BATCH_EXPECTED, [[{<<"message">>,<<"test">>}, {<<"timestamp">>,1526233086694}]]).
+
 %%==============================================================================
 %% Test generator functions
 %%==============================================================================
@@ -72,7 +77,9 @@ erlcloud_cloudwatch_test_() ->
         fun describe_log_groups_output_tests/1,
 
         fun describe_log_streams_input_tests/1,
-        fun describe_log_streams_output_tests/1
+        fun describe_log_streams_output_tests/1,
+
+        fun put_logs_events_input_tests/1        
     ]}.
 
 
@@ -272,6 +279,27 @@ describe_log_streams_output_tests(_) ->
         )
     ]).
 
+
+
+put_logs_events_input_tests(_) ->
+    input_tests(jsx:encode([{<<"uploadSequenceToken">>, ?LOG_SEQUENCE}]), [
+        ?_cloudwatch_test(
+            {"Tests publishing of batch log events",
+             ?_f(erlcloud_cloudwatch_logs:put_logs_events(
+                ?LOG_GROUP_NAME,
+                ?LOG_STREAM_NAME,
+                ?LOG_SEQUENCE,
+                ?LOG_BATCH,
+                erlcloud_aws:default_config()
+            )),
+             [{<<"Action">>, <<"PutLogEvents">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"logEvents">>, ?LOG_BATCH_EXPECTED},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME},
+              {<<"logStreamName">>, ?LOG_STREAM_NAME},
+              {<<"sequenceToken">>, ?LOG_SEQUENCE}]}
+        )
+    ]).
 
 %%==============================================================================
 %% Internal functions

@@ -20,11 +20,14 @@
 
 
 -type paging_token() :: string() | binary() | undefined.
+-type seq_token() :: string() | binary() | undefined.
 -type log_group_name() :: string() | binary() | undefined.
 -type log_group_name_prefix() :: string() | binary() | undefined.
+-type log_stream_name() :: string() | binary() | undefined.
 -type log_stream_prefix() :: string() | binary() | undefined.
 -type limit() :: pos_integer() | undefined.
 -type log_stream_order() :: log_stream_name | last_event_time | undefined.
+-type events() :: [#{message => binary(), timestamp => pos_integer()}].
 
 
 -type success_result_paged(ObjectType) :: {ok, [ObjectType], paging_token()}.
@@ -58,7 +61,10 @@
     describe_log_streams/3,
     describe_log_streams/5,
     describe_log_streams/6,
-    describe_log_streams/7
+    describe_log_streams/7,
+
+    put_logs_events/4,
+    put_logs_events/5
 ]).
 
 
@@ -246,6 +252,66 @@ log_stream_order_by(undefined) -> <<"LogStreamName">>;
 log_stream_order_by(log_stream_name) -> <<"LogStreamName">>;
 log_stream_order_by(last_event_time) -> <<"LastEventTime">>.
 
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% PutLogEvents action
+%% https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutLogEvents.html
+%%
+%% ===Example===
+%% 
+%%   Put log events requires a Upload Sequence Token, it is available via DescribeLogStreams
+%%
+%% `
+%%   application:ensure_all_started(erlcloud). 
+%%   {ok, Config} = erlcloud_aws:auto_config().
+%%   {ok, Streams, _} = erlcloud_cloudwatch_logs:describe_log_streams(GroupName, StreamName, Config).
+%%   {_, Seq} = lists:keyfind(<<"uploadSequenceToken">>, 1, hd(Streams)). 
+%%
+%%   Batch = [#{timestamp => 1526233086694, message => <<"Example Message">>}].
+%%   erlcloud_cloudwatch_logs:put_logs_events(GroupName, StreamName, Seq, Batch, Config).
+%% `
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec put_logs_events(
+    log_group_name(),
+    log_stream_name(),
+    seq_token(),
+    events()
+) -> datum:either( seq_token() ).
+
+put_logs_events(LogGroup, LogStream, SeqToken, Events) ->
+    put_logs_events(LogGroup, LogStream, SeqToken, Events, default_config()).
+
+
+-spec put_logs_events(
+    log_group_name(),
+    log_stream_name(),
+    seq_token(),
+    events(),
+    aws_config()
+) -> datum:either( seq_token() ).
+
+put_logs_events(LogGroup, LogStream, SeqToken, Events, Config) ->
+    [either ||
+        req_logs_events(LogGroup, LogStream, SeqToken, Events),
+        cw_request(Config, "PutLogEvents", _),
+        cats:unit( lens:get(lens:pair(<<"nextSequenceToken">>), _) )
+    ].    
+
+req_logs_events(LogGroup, LogStream, SeqToken, Events) ->
+    {ok, [
+        {<<"logEvents">>, log_events(Events)},
+        {<<"logGroupName">>, LogGroup},
+        {<<"logStreamName">>, LogStream},
+        {<<"sequenceToken">>, SeqToken}
+    ]}.
+
+log_events(Events) ->
+    [maps:with([message, timestamp], X) ||
+        #{message := _, timestamp := _} = X <- Events].
 
 %%==============================================================================
 %% Internal functions
@@ -299,7 +365,8 @@ prepare_request_params(Params) ->
 
 prepare_request_param({_Key, undefined}) ->
     false;
-prepare_request_param({Key, Value}) when is_list(Value) ->
+prepare_request_param({Key, [H | _] = Value})
+ when is_integer(H)  ->
     {true, {Key, list_to_binary(Value)}};
 prepare_request_param({Key, Value}) ->
     {true, {Key, Value}}.
