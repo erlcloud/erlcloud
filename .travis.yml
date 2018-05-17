@@ -2,12 +2,12 @@ sudo: false
 language: erlang
 otp_release:
   - 17.5
-  - 18.1
-  - 19.1
-  - 20.0
+  - 18.3
+  - 19.3
+  - 20.3
 env:
   global:
-  - MAIN_OTP=19.1
+  - MAIN_OTP=19.3
   matrix:
   - FORCE_REBAR2=true
   - FORCE_REBAR2=false PATH=$PATH:$PWD
