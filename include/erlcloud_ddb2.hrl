@@ -255,7 +255,7 @@
          backup_creation_date_time :: undefined | date_time(),
          backup_name:: undefined | binary(),
          backup_size_Bytes :: undefined | pos_integer(),
-         backup_status:: undefined | binary()
+         backup_status:: undefined | backup_status()
         }).
 
 -record(ddb2_create_backup,
