@@ -310,7 +310,7 @@ test_error_retry() ->
 do_test(Request, ExpectedResult, TestedFun) ->
     erlcloud_athena:configure("test-access-key", "test-secret-key"),
     ?assertEqual(ExpectedResult, TestedFun()),
-    Encoded = jsx:encode(Request),
+    Encoded = jsone:encode(Request, [{float_format, [{decimals, 4}, compact]}]),
     ?assertMatch([{_, {?EHTTPC, request, [_, post, _, Encoded, _, _]}, _}],
                  meck:history(?EHTTPC)).
 
@@ -331,7 +331,7 @@ do_erlcloud_httpc_request(_, post, Headers, _, _, _) ->
             "StartQueryExecution"    -> ?START_QUERY_EXECUTION_RESP;
             "StopQueryExecution"     -> #{}
         end,
-    {ok, {{200, "OK"}, [], jsx:encode(RespBody)}}.
+    {ok, {{200, "OK"}, [], jsone:encode(RespBody, [{float_format, [{decimals, 4}, compact]}])}}.
 
 get_start_query_execution_req(EncryptConfig) ->
     ResultConfig = EncryptConfig#{<<"OutputLocation">> => ?LOCATION_1},

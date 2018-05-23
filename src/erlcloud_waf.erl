@@ -1176,7 +1176,7 @@ waf_request(Config, Operation, Body) ->
 waf_request_no_update(Config, Operation, Body) ->
     Payload = case Body of
                [] -> <<"{}">>;
-               _ -> jsx:encode(Body)
+               _ -> jsone:encode(Body)
            end,
     Headers = headers(Config, Operation, Payload),
     Request = #aws_request{service = waf,
@@ -1186,7 +1186,7 @@ waf_request_no_update(Config, Operation, Body) ->
                            request_body = Payload},
     case erlcloud_aws:request_to_return(erlcloud_retry:request(Config, Request, fun waf_result_fun/1)) of
         {ok, {_RespHeaders, <<>>}} -> {ok, []};
-        {ok, {_RespHeaders, RespBody}} -> {ok, jsx:decode(RespBody)};
+        {ok, {_RespHeaders, RespBody}} -> {ok, jsone:decode(RespBody, [{object_format, proplist}])};
         {error, _} = Error-> Error
     end.
 

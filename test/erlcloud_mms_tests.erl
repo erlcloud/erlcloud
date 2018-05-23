@@ -61,8 +61,8 @@ sort_json(V) ->
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(Body, Expected) ->
-    Want = sort_json(jsx:decode(list_to_binary(Expected))),
-    Actual = sort_json(jsx:decode(Body)),
+    Want = sort_json(jsone:decode(list_to_binary(Expected), [{object_format, proplist}])),
+    Actual = sort_json(jsone:decode(Body, [{object_format, proplist}])),
     case Want =:= Actual of
         true -> ok;
         false ->
@@ -213,7 +213,7 @@ batch_meter_usage_output_tests(_) ->
             \"Timestamp\": 1471959107
         } ]
 }",
-             {ok, jsx:decode(<<"
+             {ok, jsone:decode(<<"
 {
     \"Results\": [
         {
@@ -234,7 +234,7 @@ batch_meter_usage_output_tests(_) ->
             \"Quantity\": 20,
             \"Timestamp\": 1471959107
         } ]
-}">>)}}
+}">>,[{object_format, proplist}])}}
         )],
 
     output_tests(?_f(erlcloud_mms:batch_meter_usage(
@@ -281,7 +281,7 @@ meter_usage_output_tests(_) ->
     Tests =
         [?_mms_test(
             {"MeterUsage example response", "{\"MeteringRecordId\": \"string\"}",
-             {ok, jsx:decode(<<"{\"MeteringRecordId\": \"string\"}">>)}})
+             {ok, jsone:decode(<<"{\"MeteringRecordId\": \"string\"}">>, [{object_format, proplist}])}})
         ],
 
     output_tests(?_f(erlcloud_mms:meter_usage(
@@ -319,7 +319,7 @@ resolve_customer_output_tests(_) ->
    \"CustomerIdentifier\": \"string\",
    \"ProductCode\": \"string\"
 }",
-             {ok,jsx:decode(<<"{\"CustomerIdentifier\": \"string\",\"ProductCode\": \"string\"}">>)}})
+             {ok,jsone:decode(<<"{\"CustomerIdentifier\": \"string\",\"ProductCode\": \"string\"}">>, [{object_format, proplist}])}})
         ],
 
     output_tests(?_f(erlcloud_mms:resolve_customer(<<"string">>)), Tests).

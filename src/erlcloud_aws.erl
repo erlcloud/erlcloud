@@ -827,7 +827,7 @@ get_credentials_from_metadata(Config) ->
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
-                    Creds = jsx:decode(Json),
+                    Creds = jsone:decode(Json, [{object_format, proplist}]),
                     get_credentials_from_metadata_xform( Creds )
             end
     end.
@@ -840,7 +840,7 @@ get_credentials_from_task_metadata(Config) ->
         {error, Reason} ->
             {error, Reason};
         {ok, Json} ->
-            Creds = jsx:decode(Json),
+            Creds = jsone:decode(Json, [{object_format, proplist}]),
             get_credentials_from_metadata_xform( Creds )
     end.
 
@@ -1085,7 +1085,7 @@ get_service_status(ServiceNames) when is_list(ServiceNames) ->
         "/data.json", "", [], default_config()),
 
     case get_filtered_statuses(ServiceNames,
-            proplists:get_value(<<"current">>, jsx:decode(Json)))
+            proplists:get_value(<<"current">>, jsone:decode(Json, [{object_format, proplist}])))
     of
         [] -> ok;
         ReturnStatuses -> ReturnStatuses

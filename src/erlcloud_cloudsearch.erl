@@ -376,7 +376,7 @@ documents_upload(DocEndpointURL, Documents) ->
     cloudsearch_return_val().
 documents_upload(DocEndpointURL, Documents, #aws_config{} = Config) ->
     Path = "/" ++ atom_to_list(?API_VERSION) ++ "/documents/batch",
-    cloudsearch_post_json(DocEndpointURL, Path, jsx:encode(Documents), Config).
+    cloudsearch_post_json(DocEndpointURL, Path, jsone:encode(Documents), Config).
 
 
 %%==============================================================================
@@ -721,7 +721,7 @@ cloudsearch_query(Config, Action, Params, ApiVersion) ->
                                    [{"Accept", "application/json"}],
                                    Config) of
     {ok, Response} ->
-        {ok, jsx:decode(Response)};
+        {ok, jsone:decode(Response, [{object_format, proplist}])};
     {error, Reason} ->
         {error, Reason}
     end.
@@ -736,7 +736,7 @@ cloudsearch_post_json(Host, Path, Body,
             [{"content-type", "application/json"} | Headers],
             Config) of
        {ok, RespBody} ->
-            {ok, jsx:decode(RespBody)};
+            {ok, jsone:decode(RespBody, [{object_format, proplist}])};
        {error, Reason} ->
             {error, Reason}
     end.

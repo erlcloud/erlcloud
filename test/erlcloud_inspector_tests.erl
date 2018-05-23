@@ -111,7 +111,7 @@ add_attributes_to_findings_tests(_) ->
     Action = "AddAttributesToFindings",
     Attributes = [{key, foo}, {value, bar}],
     Function = ?_f(erlcloud_inspector:add_attributes_to_findings(Attributes, [?FINDING_ARN])),
-    PostData = jsx:encode([{<<"attributes">>, Attributes},
+    PostData = jsone:encode([{<<"attributes">>, Attributes},
                            {<<"findingArns">>, [?FINDING_ARN]}]),
     Response = [{<<"message">>,<<"Success">>}],
     all_tests(Action, Function, PostData, Response).
@@ -120,7 +120,7 @@ add_attributes_to_findings_tests(_) ->
 attach_assessment_and_rules_package_tests(_) ->
     Action = "AttachAssessmentAndRulesPackage",
     Function = ?_f(erlcloud_inspector:attach_assessment_and_rules_package(?ASSESSMENT_ARN, ?RULES_PACKAGE_ARN)),
-    PostData = jsx:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN},
+    PostData = jsone:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN},
                            {<<"rulesPackageArn">>, ?RULES_PACKAGE_ARN}]),
     Response = [{<<"message">>,
                  <<"Successfully attached ", ?ASSESSMENT_ARN/binary, " to ", ?RULES_PACKAGE_ARN/binary>>}],
@@ -130,7 +130,7 @@ attach_assessment_and_rules_package_tests(_) ->
 create_application_tests(_) ->
     Action = "CreateApplication",
     Function = ?_f(erlcloud_inspector:create_application(?APPLICATION_NAME, ?RESOURCE_GROUP_ARN)),
-    PostData = jsx:encode([{<<"applicationName">>, ?APPLICATION_NAME},
+    PostData = jsone:encode([{<<"applicationName">>, ?APPLICATION_NAME},
                            {<<"resourceGroupArn">>, ?RESOURCE_GROUP_ARN}]),
     Response = [{<<"applicationArn">>, ?APPLICATION_ARN}],
     all_tests(Action, Function, PostData, Response).
@@ -140,7 +140,7 @@ create_assessment_tests(_) ->
     Action = "CreateAssessment",
     DurationInSeconds = 3600,
     Function = ?_f(erlcloud_inspector:create_assessment(?APPLICATION_ARN, ?ASSESSMENT_NAME, DurationInSeconds)),
-    PostData = jsx:encode([{<<"applicationArn">>, ?APPLICATION_ARN},
+    PostData = jsone:encode([{<<"applicationArn">>, ?APPLICATION_ARN},
                            {<<"assessmentName">>, ?ASSESSMENT_NAME},
                            {<<"durationInSeconds">>, DurationInSeconds}]),
     Response = [{<<"assessmentArn">>, ?ASSESSMENT_ARN}],
@@ -150,7 +150,7 @@ create_assessment_tests(_) ->
 create_resource_group_tests(_) ->
     Action = "CreateResourceGroup",
     Function = ?_f(erlcloud_inspector:create_resource_group(?RESOURCE_GROUP_TAGS)),
-    PostData = jsx:encode([{<<"resourceGroupTags">>, jsx:encode(?RESOURCE_GROUP_TAGS)}]),
+    PostData = jsone:encode([{<<"resourceGroupTags">>, jsone:encode(?RESOURCE_GROUP_TAGS)}]),
     Response = [{<<"resourceGroupArn">>, ?RESOURCE_GROUP_ARN}],
     all_tests(Action, Function, PostData, Response).
 
@@ -158,7 +158,7 @@ create_resource_group_tests(_) ->
 delete_application_tests(_) ->
     Action = "DeleteApplication",
     Function = ?_f(erlcloud_inspector:delete_application(?APPLICATION_ARN)),
-    PostData = jsx:encode([{<<"applicationArn">>, ?APPLICATION_ARN}]),
+    PostData = jsone:encode([{<<"applicationArn">>, ?APPLICATION_ARN}]),
     Response = [{<<"message">>, <<"Successfully deleted application ", ?APPLICATION_ARN/binary>>}],
     all_tests(Action, Function, PostData, Response).
 
@@ -166,7 +166,7 @@ delete_application_tests(_) ->
 delete_assessment_tests(_) ->
     Action = "DeleteAssessment",
     Function = ?_f(erlcloud_inspector:delete_assessment(?ASSESSMENT_ARN)),
-    PostData = jsx:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
+    PostData = jsone:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
     Response = [{<<"message">>, <<"Successfully deleted assessment ", ?ASSESSMENT_ARN/binary>>}],
     all_tests(Action, Function, PostData, Response).
 
@@ -174,7 +174,7 @@ delete_assessment_tests(_) ->
 delete_run_tests(_) ->
     Action = "DeleteRun",
     Function = ?_f(erlcloud_inspector:delete_run(?RUN_ARN)),
-    PostData = jsx:encode([{<<"runArn">>, ?RUN_ARN}]),
+    PostData = jsone:encode([{<<"runArn">>, ?RUN_ARN}]),
     Response = [{<<"message">>, <<"Successfully deleted run ", ?RUN_ARN/binary>>}],
     all_tests(Action, Function, PostData, Response).
 
@@ -182,7 +182,7 @@ delete_run_tests(_) ->
 describe_application_tests(_) ->
     Action = "DescribeApplication",
     Function = ?_f(erlcloud_inspector:describe_application(?APPLICATION_ARN)),
-    PostData = jsx:encode([{<<"applicationArn">>, ?APPLICATION_ARN}]),
+    PostData = jsone:encode([{<<"applicationArn">>, ?APPLICATION_ARN}]),
     Response = [{<<"application">>,
                  [{<<"applicationArn">>, ?APPLICATION_ARN},
                   {<<"applicationName">>, ?APPLICATION_NAME},
@@ -193,7 +193,7 @@ describe_application_tests(_) ->
 describe_assessment_tests(_) ->
     Action = "DescribeAssessment",
     Function = ?_f(erlcloud_inspector:describe_assessment(?ASSESSMENT_ARN)),
-    PostData = jsx:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
+    PostData = jsone:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
     Response = [{<<"assessment">>,
                  [{<<"applicationArn">>, ?APPLICATION_ARN},
                   {<<"assessmentArn">>, ?ASSESSMENT_ARN},
@@ -210,7 +210,7 @@ describe_assessment_tests(_) ->
 describe_cross_account_access_role_tests(_) ->
     Action = "DescribeAssessment",
     Function = ?_f(erlcloud_inspector:describe_cross_account_access_role()),
-    PostData = jsx:encode([{}]),
+    PostData = jsone:encode([{}]),
     Response = [{<<"roleArn">>, ?ROLE_ARN},
                 {<<"valid">>, true}],
     all_tests(Action, Function, PostData, Response).
@@ -219,7 +219,7 @@ describe_cross_account_access_role_tests(_) ->
 describe_finding_tests(_) ->
     Action = "DescribeFinding",
     Function = ?_f(erlcloud_inspector:describe_finding(?FINDING_ARN)),
-    PostData = jsx:encode([{<<"findingArn">>, ?FINDING_ARN}]),
+    PostData = jsone:encode([{<<"findingArn">>, ?FINDING_ARN}]),
     Response = [{<<"finding">>,
                  [{<<"agentId">>, ?INSTANCE_ID},
                   {<<"attributes">>,
@@ -266,17 +266,17 @@ describe_finding_tests(_) ->
 describe_resource_group_tests(_) ->
     Action = "DescribeResourceGroup",
     Function = ?_f(erlcloud_inspector:describe_resource_group(?RESOURCE_GROUP_ARN)),
-    PostData = jsx:encode([{<<"resourceGroupArn">>, ?RESOURCE_GROUP_ARN}]),
+    PostData = jsone:encode([{<<"resourceGroupArn">>, ?RESOURCE_GROUP_ARN}]),
     Response = [{<<"resourceGroup">>,
                  [{<<"resourceGroupArn">>, ?RESOURCE_GROUP_ARN},
-                  {<<"resourceGroupTags">>, jsx:encode(?RESOURCE_GROUP_TAGS)}]}],
+                  {<<"resourceGroupTags">>, jsone:encode(?RESOURCE_GROUP_TAGS)}]}],
     all_tests(Action, Function, PostData, Response).
 
 
 describe_rules_package_tests(_) ->
     Action = "DescribeRulesPackage",
     Function = ?_f(erlcloud_inspector:describe_rules_package(?RULES_PACKAGE_ARN)),
-    PostData = jsx:encode([{<<"rulesPackageArn">>, ?RULES_PACKAGE_ARN}]),
+    PostData = jsone:encode([{<<"rulesPackageArn">>, ?RULES_PACKAGE_ARN}]),
     Response = [{<<"rulesPackage">>,
                  [{<<"description">>,
                    [{<<"key">>,
@@ -293,7 +293,7 @@ describe_rules_package_tests(_) ->
 describe_run_tests(_) ->
     Action = "DescribeRun",
     Function = ?_f(erlcloud_inspector:describe_run(?RUN_ARN)),
-    PostData = jsx:encode([{<<"runArn">>, ?RUN_ARN}]),
+    PostData = jsone:encode([{<<"runArn">>, ?RUN_ARN}]),
     Response = [{<<"run">>,
                  [{<<"assessmentArn">>, ?ASSESSMENT_ARN},
                   {<<"completionTime">>, 1452523816.858},
@@ -308,7 +308,7 @@ describe_run_tests(_) ->
 detach_assessment_and_rules_package_tests(_) ->
     Action = "DetachAssessmentAndRulesPackage",
     Function = ?_f(erlcloud_inspector:detach_assessment_and_rules_package(?ASSESSMENT_ARN, ?RULES_PACKAGE_ARN)),
-    PostData = jsx:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN},
+    PostData = jsone:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN},
                            {<<"rulesPackageArn">>, ?RULES_PACKAGE_ARN}]),
     Response = [{<<"message">>,
                  <<"Successfully dettached ", ?ASSESSMENT_ARN/binary, " to ", ?RULES_PACKAGE_ARN/binary>>}],
@@ -318,7 +318,7 @@ detach_assessment_and_rules_package_tests(_) ->
 get_assessment_telemetry_tests(_) ->
     Action = "GetAssessmentTelemetry",
     Function = ?_f(erlcloud_inspector:get_assessment_telemetry(?ASSESSMENT_ARN)),
-    PostData = jsx:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
+    PostData = jsone:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
     Response = [{<<"telemetry">>,[]}],
     all_tests(Action, Function, PostData, Response).
 
@@ -326,7 +326,7 @@ get_assessment_telemetry_tests(_) ->
 list_applications_tests(_) ->
     Action = "ListApplications",
     Function = ?_f(erlcloud_inspector:list_applications()),
-    PostData = jsx:encode([{}]),
+    PostData = jsone:encode([{}]),
     Response = [{<<"applicationArnList">>, [?APPLICATION_ARN]}],
     all_tests(Action, Function, PostData, Response).
 
@@ -334,7 +334,7 @@ list_applications_tests(_) ->
 list_assessment_agents_tests(_) ->
     Action = "ListAssessmentAgents",
     Function = ?_f(erlcloud_inspector:list_assessment_agents(?ASSESSMENT_ARN)),
-    PostData = jsx:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
+    PostData = jsone:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
     Response = [{<<"agentList">>,
                  [[{<<"accountId">>, ?ACCOUNT_ID},
                    {<<"agentHealth">>, <<"HEALTHY">>},
@@ -348,7 +348,7 @@ list_assessment_agents_tests(_) ->
 list_assessments_tests(_) ->
     Action = "ListAssessments",
     Function = ?_f(erlcloud_inspector:list_assessments()),
-    PostData = jsx:encode([{}]),
+    PostData = jsone:encode([{}]),
     Response = [{<<"assessmentArnList">>, [?ASSESSMENT_ARN]}],
     all_tests(Action, Function, PostData, Response).
 
@@ -356,7 +356,7 @@ list_assessments_tests(_) ->
 list_attached_assessments_tests(_) ->
     Action = "ListAttachedAssessments",
     Function = ?_f(erlcloud_inspector:list_attached_assessments(?RULES_PACKAGE_ARN)),
-    PostData = jsx:encode([{<<"rulesPackageArn">>, ?RULES_PACKAGE_ARN}]),
+    PostData = jsone:encode([{<<"rulesPackageArn">>, ?RULES_PACKAGE_ARN}]),
     Response = [{<<"assessmentArnList">>, [?ASSESSMENT_ARN]}],
     all_tests(Action, Function, PostData, Response).
 
@@ -364,7 +364,7 @@ list_attached_assessments_tests(_) ->
 list_attached_rules_packages_tests(_) ->
     Action = "ListAttachedRulesPackages",
     Function = ?_f(erlcloud_inspector:list_attached_rules_packages(?ASSESSMENT_ARN)),
-    PostData = jsx:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
+    PostData = jsone:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
     Response = [{<<"rulesPackageArnList">>, [?RULES_PACKAGE_ARN]}],
     all_tests(Action, Function, PostData, Response).
 
@@ -372,7 +372,7 @@ list_attached_rules_packages_tests(_) ->
 list_findings_tests(_) ->
     Action = "ListFindings",
     Function = ?_f(erlcloud_inspector:list_findings()),
-    PostData = jsx:encode([{}]),
+    PostData = jsone:encode([{}]),
     Response = [{<<"findingArnList">>, [?FINDING_ARN]}],
     all_tests(Action, Function, PostData, Response).
 
@@ -380,7 +380,7 @@ list_findings_tests(_) ->
 list_rules_packages_tests(_) ->
     Action = "ListRulesPackages",
     Function = ?_f(erlcloud_inspector:list_rules_packages()),
-    PostData = jsx:encode([{}]),
+    PostData = jsone:encode([{}]),
     Response = [{<<"rulesPackageArnList">>, [?RULES_PACKAGE_ARN]}],
     all_tests(Action, Function, PostData, Response).
 
@@ -388,7 +388,7 @@ list_rules_packages_tests(_) ->
 list_runs_tests(_) ->
     Action = "ListRuns",
     Function = ?_f(erlcloud_inspector:list_runs()),
-    PostData = jsx:encode([{}]),
+    PostData = jsone:encode([{}]),
     Response = [{<<"runArnList">>, [?RUN_ARN]}],
     all_tests(Action, Function, PostData, Response).
 
@@ -396,7 +396,7 @@ list_runs_tests(_) ->
 list_tags_for_resource_tests(_) ->
     Action = "ListTagsForResource",
     Function = ?_f(erlcloud_inspector:list_tags_for_resource(?ASSESSMENT_ARN)),
-    PostData = jsx:encode([{<<"resourceArn">>, ?ASSESSMENT_ARN}]),
+    PostData = jsone:encode([{<<"resourceArn">>, ?ASSESSMENT_ARN}]),
     Response = [{<<"tagList">>, []}],
     all_tests(Action, Function, PostData, Response).
 
@@ -404,7 +404,7 @@ list_tags_for_resource_tests(_) ->
 localize_text_tests(_) ->
     Action = "LocalizeText",
     Function = ?_f(erlcloud_inspector:localize_text(?FINDING_DESCRIPTION)),
-    PostData = jsx:encode([{<<"locale">>, <<"en_US">>},
+    PostData = jsone:encode([{<<"locale">>, <<"en_US">>},
                            {<<"localizedTexts">>, [?FINDING_DESCRIPTION]}]),
     Response = [{<<"results">>,
                  [<<"This rule helps determine whether your EC2 instances allow support for insecure and unencrypted ports/services such as FTP, Telnet, HTTP, IMAP, POP version 3, SMTP, SNMP versions 1 and 2, rsh, and rlogin. ">>]}],
@@ -414,7 +414,7 @@ localize_text_tests(_) ->
 preview_agents_for_resource_group_tests(_) ->
     Action = "PreviewAgentsForResourceGroup",
     Function = ?_f(erlcloud_inspector:preview_agents_for_resource_group(?RESOURCE_GROUP_ARN)),
-    PostData = jsx:encode([{<<"resourceGroupArn">>, ?RESOURCE_GROUP_ARN}]),
+    PostData = jsone:encode([{<<"resourceGroupArn">>, ?RESOURCE_GROUP_ARN}]),
     Response = [{<<"agentPreviewList">>,[]}],
     all_tests(Action, Function, PostData, Response).
 
@@ -422,7 +422,7 @@ preview_agents_for_resource_group_tests(_) ->
 register_cross_account_access_role_tests(_) ->
     Action = "RegisterCrossAccountAccessRole",
     Function = ?_f(erlcloud_inspector:register_cross_account_access_role(?ROLE_ARN)),
-    PostData = jsx:encode([{<<"roleArn">>, ?ROLE_ARN}]),
+    PostData = jsone:encode([{<<"roleArn">>, ?ROLE_ARN}]),
     Response = [{<<"message">>, <<"Cross-account access role registered successfully">>}],
     all_tests(Action, Function, PostData, Response).
 
@@ -431,7 +431,7 @@ remove_attributes_from_findings_tests(_) ->
     Action = "AddAttributesToFindings",
     AttributeKeys = [<<"foo">>],
     Function = ?_f(erlcloud_inspector:remove_attributes_from_findings(AttributeKeys, [?FINDING_ARN])),
-    PostData = jsx:encode([{<<"attributeKeys">>, AttributeKeys},
+    PostData = jsone:encode([{<<"attributeKeys">>, AttributeKeys},
                            {<<"findingArns">>, [?FINDING_ARN]}]),
     Response = [{<<"message">>, <<"Success">>}],
     all_tests(Action, Function, PostData, Response).
@@ -440,7 +440,7 @@ remove_attributes_from_findings_tests(_) ->
 run_assessment_tests(_) ->
     Action = "RunAssessment",
     Function = ?_f(erlcloud_inspector:run_assessment(?ASSESSMENT_ARN, ?RUN_NAME)),
-    PostData = jsx:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN},
+    PostData = jsone:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN},
                            {<<"runName">>, ?RUN_NAME}]),
     Response = [{<<"runArn">>, ?RUN_ARN}],
     all_tests(Action, Function, PostData, Response).
@@ -450,7 +450,7 @@ set_tags_for_resource_tests(_) ->
     Action = "SetTagsForResource",
     Tags = [[{<<"Key">>, <<"foo">>}, {<<"Value">>, <<"bar">>}]],
     Function = ?_f(erlcloud_inspector:set_tags_for_resource(?ASSESSMENT_ARN, Tags)),
-    PostData = jsx:encode([{<<"resourceArn">>, ?ASSESSMENT_ARN},
+    PostData = jsone:encode([{<<"resourceArn">>, ?ASSESSMENT_ARN},
                            {<<"tags">>, Tags}]),
     Response = [{<<"message">>, <<"Success">>}],
     all_tests(Action, Function, PostData, Response).
@@ -459,7 +459,7 @@ set_tags_for_resource_tests(_) ->
 start_data_collection_tests(_) ->
     Action = "StartDataCollection",
     Function = ?_f(erlcloud_inspector:start_data_collection(?ASSESSMENT_ARN)),
-    PostData = jsx:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
+    PostData = jsone:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
     Response = [{<<"message">>, <<"Success">>}],
     all_tests(Action, Function, PostData, Response).
 
@@ -467,7 +467,7 @@ start_data_collection_tests(_) ->
 stop_data_collection_tests(_) ->
     Action = "StopDataCollection",
     Function = ?_f(erlcloud_inspector:stop_data_collection(?ASSESSMENT_ARN)),
-    PostData = jsx:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
+    PostData = jsone:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN}]),
     Response = [{<<"message">>, <<"Success">>}],
     all_tests(Action, Function, PostData, Response).
 
@@ -475,7 +475,7 @@ stop_data_collection_tests(_) ->
 update_application_tests(_) ->
     Action = "UpdateApplication",
     Function = ?_f(erlcloud_inspector:update_application(?APPLICATION_ARN, ?APPLICATION_NAME, ?RESOURCE_GROUP_ARN)),
-    PostData = jsx:encode([{<<"applicationArn">>, ?APPLICATION_ARN},
+    PostData = jsone:encode([{<<"applicationArn">>, ?APPLICATION_ARN},
                            {<<"applicationName">>, ?APPLICATION_NAME},
                            {<<"resourceGroupArn">>, ?RESOURCE_GROUP_ARN}]),
     Response = [{<<"message">>,
@@ -487,7 +487,7 @@ update_assessment_tests(_) ->
     Action = "UpdateAssessment",
     DurationInSeconds = 3600,
     Function = ?_f(erlcloud_inspector:update_assessment(?ASSESSMENT_ARN, ?ASSESSMENT_NAME, DurationInSeconds)),
-    PostData = jsx:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN},
+    PostData = jsone:encode([{<<"assessmentArn">>, ?ASSESSMENT_ARN},
                            {<<"assessmentName">>, ?ASSESSMENT_NAME},
                            {<<"durationInSeconds">>, DurationInSeconds}]),
     Response = [{<<"message">>,
@@ -514,8 +514,8 @@ sort_json(V) ->
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(Body, Expected) ->
-    Want = sort_json(jsx:decode(Expected)),
-    Actual = sort_json(jsx:decode(Body)),
+    Want = sort_json(jsone:decode(Expected, [{object_format, proplist}])),
+    Actual = sort_json(jsone:decode(Body, [{object_format, proplist}])),
     case Want =:= Actual of
         true -> ok;
         false ->
@@ -597,7 +597,7 @@ all_tests(Action, Function, PostData, Response) ->
                   )],
     OutputTests = [?_inspector_test(
                    {Action ++ " example response",
-                    jsx:encode(Response),
+                    jsone:encode(Response),
                     {ok, Response}}
                    )],
     

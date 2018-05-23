@@ -33,7 +33,7 @@
 %% information. This option only makes sense to `get_records'.
 %%
 %% * `json' - The output from DynamoDB Streams as processed by
-%% `jsx:decode' but with no further manipulation. This would rarely be
+%% `jsone:decode' but with no further manipulation. This would rarely be
 %% useful, unless the DynamoDB Streams API is updated to include data
 %% that is not yet parsed correctly.
 %%
@@ -166,7 +166,7 @@ default_config() -> erlcloud_aws:default_config().
 -type key() :: [attr(),...].
 
 -type json_pair() :: {binary(), json_term()}.
--type json_term() :: jsx:json_term().
+-type json_term() :: jsone:json_object_members().
 
 -type ok_return(T) :: {ok, T} | {error, term()}.
 
@@ -281,7 +281,7 @@ undynamize_attr_typed({Name, [ValueJson]}, Opts) ->
 key_name(Key) ->
     proplists:get_value(<<"AttributeName">>, Key).
 
--spec undynamize_key_schema(json_term(), undynamize_opts()) -> key_schema().
+-spec undynamize_key_schema(jsone:json_array(), undynamize_opts()) -> key_schema().
 undynamize_key_schema([HashKey], _) ->
     key_name(HashKey);
 undynamize_key_schema([Key1, Key2], _) ->
@@ -811,7 +811,7 @@ request(Config, Operation, Json) ->
 request2(Config, Operation, Json) ->
     Body = case Json of
                [] -> <<"{}">>;
-               _ -> jsx:encode(Json)
+               _ -> jsone:encode(Json)
            end,
     Headers = headers(Config, Operation, Body),
     Request = #aws_request{service = ddb_streams,
@@ -825,7 +825,7 @@ request2(Config, Operation, Json) ->
 request_to_return(#aws_request{response_type = ok,
                                response_body = Body}) ->
     %% TODO check crc
-    {ok, jsx:decode(Body)};
+    {ok, jsone:decode(Body, [{object_format, proplist}])};
 request_to_return(#aws_request{response_type = error,
                                error_type = aws,
                                httpc_error_reason = undefined,
@@ -865,11 +865,10 @@ client_error(#aws_request{response_body = Body} = Request) ->
     %% == IMPLEMENTATION NOTES ==
     %% We store the error reason in `httpc_error_reason` for now,
     %% this may be changed at any time later
-    case jsx:is_json(Body) of
-        false ->
+    case jsone:try_decode(Body, [{object_format, proplist}]) of
+        {error, _} ->
             Request#aws_request{should_retry = false};
-        true ->
-            Json = jsx:decode(Body),
+        {ok, Json, _} ->
             case proplists:get_value(<<"__type">>, Json) of
                 undefined ->
                     Request#aws_request{should_retry = false};

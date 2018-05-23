@@ -73,25 +73,25 @@ configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
 %%------------------------------------------------------------------------------
 
 -type emr_opts() :: [{out, json | raw}].
--type emr_return() :: {ok, jsx:json_term() | binary()} |
-                      {error, {aws_error, jsx:json_term()}} |
+-type emr_return() :: {ok, jsone:json_object_members() | binary()} |
+                      {error, {aws_error, jsone:json_object_members()}} |
                       {error, {socket_error, any()}} |
                       {error, tuple()}.
 
 
 %% --- AddJobFlowSteps ---
 %% http://docs.aws.amazon.com/ElasticMapReduce/latest/API/API_AddJobFlowSteps.html
--spec add_job_flow_steps(binary(), jsx:json_term()) -> emr_return().
+-spec add_job_flow_steps(binary(), jsone:json_object_members()) -> emr_return().
 add_job_flow_steps(JobFlowId, Steps) ->
     add_job_flow_steps(JobFlowId, Steps, [], erlcloud_aws:default_config()).
 
--spec add_job_flow_steps(binary(), jsx:json_term(), aws_config() | emr_opts()) -> emr_return().
+-spec add_job_flow_steps(binary(), jsone:json_object_members(), aws_config() | emr_opts()) -> emr_return().
 add_job_flow_steps(JobFlowId, Steps, Config = #aws_config{}) ->
     add_job_flow_steps(JobFlowId, Steps, [], Config);
 add_job_flow_steps(JobFlowId, Steps, Opts) when is_list(Opts) ->
     add_job_flow_steps(JobFlowId, Steps, Opts, erlcloud_aws:default_config()).
 
--spec add_job_flow_steps(binary(), jsx:json_term(), emr_opts(), aws_config()) -> emr_return().
+-spec add_job_flow_steps(binary(), jsone:json_object_members(), emr_opts(), aws_config()) -> emr_return().
 add_job_flow_steps(JobFlowId, Steps, Opts, Config) ->
     emr_request("ElasticMapReduce.AddJobFlowSteps",
                 [{'JobFlowId', JobFlowId}, {'Steps', Steps}], Opts, Config).
@@ -117,17 +117,17 @@ describe_step(ClusterId, StepId, Opts, Config) ->
 
 %% --- RunJobFlow ---
 %% http://docs.aws.amazon.com/ElasticMapReduce/latest/API/API_RunJobFlow.html
--spec run_job_flow(jsx:json_term()) -> emr_return().
+-spec run_job_flow(jsone:json_object_members()) -> emr_return().
 run_job_flow(Params) ->
     run_job_flow(Params, [], erlcloud_aws:default_config()).
 
--spec run_job_flow(jsx:json_term(), aws_config() | emr_opts()) -> emr_return().
+-spec run_job_flow(jsone:json_object_members(), aws_config() | emr_opts()) -> emr_return().
 run_job_flow(Params, Config = #aws_config{}) ->
     run_job_flow(Params, [], Config);
 run_job_flow(Params, Opts) when is_list(Opts) ->
     run_job_flow(Params, Opts, erlcloud_aws:default_config()).
 
--spec run_job_flow(jsx:json_term(), emr_opts(), aws_config()) -> emr_return().
+-spec run_job_flow(jsone:json_object_members(), emr_opts(), aws_config()) -> emr_return().
 run_job_flow(Params, Opts, Config) ->
     emr_request("ElasticMapReduce.RunJobFlow", Params, Opts, Config).
 
@@ -199,7 +199,7 @@ request(Action, Json, Scheme, Host, Port, Service, Opts, Cfg0) ->
     end.
 
 request_no_update(Action, Json, Scheme, Host, Port, Service, Opts, Cfg) ->
-    ReqBody = jsx:encode(if Json == [] -> [{}];
+    ReqBody = jsone:encode(if Json == [] -> [{}];
                                   true -> Json end),
     H1 = [{"host", Host}],
     H2 = [{"content-type", "application/x-amz-json-1.1"},
@@ -212,11 +212,11 @@ request_no_update(Action, Json, Scheme, Host, Port, Service, Opts, Cfg) ->
                           raw -> {ok, Body};
                           _   -> case Body of
                                      <<>> -> {ok, <<>>};
-                                     _    -> {ok, jsx:decode(Body)}
+                                     _    -> {ok, jsone:decode(Body, [{object_format, proplist}])}
                                  end
                       end;
         {error, {http_error, _Code, _StatusLine, ErrBody}} ->
-            {error, {aws_error, jsx:decode(ErrBody)}};
+            {error, {aws_error, jsone:decode(ErrBody, [{object_format, proplist}])}};
         {error, {socket_error, Reason}} ->
             {error, {socket_error, Reason}}
     end.

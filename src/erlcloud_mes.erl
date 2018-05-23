@@ -83,7 +83,7 @@ default_config() -> erlcloud_aws:default_config().
 -type entitlment_filter() :: {filter_type(), filter_value_list()}.
 -type entitlment_filter_list() :: [entitlment_filter()].
 
--type json_term() :: jsx:json_term().
+-type json_term() :: jsone:json_object_members().
 
 -type option_type() :: max_results | next_token.
 -type options() :: [{option_type(), any()}].
@@ -169,11 +169,11 @@ mes_request(Config, Operation, Json) ->
 
 -spec mes_request_no_update(aws_config(), operation(), json_term()) -> json_return().
 mes_request_no_update(#aws_config{mes_scheme = Scheme, mes_host = Host, mes_port = Port} = Config, Operation, Json) ->
-    Body = jsx:encode(Json),
+    Body = jsone:encode(Json),
     Headers = headers(Config, Operation, Body),
     case erlcloud_aws:aws_request_form_raw(post, Scheme, Host, Port, "/", Body, Headers, Config) of
         {ok, Response} ->
-            {ok, jsx:decode(Response)};
+            {ok, jsone:decode(Response, [{object_format, proplist}])};
         {error, Reason} ->
             {error, Reason}
     end.

@@ -80,7 +80,7 @@ stop(_) ->
 
 
 describe_log_groups_input_tests(_) ->
-    input_tests(jsx:encode([{<<"logGroups">>, []}]), [
+    input_tests(jsone:encode([{<<"logGroups">>, []}]), [
         ?_cloudwatch_test(
             {"Tests describing log groups with no parameters",
              ?_f(erlcloud_cloudwatch_logs:describe_log_groups()),
@@ -154,7 +154,7 @@ describe_log_groups_output_tests(_) ->
     output_tests(?_f(erlcloud_cloudwatch_logs:describe_log_groups()), [
         ?_cloudwatch_test(
             {"Tests describing all log groups",
-             jsx:encode([{<<"logGroups">>, [?LOG_GROUP]}]),
+             jsone:encode([{<<"logGroups">>, [?LOG_GROUP]}]),
              {ok, [?LOG_GROUP], undefined}}
         )
     ]).
@@ -176,7 +176,7 @@ input_test(ResponseBody, {Line, {Description, Fun, ExpectedParams}}) ->
                 erlcloud_httpc,
                 request,
                 fun(_Url, post, _Headers, RequestBody, _Timeout, _Config) ->
-                    ActualParams = jsx:decode(RequestBody),
+                    ActualParams = jsone:decode(RequestBody, [{object_format, proplist}]),
                     ?assertEqual(sort_json(ExpectedParams), sort_json(ActualParams)),
                     {ok, {{200, "OK"}, [], ResponseBody}}
                 end

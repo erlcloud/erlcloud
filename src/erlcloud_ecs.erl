@@ -19,7 +19,7 @@
 %% format of `Value' is controlled by the `out' option, which defaults
 %% to `json'. The possible values are:
 %%
-%% * `json' - The output from ECS as processed by `jsx:decode'
+%% * `json' - The output from ECS as processed by `jsone:decode'
 %% but with no further manipulation. This would rarely be useful,
 %% unless the ECS API is updated to include data that is not yet
 %% parsed correctly.
@@ -229,10 +229,10 @@ default_config() ->
 -type attr_name() :: binary() | string().
 -type arn() :: binary().
 
--type json_pair() :: {binary() | atom(), jsx:json_term()}.
--type json_return() :: {ok, jsx:json_term()} | {error, term()}.
--type ecs_return(Record) :: {ok, jsx:json_term() | Record } | {error, term()}.
--type decode_fun() :: fun((jsx:json_term(), decode_opts()) -> tuple()).
+-type json_pair() :: {binary() | atom(), jsone:json_object_members()}.
+-type json_return() :: {ok, jsone:json_object_members()} | {error, term()}.
+-type ecs_return(Record) :: {ok, jsone:json_object_members() | Record } | {error, term()}.
+-type decode_fun() :: fun((jsone:json_object_members(), decode_opts()) -> tuple()).
 
 %%%------------------------------------------------------------------------------
 %%% Shared Options
@@ -256,7 +256,7 @@ verify_ecs_opt(out, Value) ->
 verify_ecs_opt(Name, Value) ->
     error({erlcloud_ecs, {invalid_opt, {Name, Value}}}).
 
--type opt_table_entry() :: {atom(), binary(), fun((_) -> jsx:json_term())}.
+-type opt_table_entry() :: {atom(), binary(), fun((_) -> jsone:json_object_members())}.
 -type opt_table() :: [opt_table_entry()].
 -spec opt_folder(opt_table(), property(), opts()) -> opts().
 opt_folder(_, {_, undefined}, Opts) ->
@@ -646,7 +646,7 @@ container_definition_opts() ->
 encode_container_definitions(Defs) ->
     encode_maybe_list(fun container_definition_opts/0, Defs).
     
--spec encode_ecs_task_overrides(Overrides :: ecs_task_override_opts()) -> jsx:json_term().
+-spec encode_ecs_task_overrides(Overrides :: ecs_task_override_opts()) -> jsone:json_object_members().
 encode_ecs_task_overrides(Overrides) ->
     {AwsOpts, _EcsOpts} = opts(ecs_task_override_opt(), Overrides),
     AwsOpts.
@@ -682,7 +682,7 @@ id(X) -> X.
 id(X, _) -> X.
 
 -type field_table() :: [{binary(), pos_integer(), 
-                         fun((jsx:json_term(), decode_opts()) -> term())}].
+                         fun((jsone:json_object_members(), decode_opts()) -> term())}].
 
 -spec decode_folder(field_table(), json_pair(), decode_opts(), tuple()) -> tuple().
 decode_folder(Table, {Key, Value}, Opts, A) ->
@@ -694,14 +694,14 @@ decode_folder(Table, {Key, Value}, Opts, A) ->
     end.
 
 
--spec decode_record(record_desc(), jsx:json_term(), decode_opts()) -> tuple().
+-spec decode_record(record_desc(), jsone:json_object_members(), decode_opts()) -> tuple().
 decode_record({Record, _}, [{}], _) ->
     %% jsx returns [{}] for empty objects
     Record;
 decode_record({Record, Table}, Json, Opts) ->
     lists:foldl(fun(Pair, A) -> decode_folder(Table, Pair, Opts, A) end, Record, Json).
 
--spec decode_single_record(record_desc(), binary(), jsx:json_term(), decode_opts()) -> tuple().
+-spec decode_single_record(record_desc(), binary(), jsone:json_object_members(), decode_opts()) -> tuple().
 decode_single_record(Rec, Name, Json, Opts)->
     Desc = {#ecs_single_return{},
         [{Name, #ecs_single_return.object,
@@ -715,7 +715,7 @@ decode_single_record(Rec, Name, Json, Opts)->
 %%% Output
 %%%------------------------------------------------------------------------------
 -spec out(json_return(), decode_fun(), ecs_opts())
-         -> {ok, jsx:json_term() | tuple()} |
+         -> {ok, jsone:json_object_members() | tuple()} |
             {simple, term()} |
             {error, term()}.
 out({error, Reason}, _, _) ->
@@ -2418,7 +2418,7 @@ ecs_request(Config, Operation, Body) ->
 ecs_request_no_update(Config, Operation, Body) ->
     Payload = case Body of
                [] -> <<"{}">>;
-               _ -> jsx:encode(lists:flatten(Body))
+               _ -> jsone:encode(lists:flatten(Body))
            end,
     Headers = headers(Config, Operation, Payload),
     Request = #aws_request{service = ecs,
@@ -2428,7 +2428,7 @@ ecs_request_no_update(Config, Operation, Body) ->
                            request_body = Payload},
     case erlcloud_aws:request_to_return(erlcloud_retry:request(Config, Request, fun ecs_result_fun/1)) of
         {ok, {_RespHeaders, <<>>}} -> {ok, []};
-        {ok, {_RespHeaders, RespBody}} -> {ok, jsx:decode(RespBody)};
+        {ok, {_RespHeaders, RespBody}} -> {ok, jsone:decode(RespBody, [{object_format, proplist}])};
         {error, _} = Error-> Error
     end.
 

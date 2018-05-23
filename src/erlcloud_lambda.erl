@@ -757,14 +757,14 @@ lambda_request_no_update(Config, Method, Path, Options, Body, QParam) ->
 decode_body(<<>>) ->
     [];
 decode_body(BinData) ->
-    jsx:decode(BinData).
+    jsone:decode(BinData, [{object_format, proplist}]).
 
 encode_body(undefined) ->
     <<>>;
 encode_body([]) ->
     <<"{}">>;
 encode_body(Body) ->
-    jsx:encode(Body).
+    jsone:encode(Body, [{float_format, [{decimals, 4}, compact]}]).
 
 headers(Method, Uri, Hdrs, Config, Body, QParam) ->
     Headers = [{"host", Config#aws_config.lambda_host},

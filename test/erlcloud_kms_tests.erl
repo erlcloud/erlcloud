@@ -116,8 +116,8 @@ sort_json(V) ->
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(Body, Expected) ->
-    Want = sort_json(jsx:decode(Expected)),
-    Actual = sort_json(jsx:decode(Body)),
+    Want = sort_json(jsone:decode(Expected, [{object_format, proplist}])),
+    Actual = sort_json(jsone:decode(Body, [{object_format, proplist}])),
     case Want =:= Actual of
         true -> ok;
         false ->
@@ -201,7 +201,7 @@ create_alias_input_tests(_) ->
              {"CreateAlias input test",
               ?_f(erlcloud_kms:create_alias(<<"alias/eunit_test_key">>,
                                             ?KEY_ID)),
-              jsx:encode([{<<"AliasName">>, <<"alias/eunit_test_key">>},
+              jsone:encode([{<<"AliasName">>, <<"alias/eunit_test_key">>},
                           {<<"TargetKeyId">>, ?KEY_ID}])
              }
              )],
@@ -232,20 +232,20 @@ create_grant_input_tests(_) ->
               ?_f(erlcloud_kms:create_grant(<<"arn:aws:iam::", ?AWS_ACCOUNT_ID/binary, ":root">>,
                                             ?KEY_ID,
                                             [<<"Decrypt">>])),
-              jsx:encode([{<<"GranteePrincipal">>, <<"arn:aws:iam::", ?AWS_ACCOUNT_ID/binary, ":root">>},
+              jsone:encode([{<<"GranteePrincipal">>, <<"arn:aws:iam::", ?AWS_ACCOUNT_ID/binary, ":root">>},
                           {<<"KeyId">>, ?KEY_ID},
                           {<<"Operations">>, [<<"Decrypt">>]}])
              }
              )],
 
-    Response = jsx:encode(?CREATE_GRANT_RESP),
+    Response = jsone:encode(?CREATE_GRANT_RESP),
     input_tests(Response, Tests).
 
 
 create_grant_output_tests(_) ->
     Tests = [?_kms_test(
              {"CreateGrant example response",
-              jsx:encode(?CREATE_GRANT_RESP),
+              jsone:encode(?CREATE_GRANT_RESP),
               {ok, ?CREATE_GRANT_RESP}}
              )],
 
@@ -274,14 +274,14 @@ create_key_input_tests(_) ->
              }
              )],
 
-    Response = jsx:encode(?CREATE_KEY_RESP),
+    Response = jsone:encode(?CREATE_KEY_RESP, [{float_format, [{decimals, 4}, compact]}]),
     input_tests(Response, Tests).
 
 
 create_key_output_tests(_) ->
     Tests = [?_kms_test(
              {"CreateKey example response",
-              jsx:encode(?CREATE_KEY_RESP),
+              jsone:encode(?CREATE_KEY_RESP, [{float_format, [{decimals, 4}, compact]}]),
               {ok, ?CREATE_KEY_RESP}}
              )],
 
@@ -304,18 +304,18 @@ decrypt_input_tests(_) ->
     Tests = [?_kms_test(
              {"Decrypt input test",
               ?_f(erlcloud_kms:decrypt(?CIPHERTEXT_BLOB)),
-              jsx:encode([{<<"CiphertextBlob">>, ?CIPHERTEXT_BLOB}])
+              jsone:encode([{<<"CiphertextBlob">>, ?CIPHERTEXT_BLOB}])
              }
              )],
 
-    Response = jsx:encode(?DECRYPT_RESP),
+    Response = jsone:encode(?DECRYPT_RESP),
     input_tests(Response, Tests).
 
 
 decrypt_output_tests(_) ->
     Tests = [?_kms_test(
              {"Decrypt example response",
-              jsx:encode(?DECRYPT_RESP),
+              jsone:encode(?DECRYPT_RESP),
               {ok, ?DECRYPT_RESP}}
              )],
 
@@ -329,18 +329,18 @@ delete_alias_input_tests(_) ->
     Tests = [?_kms_test(
              {"DeleteAlias input test",
               ?_f(erlcloud_kms:delete_alias(<<"alias/eunit_test_key">>)),
-              jsx:encode([{<<"AliasName">>, <<"alias/eunit_test_key">>}])
+              jsone:encode([{<<"AliasName">>, <<"alias/eunit_test_key">>}])
              }
              )],
 
-    Response = jsx:encode(?DELETE_ALIAS_RESP),
+    Response = jsone:encode(?DELETE_ALIAS_RESP),
     input_tests(Response, Tests).
 
 
 delete_alias_output_tests(_) ->
     Tests = [?_kms_test(
              {"DeleteAlias example response",
-              jsx:encode(?DELETE_ALIAS_RESP),
+              jsone:encode(?DELETE_ALIAS_RESP),
               {ok, ?DELETE_ALIAS_RESP}}
              )],
 
@@ -363,18 +363,18 @@ describe_key_input_tests(_) ->
     Tests = [?_kms_test(
              {"DescribeKey input test",
               ?_f(erlcloud_kms:describe_key(?KEY_ID)),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID}])
+              jsone:encode([{<<"KeyId">>, ?KEY_ID}])
              }
              )],
 
-    Response = jsx:encode(?DESCRIBE_KEY_RESP),
+    Response = jsone:encode(?DESCRIBE_KEY_RESP, [{float_format, [{decimals, 4}, compact]}]),
     input_tests(Response, Tests).
 
 
 describe_key_output_tests(_) ->
     Tests = [?_kms_test(
              {"DescribeKey example response",
-              jsx:encode(?DESCRIBE_KEY_RESP),
+              jsone:encode(?DESCRIBE_KEY_RESP, [{float_format, [{decimals, 4}, compact]}]),
               {ok, ?DESCRIBE_KEY_RESP}}
              )],
 
@@ -385,7 +385,7 @@ disable_key_input_tests(_) ->
     Tests = [?_kms_test(
              {"DisableKey input test",
               ?_f(erlcloud_kms:disable_key(?KEY_ID)),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID}])
+              jsone:encode([{<<"KeyId">>, ?KEY_ID}])
              }
              )],
 
@@ -407,7 +407,7 @@ disable_key_rotation_input_tests(_) ->
     Tests = [?_kms_test(
              {"DisableKeyRotation input test",
               ?_f(erlcloud_kms:disable_key_rotation(?KEY_ID)),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID}])
+              jsone:encode([{<<"KeyId">>, ?KEY_ID}])
              }
              )],
 
@@ -429,7 +429,7 @@ enable_key_input_tests(_) ->
     Tests = [?_kms_test(
              {"EnableKey input test",
               ?_f(erlcloud_kms:enable_key(?KEY_ID)),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID}])
+              jsone:encode([{<<"KeyId">>, ?KEY_ID}])
              }
              )],
 
@@ -451,7 +451,7 @@ enable_key_rotation_input_tests(_) ->
     Tests = [?_kms_test(
              {"EnableKeyRotation input test",
               ?_f(erlcloud_kms:enable_key_rotation(?KEY_ID)),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID}])
+              jsone:encode([{<<"KeyId">>, ?KEY_ID}])
              }
              )],
 
@@ -480,19 +480,19 @@ encrypt_input_tests(_) ->
     Tests = [?_kms_test(
              {"Encrypt input test",
               ?_f(erlcloud_kms:encrypt(?KEY_ID, <<"Test Plaintext">>)),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID},
+              jsone:encode([{<<"KeyId">>, ?KEY_ID},
                           {<<"Plaintext">>, <<"Test Plaintext">>}])
              }
              )],
 
-    Response = jsx:encode(?ENCRYPT_RESP),
+    Response = jsone:encode(?ENCRYPT_RESP),
     input_tests(Response, Tests).
 
 
 encrypt_output_tests(_) ->
     Tests = [?_kms_test(
              {"Encrypt example response",
-              jsx:encode(?ENCRYPT_RESP),
+              jsone:encode(?ENCRYPT_RESP),
               {ok, ?ENCRYPT_RESP}}
              )],
 
@@ -510,19 +510,19 @@ generate_data_key_input_tests(_) ->
     Tests = [?_kms_test(
              {"GenerateDataKey input test",
               ?_f(erlcloud_kms:generate_data_key(?KEY_ID, [{key_spec, <<"AES_256">>}])),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID},
+              jsone:encode([{<<"KeyId">>, ?KEY_ID},
                           {<<"KeySpec">>, <<"AES_256">>}])
              }
              )],
 
-    Response = jsx:encode(?GENERATE_DATA_KEY_RESP),
+    Response = jsone:encode(?GENERATE_DATA_KEY_RESP),
     input_tests(Response, Tests).
 
 
 generate_data_key_output_tests(_) ->
     Tests = [?_kms_test(
              {"GenerateDataKey example response",
-              jsx:encode(?GENERATE_DATA_KEY_RESP),
+              jsone:encode(?GENERATE_DATA_KEY_RESP),
               {ok, ?GENERATE_DATA_KEY_RESP}}
              )],
 
@@ -539,19 +539,19 @@ generate_data_key_without_plaintext_input_tests(_) ->
     Tests = [?_kms_test(
              {"GenerateDataKeyWithoutPlaintext input test",
               ?_f(erlcloud_kms:generate_data_key_without_plaintext(?KEY_ID, [{key_spec, <<"AES_256">>}])),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID},
+              jsone:encode([{<<"KeyId">>, ?KEY_ID},
                           {<<"KeySpec">>, <<"AES_256">>}])
              }
              )],
 
-    Response = jsx:encode(?GENERATE_DATA_KEY_WITHOUT_PLAINTEXT_RESP),
+    Response = jsone:encode(?GENERATE_DATA_KEY_WITHOUT_PLAINTEXT_RESP),
     input_tests(Response, Tests).
 
 
 generate_data_key_without_plaintext_output_tests(_) ->
     Tests = [?_kms_test(
              {"GenerateDataKeyWithoutPlaintext example response",
-              jsx:encode(?GENERATE_DATA_KEY_WITHOUT_PLAINTEXT_RESP),
+              jsone:encode(?GENERATE_DATA_KEY_WITHOUT_PLAINTEXT_RESP),
               {ok, ?GENERATE_DATA_KEY_WITHOUT_PLAINTEXT_RESP}}
              )],
 
@@ -570,18 +570,18 @@ generate_random_input_tests(_) ->
     Tests = [?_kms_test(
              {"GenerateRandom input test",
               ?_f(erlcloud_kms:generate_random(256)),
-              jsx:encode([{<<"NumberOfBytes">>, 256}])
+              jsone:encode([{<<"NumberOfBytes">>, 256}])
              }
              )],
 
-    Response = jsx:encode(?GENERATE_RANDOM_RESP),
+    Response = jsone:encode(?GENERATE_RANDOM_RESP),
     input_tests(Response, Tests).
 
 
 generate_random_output_tests(_) ->
     Tests = [?_kms_test(
              {"GenerateRandom example response",
-              jsx:encode(?GENERATE_RANDOM_RESP),
+              jsone:encode(?GENERATE_RANDOM_RESP),
               {ok, ?GENERATE_RANDOM_RESP}}
              )],
 
@@ -600,19 +600,19 @@ get_key_policy_input_tests(_) ->
     Tests = [?_kms_test(
              {"GetKeyPolicy input test",
               ?_f(erlcloud_kms:get_key_policy(?KEY_ID, <<"default">>)),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID},
+              jsone:encode([{<<"KeyId">>, ?KEY_ID},
                           {<<"PolicyName">>, <<"default">>}])
              }
              )],
 
-    Response = jsx:encode(?GET_KEY_POLICY_RESP),
+    Response = jsone:encode(?GET_KEY_POLICY_RESP),
     input_tests(Response, Tests).
 
 
 get_key_policy_output_tests(_) ->
     Tests = [?_kms_test(
              {"GetKeyPolicy example response",
-              jsx:encode(?GET_KEY_POLICY_RESP),
+              jsone:encode(?GET_KEY_POLICY_RESP),
               {ok, ?GET_KEY_POLICY_RESP}}
              )],
 
@@ -627,18 +627,18 @@ get_key_rotation_status_input_tests(_) ->
     Tests = [?_kms_test(
              {"GetKeyRotationStatus input test",
               ?_f(erlcloud_kms:get_key_rotation_status(?KEY_ID)),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID}])
+              jsone:encode([{<<"KeyId">>, ?KEY_ID}])
              }
              )],
 
-    Response = jsx:encode(?GET_KEY_ROTATION_STATUS_RESP),
+    Response = jsone:encode(?GET_KEY_ROTATION_STATUS_RESP),
     input_tests(Response, Tests).
 
 
 get_key_rotation_status_output_tests(_) ->
     Tests = [?_kms_test(
              {"GetKeyRotationStatus example response",
-              jsx:encode(?GET_KEY_ROTATION_STATUS_RESP),
+              jsone:encode(?GET_KEY_ROTATION_STATUS_RESP),
               {ok, ?GET_KEY_ROTATION_STATUS_RESP}}
              )],
 
@@ -660,14 +660,14 @@ list_aliases_input_tests(_) ->
              }
              )],
 
-    Response = jsx:encode(?LIST_ALIASES_RESP),
+    Response = jsone:encode(?LIST_ALIASES_RESP),
     input_tests(Response, Tests).
 
 
 list_aliases_output_tests(_) ->
     Tests = [?_kms_test(
              {"ListAliases example response",
-              jsx:encode(?LIST_ALIASES_RESP),
+              jsone:encode(?LIST_ALIASES_RESP),
               {ok, ?LIST_ALIASES_RESP}}
              )],
 
@@ -688,18 +688,18 @@ list_grants_input_tests(_) ->
     Tests = [?_kms_test(
              {"Listgrants input test",
               ?_f(erlcloud_kms:list_grants(?KEY_ID)),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID}])
+              jsone:encode([{<<"KeyId">>, ?KEY_ID}])
              }
              )],
 
-    Response = jsx:encode(?LIST_GRANTS_RESP),
+    Response = jsone:encode(?LIST_GRANTS_RESP),
     input_tests(Response, Tests).
 
 
 list_grants_output_tests(_) ->
     Tests = [?_kms_test(
              {"Listgrants example response",
-              jsx:encode(?LIST_GRANTS_RESP),
+              jsone:encode(?LIST_GRANTS_RESP),
               {ok, ?LIST_GRANTS_RESP}}
              )],
 
@@ -714,18 +714,18 @@ list_key_policies_input_tests(_) ->
     Tests = [?_kms_test(
              {"ListKeyPolicies input test",
               ?_f(erlcloud_kms:list_key_policies(?KEY_ID)),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID}])
+              jsone:encode([{<<"KeyId">>, ?KEY_ID}])
              }
              )],
 
-    Response = jsx:encode(?LIST_KEY_POLICIES_RESP),
+    Response = jsone:encode(?LIST_KEY_POLICIES_RESP),
     input_tests(Response, Tests).
 
 
 list_key_policies_output_tests(_) ->
     Tests = [?_kms_test(
              {"ListKeyPolicies example response",
-              jsx:encode(?LIST_KEY_POLICIES_RESP),
+              jsone:encode(?LIST_KEY_POLICIES_RESP),
               {ok, ?LIST_KEY_POLICIES_RESP}}
              )],
 
@@ -745,14 +745,14 @@ list_keys_input_tests(_) ->
              }
              )],
 
-    Response = jsx:encode(?LIST_KEYS_RESP),
+    Response = jsone:encode(?LIST_KEYS_RESP),
     input_tests(Response, Tests).
 
 
 list_keys_output_tests(_) ->
     Tests = [?_kms_test(
              {"ListKeys example response",
-              jsx:encode(?LIST_KEYS_RESP),
+              jsone:encode(?LIST_KEYS_RESP),
               {ok, ?LIST_KEYS_RESP}}
              )],
 
@@ -760,7 +760,7 @@ list_keys_output_tests(_) ->
 
 
 -define(KEY_POLICY,
-        jsx:encode([{<<"Version">>, <<"2012-10-17">>},
+        jsone:encode([{<<"Version">>, <<"2012-10-17">>},
                      {<<"Id">>, <<"key-default-1">>},
                      {<<"Statement">>,
                       [[{<<"Sid">>, <<"Enable IAM User Permissions">>},
@@ -775,7 +775,7 @@ put_key_policy_input_tests(_) ->
     Tests = [?_kms_test(
              {"PutKeyPolicy input test",
               ?_f(erlcloud_kms:put_key_policy(?KEY_ID, ?KEY_POLICY, <<"default">>)),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID},
+              jsone:encode([{<<"KeyId">>, ?KEY_ID},
                           {<<"Policy">>, ?KEY_POLICY},
                           {<<"PolicyName">>, <<"default">>}])
              }
@@ -808,19 +808,19 @@ re_encrypt_input_tests(_) ->
     Tests = [?_kms_test(
              {"ReEncrypt input test",
               ?_f(erlcloud_kms:re_encrypt(?CIPHERTEXT_BLOB, ?KEY_ID)),
-              jsx:encode([{<<"CiphertextBlob">>, ?CIPHERTEXT_BLOB},
+              jsone:encode([{<<"CiphertextBlob">>, ?CIPHERTEXT_BLOB},
                           {<<"DestinationKeyId">>, ?KEY_ID}])
              }
              )],
 
-    Response = jsx:encode(?RE_ENCRYPT_RESP),
+    Response = jsone:encode(?RE_ENCRYPT_RESP),
     input_tests(Response, Tests).
 
 
 re_encrypt_output_tests(_) ->
     Tests = [?_kms_test(
              {"ReEncrypt example response",
-              jsx:encode(?RE_ENCRYPT_RESP),
+              jsone:encode(?RE_ENCRYPT_RESP),
               {ok, ?RE_ENCRYPT_RESP}}
              )],
 
@@ -833,7 +833,7 @@ retire_grant_input_tests(_) ->
               ?_f(erlcloud_kms:retire_grant(
                     [{key_id, ?KEY_ARN},
                      {grant_id, <<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>}])),
-              jsx:encode([{<<"KeyId">>, ?KEY_ARN},
+              jsone:encode([{<<"KeyId">>, ?KEY_ARN},
                           {<<"GrantId">>, <<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>}])
              }
              )],
@@ -859,7 +859,7 @@ revoke_grant_input_tests(_) ->
              {"RevokeGrant input test",
               ?_f(erlcloud_kms:revoke_grant(<<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>,
                                             ?KEY_ID)),
-              jsx:encode([{<<"GrantId">>, <<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>},
+              jsone:encode([{<<"GrantId">>, <<"a1d15d430c883bd52e43e2a6257fab186d2c319f2e65eafff699d4f933d4ea80">>},
                           {<<"KeyId">>, ?KEY_ID}])
              }
              )],
@@ -883,7 +883,7 @@ update_alias_input_tests(_) ->
     Tests = [?_kms_test(
              {"UpdateAlias input test",
               ?_f(erlcloud_kms:update_alias(<<"alias/unit_test_update">>, ?KEY_ID)),
-              jsx:encode([{<<"AliasName">>, <<"alias/unit_test_update">>},
+              jsone:encode([{<<"AliasName">>, <<"alias/unit_test_update">>},
                           {<<"TargetKeyId">>, ?KEY_ID}])
              }
              )],
@@ -906,7 +906,7 @@ update_key_description_input_tests(_) ->
     Tests = [?_kms_test(
              {"UpdateAlias input test",
               ?_f(erlcloud_kms:update_key_description(?KEY_ID, <<"Updated key description">>)),
-              jsx:encode([{<<"KeyId">>, ?KEY_ID},
+              jsone:encode([{<<"KeyId">>, ?KEY_ID},
                           {<<"Description">>, <<"Updated key description">>}])
              }
              )],

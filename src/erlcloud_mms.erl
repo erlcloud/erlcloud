@@ -73,7 +73,7 @@ default_config() -> erlcloud_aws:default_config().
 %%% Shared Types
 %%%------------------------------------------------------------------------------
 
--type json_term() :: jsx:json_term().
+-type json_term() :: jsone:json_object_members().
 
 %%%------------------------------------------------------------------------------
 %%% @doc
@@ -166,11 +166,11 @@ mms_request(Config, Operation, Json) ->
 
 -spec mms_request_no_update(aws_config(), operation(), json_term()) -> json_return().
 mms_request_no_update(#aws_config{mms_scheme = Scheme, mms_host = Host, mms_port = Port} = Config, Operation, Json) ->
-    Body = jsx:encode(Json),
+    Body = jsone:encode(Json, [{float_format, [{decimals, 4}, compact]}]),
     Headers = headers(Config, Operation, Body),
     case erlcloud_aws:aws_request_form_raw(post, Scheme, Host, Port, "/", Body, Headers, Config) of
         {ok, Response} ->
-            {ok, jsx:decode(Response)};
+            {ok, jsone:decode(Response, [{object_format, proplist}])};
         {error, Reason} ->
             {error, Reason}
     end.

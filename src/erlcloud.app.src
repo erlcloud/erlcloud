@@ -12,7 +12,7 @@
                   ssl,
                   xmerl,
                   inets,
-                  jsx,
+                  jsone,
                   eini,
                   base16,
                   %% hackney,

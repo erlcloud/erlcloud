@@ -45,19 +45,19 @@
 
 -export_type([json_return/0, attempt/0, retry_fun/0]).
 
--type json_return() :: {ok, jsx:json_term() | binary()} | {error, term()}.
+-type json_return() :: {ok, jsone:json_object_members() | binary()} | {error, term()}.
 
 -type operation() :: string().
--spec request(aws_config(), operation(), jsx:json_term()) -> json_return().
+-spec request(aws_config(), operation(), jsone:json_object_members()) -> json_return().
 request(Config, Operation, Json) ->
     request(Config, Operation, Json, true).
 
--spec request(aws_config(), operation(), jsx:json_term(), boolean()) ->
+-spec request(aws_config(), operation(), jsone:json_object_members(), boolean()) ->
     json_return().
 request(Config0, Operation, Json, ShouldDecode) ->
     Body = case Json of
                [] -> <<"{}">>;
-               _ -> jsx:encode(Json)
+               _ -> jsone:encode(Json)
            end,
     case erlcloud_aws:update_config(Config0) of
         {ok, Config} ->
@@ -100,10 +100,10 @@ retry(Attempt, _) ->
 -type headers() :: [{string(), string()}].
 -spec request_and_retry(aws_config(),
                         headers(),
-                        jsx:json_text(),
+                        jsone:json_string(),
                         boolean(),
                         attempt()) ->
-    {ok, jsx:json_term() | binary()} | {error, term()}.
+    {ok, jsone:json_object_members() | binary()} | {error, term()}.
 request_and_retry(_, _, _, _, {error, Reason}) ->
     {error, Reason};
 request_and_retry(Config, Headers, Body, ShouldDecode, {attempt, Attempt}) ->
@@ -141,7 +141,7 @@ request_and_retry(Config, Headers, Body, ShouldDecode, {attempt, Attempt}) ->
 
 -spec client_error(pos_integer(), string(), binary()) -> {retry, term()} | {error, term()}.
 client_error(Status, StatusLine, Body) ->
-    try jsx:decode(Body) of
+    try jsone:decode(Body, [{object_format, proplist}]) of
         Json ->
             Message = proplists:get_value(<<"message">>, Json, <<>>),
             case proplists:get_value(<<"__type">>, Json) of
@@ -174,4 +174,4 @@ port_spec(#aws_config{kinesis_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
 
 decode(<<>>) -> [];
-decode(JSON) -> jsx:decode(JSON).
+decode(JSON) -> jsone:decode(JSON, [{object_format, proplist}]).

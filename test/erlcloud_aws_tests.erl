@@ -87,7 +87,7 @@ request_prot_host_port_int_test(_) ->
     test_url(http, "host1", 9999, "/path1", Url).
 
 get_service_status_test(_) ->
-    StatusJsonS3 = jsx:encode(
+    StatusJsonS3 = jsone:encode(
         [{<<"archive">>,
             [[{<<"service_name">>,
                <<"Amazon Simple Storage Service (US Standard)">>},
@@ -124,7 +124,7 @@ get_service_status_test(_) ->
             ]}
         ]
     ),
-    OKStatusEmptyJson = jsx:encode(
+    OKStatusEmptyJson = jsone:encode(
         [{<<"archive">>,
             [[{<<"service_name">>,
                <<"Amazon Simple Storage Service (US Standard)">>},

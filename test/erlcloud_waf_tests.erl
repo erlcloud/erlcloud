@@ -160,7 +160,7 @@ stop(_) ->
 create_byte_match_set_tests(_) ->
     Action = "CreateByteMatchSet",
     Function = ?_f(erlcloud_waf:create_byte_match_set(?CHANGE_TOKEN, ?NAME_PARAM)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"Name">>, ?NAME_PARAM}]),
     Response = [{<<"ByteMatchSet">>,
                  [{<<"ByteMatchSetId">>, ?CREATE_ID},
@@ -172,7 +172,7 @@ create_byte_match_set_tests(_) ->
 create_ip_set_tests(_) ->
     Action = "CreateIPSet",
     Function = ?_f(erlcloud_waf:create_ip_set(?CHANGE_TOKEN, ?NAME_PARAM)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"Name">>, ?NAME_PARAM}]),
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN},
                 {<<"IPSet">>,
@@ -184,7 +184,7 @@ create_ip_set_tests(_) ->
 create_rule_tests(_) ->
     Action = "CreateRule",
     Function = ?_f(erlcloud_waf:create_rule(?CHANGE_TOKEN, ?NAME_PARAM, ?METRIC_NAME_PARAM)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"MetricName">>, ?METRIC_NAME_PARAM},
                            {<<"Name">>, ?NAME_PARAM}]),
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN},
@@ -198,7 +198,7 @@ create_rule_tests(_) ->
 create_size_constraint_set_tests(_) ->
     Action = "CreateSizeConstraintSet",
     Function = ?_f(erlcloud_waf:create_size_constraint_set(?CHANGE_TOKEN, ?NAME_PARAM)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"Name">>, ?NAME_PARAM}]),
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN},
                 {<<"SizeConstraintSet">>,
@@ -210,7 +210,7 @@ create_size_constraint_set_tests(_) ->
 create_sql_injection_match_set_tests(_) ->
     Action = "CreateSqlInjectionMatchSet",
     Function = ?_f(erlcloud_waf:create_sql_injection_match_set(?CHANGE_TOKEN, ?NAME_PARAM)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"Name">>, ?NAME_PARAM}]),
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN},
                 {<<"SqlInjectionMatchSet">>,
@@ -222,7 +222,7 @@ create_sql_injection_match_set_tests(_) ->
 create_web_acl_tests(_) ->
     Action = "CreateWebACL",
     Function = ?_f(erlcloud_waf:create_web_acl(?CHANGE_TOKEN, ?NAME_PARAM, ?METRIC_NAME_PARAM, ?DEFAULT_ACTION_TYPE)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"DefaultAction">>, [{<<"Type">>, <<"BLOCK">>}]},
                            {<<"MetricName">>, ?METRIC_NAME_PARAM},
                            {<<"Name">>, ?NAME_PARAM}]),
@@ -238,7 +238,7 @@ create_web_acl_tests(_) ->
 create_xss_match_set_tests(_) ->
     Action = "CreateXssMatchSet",
     Function = ?_f(erlcloud_waf:create_xss_match_set(?CHANGE_TOKEN, ?NAME_PARAM)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"Name">>, ?NAME_PARAM}]),
     Response = [{<<"XssMatchSet">>,
                  [{<<"XssMatchSetId">>, ?CREATE_ID},
@@ -251,7 +251,7 @@ create_xss_match_set_tests(_) ->
 delete_byte_match_set_tests(_) ->
     Action = "DeleteByteMatchSet",
     Function = ?_f(erlcloud_waf:delete_byte_match_set(?CHANGE_TOKEN, ?CREATE_ID)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"ByteMatchSetId">>, ?CREATE_ID}]),
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN}],
     all_tests(Action, Function, PostData, Response).
@@ -259,7 +259,7 @@ delete_byte_match_set_tests(_) ->
 delete_ip_set_tests(_) ->
     Action = "DeleteIPSet",
     Function = ?_f(erlcloud_waf:delete_ip_set(?CHANGE_TOKEN, ?CREATE_ID)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"IPSetId">>, ?CREATE_ID}]),
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN}],
     all_tests(Action, Function, PostData, Response).
@@ -267,7 +267,7 @@ delete_ip_set_tests(_) ->
 delete_rule_tests(_) ->
     Action = "DeleteRule",
     Function = ?_f(erlcloud_waf:delete_rule(?CHANGE_TOKEN, ?CREATE_ID)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"RuleId">>, ?CREATE_ID}]),
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN}],
     all_tests(Action, Function, PostData, Response).
@@ -275,7 +275,7 @@ delete_rule_tests(_) ->
 delete_size_constraint_set_tests(_) ->
     Action = "DeleteSizeConstraintSet",
     Function = ?_f(erlcloud_waf:delete_size_constraint_set(?CHANGE_TOKEN, ?CREATE_ID)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"SizeConstraintSetId">>, ?CREATE_ID}]),
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN}],
     all_tests(Action, Function, PostData, Response).
@@ -283,7 +283,7 @@ delete_size_constraint_set_tests(_) ->
 delete_sql_injection_match_set_tests(_) ->
     Action = "DeleteSqlInjectionMatchSet",
     Function = ?_f(erlcloud_waf:delete_sql_injection_match_set(?CHANGE_TOKEN, ?CREATE_ID)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"SqlInjectionMatchSetId">>, ?CREATE_ID}]),
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN}],
     all_tests(Action, Function, PostData, Response).
@@ -291,7 +291,7 @@ delete_sql_injection_match_set_tests(_) ->
 delete_web_acls_tests(_) ->
     Action = "DeleteWebACL",
     Function = ?_f(erlcloud_waf:delete_web_acl(?CHANGE_TOKEN, ?CREATE_ID)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"WebACLId">>, ?CREATE_ID}]),
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN}],
     all_tests(Action, Function, PostData, Response).
@@ -299,7 +299,7 @@ delete_web_acls_tests(_) ->
 delete_xss_match_set_tests(_) ->
     Action = "DeleteXssMatchSet",
     Function = ?_f(erlcloud_waf:delete_xss_match_set(?CHANGE_TOKEN, ?CREATE_ID)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN},
                            {<<"XssMatchSetId">>, ?CREATE_ID}]),
     Response = [{<<"ChangeToken">>, ?CHANGE_TOKEN}],
     all_tests(Action, Function, PostData, Response).
@@ -308,14 +308,14 @@ delete_xss_match_set_tests(_) ->
 get_change_token_status_tests(_) ->
     Action = "GetChangeTokenStatus",
     Function = ?_f(erlcloud_waf:get_change_token_status(?CHANGE_TOKEN)),
-    PostData = jsx:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN}]),
+    PostData = jsone:encode([{<<"ChangeToken">>, ?CHANGE_TOKEN}]),
     Response = [{<<"ChangeTokenStatus">>, <<"INSYNC">>}],
     all_tests(Action, Function, PostData, Response).
     
 get_byte_match_set_tests(_) ->
     Action = "GetByteMatchSet",
     Function = ?_f(erlcloud_waf:get_byte_match_set(?CREATE_ID)),
-    PostData = jsx:encode([{<<"ByteMatchSetId">>, ?CREATE_ID}]),
+    PostData = jsone:encode([{<<"ByteMatchSetId">>, ?CREATE_ID}]),
     Response = [{<<"ByteMatchSet">>,
                 [{<<"ByteMatchSetId">>, ?CREATE_ID},
                  {<<"ByteMatchTuples">>,[]},
@@ -325,7 +325,7 @@ get_byte_match_set_tests(_) ->
 get_ip_set_tests(_) ->
     Action = "GetIPSet",
     Function = ?_f(erlcloud_waf:get_ip_set(?CREATE_ID)),
-    PostData = jsx:encode([{<<"IPSetId">>, ?CREATE_ID}]),
+    PostData = jsone:encode([{<<"IPSetId">>, ?CREATE_ID}]),
     Response = [{<<"IPSetDescriptors">>,
                 [{<<"IPSetId">>, ?CREATE_ID},
                  {<<"Name">>, ?NAME_PARAM}]}],
@@ -334,7 +334,7 @@ get_ip_set_tests(_) ->
 get_rule_tests(_) ->
     Action = "GetRule",
     Function = ?_f(erlcloud_waf:get_rule(?CREATE_ID)),
-    PostData = jsx:encode([{<<"RuleId">>, ?CREATE_ID}]),
+    PostData = jsone:encode([{<<"RuleId">>, ?CREATE_ID}]),
     Response = [{<<"Rule">>,
                 [{<<"MetricName">>, ?METRIC_NAME_PARAM},
                  {<<"Name">>, ?NAME_PARAM},
@@ -345,7 +345,7 @@ get_rule_tests(_) ->
 get_size_constraint_set_tests(_) ->
     Action = "GetSizeConstraintSet",
     Function = ?_f(erlcloud_waf:get_size_constraint_set(?CREATE_ID)),
-    PostData = jsx:encode([{<<"SizeConstraintSetId">>, ?CREATE_ID}]),
+    PostData = jsone:encode([{<<"SizeConstraintSetId">>, ?CREATE_ID}]),
     Response = [{<<"SizeConstraintSet">>,
                 [{<<"Name">>, ?NAME_PARAM},
                  {<<"SizeConstraintSetId">>, ?CREATE_ID},
@@ -355,7 +355,7 @@ get_size_constraint_set_tests(_) ->
 get_sql_injection_match_set_tests(_) ->
     Action = "GetSqlInjectionMatchSet",
     Function = ?_f(erlcloud_waf:get_sql_injection_match_set(?CREATE_ID)),
-    PostData = jsx:encode([{<<"SqlInjectionMatchSetId">>, ?CREATE_ID}]),
+    PostData = jsone:encode([{<<"SqlInjectionMatchSetId">>, ?CREATE_ID}]),
     Response = [{<<"SqlInjectionMatchSet">>,
                 [{<<"Name">>, ?NAME_PARAM},
                  {<<"SqlInjectionMatchSetId">>, ?CREATE_ID},
@@ -365,7 +365,7 @@ get_sql_injection_match_set_tests(_) ->
 get_web_acl_tests(_) ->
     Action = "GetWebACL",
     Function = ?_f(erlcloud_waf:get_web_acl(?CREATE_ID)),
-    PostData = jsx:encode([{<<"WebACLId">>, ?CREATE_ID}]),
+    PostData = jsone:encode([{<<"WebACLId">>, ?CREATE_ID}]),
     Response = [{<<"WebACL">>,
                 [{<<"DefaultAction">>, [{<<"Type">>,<<"BLOCK">>}]},
                  {<<"MetricName">>, ?METRIC_NAME_PARAM},
@@ -377,7 +377,7 @@ get_web_acl_tests(_) ->
 get_xss_match_set_tests(_) ->
     Action = "GetXssMatchSet",
     Function = ?_f(erlcloud_waf:get_xss_match_set(?CREATE_ID)),
-    PostData = jsx:encode([{<<"XssMatchSetId">>, ?CREATE_ID}]),
+    PostData = jsone:encode([{<<"XssMatchSetId">>, ?CREATE_ID}]),
     Response = [{<<"XssMatchSet">>,
                 [{<<"XssMatchSetId">>, ?CREATE_ID},
                  {<<"XssMatchTuples">>,[]},
@@ -388,7 +388,7 @@ get_xss_match_set_tests(_) ->
 get_sampled_requests_tests(_) ->
     Action = "GetSampledRequests",
     Function = ?_f(erlcloud_waf:get_sampled_requests(?WEB_ACL_ID, ?RULE_ID, ?START_TIME, ?END_TIME, ?LIMIT_SIZE)),
-    PostData = jsx:encode([{<<"MaxItems">>, ?LIMIT_SIZE},
+    PostData = jsone:encode([{<<"MaxItems">>, ?LIMIT_SIZE},
                            {<<"RuleId">>, ?RULE_ID},
                            {<<"TimeWindow">>, [{<<"StartTime">>, ?START_TIME}, {<<"EndTime">>, ?END_TIME}]},
                            {<<"WebAclId">>, ?WEB_ACL_ID}]),
@@ -403,7 +403,7 @@ get_sampled_requests_tests(_) ->
 list_byte_match_sets_tests(_) ->
     Action = "ListByteMatchSets",
     Function = ?_f(erlcloud_waf:list_byte_match_sets(?LIMIT_SIZE)),
-    PostData = jsx:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
+    PostData = jsone:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
     Response = [{<<"ByteMatchSets">>,
                 [[{<<"ByteMatchSetId">>, ?CREATE_ID},
                   {<<"Name">>, ?NAME_PARAM}]]},
@@ -413,7 +413,7 @@ list_byte_match_sets_tests(_) ->
 list_ip_sets_tests(_) ->
     Action = "ListIPSets",
     Function = ?_f(erlcloud_waf:list_ip_sets()),
-    PostData = jsx:encode([{<<"Limit">>, ?LIMIT_MAX}]),
+    PostData = jsone:encode([{<<"Limit">>, ?LIMIT_MAX}]),
     Response = [{<<"IPSets">>,
                 [[{<<"IPSetId">>, ?CREATE_ID},
                   {<<"Name">>, ?NAME_PARAM}]]},
@@ -423,7 +423,7 @@ list_ip_sets_tests(_) ->
 list_rules_tests(_) ->
     Action = "ListRules",
     Function = ?_f(erlcloud_waf:list_rules(?LIMIT_SIZE)),
-    PostData = jsx:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
+    PostData = jsone:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
     Response = [{<<"Rules">>,
                 [[{<<"RuleId">>, ?CREATE_ID},
                   {<<"Name">>, ?NAME_PARAM}]]},
@@ -433,7 +433,7 @@ list_rules_tests(_) ->
 list_size_constraint_sets_tests(_) ->
     Action = "ListSizeConstraintSets",
     Function = ?_f(erlcloud_waf:list_size_constraint_sets(?LIMIT_SIZE)),
-    PostData = jsx:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
+    PostData = jsone:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
     Response = [{<<"SizeConstraintSets">>,
                 [[{<<"SizeConstraintSetId">>, ?CREATE_ID},
                   {<<"Name">>, ?NAME_PARAM}]]},
@@ -443,7 +443,7 @@ list_size_constraint_sets_tests(_) ->
 list_sql_injection_match_sets_tests(_) ->
     Action = "ListSqlInjectionMatchSets",
     Function = ?_f(erlcloud_waf:list_sql_injection_match_sets(?LIMIT_SIZE)),
-    PostData = jsx:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
+    PostData = jsone:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
     Response = [{<<"SqlInjectionMatchSets">>,
                 [[{<<"SqlInjectionMatchSetId">>, ?CREATE_ID},
                   {<<"Name">>, ?NAME_PARAM}]]},
@@ -453,7 +453,7 @@ list_sql_injection_match_sets_tests(_) ->
 list_web_acls_tests(_) ->
     Action = "ListWebACLs",
     Function = ?_f(erlcloud_waf:list_web_acls(?LIMIT_SIZE)),
-    PostData = jsx:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
+    PostData = jsone:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
     Response = [{<<"WebACLs">>,
                 [[{<<"WebACLId">>, ?CREATE_ID},
                   {<<"Name">>, ?NAME_PARAM}]]},
@@ -463,7 +463,7 @@ list_web_acls_tests(_) ->
 list_xss_match_sets_tests(_) ->
     Action = "ListXssMatchSets",
     Function = ?_f(erlcloud_waf:list_xss_match_sets(?LIMIT_SIZE)),
-    PostData = jsx:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
+    PostData = jsone:encode([{<<"Limit">>, ?LIMIT_SIZE}]),
     Response = [{<<"XssMatchSets">>,
                 [[{<<"XssMatchSetId">>, ?CREATE_ID},
                   {<<"Name">>, ?NAME_PARAM}]]},
@@ -474,7 +474,7 @@ list_xss_match_sets_tests(_) ->
 update_byte_match_set_tests(_) ->
     Action = "UpdateByteMatchSet",
     Function = ?_f(erlcloud_waf:update_byte_match_set(?CHANGE_TOKEN, ?CREATE_ID, [?UPDATE_BYTE_MATCH_SET])),
-    PostData = jsx:encode(
+    PostData = jsone:encode(
         [{<<"ChangeToken">>, ?CHANGE_TOKEN},
          {<<"ByteMatchSetId">>, ?CREATE_ID},
          {<<"Updates">>,
@@ -497,7 +497,7 @@ update_byte_match_set_tests(_) ->
 update_ip_set_tests(_) ->
     Action = "UpdateIPSet",
     Function = ?_f(erlcloud_waf:update_ip_set(?CHANGE_TOKEN, ?CREATE_ID, [?UPDATE_IP_SET])),
-    PostData = jsx:encode(
+    PostData = jsone:encode(
         [{<<"ChangeToken">>, ?CHANGE_TOKEN},
          {<<"IPSetId">>, ?CREATE_ID},
          {<<"Updates">>,
@@ -511,7 +511,7 @@ update_ip_set_tests(_) ->
 update_rule_tests(_) ->
     Action = "UpdateRule",
     Function = ?_f(erlcloud_waf:update_rule(?CHANGE_TOKEN, ?RULE_ID, [?UPDATE_RULE])),
-    PostData = jsx:encode(
+    PostData = jsone:encode(
         [{<<"ChangeToken">>, ?CHANGE_TOKEN},
          {<<"RuleId">>, ?RULE_ID},
          {<<"Updates">>,
@@ -526,7 +526,7 @@ update_rule_tests(_) ->
 update_size_constraint_set_tests(_) ->
     Action = "UpdateSizeConstraintSet",
     Function = ?_f(erlcloud_waf:update_size_constraint_set(?CHANGE_TOKEN, ?CREATE_ID, [?UPDATE_SIZE_CONSTRAINT_SET])),
-    PostData = jsx:encode(
+    PostData = jsone:encode(
         [{<<"ChangeToken">>, ?CHANGE_TOKEN},
          {<<"SizeConstraintSetId">>, ?CREATE_ID},
          {<<"Updates">>,
@@ -542,7 +542,7 @@ update_size_constraint_set_tests(_) ->
 update_sql_injection_match_set_tests(_) ->
     Action = "UpdateSqlInjectionMatchSet",
     Function = ?_f(erlcloud_waf:update_sql_injection_match_set(?CHANGE_TOKEN, ?CREATE_ID, [?UPDATE_SQL_INJECTION_MATCH_SET])),
-    PostData = jsx:encode(
+    PostData = jsone:encode(
         [{<<"ChangeToken">>, ?CHANGE_TOKEN},
          {<<"SqlInjectionMatchSetId">>, ?CREATE_ID},
          {<<"Updates">>,
@@ -556,7 +556,7 @@ update_sql_injection_match_set_tests(_) ->
 update_web_acl_tests(_) ->
     Action = "UpdateWebACL",
     Function = ?_f(erlcloud_waf:update_web_acl(?CHANGE_TOKEN, ?CREATE_ID, ?UPDATE_WEB_ACL)),
-    PostData = jsx:encode(
+    PostData = jsone:encode(
         [{<<"ChangeToken">>, ?CHANGE_TOKEN},
          {<<"WebACLId">>, ?CREATE_ID},
          {<<"Updates">>,
@@ -571,7 +571,7 @@ update_web_acl_tests(_) ->
 update_xss_match_set_tests(_) ->
     Action = "UpdateXssMatchSet",
     Function = ?_f(erlcloud_waf:update_xss_match_set(?CHANGE_TOKEN, ?CREATE_ID, [?UPDATE_XSS_MATCH_SET])),
-    PostData = jsx:encode(
+    PostData = jsone:encode(
         [{<<"ChangeToken">>, ?CHANGE_TOKEN},
          {<<"XssMatchSetId">>, ?CREATE_ID},
          {<<"Updates">>,
@@ -608,8 +608,8 @@ sort_json(V) ->
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(Body, Expected) ->
-    Want = sort_json(jsx:decode(Expected)),
-    Actual = sort_json(jsx:decode(Body)),
+    Want = sort_json(jsone:decode(Expected, [{object_format, proplist}])),
+    Actual = sort_json(jsone:decode(Body, [{object_format, proplist}])),
     case Want =:= Actual of
         true -> ok;
         false ->
@@ -691,7 +691,7 @@ all_tests(Action, Function, PostData, Response) ->
                   )],
     OutputTests = [?_waf_test(
                    {Action ++ " example response",
-                    jsx:encode(Response),
+                    jsone:encode(Response),
                     {ok, Response}}
                    )],
     

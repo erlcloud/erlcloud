@@ -43,7 +43,7 @@
 %% `scan' and `query' the record will contain the last evaluated key
 %% which can be used to continue the operation.
 %%
-%% * `json' - The output from DynamoDB as processed by `jsx:decode'
+%% * `json' - The output from DynamoDB as processed by `jsone:decode'
 %% but with no further manipulation. This would rarely be useful,
 %% unless the DynamoDB API is updated to include data that is not yet
 %% parsed correctly.
@@ -218,7 +218,7 @@ default_config() -> erlcloud_aws:default_config().
 -type in_expected() :: maybe_list(in_expected_item()).
 -type in_item() :: [in_attr()].
 
--type json_pair() :: {binary(), jsx:json_term()}.
+-type json_pair() :: {binary(), jsone:json_object_members()}.
 -type json_attr_type() :: binary().
 -type json_attr_data() :: binary() | [binary()].
 -type json_attr_value() :: {json_attr_type(), json_attr_data()}.
@@ -453,17 +453,17 @@ undynamize_key([{<<"HashKeyElement">>, [HashKey]}]) ->
 undynamize_key([{<<"HashKeyElement">>, [HashKey]}, {<<"RangeKeyElement">>, [RangeKey]}]) ->
     {undynamize_value_typed(HashKey), undynamize_value_typed(RangeKey)}.
 
--spec undynamize_key_schema_value(jsx:json_term()) -> key_schema().
+-spec undynamize_key_schema_value(jsone:json_object_members()) -> key_schema().
 undynamize_key_schema_value([{<<"AttributeName">>, Name}, {<<"AttributeType">>, Type}]) ->
     {Name, undynamize_type(Type)}.
 
--spec undynamize_key_schema(jsx:json_term()) -> key_schema().
+-spec undynamize_key_schema(jsone:json_object_members()) -> key_schema().
 undynamize_key_schema([{<<"HashKeyElement">>, HashKey}]) ->
     undynamize_key_schema_value(HashKey);
 undynamize_key_schema([{<<"HashKeyElement">>, HashKey}, {<<"RangeKeyElement">>, RangeKey}]) ->
     {undynamize_key_schema_value(HashKey), undynamize_key_schema_value(RangeKey)}.
 
--type field_table() :: [{binary(), pos_integer(), fun((jsx:json_term()) -> term())}].
+-type field_table() :: [{binary(), pos_integer(), fun((jsone:json_object_members()) -> term())}].
 
 -spec undynamize_folder(field_table(), json_pair(), tuple()) -> tuple().
 undynamize_folder(Table, {Key, Value}, A) ->
@@ -476,7 +476,7 @@ undynamize_folder(Table, {Key, Value}, A) ->
 
 -type record_desc() :: {tuple(), field_table()}.
 
--spec undynamize_record(record_desc(), jsx:json_term()) -> tuple().
+-spec undynamize_record(record_desc(), jsone:json_object_members()) -> tuple().
 undynamize_record({Record, _}, [{}]) ->
     %% jsx returns [{}] for empty objects
     Record;
@@ -510,7 +510,7 @@ verify_ddb_opt(out, Value) ->
 verify_ddb_opt(Name, Value) ->
     error({erlcloud_ddb, {invalid_opt, {Name, Value}}}).
 
--type opt_table() :: [{atom(), binary(), fun((_) -> jsx:json_term())}].
+-type opt_table() :: [{atom(), binary(), fun((_) -> jsone:json_object_members())}].
 -spec opt_folder(opt_table(), property(), opts()) -> opts().
 opt_folder(_, {_, undefined}, Opts) ->
     %% ignore options set to undefined
@@ -545,12 +545,12 @@ get_item_opts() ->
 %%%------------------------------------------------------------------------------
 %%% Output
 %%%------------------------------------------------------------------------------
--type ddb_return(Record, Simple) :: {ok, jsx:json_term() | Record | Simple} | {error, term()}.
+-type ddb_return(Record, Simple) :: {ok, jsone:json_object_members() | Record | Simple} | {error, term()}.
 -type item_return() :: ok_return(out_item()).
--type undynamize_fun() :: fun((jsx:json_term()) -> tuple()).
+-type undynamize_fun() :: fun((jsone:json_object_members()) -> tuple()).
 
 -spec out(erlcloud_ddb1:json_return(), undynamize_fun(), ddb_opts()) 
-         -> {ok, jsx:json_term() | tuple()} |
+         -> {ok, jsone:json_object_members() | tuple()} |
             {simple, term()} |
             {error, term()}.
 out({error, Reason}, _, _) ->
@@ -617,7 +617,7 @@ table_description_record() ->
 -type batch_get_item_request_item() :: {table_name(), [key(),...], get_item_opts()} | {table_name(), [key(),...]}.
 
 -spec dynamize_batch_get_item_request_item(batch_get_item_request_item()) 
-                                          -> {binary(), jsx:json_term(), jsx:json_term()}.
+                                          -> {binary(), jsone:json_object_members(), jsone:json_object_members()}.
 dynamize_batch_get_item_request_item({Table, Keys}) ->
     dynamize_batch_get_item_request_item({Table, Keys, []});
 dynamize_batch_get_item_request_item({Table, Keys, Opts}) ->
@@ -645,7 +645,7 @@ batch_get_item_request_item_folder({<<"AttributesToGet">>, Value}, {Table, Keys,
 batch_get_item_request_item_folder({<<"ConsistentRead">>, Value}, {Table, Keys, Opts}) ->
     {Table, Keys, [{consistent_read, Value} | Opts]}.
 
--spec undynamize_batch_get_item_request_item(table_name(), jsx:json_term()) -> batch_get_item_request_item().
+-spec undynamize_batch_get_item_request_item(table_name(), jsone:json_object_members()) -> batch_get_item_request_item().
 undynamize_batch_get_item_request_item(Table, Json) ->
     lists:foldl(fun batch_get_item_request_item_folder/2, {Table, [], []}, Json).
 
@@ -757,7 +757,7 @@ batch_write_item_request_folder([{<<"PutRequest">>, [{<<"Item">>, Item}]}], {Tab
 batch_write_item_request_folder([{<<"DeleteRequest">>, [{<<"Key">>, Key}]}], {Table, Requests}) ->
     {Table, [{delete, undynamize_key(Key)} | Requests]}.
 
--spec undynamize_batch_write_item_request_item(table_name(), jsx:json_term()) -> batch_write_item_request_item().
+-spec undynamize_batch_write_item_request_item(table_name(), jsone:json_object_members()) -> batch_write_item_request_item().
 undynamize_batch_write_item_request_item(Table, Json) ->
     {Table, Requests} = lists:foldl(fun batch_write_item_request_folder/2, {Table, []}, Json),
     {Table, lists:reverse(Requests)}.
@@ -1163,7 +1163,7 @@ put_item(Table, Item, Opts, Config) ->
 %%% Queue
 %%%------------------------------------------------------------------------------
 
--type json_range_key_condition() :: jsx:json_term().
+-type json_range_key_condition() :: jsone:json_object_members().
 -type range_key_condition() :: {in_attr_value(), comparison_op()} | 
                                {{in_attr_value(), in_attr_value()}, between}.
 

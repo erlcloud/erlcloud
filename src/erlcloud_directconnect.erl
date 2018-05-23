@@ -406,7 +406,7 @@ dc_query(Operation, Params, Config) ->
         [] ->
             <<"{}">>;
         PrepParams ->
-            jsx:encode(PrepParams)
+            jsone:encode(PrepParams)
     end,
     Headers = headers(Config, lists:flatten(?API_PREFIX, Operation), Body,
         ?SERVICE_NAME),
@@ -416,7 +416,7 @@ dc_query(Operation, Params, Config) ->
                      [{<<"content-type">>, <<"application/x-amz-json-1.1">>} | Headers],
                      Body, 1000, Config)) of
        {ok, {_RespHeader, RespBody}} ->
-            {ok, jsx:decode(RespBody)};
+            {ok, jsone:decode(RespBody, [{object_format, proplist}])};
         {error, Reason} ->
             {error, Reason}
     end.
