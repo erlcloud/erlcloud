@@ -6,7 +6,7 @@ case erlang:function_exported(rebar3, main, 1) of
         %% Use git-based deps
         %% profiles
         [{deps, [{meck, ".*",{git, "https://github.com/eproxus/meck.git", {tag, "0.8.4"}}},
-                 {jsone, ".*", {git, "git@github.com:sile/jsone.git", {tag, "1.4.5"}}},
+                 {jsone, ".*", {git, "https://github.com/sile/jsone.git", {tag, "1.4.5"}}},
                  %% {hackney, ".*", {git, "git://github.com/benoitc/hackney.git", {tag, "1.2.0"}}},
                  {eini, ".*", {git, "https://github.com/erlcloud/eini.git", {tag, "1.2.4"}}},
                  {lhttpc, ".*", {git, "git://github.com/erlcloud/lhttpc", {tag, "1.5.4"}}},
