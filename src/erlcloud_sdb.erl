@@ -51,13 +51,11 @@ new(AccessKeyID, SecretAccessKey, Host) ->
 
 -spec configure(string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey)),
-    ok.
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, fun new/2).
 
 -spec configure(string(), string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey, Host) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
-    ok.
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, Host, fun new/3).
 
 default_config() -> erlcloud_aws:default_config().
 

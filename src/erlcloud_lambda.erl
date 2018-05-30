@@ -66,25 +66,18 @@ new(AccessKeyID, SecretAccessKey, Host, Port) ->
       }.
 
 -spec configure(string(), string()) -> ok.
-
 configure(AccessKeyID, SecretAccessKey) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey)),
-    ok.
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, fun new/2).
 
 -spec configure(string(), string(), string()) -> ok.
-
 configure(AccessKeyID, SecretAccessKey, Host) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
-    ok.
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, Host, fun new/3).
 
 -spec configure(string(), string(), string(), non_neg_integer()) -> ok.
-
 configure(AccessKeyID, SecretAccessKey, Host, Port) ->
-    put(aws_config, new(AccessKeyID, SecretAccessKey, Host, Port)),
-    ok.
+    erlcloud_config:configure(AccessKeyID, SecretAccessKey, Host, Port, fun new/4).
 
-default_config() ->
-    erlcloud_aws:default_config().
+default_config() -> erlcloud_aws:default_config().
 
 %%------------------------------------------------------------------------------
 %% CreateAlias

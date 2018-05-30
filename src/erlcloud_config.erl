@@ -4,7 +4,8 @@
 -include("erlcloud.hrl").
 
 %% API
--export([new/2, new/3, new/4, new/5]).
+-export([new/2, new/3, new/4, new/5,
+         configure/3, configure/4, configure/5, configure/6]).
 
 -export([
     describe_compliance_by_config_rule/2,
@@ -82,6 +83,31 @@ new(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
 %% AWS Config API Functions
 %%------------------------------------------------------------------------------
 
+-spec configure(string(), string(), function()) -> ok.
+configure(AccessKeyID, SecretAccessKey, New)
+    when is_list(AccessKeyID), is_list(SecretAccessKey), is_function(New, 2) ->
+    put(aws_config, New(AccessKeyID, SecretAccessKey)),
+    ok.
+
+-spec configure(string(), string(), string(), function()) -> ok.
+configure(AccessKeyID, SecretAccessKey, Host, New)
+    when is_list(AccessKeyID), is_list(SecretAccessKey), is_list(Host), is_function(New, 3) ->
+    put(aws_config, New(AccessKeyID, SecretAccessKey, Host)),
+    ok.
+
+-spec configure(string(), string(), string(), non_neg_integer(), function()) -> ok.
+configure(AccessKeyID, SecretAccessKey, Host, Port, New)
+    when is_list(AccessKeyID), is_list(SecretAccessKey),
+    is_list(Host), is_function(New, 4) ->
+    put(aws_config, New(AccessKeyID, SecretAccessKey, Host, Port)),
+    ok.
+
+-spec configure(string(), string(), string(), non_neg_integer(), string(), function()) -> ok.
+configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme, New)
+    when is_list(AccessKeyID), is_list(SecretAccessKey), is_list(Host),
+    is_list(Scheme), is_function(New, 5) ->
+    put(aws_config, New(AccessKeyID, SecretAccessKey, Host, Port, Scheme)),
+    ok.
 %%------------------------------------------------------------------------------
 %% @doc
 %% DescribeComplianceByConfigRule
