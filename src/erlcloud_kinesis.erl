@@ -213,18 +213,18 @@ list_streams(ExclusiveStartStreamName, Limit, Config) when is_record(Config, aws
 %% @end
 %%------------------------------------------------------------------------------
 
--spec describe_stream(string()) -> erlcloud_kinesis_impl:json_return().
+-spec describe_stream(binary()) -> erlcloud_kinesis_impl:json_return().
 describe_stream(StreamName) ->
    describe_stream(StreamName, default_config()).
 
--spec describe_stream(string(), get_records_limit() | aws_config()) -> erlcloud_kinesis_impl:json_return().
+-spec describe_stream(binary(), get_records_limit() | aws_config()) -> erlcloud_kinesis_impl:json_return().
 describe_stream(StreamName, Config) when is_record(Config, aws_config) ->
     Json = [{<<"StreamName">>, StreamName}],
     erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.DescribeStream", Json);
 describe_stream(StreamName, Limit) ->
     describe_stream(StreamName, Limit, default_config()).
 
--spec describe_stream(string(), get_records_limit(), string() | aws_config()) -> erlcloud_kinesis_impl:json_return().
+-spec describe_stream(binary(), get_records_limit(), string() | aws_config()) -> erlcloud_kinesis_impl:json_return().
 describe_stream(StreamName, Limit, Config)
   when is_record(Config, aws_config),
        is_integer(Limit),
@@ -234,7 +234,7 @@ describe_stream(StreamName, Limit, Config)
 describe_stream(StreamName, Limit, ExcludeShard) ->
     describe_stream(StreamName, Limit, ExcludeShard, default_config()).
 
--spec describe_stream(string(), get_records_limit(), string(), aws_config()) -> erlcloud_kinesis_impl:json_return().
+-spec describe_stream(binary(), get_records_limit(), string(), aws_config()) -> erlcloud_kinesis_impl:json_return().
 describe_stream(StreamName, Limit, ExcludeShard, Config)
   when is_record(Config, aws_config),
        is_integer(Limit),
