@@ -9,6 +9,9 @@
          delete_stream/1, delete_stream/2,
          list_streams/0, list_streams/1, list_streams/2, list_streams/3,
          describe_stream/1, describe_stream/2, describe_stream/3, describe_stream/4,
+         describe_stream_summary/1, describe_stream_summary/2,
+         enable_enhanced_monitoring/1, enable_enhanced_monitoring/2, enable_enhanced_monitoring/3,
+         disable_enhanced_monitoring/1, disable_enhanced_monitoring/2, disable_enhanced_monitoring/3,
          get_shard_iterator/3, get_shard_iterator/4, get_shard_iterator/5,
          get_records/1, get_records/2, get_records/3, get_records/4,
          put_record/3, put_record/4, put_record/5, put_record/6, put_record/7,
@@ -242,6 +245,114 @@ describe_stream(StreamName, Limit, ExcludeShard, Config)
     Json = [{<<"StreamName">>, StreamName}, {<<"Limit">>, Limit}, {<<"ExclusiveStartShardId">>, ExcludeShard}],
     erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.DescribeStream", Json).
 
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% Kinesis API:
+%% [http://docs.aws.amazon.com/kinesis/latest/APIReference/API_DescribeStreamSummary.html]
+%%
+%% ===Example===
+%%
+%% Provides a summarized description of the specified Kinesis data stream without the shard list.
+%%
+%% `
+%% erlcloud_kinesis:describe_stream_summary(<<"staging">>).
+%%   {ok,[{<<"StreamDescriptionSummary">>,
+%%    [{<<EncryptionType">>,<<"NONE">>},
+%%     {<<"EnhancedMonitoring">>,[[{<<"ShardLevelMetrics">>,[<<"ALL">>]}]]},
+%%     {<<"KeyId">>,<<"staging">>},
+%%     {<<"OpenShardCount">>,10},
+%%     {<<"RetentionPeriodHours">>,24},
+%%     {<<"StreamARN">>,
+%%      <<"arn:aws:kinesis:us-east-1:821148768124:stream/staging">>},
+%%     {<<"StreamName">>,<<"staging">>},
+%%     {<<"StreamStatus">>,<<"ACTIVE">>}]}]}
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec describe_stream_summary(binary()) -> erlcloud_kinesis_impl:json_return().
+describe_stream_summary(StreamName) ->
+    describe_stream_summary(StreamName, default_config()).
+
+-spec describe_stream_summary(binary(), aws_config()) -> erlcloud_kinesis_impl:json_return().
+describe_stream_summary(StreamName, Config) when is_record(Config, aws_config) ->
+    Json = [{<<"StreamName">>, StreamName}],
+    erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.DescribeStreamSummary", Json).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% Kinesis API:
+%% [https://docs.aws.amazon.com/kinesis/latest/APIReference/API_EnableEnhancedMonitoring.html]
+%%
+%% ===Example===
+%%
+%% nables enhanced Kinesis data stream monitoring for shard-level metrics.
+%%
+%% `
+%% erlcloud_kinesis:enable_enhanced_monitoring(<<"staging">>, [<<"ALL">>]).
+%%   {ok,[
+%%     {<<"CurrentShardLevelMetrics">>,[]},
+%%     {<<"DesiredShardLevelMetrics">>,[{<<"ShardLevelMetrics">>,[<<"ALL">>]}]},
+%%     {<<"StreamName">>,<<"staging">>}
+%%    ]}
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec enable_enhanced_monitoring(binary()) -> erlcloud_kinesis_impl:json_return().
+enable_enhanced_monitoring(StreamName) ->
+    enable_enhanced_monitoring(StreamName, default_config()).
+
+-spec enable_enhanced_monitoring(binary(), list(binary()) | aws_config()) -> erlcloud_kinesis_impl:json_return().
+enable_enhanced_monitoring(StreamName, Config) when is_record(Config, aws_config) ->
+    enable_enhanced_monitoring(StreamName, [<<"ALL">>], Config);
+enable_enhanced_monitoring(StreamName, Metrics) when is_list(Metrics) ->
+    enable_enhanced_monitoring(StreamName, Metrics, default_config()).
+
+-spec enable_enhanced_monitoring(binary(), list(binary()), aws_config()) -> erlcloud_kinesis_impl:json_return().
+enable_enhanced_monitoring(StreamName, Metrics, Config)
+        when is_record(Config, aws_config), is_list(Metrics) ->
+    Json = [{<<"StreamName">>, StreamName}, {<<"ShardLevelMetrics">>, Metrics}],
+    erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.EnableEnhancedMonitoring", Json).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% Kinesis API:
+%% [https://docs.aws.amazon.com/kinesis/latest/APIReference/API_DisableEnhancedMonitoring.html]
+%%
+%% ===Example===
+%%
+%% Disables enhanced monitoring.
+%%
+%% `
+%% erlcloud_kinesis:disable_enhanced_monitoring(<<"staging">>, [<<"ALL">>]).
+%%   {ok,[
+%%     {<<"CurrentShardLevelMetrics">>,[{<<"ShardLevelMetrics">>,[<<"ALL">>]}]},
+%%     {<<"DesiredShardLevelMetrics">>,[]},
+%%     {<<"StreamName">>,<<"staging">>}
+%%    ]}
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec disable_enhanced_monitoring(binary()) -> erlcloud_kinesis_impl:json_return().
+disable_enhanced_monitoring(StreamName) ->
+    disable_enhanced_monitoring(StreamName, default_config()).
+
+-spec disable_enhanced_monitoring(binary(), list(binary()) | aws_config()) -> erlcloud_kinesis_impl:json_return().
+disable_enhanced_monitoring(StreamName, Config) when is_record(Config, aws_config) ->
+    disable_enhanced_monitoring(StreamName, [<<"ALL">>], Config);
+disable_enhanced_monitoring(StreamName, Metrics) when is_list(Metrics) ->
+    disable_enhanced_monitoring(StreamName, Metrics, default_config()).
+
+-spec disable_enhanced_monitoring(binary(), list(binary()), aws_config()) -> erlcloud_kinesis_impl:json_return().
+disable_enhanced_monitoring(StreamName, Metrics, Config)
+        when is_record(Config, aws_config), is_list(Metrics)  ->
+    Json = [{<<"StreamName">>, StreamName}, {<<"ShardLevelMetrics">>, Metrics}],
+    erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.DisableEnhancedMonitoring", Json).
 
 %%------------------------------------------------------------------------------
 %% @doc
