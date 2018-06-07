@@ -306,13 +306,13 @@ describe_stream_summary(StreamName, Config) when is_record(Config, aws_config) -
 enable_enhanced_monitoring(StreamName) ->
     enable_enhanced_monitoring(StreamName, default_config()).
 
--spec enable_enhanced_monitoring(binary(), list() | aws_config()) -> erlcloud_kinesis_impl:json_return().
+-spec enable_enhanced_monitoring(binary(), list(binary()) | aws_config()) -> erlcloud_kinesis_impl:json_return().
 enable_enhanced_monitoring(StreamName, Config) when is_record(Config, aws_config) ->
     enable_enhanced_monitoring(StreamName, [<<"ALL">>], Config);
 enable_enhanced_monitoring(StreamName, Metrics) when is_list(Metrics) ->
     enable_enhanced_monitoring(StreamName, Metrics, default_config()).
 
--spec enable_enhanced_monitoring(binary(), list(), aws_config()) -> erlcloud_kinesis_impl:json_return().
+-spec enable_enhanced_monitoring(binary(), list(binary()), aws_config()) -> erlcloud_kinesis_impl:json_return().
 enable_enhanced_monitoring(StreamName, Metrics, Config)
         when is_record(Config, aws_config), is_list(Metrics) ->
     Json = [{<<"StreamName">>, StreamName}, {<<"ShardLevelMetrics">>, Metrics}],
@@ -342,13 +342,13 @@ enable_enhanced_monitoring(StreamName, Metrics, Config)
 disable_enhanced_monitoring(StreamName) ->
     disable_enhanced_monitoring(StreamName, default_config()).
 
--spec disable_enhanced_monitoring(binary(), list() | aws_config()) -> erlcloud_kinesis_impl:json_return().
+-spec disable_enhanced_monitoring(binary(), list(binary()) | aws_config()) -> erlcloud_kinesis_impl:json_return().
 disable_enhanced_monitoring(StreamName, Config) when is_record(Config, aws_config) ->
     disable_enhanced_monitoring(StreamName, [<<"ALL">>], Config);
 disable_enhanced_monitoring(StreamName, Metrics) when is_list(Metrics) ->
     disable_enhanced_monitoring(StreamName, Metrics, default_config()).
 
--spec disable_enhanced_monitoring(binary(), list(), aws_config()) -> erlcloud_kinesis_impl:json_return().
+-spec disable_enhanced_monitoring(binary(), list(binary()), aws_config()) -> erlcloud_kinesis_impl:json_return().
 disable_enhanced_monitoring(StreamName, Metrics, Config)
         when is_record(Config, aws_config), is_list(Metrics)  ->
     Json = [{<<"StreamName">>, StreamName}, {<<"ShardLevelMetrics">>, Metrics}],
