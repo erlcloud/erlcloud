@@ -48,12 +48,12 @@
 -type attr_name() :: binary().
 -type key_schema_value() :: {attr_name(), attr_type()}.
 -type key_schema() :: key_schema_value() | {key_schema_value(), key_schema_value()}.
--type item() :: jsx:json_term().
--type opts() :: jsx:json_term().
--type updates() :: jsx:json_term().
--type json_return() :: {ok, jsx:json_term()} | {error, term()}.
+-type item() :: jsone:json_object_members().
+-type opts() :: jsone:json_object_members().
+-type updates() :: jsone:json_object_members().
+-type json_return() :: {ok, jsone:json_object_members()} | {error, term()}.
 
--spec key_value(key()) -> jsx:json_term().
+-spec key_value(key()) -> jsone:json_object_members().
 key_value({{HK, HV} = HashKey, {RK, RV} = RangeKey}) when
       is_binary(HK), is_binary(HV), is_binary(RK), is_binary(RV) ->
     [{<<"HashKeyElement">>, [HashKey]}, {<<"RangeKeyElement">>, [RangeKey]}];
@@ -61,11 +61,11 @@ key_value({HK, HV} = HashKey) when
       is_binary(HK), is_binary(HV) ->      
     [{<<"HashKeyElement">>, [HashKey]}].
     
--spec key_json(key()) -> {binary(), jsx:json_term()}.
+-spec key_json(key()) -> {binary(), jsone:json_object_members()}.
 key_json(Key) ->
     {<<"Key">>, key_value(Key)}.
 
--spec hash_key_json(hash_key()) -> {binary(), jsx:json_term()}.
+-spec hash_key_json(hash_key()) -> {binary(), jsone:json_object_members()}.
 hash_key_json(HashKey) ->
     {<<"HashKeyValue">>, [HashKey]}.
 
@@ -80,7 +80,7 @@ updates_json(Updates) ->
 
 -type batch_get_item_request_item() :: {table_name(), [key(),...], opts()} | {table_name(), [key(),...]}.
 
--spec batch_get_item_request_item_json(batch_get_item_request_item()) -> {binary(), jsx:json_term()}.
+-spec batch_get_item_request_item_json(batch_get_item_request_item()) -> {binary(), jsone:json_object_members()}.
 batch_get_item_request_item_json({Table, Keys}) ->
     batch_get_item_request_item_json({Table, Keys, []});
 batch_get_item_request_item_json({Table, Keys, Opts}) ->
@@ -100,13 +100,13 @@ batch_get_item(RequestItems, Config) ->
 -type batch_write_item_request() :: batch_write_item_put() | batch_write_item_delete().
 -type batch_write_item_request_item() :: {table_name(), [batch_write_item_request()]}.
 
--spec batch_write_item_request_json(batch_write_item_request()) -> {binary(), jsx:json_term()}.
+-spec batch_write_item_request_json(batch_write_item_request()) -> {binary(), jsone:json_object_members()}.
 batch_write_item_request_json({put, Item}) ->
     {<<"PutRequest">>, [item_json(Item)]};
 batch_write_item_request_json({delete, Key}) ->
     {<<"DeleteRequest">>, [key_json(Key)]}.
 
--spec batch_write_item_request_item_json(batch_write_item_request_item()) -> {binary(), jsx:json_term()}.
+-spec batch_write_item_request_item_json(batch_write_item_request_item()) -> {binary(), jsone:json_object_members()}.
 batch_write_item_request_item_json({Table, Requests}) ->
     {Table, [[batch_write_item_request_json(R)] || R <- Requests]}.
 
@@ -120,11 +120,11 @@ batch_write_item(RequestItems, Config) ->
     erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.BatchWriteItem", Json).
 
 
--spec key_schema_value_json(key_schema_value()) -> jsx:json_term().
+-spec key_schema_value_json(key_schema_value()) -> jsone:json_object_members().
 key_schema_value_json({Name, Type}) ->
     [{<<"AttributeName">>, Name}, {<<"AttributeType">>, Type}].
 
--spec key_schema_json(key_schema()) -> {binary(), jsx:json_term()}.
+-spec key_schema_json(key_schema()) -> {binary(), jsone:json_object_members()}.
 key_schema_json({{_, _} = HashKey, {_, _} = RangeKey}) ->
     {<<"KeySchema">>, [{<<"HashKeyElement">>, key_schema_value_json(HashKey)},
                        {<<"RangeKeyElement">>, key_schema_value_json(RangeKey)}]};

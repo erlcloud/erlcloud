@@ -72,14 +72,14 @@
 
 -export_type([json_return/0, attempt/0, retry_fun/0]).
 
--type json_return() :: ok | {ok, jsx:json_term()} | {error, term()}.
+-type json_return() :: ok | {ok, jsone:json_object_members()} | {error, term()}.
 
 -type operation() :: string().
--spec request(aws_config(), operation(), jsx:json_term()) -> json_return().
+-spec request(aws_config(), operation(), jsone:json_object_members()) -> json_return().
 request(Config0, Operation, Json) ->
     Body = case Json of
                [] -> <<"{}">>;
-               _ -> jsx:encode(Json)
+               _ -> jsone:encode(Json,[{float_format, [{decimals, 4}, compact]}])
            end,
     case erlcloud_aws:update_config(Config0) of
         {ok, Config} ->
@@ -177,8 +177,8 @@ retry_v1_wrap(Error, RetryFun) ->
     RetryFun(Error#ddb2_error.attempt, Error#ddb2_error.reason).
 
 -type headers() :: [{string(), string()}].
--spec request_and_retry(aws_config(), headers(), jsx:json_text(), attempt()) ->
-                               ok | {ok, jsx:json_term()} | {error, term()}.
+-spec request_and_retry(aws_config(), headers(), jsone:json_string(), attempt()) ->
+                               ok | {ok, jsone:json_object_members()} | {error, term()}.
 request_and_retry(_, _, _, {error, Reason}) ->
     {error, Reason};
 request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
@@ -193,7 +193,7 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
 
         {ok, {{200, _}, _, RespBody}} ->
             %% TODO check crc
-            {ok, jsx:decode(RespBody)};
+            {ok, jsone:decode(RespBody, [{object_format, proplist}])};
 
         Error ->
             DDBError = #ddb2_error{attempt = Attempt, 
@@ -226,11 +226,10 @@ to_ddb_error({ok, {{Status, StatusLine}, RespHeaders, RespBody}}, DDBError) ->
 
 -spec client_error(binary(), #ddb2_error{}) -> #ddb2_error{}.
 client_error(Body, DDBError) ->
-    case jsx:is_json(Body) of
-        false ->
+    case jsone:try_decode(Body, [{object_format, proplist}]) of
+        {error, _} ->
             DDBError#ddb2_error{error_type = http, should_retry = false};
-        true ->
-            Json = jsx:decode(Body),
+        {ok, Json, _} ->
             case proplists:get_value(<<"__type">>, Json) of
                 undefined ->
                     DDBError#ddb2_error{error_type = http, should_retry = false};

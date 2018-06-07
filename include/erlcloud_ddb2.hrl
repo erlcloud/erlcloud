@@ -7,7 +7,7 @@
          should_retry :: undefined | boolean(),
          reason :: term(),
          request_headers :: [{string(), string()}],
-         request_body :: jsx:json_text(),
+         request_body :: jsone:json_string(),
          response_status :: undefined | pos_integer(),
          response_status_line :: undefined | string(),
          response_headers :: undefined | [{string(), string()}],

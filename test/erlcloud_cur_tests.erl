@@ -70,7 +70,7 @@ test_describe_report_definitions_pagination() ->
 do_test(Request, ExpectedResult, TestedFun) ->
     Config = erlcloud_cur:new("test-access-key", "test-secret-key"),
     ?assertEqual(ExpectedResult, TestedFun(Config)),
-    Encoded = jsx:encode(Request),
+    Encoded = jsone:encode(Request),
     ?assertMatch([{_, {?EHTTPC, request, [_, post, _, Encoded, _, _]}, _}],
                  meck:history(?EHTTPC)).
 
@@ -81,4 +81,4 @@ do_erlcloud_httpc_request(_, post, Headers, _Body, _, _) ->
         case Operation of
             "DescribeReportDefinitions" -> ?GET_REPORT_DEFINITIONS
         end,
-    {ok, {{200, "OK"}, [], jsx:encode(RespBody)}}.
+    {ok, {{200, "OK"}, [], jsone:encode(RespBody)}}.

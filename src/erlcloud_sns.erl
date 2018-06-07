@@ -56,7 +56,7 @@
 -include("erlcloud_aws.hrl").
 -define(API_VERSION, "2010-03-31").
 
--opaque sns_event() :: jsx:json_term().
+-opaque sns_event() :: jsone:json_object_members().
 -opaque sns_notification() :: sns_message().
 -type sns_event_type() :: subscription_confirmation | notification.
 -export_type([sns_event/0, sns_event_type/0, sns_notification/0]).
@@ -97,7 +97,7 @@
                         | unsubscribe.
 -type sns_acl() :: [{string(), sns_permission()}].
 
--type sns_message() :: string() | jsx:json_term().
+-type sns_message() :: string() | jsone:json_object_members().
 
 -type sns_application_attribute() :: event_endpoint_created
                                    | event_endpoint_deleted
@@ -504,7 +504,7 @@ publish(Type, RecipientArn, Message, Subject, Attributes, Config) ->
     MessageParams =
         case Message of
             [{_,_} |_] ->
-                EncodedMessage = jsx:encode(Message),
+                EncodedMessage = jsone:encode(Message),
                 [{"Message",            EncodedMessage},
                  {"MessageStructure",   "json"}];
             Message ->
@@ -525,7 +525,7 @@ publish(Type, RecipientArn, Message, Subject, Attributes, Config) ->
 
 -spec parse_event(iodata()) -> sns_event().
 parse_event(EventSource) ->
-    jsx:decode(EventSource).
+    jsone:decode(EventSource, [{object_format, proplist}]).
 
 -spec get_event_type(sns_event()) -> sns_event_type().
 get_event_type(Event) ->
@@ -539,7 +539,7 @@ parse_event_message(Event) ->
     Message = proplists:get_value(<<"Message">>, Event, <<>>),
     case get_event_type(Event) of
         subscription_confirmation -> Message;
-        notification -> jsx:decode(Message)
+        notification -> jsone:decode(Message, [{object_format, proplist}])
     end.
 
 -spec get_notification_attribute(binary(), sns_notification()) -> sns_application_attribute() | binary().

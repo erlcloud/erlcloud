@@ -29,7 +29,7 @@
 -type result_paged(ObjectType) :: success_result_paged(ObjectType) | error_result().
 
 
--type log_group() :: jsx:json_term().
+-type log_group() :: jsone:json_object_members().
 
 
 %% Library initialization
@@ -179,7 +179,7 @@ cw_request(Config, Action, Params) ->
                 NewConfig
             ) of
                 {ok, ResponseBody} ->
-                    {ok, jsx:decode(ResponseBody)};
+                    {ok, jsone:decode(ResponseBody, [{object_format, proplist}])};
                 {error, Reason} ->
                     {error, Reason}
             end;
@@ -203,7 +203,7 @@ make_signed_headers(Config, Action, Body) ->
 make_request_body(Action, RequestParams) ->
     DefaultParams = [{<<"Action">>, Action}, {<<"Version">>, ?API_VERSION}],
     Params = lists:append(DefaultParams, RequestParams),
-    jsx:encode(prepare_request_params(Params)).
+    jsone:encode(prepare_request_params(Params)).
 
 
 prepare_request_params(Params) ->

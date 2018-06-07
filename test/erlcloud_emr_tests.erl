@@ -133,7 +133,7 @@ stop(_) ->
 
 
 emr_input_tests(_) ->
-    input_tests(jsx:encode(?RUN_JOB_FLOW_OUTPUT), [
+    input_tests(jsone:encode(?RUN_JOB_FLOW_OUTPUT), [
         ?_emr_test(
             {"Run job flow input",
              ?_f(erlcloud_emr:run_job_flow(?RUN_JOB_FLOW_INPUT)),
@@ -161,14 +161,14 @@ emr_output_tests(_) ->
     output_tests(?_f(erlcloud_emr:run_job_flow(?RUN_JOB_FLOW_INPUT)), [
         ?_emr_test(
             {"Job flow output test",
-             jsx:encode(?RUN_JOB_FLOW_OUTPUT),
+             jsone:encode(?RUN_JOB_FLOW_OUTPUT),
              {ok, ?RUN_JOB_FLOW_OUTPUT}}
         )
     ]),
     output_tests(?_f(erlcloud_emr:add_job_flow_steps(?JOB_FLOW_ID, ?JOB_FLOW_STEPS)), [
         ?_emr_test(
            {"Add job flow output test",
-            jsx:encode(?ADD_JOB_FLOW_OUTPUT),
+            jsone:encode(?ADD_JOB_FLOW_OUTPUT),
             {ok, ?ADD_JOB_FLOW_OUTPUT}}
         )
     ]).
@@ -189,7 +189,7 @@ input_test(ResponseBody, {Line, {Description, Fun, ExpectedParams}}) ->
                 erlcloud_httpc,
                 request,
                 fun(_Url, post, _Headers, RequestBody, _Timeout, _Config) ->
-                    ActualParams = jsx:decode(RequestBody),
+                    ActualParams = jsone:decode(RequestBody, [{object_format, proplist}]),
                     ?assertEqual(sort_json(ExpectedParams), sort_json(ActualParams)),
                     {ok, {{200, "OK"}, [], ResponseBody}}
                 end

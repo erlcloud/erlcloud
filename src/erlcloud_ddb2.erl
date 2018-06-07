@@ -47,7 +47,7 @@
 %% * `typed_record' - A record containing all the information from the
 %% DynamoDB response. All field values are returned with type information.
 %%
-%% * `json' - The output from DynamoDB as processed by `jsx:decode'
+%% * `json' - The output from DynamoDB as processed by `jsone:decode'
 %% but with no further manipulation. This would rarely be useful,
 %% unless the DynamoDB API is updated to include data that is not yet
 %% parsed correctly.
@@ -306,7 +306,7 @@ default_config() -> erlcloud_aws:default_config().
 -type in_expected() :: maybe_list(in_expected_item()).
 -type in_item() :: [in_attr()].
 
--type json_pair() :: {binary(), jsx:json_term()}.
+-type json_pair() :: {binary(), jsone:json_object_members()}.
 -type json_attr_type() :: binary().
 -type json_attr_data() :: binary() | boolean() | [binary()] | [[json_attr_value()]] | [json_attr()].
 -type json_attr_value() :: {json_attr_type(), json_attr_data()}.
@@ -447,13 +447,13 @@ dynamize_attr({Name, _}) ->
 dynamize_attr(Attr) ->
     error({erlcloud_ddb, {invalid_attr, Attr}}).
 
--spec dynamize_key(key()) -> jsx:json_term().
+-spec dynamize_key(key()) -> jsone:json_object_members().
 dynamize_key(Key) when is_list(Key) ->
     [dynamize_attr(I) || I <- Key];
 dynamize_key(Attr) ->
     [dynamize_attr(Attr)].
 
--spec dynamize_attr_defs(attr_defs()) -> jsx:json_term().
+-spec dynamize_attr_defs(attr_defs()) -> [jsone:json_object_members()].
 dynamize_attr_defs({Name, Type}) ->
     [[{<<"AttributeName">>, Name},
       {<<"AttributeType">>, dynamize_type(Type)}]];
@@ -462,7 +462,7 @@ dynamize_attr_defs(AttrDefs) ->
       {<<"AttributeType">>, dynamize_type(Type)}]
      || {Name, Type} <- AttrDefs].
 
--spec dynamize_key_schema(key_schema()) -> jsx:json_term().
+-spec dynamize_key_schema(key_schema()) -> [jsone:json_object_members()].
 dynamize_key_schema({HashKey, RangeKey}) ->
     [[{<<"AttributeName">>, HashKey}, {<<"KeyType">>, <<"HASH">>}],
      [{<<"AttributeName">>, RangeKey}, {<<"KeyType">>, <<"RANGE">>}]];
@@ -475,7 +475,7 @@ dynamize_maybe_list(DynamizeItem, List) when is_list(List) ->
 dynamize_maybe_list(DynamizeItem, Item) ->
     [DynamizeItem(Item)].
 
--spec dynamize_projection(projection()) -> jsx:json_term().
+-spec dynamize_projection(projection()) -> jsone:json_object_members().
 dynamize_projection(keys_only) ->
     [{<<"ProjectionType">>, <<"KEYS_ONLY">>}];
 dynamize_projection(all) ->
@@ -484,12 +484,12 @@ dynamize_projection({include, AttrNames}) ->
     [{<<"ProjectionType">>, <<"INCLUDE">>},
      {<<"NonKeyAttributes">>, AttrNames}].
 
--spec dynamize_provisioned_throughput({read_units(), write_units()}) -> jsx:json_term().
+-spec dynamize_provisioned_throughput({read_units(), write_units()}) -> jsone:json_object_members().
 dynamize_provisioned_throughput({ReadUnits, WriteUnits}) ->
      [{<<"ReadCapacityUnits">>, ReadUnits},
       {<<"WriteCapacityUnits">>, WriteUnits}].
 
--spec dynamize_global_secondary_index(global_secondary_index_def()) -> jsx:json_term().
+-spec dynamize_global_secondary_index(global_secondary_index_def()) -> jsone:json_object_members().
 dynamize_global_secondary_index({IndexName, KeySchema, Projection, ReadUnits, WriteUnits}) ->
     [{<<"IndexName">>, IndexName},
      {<<"KeySchema">>, dynamize_key_schema(KeySchema)},
@@ -502,7 +502,7 @@ dynamize_stream_view_type(new_image) -> <<"NEW_IMAGE">>;
 dynamize_stream_view_type(old_image) -> <<"OLD_IMAGE">>;
 dynamize_stream_view_type(new_and_old_images) -> <<"NEW_AND_OLD_IMAGES">>.
 
--spec dynamize_stream_specification(stream_specification()) -> jsx:json_term().
+-spec dynamize_stream_specification(stream_specification()) -> jsone:json_object_members().
 dynamize_stream_specification(false) ->
     [{<<"StreamEnabled">>, false}];
 dynamize_stream_specification({true, StreamViewType}) ->
@@ -766,7 +766,7 @@ undynamize_sse_description_status(<<"ENABLED">>, _) -> enabled;
 undynamize_sse_description_status(<<"DISABLING">>, _) -> disabling;
 undynamize_sse_description_status(<<"DISABLED">>, _) -> disabled.
 
--spec undynamize_sse_description(jsx:json_term(), undynamize_opts()) -> sse_description().
+-spec undynamize_sse_description(jsone:json_object_members(), undynamize_opts()) -> sse_description().
 undynamize_sse_description(Json, Opts) ->
     {status, undynamize_sse_description_status(proplists:get_value(<<"Status">>, Json), Opts)}.
 
@@ -776,7 +776,7 @@ undynamize_stream_view_type(<<"NEW_IMAGE">>, _) -> new_image;
 undynamize_stream_view_type(<<"OLD_IMAGE">>, _) -> old_image;
 undynamize_stream_view_type(<<"NEW_AND_OLD_IMAGES">>, _) -> new_and_old_images.
 
--spec undynamize_stream_specification(jsx:json_term(), undynamize_opts()) -> stream_specification().
+-spec undynamize_stream_specification(jsone:json_object_members(), undynamize_opts()) -> stream_specification().
 undynamize_stream_specification(Json, Opts) ->
     case proplists:get_value(<<"StreamEnabled">>, Json, false) of
         false ->
@@ -799,20 +799,20 @@ undynamize_global_table_status(<<"UPDATING">>, _) -> updating;
 undynamize_global_table_status(<<"DELETING">>, _) -> deleting;
 undynamize_global_table_status(<<"ACTIVE">>, _)   -> active.
 
--spec undynamize_replica_description(jsx:json_term(), undynamize_opts()) -> replica_description().
+-spec undynamize_replica_description(jsone:json_object_members(), undynamize_opts()) -> replica_description().
 undynamize_replica_description(ReplicaDescription, _) ->
     #ddb2_replica_description{region_name = proplists:get_value(<<"RegionName">>, ReplicaDescription)}.
 
--spec undynamize_replica_descriptions(jsx:json_term(), undynamize_opts()) -> [replica_description()].
+-spec undynamize_replica_descriptions(jsone:json_object_members(), undynamize_opts()) -> [replica_description()].
 undynamize_replica_descriptions(ReplicaDescriptions, Opts) ->
     [undynamize_replica_description(ReplicaDescription, Opts)
      || ReplicaDescription <- ReplicaDescriptions].
 
--spec undynamize_replica(jsx:json_term(), undynamize_opts()) -> replica().
+-spec undynamize_replica(jsone:json_object_members(), undynamize_opts()) -> replica().
 undynamize_replica(Replica, _) ->
     #ddb2_replica{region_name = proplists:get_value(<<"RegionName">>, Replica)}.
 
--spec undynamize_replicas([jsx:json_term()], undynamize_opts()) -> [replica()].
+-spec undynamize_replicas([jsone:json_object_members()], undynamize_opts()) -> [replica()].
 undynamize_replicas(Replicas, Opts) ->
     [undynamize_replica(Replica, Opts) || Replica <- Replicas].
 
@@ -837,7 +837,7 @@ undynamize_backup_status(<<"AVAILABLE">>, _) -> available;
 undynamize_backup_status(<<"DELETED">>, _) -> deleted.
 
 -type field_table() :: [{binary(), pos_integer(), 
-                         fun((jsx:json_term(), undynamize_opts()) -> term())}].
+                         fun((jsone:json_object_members(), undynamize_opts()) -> term())}].
 
 -spec undynamize_folder(field_table(), json_pair(), undynamize_opts(), tuple()) -> tuple().
 undynamize_folder(Table, {Key, Value}, Opts, A) ->
@@ -850,7 +850,7 @@ undynamize_folder(Table, {Key, Value}, Opts, A) ->
 
 -type record_desc() :: {tuple(), field_table()}.
 
--spec undynamize_record(record_desc(), jsx:json_term(), undynamize_opts()) -> tuple().
+-spec undynamize_record(record_desc(), jsone:json_object_members(), undynamize_opts()) -> tuple().
 undynamize_record({Record, _}, [{}], _) ->
     %% jsx returns [{}] for empty objects
     Record;
@@ -884,7 +884,7 @@ verify_ddb_opt(out, Value) ->
 verify_ddb_opt(Name, Value) ->
     error({erlcloud_ddb, {invalid_opt, {Name, Value}}}).
 
--type opt_table_entry() :: {atom(), binary(), fun((_) -> jsx:json_term())}.
+-type opt_table_entry() :: {atom(), binary(), fun((_) -> jsone:json_object_members())}.
 -type opt_table() :: [opt_table_entry()].
 -spec opt_folder(opt_table(), property(), opts()) -> opts().
 opt_folder(_, {_, undefined}, Opts) ->
@@ -1030,17 +1030,15 @@ return_item_collection_metrics_opt() ->
 %%%------------------------------------------------------------------------------
 %%% Output
 %%%------------------------------------------------------------------------------
--type ddb_return(Record, Simple) :: {ok, jsx:json_term() | Record | Simple} | {error, term()}.
--type undynamize_fun() :: fun((jsx:json_term(), undynamize_opts()) -> tuple()).
+-type ddb_return(Record, Simple) :: {ok, jsone:json_object_members() | Record | Simple} | {error, term()}.
+-type undynamize_fun() :: fun((jsone:json_string(), undynamize_opts()) -> tuple()).
 
--spec out(erlcloud_ddb_impl:json_return(), undynamize_fun(), ddb_opts()) 
-         -> {ok, jsx:json_term() | tuple()} |
+-spec out(erlcloud_ddb_impl:json_return(), undynamize_fun(), ddb_opts())
+         -> {ok, jsone:json_object_members() | tuple()} |
             {simple, term()} |
             {error, term()}.
 out({error, Reason}, _, _) ->
     {error, Reason};
-out(ok, _, _) ->
-    {error, unexpected_empty_response};
 out({ok, Json}, Undynamize, Opts) ->
     case proplists:get_value(out, Opts, simple) of
         json ->
@@ -1054,12 +1052,12 @@ out({ok, Json}, Undynamize, Opts) ->
     end.
 
 %% Returns specified field of tuple for simple return
--spec out(erlcloud_ddb_impl:json_return(), undynamize_fun(), ddb_opts(), pos_integer()) 
+-spec out(erlcloud_ddb_impl:json_return(), undynamize_fun(), ddb_opts(), pos_integer())
          -> ok_return(term()).
 out(Result, Undynamize, Opts, Index) ->
     out(Result, Undynamize, Opts, Index, {error, no_return}).
 
--spec out(erlcloud_ddb_impl:json_return(), undynamize_fun(), ddb_opts(), pos_integer(), ok_return(term())) 
+-spec out(erlcloud_ddb_impl:json_return(), undynamize_fun(), ddb_opts(), pos_integer(), ok_return(term()))
          -> ok_return(term()).
 out(Result, Undynamize, Opts, Index, Default) ->
     case out(Result, Undynamize, Opts) of
@@ -1280,7 +1278,7 @@ batch_get_item_request_item_folder({<<"AttributesToGet">>, Value}, {Table, Keys,
 batch_get_item_request_item_folder({<<"ConsistentRead">>, Value}, {Table, Keys, Opts}) ->
     {Table, Keys, [{consistent_read, Value} | Opts]}.
 
--spec undynamize_batch_get_item_request_item(table_name(), jsx:json_term(), undynamize_opts())
+-spec undynamize_batch_get_item_request_item(table_name(), jsone:json_object_members(), undynamize_opts())
                                             -> batch_get_item_request_item().
 undynamize_batch_get_item_request_item(Table, Json, _) ->
     lists:foldl(fun batch_get_item_request_item_folder/2, {Table, [], []}, Json).
@@ -1385,7 +1383,7 @@ batch_write_item_opts() ->
 -type batch_write_item_request() :: batch_write_item_put() | batch_write_item_delete().
 -type batch_write_item_request_item() :: {table_name(), [batch_write_item_request()]}.
 
--spec dynamize_batch_write_item_request(batch_write_item_request()) -> jsx:json_term().
+-spec dynamize_batch_write_item_request(batch_write_item_request()) -> jsone:json_object_members().
 dynamize_batch_write_item_request({put, Item}) ->
     [{<<"PutRequest">>, [{<<"Item">>, dynamize_item(Item)}]}];
 dynamize_batch_write_item_request({delete, Key}) ->
@@ -1408,7 +1406,7 @@ batch_write_item_request_folder([{<<"PutRequest">>, [{<<"Item">>, Item}]}], {Tab
 batch_write_item_request_folder([{<<"DeleteRequest">>, [{<<"Key">>, Key}]}], {Table, Requests}) ->
     {Table, [{delete, undynamize_typed_key(Key, [])} | Requests]}.
 
--spec undynamize_batch_write_item_request_item(table_name(), jsx:json_term(), undynamize_opts())
+-spec undynamize_batch_write_item_request_item(table_name(), jsone:json_object_members(), undynamize_opts())
                                               -> batch_write_item_request_item().
 undynamize_batch_write_item_request_item(Table, Json, _) ->
     {Table, Requests} = lists:foldl(fun batch_write_item_request_folder/2, {Table, []}, Json),
@@ -1556,7 +1554,7 @@ create_backup(BackupName, TableName, Opts, Config)
 %%% CreateGlobalTable
 %%%------------------------------------------------------------------------------
 
--spec dynamize_replica(replica()) -> jsx:json_term().
+-spec dynamize_replica(replica()) -> jsone:json_object_members().
 dynamize_replica(#ddb2_replica{region_name = Region}) ->
     [{<<"RegionName">>, Region}];
 dynamize_replica({region_name, Region}) ->
@@ -1623,21 +1621,21 @@ create_global_table(GlobalTableName, ReplicationGroup, Opts, Config) ->
 -type local_secondary_indexes() :: maybe_list(local_secondary_index_def()).
 -type global_secondary_indexes() :: maybe_list(global_secondary_index_def()).
 
--spec dynamize_local_secondary_index(hash_key_name(), local_secondary_index_def()) -> jsx:json_term().
+-spec dynamize_local_secondary_index(hash_key_name(), local_secondary_index_def()) -> jsone:json_object_members().
 dynamize_local_secondary_index(HashKey, {IndexName, RangeKey, Projection}) ->
     [{<<"IndexName">>, IndexName},
      {<<"KeySchema">>, dynamize_key_schema({HashKey, RangeKey})},
      {<<"Projection">>, dynamize_projection(Projection)}].
 
--spec dynamize_local_secondary_indexes(key_schema(), local_secondary_indexes()) -> jsx:json_term().
+-spec dynamize_local_secondary_indexes(key_schema(), local_secondary_indexes()) -> jsone:json_object_members().
 dynamize_local_secondary_indexes({HashKey, _RangeKey}, Value) ->
     dynamize_maybe_list(fun(I) -> dynamize_local_secondary_index(HashKey, I) end, Value).
 
--spec dynamize_global_secondary_indexes(global_secondary_indexes()) -> jsx:json_term().
+-spec dynamize_global_secondary_indexes(global_secondary_indexes()) -> jsone:json_object_members().
 dynamize_global_secondary_indexes(Value) ->
     dynamize_maybe_list(fun dynamize_global_secondary_index/1, Value).
 
--spec dynamize_sse_specification(sse_specification()) -> jsx:json_term().
+-spec dynamize_sse_specification(sse_specification()) -> jsone:json_object_members().
 dynamize_sse_specification({enabled, Enabled}) when is_boolean(Enabled) ->
     [{<<"Enabled">>, Enabled}].
 
@@ -2467,7 +2465,7 @@ list_global_tables_opts() ->
     [{limit, <<"Limit">>, fun id/1},
      {exclusive_start_global_table_name, <<"ExclusiveStartGlobalTableName">>, fun id/1}].
 
--spec undynamize_global_tables(jsx:json_term(), undynamize_opts()) -> [#ddb2_global_table{}].
+-spec undynamize_global_tables(jsone:json_object_members(), undynamize_opts()) -> [#ddb2_global_table{}].
 undynamize_global_tables(Tables, Opts) ->
     [undynamize_record(global_table_record(), T, Opts) || T <- Tables].
 
@@ -2588,12 +2586,12 @@ list_tables(Opts, Config) ->
 list_tags_of_resource_opts() ->
     [{next_token, <<"NextToken">>, fun id/1}].
 
--spec undynamize_tag(jsx:json_term(), undynamize_opts()) -> tag().
+-spec undynamize_tag(jsone:json_object_members(), undynamize_opts()) -> tag().
 undynamize_tag(Tag, _) ->
     {proplists:get_value(<<"Key">>, Tag),
      proplists:get_value(<<"Value">>, Tag)}.
 
--spec undynamize_tags([jsx:json_term()], undynamize_opts()) -> tags().
+-spec undynamize_tags([jsone:json_object_members()], undynamize_opts()) -> tags().
 undynamize_tags(Tags, Opts) ->
     [undynamize_tag(Tag, Opts) || Tag <- Tags].
 
@@ -3062,12 +3060,12 @@ scan(Table, Opts, Config) ->
 
 -type tag_resource_return() :: ok | {error, term()}.
 
--spec dynamize_tag(tag()) -> jsx:json_term().
+-spec dynamize_tag(tag()) -> jsone:json_object_members().
 dynamize_tag({Key, Value}) when is_binary(Key), is_binary(Value) ->
     [{<<"Key">>, Key},
      {<<"Value">>, Value}].
 
--spec dynamize_tags(tags()) -> [jsx:json_term()].
+-spec dynamize_tags(tags()) -> [jsone:json_object_members()].
 dynamize_tags(Tags) ->
     [dynamize_tag(Tag) || Tag <- Tags]. 
 
@@ -3310,7 +3308,7 @@ update_item(Table, Key, UpdatesOrExpression, Opts, Config) ->
 %%% UpdateGlobalTable
 %%%------------------------------------------------------------------------------
 
--spec dynamize_replica_update(replica_update()) -> jsx:json_term().
+-spec dynamize_replica_update(replica_update()) -> jsone:json_object_members().
 dynamize_replica_update({create, Replica}) ->
     [{<<"Create">>, dynamize_replica(Replica)}];
 dynamize_replica_update({delete, Replica}) ->
@@ -3380,7 +3378,7 @@ update_global_table(GlobalTableName, ReplicaUpdates, Opts, Config) ->
                                          global_secondary_index_def().
 -type global_secondary_index_updates() :: maybe_list(global_secondary_index_update()).
 
--spec dynamize_global_secondary_index_update(global_secondary_index_update()) -> jsx:json_term().
+-spec dynamize_global_secondary_index_update(global_secondary_index_update()) -> jsone:json_object_members().
 dynamize_global_secondary_index_update({IndexName, ReadUnits, WriteUnits}) ->
     [{<<"Update">>, [
         {<<"IndexName">>, IndexName},
@@ -3393,7 +3391,7 @@ dynamize_global_secondary_index_update({IndexName, delete}) ->
 dynamize_global_secondary_index_update(Index) ->
     [{<<"Create">>, dynamize_global_secondary_index(Index)}].
 
--spec dynamize_global_secondary_index_updates(global_secondary_index_updates()) -> jsx:json_term().
+-spec dynamize_global_secondary_index_updates(global_secondary_index_updates()) -> jsone:json_object_members().
 dynamize_global_secondary_index_updates(Updates) ->
     dynamize_maybe_list(fun dynamize_global_secondary_index_update/1, Updates).
 
@@ -3472,11 +3470,11 @@ update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
                                     {enabled, boolean()}.
 -type update_time_to_live_opts() :: [update_time_to_live_opt()].
 
--spec dynamize_attribute_name(binary()) -> jsx:json_term().
+-spec dynamize_attribute_name(binary()) -> jsone:json_string().
 dynamize_attribute_name(Name) when is_binary(Name) -> 
     Name.
 
--spec dynamize_enable(boolean()) -> jsx:json_term().
+-spec dynamize_enable(boolean()) -> jsone:json_string().
 dynamize_enable(Value) when is_boolean(Value) ->
     Value.
 

@@ -57,8 +57,8 @@ sort_json(V) ->
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(Body, Expected) ->
-    Want = sort_json(jsx:decode(list_to_binary(Expected))),
-    Actual = sort_json(jsx:decode(Body)),
+    Want = sort_json(jsone:decode(list_to_binary(Expected), [{object_format, proplist}])),
+    Actual = sort_json(jsone:decode(Body, [{object_format, proplist}])),
     case Want =:= Actual of
         true -> ok;
         false ->
@@ -250,7 +250,7 @@ get_entitlement_output_tests(_) ->
         }
     ]
 }",
-             {ok, jsx:decode(<<"
+             {ok, jsone:decode(<<"
 {
     \"Entitlements\": [
         {
@@ -264,7 +264,7 @@ get_entitlement_output_tests(_) ->
             \"ExpirationDate\": 1485477404000
         }
     ]
-}">>)}}
+}">>, [{object_format, proplist}])}}
         ),
         ?_mes_test(
             {"GetEntitlements example response with NextToken","
@@ -283,7 +283,7 @@ get_entitlement_output_tests(_) ->
         }
     ]
 }",
-             {ok, jsx:decode(<<"
+             {ok, jsone:decode(<<"
 {
     \"Entitlements\": [
         {
@@ -298,7 +298,7 @@ get_entitlement_output_tests(_) ->
             \"ExpirationDate\": 1485477404000
         }
     ]
-}">>)}}
+}">>, [{object_format, proplist}])}}
         )],
 
     output_tests(?_f(erlcloud_mes:get_entitlement(
