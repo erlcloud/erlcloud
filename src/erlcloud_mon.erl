@@ -16,6 +16,9 @@
 
 -export([
          list_metrics/5, list_metrics/4,
+         describe_alarms_for_metric/8,
+         describe_alarms_for_metric/7,
+         describe_alarms_for_metric/2,
          put_metric_data/3, put_metric_data/2,
          put_metric_data/6, put_metric_data/5,
          get_metric_statistics/4, get_metric_statistics/9, get_metric_statistics/8,
@@ -29,7 +32,8 @@
 -include("erlcloud_mon.hrl").
 -include_lib("xmerl/include/xmerl.hrl").
 
--import(erlcloud_xml, [get_text/2, get_time/2]).
+-import(erlcloud_xml, [get_text/2, get_time/2, get_bool/2, get_integer/2,
+                       get_float/2, get_text/1]).
 
 -define(XMLNS_MON, "http://monitoring.amazonaws.com/doc/2010-08-01/").
 -define(API_VERSION, "2010-08-01").
@@ -114,6 +118,183 @@ extract_dimension(Node) ->
      {name,  get_text("Name",  Node)},
      {value, get_text("Value", Node)}
     ].
+
+%%------------------------------------------------------------------------------
+%% @doc CloudWatch API - DescribeAlarmsForMetric
+%% [https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_DescribeAlarmsForMetric.html]
+%%
+%% USAGE:
+%%
+%% erlcloud_mon:describe_alarms_for_metric("AWS/EC2",
+%%                                         "NetworkIn").
+%% [[{metric_name,"NetworkIn"},
+%%  {namespace,"AWS/EC2"},
+%%  {dimensions,[]},
+%%  {actions_enabled,true},
+%%  {alarm_actions,[{arn,"arn:aws:sns:us-east-1:352283897777:rgallego_cloudtrail_sns_topic"}]},
+%%  {alarm_arn,"arn:aws:cloudwatch:us-east-1:352283897777:alarm:rgallego_unauthorized_alarm"},
+%%  {alarm_configuration_updated_timestamp,{{2018,2,7},
+%%                                          {17,38,24}}},
+%%  {alarm_description,[]},
+%%  {alarm_name,"rgallego_unauthorized_alarm"},
+%%  {comparison_operator,"GreaterThanOrEqualToThreshold"},
+%%  {evaluate_low_sample_count_percentile,[]},
+%%  {evaluation_periods,1},
+%%  {extended_statistic,[]},
+%%  {insufficient_data_actions,[]},
+%%  {ok_actions,[]},
+%%  {period,300},
+%%  {state_reason,"Threshold Crossed: 1 datapoint [2.0 (07/02/18 17:33:00)] was greater than or equal to the threshold (1.0)."},
+%%  {state_reason_data,"{\"version\":\"1.0\",\"queryDate\":\"2018-02-07T17:38:24.953+0000\",\"startDate\":\"2018-02-07T17:33:00.000+0000\",\"statistic\":\"Sum\",\"period\":300,\"recentDatapoints\":[2.0],\"threshold\":1.0}"},
+%%  {state_updated_timestamp,{{2018,2,7},{17,38,24}}},
+%%  {state_value,"ALARM"},
+%%  {statistic,"Sum"},
+%%  {threshold,1.0},
+%%  {treat_missing_data,[]},
+%%  {unit,[]}]]
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec describe_alarms_for_metric(
+        Namespace           ::string(),
+        MetricName          ::string()
+                          ) -> term().
+
+describe_alarms_for_metric(
+  Namespace,
+  MetricName
+ ) ->
+    describe_alarms_for_metric(Namespace, MetricName, [],
+                               "", undefined, "",
+                               "", default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc CloudWatch API - DescribeAlarmsForMetric
+%% [https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_DescribeAlarmsForMetric.html]
+%%
+%% USAGE:
+%%
+%% erlcloud_mon:describe_alarms_for_metric("AWS/EC2",
+%%                                         "NetworkIn",
+%%                                         [{"InstanceType","m1.large"}],
+%%                                         "p95",
+%%                                         17,
+%%                                         "",
+%%                                         "Seconds").
+%% See describe_alarms_for_metric/2
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec describe_alarms_for_metric(
+        Namespace           ::string(),
+        MetricName          ::string(),
+        DimensionFilter     ::[{string(),string()}],
+        ExtendedStatistic   ::string(),
+        Period              ::pos_integer(),
+        Statistic           ::statistic(),
+        Unit                ::unit()
+                          ) -> term().
+
+describe_alarms_for_metric(
+  Namespace,
+  MetricName,
+  DimensionFilter,
+  ExtendedStatistic,
+  Period,
+  Statistic,
+  Unit
+ ) ->
+    describe_alarms_for_metric(Namespace, MetricName, DimensionFilter,
+                               ExtendedStatistic, Period, Statistic,
+                               Unit, default_config()).
+
+-spec describe_alarms_for_metric(
+        Namespace           ::string(),
+        MetricName          ::string(),
+        DimensionFilter     ::[{string(),string()}],
+        ExtendedStatistic   ::string(),
+        Period              ::pos_integer() | undefined,
+        Statistic           ::statistic(),
+        Unit                ::unit(),
+        Config              ::aws_config()
+                          ) -> term().
+
+describe_alarms_for_metric(
+  Namespace,
+  MetricName,
+  DimensionFilter,
+  ExtendedStatistic,
+  Period,
+  Statistic,
+  Unit,
+  #aws_config{} = Config
+ ) ->
+
+    Params =
+        [{"Namespace",  Namespace},
+         {"MetricName", MetricName}]
+        ++
+        [{"ExtendedStatistic", ExtendedStatistic}   || ExtendedStatistic/=""]
+        ++
+        [{"Period", Period}   || Period/=undefined]
+        ++
+        [{"Statistic", Statistic}   || Statistic/=""]
+        ++
+        [{"Unit", Unit}   || Unit/=""]
+        ++
+        lists:flatten(
+          [begin
+               {Name, Value} = lists:nth(N, DimensionFilter),
+               [{?FMT("Dimensions.member.~b.Name",  [N]), Name},
+                {?FMT("Dimensions.member.~b.Value", [N]), Value}]
+           end
+           || N<-lists:seq(1, length(DimensionFilter))]
+         ),
+    Doc = mon_query(Config, "DescribeAlarmsForMetric", Params),
+    Members = xmerl_xpath:string("/DescribeAlarmsForMetricResponse/DescribeAlarmsForMetricResult/MetricAlarms/member", Doc),
+    [extract_member_dafm(Member) || Member <- Members].
+
+extract_member_dafm(Node) ->
+    [
+     {metric_name,   get_text("MetricName", Node)},
+     {namespace,     get_text("Namespace", Node)},
+     {dimensions,
+      [extract_dimension_dafm(Item) || Item <- xmerl_xpath:string("Dimensions/member", Node)]
+     },
+     {actions_enabled, get_bool("ActionsEnabled", Node)},
+     {alarm_actions,
+      [extract_actions_dafm(Item) || Item <- xmerl_xpath:string("AlarmActions/member", Node)]},
+     {alarm_arn, get_text("AlarmArn", Node)},
+     {alarm_configuration_updated_timestamp, get_time("AlarmConfigurationUpdatedTimestamp", Node)},
+     {alarm_description, get_text("AlarmDescription", Node)},
+     {alarm_name, get_text("AlarmName", Node)},
+     {comparison_operator, get_text("ComparisonOperator", Node)},
+     {evaluate_low_sample_count_percentile, get_text("EvaluateLowSampleCountPercentile", Node)},
+     {evaluation_periods, get_integer("EvaluationPeriods", Node)},
+     {extended_statistic, get_text("ExtendedStatistic", Node)},
+     {insufficient_data_actions,
+      [extract_actions_dafm(Item) || Item <- xmerl_xpath:string("InsufficientDataActions/member", Node)]},
+     {ok_actions,
+      [extract_actions_dafm(Item) || Item <- xmerl_xpath:string("OKActions/member", Node)]},
+     {period, get_integer("Period", Node)},
+     {state_reason, get_text("StateReason", Node)},
+     {state_reason_data, get_text("StateReasonData", Node)},
+     {state_updated_timestamp, get_time("StateUpdatedTimestamp", Node)},
+     {state_value, get_text("StateValue", Node)},
+     {statistic, get_text("Statistic", Node)},
+     {threshold, get_float("Threshold", Node)},
+     {treat_missing_data, get_text("TreatMissingData", Node)},
+     {unit, get_text("Unit", Node)}
+    ].
+
+extract_dimension_dafm(Node) ->
+    [
+     {name,  get_text("Name",  Node)},
+     {value, get_text("Value", Node)}
+    ].
+
+extract_actions_dafm(Node) ->
+    {arn,  get_text(Node)}.
 
 %%------------------------------------------------------------------------------
 %% @doc CloudWatch API - PutMetricData

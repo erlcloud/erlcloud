@@ -61,7 +61,7 @@ get_test_dir() ->
     case filename:basename(Cwd) of
         ".eunit" -> % rebar 2
             "../test/";
-        "erlcloud" -> % rebar3
+        _ -> % rebar3
             "./test/"
     end.
 
@@ -70,6 +70,6 @@ get_include_dir() ->
     case filename:basename(Cwd) of
         ".eunit" -> % rebar 2
             "../include";
-        "erlcloud" -> % rebar3
+        _ -> % rebar3
             "include"
     end.
