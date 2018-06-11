@@ -31,13 +31,23 @@
 
 -type log_group() :: jsx:json_term().
 
+-type log_group_name() :: binary().
+-type log_stream_name() :: binary().
+-type sequence_token() :: binary().
+-type log_event() :: #{message => binary(), timestamp => integer()}.
+
+-type log_events() :: [log_event()].
+-type log_put_result() :: #{nextSequenceToken => binary(),
+                            rejectedLogEventsInfo => map()}.
+
 
 %% Library initialization
 -export([
     configure/2,
     configure/3,
     new/2,
-    new/3
+    new/3,
+    set_cloudwatch_host/2
 ]).
 
 
@@ -47,7 +57,10 @@
     describe_log_groups/1,
     describe_log_groups/2,
     describe_log_groups/3,
-    describe_log_groups/4
+    describe_log_groups/4,
+    create_log_stream/3,
+    put_log_events/4,
+    put_log_events/5
 ]).
 
 
@@ -84,7 +97,11 @@ new(AccessKeyID, SecretAccessKey, Host) ->
         cloudwatch_logs_host = Host
     }.
 
-
+-spec set_cloudwatch_host(cw_host(), aws_config()) -> aws_config().
+set_cloudwatch_host(Host, AwsConfig) ->
+    AwsConfig#aws_config{
+        cloudwatch_logs_host = Host
+    }.
 %%==============================================================================
 %% CloudWatch API
 %%==============================================================================
@@ -149,6 +166,61 @@ describe_log_groups(LogGroupNamePrefix, Limit, PrevToken, Config) ->
             {error, Reason}
     end.
 
+-spec create_log_stream(
+    log_group_name(),
+    log_stream_name(),
+    aws_config()
+) -> ok|error_result().
+create_log_stream(LogGroupName, LogStreamName, Config) ->
+    cw_request(Config, "CreateLogStream", [
+      {<<"logGroupName">>, LogGroupName},
+      {<<"logStreamName">>, LogStreamName}
+    ]).
+
+
+-spec put_log_events(
+    log_group_name(),
+    log_stream_name(),
+    log_events(),
+    aws_config()
+) -> ok|error_result().
+put_log_events(LogGroupName, LogStreamName, 
+               LogEvents, Config) when is_binary(LogGroupName),
+                                       is_binary(LogStreamName), 
+                                       is_list(LogEvents) ->
+  Events = make_log_events(LogEvents),
+  cw_prepared_request(Config, "PutLogEvents", [
+    {<<"logGroupName">>, LogGroupName},
+    {<<"logStreamName">>, LogStreamName},
+    {<<"logEvents">>, Events}
+  ],  _ReturnMap = true).
+
+-spec put_log_events(
+    log_group_name(),
+    log_stream_name(),
+    sequence_token(),
+    log_events(),
+    aws_config()
+) -> {ok, log_put_result()}| error_result().
+put_log_events(LogGroupName, LogStreamName, SequenceToken, 
+               LogEvents, Config) when is_binary(LogGroupName),
+                                       is_binary(LogStreamName), 
+                                       is_list(LogEvents),
+                                       is_binary(SequenceToken) ->
+  Events = make_log_events(LogEvents),
+  cw_prepared_request(Config, "PutLogEvents", [
+    {<<"logGroupName">>, LogGroupName},
+    {<<"logStreamName">>, LogStreamName},
+    {<<"sequenceToken">>, SequenceToken},
+    {<<"logEvents">>, Events}
+  ],  _ReturnMap = true ).
+
+make_log_events([]) ->
+  [];
+make_log_events([#{message := Message, 
+                   timestamp := Timestamp}|R]) when is_binary(Message),
+                                                    is_integer(Timestamp) ->
+  [[{<<"message">>, Message}, {<<"timestamp">>, Timestamp}]|make_log_events(R)].
 
 %%==============================================================================
 %% Internal functions
@@ -158,13 +230,27 @@ describe_log_groups(LogGroupNamePrefix, Limit, PrevToken, Config) ->
 default_config() ->
     erlcloud_aws:default_config().
 
+b(B) when is_binary(B) ->
+  B;
+b(L) when is_list(L) ->
+  list_to_binary(L).
 
 cw_request(Config, Action, Params) ->
+    %% Filter out params without values
+    %% Perform list to binary conversion
+    PreparedParams = prepare_request_params(Params),
+    cw_prepared_request(Config, b(Action), PreparedParams, _ReturnMap = false).
+    
+cw_prepared_request(Config, Action, BodyParams, ReturnMap) when is_list(BodyParams) ->    
+    JSXReturnOptions = case ReturnMap of
+        true -> [{labels, atom},return_maps];
+        false -> []
+    end,
     case erlcloud_aws:update_config(Config) of
         {ok, NewConfig} ->
-            RequestBody = make_request_body(
-                Action, Params
-            ),
+            JSXBody = [{<<"Action">>, b(Action)}, 
+                       {<<"Version">>, b(?API_VERSION)} | BodyParams],
+            RequestBody = jsx:encode(JSXBody),
             RequestHeaders = make_request_headers(
                 NewConfig, Action, RequestBody
             ),
@@ -178,8 +264,10 @@ cw_request(Config, Action, Params) ->
                 RequestHeaders,
                 NewConfig
             ) of
+                {ok, <<>>} ->
+                    ok;
                 {ok, ResponseBody} ->
-                    {ok, jsx:decode(ResponseBody)};
+                    {ok, jsx:decode(ResponseBody, JSXReturnOptions)};
                 {error, Reason} ->
                     {error, Reason}
             end;
@@ -198,13 +286,6 @@ make_signed_headers(Config, Action, Body) ->
     Headers = [{"host", Host}, {"x-amz-target", Target}],
     Region = erlcloud_aws:aws_region_from_host(Host),
     erlcloud_aws:sign_v4_headers(Config, Headers, Body, Region, ?SERVICE_NAME).
-
-
-make_request_body(Action, RequestParams) ->
-    DefaultParams = [{<<"Action">>, Action}, {<<"Version">>, ?API_VERSION}],
-    Params = lists:append(DefaultParams, RequestParams),
-    jsx:encode(prepare_request_params(Params)).
-
 
 prepare_request_params(Params) ->
     lists:filtermap(fun prepare_request_param/1, Params).

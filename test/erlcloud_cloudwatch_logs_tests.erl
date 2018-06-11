@@ -38,17 +38,19 @@
 -define(LOG_GROUP_NAME_PREFIX, <<"/aws/apigateway/welcome">>).
 -define(PAGING_TOKEN, <<"arn:aws:logs:us-east-1:352773894028:log-group:/aws/apigateway/welcome:*">>).
 
+-define(LOG_GROUP_NAME, ?LOG_GROUP_NAME_PREFIX).
 
 -define(LOG_GROUP, [
     {<<"arn">>, <<"arn:aws:logs:us-east-1:352773894028:log-group:/aws/apigateway/welcome:*">>},
     {<<"creationTime">>, 1476283527335},
-    {<<"logGroupName">>, <<"/aws/apigateway/welcome">>},
+    {<<"logGroupName">>, ?LOG_GROUP_NAME},
     {<<"metricFilterCount">>, 0},
     {<<"retentionInDays">>, 10},
     {<<"storedBytes">>, 85}
 ]).
 
-
+-define(LOG_STREAM_NAME, <<"logstream">>).
+-define(SEQUENCE_TOKEN, <<"49574602524945087512519741869202665284478508564977029746">>).
 %%==============================================================================
 %% Test generator functions
 %%==============================================================================
@@ -57,7 +59,9 @@
 erlcloud_cloudwatch_test_() ->
     {foreach, fun start/0, fun stop/1, [
         fun describe_log_groups_input_tests/1,
-        fun describe_log_groups_output_tests/1
+        fun describe_log_groups_output_tests/1,
+        fun create_log_stream_input_tests/1,
+        fun put_log_events_input_tests/1
     ]}.
 
 
@@ -159,6 +163,61 @@ describe_log_groups_output_tests(_) ->
         )
     ]).
 
+
+create_log_stream_input_tests(_) ->
+    input_tests(<<>>, [
+        ?_cloudwatch_test(
+            {"Tests creating a log stream",
+             ?_f(erlcloud_cloudwatch_logs:create_log_stream(
+                 ?LOG_GROUP_NAME,
+                 ?LOG_STREAM_NAME,
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"CreateLogStream">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME},
+              {<<"logStreamName">>, ?LOG_STREAM_NAME}]}
+        )
+      ]).
+
+put_log_events_input_tests(_) ->
+    input_tests(<<>>, [
+        ?_cloudwatch_test(
+            {"Tests put log events into a stream without a sequence token",
+             ?_f(erlcloud_cloudwatch_logs:put_log_events(
+                 ?LOG_GROUP_NAME,
+                 ?LOG_STREAM_NAME,
+                 [#{message=><<"aaaa">>, timestamp=>11}],
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"PutLogEvents">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"logEvents">>,[
+                                 [{<<"message">>,<<"aaaa">>},{<<"timestamp">>,11}]
+                               ]},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME},
+              {<<"logStreamName">>, ?LOG_STREAM_NAME}]}
+        ),
+        ?_cloudwatch_test(
+            {"Tests put log events into a stream with a sequence token",
+             ?_f(erlcloud_cloudwatch_logs:put_log_events(
+                 ?LOG_GROUP_NAME,
+                 ?LOG_STREAM_NAME,
+                 ?SEQUENCE_TOKEN,
+                 [#{message=><<"aaaa">>, timestamp=>11}],
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"PutLogEvents">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"logEvents">>,[
+                                 [{<<"message">>,<<"aaaa">>},{<<"timestamp">>,11}]
+                               ]},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME},
+              {<<"logStreamName">>, ?LOG_STREAM_NAME},
+              {<<"sequenceToken">>, <<"49574602524945087512519741869202665284478508564977029746">>}
+              ]}
+        )
+      ]).
 
 %%==============================================================================
 %% Internal functions
