@@ -273,19 +273,18 @@ do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config,
                 erlcloud_retry:request(Config, AwsRequest, ResultFun)
         end,
 
-    case request_to_return(Response) of
-        {ok, _} = SuccessRes ->
-            show_headers(ShowRespHeaders, SuccessRes);
-        {error, {Error, StatusCode, StatusLine, Body, _Headers}} ->
-            {error, {Error, StatusCode, StatusLine, Body}};
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    show_headers(ShowRespHeaders, request_to_return(Response)).
 
 show_headers(true, {ok, {Headers, Body}}) ->
     {ok, Headers, Body};
 show_headers(false, {ok, {_, Body}}) ->
-    {ok, Body}.
+    {ok, Body};
+show_headers(true, {error, {_Error, _StatusCode, _StatusLine, _Body, _Headers} = ReqErr}) ->
+    {error, ReqErr};
+show_headers(false, {error, {Error, StatusCode, StatusLine, Body, _Headers}}) ->
+    {error, {Error, StatusCode, StatusLine, Body}};
+show_headers(_, {error, Reason}) ->
+    {error, Reason}.
 
 param_list([], _Key) -> [];
 param_list(Values, Key) when is_tuple(Key) ->
