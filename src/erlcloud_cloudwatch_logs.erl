@@ -1,6 +1,5 @@
 -module(erlcloud_cloudwatch_logs).
 
-
 -include("erlcloud_aws.hrl").
 
 
@@ -20,8 +19,14 @@
 
 
 -type paging_token() :: string() | binary() | undefined.
+-type seq_token() :: string() | binary() | undefined.
+-type log_group_name() :: string() | binary() | undefined.
 -type log_group_name_prefix() :: string() | binary() | undefined.
+-type log_stream_name() :: string() | binary() | undefined.
+-type log_stream_prefix() :: string() | binary() | undefined.
 -type limit() :: pos_integer() | undefined.
+-type log_stream_order() :: log_stream_name | last_event_time | undefined.
+-type events() :: [#{message => binary(), timestamp => pos_integer()}].
 
 
 -type success_result_paged(ObjectType) :: {ok, [ObjectType], paging_token()}.
@@ -30,6 +35,7 @@
 
 
 -type log_group() :: jsx:json_term().
+-type log_stream() :: jsx:json_term().
 
 
 %% Library initialization
@@ -47,9 +53,18 @@
     describe_log_groups/1,
     describe_log_groups/2,
     describe_log_groups/3,
-    describe_log_groups/4
-]).
+    describe_log_groups/4,
 
+    describe_log_streams/1,
+    describe_log_streams/2,
+    describe_log_streams/3,
+    describe_log_streams/5,
+    describe_log_streams/6,
+    describe_log_streams/7,
+
+    put_logs_events/4,
+    put_logs_events/5
+]).
 
 %%==============================================================================
 %% Library initialization
@@ -135,20 +150,180 @@ describe_log_groups(LogGroupNamePrefix, Limit, Config) ->
     paging_token(),
     aws_config()
 ) -> result_paged(log_group()).
-describe_log_groups(LogGroupNamePrefix, Limit, PrevToken, Config) ->
-    case cw_request(Config, "DescribeLogGroups", [
-        {<<"limit">>, Limit},
-        {<<"logGroupNamePrefix">>, LogGroupNamePrefix},
-        {<<"nextToken">>, PrevToken}
-    ]) of
-        {ok, Data} ->
-            LogGroups = proplists:get_value(<<"logGroups">>, Data, []),
-            NextToken = proplists:get_value(<<"nextToken">>, Data, undefined),
+describe_log_groups(LogGroupNamePrefix, Limit, Token, Config) ->
+    case 
+        cw_request(Config, "DescribeLogGroups",
+            req_log_groups(LogGroupNamePrefix, Limit, Token)
+        )
+    of
+        {ok, Json} ->
+            LogGroups = proplists:get_value(<<"logGroups">>, Json, []),
+            NextToken = proplists:get_value(<<"nextToken">>, Json, undefined), 
             {ok, LogGroups, NextToken};
-        {error, Reason} ->
-            {error, Reason}
+        {error, _} = Error ->
+            Error
     end.
 
+req_log_groups(LogGroupNamePrefix, Limit, Token) ->
+    [
+        {<<"limit">>, Limit},
+        {<<"logGroupNamePrefix">>, LogGroupNamePrefix},
+        {<<"nextToken">>, Token}
+    ].
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% DescribeLogStreams action
+%% https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeLogStreams.html
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec describe_log_streams(log_group_name()) -> result_paged(log_stream()).
+
+describe_log_streams(LogGroupName) ->
+    describe_log_streams(LogGroupName, default_config()).
+
+-spec describe_log_streams(
+    log_group_name(),
+    aws_config()
+) -> result_paged(log_stream()).
+describe_log_streams(LogGroupName, Config) ->
+    describe_log_streams(LogGroupName, undefined, Config).
+
+-spec describe_log_streams(
+    log_group_name(),
+    log_stream_prefix(),
+    aws_config()
+) -> result_paged(log_stream()).
+describe_log_streams(LogGroupName, LogStreamPrefix, Config) ->
+    describe_log_streams(LogGroupName, LogStreamPrefix, log_stream_name, false, Config).
+
+-spec describe_log_streams(
+    log_group_name(),
+    log_stream_prefix(),
+    log_stream_order(),
+    boolean(),
+    aws_config()
+) -> result_paged(log_stream()).
+describe_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Config) ->
+    describe_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, ?DEFAULT_LIMIT, Config).
+
+-spec describe_log_streams(
+    log_group_name(),
+    log_stream_prefix(),
+    log_stream_order(),
+    boolean(),
+    limit(),
+    aws_config()
+) -> result_paged(log_stream()).
+describe_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Limit, Config) ->
+    describe_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Limit, undefined, Config).
+
+-spec describe_log_streams(
+    log_group_name(),
+    log_stream_prefix(),
+    log_stream_order(),
+    boolean(),
+    limit(),
+    paging_token(),
+    aws_config()
+) -> result_paged(log_stream()).
+
+describe_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Limit, Token, Config) ->
+    case
+        cw_request(Config, "DescribeLogStreams",
+            req_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Limit, Token)
+        )
+    of
+        {ok, Json} ->
+            LogStream = proplists:get_value(<<"logStreams">>, Json, []),
+            NextToken = proplists:get_value(<<"nextToken">>, Json, undefined), 
+            {ok, LogStream, NextToken};
+        {error, _} = Error ->
+            Error
+    end.
+
+req_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Limit, Token) ->
+    [
+        {<<"descending">>, Desc},
+        {<<"limit">>, Limit},
+        {<<"logGroupName">>, LogGroupName},
+        {<<"logStreamNamePrefix">>, LogStreamPrefix},
+        {<<"nextToken">>, Token},
+        {<<"orderBy">>, log_stream_order_by(OrderBy)}
+    ].
+
+log_stream_order_by(undefined) -> <<"LogStreamName">>;
+log_stream_order_by(log_stream_name) -> <<"LogStreamName">>;
+log_stream_order_by(last_event_time) -> <<"LastEventTime">>.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% PutLogEvents action
+%% https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutLogEvents.html
+%%
+%% ===Example===
+%% 
+%%   Put log events requires a Upload Sequence Token, it is available via DescribeLogStreams
+%%
+%% `
+%%   application:ensure_all_started(erlcloud). 
+%%   {ok, Config} = erlcloud_aws:auto_config().
+%%   {ok, Streams, _} = erlcloud_cloudwatch_logs:describe_log_streams(GroupName, StreamName, Config).
+%%   {_, Seq} = lists:keyfind(<<"uploadSequenceToken">>, 1, hd(Streams)). 
+%%
+%%   Batch = [#{timestamp => 1526233086694, message => <<"Example Message">>}].
+%%   erlcloud_cloudwatch_logs:put_logs_events(GroupName, StreamName, Seq, Batch, Config).
+%% `
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec put_logs_events(
+    log_group_name(),
+    log_stream_name(),
+    seq_token(),
+    events()
+) -> datum:either( seq_token() ).
+
+put_logs_events(LogGroup, LogStream, SeqToken, Events) ->
+    put_logs_events(LogGroup, LogStream, SeqToken, Events, default_config()).
+
+
+-spec put_logs_events(
+    log_group_name(),
+    log_stream_name(),
+    seq_token(),
+    events(),
+    aws_config()
+) -> datum:either( seq_token() ).
+
+put_logs_events(LogGroup, LogStream, SeqToken, Events, Config) ->
+    case
+        cw_request(Config, "PutLogEvents",
+            req_logs_events(LogGroup, LogStream, SeqToken, Events)
+        )
+    of
+        {ok, Json} ->
+            Seq = proplists:get_value(<<"nextSequenceToken">>, Json, []),
+            {ok, Seq};
+        {error, _} = Error ->
+            Error
+    end.
+  
+req_logs_events(LogGroup, LogStream, SeqToken, Events) ->
+    [
+        {<<"logEvents">>, log_events(Events)},
+        {<<"logGroupName">>, LogGroup},
+        {<<"logStreamName">>, LogStream},
+        {<<"sequenceToken">>, SeqToken}
+    ].
+
+log_events(Events) ->
+    [maps:with([message, timestamp], X) ||
+        #{message := _, timestamp := _} = X <- Events].
 
 %%==============================================================================
 %% Internal functions
@@ -160,33 +335,30 @@ default_config() ->
 
 
 cw_request(Config, Action, Params) ->
-    case erlcloud_aws:update_config(Config) of
-        {ok, NewConfig} ->
-            RequestBody = make_request_body(
-                Action, Params
-            ),
-            RequestHeaders = make_request_headers(
-                NewConfig, Action, RequestBody
-            ),
-            case erlcloud_aws:aws_request_form_raw(
-                post,
-                NewConfig#aws_config.cloudwatch_logs_scheme,
-                NewConfig#aws_config.cloudwatch_logs_host,
-                NewConfig#aws_config.cloudwatch_logs_port,
-                "/",
-                RequestBody,
-                RequestHeaders,
-                NewConfig
-            ) of
-                {ok, ResponseBody} ->
-                    {ok, jsx:decode(ResponseBody)};
-                {error, Reason} ->
-                    {error, Reason}
-            end;
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    maybe_cw_request(erlcloud_aws:update_config(Config), Action, Params).
 
+maybe_cw_request({ok, Config}, Action, Params) ->
+    Request = make_request_body(Action, Params),
+    maybe_json(
+        erlcloud_aws:aws_request_form_raw(
+            post,
+            Config#aws_config.cloudwatch_logs_scheme,
+            Config#aws_config.cloudwatch_logs_host,
+            Config#aws_config.cloudwatch_logs_port,
+            "/",
+            Request,
+            make_request_headers(Config, Action, Request),
+            Config
+        )
+    );
+
+maybe_cw_request({error, _} = Error, _Action, _Params) ->
+    Error.
+
+maybe_json({ok, Response}) ->
+    {ok, jsx:decode(Response)};
+maybe_json({error, _} = Error) ->
+    Error.
 
 make_request_headers(Config, Action, Body) ->
     lists:append(make_signed_headers(Config, Action, Body), ?DEFAULT_HEADERS).
@@ -212,7 +384,8 @@ prepare_request_params(Params) ->
 
 prepare_request_param({_Key, undefined}) ->
     false;
-prepare_request_param({Key, Value}) when is_list(Value) ->
+prepare_request_param({Key, [H | _] = Value})
+ when is_integer(H)  ->
     {true, {Key, list_to_binary(Value)}};
 prepare_request_param({Key, Value}) ->
     {true, {Key, Value}}.
