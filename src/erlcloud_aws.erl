@@ -28,7 +28,6 @@
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
--include_lib("lhttpc/include/lhttpc_types.hrl").
 
 -define(ERLCLOUD_RETRY_TIMEOUT, 10000).
 -define(GREGORIAN_EPOCH_OFFSET, 62167219200).
@@ -42,7 +41,15 @@
 -define(AWS_REGION,  ["AWS_DEFAULT_REGION", "AWS_REGION"]).
 
 %% types
--type http_client_result() :: result(). % from lhttpc_types.hrl
+-type headers() :: hackney_headers_new:headers().
+-type window_size() :: non_neg_integer() | 'infinity'.
+-type upload_state() :: {pid(), window_size()}.
+-type body()         :: binary()    |
+                        'undefined' | % HEAD request.
+                        pid().        % When partial_download option is used.
+-type http_client_result() :: {ok, {{pos_integer(), string()}, headers(), body()}} |
+                              {ok, upload_state()} |
+                              {error, atom()}.
 -type http_client_headers() :: [{string(), string()}].
 -type httpc_result_ok() :: {http_client_headers(), binary()}.
 -type httpc_result_error() :: {http_error, Status :: pos_integer(), StatusLine :: string(), Body :: binary()}

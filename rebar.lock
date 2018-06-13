@@ -1,12 +1,26 @@
 {"1.1.0",
 [{<<"base16">>,{pkg,<<"base16">>,<<"1.0.0">>},0},
+ {<<"certifi">>,{pkg,<<"certifi">>,<<"2.3.1">>},1},
  {<<"eini">>,{pkg,<<"eini">>,<<"1.2.4">>},0},
+ {<<"hackney">>,{pkg,<<"hackney">>,<<"1.12.1">>},0},
+ {<<"idna">>,{pkg,<<"idna">>,<<"5.1.1">>},1},
  {<<"jsx">>,{pkg,<<"jsx">>,<<"2.8.0">>},0},
- {<<"lhttpc">>,{pkg,<<"lhttpc">>,<<"1.5.4">>},0}]}.
+ {<<"metrics">>,{pkg,<<"metrics">>,<<"1.0.1">>},1},
+ {<<"mimerl">>,{pkg,<<"mimerl">>,<<"1.0.2">>},1},
+ {<<"parse_trans">>,{pkg,<<"parse_trans">>,<<"3.2.0">>},2},
+ {<<"ssl_verify_fun">>,{pkg,<<"ssl_verify_fun">>,<<"1.1.1">>},1},
+ {<<"unicode_util_compat">>,{pkg,<<"unicode_util_compat">>,<<"0.3.1">>},2}]}.
 [
 {pkg_hash,[
  {<<"base16">>, <<"283644E2B21BD5915ACB7178BED7851FB07C6E5749B8FAD68A53C501092176D9">>},
+ {<<"certifi">>, <<"D0F424232390BF47D82DA8478022301C561CF6445B5B5FB6A84D49A9E76D2639">>},
  {<<"eini">>, <<"ABD64A0533398A6D714D21219BB85F2D41FDB42665AC4080939B7BFA8E55F386">>},
+ {<<"hackney">>, <<"8BF2D0E11E722E533903FE126E14D6E7E94D9B7983CED595B75F532E04B7FDC7">>},
+ {<<"idna">>, <<"CBC3B2FA1645113267CC59C760BAFA64B2EA0334635EF06DBAC8801E42F7279C">>},
  {<<"jsx">>, <<"749BEC6D205C694AE1786D62CEA6CC45A390437E24835FD16D12D74F07097727">>},
- {<<"lhttpc">>, <<"405E4F460D67FE8F43F0E6D64E4D168F8A5CFF3AD34D78114688753DAA80FBEB">>}]}
+ {<<"metrics">>, <<"25F094DEA2CDA98213CECC3AEFF09E940299D950904393B2A29D191C346A8486">>},
+ {<<"mimerl">>, <<"993F9B0E084083405ED8252B99460C4F0563E41729AB42D9074FD5E52439BE88">>},
+ {<<"parse_trans">>, <<"2ADFA4DAF80C14DC36F522CF190EB5C4EE3E28008FC6394397C16F62A26258C2">>},
+ {<<"ssl_verify_fun">>, <<"28A4D65B7F59893BC2C7DE786DEC1E1555BD742D336043FE644AE956C3497FBE">>},
+ {<<"unicode_util_compat">>, <<"A1F612A7B512638634A603C8F401892AFBF99B8CE93A45041F8AACA99CADB85E">>}]}
 ].
