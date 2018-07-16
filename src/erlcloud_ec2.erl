@@ -25,8 +25,8 @@
 
          %% Elastic Block Store
          attach_volume/3, attach_volume/4,
-         create_snapshot/1, create_snapshot/2, create_snapshot/3,
-         create_volume/3, create_volume/4, create_volume/5,
+         create_snapshot/1, create_snapshot/2, create_snapshot/3, create_snapshot/4,
+         create_volume/3, create_volume/4, create_volume/5, create_volume/6,
          delete_snapshot/1, delete_snapshot/2,
          delete_volume/1, delete_volume/2,
          describe_snapshot_attribute/2, describe_snapshot_attribute/3,
