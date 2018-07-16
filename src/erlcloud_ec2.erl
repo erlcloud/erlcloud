@@ -829,7 +829,7 @@ create_snapshot(VolumeID, Description, TagList, Config)
     DefaultParams = [{"VolumeId", VolumeID}, {"Description", Description}],
     TagParams = tags_parameters("snapshot", TagList),
     Params = DefaultParams ++ TagParams,
-    case ec2_query(Config, "CreateSnapshot", Params) of
+    case ec2_query(Config, "CreateSnapshot", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [
                  {snapshot_id, get_text("/CreateSnapshotResponse/snapshotId", Doc)},
