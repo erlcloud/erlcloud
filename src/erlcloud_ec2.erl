@@ -814,10 +814,22 @@ create_snapshot(VolumeID, Config)
 create_snapshot(VolumeID, Description) ->
     create_snapshot(VolumeID, Description, default_config()).
 
--spec create_snapshot(string(), string(), aws_config()) -> ok_error(proplist()).
+-spec create_snapshot(string(), string(), aws_config()) -> ok_error(proplist());
+                     (string(), string(), [{string(), string()}]) -> ok_error(proplist()).
 create_snapshot(VolumeID, Description, Config)
-  when is_list(VolumeID), is_list(Description) ->
-    case ec2_query(Config, "CreateSnapshot", [{"VolumeId", VolumeID}, {"Description", Description}]) of
+  when is_record(Config, aws_config) ->
+    create_snapshot(VolumeID, Description, [], Config);
+create_snapshot(VolumeID, Description, TagList)
+  when is_list(TagList) ->
+    create_snapshot(VolumeID, Description, TagList, default_config()).
+
+-spec create_snapshot(string(), string(), [{string(), string()}], aws_config()) -> ok_error(proplist()).
+create_snapshot(VolumeID, Description, TagList, Config)
+  when is_list(VolumeID), is_list(Description), is_list(TagList), is_record(Config, aws_config) ->
+    DefaultParams = [{"VolumeId", VolumeID}, {"Description", Description}],
+    TagParams = tags_parameters("snapshot", TagList),
+    Params = DefaultParams ++ TagParams,
+    case ec2_query(Config, "CreateSnapshot", Params) of
         {ok, Doc} ->
             {ok, [
                  {snapshot_id, get_text("/CreateSnapshotResponse/snapshotId", Doc)},
@@ -874,19 +886,31 @@ create_volume(Size, SnapshotID, AvailabilityZone) ->
 create_volume(Size, SnapshotID, AvailabilityZone, VolumeType) ->
     create_volume(Size, SnapshotID, AvailabilityZone,VolumeType, default_config()).
 
--spec create_volume(ec2_volume_size(), string(), string(), string(), aws_config()) -> ok_error(proplist()).
+-spec create_volume(ec2_volume_size(), string(), string(), string(), aws_config()) -> ok_error(proplist());
+                   (ec2_volume_size(), string(), string(), string(), [{string(), string()}]) -> ok_error(proplist()).
 create_volume(Size, SnapshotID, AvailabilityZone, VolumeType, Config)
+  when is_record(Config, aws_config) ->
+    create_volume(Size, SnapshotID, AvailabilityZone, VolumeType, [], Config);
+create_volume(Size, SnapshtID, AvailabilityZone, VolumeType, Tags)
+  when is_list(Tags) ->
+    create_volume(Size, SnapshtID, AvailabilityZone, VolumeType, Tags, default_config()).
+
+-spec create_volume(ec2_volume_size(), string(), string(), string(), [{string(), string()}], aws_config()) -> ok_error(proplist()).
+create_volume(Size, SnapshotID, AvailabilityZone, VolumeType, Tags, Config)
   when ((VolumeType == "standard" andalso Size >= 1 andalso Size =< 1024) orelse
         (VolumeType == "gp2" andalso Size >= 1 andalso Size =< 16384) orelse
         (VolumeType == "io1" andalso Size >= 4 andalso Size =< 16384)),
        is_list(SnapshotID) orelse SnapshotID =:= none,
-       is_list(AvailabilityZone) ->
-    Params = [
+       is_list(AvailabilityZone),
+       is_list(Tags) ->
+    DefaultParams = [
               {"Size", integer_to_list(Size)},
               {"AvailabilityZone", AvailabilityZone},
               {"SnapshotId", SnapshotID},
               {"VolumeType",VolumeType}
              ],
+    TagsParams = tags_parameters("volume", Tags),
+    Params = DefaultParams ++ TagsParams,
     case ec2_query(Config, "CreateVolume", Params,?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [
@@ -3257,12 +3281,7 @@ create_tags(ResourceIds, TagsList) when is_list(ResourceIds) ->
 
 -spec create_tags([string()], [{string(), string()}], aws_config()) -> ok_error(proplist()).
 create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
-    {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
-                                    I = integer_to_list(Index),
-                                    TKKey = "Tag."++I++".Key",
-                                    TVKey = "Tag."++I++".Value",
-                                    {[{TKKey, Key}, {TVKey, Value} | Acc], Index+1}
-                            end, {[], 1}, TagsList),
+    Tags = tags_parameters(TagsList),
     {Resources, _} = lists:foldl(fun(ResourceId, {Acc, Index}) ->
                                          I = integer_to_list(Index),
                                          TKey = "ResourceId."++I,
@@ -3275,18 +3294,40 @@ create_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
             Error
     end.
 
--spec delete_tags([string()], [{string(), string()}]) -> ok_error(proplist()).
-delete_tags(ResourceIds, TagsList) when is_list(ResourceIds) ->
-    delete_tags(ResourceIds, TagsList, default_config()).
-
--spec delete_tags([string()], [{string(), string()}], aws_config()) -> ok_error(proplist()).
-delete_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
+%% Tags are sent as individually indexed keys and values in parameters.
+-spec tags_parameters([{string(), string()}]) ->
+    [{string(), string()}].
+tags_parameters(TagsList) when is_list(TagsList) ->
     {Tags, _} = lists:foldl(fun({Key, Value}, {Acc, Index}) ->
                                     I = integer_to_list(Index),
                                     TKKey = "Tag."++I++".Key",
                                     TVKey = "Tag."++I++".Value",
                                     {[{TKKey, Key}, {TVKey, Value} | Acc], Index+1}
                             end, {[], 1}, TagsList),
+    Tags.
+
+%% When passing tags as part of a CreateVolume, CreateSnapshot etc request,
+%% they must be nested inside a TagSpecification.N structure, but if the
+%% taglist is empty we should return an equally empty list.
+-spec tags_parameters(string(), [{string(), string()}]) ->
+    [{string(), string()}].
+tags_parameters(_, []) ->
+    [];
+tags_parameters(ResourceType, TagsList)
+  when is_list(TagsList) ->
+    TagSpecResourceType = {"TagSpecification.1.ResourceType", ResourceType},
+    RawTagsParams = tags_parameters(TagsList),
+    TagSpecTagsParams = [ {"TagSpecification.1."++Key, Value}
+                          || {Key, Value} <- RawTagsParams ],
+    [ TagSpecResourceType | TagSpecTagsParams ].
+
+-spec delete_tags([string()], [{string(), string()}]) -> ok_error(proplist()).
+delete_tags(ResourceIds, TagsList) when is_list(ResourceIds) ->
+    delete_tags(ResourceIds, TagsList, default_config()).
+
+-spec delete_tags([string()], [{string(), string()}], aws_config()) -> ok_error(proplist()).
+delete_tags(ResourceIds, TagsList, Config) when is_list(ResourceIds)->
+    Tags = tags_parameters(TagsList),
     {Resources, _} = lists:foldl(fun(ResourceId, {Acc, Index}) ->
                                          I = integer_to_list(Index),
                                          TKey = "ResourceId."++I,
