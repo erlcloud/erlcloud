@@ -839,7 +839,8 @@ create_snapshot(VolumeID, Description, TagList, Config)
                  {start_time, erlcloud_xml:get_time("/CreateSnapshotResponse/attachTime", Doc)},
                  {progress, get_text("/CreateSnapshotResponse/progress", Doc)},
                  {owner_id, get_text("/CreateSnapshotResponse/ownerId", Doc)},
-                 {description, get_text("/CreateSnapshotResponse/description", Doc)}
+                 {description, get_text("/CreateSnapshotResponse/description", Doc)},
+                 {tag_set, [extract_tag_item(Item) || Item <- xmerl_xpath:string("tagSet/item", Doc, [])]}
             ]};
         {error, _} = Error ->
             Error
@@ -920,7 +921,8 @@ create_volume(Size, SnapshotID, AvailabilityZone, VolumeType, Tags, Config)
                 {availability_zone, get_text("availabilityZone", Doc, none)},
                 {status, get_text("status", Doc, none)},
                 {create_time, erlcloud_xml:get_time("createTime", Doc)},
-                {volumeType, get_text("volumeType", Doc, none)}
+                {volumeType, get_text("volumeType", Doc, none)},
+                {tag_set, [extract_tag_item(Item) || Item <- xmerl_xpath:string("tagSet/item", Doc, [])]}
             ]};
         {error, _} = Error ->
             Error
