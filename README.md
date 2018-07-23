@@ -27,6 +27,7 @@ Service APIs implemented:
 - Kinesis
 - Glue (Catalog table, Crawlers and Job APIs support)
 - Athena
+- Step Functions (SF)
 - CloudWatch
 - MechanicalTurk
 - Simple DB (SDB)
