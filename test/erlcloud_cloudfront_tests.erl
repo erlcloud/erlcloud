@@ -11,9 +11,7 @@
 -define(_f(F), fun() -> F end).
 
 
--type expected_param() :: {string(), string()}.
--type output_test_spec() :: {pos_integer(), {string(), term()} |
-                            {string(), string(), term()}}.
+-type output_test_spec() :: {pos_integer(), {string(), string(), term()}}.
 
 
 %%==============================================================================
