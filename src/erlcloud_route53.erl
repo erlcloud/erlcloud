@@ -501,7 +501,7 @@ key_replace_or_add(Key, Value, List) ->
 
 -spec route53_query(get | post, aws_config(), string(), string(),
                     list({string(), string()}), string()) ->
-    {ok, term()} | {error, term}.
+    {ok, term()} | {error, term()}.
 route53_query(Method, Config, Action, Path, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion} | Params],
     erlcloud_aws:aws_request_xml4(Method, Config#aws_config.route53_host,

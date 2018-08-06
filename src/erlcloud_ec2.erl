@@ -3092,7 +3092,7 @@ create_flow_logs(LogGroupName, ResourceType, ResourceIDs, TrafficType, DeliverLo
         vpc | subnet | network_interface,
         [string()],
         accept | reject | all,
-        string(),
+        string() | none,
         string() | aws_config()) -> ok_error(string()).
 create_flow_logs(LogGroupName, ResourceType, ResourceIDs, TrafficType, DeliverLogsPermissionArn, Config)
     when is_record(Config, aws_config) ->
@@ -3106,7 +3106,7 @@ create_flow_logs(LogGroupName, ResourceType, ResourceIDs, TrafficType, DeliverLo
         [string()],
         accept | reject | all,
         string(),
-        string(),
+        string() | none,
         aws_config()) -> ok_error(string()).
 create_flow_logs(LogGroupName, ResourceType, ResourceIDs, TrafficType, DeliverLogsPermissionArn, ClientToken, Config)
     when is_record(Config, aws_config) ->

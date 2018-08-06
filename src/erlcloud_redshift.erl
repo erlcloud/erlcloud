@@ -42,7 +42,7 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
     ok.
 
 -spec redshift_query(aws_config(), string(), list({string(), string()})) ->
-    {ok, term()} | {error, term}.
+    {ok, term()} | {error, term()}.
 redshift_query(Config, Action, Params) ->
     QParams = [{"Action", Action}, {"Version", ?API_VERSION} | Params],
     erlcloud_aws:aws_request_xml4(get, Config#aws_config.redshift_host,
