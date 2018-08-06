@@ -487,9 +487,7 @@ describe_all(Fun, Args, Options, Config, Acc) when is_list(Args) ->
                          Config, [Res | Acc]);
         {error, Reason} ->
             {error, Reason}
-    end;
-describe_all(Fun, Args, Options, Config, Acc) ->
-    describe_all(Fun, [Args], Options, Config, Acc).
+    end.
 
 key_replace_or_add(Key, Value, List) ->
     case lists:keymember(Key, 1, List) of

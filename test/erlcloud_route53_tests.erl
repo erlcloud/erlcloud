@@ -409,7 +409,7 @@ describe_all_tests(_) ->
                             Fun, [{"End", 6}], #aws_config{}, [])),
              ?assertMatch({ok, [1, 2, 3, 4, 5, 6]},
                           erlcloud_route53:describe_all(
-                            Fun2, 1, [{"End", 6}], #aws_config{}, []))
+                            Fun2, [1], [{"End", 6}], #aws_config{}, []))
      end,
      fun() ->
              Fun = fun(Option, _Config) ->
