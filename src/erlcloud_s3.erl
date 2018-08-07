@@ -1118,7 +1118,7 @@ upload_part(BucketName, Key, UploadId, PartNumber, Value, HTTPHeaders, Config)
             Error
     end.
 
--spec complete_multipart(string(), string(), string(), [{integer(), string()}]) -> {ok, proplist()} | {error, any()}.
+-spec complete_multipart(string(), string(), string(), [{integer(), string()}]) -> ok | {error, any()}.
 complete_multipart(BucketName, Key, UploadId, ETags)
   when is_list(BucketName), is_list(Key), is_list(UploadId), is_list(ETags) ->
     complete_multipart(BucketName, Key, UploadId, ETags, [], default_config()).
