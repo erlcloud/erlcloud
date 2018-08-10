@@ -34,7 +34,7 @@
 -define(GREGORIAN_EPOCH_OFFSET, 62167219200).
 -define(DEFAULT_CONTENT_TYPE, "application/x-www-form-urlencoded; charset=utf-8").
 
-%% 
+%%
 %% environment variables
 -define(AWS_ACCESS,  ["AWS_ACCESS_KEY_ID"]).
 -define(AWS_SECRET,  ["AWS_SECRET_ACCESS_KEY"]).
@@ -745,11 +745,14 @@ service_config( <<"sts">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ sts_host = Host };
 service_config( <<"glue">> = Service, Region, Config ) ->
-  Host = service_host( Service, Region ),
-  Config#aws_config{ glue_host = Host };
+    Host = service_host( Service, Region ),
+    Config#aws_config{ glue_host = Host };
 service_config( <<"athena">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ athena_host = Host };
+service_config( <<"states">> = Service, Region, Config ) ->
   Host = service_host( Service, Region ),
-  Config#aws_config{ athena_host = Host };
+  Config#aws_config{ states_host = Host };
 service_config( <<"config">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ config_host = Host };
@@ -778,6 +781,8 @@ service_host( <<"s3">>, <<"us-gov-west-1">> ) ->
 service_host( <<"s3">>, Region ) ->
     binary_to_list( <<"s3-", Region/binary, ".amazonaws.com">> );
 service_host( <<"sdb">>, <<"us-east-1">> ) -> "sdb.amazonaws.com";
+service_host( <<"states">>, Region ) ->
+    binary_to_list( <<"states.", Region/binary, ".amazonaws.com">> );
 service_host( Service, Region ) when is_binary(Service) ->
     binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com">> ).
 
