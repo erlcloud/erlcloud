@@ -1,4 +1,4 @@
--module(erlcloud_sf_tests).
+-module(erlcloud_states_tests).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("erlcloud_aws.hrl").
@@ -20,7 +20,7 @@ meck_sf_request(_, post, Headers, _, _, _) ->
     RespBody = meck_aws_body(Operation),
     {ok, {{200, "OK"}, [], RespBody}}.
 
-erlcloud_sf_test_() ->
+erlcloud_states_test_() ->
     {
         foreach,
         fun setup/0,
@@ -77,14 +77,14 @@ meck_aws_body("StopExecution") -> jsx:encode(?VALID_JSON);
 meck_aws_body("UpdateStateMachine") -> jsx:encode(?VALID_JSON).
 
 test_create_activity() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    TestFun = fun() -> erlcloud_sf:create_activity(?SOME_BINARY) end,
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    TestFun = fun() -> erlcloud_states:create_activity(?SOME_BINARY) end,
     ReqJson = jsx:encode(#{<<"name">> => ?SOME_BINARY}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_create_sm() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    TestFun = fun() -> erlcloud_sf:create_state_machine(?VALID_JSON, ?SOME_BINARY, ?OTHER_BINARY) end,
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    TestFun = fun() -> erlcloud_states:create_state_machine(?VALID_JSON, ?SOME_BINARY, ?OTHER_BINARY) end,
     ReqJson = jsx:encode(
         #{<<"definition">>  => jsx:encode(?VALID_JSON),
           <<"name">>        => ?SOME_BINARY,
@@ -92,193 +92,194 @@ test_create_sm() ->
     check_map_response(TestFun), check_output_req(ReqJson).
 
  test_delete_activity() ->
-     erlcloud_sf:configure("test-access-key", "test-secret-key"),
-     TestFun = fun() -> erlcloud_sf:delete_activity(?SOME_BINARY) end,
+     erlcloud_states:configure("test-access-key", "test-secret-key"),
+     TestFun = fun() -> erlcloud_states:delete_activity(?SOME_BINARY) end,
      ReqJson = jsx:encode(#{<<"activityArn">> => ?SOME_BINARY}),
      check_null_response(TestFun), check_output_req(ReqJson).
 
  test_delete_sm() ->
-     erlcloud_sf:configure("test-access-key", "test-secret-key"),
-     TestFun = fun() -> erlcloud_sf:delete_state_machine(?SOME_BINARY) end,
+     erlcloud_states:configure("test-access-key", "test-secret-key"),
+     TestFun = fun() -> erlcloud_states:delete_state_machine(?SOME_BINARY) end,
      ReqJson = jsx:encode(#{<<"stateMachineArn">>  => ?SOME_BINARY}),
      check_null_response(TestFun), check_output_req(ReqJson).
 
  test_describe_activity() ->
-     erlcloud_sf:configure("test-access-key", "test-secret-key"),
-     TestFun = fun() -> erlcloud_sf:describe_activity(?SOME_BINARY) end,
+     erlcloud_states:configure("test-access-key", "test-secret-key"),
+     TestFun = fun() -> erlcloud_states:describe_activity(?SOME_BINARY) end,
      ReqJson = jsx:encode(#{<<"activityArn">>  => ?SOME_BINARY}),
      check_map_response(TestFun), check_output_req(ReqJson).
 
  test_describe_execution() ->
-     erlcloud_sf:configure("test-access-key", "test-secret-key"),
-     TestFun = fun() -> erlcloud_sf:describe_execution(?SOME_BINARY) end,
+     erlcloud_states:configure("test-access-key", "test-secret-key"),
+     TestFun = fun() -> erlcloud_states:describe_execution(?SOME_BINARY) end,
      ReqJson = jsx:encode(#{<<"executionArn">>  => ?SOME_BINARY}),
      check_map_response(TestFun), check_output_req(ReqJson).
 
  test_describe_sm() ->
-     erlcloud_sf:configure("test-access-key", "test-secret-key"),
-     TestFun = fun() -> erlcloud_sf:describe_state_machine(?SOME_BINARY) end,
+     erlcloud_states:configure("test-access-key", "test-secret-key"),
+     TestFun = fun() -> erlcloud_states:describe_state_machine(?SOME_BINARY) end,
      ReqJson = jsx:encode(#{<<"stateMachineArn">>  => ?SOME_BINARY}),
      check_map_response(TestFun), check_output_req(ReqJson).
 
  test_describe_sm_for_execution() ->
-     erlcloud_sf:configure("test-access-key", "test-secret-key"),
-     TestFun = fun() -> erlcloud_sf:describe_state_machine_for_execution(?SOME_BINARY) end,
+     erlcloud_states:configure("test-access-key", "test-secret-key"),
+     TestFun = fun() -> erlcloud_states:describe_state_machine_for_execution(?SOME_BINARY) end,
      ReqJson = jsx:encode(#{<<"executionArn">>  => ?SOME_BINARY}),
      check_map_response(TestFun), check_output_req(ReqJson).
 
 test_get_activity_task() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    TestFun = fun() -> erlcloud_sf:get_activity_task(?SOME_BINARY) end,
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    TestFun = fun() -> erlcloud_states:get_activity_task(?SOME_BINARY) end,
     ReqJson = jsx:encode(#{<<"activityArn">>  => ?SOME_BINARY}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_get_activity_task_opt() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
     ValidOptions = #{<<"workerName">> => ?OTHER_BINARY},
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
-    TestFun = fun() -> erlcloud_sf:get_activity_task(?SOME_BINARY, Options, Cfg) end,
+    TestFun = fun() -> erlcloud_states:get_activity_task(?SOME_BINARY, Options, Cfg) end,
     ReqJson = jsx:encode(maps:merge(#{<<"activityArn">>   => ?SOME_BINARY},
                                     ValidOptions)),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_get_execution_history() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    TestFun = fun() -> erlcloud_sf:get_execution_history(?SOME_BINARY) end,
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    TestFun = fun() -> erlcloud_states:get_execution_history(?SOME_BINARY) end,
     ReqJson = jsx:encode(#{<<"executionArn">>  => ?SOME_BINARY}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_get_execution_history_opt() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
     ValidOptions = #{<<"maxResults">>   => ?SOME_NUMBER,
                      <<"nextToken">>    => ?OTHER_BINARY,
                      <<"reverseOrder">> => ?SOME_BOOLEAN},
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
-    TestFun = fun() -> erlcloud_sf:get_execution_history(?SOME_BINARY, Options, Cfg) end,
+    TestFun = fun() -> erlcloud_states:get_execution_history(?SOME_BINARY, Options, Cfg) end,
     ReqJson = jsx:encode(maps:merge(#{<<"executionArn">>   => ?SOME_BINARY},
                                     ValidOptions)),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_list_activities() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    TestFun = fun() -> erlcloud_sf:list_activities() end,
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    TestFun = fun() -> erlcloud_states:list_activities() end,
     ReqJson = jsx:encode(#{}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_list_activities_opt() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
     ValidOptions = #{<<"maxResults">>   => ?SOME_NUMBER,
                      <<"nextToken">>    => ?OTHER_BINARY},
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
-    TestFun = fun() -> erlcloud_sf:list_activities(Options, Cfg) end,
+    TestFun = fun() -> erlcloud_states:list_activities(Options, Cfg) end,
     ReqJson = jsx:encode(ValidOptions),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_list_executions() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    TestFun = fun() -> erlcloud_sf:list_executions(?SOME_BINARY) end,
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    TestFun = fun() -> erlcloud_states:list_executions(?SOME_BINARY) end,
     ReqJson = jsx:encode(#{<<"stateMachineArn">> => ?SOME_BINARY}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_list_executions_opt() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
     ValidOptions = #{<<"maxResults">>   => ?SOME_NUMBER,
                      <<"nextToken">>    => ?OTHER_BINARY,
                      <<"statusFilter">> => ?OTHER_BINARY},
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
-    TestFun = fun() -> erlcloud_sf:list_executions(?SOME_BINARY, Options, Cfg) end,
+    TestFun = fun() -> erlcloud_states:list_executions(?SOME_BINARY, Options, Cfg) end,
     ReqJson = jsx:encode(maps:merge(#{<<"stateMachineArn">> => ?SOME_BINARY},
                                     ValidOptions)),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_list_sms() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    TestFun = fun() -> erlcloud_sf:list_state_machines() end,
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    TestFun = fun() -> erlcloud_states:list_state_machines() end,
     ReqJson = jsx:encode(#{}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_list_sms_opt() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
     ValidOptions = #{<<"maxResults">>   => ?SOME_NUMBER,
                      <<"nextToken">>    => ?OTHER_BINARY},
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
-    TestFun = fun() -> erlcloud_sf:list_state_machines(Options, Cfg) end,
+    TestFun = fun() -> erlcloud_states:list_state_machines(Options, Cfg) end,
     ReqJson = jsx:encode(ValidOptions),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_send_task_failure() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    TestFun = fun() -> erlcloud_sf:send_task_failure(?SOME_BINARY) end,
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    TestFun = fun() -> erlcloud_states:send_task_failure(?SOME_BINARY) end,
     ReqJson = jsx:encode(#{<<"taskToken">> => ?SOME_BINARY}),
     check_null_response(TestFun), check_output_req(ReqJson).
 
 test_send_task_failure_opt() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
     ValidOptions = #{<<"error">>   => ?SOME_BINARY,
                      <<"cause">>   => ?OTHER_BINARY},
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
-    TestFun = fun() -> erlcloud_sf:send_task_failure(?SOME_BINARY, Options, Cfg) end,
+    TestFun = fun() -> erlcloud_states:send_task_failure(?SOME_BINARY, Options, Cfg) end,
     ReqJson = jsx:encode(maps:merge(#{<<"taskToken">> => ?SOME_BINARY},
                                     ValidOptions)),
     check_null_response(TestFun), check_output_req(ReqJson).
 
 test_send_task_heartbeat() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    TestFun = fun() -> erlcloud_sf:send_task_heartbeat(?SOME_BINARY) end,
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    TestFun = fun() -> erlcloud_states:send_task_heartbeat(?SOME_BINARY) end,
     ReqJson = jsx:encode(#{<<"taskToken">> => ?SOME_BINARY}),
     check_null_response(TestFun), check_output_req(ReqJson).
 
 test_send_task_success() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    TestFun = fun() -> erlcloud_sf:send_task_success(?VALID_JSON, ?OTHER_BINARY) end,
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    TestFun = fun() -> erlcloud_states:send_task_success(?VALID_JSON, ?OTHER_BINARY) end,
     ReqJson = jsx:encode(#{<<"output">>     => jsx:encode(?VALID_JSON),
                            <<"taskToken">>  => ?OTHER_BINARY}),
     check_null_response(TestFun), check_output_req(ReqJson).
 
 test_start_execution() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    TestFun = fun() -> erlcloud_sf:start_execution(?SOME_BINARY) end,
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    TestFun = fun() -> erlcloud_states:start_execution(?SOME_BINARY) end,
     ReqJson = jsx:encode(#{<<"stateMachineArn">>    => ?SOME_BINARY,
-                           <<"input">>              => #{}}),
+                           <<"input">>              => jsx:encode(#{})}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_start_execution_opt() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    ValidOptions = #{<<"name">>     => ?SOME_BINARY,
-                     <<"input">>    => ?OTHER_BINARY},
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    ValidOptions = #{<<"name">>     => ?OTHER_BINARY,
+                     <<"input">>    => ?VALID_JSON},
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
-    TestFun = fun() -> erlcloud_sf:start_execution(?SOME_BINARY, Options, Cfg) end,
-    ReqJson = jsx:encode(maps:merge(#{<<"stateMachineArn">> => ?SOME_BINARY},
-                                    ValidOptions)),
+    TestFun = fun() -> erlcloud_states:start_execution(?SOME_BINARY, Options, Cfg) end,
+    ReqJson = jsx:encode(#{<<"stateMachineArn">>    => ?SOME_BINARY,
+                           <<"name">>               => ?OTHER_BINARY,
+                           <<"input">>              => jsx:encode(?VALID_JSON)}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_stop_execution() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    TestFun = fun() -> erlcloud_sf:stop_execution(?SOME_BINARY) end,
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    TestFun = fun() -> erlcloud_states:stop_execution(?SOME_BINARY) end,
     ReqJson = jsx:encode(#{<<"executionArn">> => ?SOME_BINARY}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_stop_execution_opt() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
     ValidOptions = #{<<"cause">>     => ?SOME_BINARY,
                      <<"error">>    => ?OTHER_BINARY},
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
-    TestFun = fun() -> erlcloud_sf:stop_execution(?SOME_BINARY, Options, Cfg) end,
+    TestFun = fun() -> erlcloud_states:stop_execution(?SOME_BINARY, Options, Cfg) end,
     ReqJson = jsx:encode(maps:merge(#{<<"executionArn">> => ?SOME_BINARY},
                                     ValidOptions)),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_update_sm() ->
-    erlcloud_sf:configure("test-access-key", "test-secret-key"),
-    TestFun = fun() -> erlcloud_sf:create_state_machine(?VALID_JSON, ?SOME_BINARY, ?OTHER_BINARY) end,
+    erlcloud_states:configure("test-access-key", "test-secret-key"),
+    TestFun = fun() -> erlcloud_states:create_state_machine(?VALID_JSON, ?SOME_BINARY, ?OTHER_BINARY) end,
     ReqJson = jsx:encode(
         #{<<"definition">>  => jsx:encode(?VALID_JSON),
           <<"name">>        => ?SOME_BINARY,

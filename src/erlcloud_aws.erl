@@ -750,9 +750,9 @@ service_config( <<"glue">> = Service, Region, Config ) ->
 service_config( <<"athena">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ athena_host = Host };
-service_config( <<"sf">> = Service, Region, Config ) ->
+service_config( <<"states">> = Service, Region, Config ) ->
   Host = service_host( Service, Region ),
-  Config#aws_config{ sf_host = Host };
+  Config#aws_config{ states_host = Host };
 service_config( <<"config">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ config_host = Host };
@@ -781,7 +781,7 @@ service_host( <<"s3">>, <<"us-gov-west-1">> ) ->
 service_host( <<"s3">>, Region ) ->
     binary_to_list( <<"s3-", Region/binary, ".amazonaws.com">> );
 service_host( <<"sdb">>, <<"us-east-1">> ) -> "sdb.amazonaws.com";
-service_host( <<"sf">>, Region ) ->
+service_host( <<"states">>, Region ) ->
     binary_to_list( <<"states.", Region/binary, ".amazonaws.com">> );
 service_host( Service, Region ) when is_binary(Service) ->
     binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com">> ).

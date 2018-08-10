@@ -1,4 +1,4 @@
--module(erlcloud_sf).
+-module(erlcloud_states).
 -author('nikolay.kovalev@alertlogic.com').
 
 -include("erlcloud.hrl").
@@ -34,33 +34,29 @@
 -spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
     #aws_config{access_key_id     = AccessKeyID,
-                secret_access_key = SecretAccessKey,
-                retry             = fun erlcloud_retry:default_retry/1}.
+                secret_access_key = SecretAccessKey}.
 
 -spec new(string(), string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id     = AccessKeyID,
                 secret_access_key = SecretAccessKey,
-                sf_host           = Host,
-                retry             = fun erlcloud_retry:default_retry/1}.
+                states_host       = Host}.
 
 -spec new(string(), string(), string(), non_neg_integer()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host, Port) ->
     #aws_config{access_key_id     = AccessKeyID,
                 secret_access_key = SecretAccessKey,
-                sf_host           = Host,
-                sf_port           = Port,
-                retry             = fun erlcloud_retry:default_retry/1}.
+                states_host       = Host,
+                states_port       = Port}.
 
 -spec new(string(), string(), string(), non_neg_integer(), string()) ->
     aws_config().
 new(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
     #aws_config{access_key_id     = AccessKeyID,
                 secret_access_key = SecretAccessKey,
-                sf_host           = Host,
-                sf_port           = Port,
-                sf_scheme         = Scheme,
-                retry             = fun erlcloud_retry:default_retry/1}.
+                states_host       = Host,
+                states_port       = Port,
+                states_scheme     = Scheme}.
 
 -spec configure(string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey) ->
@@ -514,7 +510,8 @@ start_execution(StateMachineArn) ->
     {ok, map()} | {error, any()}.
 start_execution(StateMachineArn, Options, Config)
         when is_binary(StateMachineArn), is_map(Options) ->
-    OptReq = maps:merge(#{<<"input">> => #{}}, maps:with([<<"name">>, <<"input">>], Options)),
+    InputValue = jsx:encode(maps:get(<<"input">>, Options, #{})),
+    OptReq = maps:merge(#{<<"input">> => InputValue}, maps:with([<<"name">>], Options)),
     Req = #{<<"stateMachineArn">> => StateMachineArn},
     step_request(Config, post, "StartExecution", maps:merge(OptReq, Req)).
 
@@ -574,8 +571,14 @@ update_state_machine(StateMachineArn, Options, Config)
         when is_binary(StateMachineArn), is_map(Options) ->
     ReservedKeys = [<<"definition">>, <<"error">>],
     OptReq = maps:with(ReservedKeys, Options),
+    OptReqJson = case maps:get(<<"definition">>, OptReq, undefined) of
+        undefined ->
+            OptReq;
+        Definition when is_map(Definition) ->
+            maps:put(<<"definition">>, jsx:encode(Definition), OptReq)
+    end,
     Req = #{<<"stateMachineArn">> => StateMachineArn},
-    step_request(Config, post, "UpdateStateMachine", maps:merge(OptReq, Req)).
+    step_request(Config, post, "UpdateStateMachine", maps:merge(OptReqJson, Req)).
 
 %%------------------------------------------------------------------------------
 %% Utility Functions
@@ -585,7 +588,7 @@ step_request(Config, Method, OpName, Request) ->
         {ok, Config} ->
             Body       = jsx:encode(Request),
             Headers    = get_headers(Config, "AWSStepFunctions." ++ OpName, Body),
-            AwsRequest = #aws_request{service         = sf,
+            AwsRequest = #aws_request{service         = states,
                                       uri             = get_url(Config),
                                       method          = Method,
                                       request_headers = Headers,
@@ -617,14 +620,14 @@ handle_result(#aws_request{response_type = error,
                            error_type    = aws} = Request) ->
     Request#aws_request{should_retry = false}.
 
-get_headers(#aws_config{sf_host = Host} = Config, Operation, Body) ->
+get_headers(#aws_config{states_host = Host} = Config, Operation, Body) ->
     Headers = [{"host",         Host},
                {"x-amz-target", Operation},
                {"content-type", "application/x-amz-json-1.0"}],
     Region = erlcloud_aws:aws_region_from_host(Host),
     erlcloud_aws:sign_v4_headers(Config, Headers, Body, Region, "states").
 
-get_url(#aws_config{sf_scheme = Scheme,
-                    sf_host   = Host,
-                    sf_port   = Port}) ->
+get_url(#aws_config{states_scheme = Scheme,
+                    states_host   = Host,
+                    states_port   = Port}) ->
     Scheme ++ Host ++ ":" ++ integer_to_list(Port).
