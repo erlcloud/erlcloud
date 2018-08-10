@@ -16,17 +16,17 @@
          describe_execution/2, describe_execution/1,
          describe_state_machine/2, describe_state_machine/1,
          describe_state_machine_for_execution/2, describe_state_machine_for_execution/1,
-         get_activity_task/3, get_activity_task/1,
-         get_execution_history/3, get_execution_history/1,
-         list_activities/2, list_activities/0,
-         list_executions/3, list_executions/1,
-         list_state_machines/2, list_state_machines/0,
-         send_task_failure/3, send_task_failure/1,
+         get_activity_task/3, get_activity_task/2, get_activity_task/1,
+         get_execution_history/3, get_execution_history/2, get_execution_history/1,
+         list_activities/2, list_activities/1, list_activities/0,
+         list_executions/3, list_executions/2, list_executions/1,
+         list_state_machines/2, list_state_machines/1, list_state_machines/0,
+         send_task_failure/3, send_task_failure/2, send_task_failure/1,
          send_task_heartbeat/2, send_task_heartbeat/1,
          send_task_success/3, send_task_success/2,
-         start_execution/3, start_execution/1,
-         stop_execution/3, stop_execution/1,
-         update_state_machine/3, update_state_machine/1]).
+         start_execution/3, start_execution/2, start_execution/1,
+         stop_execution/3, stop_execution/2, stop_execution/1,
+         update_state_machine/3, update_state_machine/2, update_state_machine/1]).
 
 %%------------------------------------------------------------------------------
 %% Library initialization.
@@ -292,6 +292,11 @@ describe_state_machine_for_execution(ExecutionArn, Config)
 get_activity_task(ActivityArn) ->
     get_activity_task(ActivityArn, #{}, default_config()).
 
+-spec get_activity_task(ActivityArn :: binary(),
+                        Options     :: map()) -> {ok, map()} | {error, any()}.
+get_activity_task(ActivityArn, Options) ->
+    get_activity_task(ActivityArn, Options, default_config()).
+
 -spec get_activity_task(ActivityArn     :: binary(),
                         Options         :: map(),
                         Config          :: aws_config()) ->
@@ -322,6 +327,12 @@ get_activity_task(ActivityArn, Options, Config)
 get_execution_history(ExecutionArn) ->
     get_execution_history(ExecutionArn, #{}, default_config()).
 
+-spec get_execution_history(ExecutionArn :: binary(),
+                            Options      :: map()) ->
+    {ok, map()} | {error, any()}.
+get_execution_history(ExecutionArn, Options) ->
+    get_execution_history(ExecutionArn, Options, default_config()).
+
 -spec get_execution_history(ExecutionArn   :: binary(),
                             Options        :: map(),
                             Config         :: aws_config()) ->
@@ -351,6 +362,10 @@ get_execution_history(ExecutionArn, Options, Config)
 list_activities() ->
     list_activities(#{}, default_config()).
 
+-spec list_activities(Options :: map()) -> {ok, map()} | {error, any()}.
+list_activities(Options) ->
+    list_activities(Options, default_config()).
+
 -spec list_activities(Options       :: map(),
                       Config        :: aws_config()) -> {ok, map()} | {error, any()}.
 list_activities(Options, Config) when is_map(Options) ->
@@ -376,6 +391,11 @@ list_activities(Options, Config) when is_map(Options) ->
 -spec list_executions(StateMachineArn :: binary()) -> {ok, map()} | {error, any()}.
 list_executions(StateMachineArn) ->
     list_executions(StateMachineArn, #{}, default_config()).
+
+-spec list_executions(StateMachineArn :: binary(),
+                      Options         :: map()) -> {ok, map()} | {error, any()}.
+list_executions(StateMachineArn, Options) ->
+    list_executions(StateMachineArn, Options, default_config()).
 
 -spec list_executions(StateMachineArn   :: binary(),
                       Options           :: map(),
@@ -405,6 +425,10 @@ list_executions(StateMachineArn, Options, Config)
 list_state_machines() ->
     list_state_machines(#{}, default_config()).
 
+-spec list_state_machines(Options :: map()) -> {ok, map()} | {error, any()}.
+list_state_machines(Options) ->
+    list_state_machines(Options, default_config()).
+
 -spec list_state_machines(Options       :: map(),
                           Config        :: aws_config()) -> {ok, map()} | {error, any()}.
 list_state_machines(Options, Config) when is_map(Options) ->
@@ -429,6 +453,11 @@ list_state_machines(Options, Config) when is_map(Options) ->
 -spec send_task_failure(TaskToken :: binary()) -> ok | {error, any()}.
 send_task_failure(TaskToken) ->
     send_task_failure(TaskToken, #{}, default_config()).
+
+-spec send_task_failure(TaskToken :: binary(),
+                        Options   :: map()) -> ok | {error, any()}.
+send_task_failure(TaskToken, Options) ->
+    send_task_failure(TaskToken, Options, default_config()).
 
 -spec send_task_failure(TaskToken   :: binary(),
                         Options     :: map(),
@@ -456,7 +485,7 @@ send_task_heartbeat(TaskToken) ->
     send_task_heartbeat(TaskToken, default_config()).
 
 -spec send_task_heartbeat(TaskToken :: binary(),
-                        Config      :: aws_config()) -> ok | {error, any()}.
+                          Config    :: aws_config()) -> ok | {error, any()}.
 send_task_heartbeat(TaskToken, Config) when is_binary(TaskToken) ->
     Req = #{<<"taskToken">> => TaskToken},
     step_request(Config, post, "SendTaskHearbeat", Req).
@@ -504,6 +533,11 @@ send_task_success(Output, TaskToken, Config) ->
 start_execution(StateMachineArn) ->
     start_execution(StateMachineArn, #{}, default_config()).
 
+-spec start_execution(StateMachineArn :: binary(),
+                      Options         :: map()) -> {ok, map()} | {error, any()}.
+start_execution(StateMachineArn, Options) ->
+    start_execution(StateMachineArn, Options, default_config()).
+
 -spec start_execution(StateMachineArn   :: binary(),
                       Options           :: list(),
                       Config            :: aws_config()) ->
@@ -532,6 +566,11 @@ start_execution(StateMachineArn, Options, Config)
 -spec stop_execution(ExecutionArn :: binary()) -> {ok, map()} | {error, any()}.
 stop_execution(ExecutionArn) ->
     stop_execution(ExecutionArn, #{}, default_config()).
+
+-spec stop_execution(ExecutionArn :: binary(),
+                     Options      :: map()) -> {ok, map()} | {error, any()}.
+stop_execution(ExecutionArn, Options) ->
+    stop_execution(ExecutionArn, Options, default_config()).
 
 -spec stop_execution(ExecutionArn   :: binary(),
                      Options           :: list(),
@@ -562,6 +601,12 @@ stop_execution(ExecutionArn, Options, Config)
     {ok, map()} | {error, any()}.
 update_state_machine(StateMachineArn) ->
     update_state_machine(StateMachineArn, #{}, default_config()).
+
+-spec update_state_machine(StateMachineArn  :: binary(),
+                           Options          :: map()) ->
+    {ok, map()} | {error, any()}.
+update_state_machine(StateMachineArn, Options) ->
+    update_state_machine(StateMachineArn, Options, default_config()).
 
 -spec update_state_machine(StateMachineArn  :: binary(),
                            Options          :: map(),
