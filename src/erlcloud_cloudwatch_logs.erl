@@ -37,6 +37,9 @@
 -type log_group() :: jsx:json_term().
 -type log_stream() :: jsx:json_term().
 
+-type tag():: {binary(), binary()}.
+-type tags_return() :: jsx:json_term().
+
 
 %% Library initialization
 -export([
@@ -63,8 +66,15 @@
     describe_log_streams/7,
 
     put_logs_events/4,
-    put_logs_events/5
-]).
+    put_logs_events/5,
+
+    list_tags_log_group/1,
+    list_tags_log_group/2,
+
+    tag_log_group/2,
+    tag_log_group/3
+
+    ]).
 
 %%==============================================================================
 %% Library initialization
@@ -325,6 +335,69 @@ log_events(Events) ->
     [maps:with([message, timestamp], X) ||
         #{message := _, timestamp := _} = X <- Events].
 
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% ListTagsLogGroup
+%% https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_ListTagsLogGroup.html
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec list_tags_log_group(
+    log_group_name()
+) -> tags_return().
+
+list_tags_log_group(LogGroup) ->
+    list_tags_log_group(LogGroup, default_config()).
+
+
+-spec list_tags_log_group(
+    log_group_name(),
+    aws_config()
+) -> tags_return().
+
+list_tags_log_group(LogGroup, Config) ->
+    case
+        cw_request(Config, "ListTagsLogGroup", [{<<"logGroupName">>, LogGroup}])
+    of
+        {ok, Json} ->
+            Tags = proplists:get_value(<<"tags">>, Json, []),
+            {ok, Tags};
+        {error, _} = Error ->
+            Error
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% TagLogGroup action
+%% https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_TagLogGroup.html
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec tag_log_group(
+    log_group_name(),
+    list(tag())
+) -> ok.
+
+tag_log_group(LogGroup, Tags) when is_list(Tags) ->
+    tag_log_group(LogGroup, Tags, default_config()).
+
+
+-spec tag_log_group(
+    log_group_name(),
+    list(tag()),
+    aws_config()
+) -> ok.
+
+tag_log_group(LogGroup, Tags, Config) when is_list(Tags) ->
+    Params = [{<<"logGroupName">>, LogGroup},
+              {<<"tags">>, Tags}
+    ],
+    cw_request(Config, "TagLogGroup", Params).
+
 %%==============================================================================
 %% Internal functions
 %%==============================================================================
@@ -355,6 +428,8 @@ maybe_cw_request({ok, Config}, Action, Params) ->
 maybe_cw_request({error, _} = Error, _Action, _Params) ->
     Error.
 
+maybe_json({ok, <<>>}) ->
+    ok;
 maybe_json({ok, Response}) ->
     {ok, jsx:decode(Response)};
 maybe_json({error, _} = Error) ->
