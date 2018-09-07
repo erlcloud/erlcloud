@@ -429,7 +429,7 @@ maybe_cw_request({error, _} = Error, _Action, _Params) ->
     Error.
 
 maybe_json({ok, <<>>}) ->
-    ok;
+    {ok, []};
 maybe_json({ok, Response}) ->
     {ok, jsx:decode(Response)};
 maybe_json({error, _} = Error) ->
