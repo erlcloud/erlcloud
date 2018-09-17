@@ -488,7 +488,7 @@ send_task_heartbeat(TaskToken) ->
                           Config    :: aws_config()) -> ok | {error, any()}.
 send_task_heartbeat(TaskToken, Config) when is_binary(TaskToken) ->
     Req = #{<<"taskToken">> => TaskToken},
-    step_request(Config, post, "SendTaskHearbeat", Req).
+    step_request(Config, post, "SendTaskHeartbeat", Req).
 
 %%------------------------------------------------------------------------------
 %% SendTaskSuccess
