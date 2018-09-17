@@ -70,7 +70,7 @@ meck_aws_body("ListActivities") -> jsx:encode(?VALID_JSON);
 meck_aws_body("ListExecutions") -> jsx:encode(?VALID_JSON);
 meck_aws_body("ListStateMachines") -> jsx:encode(?VALID_JSON);
 meck_aws_body("SendTaskFailure") -> <<>>;
-meck_aws_body("SendTaskHearbeat") -> <<>>;
+meck_aws_body("SendTaskHeartbeat") -> <<>>;
 meck_aws_body("SendTaskSuccess") -> <<>>;
 meck_aws_body("StartExecution") -> jsx:encode(?VALID_JSON);
 meck_aws_body("StopExecution") -> jsx:encode(?VALID_JSON);
