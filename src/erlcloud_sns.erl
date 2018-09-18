@@ -553,6 +553,8 @@ get_notification_attribute(<<"EventType">>, Notification) ->
 get_notification_attribute(Attribute, Notification) ->
     proplists:get_value(Attribute, Notification).
 
+
+
 -spec set_topic_attributes(sns_topic_attribute_name(), string()|binary(), string()) -> ok | no_return().
 set_topic_attributes(AttributeName, AttributeValue, TopicArn) ->
     set_topic_attributes(AttributeName, AttributeValue, TopicArn, default_config()).
