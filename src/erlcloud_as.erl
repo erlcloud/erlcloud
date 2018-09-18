@@ -23,6 +23,8 @@
          delete_auto_scaling_group/3,
          describe_scaling_activities/3,
 
+         set_as_host/1,
+
          suspend_processes/1, suspend_processes/2, suspend_processes/3,
          resume_processes/1, resume_processes/2, resume_processes/3,
          detach_instances/2, detach_instances/3, detach_instances/4,
@@ -78,6 +80,14 @@
 -define(COMPLETE_LIFECYCLE_ACTION_ACTIVITY, 
         "/CompleteLifecycleActionResponse/ResponseMetadata/RequestId").
 
+
+%% --------------------------------------------------------------------
+%% @doc Sets as hosts in #aws_config{}
+%% @end
+%% --------------------------------------------------------------------
+set_as_host(Host) ->
+    Config = erlcloud_aws:default_config(),
+    put(aws_config, Config#aws_config{as_host = Host}).
 
 %% --------------------------------------------------------------------
 %% @doc Calls describe_groups([], default_configuration())
