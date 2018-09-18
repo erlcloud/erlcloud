@@ -1254,7 +1254,7 @@ profiles_parse( Content ) ->
     case eini:parse( Content ) of
         {ok, Profiles} -> Profiles;
         Error ->
-            error_msg( "failed to parse credentials, because: ~p", [Error] )
+            erlang:error({error, {unable_to_parse_credential_file, Error}})
     end.
 
 profiles_resolve( Name, Profiles, Options ) ->
