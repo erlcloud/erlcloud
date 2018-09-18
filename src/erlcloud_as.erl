@@ -87,7 +87,7 @@
 %% --------------------------------------------------------------------
 set_as_host(Host) ->
     Config = erlcloud_aws:default_config(),
-put(aws_config, Config#aws_config{as_host = Host}).
+    put(aws_config, Config#aws_config{as_host = Host}).
 
 %% --------------------------------------------------------------------
 %% @doc Calls describe_groups([], default_configuration())
