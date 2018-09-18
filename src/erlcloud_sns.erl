@@ -52,8 +52,6 @@
          get_notification_attribute/2]).
 -export([new/2, new/3, configure/2, configure/3]).
 
--export([set_sns_host/1]).
-
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 -define(API_VERSION, "2010-03-31").
@@ -554,12 +552,6 @@ get_notification_attribute(<<"EventType">>, Notification) ->
     end;
 get_notification_attribute(Attribute, Notification) ->
     proplists:get_value(Attribute, Notification).
-
--spec set_sns_host(binary()) -> term().
-set_sns_host(Host) ->
-    Config = erlcloud_aws:default_config(),
-    put(aws_config, Config#aws_config{sns_host = Host}).
-
 
 -spec set_topic_attributes(sns_topic_attribute_name(), string()|binary(), string()) -> ok | no_return().
 set_topic_attributes(AttributeName, AttributeValue, TopicArn) ->
