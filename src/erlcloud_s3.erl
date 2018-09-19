@@ -1840,6 +1840,9 @@ port_spec(#aws_config{s3_port=Port}) ->
 %% http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region
 aws_region_from_host(Host) ->
     case string:tokens(Host, ".") of
+        %% s3.cn-north-1.amazonaws.com.cn
+        ["s3", Value, _, _, _] ->
+            Value;
         %% s3.eu-central-1.amazonaws.com
         ["s3", Value, _, _] ->
             Value;
