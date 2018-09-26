@@ -151,6 +151,8 @@ client_error(Status, StatusLine, Body) ->
                     {retry, {Type, Message}};
                 <<"ThrottlingException">> = Type ->
                     {retry, {Type, Message}};
+                <<"LimitExceededException">> = Type ->
+                    {retry, {Type, Message}};
                 Other ->
                     {error, {Other, Message}}
             end
