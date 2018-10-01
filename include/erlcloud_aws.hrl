@@ -36,7 +36,7 @@
           emr_scheme="https://"::string()|undefined,
           emr_host="elasticmapreduce.us-east-1.amazonaws.com"::string(),
           emr_port=undefined::non_neg_integer()|undefined,
-          sns_scheme="http://"::undefined|string(),
+          sns_scheme="https://"::undefined|string(),
           sns_host="sns.amazonaws.com"::string(),
           mturk_host="mechanicalturk.amazonaws.com"::string(),
           mon_host="monitoring.amazonaws.com"::string(),
