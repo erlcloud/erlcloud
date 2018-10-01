@@ -737,7 +737,7 @@ sns_simple_request(Config, Action, Params) ->
 sns_xml_request(Config, Action, Params) ->
     case erlcloud_aws:aws_request_xml4(post,
                                        scheme_to_protocol(Config#aws_config.sns_scheme),
-                                       Config#aws_config.sns_host, undefined, "/",
+                                       Config#aws_config.sns_host, Config#aws_config.sns_port, "/",
                                        [{"Action", Action}, {"Version", ?API_VERSION} | Params],
                                        "sns", Config) of
         {ok, XML} -> XML;
@@ -753,7 +753,7 @@ sns_xml_request(Config, Action, Params) ->
 sns_request(Config, Action, Params) ->
     case erlcloud_aws:aws_request_xml4(post,
                                        scheme_to_protocol(Config#aws_config.sns_scheme),
-                                       Config#aws_config.sns_host, undefined, "/",
+                                       Config#aws_config.sns_host, Config#aws_config.sns_port, "/",
                                        [{"Action", Action}, {"Version", ?API_VERSION} | Params],
                                        "sns", Config) of
         {ok, _Response} -> ok;

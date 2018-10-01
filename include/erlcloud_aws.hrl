@@ -38,6 +38,7 @@
           emr_port=undefined::non_neg_integer()|undefined,
           sns_scheme="https://"::undefined|string(),
           sns_host="sns.amazonaws.com"::string(),
+          sns_port=undefined::non_neg_integer()|undefined,
           mturk_host="mechanicalturk.amazonaws.com"::string(),
           mon_host="monitoring.amazonaws.com"::string(),
           mon_port=undefined::non_neg_integer()|undefined,
