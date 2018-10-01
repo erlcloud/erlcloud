@@ -26,7 +26,7 @@ sns_api_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
-     [fun defaults_to_http/1,
+     [fun defaults_to_https/1,
       fun supports_explicit_http/1,
       fun supports_https/1,
       fun is_case_insensitive/1,
@@ -737,10 +737,10 @@ list_subscriptions_by_topic_output_tests(_) ->
 
 
 
-defaults_to_http(_) ->
+defaults_to_https(_) ->
     Config = erlcloud_aws:default_config(),
     erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
-    ?_assertMatch({"http://sns.amazonaws.com/", _, _, _, _, Config}, request_params()).
+    ?_assertMatch({"https://sns.amazonaws.com/", _, _, _, _, Config}, request_params()).
 
 supports_explicit_http(_) ->
     Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="http://"},
