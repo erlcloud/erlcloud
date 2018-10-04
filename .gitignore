@@ -10,6 +10,7 @@ ebin/*.app
 .eunit/
 .rebar/
 rebar
+rebar3
 *.sublime-*
 deps/
 doc/

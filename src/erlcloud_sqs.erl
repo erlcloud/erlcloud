@@ -8,6 +8,7 @@
          add_permission/3, add_permission/4,
          change_message_visibility/3, change_message_visibility/4,
          create_queue/1, create_queue/2, create_queue/3,
+         create_fifo_queue/1, create_fifo_queue/2, create_fifo_queue/3,
          delete_message/2, delete_message/3,
          delete_queue/1, delete_queue/2,
          purge_queue/1, purge_queue/2,
@@ -118,14 +119,35 @@ create_queue(QueueName, DefaultVisibilityTimeout) ->
     create_queue(QueueName, DefaultVisibilityTimeout, default_config()).
 
 -spec create_queue(string(), 0..43200 | none, aws_config()) -> proplist() | no_return().
-create_queue(QueueName, DefaultVisibilityTimeout, Config)
+create_queue(QueueName, DefaultVisibilityTimeout, Config) ->
+    create_queue_impl(QueueName, DefaultVisibilityTimeout, Config, []).
+
+-spec create_fifo_queue(string()) -> proplist() | no_return().
+create_fifo_queue(QueueName) ->
+    create_fifo_queue(QueueName, default_config()).
+
+-spec create_fifo_queue(string(), 0..43200 | none | aws_config()) -> proplist() | no_return().
+create_fifo_queue(QueueName, Config)
+  when is_record(Config, aws_config) ->
+    create_fifo_queue(QueueName, none, Config);
+create_fifo_queue(QueueName, DefaultVisibilityTimeout) ->
+    create_fifo_queue(QueueName, DefaultVisibilityTimeout, default_config()).
+
+-spec create_fifo_queue(string(), 0..43200 | none, aws_config()) -> proplist() | no_return().
+create_fifo_queue(QueueName, DefaultVisibilityTimeout, Config) ->
+    Attributes = erlcloud_aws:param_list([[{"Name", "FifoQueue"}, {"Value", true}]], "Attribute"),
+    create_queue_impl(QueueName, DefaultVisibilityTimeout, Config, Attributes).
+
+-spec create_queue_impl(string(), 0..43200 | none, aws_config(), proplists:proplist()) -> proplist() | no_return().
+create_queue_impl(QueueName, DefaultVisibilityTimeout, Config, Attributes)
   when is_list(QueueName),
        (is_integer(DefaultVisibilityTimeout) andalso
         DefaultVisibilityTimeout >= 0 andalso
         DefaultVisibilityTimeout =< 43200) orelse
        DefaultVisibilityTimeout =:= none ->
     Doc = sqs_xml_request(Config, "/", "CreateQueue",
-                          [{"QueueName", QueueName}, {"DefaultVisibilityTimeout", DefaultVisibilityTimeout}]),
+                          [{"QueueName", QueueName},
+                           {"DefaultVisibilityTimeout", DefaultVisibilityTimeout} | Attributes]),
     erlcloud_xml:decode(
       [
        {queue_url, "CreateQueueResult/QueueUrl", text}
@@ -211,12 +233,16 @@ decode_attribute_name("CreatedTimestamp") -> created_timestamp;
 decode_attribute_name("DelaySeconds") -> delay_seconds;
 decode_attribute_name("ReceiveMessageWaitTimeSeconds") -> receive_message_wait_time_seconds;
 decode_attribute_name("Policy") -> policy;
-decode_attribute_name("RedrivePolicy") -> redrive_policy.
+decode_attribute_name("RedrivePolicy") -> redrive_policy;
+decode_attribute_name("ContentBasedDeduplication") -> content_based_deduplication;
+decode_attribute_name("FifoQueue") -> fifo_queue.
 
 
 decode_attribute_value("Policy", Value) -> Value;
 decode_attribute_value("QueueArn", Value) -> Value;
 decode_attribute_value("RedrivePolicy", Value) -> Value;
+decode_attribute_value(_, "true") -> true;
+decode_attribute_value(_, "false") -> false;
 decode_attribute_value(_, Value) -> list_to_integer(Value).
 
 
