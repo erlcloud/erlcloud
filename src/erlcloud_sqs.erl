@@ -218,6 +218,8 @@ encode_attribute_name(delay_seconds) -> "DelaySeconds";
 encode_attribute_name(receive_message_wait_time_seconds) -> "ReceiveMessageWaitTimeSeconds";
 encode_attribute_name(policy) -> "Policy";
 encode_attribute_name(redrive_policy) -> "RedrivePolicy";
+encode_attribute_name(kms_master_key_id) -> "KmsMasterKeyId";
+encode_attribute_name(kms_data_key_reuse_period_seconds) -> "KmsDataKeyReusePeriodSeconds";
 encode_attribute_name(all) -> "All".
 
 
@@ -235,12 +237,15 @@ decode_attribute_name("ReceiveMessageWaitTimeSeconds") -> receive_message_wait_t
 decode_attribute_name("Policy") -> policy;
 decode_attribute_name("RedrivePolicy") -> redrive_policy;
 decode_attribute_name("ContentBasedDeduplication") -> content_based_deduplication;
+decode_attribute_name("KmsMasterKeyId") -> kms_master_key_id;
+decode_attribute_name("KmsDataKeyReusePeriodSeconds") -> kms_data_key_reuse_period_seconds;
 decode_attribute_name("FifoQueue") -> fifo_queue.
 
 
 decode_attribute_value("Policy", Value) -> Value;
 decode_attribute_value("QueueArn", Value) -> Value;
 decode_attribute_value("RedrivePolicy", Value) -> Value;
+decode_attribute_value("KmsMasterKeyId", Value) -> Value;
 decode_attribute_value(_, "true") -> true;
 decode_attribute_value(_, "false") -> false;
 decode_attribute_value(_, Value) -> list_to_integer(Value).
@@ -468,16 +473,16 @@ send_message(QueueName, MessageBody, DelaySeconds, MessageAttributes, #aws_confi
       Doc
      ).
 
--spec set_queue_attributes(string(), [{visibility_timeout, integer()} | {policy, string()|binary()}]) -> ok | no_return().
+-spec set_queue_attributes(string(), proplists:proplist()) -> ok | no_return().
 set_queue_attributes(QueueName, Attributes) ->
     set_queue_attributes(QueueName, Attributes, default_config()).
 
--spec set_queue_attributes(string(), [{visibility_timeout, integer()} | {policy, string()|binary()}], aws_config()) -> ok | no_return().
+-spec set_queue_attributes(string(), proplists:proplist(), aws_config()) -> ok | no_return().
 set_queue_attributes(QueueName, Attributes, Config)
   when is_list(QueueName), is_list(Attributes), is_record(Config, aws_config) ->
-    Params = lists:flatten(erlcloud_aws:param_list([encode_attribute_name(Name) || {Name, _} <- Attributes], "Attribute.Name"),
-                          erlcloud_aws:param_list([Value || {_, Value} <- Attributes], "Attribute.Value")),
-
+    Params = erlcloud_aws:param_list([
+        [{"Name", encode_attribute_name(Name)},
+         {"Value", Value}] || {Name, Value} <- Attributes], "Attribute"),
     sqs_simple_request(Config, QueueName, "SetQueueAttributes", Params).
 
 -spec send_message_batch(string(), [batch_entry()]) -> proplist() | no_return().
