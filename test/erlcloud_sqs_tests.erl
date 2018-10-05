@@ -16,6 +16,7 @@ erlcloud_api_test_() ->
      fun start/0,
      fun stop/1,
      [
+      fun set_queue_attributes/1,
       fun send_message_with_message_attributes/1,
       fun receive_messages_with_message_attributes/1,
       fun send_message_batch/1,
@@ -134,6 +135,29 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
 -spec output_tests(fun(), [output_test_spec()]) -> [term()].
 output_tests(Fun, Tests) ->
     [output_test(Fun, Test) || Test <- Tests].
+
+set_queue_attributes(_) ->
+    Attributes = [{kms_master_key_id, "some/id"},
+                  {kms_data_key_reuse_period_seconds, 200}],
+    Expected = [
+        {"Action", "SetQueueAttributes"},
+        {"Attribute.1.Name", "KmsMasterKeyId"},
+        {"Attribute.1.Value", "some%2Fid"},
+        {"Attribute.2.Name", "KmsDataKeyReusePeriodSeconds"},
+        {"Attribute.2.Value", "200"}
+    ],
+    Tests =
+        [?_sqs_test(
+            {"Test queue attributes setting.",
+             ?_f(erlcloud_sqs:set_queue_attributes("Queue", Attributes)),
+             Expected})],
+    Response = "
+<SetQueueAttributesResponse>
+   <ResponseMetadata>
+      <RequestId>40945605-b328-53b5-aed4-1cc24a7240e8</RequestId>
+   </ResponseMetadata>
+</SetQueueAttributesResponse>",
+    input_tests(Response, Tests).
 
 send_message_with_message_attributes(_) ->
     MessageBody = "Hello",
