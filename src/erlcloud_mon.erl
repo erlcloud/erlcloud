@@ -19,6 +19,7 @@
          put_metric_data/3, put_metric_data/2,
          put_metric_data/6, put_metric_data/5,
          get_metric_statistics/4, get_metric_statistics/9, get_metric_statistics/8,
+         get_alarm_state/2, get_alarm_state/1,
          configure_host/3,
          test/0,
          test2/0
@@ -393,6 +394,33 @@ extract_metrics(Node, Statistics) ->
     ]
     ++
     [ {string:to_lower(Statistic), get_text(Statistic, Node)} || Statistic <- Statistics].
+
+
+%%------------------------------------------------------------------------------
+%% @doc CloudWatch API - check alarm state using DescribeAlarms query
+%% [https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_DescribeAlarms.html]
+%% @end
+%%------------------------------------------------------------------------------
+-spec get_alarm_state(
+        AlarmName  ::string()
+                      ) -> string() | no_return().
+
+get_alarm_state(AlarmName) ->
+	get_alarm_state(AlarmName, default_config()).
+
+-spec get_alarm_state(
+        AlarmName  ::string(),
+        Config     ::aws_config()
+                      ) -> string() | no_return().
+
+get_alarm_state(AlarmName, #aws_config{} = Config) ->
+    Params = [{"AlarmNames.member.1", AlarmName}],
+    Doc = mon_query(Config, "DescribeAlarms", Params),
+    [Member] = xmerl_xpath:string(
+        "/DescribeAlarmsResponse/DescribeAlarmsResult/MetricAlarms/member",
+        Doc),
+    get_text("StateValue", Member).
+
 
 %%------------------------------------------------------------------------------
 mon_simple_query(Config, Action, Params) ->
