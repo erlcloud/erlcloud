@@ -4,6 +4,7 @@
 -export([start/0]).
 -export([stop/1]).
 -export([send_message_batch/1]).
+-export([send_message_with_message_opts/1]).
 -export([send_message_with_message_attributes/1]).
 -export([receive_messages_with_message_attributes/1]).
 -export([send_message_batch_with_message_attributes/1]).
@@ -17,6 +18,7 @@ erlcloud_api_test_() ->
      fun stop/1,
      [
       fun set_queue_attributes/1,
+      fun send_message_with_message_opts/1,
       fun send_message_with_message_attributes/1,
       fun receive_messages_with_message_attributes/1,
       fun send_message_batch/1,
@@ -157,6 +159,42 @@ set_queue_attributes(_) ->
       <RequestId>40945605-b328-53b5-aed4-1cc24a7240e8</RequestId>
    </ResponseMetadata>
 </SetQueueAttributesResponse>",
+    input_tests(Response, Tests).
+
+send_message_with_message_opts(_) ->
+    MessageBody = "Hello",
+    MessageOpts = [
+        {message_group_id, "GroupId"},
+        {message_deduplication_id, "DedupId"}
+    ],
+    Expected = [
+        {"Action", "SendMessage"},
+        {"MessageGroupId", "GroupId"},
+        {"MessageDeduplicationId", "DedupId"},
+        {"MessageBody", MessageBody}
+    ],
+    Tests =
+        [?_sqs_test(
+            {"Test sends a message with message options.",
+                ?_f(erlcloud_sqs:send_message("Queue.fifo", MessageBody, MessageOpts,
+                    erlcloud_aws:default_config())),
+                Expected})],
+    Response = "
+<SendMessageResponse>
+    <SendMessageResult>
+        <MD5OfMessageBody>
+            fafb00f5732ab283681e124bf8747ed1
+        </MD5OfMessageBody>
+        <MessageId>
+            5fea7756-0ea4-451a-a703-a558b933e274
+        </MessageId>
+    </SendMessageResult>
+    <ResponseMetadata>
+        <RequestId>
+            27daac76-34dd-47df-bd01-1f6e873584a0
+        </RequestId>
+    </ResponseMetadata>
+</SendMessageResponse>",
     input_tests(Response, Tests).
 
 send_message_with_message_attributes(_) ->
@@ -305,13 +343,16 @@ receive_messages_with_message_attributes(_) ->
     output_tests(?_f(erlcloud_sqs:receive_message("Queue", all, 1, 30, none, all, erlcloud_aws:default_config())), Tests).
 
 send_message_batch(_) ->
-    Batch = [{"batch-message-01", "Hello"}, {"batch-message-02", "World"}],
+    Batch = [{"batch-message-01", "Hello", [], [{message_group_id, "GroupId"}]},
+             {"batch-message-02", "World", [], [{message_deduplication_id, "DedupId"}]}],
     Expected = [
                 {"Action", "SendMessageBatch"},
                 {"SendMessageBatchRequestEntry.1.Id", "batch-message-02"},
                 {"SendMessageBatchRequestEntry.1.MessageBody", "World"},
+                {"SendMessageBatchRequestEntry.1.MessageDeduplicationId", "DedupId"},
                 {"SendMessageBatchRequestEntry.2.Id", "batch-message-01"},
-                {"SendMessageBatchRequestEntry.2.MessageBody", "Hello"}
+                {"SendMessageBatchRequestEntry.2.MessageBody", "Hello"},
+                {"SendMessageBatchRequestEntry.2.MessageGroupId", "GroupId"}
                ],
     Tests =
         [?_sqs_test(
