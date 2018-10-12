@@ -264,6 +264,14 @@ receive_messages_with_message_attributes(_) ->
         <Value>195004372649</Value>
       </Attribute>
       <Attribute>
+        <Name>MessageGroupId</Name>
+        <Value>GroupId</Value>
+      </Attribute>
+      <Attribute>
+        <Name>MessageDeduplicationId</Name>
+        <Value>DedupId</Value>
+      </Attribute>
+      <Attribute>
         <Name>SentTimestamp</Name>
         <Value>1238099229000</Value>
       </Attribute>
@@ -325,6 +333,8 @@ receive_messages_with_message_attributes(_) ->
                              {receipt_handle, "MbZj6wDWli+JvwwJaBV+3dcjk2YW2vA3+STFFljTM8tJJg6HRG6PYSasuWXPJB+CwLj1FjgXUv1uSj1gUPAWV66FU/WeR4mq2OKpEGYWbnLmpRCJVAyeMjeU5ZBdtcQ+QEauMZc8ZRv37sIW2iJKq3M9MFx1YvV11A2x/KSbkJ0="},
                              {attributes, [
                                            {sender_id, "195004372649"},
+                                           {message_group_id, "GroupId"},
+                                           {message_deduplication_id, "DedupId"},
                                            {sent_timestamp, 1238099229000},
                                            {approximate_receive_count, 5},
                                            {approximate_first_receive_timestamp, 1250700979248}]},

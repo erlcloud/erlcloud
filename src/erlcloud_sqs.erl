@@ -369,9 +369,16 @@ encode_msg_attribute_name(Name) when is_list(Name) -> Name.
 
 decode_msg_attribute_name("SenderId") -> sender_id;
 decode_msg_attribute_name("SentTimestamp") -> sent_timestamp;
+decode_msg_attribute_name("MessageGroupId") -> message_group_id;
+decode_msg_attribute_name("MessageDeduplicationId") -> message_deduplication_id;
 decode_msg_attribute_name("ApproximateReceiveCount") -> approximate_receive_count;
 decode_msg_attribute_name("ApproximateFirstReceiveTimestamp") -> approximate_first_receive_timestamp;
 decode_msg_attribute_name(Name) when is_list(Name) -> Name.
+
+decode_msg_attribute_value("SenderId", Value) -> Value;
+decode_msg_attribute_value("MessageGroupId", Value) -> Value;
+decode_msg_attribute_value("MessageDeduplicationId", Value) -> Value;
+decode_msg_attribute_value(_Name, Value) -> list_to_integer(Value).
 
 decode_messages(Messages) ->
     [decode_message(Message) || Message <- Messages].
@@ -428,8 +435,7 @@ decode_message_attribute_value(DataType, Value) ->
 
 decode_msg_attributes(Attrs)  ->
     [{decode_msg_attribute_name(Name),
-      case Name of "SenderId" -> Value; _ -> list_to_integer(Value) end} ||
-        {Name, Value} <- decode_attributes(Attrs)].
+      decode_msg_attribute_value(Name, Value)} || {Name, Value} <- decode_attributes(Attrs)].
 
 decode_attributes(Attrs) ->
     [{erlcloud_xml:get_text("Name", Attr), erlcloud_xml:get_text("Value", Attr)} ||
