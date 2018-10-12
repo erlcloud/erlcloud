@@ -987,10 +987,16 @@ sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams) ->
     [{"Authorization", lists:flatten(Authorization)} | Headers2].
 
 iso_8601_basic_time() ->
-    {{Year,Month,Day},{Hour,Min,Sec}} = calendar:now_to_universal_time(os:timestamp()),
-    lists:flatten(io_lib:format(
-                    "~4.10.0B~2.10.0B~2.10.0BT~2.10.0B~2.10.0B~2.10.0BZ",
-                    [Year, Month, Day, Hour, Min, Sec])).
+    {{Year,Month,Day},{Hour,Min,Sec}} = calendar:universal_time(),
+    lists:flatten([
+        integer_to_list(Year), two_digits(Month), two_digits(Day), $T,
+        two_digits(Hour), two_digits(Min), two_digits(Sec), $Z
+    ]).
+
+two_digits(Int) when Int < 10 ->
+    [$0, $0 + Int];
+two_digits(Int) ->
+    integer_to_list(Int).
 
 canonical_request(Method, CanonicalURI, QParams, Headers, PayloadHash) ->
     {CanonicalHeaders, SignedHeaders} = canonical_headers(Headers),
