@@ -2323,6 +2323,30 @@ run_task_input_tests(_) ->
   \"taskDefinition\": \"hello_world\"
 }
 "
+            }),
+         ?_ecs_test(
+            {"RunTask example request",
+             ?_f(erlcloud_ecs:run_task(
+                 "hello_world",
+                 [{count, 1},
+                  {placement_strategy, [
+                      [{field, "attribute:ecs.availability-zone"},
+                       {type, "spread"}],
+                      [{field, "instanceId"},
+                       {type, "spread"}]
+                  ]}
+                 ])), "
+{
+  \"count\": 1,
+  \"placementStrategy\": [
+      {\"type\": \"spread\",
+       \"field\": \"attribute:ecs.availability-zone\"},
+      {\"type\": \"spread\",
+       \"field\": \"instanceId\"}
+   ],
+  \"taskDefinition\": \"hello_world\"
+}
+"
             })
         ],
     Response = "
