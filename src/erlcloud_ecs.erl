@@ -145,6 +145,9 @@
     maybe_list/1,
     maximum_percent_opt/0,
     minimum_healthy_percent_opt/0, 
+    placement_strategy/0,
+    placement_strategy_opt/0,
+    placement_strategy_opts/0,
     register_task_definition_opt/0,
     register_task_definition_opts/0,
     role_opt/0,
@@ -163,10 +166,7 @@
     volume_name_opt/0,
     volumes/0,
     volumes_opt/0,
-    volumes_opts/0,
-    placement_strategy/0,
-    placement_strategy_opt/0,
-    placement_strategy_opts/0
+    volumes_opts/0
 ]).
 
 
@@ -516,7 +516,7 @@ container_volumes_from_opt() ->
                                     container_log_configuration_opt() |
                                     {memory, pos_integer()} |
                                     {memory_reservation, pos_integer()} |
-                                    container_mount_points_opt() | 
+                                    container_mount_points_opt() |
                                     {name, string_param()} |
                                     container_port_mappings_opt() |
                                     {privileged, boolean()} |
@@ -2163,6 +2163,7 @@ register_task_definition(ContainerDefinitions, Family, Opts, Config) ->
 -type run_task_opt() :: {cluster, string_param()} |
                         {count, pos_integer()} |
                         task_overrides_opt() |
+                        placement_strategy_opt() |
                         {started_by, string_param()}.
 
 -type run_task_opts() :: [run_task_opt()].

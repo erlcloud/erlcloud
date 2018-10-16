@@ -153,11 +153,6 @@
     source_volume :: undefined | binary()
 }).
 
--record(ecs_placement_strategy, {
-    field :: undefined | binary(),
-    type :: undefined | binary()
-}).
-
 -record(ecs_port_mapping, {
     container_port :: undefined | pos_integer(),
     host_port :: undefined | pos_integer(),
@@ -193,7 +188,6 @@
     memory :: undefined | pos_integer(),
     memory_reservation :: undefined | pos_integer(),
     mount_points :: undefined | [#ecs_mount_point{}],
-    placement_strategy :: undefined | [#ecs_placement_strategy{}],
     name :: undefined | binary(),
     port_mappings :: undefined | [#ecs_port_mapping{}],
     privileged :: undefined | boolean(),
