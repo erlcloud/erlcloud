@@ -145,6 +145,9 @@
     maybe_list/1,
     maximum_percent_opt/0,
     minimum_healthy_percent_opt/0, 
+    placement_strategy/0,
+    placement_strategy_opt/0,
+    placement_strategy_opts/0,
     register_task_definition_opt/0,
     register_task_definition_opts/0,
     role_opt/0,
@@ -364,6 +367,27 @@ volume_host_opt() ->
 volumes_opt() ->
     {volumes, <<"volumes">>, fun encode_volumes/1}.
 
+-type placement_strategy_opt() :: placement_strategy_field_opt() |
+                                  placement_strategy_type_opt().
+-type placement_strategy_opts() :: [placement_strategy_opt()].
+
+-type placement_strategy_field_opt() :: {field, string_param()}.
+-spec placement_strategy_field_opt() -> opt_table_entry().
+placement_strategy_field_opt() ->
+    {field, <<"field">>, fun to_binary/1}.
+
+-type placement_strategy_type_opt() :: {type, string_param()}.
+-spec placement_strategy_type_opt() -> opt_table_entry().
+placement_strategy_type_opt() ->
+    {type, <<"type">>, fun to_binary/1}.
+
+-type placement_strategy() :: {placement_strategy,
+                               maybe_list(placement_strategy_opts())}.
+-spec placement_strategy_opt() -> opt_table_entry().
+placement_strategy_opt() ->
+    {placement_strategy, <<"placementStrategy">>,
+     fun encode_placement_strategy/1}.
+
 -type key_value_pair_opt() :: {name, string_param()} |
                               {value, string_param()}.
 -type key_value_pair_opts() :: maybe_list([key_value_pair_opt()]).
@@ -578,6 +602,18 @@ encode_volumes(Volumes) ->
         end, 
     Volumes).
         
+-spec encode_placement_strategy(placement_strategy_opts()) -> [aws_opts()].
+encode_placement_strategy(Strategy) ->
+    StrategyOpts = [
+        placement_strategy_field_opt(),
+        placement_strategy_type_opt()
+    ],
+    lists:map(
+        fun(Volume) ->
+            {AwsOpts, _EcsOpts} = opts(StrategyOpts, Volume), AwsOpts
+        end, 
+    Strategy).
+
 -spec encode_ecs_volume_from_list(ecs_volume_from_opts()) -> [aws_opts()].
 encode_ecs_volume_from_list(VolumesFrom) ->
     encode_maybe_list(fun ecs_volume_from_opt/0, VolumesFrom).
@@ -2127,6 +2163,7 @@ register_task_definition(ContainerDefinitions, Family, Opts, Config) ->
 -type run_task_opt() :: {cluster, string_param()} |
                         {count, pos_integer()} |
                         task_overrides_opt() |
+                        placement_strategy_opt() |
                         {started_by, string_param()}.
 
 -type run_task_opts() :: [run_task_opt()].
@@ -2136,6 +2173,7 @@ run_task_opts() ->
         {cluster, <<"cluster">>, fun to_binary/1},
         {count, <<"count">>, fun id/1},
         task_overrides_opt(),
+        placement_strategy_opt(),
         {started_by, <<"startedBy">>, fun to_binary/1}
     ].
 
