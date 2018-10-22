@@ -607,7 +607,7 @@ resume_processes(GroupName, ScalingProcesses, Config) ->
 %% without decrementing the desired capacity of the group.
 %% @end
 %% --------------------------------------------------------------------
--spec detach_instances(list(string()),string()) -> aws_autoscaling_activity() | {error, term()}.
+-spec detach_instances(list(string()),string()) -> {ok, list(aws_autoscaling_activity())} | {error, term()}.
 detach_instances(InstanceIds, GroupName) ->
     detach_instances(InstanceIds, GroupName, erlcloud_aws:default_config()).
 
@@ -618,13 +618,13 @@ detach_instances(InstanceIds, GroupName) ->
 %% Config a supplied AWS configuration.
 %% @end
 %% --------------------------------------------------------------------
--spec detach_instances(list(string()),string(), boolean() | aws_config()) -> aws_autoscaling_activity() | {error, term()}.
+-spec detach_instances(list(string()),string(), boolean() | aws_config()) -> {ok, list(aws_autoscaling_activity())} | {error, term()}.
 detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity) when is_boolean(ShouldDecrementDesiredCapacity) ->
     detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity, erlcloud_aws:default_config());
 detach_instances(InstanceIds, GroupName, Config) ->
     detach_instances(InstanceIds, GroupName, false, Config).
 
--spec detach_instances(list(string()),string(), boolean(), aws_config()) -> aws_autoscaling_activity() | {error, term()}.
+-spec detach_instances(list(string()),string(), boolean(), aws_config()) -> {ok, list(aws_autoscaling_activity())} | {error, term()}.
 detach_instances(InstanceIds, GroupName, ShouldDecrementDesiredCapacity, Config) ->
     P = case ShouldDecrementDesiredCapacity of
             true ->
