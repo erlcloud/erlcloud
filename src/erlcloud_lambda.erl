@@ -27,9 +27,10 @@
          update_alias/2, update_alias/4, update_alias/5,
          update_event_source_mapping/4, update_event_source_mapping/5,
          update_function_code/3, update_function_code/4,
-         update_function_configuration/6, update_function_configuration/7]).
+         update_function_configuration/3, update_function_configuration/6, update_function_configuration/7]).
 
--type(runtime()     :: 'nodejs' | 'java8' | 'python2.7').
+-type(runtime()     :: 'nodejs' | 'nodejs4.3' | 'nodejs6.10' | 'nodejs8.10' | 'java8' |
+    'python2.7' | 'python3.6' | 'dotnetcore1.0' | 'dotnetcore2.0' | 'dotnetcore2.1' | 'nodejs4.3-edge' | 'go1.x').
 -type(return_val()  :: any()).
 
 
@@ -688,13 +689,21 @@ update_function_configuration(FunctionName, Description,
                                     Config       :: aws_config()) -> return_val().
 update_function_configuration(FunctionName, Description, Handler,
                               MemorySize, Role, Timeout, Config) ->
+    Configuration = [{<<"Description">>, Description},
+                     {<<"Handler">>, Handler},
+                     {<<"MemorySize">>, MemorySize},
+                     {<<"Role">>, Role},
+                     {<<"Timeout">>, Timeout}],
+    update_function_configuration(FunctionName, Configuration, Config).
+
+-spec update_function_configuration(FunctionName :: binary(),
+    Configuration :: list(tuple()), % JSX json object
+    Config       :: aws_config()) -> return_val().
+update_function_configuration(FunctionName, Configuration, Config) when is_list(Configuration) ->
     Path = base_path() ++ "functions/" ++ binary_to_list(FunctionName) ++ "/configuration",
-    Json = filter_undef([{<<"Description">>, Description},
-                         {<<"Handler">>, Handler},
-                         {<<"MemorySize">>, MemorySize},
-                         {<<"Role">>, Role},
-                         {<<"Timeout">>, Timeout}]),
+    Json = filter_undef(Configuration),
     lambda_request(Config, put, Path, Json).
+
 %%------------------------------------------------------------------------------
 %% Utility Functions
 %%------------------------------------------------------------------------------
