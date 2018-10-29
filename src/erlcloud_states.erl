@@ -488,7 +488,7 @@ send_task_heartbeat(TaskToken) ->
                           Config    :: aws_config()) -> ok | {error, any()}.
 send_task_heartbeat(TaskToken, Config) when is_binary(TaskToken) ->
     Req = #{<<"taskToken">> => TaskToken},
-    step_request(Config, post, "SendTaskHearbeat", Req).
+    step_request(Config, post, "SendTaskHeartbeat", Req).
 
 %%------------------------------------------------------------------------------
 %% SendTaskSuccess
@@ -647,6 +647,8 @@ request(Config, Request) ->
     Result = erlcloud_retry:request(Config, Request, fun handle_result/1),
     case erlcloud_aws:request_to_return(Result) of
         {ok, {_, <<>>}} ->
+            ok;
+        {ok, {_, <<"{}">>}} ->
             ok;
         {ok, {_, RespBody}} ->
             {ok, jsx:decode(RespBody, [return_maps])};

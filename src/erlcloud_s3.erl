@@ -346,7 +346,7 @@ explore_dirstructure(Bucketname, [Branch|Tail], Accum, Config)
         Sub ->
             Files = ProcessContent(Data),
             List = lists:foldl(fun(I,Acc)-> R = proplists:get_value(prefix, I), [R|Acc] end, [], Sub),
-            Result = explore_dirstructure(Bucketname, List, Accum, Config),
+            Result = explore_dirstructure(Bucketname, List, [], Config),
             explore_dirstructure(Bucketname, Tail, [Result, Files|Accum], Config)
     end.
 
