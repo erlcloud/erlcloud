@@ -357,13 +357,13 @@ invoke(FunctionName, Payload) when is_list(Payload)->
     invoke(FunctionName, Payload, default_config()).
 
 -spec invoke(FunctionName :: binary(),
-             Payload :: list(),
+             Payload :: list() | binary(),
              Config  :: aws_config() | binary()) -> return_val().
 invoke(FunctionName, Payload, ConfigOrQualifier) when is_list(Payload)->
     invoke(FunctionName, Payload, [], ConfigOrQualifier).
 
 -spec invoke(FunctionName :: binary(),
-             Payload :: list(),
+             Payload :: list() | binary(),
              Options :: list(),
              Config  :: aws_config() | binary()) -> return_val().
 invoke(FunctionName, Payload, Options, Config = #aws_config{}) ->
@@ -372,7 +372,7 @@ invoke(FunctionName, Payload, Options, Qualifier) when is_binary(Qualifier) ->
     invoke(FunctionName, Payload, Options, Qualifier, default_config()).
 
 -spec invoke(FunctionName :: binary(),
-             Payload   :: list(),
+             Payload   :: list() | binary(),
              Options   :: list(),
              Qualifier :: binary()| undefined,
              Config    :: aws_config()) -> return_val().
@@ -761,6 +761,8 @@ decode_body(<<>>) ->
 decode_body(BinData) ->
     jsx:decode(BinData).
 
+encode_body(Bin) when is_binary(Bin) ->
+    Bin;
 encode_body(undefined) ->
     <<>>;
 encode_body([]) ->
