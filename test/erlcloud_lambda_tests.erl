@@ -638,6 +638,11 @@ api_tests(_) ->
              ?assertEqual(Expected, Result)
      end,
      fun() ->
+             Result = erlcloud_lambda:invoke(<<"name">>, [], [raw_response_body], #aws_config{}),
+             Expected = {ok, <<"{\"message\":\"Hello World!\"}">>},
+             ?assertEqual(Expected, Result)
+     end,
+     fun() ->
              Result = erlcloud_lambda:list_aliases(<<"name">>),
              Expected = {ok, [{<<"Aliases">>,
                                [[{<<"AliasArn">>, <<"arn:aws:lambda:us-east-1:352283894008:function:name:aliasName">>},
