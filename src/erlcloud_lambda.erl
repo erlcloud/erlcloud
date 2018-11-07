@@ -743,22 +743,25 @@ lambda_request_no_update(Config, Method, Path, Options, Body, QParam) ->
                Value  -> Value
            end,
     ShowRespHeaders = proplists:get_value(show_headers, Options, false),
+    RawBody = proplists:get_value(raw_response_body, Options, false),
     Hdrs = proplists:delete(show_headers, Options),
     Headers = headers(Method, Path, Hdrs, Config, encode_body(Body), QParam),
     case erlcloud_aws:do_aws_request_form_raw(
            Method, Config#aws_config.lambda_scheme, Config#aws_config.lambda_host,
            Config#aws_config.lambda_port, Path, Form, Headers, Config, ShowRespHeaders) of
         {ok, RespHeaders, RespBody} ->
-            {ok, RespHeaders, decode_body(RespBody)};
+            {ok, RespHeaders, decode_body(RespBody, RawBody)};
         {ok, RespBody} ->
-            {ok, decode_body(RespBody)};
+            {ok, decode_body(RespBody, RawBody)};
         E ->
             E
     end.
 
-decode_body(<<>>) ->
+decode_body(Body, true) ->
+    Body;
+decode_body(<<>>, _RawBody) ->
     [];
-decode_body(BinData) ->
+decode_body(BinData, _RawBody) ->
     jsx:decode(BinData).
 
 encode_body(Bin) when is_binary(Bin) ->
