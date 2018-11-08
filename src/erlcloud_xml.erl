@@ -79,7 +79,7 @@ get_float(XPath, Node) ->
 
 get_text(#xmlText{value=Value}) -> Value;
 get_text(#xmlElement{content=Content}) ->
-    lists:flatten([get_text(Node) || Node <- Content]).
+    lists:flatmap(fun get_text/1, Content).
 
 get_text(XPath, Doc) -> get_text(XPath, Doc, "").
 get_text({XPath, AttrName}, Doc, Default) ->
