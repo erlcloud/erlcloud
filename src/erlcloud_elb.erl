@@ -29,8 +29,8 @@
 
          describe_load_balancer_attributes/1, describe_load_balancer_attributes/2,
 
-         describe_tags/3,
-         describe_tags/2
+         describe_tags/4, describe_tags/3, describe_tags/2,
+         describe_tags_all/0, describe_tags_all/1, describe_tags_all/2
   ]).
 
 -include("erlcloud.hrl").
@@ -230,6 +230,15 @@ describe_load_balancers(Names, Params, Config) ->
 describe_tags(Names, Config) ->
     describe_tags(Names, [{"PageSize", 1}], Config).
 
+-spec describe_tags(ElbNames, PageSize, Marker, AwsConfig) -> paged_result()
+    when
+    ElbNames :: list(string()),
+    PageSize :: non_neg_integer(),
+    Marker :: string(),
+    AwsConfig :: aws_config().
+describe_tags(Names, PageSize, Marker, Config) ->
+    describe_tags(Names, [{"Marker", Marker}, {"PageSize", PageSize}], Config).
+
 -spec describe_tags(ElbNames, Params, AwsConfig) -> paged_result()
     when
     ElbNames :: list(string()),
@@ -242,11 +251,32 @@ describe_tags(Names, Params, Config) ->
     case elb_query(Config, "DescribeTags", P) of
         {ok, Doc} ->
             Elbs = xmerl_xpath:string(?DESCRIBE_ELBS_TAGS_PATH, Doc),
-            erlcloud_util:maybe_paged_result(
-                ?DESCRIBE_ELBS_TAGS_PATH_TOKEN, Doc, lists:map(fun extract_elb_tags/1, Elbs));
+            erlcloud_util:maybe_paged_result(Doc, lists:map(fun extract_elb_tags/1, Elbs));
         {error, Reason} ->
             {error, Reason}
     end.
+
+-spec describe_tags_all() ->
+    {ok, [term()]} | {error, term()}.
+describe_tags_all() ->
+    describe_tags_all(default_config()).
+
+-spec describe_tags_all(list(string()) | aws_config()) ->
+    {ok, [term()]} | {error, term()}.
+describe_tags_all(Config) when is_record(Config, aws_config) ->
+    describe_tags_all([], default_config());
+describe_tags_all(Names) ->
+    describe_tags_all(Names, default_config()).
+
+-spec describe_tags_all(list(string()), aws_config()) ->
+    {ok, [term()]} | {error, term()}.
+describe_tags_all(Names, Config) ->
+    describe_all(
+        fun(Marker, Cfg) ->
+            describe_tags(
+                Names, ?DEFAULT_MAX_RECORDS, Marker, Cfg
+            )
+        end, Config, none, []).
 
 -spec describe_load_balancers_all() ->
     {ok, [term()]} | {error, term()}.
@@ -551,6 +581,8 @@ describe_all(Fun, AwsConfig, Marker, Acc) ->
     case Fun(Marker, AwsConfig) of
         {ok, Res} ->
             {ok, lists:append(Acc, Res)};
+        {ok, Res, NewMarker} ->
+            describe_all(Fun, AwsConfig, NewMarker, lists:append(Acc, Res));
         {{paged, NewMarker}, Res} ->
             describe_all(Fun, AwsConfig, NewMarker, lists:append(Acc, Res));
         {error, Reason} ->
