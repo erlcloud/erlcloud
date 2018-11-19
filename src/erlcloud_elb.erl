@@ -29,7 +29,8 @@
 
          describe_load_balancer_attributes/1, describe_load_balancer_attributes/2,
 
-         describe_tags/3
+         describe_tags/3,
+         describe_tags/2
   ]).
 
 -include("erlcloud.hrl").
@@ -43,7 +44,7 @@
 -define(DESCRIBE_ELBS_PATH, 
         "/DescribeLoadBalancersResponse/DescribeLoadBalancersResult/LoadBalancerDescriptions/member").
 -define(DESCRIBE_ELBS_NEXT_TOKEN, 
-        "/DescribeLoadBalancersResponse/DescribeLoadBalancersResult/NextMarker").
+        "/DescribeLoadBalancersResponse/NextMarker").
 -define(DESCRIBE_ELB_POLICIES_PATH, 
         "/DescribeLoadBalancerPoliciesResponse/DescribeLoadBalancerPoliciesResult/PolicyDescriptions/member").
 -define(DESCRIBE_ELB_POLICY_TYPE_PATH, 
@@ -51,9 +52,9 @@
 -define(DESCRIBE_ELBS_TAGS_PATH,
         "/DescribeTagsResponse/DescribeTagsResult/TagDescriptions/member").
 -define(DESCRIBE_ELBS_TAGS_PATH_TOKEN,
-        "/DescribeTagsResponse/DescribeTagsResult/TagDescriptions/NextMarker").
+        "/DescribeTagsResponse/NextMarker").
 
--type paged_result() :: {ok, term()} | {{paged, string()}, term()} |
+-type paged_result() :: {ok, term()} | {ok, Results :: any(), Marker :: string()} |
 {error, metadata_not_available | container_credentials_unavailable | erlcloud_aws:httpc_result_error()}.
 
 
@@ -222,20 +223,30 @@ describe_load_balancers(Names, Params, Config) ->
             {error, Reason}
     end.
 
+-spec describe_tags(ElbNames, AwsConfig) -> paged_result()
+    when
+    ElbNames :: list(string()),
+    AwsConfig :: aws_config().
+describe_tags(Names, Config) ->
+    describe_tags(Names, [{"PageSize", 1}], Config).
+
 -spec describe_tags(ElbNames, Params, AwsConfig) -> paged_result()
-  when
-  ElbNames  :: list(string()),
-  Params    :: list({string(), term()}),
-  AwsConfig :: aws_config().
+    when
+    ElbNames :: list(string()),
+    Params :: list({string(), term()}),
+    AwsConfig :: aws_config().
+describe_tags(Names, Marker, Config) when is_integer(hd(Marker)) ->
+    describe_tags(Names, [{"Marker", Marker}, {"PageSize", 1}], Config);
 describe_tags(Names, Params, Config) ->
-  P = member_params("LoadBalancerNames.member.", Names) ++ Params,
-  case elb_query(Config, "DescribeTags", P) of
-    {ok, Doc} ->
-      Elbs = xmerl_xpath:string(?DESCRIBE_ELBS_TAGS_PATH, Doc),
-      {erlcloud_util:next_token(?DESCRIBE_ELBS_TAGS_PATH_TOKEN, Doc), [extract_elb_tags(Elb) || Elb <- Elbs]};
-    {error, Reason} ->
-      {error, Reason}
-  end.
+    P = member_params("LoadBalancerNames.member.", Names) ++ Params,
+    case elb_query(Config, "DescribeTags", P) of
+        {ok, Doc} ->
+            Elbs = xmerl_xpath:string(?DESCRIBE_ELBS_TAGS_PATH, Doc),
+            erlcloud_util:maybe_paged_result(
+                ?DESCRIBE_ELBS_TAGS_PATH_TOKEN, Doc, lists:map(fun extract_elb_tags/1, Elbs));
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 -spec describe_load_balancers_all() ->
     {ok, [term()]} | {error, term()}.

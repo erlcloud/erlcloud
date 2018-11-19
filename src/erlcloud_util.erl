@@ -1,8 +1,8 @@
 -module(erlcloud_util).
--export([sha_mac/2, sha256_mac/2, md5/1, sha256/1,rand_uniform/1,
-         is_dns_compliant_name/1,
-         query_all/4, query_all/5, query_all_token/4, make_response/2, 
-         get_items/2, to_string/1, encode_list/2, next_token/2]).
+-export([sha_mac/2, sha256_mac/2, md5/1, sha256/1, rand_uniform/1,
+    is_dns_compliant_name/1,
+    query_all/4, query_all/5, query_all_token/4, make_response/2,
+    get_items/2, to_string/1, encode_list/2, next_token/2, maybe_paged_result/3]).
 
 -define(MAX_ITEMS, 1000).
 
@@ -126,5 +126,13 @@ next_token(Path, XML) ->
             {paged, erlcloud_xml:get_text(Next)};
         _ ->
             ok
+    end.
+
+maybe_paged_result(Path, XML, Result) ->
+    case next_token(Path, XML) of
+        {paged, Marker} ->
+            {ok, Result, Marker};
+        ok ->
+            {ok, Result}
     end.
 

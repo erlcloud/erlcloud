@@ -8,40 +8,61 @@
 %%%===================================================================
 
 start() ->
-  meck:new(erlcloud_aws, [passthrough]),
-  ok.
+    meck:new(erlcloud_aws, [passthrough]),
+    ok.
 
 
 stop(_) ->
-  meck:unload(erlcloud_aws).
+    meck:unload(erlcloud_aws).
 
 
 elb_tags_test_() ->
-  {foreach,
-    fun start/0,
-    fun stop/1,
-    [
-      {"Request describe_tags.",
-        fun() ->
-          meck:expect(erlcloud_aws, aws_request_xml4, fun(_, _, _, _, _, _) -> {ok, describe_tags_response_xmerl()} end),
-          LoadBalancerName = "vvorobyov-classic",
-          Params = [{"PageSize", 1}],
-          Resp = erlcloud_elb:describe_tags(
-            [LoadBalancerName],
-            Params,
-            erlcloud_aws:default_config()),
-          ?assertMatch(
-            {ok, [
-              [
-                {load_balancer_name, LoadBalancerName},
-                {tags, [[{value, _}, {key, _}], [{value, _}, {key, _}]]}
-              ]
-            ]},
-            Resp
-          )
-        end}
-    ]
-  }.
+    {foreach,
+        fun start/0,
+        fun stop/1,
+        [
+            {"Request describe_tags.",
+                fun() ->
+                    meck:expect(erlcloud_aws, aws_request_xml4, fun(_, _, _, _, _, _) ->
+                        {ok, describe_tags_response_xmerl()} end),
+                    LoadBalancerName = "vvorobyov-classic",
+                    Params = [{"PageSize", 1}],
+                    Resp = erlcloud_elb:describe_tags(
+                        [LoadBalancerName],
+                        Params,
+                        erlcloud_aws:default_config()),
+                    ?assertMatch(
+                        {ok, [
+                            [
+                                {load_balancer_name, LoadBalancerName},
+                                {tags, [[{value, _}, {key, _}], [{value, _}, {key, _}]]}
+                            ]
+                        ]},
+                        Resp
+                    )
+                end},
+            {"Request describe_tags with 'NextMarker'.",
+                fun() ->
+                    meck:expect(erlcloud_aws, aws_request_xml4,
+                        fun(_, _, _, _, _, _) -> {ok, describe_tags_response_xmerl_with_next_marker()} end),
+                    LoadBalancerName = "vvorobyov-classic",
+                    Params = [{"PageSize", 1}],
+                    Resp = erlcloud_elb:describe_tags(
+                        [LoadBalancerName],
+                        Params,
+                        erlcloud_aws:default_config()),
+                    ?assertMatch(
+                        {ok, [
+                            [
+                                {load_balancer_name, LoadBalancerName},
+                                {tags, [[{value, _}, {key, _}], [{value, _}, {key, _}]]}
+                            ]
+                        ], _NextMarker},
+                        Resp
+                    )
+                end}
+        ]
+    }.
 
 
 %%%===================================================================
@@ -49,7 +70,7 @@ elb_tags_test_() ->
 %%%===================================================================
 
 describe_tags_response_xmerl() ->
-  XML = "<DescribeTagsResponse xmlns=\"http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/\">
+    XML = "<DescribeTagsResponse xmlns=\"http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/\">
   <DescribeTagsResult>
     <TagDescriptions>
       <member>
@@ -71,4 +92,30 @@ describe_tags_response_xmerl() ->
     <RequestId>75bbeca1-e357-11e8-b2f4-735be4940a86</RequestId>
   </ResponseMetadata>
 </DescribeTagsResponse>",
-  element(1, xmerl_scan:string(XML)).
+    element(1, xmerl_scan:string(XML)).
+
+describe_tags_response_xmerl_with_next_marker() ->
+    XML = "<DescribeTagsResponse xmlns=\"http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/\">
+  <DescribeTagsResult>
+    <TagDescriptions>
+      <member>
+        <LoadBalancerName>vvorobyov-classic</LoadBalancerName>
+        <Tags>
+          <member>
+            <Value>tag-value-2</Value>
+            <Key>tag-key-2</Key>
+          </member>
+          <member>
+            <Value>tag-value-2</Value>
+            <Key>tag-key-1</Key>
+          </member>
+        </Tags>
+      </member>
+    </TagDescriptions>
+  </DescribeTagsResult>
+  <ResponseMetadata>
+    <RequestId>75bbeca1-e357-11e8-b2f4-735be4940a86</RequestId>
+  </ResponseMetadata>
+   <NextMarker>11111111111</NextMarker>
+</DescribeTagsResponse>",
+    element(1, xmerl_scan:string(XML)).
