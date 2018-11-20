@@ -38,24 +38,6 @@ elb_tags_test_() ->
                         ]},
                         Resp
                     )
-                end},
-            {"Request describe_tags with 'NextMarker'.",
-                fun() ->
-                    meck:expect(erlcloud_aws, aws_request_xml4,
-                        fun(_, _, _, _, _, _) -> {ok, describe_tags_response_xmerl_with_next_marker()} end),
-                    LoadBalancerName = "vvorobyov-classic",
-                    Resp = erlcloud_elb:describe_tags(
-                        [LoadBalancerName],
-                        erlcloud_aws:default_config()),
-                    ?assertMatch(
-                        {ok, [
-                            [
-                                {load_balancer_name, LoadBalancerName},
-                                {tags, [[{value, _}, {key, _}], [{value, _}, {key, _}]]}
-                            ]
-                        ], _NextMarker},
-                        Resp
-                    )
                 end}
         ]
     }.
@@ -87,31 +69,5 @@ describe_tags_response_xmerl() ->
   <ResponseMetadata>
     <RequestId>75bbeca1-e357-11e8-b2f4-735be4940a86</RequestId>
   </ResponseMetadata>
-</DescribeTagsResponse>",
-    element(1, xmerl_scan:string(XML)).
-
-describe_tags_response_xmerl_with_next_marker() ->
-    XML = "<DescribeTagsResponse xmlns=\"http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/\">
-  <DescribeTagsResult>
-    <TagDescriptions>
-      <member>
-        <LoadBalancerName>vvorobyov-classic</LoadBalancerName>
-        <Tags>
-          <member>
-            <Value>tag-value-2</Value>
-            <Key>tag-key-2</Key>
-          </member>
-          <member>
-            <Value>tag-value-2</Value>
-            <Key>tag-key-1</Key>
-          </member>
-        </Tags>
-      </member>
-    </TagDescriptions>
-  </DescribeTagsResult>
-  <ResponseMetadata>
-    <RequestId>75bbeca1-e357-11e8-b2f4-735be4940a86</RequestId>
-  </ResponseMetadata>
-   <NextMarker>11111111111</NextMarker>
 </DescribeTagsResponse>",
     element(1, xmerl_scan:string(XML)).

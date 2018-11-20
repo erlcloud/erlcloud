@@ -234,7 +234,7 @@ describe_tags(Names, Config) ->
     case elb_query(Config, "DescribeTags", P) of
         {ok, Doc} ->
             Elbs = xmerl_xpath:string(?DESCRIBE_ELBS_TAGS_PATH, Doc),
-            erlcloud_util:maybe_paged_result(Doc, lists:map(fun extract_elb_tags/1, Elbs));
+            {ok, lists:map(fun extract_elb_tags/1, Elbs)};
         {error, Reason} ->
             {error, Reason}
     end.
