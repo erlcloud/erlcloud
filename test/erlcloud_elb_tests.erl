@@ -26,10 +26,8 @@ elb_tags_test_() ->
                     meck:expect(erlcloud_aws, aws_request_xml4, fun(_, _, _, _, _, _) ->
                         {ok, describe_tags_response_xmerl()} end),
                     LoadBalancerName = "vvorobyov-classic",
-                    Params = [{"PageSize", 1}],
                     Resp = erlcloud_elb:describe_tags(
                         [LoadBalancerName],
-                        Params,
                         erlcloud_aws:default_config()),
                     ?assertMatch(
                         {ok, [
@@ -46,10 +44,8 @@ elb_tags_test_() ->
                     meck:expect(erlcloud_aws, aws_request_xml4,
                         fun(_, _, _, _, _, _) -> {ok, describe_tags_response_xmerl_with_next_marker()} end),
                     LoadBalancerName = "vvorobyov-classic",
-                    Params = [{"PageSize", 1}],
                     Resp = erlcloud_elb:describe_tags(
                         [LoadBalancerName],
-                        Params,
                         erlcloud_aws:default_config()),
                     ?assertMatch(
                         {ok, [
@@ -58,24 +54,6 @@ elb_tags_test_() ->
                                 {tags, [[{value, _}, {key, _}], [{value, _}, {key, _}]]}
                             ]
                         ], _NextMarker},
-                        Resp
-                    )
-                end},
-            {"Request describe_tags_all.",
-                fun() ->
-                    meck:expect(erlcloud_aws, aws_request_xml4,
-                        fun(_, _, _, _, _, _) -> {ok, describe_tags_response_xmerl()} end),
-                    LoadBalancerName = "vvorobyov-classic",
-                    Resp = erlcloud_elb:describe_tags_all(
-                        [LoadBalancerName],
-                        erlcloud_aws:default_config()),
-                    ?assertMatch(
-                        {ok, [
-                            [
-                                {load_balancer_name, LoadBalancerName},
-                                {tags, [[{value, _}, {key, _}], [{value, _}, {key, _}]]}
-                            ]
-                        ]},
                         Resp
                     )
                 end}
