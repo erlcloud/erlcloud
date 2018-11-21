@@ -128,14 +128,4 @@ next_token(Path, XML) ->
             ok
     end.
 
-maybe_paged_result(XML, Result) ->
-    maybe_paged_result("/*/NextMarker", XML, Result).
-
-maybe_paged_result(Path, XML, Result) ->
-    case next_token(Path, XML) of
-        {paged, Marker} ->
-            {ok, Result, Marker};
-        ok ->
-            {ok, Result}
-    end.
 

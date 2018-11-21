@@ -50,8 +50,6 @@
         "/DescribeLoadBalancerPolicyTypesResponse/DescribeLoadBalancerPolicyTypesResult/PolicyTypeDescriptions/member").
 -define(DESCRIBE_ELBS_TAGS_PATH,
         "/DescribeTagsResponse/DescribeTagsResult/TagDescriptions/member").
--define(DESCRIBE_ELBS_TAGS_PATH_TOKEN,
-        "/DescribeTagsResponse/NextMarker").
 
 -type result() :: {ok, term()} | {error, metadata_not_available | container_credentials_unavailable | erlcloud_aws:httpc_result_error()}.
 
