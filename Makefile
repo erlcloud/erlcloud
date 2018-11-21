@@ -2,7 +2,7 @@
 
 # determine which Rebar we want to be running
 REBAR2=$(shell which rebar || echo ./rebar)
-REBAR3=$(shell which rebar3)
+REBAR3=$(shell which rebar3 || echo ./rebar3)
 ifeq ($(FORCE_REBAR2),true)
  REBAR=$(REBAR2)
  REBAR_VSN=2

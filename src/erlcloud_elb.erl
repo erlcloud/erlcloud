@@ -12,22 +12,25 @@
 
          describe_load_balancer/1, describe_load_balancer/2,
 
-         describe_load_balancers/0, describe_load_balancers/1, 
+         describe_load_balancers/0, describe_load_balancers/1,
          describe_load_balancers/2, describe_load_balancers/3, describe_load_balancers/4,
          describe_load_balancers_all/0, describe_load_balancers_all/1, describe_load_balancers_all/2,
 
          configure_health_check/2, configure_health_check/3,
-         
+
          create_load_balancer_policy/3, create_load_balancer_policy/4, create_load_balancer_policy/5,
          delete_load_balancer_policy/2, delete_load_balancer_policy/3,
-         
-         describe_load_balancer_policies/0, describe_load_balancer_policies/1, 
+
+         describe_load_balancer_policies/0, describe_load_balancer_policies/1,
          describe_load_balancer_policies/2, describe_load_balancer_policies/3,
-         
-         describe_load_balancer_policy_types/0, describe_load_balancer_policy_types/1, 
+
+         describe_load_balancer_policy_types/0, describe_load_balancer_policy_types/1,
          describe_load_balancer_policy_types/2,
 
-         describe_load_balancer_attributes/1, describe_load_balancer_attributes/2]).
+         describe_load_balancer_attributes/1, describe_load_balancer_attributes/2,
+
+         describe_tags/2, describe_tags/1
+  ]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -40,11 +43,16 @@
 -define(DESCRIBE_ELBS_PATH, 
         "/DescribeLoadBalancersResponse/DescribeLoadBalancersResult/LoadBalancerDescriptions/member").
 -define(DESCRIBE_ELBS_NEXT_TOKEN, 
-        "/DescribeLoadBalancersResponse/DescribeLoadBalancersResult/NextMarker").
+        "/DescribeLoadBalancersResponse/NextMarker").
 -define(DESCRIBE_ELB_POLICIES_PATH, 
         "/DescribeLoadBalancerPoliciesResponse/DescribeLoadBalancerPoliciesResult/PolicyDescriptions/member").
 -define(DESCRIBE_ELB_POLICY_TYPE_PATH, 
         "/DescribeLoadBalancerPolicyTypesResponse/DescribeLoadBalancerPolicyTypesResult/PolicyTypeDescriptions/member").
+-define(DESCRIBE_ELBS_TAGS_PATH,
+        "/DescribeTagsResponse/DescribeTagsResult/TagDescriptions/member").
+
+-type result() :: {ok, term()} | {error, metadata_not_available | container_credentials_unavailable | erlcloud_aws:httpc_result_error()}.
+
 
 -import(erlcloud_xml, [get_text/2, get_integer/2, get_list/2]).
 
@@ -207,6 +215,24 @@ describe_load_balancers(Names, Params, Config) ->
         {ok, Doc} ->
             Elbs = xmerl_xpath:string(?DESCRIBE_ELBS_PATH, Doc),            
             {erlcloud_util:next_token(?DESCRIBE_ELBS_NEXT_TOKEN, Doc), [extract_elb(Elb) || Elb <- Elbs]};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+-spec describe_tags(ElbNames) -> result() when ElbNames :: list(string()).
+describe_tags(Names) ->
+    describe_tags(Names, default_config()).
+
+-spec describe_tags(ElbNames, AwsConfig) -> result()
+    when
+    ElbNames :: list(string()),
+    AwsConfig :: aws_config().
+describe_tags(Names, Config) ->
+    P = member_params("LoadBalancerNames.member.", Names),
+    case elb_query(Config, "DescribeTags", P) of
+        {ok, Doc} ->
+            Elbs = xmerl_xpath:string(?DESCRIBE_ELBS_TAGS_PATH, Doc),
+            {ok, lists:map(fun extract_elb_tags/1, Elbs)};
         {error, Reason} ->
             {error, Reason}
     end.
@@ -514,6 +540,8 @@ describe_all(Fun, AwsConfig, Marker, Acc) ->
     case Fun(Marker, AwsConfig) of
         {ok, Res} ->
             {ok, lists:append(Acc, Res)};
+        {ok, Res, NewMarker} ->
+            describe_all(Fun, AwsConfig, NewMarker, lists:append(Acc, Res));
         {{paged, NewMarker}, Res} ->
             describe_all(Fun, AwsConfig, NewMarker, lists:append(Acc, Res));
         {error, Reason} ->
@@ -545,3 +573,16 @@ elb_request(Config, Action, Params) ->
         {error, Reason} ->
             erlang:error({aws_error, Reason})
     end.
+
+
+extract_elb_tags(Item) ->
+  [
+    {load_balancer_name, get_text("LoadBalancerName", Item)},
+    {tags, [extract_tag(L) || L <- xmerl_xpath:string("Tags/member", Item)]}
+  ].
+
+extract_tag(Item) ->
+  [
+    {value, get_text("Value", Item)},
+    {key, get_text("Key", Item)}
+  ].
