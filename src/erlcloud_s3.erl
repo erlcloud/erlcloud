@@ -1047,27 +1047,31 @@ make_link(Expire_time, BucketName, Key, Config) ->
 
 -spec get_object_url(string(), string()) -> string().
 
- get_object_url(BucketName, Key) ->
-  get_object_url(BucketName, Key, default_config()).
+get_object_url(BucketName, Key) ->
+    get_object_url(BucketName, Key, default_config()).
 
 -spec get_object_url(string(), string(), aws_config()) -> string().
 
- get_object_url(BucketName, Key, Config) ->
-  case Config#aws_config.s3_bucket_after_host of
+get_object_url(BucketName, Key, Config) ->
+    case Config#aws_config.s3_bucket_after_host of
       false -> lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]);
       true  -> lists:flatten([Config#aws_config.s3_scheme, Config#aws_config.s3_host, port_spec(Config), "/", BucketName, "/", Key])
-  end.
+    end.
 
 -spec get_object_url_2(string(), string(), aws_config()) -> {Host::string(), Path::string(), URL::string()}.
 get_object_url_2(BucketName, Key, Config) ->
+    _Key = case lists:prefix("/", Key) of
+               true -> Key;
+               false -> "/" ++ Key
+           end,
+
     case Config#aws_config.s3_bucket_after_host of
         false ->
             Host = BucketName ++ "." ++ Config#aws_config.s3_host,
-            Path = "/" ++ Key,
-            {Host, Path,  lists:flatten([Config#aws_config.s3_scheme, Host, port_spec(Config), Path])};
+            {Host, _Key,  lists:flatten([Config#aws_config.s3_scheme, Host, port_spec(Config), _Key])};
         true  ->
             Host = Config#aws_config.s3_host,
-            Path = lists:flatten(["/", BucketName, "/", Key]),
+            Path = lists:flatten(["/", BucketName, _Key]),
             {Host, Path, lists:flatten([Config#aws_config.s3_scheme, Host, port_spec(Config), Path])}
     end.
 
@@ -1085,17 +1089,17 @@ signature(Config, Path, Date, Region, QueryParams, Headers, Payload) ->
 make_presigned_v4_url(ExpireTime, BucketName, Key, Params) ->
     make_presigned_v4_url(ExpireTime, BucketName, Key, Params, default_config()).
 
-% Authenticating Requests: Using Query Parameters
-% https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
-% Example:
-%   test() ->
-%       application:ensure_all_started(erlcloud),
-%       {ok, DefaultCfg} = erlcloud_aws:profile(),
-%       AWSCfg = DefaultCfg#aws_config{s3_host = "s3.your_region.amazonaws.com"},
-%       BucketName = "your_bucket_name",
-%       Key = "your_object_key",
-%       URL = erlcloud_s3:make_presigned_v4_url(604800, BucketName, Key, [{"X-User", "12333333"}], AWSCfg),
-%       io:format("~s~n", [URL]).
+%% Authenticating Requests: Using Query Parameters
+%% https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
+%% Example:
+%%   test() ->
+%%       application:ensure_all_started(erlcloud),
+%%       {ok, DefaultCfg} = erlcloud_aws:profile(),
+%%       AWSCfg = DefaultCfg#aws_config{s3_host = "s3.your_region.amazonaws.com"},
+%%       BucketName = "your_bucket_name",
+%%       Key = "your_object_key",
+%%       URL = erlcloud_s3:make_presigned_v4_url(604800, BucketName, Key, [{"X-User", "12333333"}], AWSCfg),
+%%       io:format("~s~n", [URL]).
 -spec make_presigned_v4_url(integer(), string(), string(), proplist(), aws_config()) -> string().
 make_presigned_v4_url(ExpireTime, BucketName, Key, QueryParams, Config) when is_integer(ExpireTime) ->
     {Host, Path, URL} = get_object_url_2(BucketName, Key, Config),
@@ -1112,8 +1116,10 @@ make_presigned_v4_url(ExpireTime, BucketName, Key, QueryParams, Config) when is_
     Headers = [{"host", Host}],
     Payload = "UNSIGNED-PAYLOAD",
     Signature = signature(Config, Path, Date, Region, QP1, Headers, Payload),
-
-    QueryStr = string:join([[K, "=", V] || {K, V} <- QP1 ++ [{"X-Amz-Signature", Signature}]], "&"),
+    QueryStr = erlcloud_http:make_query_string(QP1 ++ [{"X-Amz-Signature", Signature}], no_assignment),
+%%    QP2 = [[erlcloud_http:url_encode(K), "=", erlcloud_http:url_encode(V)]
+%%           || {K, V} <- QP1 ++ [{"X-Amz-Signature", Signature}]],
+%%    QueryStr = string:join(QP2, "&"),
     lists:flatten([URL, "?", QueryStr]).
 
 -spec make_get_url(integer(), string(), string()) -> iolist().
