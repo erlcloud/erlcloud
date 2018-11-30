@@ -1117,9 +1117,6 @@ make_presigned_v4_url(ExpireTime, BucketName, Key, QueryParams, Config) when is_
     Payload = "UNSIGNED-PAYLOAD",
     Signature = signature(Config, Path, Date, Region, QP1, Headers, Payload),
     QueryStr = erlcloud_http:make_query_string(QP1 ++ [{"X-Amz-Signature", Signature}], no_assignment),
-%%    QP2 = [[erlcloud_http:url_encode(K), "=", erlcloud_http:url_encode(V)]
-%%           || {K, V} <- QP1 ++ [{"X-Amz-Signature", Signature}]],
-%%    QueryStr = string:join(QP2, "&"),
     lists:flatten([URL, "?", QueryStr]).
 
 -spec make_get_url(integer(), string(), string()) -> iolist().
