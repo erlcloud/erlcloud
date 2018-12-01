@@ -540,8 +540,6 @@ describe_all(Fun, AwsConfig, Marker, Acc) ->
     case Fun(Marker, AwsConfig) of
         {ok, Res} ->
             {ok, lists:append(Acc, Res)};
-        {ok, Res, NewMarker} ->
-            describe_all(Fun, AwsConfig, NewMarker, lists:append(Acc, Res));
         {{paged, NewMarker}, Res} ->
             describe_all(Fun, AwsConfig, NewMarker, lists:append(Acc, Res));
         {error, Reason} ->

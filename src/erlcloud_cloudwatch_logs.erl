@@ -346,7 +346,7 @@ log_events(Events) ->
 
 -spec list_tags_log_group(
     log_group_name()
-) -> tags_return().
+) -> {ok, tags_return()} | {error, erlcloud_aws:httpc_result_error()}.
 
 list_tags_log_group(LogGroup) ->
     list_tags_log_group(LogGroup, default_config()).
@@ -355,7 +355,7 @@ list_tags_log_group(LogGroup) ->
 -spec list_tags_log_group(
     log_group_name(),
     aws_config()
-) -> tags_return().
+) -> {ok, tags_return()} | {error, erlcloud_aws:httpc_result_error()}.
 
 list_tags_log_group(LogGroup, Config) ->
     case
@@ -380,7 +380,7 @@ list_tags_log_group(LogGroup, Config) ->
 -spec tag_log_group(
     log_group_name(),
     list(tag())
-) -> ok.
+) -> {ok, list()} | {error, erlcloud_aws:httpc_result_error()}.
 
 tag_log_group(LogGroup, Tags) when is_list(Tags) ->
     tag_log_group(LogGroup, Tags, default_config()).
@@ -390,7 +390,7 @@ tag_log_group(LogGroup, Tags) when is_list(Tags) ->
     log_group_name(),
     list(tag()),
     aws_config()
-) -> ok.
+) -> {ok, list()} | {error, erlcloud_aws:httpc_result_error()}.
 
 tag_log_group(LogGroup, Tags, Config) when is_list(Tags) ->
     Params = [{<<"logGroupName">>, LogGroup},

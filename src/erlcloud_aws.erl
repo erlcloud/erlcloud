@@ -50,6 +50,7 @@
 -export_type([httpc_result_error/0]).
 -type httpc_result() :: {ok, httpc_result_ok()} | {error, httpc_result_error()}.
 -export_type([httpc_result/0]).
+-export_type([profile_option/0]).
 
 -record(metadata_credentials, {
          access_key_id :: string(),
@@ -548,7 +549,7 @@ config_env() ->
         _ -> {error, environment_config_unavailable}
     end.
 
--spec config_metadata(task_credentials | instance_metadata) -> {ok, #metadata_credentials{}} | {error, metadata_not_available | container_credentials_unavailable | httpc_result_error()}.
+-spec config_metadata(task_credentials | instance_metadata) -> {ok, #aws_config{}} | {error, metadata_not_available | container_credentials_unavailable | httpc_result_error()}.
 config_metadata(Source) ->
     Config = #aws_config{},
     case get_metadata_credentials( Source, Config ) of
