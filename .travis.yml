@@ -21,6 +21,7 @@ install:
 script:
   - make check_warnings
   - make eunit
+  - make check
 deploy:
   skip_cleanup: true
   provider: script
