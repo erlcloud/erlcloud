@@ -2583,6 +2583,7 @@ list_tables(Opts, Config) ->
 list_all_tables() ->
     list_all_tables(default_config()).
 
+-spec list_all_tables(aws_config()) -> {ok, [table_name()]} | {error, any()}.
 list_all_tables(AWSCfg) ->
     do_list_all_tables(undefined, AWSCfg, []).
 
@@ -3575,6 +3576,7 @@ update_time_to_live(Table, AttributeName, Enabled) ->
 %% '''
 %% @end
 %%------------------------------------------------------------------------------
+-spec wait_for_table(table_name(), non_neg_integer(), aws_config()) -> ok | {error, any()}.
 wait_for_table(Table, Interval, AWSCfg) when is_binary(Table) ->
     case erlcloud_ddb2:describe_table(Table, [{out, record}], AWSCfg) of
         {ok, #ddb2_describe_table{table = #ddb2_table_description{table_status = active}}} ->
@@ -3583,16 +3585,16 @@ wait_for_table(Table, Interval, AWSCfg) when is_binary(Table) ->
             timer:sleep(Interval),
             wait_for_table(Table, Interval, AWSCfg);
         {error, Reason} ->
-            error(Reason)
+            {error, Reason}
     end;
 wait_for_table(Table, Interval, AWSCfg) when is_list(Table) ->
     wait_for_table(list_to_binary(Table), Interval, AWSCfg).
 
 wait_for_table(Table, AWSCfg) ->
-    wait_for_table(list_to_binary(Table), 3000, AWSCfg).
+    wait_for_table(Table, 3000, AWSCfg).
 
 wait_for_table(Table) ->
-    wait_for_table(list_to_binary(Table), default_config()).
+    wait_for_table(Table, default_config()).
 
 
 to_binary(X) when is_binary(X) ->
