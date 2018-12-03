@@ -105,7 +105,6 @@
          list_backups/0, list_backups/1, list_backups/2,
          list_global_tables/0, list_global_tables/1, list_global_tables/2,
          list_tables/0, list_tables/1, list_tables/2,
-         list_all_tables/0, list_all_tables/1,
          list_tags_of_resource/1, list_tags_of_resource/2, list_tags_of_resource/3,
          put_item/2, put_item/3, put_item/4,
          %% Note that query is a Erlang reserved word, so we use q instead
@@ -119,8 +118,7 @@
          update_item/3, update_item/4, update_item/5,
          update_global_table/2, update_global_table/3, update_global_table/4,
          update_table/2, update_table/3, update_table/4, update_table/5,
-         update_time_to_live/2, update_time_to_live/3, update_time_to_live/4,
-         wait_for_table/1, wait_for_table/2, wait_for_table/3
+         update_time_to_live/2, update_time_to_live/3, update_time_to_live/4
         ]).
 
 -export_type(
@@ -2579,28 +2577,6 @@ list_tables(Opts, Config) ->
     out(Return, fun(Json, UOpts) -> undynamize_record(list_tables_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_list_tables.table_names, {ok, []}).
 
-
-list_all_tables() ->
-    list_all_tables(default_config()).
-
--spec list_all_tables(aws_config()) -> {ok, [table_name()]} | {error, any()}.
-list_all_tables(AWSCfg) ->
-    do_list_all_tables(undefined, AWSCfg, []).
-
-do_list_all_tables(LastTable, AWSCfg, Result) ->
-    Options = [{exclusive_start_table_name, LastTable}, {out, record}],
-    case erlcloud_ddb2:list_tables(Options, AWSCfg) of
-        {ok, #ddb2_list_tables{table_names = TableNames, last_evaluated_table_name = LastTableName}} ->
-            NewResult = TableNames ++ Result,
-            case LastTableName of
-                undefined -> {ok, NewResult};
-                _ -> do_list_all_tables(LastTableName, AWSCfg, NewResult)
-            end;
-        {error, _} = Error ->
-            Error
-    end.
-
-
 %%%------------------------------------------------------------------------------
 %%% ListTagsOfResource
 %%%------------------------------------------------------------------------------
@@ -3563,39 +3539,6 @@ update_time_to_live(Table, Opts, Config) when is_list(Opts) ->
 
 update_time_to_live(Table, AttributeName, Enabled) ->
     update_time_to_live(Table, [{attribute_name, AttributeName}, {enabled, Enabled}]).
-
-
-%%------------------------------------------------------------------------------
-%% @doc
-%%  wait until table_status==active
-%%
-%% ===Example===
-%%
-%% ```
-%% erlcloud_ddb2:wait_for_table(<<"TableName">>, 3000, Config)
-%% '''
-%% @end
-%%------------------------------------------------------------------------------
--spec wait_for_table(table_name(), non_neg_integer(), aws_config()) -> ok | {error, any()}.
-wait_for_table(Table, Interval, AWSCfg) when is_binary(Table) ->
-    case erlcloud_ddb2:describe_table(Table, [{out, record}], AWSCfg) of
-        {ok, #ddb2_describe_table{table = #ddb2_table_description{table_status = active}}} ->
-            ok;
-        {ok, _} ->
-            timer:sleep(Interval),
-            wait_for_table(Table, Interval, AWSCfg);
-        {error, Reason} ->
-            {error, Reason}
-    end;
-wait_for_table(Table, Interval, AWSCfg) when is_list(Table) ->
-    wait_for_table(list_to_binary(Table), Interval, AWSCfg).
-
-wait_for_table(Table, AWSCfg) ->
-    wait_for_table(Table, 3000, AWSCfg).
-
-wait_for_table(Table) ->
-    wait_for_table(Table, default_config()).
-
 
 to_binary(X) when is_binary(X) ->
     X;
