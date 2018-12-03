@@ -66,10 +66,11 @@ Below is the library roadmap update along with regular features and fixes.
 
 ### Supported Erlang versions
 At the moment we support the following OTP releases:
- - 17.5
- - 18.1
- - 19.1
- - 20.0
+ - 19.3
+ - 20.3
+ - 21.1
+ 
+it might still work on 17+ (primariliy due to Erlang maps) but we do not guarantee that. 
 
 ## Getting started ##
 You need to clone the repository and download rebar/rebar3 (if it's not already available in your path).
