@@ -4,7 +4,7 @@
 -record(aws_assume_role,{
     role_arn :: string() | undefined,
     session_name = "erlcloud" :: string(),
-    duration_secs =  900 :: 900..3600,
+    duration_secs =  900 :: 900..43200,
     external_id :: string() | undefined
 }).
 

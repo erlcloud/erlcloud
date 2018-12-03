@@ -67,7 +67,7 @@
 
 -record(profile_options, {
          session_name :: string(),
-         session_secs :: 900..3600,
+         session_secs :: 900..43200,
          external_id :: string()
 }).
 
@@ -1163,7 +1163,7 @@ profile( Name ) ->
 
 
 -type profile_option() :: {role_session_name, string()}
-                          | {role_session_secs, 900..3600}.
+                          | {role_session_secs, 900..43200}.
 
 %%%---------------------------------------------------------------------------
 -spec profile( Name :: atom(), Options :: [profile_option()] ) ->
