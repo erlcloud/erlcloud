@@ -516,20 +516,20 @@ batch_write_retry(RequestItems, Config) ->
 %%------------------------------------------------------------------------------
 
 -spec wait_for_table_active(table_name(), pos_integer(), non_neg_integer(), aws_config()) -> ok | {error, timeout | any()}.
-wait_for_table_active(Table, Interval, RetryTimes, AWSCfg) when is_binary(Table), Interval > 0, RetryTimes >= 0 ->
-    case erlcloud_ddb2:describe_table(Table, [{out, record}], AWSCfg) of
+wait_for_table_active(Table, Interval, RetryTimes, Config) when is_binary(Table), Interval > 0, RetryTimes >= 0 ->
+    case erlcloud_ddb2:describe_table(Table, [{out, record}], Config) of
         {ok, #ddb2_describe_table{table = #ddb2_table_description{table_status = active}}} ->
             ok;
         {ok, _} ->
             case RetryTimes of
                 0 ->
                     timer:sleep(Interval),
-                    wait_for_table_active(Table, Interval, RetryTimes, AWSCfg);
+                    wait_for_table_active(Table, Interval, RetryTimes, Config);
                 1 ->
                     {error, timeout};
                 _ ->
                     timer:sleep(Interval),
-                    wait_for_table_active(Table, Interval, RetryTimes - 1, AWSCfg)
+                    wait_for_table_active(Table, Interval, RetryTimes - 1, Config)
             end;
         {error, Reason} ->
             {error, Reason}
