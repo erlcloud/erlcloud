@@ -414,7 +414,7 @@ decode_message_attribute(Attributes) ->
         end,
     [F(Attr) || Attr <- Attributes].
 
-decode_message_attribute_value(["Number"], Value) ->
+decode_message_attribute_value("Number", Value) ->
     list_to_integer(Value);
 decode_message_attribute_value(["Number", "int"], Value) ->
     list_to_integer(Value);
@@ -424,16 +424,21 @@ decode_message_attribute_value(["Number", "float"], Value) ->
     list_to_float(Value);
 decode_message_attribute_value(["Number", "float", CustomType], Value) ->
     {CustomType, list_to_float(Value)};
-decode_message_attribute_value(["String"], Value) ->
+decode_message_attribute_value("String", Value) ->
     Value;
 decode_message_attribute_value(["String", CustomType], Value) ->
     {CustomType, Value};
-decode_message_attribute_value(["Binary"], Value) ->
+decode_message_attribute_value("Binary", Value) ->
     list_to_binary(Value);
 decode_message_attribute_value(["Binary", CustomType], Value) ->
     {CustomType, list_to_binary(Value)};
 decode_message_attribute_value(DataType, Value) ->
-    decode_message_attribute_value(string:tokens(DataType, "."), Value).
+    case string:tokens(DataType, ".") of
+        [_Other] -> % check if datatype is something not handled above by Number/String/Binary
+            erlang:error(decode_message_attribute_value_error, [DataType, Value]);
+        Parsed ->
+            decode_message_attribute_value(Parsed, Value)
+    end.
 
 decode_msg_attributes(Attrs)  ->
     [{decode_msg_attribute_name(Name),
