@@ -23,11 +23,12 @@
          delete_hash_key/3, delete_hash_key/4, delete_hash_key/5,
          get_all/2, get_all/3, get_all/4,
          put_all/2, put_all/3, put_all/4,
-         list_all_tables/0, list_all_tables/1,
+         list_tables_all/0, list_tables_all/1,
          q_all/2, q_all/3, q_all/4,
          scan_all/1, scan_all/2, scan_all/3,
-         wait_for_table/1, wait_for_table/2, wait_for_table/3,
-         write_all/2, write_all/3, write_all/4
+         wait_for_table_active/1, wait_for_table_active/2, wait_for_table_active/4,
+         write_all/2, write_all/3, write_all/4,
+         flatreverse/1
         ]).
 
 -ifdef(TEST).
@@ -233,23 +234,23 @@ batch_get_retry(RequestItems, DdbOpts, Config, Acc) ->
     end.
 
 %%%------------------------------------------------------------------------------
-%%% list_all_tables
+%%% list_tables_all
 %%%------------------------------------------------------------------------------
 
-list_all_tables() ->
-    list_all_tables(default_config()).
+list_tables_all() ->
+    list_tables_all(default_config()).
 
--spec list_all_tables(aws_config()) -> {ok, [table_name()]} | {error, any()}.
-list_all_tables(Config) ->
-    do_list_all_tables(undefined, Config, []).
+-spec list_tables_all(aws_config()) -> {ok, [table_name()]} | {error, any()}.
+list_tables_all(Config) ->
+    do_list_tables_all(undefined, Config, []).
 
-do_list_all_tables(LastTable, Config, Result) ->
+do_list_tables_all(LastTable, Config, Result) ->
     Options = [{exclusive_start_table_name, LastTable}, {out, record}],
     case erlcloud_ddb2:list_tables(Options, Config) of
         {ok, #ddb2_list_tables{table_names = TableNames, last_evaluated_table_name = undefined}} ->
-            {ok, Result ++ TableNames};
+            {ok, flatreverse([Result, TableNames])};
         {ok, #ddb2_list_tables{table_names = TableNames, last_evaluated_table_name = LastTableName}} ->
-            do_list_all_tables(LastTableName, Config, Result ++ TableNames);
+            do_list_tables_all(LastTableName, Config, flatreverse([Result, TableNames]));
         {error, _} = Error ->
             Error
     end.
@@ -509,38 +510,38 @@ batch_write_retry(RequestItems, Config) ->
 %% ===Example===
 %%
 %% `
-%% erlcloud_ddb2:wait_for_table(<<"TableName">>, 3000, 40, Config)
+%% erlcloud_ddb2:wait_for_table_active(<<"TableName">>, 3000, 40, Config)
 %% '
 %% @end
 %%------------------------------------------------------------------------------
 
--spec wait_for_table(table_name(), pos_integer(), non_neg_integer(), aws_config()) -> ok | {error, timeout | any()}.
-wait_for_table(Table, Interval, RetryTimes, AWSCfg) when is_binary(Table), Interval > 0, RetryTimes >= 0 ->
+-spec wait_for_table_active(table_name(), pos_integer(), non_neg_integer(), aws_config()) -> ok | {error, timeout | any()}.
+wait_for_table_active(Table, Interval, RetryTimes, AWSCfg) when is_binary(Table), Interval > 0, RetryTimes >= 0 ->
     case erlcloud_ddb2:describe_table(Table, [{out, record}], AWSCfg) of
-        {ok, #ddb2_describe_table{table = _#ddb2_table_description{table_status = active}}} ->
+        {ok, #ddb2_describe_table{table = #ddb2_table_description{table_status = active}}} ->
             ok;
         {ok, _} ->
             case RetryTimes of
                 0 ->
                     timer:sleep(Interval),
-                    wait_for_table(Table, Interval, RetryTimes, AWSCfg);
+                    wait_for_table_active(Table, Interval, RetryTimes, AWSCfg);
                 1 ->
                     {error, timeout};
                 _ ->
                     timer:sleep(Interval),
-                    wait_for_table(Table, Interval, RetryTimes - 1, AWSCfg)
+                    wait_for_table_active(Table, Interval, RetryTimes - 1, AWSCfg)
             end;
         {error, Reason} ->
             {error, Reason}
     end;
-wait_for_table(Table, Interval, RetryTimes, AWSCfg) when is_list(Table) ->
-    wait_for_table(list_to_binary(Table), Interval, RetryTimes, AWSCfg).
+wait_for_table_active(Table, Interval, RetryTimes, AWSCfg) when is_list(Table) ->
+    wait_for_table_active(list_to_binary(Table), Interval, RetryTimes, AWSCfg).
 
-wait_for_table(Table, AWSCfg) ->
-    wait_for_table(Table, 3000, 0, AWSCfg).
+wait_for_table_active(Table, AWSCfg) ->
+    wait_for_table_active(Table, 3000, 0, AWSCfg).
 
-wait_for_table(Table) ->
-    wait_for_table(Table, default_config()).
+wait_for_table_active(Table) ->
+    wait_for_table_active(Table, default_config()).
 
 
 write_all_result([ok | T]) ->
