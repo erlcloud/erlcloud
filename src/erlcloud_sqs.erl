@@ -414,6 +414,8 @@ decode_message_attribute(Attributes) ->
         end,
     [F(Attr) || Attr <- Attributes].
 
+decode_message_attribute_value(["Number"], Value) ->
+    list_to_integer(Value);
 decode_message_attribute_value(["Number", "int"], Value) ->
     list_to_integer(Value);
 decode_message_attribute_value(["Number", "int", CustomType], Value) ->

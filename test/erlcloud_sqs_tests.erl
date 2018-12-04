@@ -305,6 +305,13 @@ receive_messages_with_message_attributes(_) ->
           <StringValue>42</StringValue>
         </Value>
       </MessageAttribute>
+    <MessageAttribute>
+    <Name>number</Name>
+    <Value>
+    <DataType>Number</DataType>
+    <StringValue>56</StringValue>
+    </Value>
+    </MessageAttribute>
       <MessageAttribute>
         <Name>binary</Name>
         <Value>
@@ -342,6 +349,7 @@ receive_messages_with_message_attributes(_) ->
                                                    {"content-type", "application/json"},
                                                    {"float", 3.1415926},
                                                    {"integer", 42},
+                                                   {"number", 56},
                                                    {"binary", <<"Binary string">>},
                                                    {"uuid", {"uuid", <<"db3bf1fc-0cac-4cf8-8d2c-5c307ad4ac3a">>}}
                                                   ]}
