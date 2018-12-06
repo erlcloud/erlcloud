@@ -27,8 +27,7 @@
          q_all/2, q_all/3, q_all/4,
          scan_all/1, scan_all/2, scan_all/3,
          wait_for_table_active/1, wait_for_table_active/2, wait_for_table_active/3, wait_for_table_active/4,
-         write_all/2, write_all/3, write_all/4,
-         flatreverse/1
+         write_all/2, write_all/3, write_all/4
         ]).
 
 -ifdef(TEST).
