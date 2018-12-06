@@ -516,7 +516,7 @@ batch_write_retry(RequestItems, Config) ->
 %%------------------------------------------------------------------------------
 
 -spec wait_for_table_active(table_name(), pos_integer(), non_neg_integer(), aws_config()) ->
-    ok | {error, deleting, timeout | any()}.
+    ok | {error, deleting | timeout | any()}.
 wait_for_table_active(Table, Interval, RetryTimes, Config) when is_binary(Table), Interval > 0, RetryTimes >= 0 ->
     case erlcloud_ddb2:describe_table(Table, [{out, record}], Config) of
         {ok, #ddb2_describe_table{table = #ddb2_table_description{table_status = active}}} ->
