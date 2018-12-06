@@ -874,7 +874,7 @@ create_backup_input_tests(_) ->
  Tests =
   [?_ddb_test(
    {"CreateBackup example request",
-    ?_f(erlcloud_ddb2:create_backup(<<"Forum_Backup">>, <<"Forum">>)), "
+    ?_f(erlcloud_ddb2:create_backup(<<"Forum_Backup">>,<<"Forum">>)), "
     {
         \"BackupName\": \"Forum_Backup\",
         \"TableName\": \"Forum\"
@@ -915,7 +915,7 @@ create_backup_output_tests(_) ->
    })
   ],
 
- output_tests(?_f(erlcloud_ddb2:create_backup(<<"Forum_Backup">>, <<"Forum">>)), Tests).
+ output_tests(?_f(erlcloud_ddb2:create_backup(<<"Forum_Backup">>,<<"Forum">>)), Tests).
 
 %% CreateGlobalTable input test:
 create_global_table_input_tests(_) ->
@@ -1826,10 +1826,10 @@ delete_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"DeleteItem example request",
-             ?_f(erlcloud_ddb2:delete_item(<<"Thread">>,
-                                           [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+             ?_f(erlcloud_ddb2:delete_item(<<"Thread">>, 
+                                          [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                            {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
-                                           [{return_values, all_old},
+                                          [{return_values, all_old},
                                            {expected, {<<"Replies">>, null}}])), "
 {
     \"TableName\": \"Thread\",
@@ -1852,9 +1852,9 @@ delete_item_input_tests(_) ->
          ?_ddb_test(
             {"DeleteItem example request with ConditionExpression",
              ?_f(erlcloud_ddb2:delete_item(<<"Thread">>,
-                                           [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                          [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                            {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
-                                           [{return_values, all_old},
+                                          [{return_values, all_old},
                                            {condition_expression, <<"attribute_not_exists(Replies)">>}])), "
 {
     \"TableName\": \"Thread\",
@@ -1872,9 +1872,9 @@ delete_item_input_tests(_) ->
             }),
          ?_ddb_test(
             {"DeleteItem return metrics",
-             ?_f(erlcloud_ddb2:delete_item(<<"Thread">>,
-                                           {<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
-                                           [{return_consumed_capacity, total},
+             ?_f(erlcloud_ddb2:delete_item(<<"Thread">>, 
+                                          {<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                          [{return_consumed_capacity, total},
                                            {return_item_collection_metrics, size}])), "
 {
     \"TableName\": \"Thread\",
@@ -2737,9 +2737,9 @@ get_item_input_tests(_) ->
         [?_ddb_test(
             {"GetItem example request, with fully specified keys",
              ?_f(erlcloud_ddb2:get_item(<<"Thread">>,
-                                        [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}, 
                                         {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
-                                        [{attributes_to_get, [<<"LastPostDateTime">>, <<"Message">>, <<"Tags">>]},
+                                       [{attributes_to_get, [<<"LastPostDateTime">>, <<"Message">>, <<"Tags">>]},
                                         consistent_read,
                                         {return_consumed_capacity, total},
                                         %% Make sure options at beginning of list override later options
@@ -2748,10 +2748,10 @@ get_item_input_tests(_) ->
              Example1Response}),
          ?_ddb_test(
             {"GetItem example request, with inferred key types",
-             ?_f(erlcloud_ddb2:get_item(<<"Thread">>,
-                                        [{<<"ForumName">>, "Amazon DynamoDB"},
+             ?_f(erlcloud_ddb2:get_item(<<"Thread">>, 
+                                       [{<<"ForumName">>, "Amazon DynamoDB"},
                                         {<<"Subject">>, <<"How do I update multiple items?">>}],
-                                        [{attributes_to_get, [<<"LastPostDateTime">>, <<"Message">>, <<"Tags">>]},
+                                       [{attributes_to_get, [<<"LastPostDateTime">>, <<"Message">>, <<"Tags">>]},
                                         {consistent_read, true},
                                         {return_consumed_capacity, total}]
                                       )),
@@ -2759,9 +2759,9 @@ get_item_input_tests(_) ->
          ?_ddb_test(
             {"GetItem example request, with ProjectionExpression",
              ?_f(erlcloud_ddb2:get_item(<<"Thread">>,
-                                        [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                       [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                         {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
-                                        [{projection_expression, <<"LastPostDateTime, Message, Tags">>},
+                                       [{projection_expression, <<"LastPostDateTime, Message, Tags">>},
                                         consistent_read,
                                         {return_consumed_capacity, total}]
                                       )), "
@@ -2924,7 +2924,7 @@ list_backups_input_tests(_) ->
  Tests =
   [?_ddb_test(
    {"ListBackups example request",
-    ?_f(erlcloud_ddb2:list_backups([{limit, 4}, {exclusive_start_backup_arn, <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523516528459-dfd5667f">>}, {table_name, <<"Forum">>}, {time_range_lower_bound, 1522926603.688}, {time_range_upper_bound, 1523022454.098}])), "
+    ?_f(erlcloud_ddb2:list_backups([{limit, 4},{exclusive_start_backup_arn, <<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523516528459-dfd5667f">>},{table_name, <<"Forum">>},{time_range_lower_bound,1522926603.688},{time_range_upper_bound, 1523022454.098}])), "
     {
         \"Limit\": 4,
         \"TableName\": \"Forum\",
@@ -3001,7 +3001,7 @@ list_global_tables_input_tests(_) ->
             }),
          ?_ddb_test(
             {"ListGlobalTables empty request",
-             ?_f(erlcloud_ddb2:list_global_tables()),
+             ?_f(erlcloud_ddb2:list_global_tables()), 
              "{}"
             })
 
@@ -3091,7 +3091,7 @@ list_tables_input_tests(_) ->
             }),
          ?_ddb_test(
             {"ListTables empty request",
-             ?_f(erlcloud_ddb2:list_tables()),
+             ?_f(erlcloud_ddb2:list_tables()), 
              "{}"
             })
 
@@ -3181,14 +3181,14 @@ put_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"PutItem example request",
-             ?_f(erlcloud_ddb2:put_item(<<"Thread">>,
-                                        [{<<"LastPostedBy">>, <<"fred@example.com">>},
+             ?_f(erlcloud_ddb2:put_item(<<"Thread">>, 
+                                       [{<<"LastPostedBy">>, <<"fred@example.com">>},
                                         {<<"ForumName">>, <<"Amazon DynamoDB">>},
                                         {<<"LastPostDateTime">>, <<"201303190422">>},
                                         {<<"Tags">>, {ss, [<<"Update">>, <<"Multiple Items">>, <<"HelpMe">>]}},
                                         {<<"Subject">>, <<"How do I update multiple items?">>},
                                         {<<"Message">>, <<"I want to update multiple items in a single API call. What's the best way to do that?">>}],
-                                        [{expected, [{<<"ForumName">>, null}, {<<"Subject">>, null}]}])), "
+                                       [{expected, [{<<"ForumName">>, null}, {<<"Subject">>, null}]}])), "
 {
     \"TableName\": \"Thread\",
     \"Item\": {
@@ -3223,11 +3223,11 @@ put_item_input_tests(_) ->
             }),
          ?_ddb_test(
             {"PutItem float inputs",
-             ?_f(erlcloud_ddb2:put_item(<<"Thread">>,
-                                        [{<<"typed float">>, {n, 1.2}},
+             ?_f(erlcloud_ddb2:put_item(<<"Thread">>, 
+                                       [{<<"typed float">>, {n, 1.2}},
                                         {<<"untyped float">>, 3.456},
                                         {<<"mixed set">>, {ns, [7.8, 9.0, 10]}}],
-                                        [])), "
+                                       [])), "
 {
     \"TableName\": \"Thread\",
     \"Item\": {
@@ -3246,13 +3246,13 @@ put_item_input_tests(_) ->
          ?_ddb_test(
             {"PutItem example request with ConditionExpression and ExpressionAttributeValues",
              ?_f(erlcloud_ddb2:put_item(<<"Thread">>,
-                                        [{<<"LastPostedBy">>, <<"fred@example.com">>},
+                                       [{<<"LastPostedBy">>, <<"fred@example.com">>},
                                         {<<"ForumName">>, <<"Amazon DynamoDB">>},
                                         {<<"LastPostDateTime">>, <<"201303190422">>},
                                         {<<"Tags">>, {ss, [<<"Update">>, <<"Multiple Items">>, <<"HelpMe">>]}},
                                         {<<"Subject">>, <<"How do I update multiple items?">>},
                                         {<<"Message">>, <<"I want to update multiple items in a single API call. What's the best way to do that?">>}],
-                                        [{condition_expression, <<"ForumName <> :f and Subject <> :s">>},
+                                       [{condition_expression, <<"ForumName <> :f and Subject <> :s">>},
                                         {expression_attribute_values, [
                                             {<<":f">>, <<"Amazon DynamoDB">>},
                                             {<<":s">>, <<"How do I update multiple items?">>}]}])), "
@@ -3292,7 +3292,7 @@ put_item_input_tests(_) ->
         ?_ddb_test(
             {"PutItem request with complex item",
              ?_f(erlcloud_ddb2:put_item(<<"Table">>,
-                                        [{<<"bool_true">>, {bool, true}},
+                                       [{<<"bool_true">>, {bool, true}},
                                         {<<"bool_false">>, {bool, false}},
                                         {<<"null_value">>, {null, true}},
                                         {<<"list_value">>, {l, ["string", {ss, ["string1", "string2"]}]}},
@@ -3441,9 +3441,9 @@ q_input_tests(_) ->
         [?_ddb_test(
             {"Query example 1 request",
              ?_f(erlcloud_ddb2:q(<<"Thread">>,
-                                 [{<<"LastPostDateTime">>, {{s, <<"20130101">>}, {s, <<"20130115">>}}, between},
+                                [{<<"LastPostDateTime">>, {{s, <<"20130101">>}, {s, <<"20130115">>}}, between},
                                  {<<"ForumName">>, {s, <<"Amazon DynamoDB">>}}],
-                                 [{index_name, <<"LastPostIndex">>},
+                                [{index_name, <<"LastPostIndex">>},
                                  {select, all_attributes},
                                  {limit, 3},
                                  {consistent_read, true}])), "
@@ -3479,8 +3479,8 @@ q_input_tests(_) ->
          ?_ddb_test(
             {"Query example 2 request",
              ?_f(erlcloud_ddb2:q(<<"Thread">>,
-                                 {<<"ForumName">>, <<"Amazon DynamoDB">>, eq},
-                                 [{select, count},
+                                {<<"ForumName">>, <<"Amazon DynamoDB">>, eq},
+                                [{select, count},
                                  {consistent_read, true}])), "
 {
     \"TableName\": \"Thread\",
@@ -3501,8 +3501,8 @@ q_input_tests(_) ->
          ?_ddb_test(
             {"Query exclusive start key",
              ?_f(erlcloud_ddb2:q(<<"Thread">>,
-                                 [{<<"ForumName">>, <<"Amazon DynamoDB">>, eq}],
-                                 [{select, count},
+                                [{<<"ForumName">>, <<"Amazon DynamoDB">>, eq}],
+                                [{select, count},
                                  {index_name, <<"LastPostIndex">>},
                                  {exclusive_start_key, [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                                         {<<"Subject">>, {s, <<"Exclusive key can have 3 parts">>}},
@@ -3537,8 +3537,8 @@ q_input_tests(_) ->
          ?_ddb_test(
             {"Query example request with KeyConditionExpression, ProjectionExpression and ExpressionAttributeValues",
              ?_f(erlcloud_ddb2:q(<<"Reply">>,
-                                 <<"Id = :v1 AND PostedBy BETWEEN :v2a AND :v2b">>,
-                                 [{index_name, <<"PostedBy-Index">>},
+                                <<"Id = :v1 AND PostedBy BETWEEN :v2a AND :v2b">>,
+                                [{index_name, <<"PostedBy-Index">>},
                                  {limit, 3},
                                  {consistent_read, true},
                                  {projection_expression, <<"Id, PostedBy, ReplyDateTime">>},
@@ -3681,7 +3681,7 @@ restore_table_from_backup_input_tests(_) ->
  Tests =
   [?_ddb_test(
    {"RestoreTableFromBackup example request",
-    ?_f(erlcloud_ddb2:restore_table_from_backup(<<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>, <<"Thread">>)), "
+    ?_f(erlcloud_ddb2:restore_table_from_backup(<<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,<<"Thread">>)), "
     {
         \"BackupArn\": \"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb\",
         \"TargetTableName\": \"Thread\"
@@ -3924,7 +3924,7 @@ restore_table_from_backup_output_tests(_) ->
     }})
   ],
 
- output_tests(?_f(erlcloud_ddb2:restore_table_from_backup(<<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>, <<"Thread">>)), Tests).
+ output_tests(?_f(erlcloud_ddb2:restore_table_from_backup(<<"arn:aws:dynamodb:us-east-1:387047610112:table/Forum/backup/01523517555423-69b67bcb">>,<<"Thread">>)), Tests).
 
 %% RestoreTableToPointInTime test based on the API examples:
 %% https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_RestoreTableToPointInTime.html
@@ -4196,8 +4196,8 @@ scan_input_tests(_) ->
             }),
          ?_ddb_test(
             {"Scan example 2 request",
-             ?_f(erlcloud_ddb2:scan(<<"Reply">>,
-                                    [{scan_filter, [{<<"PostedBy">>, <<"joe@example.com">>, eq}]},
+             ?_f(erlcloud_ddb2:scan(<<"Reply">>, 
+                                   [{scan_filter, [{<<"PostedBy">>, <<"joe@example.com">>, eq}]},
                                     {return_consumed_capacity, total}])), "
 {
     \"TableName\": \"Reply\",
@@ -4217,7 +4217,7 @@ scan_input_tests(_) ->
          ?_ddb_test(
             {"Scan consistent read",
              ?_f(erlcloud_ddb2:scan(<<"Reply">>,
-                                    [{consistent_read, true}])), "
+                                   [{consistent_read, true}])), "
 {
     \"TableName\": \"Reply\",
     \"ConsistentRead\": true
@@ -4225,8 +4225,8 @@ scan_input_tests(_) ->
             }),
          ?_ddb_test(
             {"Scan exclusive start key",
-             ?_f(erlcloud_ddb2:scan(<<"Reply">>,
-                                    [{exclusive_start_key, [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+             ?_f(erlcloud_ddb2:scan(<<"Reply">>, 
+                                   [{exclusive_start_key, [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                                            {<<"LastPostDateTime">>, {n, 20130102054211}}]}])), "
 {
     \"TableName\": \"Reply\",
@@ -4286,7 +4286,7 @@ scan_input_tests(_) ->
          ?_ddb_test(
             {"Scan example with FilterExpression",
              ?_f(erlcloud_ddb2:scan(<<"Reply">>,
-                                    [{filter_expression, <<"PostedBy = :val">>},
+                                   [{filter_expression, <<"PostedBy = :val">>},
                                     {expression_attribute_values, [
                                         {<<":val">>, {s, <<"joe@example.com">>}}]},
                                     {return_consumed_capacity, total}])), "
@@ -4649,7 +4649,7 @@ update_continuous_backups_input_tests(_) ->
  Tests =
   [?_ddb_test(
    {"UpdateContinuousBackups example request",
-    ?_f(erlcloud_ddb2:update_continuous_backups(<<"Thread">>, true)), "
+    ?_f(erlcloud_ddb2:update_continuous_backups(<<"Thread">>,true)), "
     {
       \"PointInTimeRecoverySpecification\": {
           \"PointInTimeRecoveryEnabled\": true
@@ -4693,7 +4693,7 @@ update_continuous_backups_output_tests(_) ->
       })
   ],
 
- output_tests(?_f(erlcloud_ddb2:update_continuous_backups(<<"Thread">>, true)), Tests).
+ output_tests(?_f(erlcloud_ddb2:update_continuous_backups(<<"Thread">>,true)), Tests).
 
 %% UpdateItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateItem.html
@@ -4701,11 +4701,11 @@ update_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"UpdateItem example request",
-             ?_f(erlcloud_ddb2:update_item(<<"Thread">>,
-                                           [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+             ?_f(erlcloud_ddb2:update_item(<<"Thread">>, 
+                                          [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                            {<<"Subject">>, {s, <<"How do I update multiple items?">>}}],
-                                           [{<<"LastPostedBy">>, {s, <<"alice@example.com">>}, put}],
-                                           [{expected, {<<"LastPostedBy">>, {s, <<"fred@example.com">>}}},
+                                          [{<<"LastPostedBy">>, {s, <<"alice@example.com">>}, put}],
+                                          [{expected, {<<"LastPostedBy">>, {s, <<"fred@example.com">>}}},
                                            {return_values, all_new}])), "
 {
     \"TableName\": \"Thread\",
@@ -4737,10 +4737,10 @@ update_item_input_tests(_) ->
          ?_ddb_test(
             {"UpdateItem example request 2",
              ?_f(erlcloud_ddb2:update_item(<<"Thread">>,
-                                           [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                          [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                            {<<"Subject">>, {s, <<"A question about updates">>}}],
-                                           [{<<"Replies">>, {n, 1}, add}],
-                                           [{return_values, none}])), "
+                                          [{<<"Replies">>, {n, 1}, add}],
+                                          [{return_values, none}])), "
 {
     \"TableName\": \"Thread\",
     \"Key\": {
@@ -4765,10 +4765,10 @@ update_item_input_tests(_) ->
          ?_ddb_test(
             {"UpdateItem example request with UpdateExpression and ConditionExpression",
              ?_f(erlcloud_ddb2:update_item(<<"Thread">>,
-                                           [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                          [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                            {<<"Subject">>, {s, <<"Maximum number of items?">>}}],
-                                           <<"set LastPostedBy = :val1">>,
-                                           [{condition_expression, <<"LastPostedBy = :val2">>},
+                                          <<"set LastPostedBy = :val1">>,
+                                          [{condition_expression, <<"LastPostedBy = :val2">>},
                                            {expression_attribute_values, [
                                                {<<":val1">>, "alice@example.com"},
                                                {<<":val2">>, "fred@example.com"}]},
@@ -4795,9 +4795,9 @@ update_item_input_tests(_) ->
          ?_ddb_test(
             {"UpdateItem no attribute updates",
              ?_f(erlcloud_ddb2:update_item(<<"Thread">>,
-                                           [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
+                                          [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                            {<<"Subject">>, {s, <<"A question about updates">>}}],
-                                           [])), "
+                                          [])), "
 {
     \"TableName\": \"Thread\",
     \"Key\": {
@@ -5411,5 +5411,5 @@ update_time_to_live_output_tests(_) ->
               {ok, #ddb2_time_to_live_specification{
                 attribute_name = <<"ExpirationTime">>,
                 enabled = true}}})],
-    output_tests(?_f(erlcloud_ddb2:update_time_to_live(<<"SessionData">>,
-                                                       [{attribute_name, <<"ExpirationTime">>}, {enabled, true}])), Tests).
+    output_tests(?_f(erlcloud_ddb2:update_time_to_live(<<"SessionData">>, 
+      [{attribute_name, <<"ExpirationTime">>}, {enabled, true}])), Tests).
