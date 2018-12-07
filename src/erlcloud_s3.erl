@@ -315,17 +315,17 @@ extract_delete_objects_batch_err_contents(Nodes) ->
 to_flat_format([{key,Key},{code,Code},{message,Message}]) ->
     {Key,Code,Message}.
 
-% returns paths list from AWS S3 root directory, used as input to
-% delete_objects_batch
-% example :
-%    25> rp(erlcloud_s3:explore_dirstructure("xmppfiledev",
-%                                            ["sailfish/deleteme"], [])).
-%    ["sailfish/deleteme/deep/deep1/deep4/ZZZ_1.txt",
-%     "sailfish/deleteme/deep/deep1/deep4/ZZZ_0.txt",
-%     "sailfish/deleteme/deep/deep1/ZZZ_0.txt",
-%     "sailfish/deleteme/deep/ZZZ_0.txt"]
-%    ok
-%
+%% returns paths list from AWS S3 root directory, used as input to
+%% delete_objects_batch
+%% example :
+%%    25> rp(erlcloud_s3:explore_dirstructure("xmppfiledev",
+%%                                            ["sailfish/deleteme"], [])).
+%%    ["sailfish/deleteme/deep/deep1/deep4/ZZZ_1.txt",
+%%     "sailfish/deleteme/deep/deep1/deep4/ZZZ_0.txt",
+%%     "sailfish/deleteme/deep/deep1/ZZZ_0.txt",
+%%     "sailfish/deleteme/deep/ZZZ_0.txt"]
+%%    ok
+%%
 -spec explore_dirstructure(string(), list(), list()) -> list() | no_return().
 explore_dirstructure(Bucketname, Branches, Accum) ->
     explore_dirstructure(Bucketname, Branches, Accum, default_config()).
