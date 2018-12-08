@@ -504,7 +504,6 @@ batch_write_retry(RequestItems, Config) ->
 %%------------------------------------------------------------------------------
 %% @doc
 %%  wait until table_status==active.
-%%  RetryTimes = 0 means infinity.
 %%
 %% ===Example===
 %%
@@ -514,8 +513,8 @@ batch_write_retry(RequestItems, Config) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec wait_for_table_active(table_name(), pos_integer(), non_neg_integer(), aws_config()) ->
-    ok | {error, deleting | timeout | any()}.
+-spec wait_for_table_active(table_name(), pos_integer() | infinity, non_neg_integer(), aws_config()) ->
+    ok | {error, deleting | retry_threshold_exceeded | any()}.
 wait_for_table_active(Table, Interval, RetryTimes, Config) when is_binary(Table), Interval > 0, RetryTimes >= 0 ->
     case erlcloud_ddb2:describe_table(Table, [{out, record}], Config) of
         {ok, #ddb2_describe_table{table = #ddb2_table_description{table_status = active}}} ->
@@ -524,11 +523,11 @@ wait_for_table_active(Table, Interval, RetryTimes, Config) when is_binary(Table)
             {error, deleting};
         {ok, _} ->
             case RetryTimes of
-                0 ->
+                infinity ->
                     timer:sleep(Interval),
-                    wait_for_table_active(Table, Interval, RetryTimes, Config);
+                    wait_for_table_active(Table, infinity, RetryTimes, Config);
                 1 ->
-                    {error, timeout};
+                    {error, retry_threshold_exceeded};
                 _ ->
                     timer:sleep(Interval),
                     wait_for_table_active(Table, Interval, RetryTimes - 1, Config)
@@ -541,7 +540,7 @@ wait_for_table_active(Table, Interval, RetryTimes) ->
     wait_for_table_active(Table, Interval, RetryTimes, default_config()).
 
 wait_for_table_active(Table, AWSCfg) ->
-    wait_for_table_active(Table, 3000, 0, AWSCfg).
+    wait_for_table_active(Table, 3000, 100, AWSCfg).
 
 wait_for_table_active(Table) ->
     wait_for_table_active(Table, default_config()).

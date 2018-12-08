@@ -926,7 +926,7 @@ wait_for_table_active_tests(_) ->
          ok}),
 
      ?_ddb_test(
-         {"wait_for_table_active updating to active, RetryTimes = 0 (infinity)",
+         {"wait_for_table_active updating to active, RetryTimes = infinity",
           ?_f(erlcloud_ddb_util:wait_for_table_active(<<"Thread">>)),
           [{"{\"TableName\":\"Thread\"}",
             "
@@ -1212,7 +1212,7 @@ wait_for_table_active_tests(_) ->
           {error, deleting}}),
 
      ?_ddb_test(
-         {"wait_for_table_active timeout",
+         {"wait_for_table_active retry_threshold_exceeded",
           ?_f(erlcloud_ddb_util:wait_for_table_active(<<"Thread">>, 10, 2)),
           [{"{\"TableName\":\"Thread\"}",
             "
@@ -1398,7 +1398,7 @@ wait_for_table_active_tests(_) ->
   }
 }
        "}],
-          {error, timeout}})
+          {error, retry_threshold_exceeded}})
     ],
     multi_call_tests(Tests).
 
