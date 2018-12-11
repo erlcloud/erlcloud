@@ -43,6 +43,10 @@
          replication_group :: undefined | [#ddb2_replica{}]
         }).
 
+-record(ddb2_billing_mode_summary,
+       {billing_mode :: undefined | erlcloud_ddb2:billing_mode(),
+        last_update_to_pay_per_request_date_time :: undefined | date_time()}).
+
 -record(ddb2_provisioned_throughput_description,
         {last_decrease_date_time :: undefined | date_time(),
          last_increase_date_time :: undefined | date_time(),
@@ -81,6 +85,7 @@
 
 -record(ddb2_table_description,
         {attribute_definitions :: undefined | erlcloud_ddb2:attr_defs(),
+         billing_mode_summary :: undefined | #ddb2_billing_mode_summary{},
          creation_date_time :: undefined | number(),
          global_secondary_indexes :: undefined | [#ddb2_global_secondary_index_description{}],
          item_count :: undefined | integer(),

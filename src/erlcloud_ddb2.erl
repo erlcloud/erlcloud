@@ -91,7 +91,7 @@
          batch_write_item/1, batch_write_item/2, batch_write_item/3,
          create_backup/2, create_backup/3, create_backup/4,
          create_global_table/2, create_global_table/3, create_global_table/4,
-         create_table/5, create_table/6, create_table/7,
+         create_table/4, create_table/5, create_table/6, create_table/7,
          delete_backup/1, delete_backup/2, delete_backup/3,
          delete_item/2, delete_item/3, delete_item/4,
          delete_table/1, delete_table/2, delete_table/3,
@@ -140,6 +140,7 @@
     batch_write_item_request_item/0,
     batch_write_item_return/0,
     boolean_opt/1,
+    billing_mode/0,
     comparison_op/0,
     condition/0,
     conditional_op/0,
@@ -323,12 +324,15 @@ default_config() -> erlcloud_aws:default_config().
 -type read_units() :: pos_integer().
 -type write_units() :: pos_integer().
 
+-type billing_mode() :: provisioned | pay_per_request.
+
 -type index_name() :: binary().
 -type projection() :: keys_only |
                       {include, [attr_name()]} |
                       all.
 
--type global_secondary_index_def() :: {index_name(), key_schema(), projection(), read_units(), write_units()}.
+-type global_secondary_index_def() :: {index_name(), key_schema(), projection()} |
+                                      {index_name(), key_schema(), projection(), read_units(), write_units()}.
 
 -type sse_description_status() :: enabling | enabled | disabling | disabled.
 -type sse_description() :: {status, sse_description_status()}.
@@ -490,6 +494,10 @@ dynamize_provisioned_throughput({ReadUnits, WriteUnits}) ->
       {<<"WriteCapacityUnits">>, WriteUnits}].
 
 -spec dynamize_global_secondary_index(global_secondary_index_def()) -> jsx:json_term().
+dynamize_global_secondary_index({IndexName, KeySchema, Projection}) ->
+    [{<<"IndexName">>, IndexName},
+     {<<"KeySchema">>, dynamize_key_schema(KeySchema)},
+     {<<"Projection">>, dynamize_projection(Projection)}];
 dynamize_global_secondary_index({IndexName, KeySchema, Projection, ReadUnits, WriteUnits}) ->
     [{<<"IndexName">>, IndexName},
      {<<"KeySchema">>, dynamize_key_schema(KeySchema)},
@@ -1078,6 +1086,20 @@ out(Result, Undynamize, Opts, Index, Default) ->
 %%% Shared Records
 %%%------------------------------------------------------------------------------
 
+-spec undynamize_billing_mode(binary(), undynamize_opts()) -> billing_mode().
+undynamize_billing_mode(<<"PROVISIONED">>, _) -> provisioned;
+undynamize_billing_mode(<<"PAY_PER_REQUEST">>, _) -> pay_per_request.
+
+-spec billing_mode_summary_record() -> record_desc().
+billing_mode_summary_record() ->
+    {#ddb2_billing_mode_summary{},
+     [{<<"BillingMode">>, #ddb2_billing_mode_summary.billing_mode, fun undynamize_billing_mode/2},
+      {<<"LastUpdateToPayPerRequestDateTime">>,
+       #ddb2_billing_mode_summary.last_update_to_pay_per_request_date_time, fun id/2}]}.
+
+undynamize_billing_mode_summary(V, Opts) ->
+    undynamize_record(billing_mode_summary_record(), V, Opts).
+
 undynamize_consumed_capacity_units(V, _Opts) ->
     {_, CapacityUnits} = lists:keyfind(<<"CapacityUnits">>, 1, V),
     CapacityUnits.
@@ -1205,6 +1227,7 @@ restore_summary_record() ->
 table_description_record() ->
     {#ddb2_table_description{},
      [{<<"AttributeDefinitions">>, #ddb2_table_description.attribute_definitions, fun undynamize_attr_defs/2},
+      {<<"BillingModeSummary">>, #ddb2_table_description.billing_mode_summary, fun undynamize_billing_mode_summary/2},
       {<<"CreationDateTime">>, #ddb2_table_description.creation_date_time, fun id/2},
       {<<"GlobalSecondaryIndexes">>, #ddb2_table_description.global_secondary_indexes,
        fun(V, Opts) -> [undynamize_record(global_secondary_index_description_record(), I, Opts) || I <- V] end},
@@ -1623,6 +1646,10 @@ create_global_table(GlobalTableName, ReplicationGroup, Opts, Config) ->
 -type local_secondary_indexes() :: maybe_list(local_secondary_index_def()).
 -type global_secondary_indexes() :: maybe_list(global_secondary_index_def()).
 
+-spec dynamize_billing_mode(billing_mode()) -> binary().
+dynamize_billing_mode(provisioned) -> <<"PROVISIONED">>;
+dynamize_billing_mode(pay_per_request) -> <<"PAY_PER_REQUEST">>.
+
 -spec dynamize_local_secondary_index(hash_key_name(), local_secondary_index_def()) -> jsx:json_term().
 dynamize_local_secondary_index(HashKey, {IndexName, RangeKey, Projection}) ->
     [{<<"IndexName">>, IndexName},
@@ -1641,7 +1668,8 @@ dynamize_global_secondary_indexes(Value) ->
 dynamize_sse_specification({enabled, Enabled}) when is_boolean(Enabled) ->
     [{<<"Enabled">>, Enabled}].
 
--type create_table_opt() :: {local_secondary_indexes, local_secondary_indexes()} |
+-type create_table_opt() :: {billing_mode, billing_mode()} |
+                            {local_secondary_indexes, local_secondary_indexes()} |
                             {global_secondary_indexes, global_secondary_indexes()} |
                             {sse_specification, sse_specification()} |
                             {stream_specification, stream_specification()}.
@@ -1649,10 +1677,12 @@ dynamize_sse_specification({enabled, Enabled}) when is_boolean(Enabled) ->
 
 -spec create_table_opts(key_schema()) -> opt_table().
 create_table_opts(KeySchema) ->
-    [{local_secondary_indexes, <<"LocalSecondaryIndexes">>, 
+    [{billing_mode, <<"BillingMode">>, fun dynamize_billing_mode/1},
+     {local_secondary_indexes, <<"LocalSecondaryIndexes">>,
       fun(V) -> dynamize_local_secondary_indexes(KeySchema, V) end},
      {global_secondary_indexes, <<"GlobalSecondaryIndexes">>,
       fun dynamize_global_secondary_indexes/1},
+     {provisioned_throughput, <<"ProvisionedThroughput">>, fun dynamize_provisioned_throughput/1},
      {sse_specification, <<"SSESpecification">>, fun dynamize_sse_specification/1},
      {stream_specification, <<"StreamSpecification">>, fun dynamize_stream_specification/1}].
 
@@ -1665,19 +1695,13 @@ create_table_record() ->
 
 -type create_table_return() :: ddb_return(#ddb2_create_table{}, #ddb2_table_description{}).
 
--spec create_table(table_name(), attr_defs(), key_schema(), read_units(), write_units())
+-spec create_table(table_name(), attr_defs(), key_schema(), create_table_opts())
                   -> create_table_return().
-create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits) ->
-    create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, [], default_config()).
-
--spec create_table(table_name(), attr_defs(), key_schema(), read_units(), write_units(),
-                   create_table_opts())
-                  -> create_table_return().
-create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
-    create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, default_config()).
+create_table(Table, AttrDefs, KeySchema, Opts) ->
+    create_table(Table, AttrDefs, KeySchema, Opts, default_config()).
 
 %%------------------------------------------------------------------------------
-%% @doc 
+%% @doc
 %% DynamoDB API:
 %% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html]
 %%
@@ -1686,8 +1710,8 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
 %% Create a table with hash key "ForumName" and range key "Subject"
 %% with a local secondary index on "LastPostDateTime"
 %% and a global secondary index on "Subject" as hash key and "LastPostDateTime"
-%% as range key, read and write capacity 10, projecting all fields 
-%% 
+%% as range key, read and write capacity 10, projecting all fields
+%%
 %% `
 %% {ok, Description} =
 %%     erlcloud_ddb2:create_table(
@@ -1696,32 +1720,47 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
 %%        {<<"Subject">>, s},
 %%        {<<"LastPostDateTime">>, s}],
 %%       {<<"ForumName">>, <<"Subject">>},
-%%       5, 
-%%       5,
-%%       [{local_secondary_indexes,
+%%       [{provisioned_throughput, {5, 5}},
+%%        {local_secondary_indexes,
 %%         [{<<"LastPostIndex">>, <<"LastPostDateTime">>, keys_only}]},
 %%        {global_secondary_indexes, [
 %%          {<<"SubjectTimeIndex">>, {<<"Subject">>, <<"LastPostDateTime">>}, all, 10, 10}
-%%        ]}
+%%         ]}
 %%       ]),
 %% '
 %% @end
 %%------------------------------------------------------------------------------
+-spec create_table(table_name(), attr_defs(), key_schema(), read_units(), write_units())
+                  -> create_table_return();
+                  (table_name(), attr_defs(), key_schema(), create_table_opts(), aws_config())
+                  -> create_table_return().
+create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits)
+    when is_integer(ReadUnits), is_integer(WriteUnits) ->
+    create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, [], default_config());
+create_table(Table, AttrDefs, KeySchema, Opts, Config) ->
+    {AwsOpts, DdbOpts} = opts(create_table_opts(KeySchema), Opts),
+    Return = erlcloud_ddb_impl:request(
+        Config,
+        "DynamoDB_20120810.CreateTable",
+        [{<<"TableName">>, Table},
+         {<<"AttributeDefinitions">>, dynamize_attr_defs(AttrDefs)},
+         {<<"KeySchema">>, dynamize_key_schema(KeySchema)}]
+        ++ AwsOpts),
+    out(Return, fun(Json, UOpts) -> undynamize_record(create_table_record(), Json, UOpts) end,
+        DdbOpts, #ddb2_create_table.table_description).
+
+-spec create_table(table_name(), attr_defs(), key_schema(), read_units(), write_units(),
+                   create_table_opts())
+                  -> create_table_return().
+create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts) ->
+    create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, default_config()).
+
 -spec create_table(table_name(), attr_defs(), key_schema(), read_units(), write_units(),
                    create_table_opts(), aws_config())
                   -> create_table_return().
-create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts, Config) ->
-    {AwsOpts, DdbOpts} = opts(create_table_opts(KeySchema), Opts),
-    Return = erlcloud_ddb_impl:request(
-               Config,
-               "DynamoDB_20120810.CreateTable",
-               [{<<"TableName">>, Table},
-                {<<"AttributeDefinitions">>, dynamize_attr_defs(AttrDefs)}, 
-                {<<"KeySchema">>, dynamize_key_schema(KeySchema)},
-                {<<"ProvisionedThroughput">>, dynamize_provisioned_throughput({ReadUnits, WriteUnits})}]
-               ++ AwsOpts),
-    out(Return, fun(Json, UOpts) -> undynamize_record(create_table_record(), Json, UOpts) end, 
-        DdbOpts, #ddb2_create_table.table_description).
+create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, Opts0, Config) ->
+    Opts = [{provisioned_throughput, {ReadUnits, WriteUnits}} | Opts0],
+    create_table(Table, AttrDefs, KeySchema, Opts, Config).
 
 %%%------------------------------------------------------------------------------
 %%% DeleteBackup
@@ -3397,7 +3436,8 @@ dynamize_global_secondary_index_update(Index) ->
 dynamize_global_secondary_index_updates(Updates) ->
     dynamize_maybe_list(fun dynamize_global_secondary_index_update/1, Updates).
 
--type update_table_opt() :: {provisioned_throughput, {read_units(), write_units()}} |
+-type update_table_opt() :: {billing_mode, billing_mode()} |
+                            {provisioned_throughput, {read_units(), write_units()}} |
                             {attribute_definitions, attr_defs()} |
                             {global_secondary_index_updates, global_secondary_index_updates()} |
                             {stream_specification, stream_specification()} |
@@ -3406,7 +3446,8 @@ dynamize_global_secondary_index_updates(Updates) ->
 
 -spec update_table_opts() -> opt_table().
 update_table_opts() ->
-    [{provisioned_throughput, <<"ProvisionedThroughput">>, fun dynamize_provisioned_throughput/1},
+    [{billing_mode, <<"BillingMode">>, fun dynamize_billing_mode/1},
+     {provisioned_throughput, <<"ProvisionedThroughput">>, fun dynamize_provisioned_throughput/1},
      {attribute_definitions, <<"AttributeDefinitions">>, fun dynamize_attr_defs/1},
      {global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>,
       fun dynamize_global_secondary_index_updates/1},

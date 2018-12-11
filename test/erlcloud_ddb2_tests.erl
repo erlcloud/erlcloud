@@ -1226,6 +1226,84 @@ create_table_input_tests(_) ->
         \"WriteCapacityUnits\": 1
     }
 }"
+            }),
+         ?_ddb_test(
+            {"CreateTable with billing_mode = provisioned",
+             ?_f(erlcloud_ddb2:create_table(
+                   <<"Thread">>,
+                   {<<"ForumName">>, s},
+                   <<"ForumName">>,
+                   [{billing_mode, provisioned},
+                    {provisioned_throughput, {1,1}}]
+                  )), "
+{
+    \"AttributeDefinitions\": [
+        {
+            \"AttributeName\": \"ForumName\",
+            \"AttributeType\": \"S\"
+        }
+    ],
+    \"BillingMode\": \"PROVISIONED\",
+    \"TableName\": \"Thread\",
+    \"KeySchema\": [
+        {
+            \"AttributeName\": \"ForumName\",
+            \"KeyType\": \"HASH\"
+        }
+    ],
+    \"ProvisionedThroughput\": {
+        \"ReadCapacityUnits\": 1,
+        \"WriteCapacityUnits\": 1
+    }
+}"
+            }),
+         ?_ddb_test(
+            {"CreateTable with billing_mode = pay_per_request",
+             ?_f(erlcloud_ddb2:create_table(
+                   <<"Thread">>,
+                   {<<"ForumName">>, s},
+                   <<"ForumName">>,
+                   [{billing_mode, pay_per_request},
+                    {global_secondary_indexes,
+                     [{<<"SubjectIndex">>, {<<"Subject">>, <<"LastPostDateTime">>}, {include, [<<"Author">>]}}]}]
+                  )), "
+{
+    \"AttributeDefinitions\": [
+        {
+            \"AttributeName\": \"ForumName\",
+            \"AttributeType\": \"S\"
+        }
+    ],
+    \"BillingMode\": \"PAY_PER_REQUEST\",
+    \"GlobalSecondaryIndexes\": [
+        {
+            \"IndexName\": \"SubjectIndex\",
+            \"KeySchema\": [
+                {
+                    \"AttributeName\": \"Subject\",
+                    \"KeyType\": \"HASH\"
+                },
+                {
+                    \"AttributeName\": \"LastPostDateTime\",
+                    \"KeyType\": \"RANGE\"
+                }
+            ],
+            \"Projection\": {
+                \"NonKeyAttributes\": [
+                    \"Author\"
+                ],
+                \"ProjectionType\": \"INCLUDE\"
+            }
+        }
+    ],
+    \"TableName\": \"Thread\",
+    \"KeySchema\": [
+        {
+            \"AttributeName\": \"ForumName\",
+            \"KeyType\": \"HASH\"
+        }
+    ]
+}"
             })
         ],
 
@@ -1532,6 +1610,10 @@ create_table_output_tests(_) ->
                 \"AttributeType\": \"S\"
             }
         ],
+        \"BillingModeSummary\": {
+            \"BillingMode\": \"PROVISIONED\",
+            \"LastUpdateToPayPerRequestDateTime\": 1.36372808007E9
+        },
         \"CreationDateTime\": 1.36372808007E9,
         \"GlobalSecondaryIndexes\": [
             {
@@ -1606,6 +1688,10 @@ create_table_output_tests(_) ->
               {attribute_definitions = [{<<"ForumName">>, s},
                                         {<<"LastPostDateTime">>, s},
                                         {<<"Subject">>, s}],
+               billing_mode_summary =
+                   #ddb2_billing_mode_summary{
+                       billing_mode = provisioned,
+                       last_update_to_pay_per_request_date_time = 1363728080.07},
                creation_date_time = 1363728080.07,
                item_count = 0,
                key_schema = {<<"ForumName">>, <<"Subject">>},
@@ -1659,6 +1745,10 @@ create_table_output_tests(_) ->
                 \"AttributeType\": \"S\"
             }
         ],
+        \"BillingModeSummary\": {
+            \"BillingMode\": \"PROVISIONED\",
+            \"LastUpdateToPayPerRequestDateTime\": 1.36372808007E9
+        },
         \"GlobalSecondaryIndexes\": [
             {
                 \"IndexName\": \"SubjectIndex\",
@@ -1737,6 +1827,10 @@ create_table_output_tests(_) ->
               {attribute_definitions = [{<<"ForumName">>, s},
                                         {<<"LastPostDateTime">>, s},
                                         {<<"Subject">>, s}],
+               billing_mode_summary =
+                   #ddb2_billing_mode_summary{
+                       billing_mode = provisioned,
+                       last_update_to_pay_per_request_date_time = 1363728080.07},
                creation_date_time = 1363728080.07,
                item_count = 0,
                key_schema = {<<"ForumName">>, <<"Subject">>},
@@ -1782,6 +1876,10 @@ create_table_output_tests(_) ->
                 \"AttributeType\": \"S\"
             }
         ],
+        \"BillingModeSummary\": {
+            \"BillingMode\": \"PROVISIONED\",
+            \"LastUpdateToPayPerRequestDateTime\": 1.36372808007E9
+        },
         \"CreationDateTime\": 1.36372808007E9,
         \"ItemCount\": 0,
         \"KeySchema\": [
@@ -1802,6 +1900,10 @@ create_table_output_tests(_) ->
 }",
              {ok, #ddb2_table_description
               {attribute_definitions = [{<<"ForumName">>, s}],
+               billing_mode_summary =
+               #ddb2_billing_mode_summary{
+                   billing_mode = provisioned,
+                   last_update_to_pay_per_request_date_time = 1363728080.07},
                creation_date_time = 1363728080.07,
                item_count = 0,
                key_schema = <<"ForumName">>,
@@ -1813,6 +1915,58 @@ create_table_output_tests(_) ->
                       number_of_decreases_today = 0,
                       read_capacity_units = 1,
                       write_capacity_units = 1},
+               table_name = <<"Thread">>,
+               table_size_bytes = 0,
+               table_status = creating}}}),
+         ?_ddb_test(
+            {"CreateTable response with billing_mode = pay_per_request", "
+{
+    \"TableDescription\": {
+        \"AttributeDefinitions\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"AttributeType\": \"S\"
+            }
+        ],
+        \"BillingModeSummary\": {
+            \"BillingMode\": \"PAY_PER_REQUEST\",
+            \"LastUpdateToPayPerRequestDateTime\": 1.36372808007E9
+        },
+        \"CreationDateTime\": 1.36372808007E9,
+        \"ItemCount\": 0,
+        \"KeySchema\": [
+            {
+                \"AttributeName\": \"ForumName\",
+                \"KeyType\": \"HASH\"
+            }
+        ],
+        \"ProvisionedThroughput\": {
+            \"NumberOfDecreasesToday\": 0,
+            \"ReadCapacityUnits\": 0,
+            \"WriteCapacityUnits\": 0
+        },
+        \"TableName\": \"Thread\",
+        \"TableSizeBytes\": 0,
+        \"TableStatus\": \"CREATING\"
+    }
+}",
+             {ok, #ddb2_table_description
+              {attribute_definitions = [{<<"ForumName">>, s}],
+               billing_mode_summary =
+               #ddb2_billing_mode_summary{
+                   billing_mode = pay_per_request,
+                   last_update_to_pay_per_request_date_time = 1363728080.07},
+               creation_date_time = 1363728080.07,
+               item_count = 0,
+               key_schema = <<"ForumName">>,
+               local_secondary_indexes = undefined,
+               provisioned_throughput =
+                   #ddb2_provisioned_throughput_description{
+                      last_decrease_date_time = undefined,
+                      last_increase_date_time = undefined,
+                      number_of_decreases_today = 0,
+                      read_capacity_units = 0,
+                      write_capacity_units = 0},
                table_name = <<"Thread">>,
                table_size_bytes = 0,
                table_status = creating}}})
@@ -5160,6 +5314,15 @@ update_table_input_tests(_) ->
             }
         }
     ]
+}"
+            }),
+        ?_ddb_test(
+            {"UpdateTable example request billing_mode = pay_per_request",
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>,
+                                            [{billing_mode, pay_per_request}])), "
+{
+    \"TableName\": \"Thread\",
+    \"BillingMode\": \"PAY_PER_REQUEST\"
 }"
             })
         ],
