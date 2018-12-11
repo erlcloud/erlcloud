@@ -22,7 +22,8 @@ erlcloud_api_test_() ->
       fun send_message_with_message_attributes/1,
       fun receive_messages_with_message_attributes/1,
       fun send_message_batch/1,
-      fun send_message_batch_with_message_attributes/1
+      fun send_message_batch_with_message_attributes/1,
+      fun receive_messages_with_unknown_attributes/1
      ]}.
 
 start() ->
@@ -305,6 +306,13 @@ receive_messages_with_message_attributes(_) ->
           <StringValue>42</StringValue>
         </Value>
       </MessageAttribute>
+    <MessageAttribute>
+        <Name>number</Name>
+        <Value>
+            <DataType>Number</DataType>
+            <StringValue>56</StringValue>
+        </Value>
+    </MessageAttribute>
       <MessageAttribute>
         <Name>binary</Name>
         <Value>
@@ -342,6 +350,7 @@ receive_messages_with_message_attributes(_) ->
                                                    {"content-type", "application/json"},
                                                    {"float", 3.1415926},
                                                    {"integer", 42},
+                                                   {"number", 56},
                                                    {"binary", <<"Binary string">>},
                                                    {"uuid", {"uuid", <<"db3bf1fc-0cac-4cf8-8d2c-5c307ad4ac3a">>}}
                                                   ]}
@@ -351,6 +360,44 @@ receive_messages_with_message_attributes(_) ->
             {"Test receives a message with message attributes.",
              MessageResponse, Expected})],
     output_tests(?_f(erlcloud_sqs:receive_message("Queue", all, 1, 30, none, all, erlcloud_aws:default_config())), Tests).
+
+    receive_messages_with_unknown_attributes(_) ->
+            MessageResponse = "
+        <ReceiveMessageResponse>
+          <ReceiveMessageResult>
+            <Message>
+              <MessageId>5fea7756-0ea4-451a-a703-a558b933e274</MessageId>
+              <ReceiptHandle>MbZj6wDWli+JvwwJaBV+3dcjk2YW2vA3+STFFljTM8tJJg6HRG6PYSasuWXPJB+CwLj1FjgXUv1uSj1gUPAWV66FU/WeR4mq2OKpEGYWbnLmpRCJVAyeMjeU5ZBdtcQ+QEauMZc8ZRv37sIW2iJKq3M9MFx1YvV11A2x/KSbkJ0=</ReceiptHandle>
+              <MD5OfBody>fafb00f5732ab283681e124bf8747ed1</MD5OfBody>
+              <Body>This is a test message</Body>
+            <MessageAttribute>
+            <Name>unknown</Name>
+            <Value>
+                <DataType>Unknown</DataType>
+                <StringValue>invalid</StringValue>
+            </Value>
+            </MessageAttribute>
+            </Message>
+          </ReceiveMessageResult>
+          <ResponseMetadata>
+            <RequestId>
+              b6633655-283d-45b4-aee4-4e84e0ae6afa
+            </RequestId>
+          </ResponseMetadata>
+        </ReceiveMessageResponse>",
+
+        F = fun() ->
+                ?assertException(error,decode_message_attribute_value_error, 
+                    erlcloud_sqs:receive_message("Queue", all, 1, 30, none, all, erlcloud_aws:default_config())),
+            decode_message_attribute_value_error
+        end,
+
+        Tests =
+                [?_sqs_test(
+                    {"Test receives a message with message unknown attribute.",
+                     MessageResponse, decode_message_attribute_value_error})],
+                     
+        output_tests(F, Tests).
 
 send_message_batch(_) ->
     Batch = [{"batch-message-01", "Hello", [], [{message_group_id, "GroupId"}]},
