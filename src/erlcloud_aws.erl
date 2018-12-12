@@ -11,7 +11,7 @@
          aws_request_form_raw/8,
          do_aws_request_form_raw/9,
          param_list/2, default_config/0, auto_config/0, auto_config/1,
-         default_config_region/2,
+         default_config_region/2, default_config_override/1,
          update_config/1,clear_config/1, clear_expired_configs/0,
          service_config/3, service_host/2,
          configure/1, format_timestamp/1,
