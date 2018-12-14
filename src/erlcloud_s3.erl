@@ -465,7 +465,7 @@ get_bucket_lifecycle(BucketName, Config)
                 Error
         end.
 
--spec put_bucket_lifecycle(string(), binary()) -> ok | {error, Reason::term()} | no_return().
+-spec put_bucket_lifecycle(string(), list() | binary()) -> ok | {error, Reason::term()} | no_return().
 put_bucket_lifecycle(BucketName, Policy) ->
     put_bucket_lifecycle(BucketName, Policy, default_config()).
 
