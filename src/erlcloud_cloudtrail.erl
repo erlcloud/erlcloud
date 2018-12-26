@@ -13,6 +13,7 @@
     delete_trail/1, delete_trail/2,
     describe_trails/0, describe_trails/1, describe_trails/2, describe_trails/3,
     get_trail_status/1, get_trail_status/2,
+    get_event_selectors/1, get_event_selectors/2,
     start_logging/1, start_logging/2,
     stop_logging/1, stop_logging/2,
     update_trail/4, update_trail/5, update_trail/6,
@@ -125,6 +126,15 @@ get_trail_status(Trail) ->
 get_trail_status(Trail, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}],
     ct_request("GetTrailStatus", Json, Config).
+
+-spec get_event_selectors([string()]) -> ct_return().
+get_event_selectors(Trail) ->
+    get_event_selectors(Trail, default_config()).
+
+-spec get_event_selectors([string()], aws_config()) -> ct_return().
+get_event_selectors(Trail, Config) ->
+    Json = [{<<"TrailName">>, list_to_binary(Trail)}],
+    ct_request("GetEventSelectors", Json, Config).
 
 -spec start_logging([string()] ) -> ct_return().
 start_logging(Trail) ->
