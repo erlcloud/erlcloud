@@ -33,6 +33,8 @@ operation_test_() ->
       fun delete_trail_output_tests/1,
       fun describe_trails_input_tests/1,
       fun describe_trails_output_tests/1,
+      fun get_event_selectors_input_tests/1,
+      fun get_event_selectors_output_tests/1,
       fun get_trail_status_input_tests/1,
       fun get_trail_status_output_tests/1,
       fun start_logging_input_tests/1,
@@ -304,6 +306,44 @@ describe_trails_output_tests(_) ->
                 {ok, jsx:decode(Response)}})
         ],
     output_tests(?_f(erlcloud_cloudtrail:describe_trails(["test"], erlcloud_aws:default_config())), Tests).
+
+%% GetEventSelectors test based on the API examples:
+%% https://docs.aws.amazon.com/awscloudtrail/latest/APIReference/API_GetEventSelectors.html
+get_event_selectors_input_tests(_) ->
+    Tests =
+        [?_cloudtrail_test(
+            {"GetEventSelectors example request",
+             ?_f(erlcloud_cloudtrail:get_event_selectors("test", erlcloud_aws:default_config())), "
+{
+
+    \"TrailName\": \"test\"
+}"
+            })
+        ],
+    Response = "{}",
+
+    input_tests(Response, Tests).
+
+get_event_selectors_output_tests(_) ->
+    Response = <<"{\"EventSelectors\": [
+                    {
+                     \"DataResources\": [
+                      {
+                       \"Type\": \"AWS::S3::Object\",
+                       \"Values\": [ \"arn:aws:s3:::test-bucket/\" ]
+                      } ],
+                     \"IncludeManagementEvents\": true,
+                     \"ReadWriteType\": \"All\"
+                    } ],
+                   \"TrailARN\": \"awn:aws:cloudtrail:us-west-1:1234567890:trail/test-trail\"
+                  }">>,
+
+    Tests =
+        [?_cloudtrail_test(
+            {"GetEventSelectors example response", Response,
+                {ok, jsx:decode(Response)}})
+        ],
+    output_tests(?_f(erlcloud_cloudtrail:get_event_selectors("test", erlcloud_aws:default_config())), Tests).
 
 %% GetTrailStatus test based on the API examples:
 %% http://docs.aws.amazon.com/awscloudtrail/latest/APIReference/API_GetTrailStatus.html
