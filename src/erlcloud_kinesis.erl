@@ -609,21 +609,17 @@ put_records(StreamName, Items) ->
     put_records(StreamName, Items, default_config()).
 
 -spec put_records(binary(), put_records_items(), function() | aws_config()) -> erlcloud_kinesis_impl:json_return().
-%% @doc This function takes a fun which is responsible for encoding each of the
-%% data items in the Items list.
-put_records(StreamName, Items, EncodingFun) when is_function(EncodingFun) ->
-    Operation = put_records_operation(),
-    Json = prepare_put_records_data(StreamName, Items, EncodingFun),
-    erlcloud_kinesis_impl:request(default_config(), Operation, Json);
+
+put_records(StreamName, Items, EncodingFun) when is_function(EncodingFun, 1) ->
+    put_records(StreamName, Items, EncodingFun, default_config());
 
 put_records(StreamName, Items, Config) ->
-    Operation = put_records_operation(),
-    Json = prepare_put_records_data(StreamName, Items, fun default_put_encoding/1),
-    erlcloud_kinesis_impl:request(Config, Operation, Json).
+    put_records(StreamName, Items, fun default_put_encoding/1, Config).
 
 -spec put_records(binary(), put_records_items(),
                   function(), Config :: aws_config()) -> erlcloud_kinesis_impl:json_return().
-put_records(StreamName, Items, EncodingFun, Config) ->
+
+put_records(StreamName, Items, EncodingFun, Config) when is_function(EncodingFun, 1) ->
     Operation = put_records_operation(),
     Json = prepare_put_records_data(StreamName, Items, EncodingFun),
     erlcloud_kinesis_impl:request(Config, Operation, Json).
