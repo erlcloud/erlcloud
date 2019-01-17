@@ -15,7 +15,7 @@
          get_shard_iterator/3, get_shard_iterator/4, get_shard_iterator/5,
          get_records/1, get_records/2, get_records/3, get_records/4,
          put_record/3, put_record/4, put_record/5, put_record/6, put_record/7,
-         put_records/2, put_records/3,
+         put_records/2, put_records/3, put_records/4,
          merge_shards/3, merge_shards/4,
          split_shards/3, split_shards/4,
          add_tags_to_stream/2, add_tags_to_stream/3,
@@ -608,28 +608,38 @@ put_record(StreamName, PartitionKey, Data, ExplicitHashKey, Ordering, Options, C
 put_records(StreamName, Items) ->
     put_records(StreamName, Items, default_config()).
 
--spec put_records(binary(), put_records_items(), Config) -> erlcloud_kinesis_impl:json_return() when
-      Config :: aws_config().
+-spec put_records(binary(), put_records_items(), function() | aws_config()) -> erlcloud_kinesis_impl:json_return().
+
+put_records(StreamName, Items, EncodingFun) when is_function(EncodingFun, 1) ->
+    put_records(StreamName, Items, EncodingFun, default_config());
 
 put_records(StreamName, Items, Config) ->
+    put_records(StreamName, Items, fun default_put_encoding/1, Config).
+
+-spec put_records(binary(), put_records_items(),
+                  function(), Config :: aws_config()) -> erlcloud_kinesis_impl:json_return().
+
+put_records(StreamName, Items, EncodingFun, Config) when is_function(EncodingFun, 1) ->
     Operation = put_records_operation(),
-    Json = prepare_put_records_data(StreamName, Items),
+    Json = prepare_put_records_data(StreamName, Items, EncodingFun),
     erlcloud_kinesis_impl:request(Config, Operation, Json).
+
+default_put_encoding(D) -> base64:encode(D).
 
 put_records_operation() ->
     "Kinesis_20131202.PutRecords".
 
-prepare_put_records_data(StreamName, Items) ->
-    Records = [prepare_put_records_item(X) || X <- Items],
+prepare_put_records_data(StreamName, Items, Fun) ->
+    Records = [prepare_put_records_item(X, Fun) || X <- Items],
     [{<<"StreamName">>, StreamName}, {<<"Records">>, Records}].
 
-prepare_put_records_item({Data, PartitionKey}) ->
+prepare_put_records_item({Data, PartitionKey}, Fun) ->
     [{<<"PartitionKey">>, PartitionKey},
-     {<<"Data">>, base64:encode(Data)}];
-prepare_put_records_item({Data, ExplicitHashKey, PartitionKey}) ->
+     {<<"Data">>, Fun(Data)}];
+prepare_put_records_item({Data, ExplicitHashKey, PartitionKey}, Fun) ->
     [{<<"PartitionKey">>, PartitionKey},
      {<<"ExplicitHashKey">>, ExplicitHashKey},
-     {<<"Data">>, base64:encode(Data)}].
+     {<<"Data">>, Fun(Data)}].
 
 %%------------------------------------------------------------------------------
 %% @doc
