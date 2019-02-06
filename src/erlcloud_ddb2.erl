@@ -113,6 +113,8 @@
          restore_table_to_point_in_time/2, restore_table_to_point_in_time/3, restore_table_to_point_in_time/4,
          scan/1, scan/2, scan/3,
          tag_resource/2, tag_resource/3,
+         transact_get_items/1, transact_get_items/2, transact_get_items/3,
+         transact_write_items/1, transact_write_items/2, transact_write_items/3,
          untag_resource/2, untag_resource/3,
          update_continuous_backups/2, update_continuous_backups/3, update_continuous_backups/4,
          update_item/3, update_item/4, update_item/5,
@@ -378,6 +380,7 @@ default_config() -> erlcloud_aws:default_config().
 -type out_attr() :: {attr_name(), out_attr_value()}.
 -type out_item() :: [out_attr() | in_attr()]. % in_attr in the case of typed_record
 -type ok_return(T) :: {ok, T} | {error, term()}.
+-type client_request_token() :: binary().
 
 %%%------------------------------------------------------------------------------
 %%% Shared Dynamizers
@@ -1028,6 +1031,12 @@ dynamize_expression({contains, Path, Operand}) ->
 return_consumed_capacity_opt() ->
     {return_consumed_capacity, <<"ReturnConsumedCapacity">>, fun dynamize_return_consumed_capacity/1}.
 
+-type client_request_token_opt() :: {client_request_token, client_request_token()}.
+
+-spec client_request_token_opt() -> opt_table_entry().
+client_request_token_opt() ->
+    {client_request_token, <<"ClientRequestToken">>, fun id/1}.
+
 -type return_item_collection_metrics_opt() :: {return_item_collection_metrics, return_item_collection_metrics()}.
 
 -spec return_item_collection_metrics_opt() -> opt_table_entry().
@@ -1512,6 +1521,234 @@ batch_write_item(RequestItems, Opts, Config) ->
         {ok, _} = Out -> Out;
         {error, _} = Out -> Out
     end.
+
+-type transact_get_items_transact_item_opts() :: expression_attribute_names_opt() |
+                           projection_expression_opt().
+-type transact_get_items_opts() :: [transact_get_items_transact_item_opts()].
+
+-type transact_get_items_get_item() :: {table_name(), key(), transact_get_items_transact_item_opts()}.
+
+-type transact_get_items_get() :: {get, transact_get_items_get_item()}.
+
+-type transact_get_items_transact_item() :: transact_get_items_get().
+-type transact_get_items_transact_items() :: maybe_list(transact_get_items_transact_item()).
+
+-type transact_get_items_return() :: ddb_return(#ddb2_transact_get_items{}, out_item()).
+
+-spec dynamize_transact_get_items_transact_items(transact_write_items_transact_items())
+                                          -> json_pair().
+dynamize_transact_get_items_transact_items(TransactItems) ->
+    dynamize_maybe_list(fun dynamize_transact_get_items_transact_item/1, TransactItems).
+
+-spec transact_get_items_transact_item_opts() -> opt_table().
+transact_get_items_transact_item_opts() ->
+    [expression_attribute_names_opt(),
+     projection_expression_opt()].
+
+-spec dynamize_transact_get_items_transact_item(transact_get_items_transact_item()) -> jsx:json_term().
+dynamize_transact_get_items_transact_item({get, {TableName, Key}}) ->
+    dynamize_transact_get_items_transact_item({get, {TableName, Key, []}});
+dynamize_transact_get_items_transact_item({get, {TableName, Key, Opts}}) ->
+    {AwsOpts, _DdbOpts} = opts(transact_get_items_transact_item_opts(), Opts),
+    [{<<"Get">>, [{<<"TableName">>, TableName}, {<<"Key">>, dynamize_key(Key)} | AwsOpts]}].
+
+undynamize_transact_get_items_responses(Response, Opts) ->
+    lists:map(fun(R) ->
+        Item = proplists:get_value(<<"Item">>, R),
+        #ddb2_transact_get_items_response{item = undynamize_item(Item, Opts)}
+    end, Response).
+
+-spec transact_get_items_record() -> record_desc().
+transact_get_items_record() ->
+    {#ddb2_transact_get_items{},
+     [{<<"ConsumedCapacity">>, #ddb2_transact_get_items.consumed_capacity, fun undynamize_consumed_capacity_list/2},
+      {<<"Responses">>, #ddb2_transact_get_items.responses, fun undynamize_transact_get_items_responses/2}
+     ]}.
+
+-spec transact_get_items_opts() -> opt_table().
+transact_get_items_opts() ->
+    [return_consumed_capacity_opt()].
+
+-spec transact_get_items(transact_get_items_transact_items()) -> transact_get_items_return().
+transact_get_items(RequestItems) ->
+    transact_get_items(RequestItems, [], default_config()).
+
+-spec transact_get_items(transact_get_items_transact_items(), transact_get_items_opts()) -> transact_get_items_return().
+transact_get_items(RequestItems, Opts) ->
+    transact_get_items(RequestItems, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% DynamoDB API:
+%% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactGetItems.html]
+%%
+%% ===Example===
+%%
+%% Put two items in a transaction.
+%%
+%% `
+%% {ok, Record} =
+%%     erlcloud_ddb2:transact_get_items(
+%%         [{get, {<<"PersonalInfo">>, [{<<"Name">>, {s, <<"John Smith">>}},
+%%                 {<<"DOB">>, {s, <<"11/11/2011">>}}]}},
+%%          {get, {<<"EmployeeRecord">>, [{<<"Name">>, {s, <<"John Smith">>}},
+%%                 {<<"DOH">>, {s, <<"11/11/2018">>}}]}}],
+%%       [{return_consumed_capacity, total},
+%%        {out, record}]),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+-spec transact_get_items(transact_get_items_transact_items(), transact_get_items_opts(), aws_config()) ->
+                              transact_get_items_return().
+transact_get_items(TransactItems, Opts, Config) ->
+    {AwsOpts, DdbOpts} = opts(transact_get_items_opts(), Opts),
+    Return = erlcloud_ddb_impl:request(
+               Config,
+               "DynamoDB_20120810.TransactGetItems",
+               [{<<"TransactItems">>, dynamize_transact_get_items_transact_items(TransactItems)}]
+               ++ AwsOpts),
+    case out(Return,
+             fun(Json, UOpts) -> undynamize_record(transact_get_items_record(), Json, UOpts) end, DdbOpts) of
+        {simple, #ddb2_transact_get_items{responses = Responses}} ->
+            %% Simple return for transact_get_items is all items from all tables in a single list
+            {ok, lists:map(fun(#ddb2_transact_get_items_response{item = I}) -> I end, Responses)};
+        {ok, _} = Out -> Out;
+        {error, _} = Out -> Out
+    end.
+
+%%%------------------------------------------------------------------------------
+%%% TransactWriteItem
+%%%------------------------------------------------------------------------------
+-type transact_write_items_opt() :: client_request_token_opt() |
+                                return_consumed_capacity_opt() |
+                                return_item_collection_metrics_opt() |
+                                out_opt().
+-type transact_write_items_opts() :: [transact_write_items_opt()].
+
+-type return_value_on_condition_check_failure_opt() :: {return_values_on_condition_check_failure, return_value()}.
+
+-spec return_value_on_condition_check_failure_opt() -> opt_table_entry().
+return_value_on_condition_check_failure_opt() ->
+    {return_values_on_condition_check_failure, <<"ReturnValuesOnConditionCheckFailure">>, fun dynamize_return_value/1}.
+
+-type transact_write_items_transact_item_opt() :: expression_attribute_names_opt() |
+                           expression_attribute_values_opt() |
+                           condition_expression_opt() |
+                           return_value_on_condition_check_failure_opt().
+-type transact_write_items_condition_check_item() :: {table_name(), key(), transact_write_items_transact_item_opt()}.
+-type transact_write_items_delete_item() :: {table_name(), key(), transact_write_items_transact_item_opts()}.
+-type transact_write_items_put_item() :: {table_name(), in_item(), transact_write_items_transact_item_opts()}.
+-type transact_write_items_update_item() :: {table_name(), key(), expression(), transact_write_items_transact_item_opts()}.
+
+-type transact_write_items_condition_check() :: {condition_check, transact_write_items_condition_check_item()}.
+-type transact_write_items_delete() :: {delete, transact_write_items_delete_item()}.
+-type transact_write_items_put() :: {put, transact_write_items_put_item()}.
+-type transact_write_items_update() :: {update, transact_write_items_update_item()}.
+
+-type transact_write_items_transact_item() :: transact_write_items_condition_check() | transact_write_items_delete() | transact_write_items_put() | transact_write_items_update().
+-type transact_write_items_transact_items() :: maybe_list(transact_write_items_transact_item()).
+
+-type transact_write_items_transact_item_opts() :: [transact_write_items_transact_item_opt()].
+
+-spec transact_write_items_transact_item_opts() -> opt_table().
+transact_write_items_transact_item_opts() ->
+    [expression_attribute_names_opt(),
+     expression_attribute_values_opt(),
+     condition_expression_opt(),
+     return_value_on_condition_check_failure_opt()].
+
+-spec dynamize_transact_write_items_transact_item(transact_write_items_transact_item()) -> jsx:json_term().
+dynamize_transact_write_items_transact_item({condition_check, {TableName, Key, Opts}}) ->
+    {AwsOpts, _DdbOpts} = opts(transact_write_items_transact_item_opts(), Opts),
+    [{<<"ConditionCheck">>, [{<<"TableName">>, TableName}, {<<"Key">>, dynamize_key(Key)} | AwsOpts]}];
+dynamize_transact_write_items_transact_item({delete, {TableName, Key}}) ->
+    dynamize_transact_write_items_transact_item({delete, {TableName, Key, []}});
+dynamize_transact_write_items_transact_item({delete, {TableName, Key, Opts}}) ->
+    {AwsOpts, _DdbOpts} = opts(transact_write_items_transact_item_opts(), Opts),
+    [{<<"Delete">>, [{<<"TableName">>, TableName}, {<<"Key">>, dynamize_key(Key)} | AwsOpts]}];
+dynamize_transact_write_items_transact_item({put, {TableName, Item}}) ->
+    dynamize_transact_write_items_transact_item({put, {TableName, Item, []}});
+dynamize_transact_write_items_transact_item({put, {TableName, Item, Opts}}) ->
+    {AwsOpts, _DdbOpts} = opts(transact_write_items_transact_item_opts(), Opts),
+    [{<<"Put">>, [{<<"TableName">>, TableName}, {<<"Item">>, dynamize_item(Item)} | AwsOpts]}];
+dynamize_transact_write_items_transact_item({update, {TableName, Key, UpdateExpression}}) ->
+    dynamize_transact_write_items_transact_item({update, {TableName, Key, UpdateExpression, []}});
+dynamize_transact_write_items_transact_item({update, {TableName, Key, UpdateExpression, Opts}}) ->
+    {AwsOpts, _DdbOpts} = opts(transact_write_items_transact_item_opts(), Opts),
+    [{<<"Update">>, [{<<"TableName">>, TableName}, {<<"Key">>, dynamize_key(Key)}, {<<"UpdateExpression">>, dynamize_expression(UpdateExpression)} | AwsOpts]}].
+
+-spec dynamize_transact_write_items_transact_items(transact_write_items_transact_items())
+                                          -> json_pair().
+dynamize_transact_write_items_transact_items(TransactItems) ->
+    dynamize_maybe_list(fun dynamize_transact_write_items_transact_item/1, TransactItems).
+
+-spec transact_write_items_opts() -> opt_table().
+transact_write_items_opts() ->
+    [client_request_token_opt(),
+     return_consumed_capacity_opt(),
+     return_item_collection_metrics_opt()].
+
+
+-spec transact_write_items_record() -> record_desc().
+transact_write_items_record() ->
+    {#ddb2_transact_write_items{},
+     [{<<"ConsumedCapacity">>, #ddb2_transact_write_items.consumed_capacity, fun undynamize_consumed_capacity_list/2},
+      {<<"ItemCollectionMetrics">>, #ddb2_transact_write_items.item_collection_metrics,
+       fun(V, Opts) -> undynamize_object(
+                         fun({Table, Json}, Opts2) ->
+                                 undynamize_item_collection_metric_list(Table, Json, Opts2)
+                         end, V, Opts)
+       end}
+     ]}.
+
+-type transact_write_items_return() :: ddb_return(#ddb2_transact_write_items{}, out_item()).
+
+-spec transact_write_items(transact_write_items_transact_items()) -> transact_write_items_return().
+transact_write_items(RequestItems) ->
+    transact_write_items(RequestItems, [], default_config()).
+
+-spec transact_write_items(transact_write_items_transact_items(), transact_write_items_opts()) -> transact_write_items_return().
+transact_write_items(RequestItems, Opts) ->
+    transact_write_items(RequestItems, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% DynamoDB API:
+%% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactWriteItems.html]
+%%
+%% ===Example===
+%%
+%% Put two items in a transaction.
+%%
+%% `
+%% {ok, Record} =
+%%     erlcloud_ddb2:transact_write_items(
+%%         [{put, {<<"PersonalInfo">>, [{<<"Name">>, {s, <<"John Smith">>}},
+%%                 {<<"DOB">>, {s, <<"11/11/2011">>}}]}},
+%%          {put, {<<"EmployeeRecord">>, [{<<"Name">>, {s, <<"John Smith">>}},
+%%                 {<<"DOH">>, {s, <<"11/11/2018">>}}]}}],
+%%       [{return_consumed_capacity, total},
+%%        {out, record}]),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+-spec transact_write_items(transact_write_items_transact_items(), transact_write_items_opts(), aws_config()) ->
+                              transact_write_items_return().
+transact_write_items(TransactItems, Opts, Config) ->
+    {AwsOpts, DdbOpts} = opts(transact_write_items_opts(), Opts),
+    Return = erlcloud_ddb_impl:request(
+               Config,
+               "DynamoDB_20120810.TransactWriteItems",
+               [{<<"TransactItems">>, dynamize_transact_write_items_transact_items(TransactItems)}]
+               ++ AwsOpts),
+    case out(Return,
+             fun(Json, UOpts) -> undynamize_record(transact_write_items_record(), Json, UOpts) end, DdbOpts,
+             #ddb2_transact_write_items.attributes, {ok, []}) of
+        {simple, Record} -> {ok, Record};
+        {ok, _} = Out -> Out;
+        {error, _} = Out -> Out
+    end.
+
 
 %%%------------------------------------------------------------------------------
 %%% CreateBackup

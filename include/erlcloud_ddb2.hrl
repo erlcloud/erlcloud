@@ -309,6 +309,24 @@
          time_to_live_description :: undefined | #ddb2_time_to_live_description{}
         }).
 
+-record(ddb2_transact_write_items,
+        {consumed_capacity :: undefined | [#ddb2_consumed_capacity{}],
+         item_collection_metrics :: undefined | [{erlcloud_ddb2:table_name(), [#ddb2_item_collection_metrics{}]}],
+         % AWS documentation infer that it should be possible to get old return
+         % values upon condition failure, but I have been unable to do so.
+         % Still, let's put a field so we can return {ok, []} on success.
+         attributes :: undefined
+        }).
+
+-record(ddb2_transact_get_items_response,
+        {item :: erlcloud_ddb2:out_item()
+        }).
+
+-record(ddb2_transact_get_items,
+        {consumed_capacity :: undefined | [#ddb2_consumed_capacity{}],
+         responses :: undefined | [#ddb2_transact_get_items_response{}]
+        }).
+
 -record(ddb2_backup_description,
         {backup_details :: undefined | #ddb2_backup_details{},
          source_table_details :: undefined | #ddb2_source_table_details{},
