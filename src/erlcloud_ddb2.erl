@@ -3420,7 +3420,8 @@ update_global_table(GlobalTableName, ReplicaUpdates, Opts, Config) ->
 -type global_secondary_index_updates() :: maybe_list(global_secondary_index_update()).
 
 -spec dynamize_global_secondary_index_update(global_secondary_index_update()) -> jsx:json_term().
-dynamize_global_secondary_index_update({IndexName, ReadUnits, WriteUnits}) ->
+dynamize_global_secondary_index_update({IndexName, ReadUnits, WriteUnits})
+    when is_integer(ReadUnits), is_integer(WriteUnits) ->
     [{<<"Update">>, [
         {<<"IndexName">>, IndexName},
         {<<"ProvisionedThroughput">>, dynamize_provisioned_throughput({ReadUnits, WriteUnits})}
