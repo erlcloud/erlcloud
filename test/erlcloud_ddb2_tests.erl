@@ -5317,6 +5317,38 @@ update_table_input_tests(_) ->
 }"
             }),
         ?_ddb_test(
+            {"UpdateTable example request with Create GSI (pay per request)",
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>,
+                                            [{attribute_definitions, [{<<"HashKey1">>, s}]},
+                                             {global_secondary_index_updates, [
+                                                {<<"Index1">>, <<"HashKey1">>, all}]}])), "
+{
+    \"TableName\": \"Thread\",
+    \"AttributeDefinitions\": [
+        {
+            \"AttributeName\": \"HashKey1\",
+            \"AttributeType\": \"S\"
+        }
+    ],
+    \"GlobalSecondaryIndexUpdates\": [
+        {
+            \"Create\": {
+                \"IndexName\": \"Index1\",
+                \"KeySchema\": [
+                    {
+                        \"AttributeName\": \"HashKey1\",
+                        \"KeyType\": \"HASH\"
+                    }
+                ],
+                \"Projection\": {
+                    \"ProjectionType\": \"ALL\"
+                }
+            }
+        }
+    ]
+}"
+            }),
+        ?_ddb_test(
             {"UpdateTable example request billing_mode = pay_per_request",
              ?_f(erlcloud_ddb2:update_table(<<"Thread">>,
                                             [{billing_mode, pay_per_request}])), "
