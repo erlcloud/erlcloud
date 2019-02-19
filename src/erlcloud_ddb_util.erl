@@ -23,8 +23,10 @@
          delete_hash_key/3, delete_hash_key/4, delete_hash_key/5,
          get_all/2, get_all/3, get_all/4,
          put_all/2, put_all/3, put_all/4,
+         list_tables_all/0, list_tables_all/1,
          q_all/2, q_all/3, q_all/4,
          scan_all/1, scan_all/2, scan_all/3,
+         wait_for_table_active/1, wait_for_table_active/2, wait_for_table_active/3, wait_for_table_active/4,
          write_all/2, write_all/3, write_all/4
         ]).
 
@@ -228,6 +230,28 @@ batch_get_retry(RequestItems, DdbOpts, Config, Acc) ->
         {ok, #ddb2_batch_get_item{unprocessed_keys = Unprocessed,
                                   responses = [#ddb2_batch_get_item_response{items = Items}]}} ->
             batch_get_retry(Unprocessed, DdbOpts, Config, Items ++ Acc)
+    end.
+
+%%%------------------------------------------------------------------------------
+%%% list_tables_all
+%%%------------------------------------------------------------------------------
+
+list_tables_all() ->
+    list_tables_all(default_config()).
+
+-spec list_tables_all(aws_config()) -> {ok, [table_name()]} | {error, any()}.
+list_tables_all(Config) ->
+    do_list_tables_all(undefined, Config, []).
+
+do_list_tables_all(LastTable, Config, Result) ->
+    Options = [{exclusive_start_table_name, LastTable}, {out, record}],
+    case erlcloud_ddb2:list_tables(Options, Config) of
+        {ok, #ddb2_list_tables{table_names = TableNames, last_evaluated_table_name = undefined}} ->
+            {ok, flatreverse([TableNames, Result])};
+        {ok, #ddb2_list_tables{table_names = TableNames, last_evaluated_table_name = LastTableName}} ->
+            do_list_tables_all(LastTableName, Config, flatreverse([TableNames, Result]));
+        {error, _} = Error ->
+            Error
     end.
 
 %%%------------------------------------------------------------------------------
@@ -476,6 +500,51 @@ batch_write_retry(RequestItems, Config) ->
         {ok, #ddb2_batch_write_item{unprocessed_items = Unprocessed}} ->
             batch_write_retry(Unprocessed, Config)
     end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%  wait until table_status==active.
+%%
+%% ===Example===
+%%
+%% `
+%% erlcloud_ddb2:wait_for_table_active(<<"TableName">>, 3000, 40, Config)
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec wait_for_table_active(table_name(), pos_integer() | infinity, non_neg_integer(), aws_config()) ->
+    ok | {error, deleting | retry_threshold_exceeded | any()}.
+wait_for_table_active(Table, Interval, RetryTimes, Config) when is_binary(Table), Interval > 0, RetryTimes >= 0 ->
+    case erlcloud_ddb2:describe_table(Table, [{out, record}], Config) of
+        {ok, #ddb2_describe_table{table = #ddb2_table_description{table_status = active}}} ->
+            ok;
+        {ok, #ddb2_describe_table{table = #ddb2_table_description{table_status = deleting}}} ->
+            {error, deleting};
+        {ok, _} ->
+            case RetryTimes of
+                infinity ->
+                    timer:sleep(Interval),
+                    wait_for_table_active(Table, infinity, RetryTimes, Config);
+                1 ->
+                    {error, retry_threshold_exceeded};
+                _ ->
+                    timer:sleep(Interval),
+                    wait_for_table_active(Table, Interval, RetryTimes - 1, Config)
+            end;
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+wait_for_table_active(Table, Interval, RetryTimes) ->
+    wait_for_table_active(Table, Interval, RetryTimes, default_config()).
+
+wait_for_table_active(Table, AWSCfg) ->
+    wait_for_table_active(Table, 3000, 100, AWSCfg).
+
+wait_for_table_active(Table) ->
+    wait_for_table_active(Table, default_config()).
+
 
 write_all_result([ok | T]) ->
     write_all_result(T);

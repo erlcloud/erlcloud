@@ -231,7 +231,7 @@
         }).
 
 -record(ddb2_time_to_live_specification, 
-        {attribute_name :: undefined | erlcloud_ddb2:attr_name(), 
+        {attribute_name :: undefined | erlcloud_ddb2:attr_name(),
          enabled :: undefined | boolean()
         }).
 
