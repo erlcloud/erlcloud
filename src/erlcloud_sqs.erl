@@ -588,6 +588,12 @@ mk_send_batch_entry(N, {MessageId, MessageBody}, DelaySeconds) ->
 mk_send_batch_entry(N, {MessageId, MessageBody, MessageAttributes}, DelaySeconds) ->
     mk_send_batch_entry(N, {MessageId, MessageBody, MessageAttributes, []}, DelaySeconds);
 mk_send_batch_entry(N, {MessageId, MessageBody, MessageAttributes, Opts}, DelaySeconds)
+  when is_binary(MessageId) ->
+    mk_send_batch_entry(N, {binary_to_list(MessageId), MessageBody, MessageAttributes, Opts}, DelaySeconds);
+mk_send_batch_entry(N, {MessageId, MessageBody, MessageAttributes, Opts}, DelaySeconds)
+    when is_binary(MessageBody) ->
+    mk_send_batch_entry(N, {MessageId, binary_to_list(MessageBody), MessageAttributes, Opts}, DelaySeconds);
+mk_send_batch_entry(N, {MessageId, MessageBody, MessageAttributes, Opts}, DelaySeconds)
   when is_list(MessageId), is_list(MessageBody), is_list(MessageAttributes), is_list(Opts) ->
     N0 = integer_to_list(N),
     EncodedOpts = [
