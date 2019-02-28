@@ -31,6 +31,13 @@
 -type unit()     :: string().
 
 %%------------------------------------------------------------------------------
+%% @doc The statistic for the metric, other than percentiles.
+%% Valid Values: SampleCount | Average | Sum | Minimum | Maximum
+%% @end
+%%------------------------------------------------------------------------------
+-type statistic() :: string().
+
+%%------------------------------------------------------------------------------
 %% @doc Dimension
 %% The Dimension data type further expands on the identity of a metric using a Name, Value pair.
 %% For examples that use one or more dimensions, see PutMetricData.
