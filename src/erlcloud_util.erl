@@ -2,7 +2,8 @@
 -export([sha_mac/2, sha256_mac/2, md5/1, sha256/1, rand_uniform/1,
     is_dns_compliant_name/1,
     query_all/4, query_all/5, query_all_token/4, make_response/2,
-    get_items/2, to_string/1, encode_list/2, next_token/2]).
+    get_items/2, to_string/1, encode_list/2, next_token/2,
+    filter_undef/1]).
 
 -define(MAX_ITEMS, 1000).
 
@@ -128,4 +129,6 @@ next_token(Path, XML) ->
             ok
     end.
 
-
+-spec filter_undef(proplists:proplist()) -> proplists:proplist().
+filter_undef(List) ->
+    lists:filter(fun({_Name, Value}) -> Value =/= undefined end, List).

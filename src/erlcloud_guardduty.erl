@@ -16,6 +16,7 @@
     list_detectors/0, list_detectors/1, list_detectors/2, list_detectors/3
 ]).
 
+-import(erlcloud_util, [filter_undef/1]).
 
 -type gd_return() :: {ok, proplist()} | {error, term()}.
 
@@ -58,7 +59,7 @@ get_detector(DetectorId) ->
 -spec get_detector(DetectorId :: binary(),
                    Config     :: aws_config()) -> gd_return().
 get_detector(DetectorId, Config) ->
-    Path = base_path() ++ "detector/" ++ binary_to_list(DetectorId),
+    Path = "/detector/" ++ binary_to_list(DetectorId),
     guardduty_request(Config, get, Path, undefined).
 
 
@@ -85,7 +86,7 @@ list_detectors(Marker, MaxItems) ->
                      MaxItems :: integer(),
                      Config   :: aws_config()) -> gd_return().
 list_detectors(Marker, MaxItems, Config) ->
-    Path = base_path() ++ "detector",
+    Path = "/detector",
     QParams = filter_undef([{"Marker", Marker},
                             {"MaxItems", MaxItems}]),
     guardduty_request(Config, get, Path, undefined, QParams).
@@ -94,12 +95,6 @@ list_detectors(Marker, MaxItems, Config) ->
 %%%------------------------------------------------------------------------------
 %%% Internal Functions
 %%%------------------------------------------------------------------------------
-
-filter_undef(List) ->
-    lists:filter(fun({_Name, Value}) -> Value =/= undefined end, List).
-
-base_path() ->
-    "/".
 
 guardduty_request(Config, Method, Path, Body) ->
     guardduty_request(Config, Method, Path, Body, []).
