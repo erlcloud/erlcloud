@@ -99,7 +99,9 @@ iam_api_test_() ->
       fun simulate_custom_policy_input_test/1,
       fun simulate_custom_policy_output_test/1,
       fun simulate_principal_policy_input_test/1,
-      fun simulate_principal_policy_output_test/1
+      fun simulate_principal_policy_output_test/1,
+      fun list_virtual_mfa_devices_input_test/1,
+      fun list_virtual_mfa_devices_output_test/1
     ]}.
 
 start() ->
@@ -414,6 +416,102 @@ get_account_summary_output_tests(_) ->
                      ]}})
             ],
     output_tests(?_f(erlcloud_iam:get_account_summary()), Tests).
+
+-define(LIST_VIRTUAL_MFA_DEVICES_RESP,
+        "<ListVirtualMFADevicesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+            <ListVirtualMFADevicesResult>
+              <IsTruncated>false</IsTruncated>
+              <VirtualMFADevices>
+                <member>
+                  <SerialNumber>arn:aws:iam::123456789012:mfa/MFAdeviceName</SerialNumber>
+                </member>
+                <member>
+                  <SerialNumber>arn:aws:iam::123456789012:mfa/RootMFAdeviceName</SerialNumber>
+                  <EnableDate>2011-10-20T20:49:03Z</EnableDate>
+                  <User>
+                    <UserId>123456789012</UserId>
+                    <Arn>arn:aws:iam::123456789012:root</Arn>
+                    <CreateDate>2009-10-13T22:00:36Z</CreateDate>
+                  </User>
+                </member>
+                <member>
+                  <SerialNumber>arn:aws:iam:::mfa/ExampleUserMFAdeviceName</SerialNumber>
+                  <EnableDate>2011-10-31T20:45:02Z</EnableDate>
+                  <User>
+                    <UserId>AIDEXAMPLE4EXAMPLEXYZ</UserId>
+                    <Path>/</Path>
+                    <UserName>ExampleUser</UserName>
+                    <Arn>arn:aws:iam::111122223333:user/ExampleUser</Arn>
+                    <CreateDate>2011-07-01T17:23:07Z</CreateDate>
+                  </User>
+                </member>
+              </VirtualMFADevices>
+            </ListVirtualMFADevicesResult>
+            <ResponseMetadata>
+              <RequestId>b61ce1b1-0401-11e1-b2f8-2dEXAMPLEbfc</RequestId>
+            </ResponseMetadata>
+            </ListVirtualMFADevicesResponse>").
+
+list_virtual_mfa_devices_input_test(_) ->
+    Tests =
+        [?_iam_test(
+            {"Test returning account registered MFA devices.",
+             ?_f(erlcloud_iam:list_virtual_mfa_devices()),
+             [
+              {"Action", "ListVirtualMFADevices"}
+             ]})
+        ],
+        input_tests(?LIST_VIRTUAL_MFA_DEVICES_RESP, Tests).
+
+list_virtual_mfa_devices_output_test(_) ->
+        Tests = [?_iam_test(
+             {"This returns the registered MFA devices",
+              ?LIST_VIRTUAL_MFA_DEVICES_RESP,
+              {ok,[
+                [
+                  {user,[]},
+                  {enable_date,undefined},
+                  {serial_number,"arn:aws:iam::123456789012:mfa/MFAdeviceName"}
+                ],
+                [
+                  {user,
+                    [
+                      [
+                        {arn,"arn:aws:iam::123456789012:root"},
+                        {create_date,{{2009,10,13},{22,0,36}}},
+                        {group_list,[]},
+                        {path,[]},
+                        {user_id,"123456789012"},
+                        {user_name,[]},
+                        {user_policy_list,[]}
+                      ]
+                    ]
+                  },
+                  {enable_date,{{2011,10,20},{20,49,3}}},
+                  {serial_number,"arn:aws:iam::123456789012:mfa/RootMFAdeviceName"}
+                ],
+                [
+                  {user,
+                    [
+                      [
+                        {arn,"arn:aws:iam::111122223333:user/ExampleUser"},
+                        {create_date,{{2011,7,1},{17,23,7}}},
+                        {group_list,[]},
+                        {path,"/"},
+                        {user_id,"AIDEXAMPLE4EXAMPLEXYZ"},
+                        {user_name,"ExampleUser"},
+                        {user_policy_list,[]}
+                      ]
+                    ]
+                  },
+                  {enable_date,{{2011,10,31},{20,45,2}}},
+                  {serial_number,"arn:aws:iam:::mfa/ExampleUserMFAdeviceName"}
+                ]
+              ]}
+             })
+            ],
+    output_tests(?_f(erlcloud_iam:list_virtual_mfa_devices()), Tests).
+
 
 -define(GET_ACCOUNT_PASSWORD_POLICY_RESP,
         "<GetAccountPasswordPolicyResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
@@ -2696,6 +2794,9 @@ simulate_custom_policy_input_test(_) ->
     PolicyDoc1 = "policy_doc1",
     PolicyDoc2 = "policy_doc2",
     Action = "s3:ListBucket",
+    ContextEntries = [[{context_key_name,"aws:MultiFactorAuthPresent"},
+                       {context_key_type,"boolean"},
+                       {context_key_values,[true]}]],
     Tests =
         [?_iam_test(
             {"SimulateCustomPolicy input",
@@ -2708,14 +2809,37 @@ simulate_custom_policy_input_test(_) ->
               {"PolicyInputList.member.1", PolicyDoc1},
               {"PolicyInputList.member.2", PolicyDoc2},
               {"MaxItems", "1000"}
-              ]})
+              ]}),
+         ?_iam_test(
+             {"SimulateCustomPolicy2 input",
+              ?_f(erlcloud_iam:simulate_custom_policy([Action],
+                                                      [PolicyDoc1],
+                                                      ContextEntries)),
+              [{"Action","SimulateCustomPolicy"},
+               {"ActionNames.member.1", http_uri:encode(Action)},
+               {"PolicyInputList.member.1","policy_doc1"},
+               {"ContextEntries.member.1.ContextKeyName",http_uri:encode("aws:MultiFactorAuthPresent")},
+               {"ContextEntries.member.1.ContextKeyType","boolean"},
+               {"ContextEntries.member.1.ContextKeyValues.member.1","true"},
+               {"MaxItems","1000"}]})
         ],
     input_tests(?SIMULATE_CUSTOM_POLICY_RESP, Tests).
 
 simulate_custom_policy_output_test(_) ->
+    ContextEntries = [[{context_key_name,"aws:MultiFactorAuthPresent"},
+                       {context_key_type,"boolean"},
+                       {context_key_values,[true]}]],
     Tests =
         [?_iam_test(
             {"SimulateCustomPolicy output",
+            ?SIMULATE_CUSTOM_POLICY_RESP,
+            {ok, [[{eval_action_name, "s3:ListBucket"},
+                   {eval_decision, "allowed"},
+                   {eval_resource_name, "arn:aws:s3:::teambucket"},
+                   {matched_statements_list,
+                    [[{source_policy_id, "PolicyInputList.1"}]]}]]}}),
+         ?_iam_test(
+            {"SimulateCustomPolicy2 output",
             ?SIMULATE_CUSTOM_POLICY_RESP,
             {ok, [[{eval_action_name, "s3:ListBucket"},
                    {eval_decision, "allowed"},
@@ -2725,7 +2849,8 @@ simulate_custom_policy_output_test(_) ->
         ],
     output_tests(?_f(erlcloud_iam:simulate_custom_policy(["s3:ListBucket"],
                                                          ["policy_doc1",
-                                                          "policy_doc2"])),
+                                                          "policy_doc2"],
+                                                         ContextEntries)),
                  Tests).
 
 simulate_principal_policy_input_test(_) ->
