@@ -23,7 +23,8 @@
          table_name :: undefined | erlcloud_ddb_streams:table_name()
         }).
 -record(ddb_streams_stream_record,
-        {keys :: undefined | erlcloud_ddb_streams:key(),
+        {approximate_creation_date_time :: undefined | number(),
+         keys :: undefined | erlcloud_ddb_streams:key(),
          new_image :: undefined | erlcloud_ddb_streams:item(),
          old_image :: undefined | erlcloud_ddb_streams:item(),
          sequence_number :: undefined | erlcloud_ddb_streams:sequence_number(),

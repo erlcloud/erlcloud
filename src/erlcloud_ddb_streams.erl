@@ -467,7 +467,8 @@ stream_description_record() ->
 -spec stream_record_record() -> record_desc().
 stream_record_record() ->
     {#ddb_streams_stream_record{},
-     [{<<"Keys">>, #ddb_streams_stream_record.keys, fun undynamize_key/2},
+     [{<<"ApproximateCreationDateTime">>, #ddb_streams_stream_record.approximate_creation_date_time, fun id/2},
+      {<<"Keys">>, #ddb_streams_stream_record.keys, fun undynamize_key/2},
       {<<"NewImage">>, #ddb_streams_stream_record.new_image, fun undynamize_item/2},
       {<<"OldImage">>, #ddb_streams_stream_record.old_image, fun undynamize_item/2},
       {<<"SequenceNumber">>, #ddb_streams_stream_record.sequence_number, fun id/2},

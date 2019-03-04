@@ -369,6 +369,7 @@ get_records_output_tests(_) ->
         {
             \"awsRegion\": \"us-west-2\",
             \"dynamodb\": {
+                \"ApproximateCreationDateTime\": 1551727994,
                 \"Keys\": {
                     \"ForumName\": {\"S\": \"DynamoDB\"},
                     \"Subject\": {\"S\": \"DynamoDB Thread 3\"}
@@ -385,6 +386,7 @@ get_records_output_tests(_) ->
         {
             \"awsRegion\": \"us-west-2\",
             \"dynamodb\": {
+                \"ApproximateCreationDateTime\": 1551727994,
                 \"Keys\": {
                     \"ForumName\": {\"S\": \"DynamoDB\"},
                     \"Subject\": {\"S\": \"DynamoDB Thread 1\"}
@@ -401,6 +403,7 @@ get_records_output_tests(_) ->
         {
             \"awsRegion\": \"us-west-2\",
             \"dynamodb\": {
+                \"ApproximateCreationDateTime\": 1551727994,
                 \"Keys\": {
                     \"ForumName\": {\"S\": \"DynamoDB\"},
                     \"Subject\": {\"S\": \"DynamoDB Thread 2\"}
@@ -419,6 +422,7 @@ get_records_output_tests(_) ->
              {ok, [#ddb_streams_record{
                        aws_region = <<"us-west-2">>,
                        dynamodb = #ddb_streams_stream_record{
+                                      approximate_creation_date_time = 1551727994,
                                       keys = [{<<"ForumName">>, <<"DynamoDB">>},
                                               {<<"Subject">>, <<"DynamoDB Thread 3">>}],
                                       new_image = undefined,
@@ -433,6 +437,7 @@ get_records_output_tests(_) ->
                    #ddb_streams_record{
                        aws_region = <<"us-west-2">>,
                        dynamodb = #ddb_streams_stream_record{
+                                      approximate_creation_date_time = 1551727994,
                                       keys = [{<<"ForumName">>, <<"DynamoDB">>},
                                               {<<"Subject">>, <<"DynamoDB Thread 1">>}],
                                       new_image = undefined,
@@ -447,6 +452,7 @@ get_records_output_tests(_) ->
                    #ddb_streams_record{
                        aws_region = <<"us-west-2">>,
                        dynamodb = #ddb_streams_stream_record{
+                                      approximate_creation_date_time = 1551727994,
                                       keys = [{<<"ForumName">>, <<"DynamoDB">>},
                                               {<<"Subject">>, <<"DynamoDB Thread 2">>}],
                                       new_image = undefined,
