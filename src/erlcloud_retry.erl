@@ -72,7 +72,7 @@ request_and_retry(Config, ResultFun, {retry, Request}, MaxAttempts) ->
         {ok, {{Status, StatusLine}, ResponseHeaders, ResponseBody}} ->
             ResponseType = case Status >= 200 andalso Status < 300 of
                 true ->
-                    {ok, RetryFunctionErrors} = application:get_env(erlcloud, retry_x_amz_function_error),
+                    RetryFunctionErrors = application:get_env(erlcloud, retry_x_amz_function_error, false),
                     case RetryFunctionErrors andalso lists:keymember("x-amz-function-error", 1, ResponseHeaders) of
                         true -> error;
                         false -> ok
