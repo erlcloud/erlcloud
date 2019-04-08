@@ -20,12 +20,16 @@
 %% Helpers
 -export([backoff/1,
          no_retry/1,
-         default_retry/1
+         default_retry/1,
+
+         only_http_errors/1,
+         aws_api_errors/1
         ]).
--export_type([should_retry/0, retry_fun/0]).
+-export_type([should_retry/0, retry_fun/0, response_type_fun/0]).
 
 -type should_retry() :: {retry | error, #aws_request{}}.
 -type retry_fun() :: fun((#aws_request{}) -> should_retry()).
+-type response_type_fun() :: fun((#aws_request{}) -> ok | error).
 
 %% Internal impl api
 -export([request/3]).
@@ -52,6 +56,27 @@ request(Config, #aws_request{attempt = 0} = Request, ResultFun) ->
     MaxAttempts = Config#aws_config.retry_num,
     request_and_retry(Config, ResultFun, {retry, Request}, MaxAttempts).
 
+-spec only_http_errors(#aws_request{}) -> ok | error.
+only_http_errors(#aws_request{response_status=Status})
+  when Status >= 200, Status < 300
+       ->
+    ok;
+only_http_errors(_) ->
+    error.
+
+-spec aws_api_errors(#aws_request{}) -> ok | error.
+aws_api_errors(#aws_request{response_status=Status, response_headers=ResponseHeaders})
+  when Status >= 200, Status < 300
+       ->
+    case lists:keymember("x-amz-function-error", 1, ResponseHeaders) of
+        true ->
+            error;
+        false ->
+            ok
+    end;
+aws_api_errors(_) ->
+    error.
+
 request_and_retry(_, _, {_, Request}, 0) ->
     Request;
 request_and_retry(_, _, {error, Request}, _) ->
@@ -66,28 +91,19 @@ request_and_retry(Config, ResultFun, {retry, Request}, MaxAttempts) ->
       } = Request,
     Request2 = Request#aws_request{attempt = Attempt + 1},
     RetryFun = Config#aws_config.retry,
+    ResponseTypeFun = Config#aws_config.response_type,
     Rsp = erlcloud_httpc:request(URI, Method, Headers, Body,
         erlcloud_aws:get_timeout(Config), Config),
     case Rsp of
         {ok, {{Status, StatusLine}, ResponseHeaders, ResponseBody}} ->
-            ResponseType = case Status >= 200 andalso Status < 300 of
-                true ->
-                    RetryFunctionErrors = application:get_env(erlcloud, retry_x_amz_function_error, false),
-                    case RetryFunctionErrors andalso lists:keymember("x-amz-function-error", 1, ResponseHeaders) of
-                        true -> error;
-                        false -> ok
-                    end;
-                false ->
-                    error
-            end,
             Request3 = Request2#aws_request{
-                 response_type = ResponseType,
                  error_type = aws,
                  response_status = Status,
                  response_status_line = StatusLine,
                  response_headers = ResponseHeaders,
                  response_body = ResponseBody},
-            Request4 = ResultFun(Request3),
+            ResponseType = ResponseTypeFun(Request3),
+            Request4 = ResultFun(Request3#aws_request{response_type=ResponseType}),
             case Request4#aws_request.response_type of
                 ok ->
                     Request4;
