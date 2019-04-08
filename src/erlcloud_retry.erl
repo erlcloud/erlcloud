@@ -70,8 +70,18 @@ request_and_retry(Config, ResultFun, {retry, Request}, MaxAttempts) ->
         erlcloud_aws:get_timeout(Config), Config),
     case Rsp of
         {ok, {{Status, StatusLine}, ResponseHeaders, ResponseBody}} ->
+            ResponseType = case Status >= 200 andalso Status < 300 of
+                true ->
+                    {ok, RetryFunctionErrors} = application:get_env(erlcloud, retry_x_amz_function_error),
+                    case RetryFunctionErrors andalso lists:keymember("x-amz-function-error", 1, ResponseHeaders) of
+                        true -> error;
+                        false -> ok
+                    end;
+                false ->
+                    error
+            end,
             Request3 = Request2#aws_request{
-                 response_type = if Status >= 200, Status < 300 -> ok; true -> error end,
+                 response_type = ResponseType,
                  error_type = aws,
                  response_status = Status,
                  response_status_line = StatusLine,

@@ -18,7 +18,12 @@
                   %% hackney,
                   lhttpc]},
   {modules, []},
-  {env, []},
+  {env, [
+      %% AWS Lambda may response 200 with additional headers in case of errors.
+      %% Set flag to true to use retry logic for such cases
+      %% @see https://docs.aws.amazon.com/lambda/latest/dg/API_Invoke.html
+      {retry_x_amz_function_error, false}
+  ]},
   {licenses, ["MIT"]},
   {links, [{"Github", "https://github.com/erlcloud/erlcloud"}]},
   {maintainers, []}
