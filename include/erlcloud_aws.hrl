@@ -141,7 +141,7 @@
           %% By default treat all non 2xx http error codes as errors.
           %% But in some cases, like lambda call it useful to override such
           %% behaviour by custom one.
-          response_type=fun erlcloud_retry:only_http_errors/1::erlcloud_retry:response_type_fun(),
+          retry_response_type=fun erlcloud_retry:only_http_errors/1::erlcloud_retry:response_type_fun(),
           %% Currently matches DynamoDB retry
           %% It's likely this is too many retries for other services
           retry_num=10::non_neg_integer(),
