@@ -23,7 +23,7 @@
          default_retry/1,
 
          only_http_errors/1,
-         aws_api_errors/1
+         lambda_fun_errors/1
         ]).
 -export_type([should_retry/0, retry_fun/0, response_type_fun/0]).
 
@@ -64,8 +64,8 @@ only_http_errors(#aws_request{response_status=Status})
 only_http_errors(_) ->
     error.
 
--spec aws_api_errors(#aws_request{}) -> ok | error.
-aws_api_errors(#aws_request{response_status=Status, response_headers=ResponseHeaders})
+-spec lambda_fun_errors(#aws_request{}) -> ok | error.
+lambda_fun_errors(#aws_request{response_status=Status, response_headers=ResponseHeaders})
   when Status >= 200, Status < 300
        ->
     case lists:keymember("x-amz-function-error", 1, ResponseHeaders) of
@@ -74,7 +74,7 @@ aws_api_errors(#aws_request{response_status=Status, response_headers=ResponseHea
         false ->
             ok
     end;
-aws_api_errors(_) ->
+lambda_fun_errors(_) ->
     error.
 
 request_and_retry(_, _, {_, Request}, 0) ->
