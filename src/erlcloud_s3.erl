@@ -1767,6 +1767,7 @@ s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body,
     end,
 
     S3Host = Config#aws_config.s3_host,
+    S3Region = Config#aws_config.s3_region,
     AccessMethod = case Config#aws_config.s3_bucket_access_method of
         auto ->
             case erlcloud_util:is_dns_compliant_name(Bucket) orelse
@@ -1800,7 +1801,7 @@ s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body,
         Method, EscapedPath, Config,
         [{"host", HostName} | FHeaders ],
         Body,
-        aws_region_from_host(S3Host),
+        S3Region,
         "s3", QueryParams),
 
     RequestURI = lists:flatten([
@@ -1854,27 +1855,27 @@ port_spec(#aws_config{s3_port=Port}) ->
 
 %% Extract region form s3 endpoint names.
 %% http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region
-aws_region_from_host(Host) ->
-    case string:tokens(Host, ".") of
-        %% s3.cn-north-1.amazonaws.com.cn
-        ["s3", Value, _, _, _] ->
-            Value;
-        %% s3.eu-central-1.amazonaws.com
-        ["s3", Value, _, _] ->
-            Value;
-        %% s3.amazonaws.com
-        ["s3", _, _] ->
-            "us-east-1";
-        %% s3-external-1.amazonaws.com
-        ["s3-external-1", _, _] ->
-            "us-east-1";
-        %% For example: s3-us-east-1.amazonaws.com
-        [Value, _, _] ->
-            %% Skip "s3-" prefix
-            string:substr(Value, 4);
-        _ ->
-            "us-east-1"
-    end.
+%%aws_region_from_host(Host) ->
+%%    case string:tokens(Host, ".") of
+%%        %% s3.cn-north-1.amazonaws.com.cn
+%%        ["s3", Value, _, _, _] ->
+%%            Value;
+%%        %% s3.eu-central-1.amazonaws.com
+%%        ["s3", Value, _, _] ->
+%%            Value;
+%%        %% s3.amazonaws.com
+%%        ["s3", _, _] ->
+%%            "us-east-1";
+%%        %% s3-external-1.amazonaws.com
+%%        ["s3-external-1", _, _] ->
+%%            "us-east-1";
+%%        %% For example: s3-us-east-1.amazonaws.com
+%%        [Value, _, _] ->
+%%            %% Skip "s3-" prefix
+%%            string:substr(Value, 4);
+%%        _ ->
+%%            "us-east-1"
+%%    end.
 
 %%
 %% http://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
