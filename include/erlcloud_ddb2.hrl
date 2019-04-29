@@ -318,13 +318,13 @@
          attributes :: undefined
         }).
 
--record(ddb2_transact_get_items_response,
+-record(ddb2_item_response,
         {item :: erlcloud_ddb2:out_item()
         }).
 
 -record(ddb2_transact_get_items,
         {consumed_capacity :: undefined | [#ddb2_consumed_capacity{}],
-         responses :: undefined | [#ddb2_transact_get_items_response{}]
+         responses :: undefined | [#ddb2_item_response{}]
         }).
 
 -record(ddb2_backup_description,
