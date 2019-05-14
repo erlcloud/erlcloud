@@ -127,7 +127,7 @@
           %% other services: 10s.
           timeout=undefined::timeout()|undefined,
           cloudtrail_raw_result=false::boolean(),
-          http_client=lhttpc::erlcloud_httpc:request_fun(), %% If using hackney, ensure that it is started.
+          http_client=httpc::erlcloud_httpc:request_fun(), %% If using hackney or lhttpc, ensure that it is started.
           hackney_pool=default::atom(), %% The name of the http request pool hackney should use.
           %% The name of the http request pool lhttpc should use
           %% Note: If the lhttpc pool does not exists it will be created one with the lhttpc
