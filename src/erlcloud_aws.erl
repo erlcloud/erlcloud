@@ -10,6 +10,7 @@
          aws_request_form/8,
          aws_request_form_raw/8,
          do_aws_request_form_raw/9,
+         region/1,
          param_list/2, default_config/0, auto_config/0, auto_config/1,
          default_config_region/2, default_config_override/1,
          update_config/1,clear_config/1, clear_expired_configs/0,
@@ -818,6 +819,16 @@ timestamp_to_gregorian_seconds(undefined) -> undefined;
 timestamp_to_gregorian_seconds(Timestamp) ->
     {ok, [Yr, Mo, Da, H, M, S], []} = io_lib:fread("~d-~d-~dT~d:~d:~dZ", binary_to_list(Timestamp)),
     calendar:datetime_to_gregorian_seconds({{Yr, Mo, Da}, {H, M, S}}).
+
+-spec region(aws_config()) -> {ok, string()} | {error, term()}.
+region(Config) ->
+    case erlcloud_ec2_meta:get_instance_dynamic_data("instance-identity/document", Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            Doc = jsx:decode(Json),
+            {ok, prop_to_list_defined(<<"region">>, Doc)}
+    end.
 
 -spec get_credentials_from_metadata(aws_config())
                                    -> {ok, #metadata_credentials{}} | {error, metadata_not_available | httpc_result_error()}.

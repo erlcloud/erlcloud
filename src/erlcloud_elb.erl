@@ -16,6 +16,8 @@
          describe_load_balancers/2, describe_load_balancers/3, describe_load_balancers/4,
          describe_load_balancers_all/0, describe_load_balancers_all/1, describe_load_balancers_all/2,
 
+         describe_instance_health/1, describe_instance_health/2,
+
          configure_health_check/2, configure_health_check/3,
 
          create_load_balancer_policy/3, create_load_balancer_policy/4, create_load_balancer_policy/5,
@@ -481,6 +483,11 @@ describe_load_balancer_attributes(Name, Config) ->
         "DescribeLoadBalancerAttributes",
         [{"LoadBalancerName", Name}]),
     extract_elb_attribs(Node).
+
+describe_instance_health(LB) ->
+    describe_instance_health(LB, default_config()).
+describe_instance_health(LB, Config) ->
+    elb_request(Config, "DescribeInstanceHealth", [{"LoadBalancerName", LB}]).
 
 
 %%%===================================================================

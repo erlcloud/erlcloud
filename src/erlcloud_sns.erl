@@ -4,7 +4,8 @@
 -module(erlcloud_sns).
 -author('elbrujohalcon@inaka.net').
 
--export([add_permission/3, add_permission/4,
+-export([set_sns_host/1,
+         add_permission/3, add_permission/4,
          create_platform_endpoint/2, create_platform_endpoint/3,
          create_platform_endpoint/4, create_platform_endpoint/5,
          create_platform_endpoint/6,
@@ -730,12 +731,16 @@ new_config(AccessKeyID, SecretAccessKey) ->
        secret_access_key=SecretAccessKey
       }.
 
+set_sns_host(Host) ->
+    Config = erlcloud_aws:default_config(),
+    put(aws_config, Config#aws_config{sns_host = Host}).
+
 sns_simple_request(Config, Action, Params) ->
     sns_request(Config, Action, Params),
     ok.
 
 sns_xml_request(Config, Action, Params) ->
-    case erlcloud_aws:aws_request_xml4(post,
+    case erlcloud_aws:aws_request_xml4(get,
                                        scheme_to_protocol(Config#aws_config.sns_scheme),
                                        Config#aws_config.sns_host, Config#aws_config.sns_port, "/",
                                        [{"Action", Action}, {"Version", ?API_VERSION} | Params],

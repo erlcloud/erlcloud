@@ -105,8 +105,8 @@ validate_param(Param, Expected) ->
 
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_params(binary(), [expected_param()]) -> ok.
-validate_params(Body, Expected) ->
-    ParamList = string:tokens(binary_to_list(Body), "&"),
+validate_params(QS, Expected) ->
+    ParamList = string:tokens(binary_to_list(QS), "&"),
     Remain = lists:foldl(fun validate_param/2, Expected, ParamList),
     io:format("Remain: ~p", [Remain]),
     ?assertEqual([], Remain).
@@ -115,7 +115,16 @@ validate_params(Body, Expected) ->
 %% Validates the query body and responds with the provided response.
 -spec input_expect(string(), [expected_param()]) -> fun().
 input_expect(Response, Expected) ->
-    fun(_Url, post, _Headers, Body, _Timeout, _Config) ->
+    fun
+        (Url, get, _Headers, _Body, _Timeout, _Config) ->
+            case binary:split(iolist_to_binary(Url), <<"?">>) of
+                [_, QS] ->
+                    validate_params(QS, Expected);
+                [_] ->
+                    validate_params(<<>>, Expected)
+            end,
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}};
+        (_Url, post, _Headers, Body, _Timeout, _Config) ->
             validate_params(Body, Expected),
             {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
@@ -149,7 +158,7 @@ input_tests(Response, Tests) ->
 %% returns the mock of the httpc function output tests expect to be called.
 -spec output_expect(string()) -> fun().
 output_expect(Response) ->
-    fun(_Url, post, _Headers, _Body, _Timeout, _Config) ->
+    fun(_Url, _Method, _Headers, _Body, _Timeout, _Config) ->
             {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
@@ -740,22 +749,22 @@ list_subscriptions_by_topic_output_tests(_) ->
 defaults_to_https(_) ->
     Config = erlcloud_aws:default_config(),
     erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
-    ?_assertMatch({"https://sns.amazonaws.com/", _, _, _, _, Config}, request_params()).
+    ?_assertMatch({"https://sns.amazonaws.com/" ++ _, _, _, _, _, Config}, request_params()).
 
 supports_explicit_http(_) ->
     Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="http://"},
     erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
-    ?_assertMatch({"http://sns.amazonaws.com/", _, _, _, _, Config}, request_params()).
+    ?_assertMatch({"http://sns.amazonaws.com/" ++ _, _, _, _, _, Config}, request_params()).
 
 supports_https(_) ->
     Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="https://"},
     erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
-    ?_assertMatch({"https://sns.amazonaws.com/", _, _, _, _, Config}, request_params()).
+    ?_assertMatch({"https://sns.amazonaws.com/" ++ _, _, _, _, _, Config}, request_params()).
 
 is_case_insensitive(_) ->
     Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="HTTPS://"},
     erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config),
-    ?_assertMatch({"https://sns.amazonaws.com/", _, _, _, _, Config}, request_params()).
+    ?_assertMatch({"https://sns.amazonaws.com/" ++ _, _, _, _, _, Config}, request_params()).
 
 doesnt_support_gopher(_) ->
     Config = (erlcloud_aws:default_config())#aws_config{sns_scheme="gopher://"},
