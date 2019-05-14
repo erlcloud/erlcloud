@@ -1,3 +1,4 @@
+.rebar3/
 # IntelliJ IDEA
 /.idea
 *.iml
