@@ -67,7 +67,7 @@ operation_test_() ->
       fun list_tables_input_tests/1,
       fun list_tables_output_tests/1,
       fun list_tags_of_resource_input_tests/1,
-      fun list_tags_of_resource_output_tests/1,      
+      fun list_tags_of_resource_output_tests/1,
       fun put_item_input_tests/1,
       fun put_item_output_tests/1,
       fun q_input_tests/1,
@@ -80,6 +80,10 @@ operation_test_() ->
       fun scan_output_tests/1,
       fun tag_resource_input_tests/1,
       fun tag_resource_output_tests/1,
+      fun transact_get_items_input_tests/1,
+      fun transact_get_items_output_tests/1,
+      fun transact_write_items_input_tests/1,
+      fun transact_write_items_output_tests/1,
       fun untag_resource_input_tests/1,
       fun untag_resource_output_tests/1,
       fun update_continuous_backups_input_tests/1,
@@ -4767,6 +4771,417 @@ tag_resource_output_tests(_) ->
                                                 [{<<"example_key1">>, <<"example_value1">>},
                                                  {<<"example_key2">>, <<"example_value2">>}])),
                      Tests).
+
+%% TransactGetItem test using synthetic data (there are no AWS provided examples):
+%% https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactGetItems.html
+transact_get_items_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"TransactGetItems request",
+             ?_f(erlcloud_ddb2:transact_get_items(
+                [{get, {<<"PersonalInfo">>, [{<<"Name">>, {s, <<"John Smith">>}},
+                                             {<<"DOB">>, {s, <<"11/11/2011">>}}]}},
+                 {get, {<<"EmployeeRecord">>, [{<<"Name">>, {s, <<"John Smith">>}},
+                                               {<<"DOH">>, {s, <<"11/11/2018">>}}]}}],
+                 [{return_consumed_capacity, total}])), "
+{
+    \"TransactItems\": [
+        {\"Get\": {
+            \"Key\": {
+                \"Name\": {
+                    \"S\": \"John Smith\"
+                },
+                \"DOB\": {
+                    \"S\": \"11/11/2011\"
+                }
+            },
+            \"TableName\": \"PersonalInfo\"
+        }},
+        {\"Get\": {
+            \"Key\": {
+                \"Name\": {
+                    \"S\": \"John Smith\"
+                },
+                \"DOH\": {
+                    \"S\": \"11/11/2018\"
+                }
+            },
+            \"TableName\": \"EmployeeRecord\"
+        }}
+    ],
+    \"ReturnConsumedCapacity\": \"TOTAL\"
+}"
+            })
+        ],
+
+    Response = "
+{
+    \"ConsumedCapacity\": [
+        {
+            \"TableName\": \"PersonalInfo\",
+            \"CapacityUnits\": 2
+        },
+        {
+            \"TableName\": \"EmployeeRecord\",
+            \"CapacityUnits\": 3
+        }
+    ],
+    \"Responses\": [
+        {\"Item\": {
+            \"Name\":{
+                \"S\":\"John Smith\"
+            },
+            \"DOB\":{
+                \"S\":\"11/11/2011\"
+            },
+            \"Creation_ts\":{
+                \"N\":\"1500000000\"
+            }
+        }},
+        {\"Item\": {
+            \"Name\":{
+                \"S\":\"John Smith\"
+            },
+            \"DOH\":{
+                \"S\":\"11/11/2018\"
+            },
+            \"Id\":{
+                \"N\":\"19\"
+            }
+        }}
+    ]
+}",
+    input_tests(Response, Tests).
+
+transact_get_items_output_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"TransactGetItems response only", "
+{
+    \"Responses\": [
+        {\"Item\": {
+            \"Name\":{
+                \"S\":\"John Smith\"
+            },
+            \"DOB\":{
+                \"S\":\"11/11/2011\"
+            },
+            \"Creation_ts\":{
+                \"N\":\"1500000000\"
+            }
+        }},
+        {\"Item\": {
+            \"Name\":{
+                \"S\":\"John Smith\"
+            },
+            \"DOH\":{
+                \"S\":\"11/11/2018\"
+            },
+            \"Id\":{
+                \"N\":\"19\"
+            }
+        }}
+    ]
+}",
+             {ok, #ddb2_transact_get_items{
+                 responses = [
+                     #ddb2_item_response{
+                        item = [
+                            {<<"Name">>, <<"John Smith">>},
+                            {<<"DOB">>, <<"11/11/2011">>},
+                            {<<"Creation_ts">>, 1500000000}
+                        ]
+                     },
+                     #ddb2_item_response{
+                        item = [
+                            {<<"Name">>, <<"John Smith">>},
+                            {<<"DOH">>, <<"11/11/2018">>},
+                            {<<"Id">>, 19}
+                        ]
+                     }
+                 ]
+             }}}),
+         ?_ddb_test(
+            {"TransactGetItems consumed capacity", "
+{
+    \"ConsumedCapacity\": [
+        {
+            \"TableName\": \"PersonalInfo\",
+            \"CapacityUnits\": 2
+        },
+        {
+            \"TableName\": \"EmployeeRecord\",
+            \"CapacityUnits\": 3
+        }
+    ],
+    \"Responses\": [
+        {\"Item\": {
+            \"Name\":{
+                \"S\":\"John Smith\"
+            },
+            \"DOB\":{
+                \"S\":\"11/11/2011\"
+            },
+            \"Creation_ts\":{
+                \"N\":\"1500000000\"
+            }
+        }},
+        {\"Item\": {
+            \"Name\":{
+                \"S\":\"John Smith\"
+            },
+            \"DOH\":{
+                \"S\":\"11/11/2018\"
+            },
+            \"Id\":{
+                \"N\":\"19\"
+            }
+        }}
+    ]
+}",
+             {ok, #ddb2_transact_get_items{
+                 responses = [
+                     #ddb2_item_response{
+                        item = [
+                            {<<"Name">>, <<"John Smith">>},
+                            {<<"DOB">>, <<"11/11/2011">>},
+                            {<<"Creation_ts">>, 1500000000}
+                        ]
+                     },
+                     #ddb2_item_response{
+                        item = [
+                            {<<"Name">>, <<"John Smith">>},
+                            {<<"DOH">>, <<"11/11/2018">>},
+                            {<<"Id">>, 19}
+                        ]
+                     }
+                 ],
+                 consumed_capacity = [
+                     #ddb2_consumed_capacity{
+                        capacity_units = 2, table_name = <<"PersonalInfo">>
+                     },
+                     #ddb2_consumed_capacity{
+                        capacity_units = 3, table_name = <<"EmployeeRecord">>
+                     }
+                 ]
+             }}})
+        ],
+
+    output_tests(?_f(erlcloud_ddb2:transact_get_items([], [{out, record}])),
+            Tests).
+
+%% TransactWriteItems test using synthetic data (there are no AWS provided examples):
+%% https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactWriteItems.html
+transact_write_items_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"TransactWriteItems request",
+             ?_f(erlcloud_ddb2:transact_write_items(
+                 [{update, {
+                     <<"PersonalInfo">>,
+                     [{<<"Name">>, {s, <<"John Smith">>}}, {<<"DOB">>, {s, <<"11/11/2011">>}}],
+                     <<"SET eye_color = :c">>,
+                     [{expression_attribute_values, [{<<":c">>, <<"brown">>}]}]}},
+                  {condition_check, {
+                      <<"Scratchpad">>,
+                      [{<<"Name">>, {s, <<"John Smith">>}}, {<<"DOB">>, {s, <<"11/11/2011">>}}],
+                     [{condition_expression, <<"approved = :a">>},
+                      {expression_attribute_values, [{<<":a">>, <<"yes">>}]}]}},
+                  {delete, {<<"Scratchpad">>, [{<<"Name">>, {s, <<"John Smith">>}},
+                                               {<<"DOB">>, {s, <<"11/11/2011">>}}]}},
+                  {put, {<<"EmployeeRecord">>, [{<<"Name">>, {s, <<"John Smith">>}},
+                                                {<<"DOH">>, {s, <<"11/11/2018">>}}]}}],
+                 [{return_consumed_capacity, total},
+                  {return_item_collection_metrics, size}])), "
+{
+    \"TransactItems\": [
+        {\"Update\": {
+            \"Key\": {
+                \"Name\": {
+                    \"S\": \"John Smith\"
+                },
+                \"DOB\": {
+                    \"S\": \"11/11/2011\"
+                }
+            },
+            \"ExpressionAttributeValues\": {
+                \":c\": {\"S\": \"brown\"}
+            },
+            \"UpdateExpression\": \"SET eye_color = :c\",
+            \"TableName\": \"PersonalInfo\"
+        }},
+        {\"ConditionCheck\": {
+            \"Key\": {
+                \"Name\": {
+                    \"S\": \"John Smith\"
+                },
+                \"DOB\": {
+                    \"S\": \"11/11/2011\"
+                }
+            },
+            \"ExpressionAttributeValues\": {
+                \":a\": {\"S\": \"yes\"}
+            },
+            \"ConditionExpression\": \"approved = :a\",
+            \"TableName\": \"Scratchpad\"
+        }},
+        {\"Delete\": {
+            \"Key\": {
+                \"Name\": {
+                    \"S\": \"John Smith\"
+                },
+                \"DOB\": {
+                    \"S\": \"11/11/2011\"
+                }
+            },
+            \"TableName\": \"Scratchpad\"
+        }},
+        {\"Put\": {
+            \"Item\": {
+                \"Name\": {
+                    \"S\": \"John Smith\"
+                },
+                \"DOH\": {
+                    \"S\": \"11/11/2018\"
+                }
+            },
+            \"TableName\": \"EmployeeRecord\"
+        }}
+    ],
+    \"ReturnConsumedCapacity\": \"TOTAL\",
+    \"ReturnItemCollectionMetrics\": \"SIZE\"
+}"
+            })
+        ],
+
+    Response = "
+{
+    \"ItemCollectionMetrics\": {
+        \"PersonalInfo\": [{
+            \"ItemCollectionKey\": {
+                \"Name\": {
+                    \"S\": \"John Smith\"
+                }
+            },
+            \"SizeEstimateRangeGB\": [1, 2]
+        }],
+        \"Scratchpad\": [{
+            \"ItemCollectionKey\": {
+                \"Name\": {
+                    \"S\": \"John Smith\"
+                }
+            },
+            \"SizeEstimateRangeGB\": [0, 1]
+        }],
+        \"EmployeeRecord\": [{
+            \"ItemCollectionKey\": {
+                \"Name\": {
+                    \"S\": \"John Smith\"
+                }
+            },
+            \"SizeEstimateRangeGB\": [2, 3]
+        }]
+    },
+    \"ConsumedCapacity\": [
+        {
+            \"TableName\": \"PersonalInfo\",
+            \"CapacityUnits\": 3
+        },
+        {
+            \"TableName\": \"Scratchpad\",
+            \"CapacityUnits\": 4
+        },
+        {
+            \"TableName\": \"EmployeeRecord\",
+            \"CapacityUnits\": 3
+        }
+    ]
+}",
+    input_tests(Response, Tests).
+
+transact_write_items_output_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"TransactWriteItems consumed capacity", "
+{
+    \"ConsumedCapacity\": [
+        {
+            \"TableName\": \"PersonalInfo\",
+            \"CapacityUnits\": 3
+        },
+        {
+            \"TableName\": \"Scratchpad\",
+            \"CapacityUnits\": 4
+        },
+        {
+            \"TableName\": \"EmployeeRecord\",
+            \"CapacityUnits\": 3
+        }
+    ]
+}",
+             {ok, #ddb2_transact_write_items{
+                 consumed_capacity = [
+                     #ddb2_consumed_capacity{
+                        capacity_units = 3, table_name = <<"PersonalInfo">>
+                     },
+                     #ddb2_consumed_capacity{
+                        capacity_units = 4, table_name = <<"Scratchpad">>
+                     },
+                     #ddb2_consumed_capacity{
+                        capacity_units = 3, table_name = <<"EmployeeRecord">>
+                     }
+                 ]
+             }}}),
+         ?_ddb_test(
+            {"TransactWriteItems item collection metrics", "
+{
+    \"ItemCollectionMetrics\": {
+        \"PersonalInfo\": [{
+            \"ItemCollectionKey\": {
+                \"Name\": {
+                    \"S\": \"John Smith\"
+                }
+            },
+            \"SizeEstimateRangeGB\": [1, 2]
+        }],
+        \"Scratchpad\": [{
+            \"ItemCollectionKey\": {
+                \"Name\": {
+                    \"S\": \"John Smith\"
+                }
+            },
+            \"SizeEstimateRangeGB\": [0, 1]
+        }],
+        \"EmployeeRecord\": [{
+            \"ItemCollectionKey\": {
+                \"Name\": {
+                    \"S\": \"John Smith\"
+                }
+            },
+            \"SizeEstimateRangeGB\": [2, 3]
+        }]
+    }
+}",
+             {ok, #ddb2_transact_write_items{
+                 item_collection_metrics = [
+                   {<<"PersonalInfo">>,
+                     [#ddb2_item_collection_metrics
+                      {item_collection_key = <<"John Smith">>,
+                       size_estimate_range_gb = {1, 2}}]},
+                   {<<"Scratchpad">>,
+                     [#ddb2_item_collection_metrics
+                      {item_collection_key = <<"John Smith">>,
+                       size_estimate_range_gb = {0, 1}}]},
+                   {<<"EmployeeRecord">>,
+                     [#ddb2_item_collection_metrics
+                      {item_collection_key = <<"John Smith">>,
+                       size_estimate_range_gb = {2, 3}}
+                     ]}]}}})
+        ],
+
+    output_tests(?_f(erlcloud_ddb2:transact_write_items([], [{out, record}])),
+            Tests).
+
 %% UntagResource test based on the API:
 %% https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UntagResource.html
 untag_resource_input_tests(_) ->
