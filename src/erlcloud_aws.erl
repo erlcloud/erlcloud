@@ -10,6 +10,7 @@
          aws_request_form/8,
          aws_request_form_raw/8,
          do_aws_request_form_raw/9,
+         region/1,
          param_list/2, default_config/0, auto_config/0, auto_config/1,
          default_config_region/2, default_config_override/1,
          update_config/1,clear_config/1, clear_expired_configs/0,
@@ -28,7 +29,6 @@
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
--include_lib("lhttpc/include/lhttpc_types.hrl").
 
 -define(ERLCLOUD_RETRY_TIMEOUT, 10000).
 -define(GREGORIAN_EPOCH_OFFSET, 62167219200).
@@ -42,7 +42,7 @@
 -define(AWS_REGION,  ["AWS_DEFAULT_REGION", "AWS_REGION"]).
 
 %% types
--type http_client_result() :: result(). % from lhttpc_types.hrl
+-type http_client_result() :: erlcloud_httpc:result().
 -type http_client_headers() :: [{string(), string()}].
 -type httpc_result_ok() :: {http_client_headers(), binary()}.
 -type httpc_result_error() :: {http_error, Status :: pos_integer(), StatusLine :: string(), Body :: binary()}
@@ -819,6 +819,16 @@ timestamp_to_gregorian_seconds(Timestamp) ->
     {ok, [Yr, Mo, Da, H, M, S], []} = io_lib:fread("~d-~d-~dT~d:~d:~dZ", binary_to_list(Timestamp)),
     calendar:datetime_to_gregorian_seconds({{Yr, Mo, Da}, {H, M, S}}).
 
+-spec region(aws_config()) -> {ok, string()} | {error, term()}.
+region(Config) ->
+    case erlcloud_ec2_meta:get_instance_dynamic_data("instance-identity/document", Config) of
+        {error, Reason} ->
+            {error, Reason};
+        {ok, Json} ->
+            Doc = jsx:decode(Json),
+            {ok, prop_to_list_defined(<<"region">>, Doc)}
+    end.
+
 -spec get_credentials_from_metadata(aws_config())
                                    -> {ok, #metadata_credentials{}} | {error, metadata_not_available | httpc_result_error()}.
 get_credentials_from_metadata(Config) ->
@@ -968,11 +978,11 @@ request_to_return(#aws_request{response_type = error,
     {error, {http_error, Status, StatusLine, Body, Headers}}.
 
 %% http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html
--spec sign_v4_headers(aws_config(), headers(), string() | binary(), string(), string()) -> headers().
+-spec sign_v4_headers(aws_config(), erlcloud_httpc:headers(), string() | binary(), string(), string()) -> erlcloud_httpc:headers().
 sign_v4_headers(Config, Headers, Payload, Region, Service) ->
     sign_v4(post, "/", Config, Headers, Payload, Region, Service, []).
 
--spec sign_v4(atom(), list(), aws_config(), headers(), string() | binary(), string(), string(), list()) -> headers().
+-spec sign_v4(atom(), list(), aws_config(), erlcloud_httpc:headers(), string() | binary(), string(), string(), list()) -> erlcloud_httpc:headers().
 sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams) ->
     Date = iso_8601_basic_time(),
     {PayloadHash, Headers1} =

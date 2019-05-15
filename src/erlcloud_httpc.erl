@@ -2,7 +2,7 @@
 %% @doc
 %%
 %% HTTP client abstraction for erlcloud. Simplifies changing http clients.
-%% API matches lhttpc, except Config is passed instead of options for
+%% API matches httpc, except Config is passed instead of options for
 %% future cusomizability.
 %%
 %% @end
@@ -13,7 +13,36 @@
 
 -export([request/6]).
 
--type request_fun() :: 
+-type header() :: 'Cache-Control' | 'Connection' | 'Date' | 'Pragma'
+  | 'Transfer-Encoding' | 'Upgrade' | 'Via' | 'Accept' | 'Accept-Charset'
+  | 'Accept-Encoding' | 'Accept-Language' | 'Authorization' | 'From' | 'Host'
+  | 'If-Modified-Since' | 'If-Match' | 'If-None-Match' | 'If-Range'
+  | 'If-Unmodified-Since' | 'Max-Forwards' | 'Proxy-Authorization' | 'Range'
+  | 'Referer' | 'User-Agent' | 'Age' | 'Location' | 'Proxy-Authenticate'
+  | 'Public' | 'Retry-After' | 'Server' | 'Vary' | 'Warning'
+  | 'Www-Authenticate' | 'Allow' | 'Content-Base' | 'Content-Encoding'
+  | 'Content-Language' | 'Content-Length' | 'Content-Location'
+  | 'Content-Md5' | 'Content-Range' | 'Content-Type' | 'Etag'
+  | 'Expires' | 'Last-Modified' | 'Accept-Ranges' | 'Set-Cookie'
+  | 'Set-Cookie2' | 'X-Forwarded-For' | 'Cookie' | 'Keep-Alive'
+  | 'Proxy-Connection' | binary() | string().
+
+-type headers() :: [{header(), iodata()}].
+-export_type([header/0, headers/0]).
+
+-type body() :: binary() | 'undefined'.
+
+-type window_size() :: non_neg_integer() | 'infinity'.
+
+-type upload_state() :: {pid(), window_size()}.
+
+-type result() ::
+        {ok, {{pos_integer(), string()}, headers(), body()}} |
+        {ok, upload_state()} |
+        {error, atom()}.
+-export_type([result/0]).
+
+-type request_fun() ::
     lhttpc | httpc | hackney |
     {module(), atom()} |
     fun((string(),

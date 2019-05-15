@@ -115,7 +115,7 @@ parsed_mock_response(Text) ->
     {ok, element(1, xmerl_scan:string(Text))}.
 
 mocked_groups() ->
-    {[post, '_', "/", [
+    {[get, '_', "/", [
                        {"Action", "DescribeAutoScalingGroups"}, 
                        {"Version", '_'}, 
                        {"MaxRecords", '_'}],
@@ -175,7 +175,7 @@ expected_groups() ->
 }].
 
 mocked_instances() ->
-    {[post, '_', "/", [
+    {[get, '_', "/", [
                        {"Action", "DescribeAutoScalingInstances"}, 
                        {"Version", '_'}, 
                        {"MaxRecords", '_'}],
@@ -208,7 +208,7 @@ expected_instances() ->
         lifecycle_state = "InService"}].
 
 mocked_launch_configs() ->
-    {[post, '_', "/", [
+    {[get, '_', "/", [
                        {"Action", "DescribeLaunchConfigurations"}, 
                        {"Version", '_'}, 
                        {"MaxRecords", '_'}],
@@ -256,7 +256,7 @@ expected_launch_configs() ->
        }].
 
 mocked_activity() ->
-    {[post, '_', "/", [
+    {[get, '_', "/", [
                        {"Action", "TerminateInstanceInAutoScalingGroup"}, 
                        {"Version", "2011-01-01"}, 
                        {"InstanceId", "i-bdae7a84"}, 
@@ -280,7 +280,7 @@ mocked_activity() ->
 </TerminateInstanceInAutoScalingGroupResponse>")}.
 
 mocked_scaling_activity() ->
-    {[post, '_', "/", [
+    {[get, '_', "/", [
                        {"Action", "DescribeScalingActivities"}, 
                        {"Version", "2011-01-01"},
                        {"AutoScalingGroupName", "my-test-asg"},
@@ -310,7 +310,7 @@ mocked_scaling_activity() ->
 </DescribeScalingActivitiesResponse>")}.
 
 mocked_create_launch_config() ->
-    {[post, '_', "/", [
+    {[get, '_', "/", [
                        {"Action", "CreateLaunchConfiguration"}, 
                        {"Version", '_'},
                        {"LaunchConfigurationName", "my-test-lc"},
@@ -327,7 +327,7 @@ mocked_create_launch_config() ->
 </CreateLaunchConfigurationResponse>")}.
 
 mocked_create_asg() ->
-    {[post, '_', "/", [
+    {[get, '_', "/", [
                        {"Action", "CreateAutoScalingGroup"}, 
                        {"Version", '_'},
                        {"AutoScalingGroupName", "my-test-asg"},
@@ -374,7 +374,7 @@ expected_scaling_activity() ->
         progress = 0
       }].
 mocked_detach_instances() ->
-    {[post, '_', "/", [
+    {[get, '_', "/", [
                        {"Action", "DetachInstances"},
                        {"Version", "2011-01-01"},
                        {"ShouldDecrementDesiredCapacity", "false"},
@@ -414,7 +414,7 @@ expected_detach_activities() ->
 
 
 mocked_describe_lifecycle_hooks() ->
-    {[post, '_', "/", [
+    {[get, '_', "/", [
                        {"Action", "DescribeLifecycleHooks"},
                        {"Version", "2011-01-01"},
                        {"AutoScalingGroupName", "my-test-asg-lbs"},
@@ -448,7 +448,7 @@ expected_describe_lifecycle_hooks() ->
         lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"}].
 
 mocked_complete_lifecycle_action() ->
-    {[post, '_', "/", [
+    {[get, '_', "/", [
                        {"Action", "CompleteLifecycleAction"},
                        {"Version", "2011-01-01"},
                        {"AutoScalingGroupName", "my-test-asg-lbs"},

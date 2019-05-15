@@ -8,7 +8,6 @@ This is manual test for the following functions :
 
 2) start connectivity and the library configuration:
     ssl:start(),
-    lhttpc:start(),
     AccessKeyId="PROVIDE_YOUR_DATA",
     SecretAccessKey="PROVIDE_YOUR_DATA",
     Hostname="ec2.amazonaws.com",

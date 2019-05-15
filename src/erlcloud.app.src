@@ -14,9 +14,10 @@
                   inets,
                   jsx,
                   eini,
-                  base16,
+                  base16 %%,
                   %% hackney,
-                  lhttpc]},
+                  %% lhttpc
+                  ]},
   {modules, []},
   {env, []},
   {licenses, ["MIT"]},

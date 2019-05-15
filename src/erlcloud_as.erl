@@ -12,6 +12,8 @@
          describe_launch_configs/0, describe_launch_configs/1, describe_launch_configs/2, 
          describe_launch_configs/4,
 
+         set_as_host/1,
+
          describe_instances/0, describe_instances/1, describe_instances/2, 
          describe_instances/4,
          terminate_instance/1, terminate_instance/2, terminate_instance/3,
@@ -28,6 +30,7 @@
          detach_instances/2, detach_instances/3, detach_instances/4,
 
          describe_lifecycle_hooks/1, describe_lifecycle_hooks/2, describe_lifecycle_hooks/3,
+         record_lifecycle_action_heartbeat/3, record_lifecycle_action_heartbeat/4,
          complete_lifecycle_action/4, complete_lifecycle_action/5
 ]).
 
@@ -78,6 +81,16 @@
 -define(COMPLETE_LIFECYCLE_ACTION_ACTIVITY, 
         "/CompleteLifecycleActionResponse/ResponseMetadata/RequestId").
 
+-define(RECORD_LIFECYCLE_ACTION_HEARTBEAT_RESPONSE,
+    "/RecordLifecycleActionHeartbeatResponse/ResponseMetadata/RequestId").
+
+%% --------------------------------------------------------------------
+%% @doc Sets as hosts in #aws_config{}
+%% @end
+%% --------------------------------------------------------------------
+set_as_host(Host) ->
+    Config = erlcloud_aws:default_config(),
+    put(aws_config, Config#aws_config{as_host = Host}).
 
 %% --------------------------------------------------------------------
 %% @doc Calls describe_groups([], default_configuration())
@@ -695,6 +708,33 @@ complete_lifecycle_action(GroupName, LifecycleActionResult, LifecycleHookName, I
             {error, Reason}
     end.
 
+%% --------------------------------------------------------------------
+%% @doc Records a heartbeat for the lifecycle action associated with a
+%% specific token. This extends the timeout by the length of time
+%% defined by the HeartbeatTimeout parameter of PutLifecycleHook.
+%% @end
+%% --------------------------------------------------------------------
+-spec record_lifecycle_action_heartbeat(string(), string(), string()) ->
+    {ok, string()} | {error, term()}.
+record_lifecycle_action_heartbeat(GroupName, HookName, ActionToken) ->
+    Config = erlcloud_aws:default_config(),
+    record_lifecycle_action_heartbeat(GroupName, HookName, ActionToken, Config).
+
+-spec record_lifecycle_action_heartbeat(string(), string(), string(), aws_config()) ->
+    {ok, string()} | {error, term()}.
+record_lifecycle_action_heartbeat(GroupName, HookName, ActionToken, Config) ->
+    Params = [{"AutoScalingGroupName", GroupName},
+        {"LifecycleActionToken", ActionToken},
+        {"LifecycleHookName", HookName}],
+    case as_query(Config, "RecordLifecycleActionHeartbeat", Params, ?API_VERSION) of
+        {ok, Doc} ->
+            [RequestId] = xmerl_xpath:string(?RECORD_LIFECYCLE_ACTION_HEARTBEAT_RESPONSE, Doc),
+            {ok, erlcloud_xml:get_text(RequestId)};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+
 %% given a list of member identifiers, return a list of 
 %% {key with prefix, member identifier} for use in autoscaling calls.
 %% Example pair that could be returned in a list is 
@@ -738,7 +778,7 @@ get_text(Label, Doc) ->
 -spec as_query(aws_config(), string(), list({string(), term()}), string()) -> {ok, #xmlElement{}} | {error, term()}.
 as_query(Config, Action, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
-    erlcloud_aws:aws_request_xml4(post, Config#aws_config.as_host,
+    erlcloud_aws:aws_request_xml4(get, Config#aws_config.as_host,
                                   "/", QParams, "autoscaling", Config).
 
 

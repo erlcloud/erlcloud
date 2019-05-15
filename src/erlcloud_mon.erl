@@ -656,7 +656,29 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
     put(aws_config, new(AccessKeyID, SecretAccessKey, Host)),
     ok.
 
-default_config() -> erlcloud_aws:default_config().
+default_config() ->
+    case get(aws_config) of
+        undefined ->
+            DefaultConfig = erlcloud_aws:default_config(),
+            {ok, Region} = erlcloud_aws:region(DefaultConfig),
+            RegionHost = endpoint(Region),
+            Config = DefaultConfig#aws_config{mon_host = RegionHost},
+            put(aws_config, Config),
+            Config;
+        Config ->
+            Config
+    end.
+
+%%%===================================================================
+%%% Internal Functions
+%%%===================================================================
+
+endpoint("us-east-1")      -> "monitoring.us-east-1.amazonaws.com";
+endpoint("us-west-1")      -> "monitoring.us-west-1.amazonaws.com";
+endpoint("us-west-2")      -> "monitoring.us-west-2.amazonaws.com";
+endpoint("ap-northeast-1") -> "monitoring.ap-northeast-1.amazonaws.com";
+endpoint("ap-southeast-1") -> "monitoring.ap-southeast-1.amazonaws.com";
+endpoint("eu-west-1")      -> "monitoring.eu-west-1.amazonaws.com".
 
 %%------------------------------------------------------------------------------
 %% tests
