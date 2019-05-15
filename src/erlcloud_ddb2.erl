@@ -3149,9 +3149,9 @@ tag_resource(ResourceArn, Tags, Config) ->
       [{<<"ResourceArn">>, ResourceArn},
        {<<"Tags">>, dynamize_tags(Tags)}]).
 
-%%%------------------------------------------------------------------------------
-%%% TransactGetItem
-%%%-------------------------------------------------------------------------
+%%%-----------------------------------------------------------------------------
+%%% TransactGetItems
+%%%-----------------------------------------------------------------------------
 
 -type transact_get_items_transact_item_opts() :: expression_attribute_names_opt() |
                            projection_expression_opt().
