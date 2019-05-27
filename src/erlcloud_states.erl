@@ -539,7 +539,7 @@ start_execution(StateMachineArn, Options) ->
     start_execution(StateMachineArn, Options, default_config()).
 
 -spec start_execution(StateMachineArn   :: binary(),
-                      Options           :: list(),
+                      Options           :: #{binary() => term()},
                       Config            :: aws_config()) ->
     {ok, map()} | {error, any()}.
 start_execution(StateMachineArn, Options, Config)
@@ -573,8 +573,8 @@ stop_execution(ExecutionArn, Options) ->
     stop_execution(ExecutionArn, Options, default_config()).
 
 -spec stop_execution(ExecutionArn   :: binary(),
-                     Options           :: list(),
-                     Config            :: aws_config()) ->
+                     Options        :: #{binary() => term()},
+                     Config         :: aws_config()) ->
     {ok, map()} | {error, any()}.
 stop_execution(ExecutionArn, Options, Config)
         when is_binary(ExecutionArn), is_map(Options) ->

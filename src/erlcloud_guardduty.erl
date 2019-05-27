@@ -60,7 +60,7 @@ get_detector(DetectorId) ->
                    Config     :: aws_config()) -> gd_return().
 get_detector(DetectorId, Config) ->
     Path = "/detector/" ++ binary_to_list(DetectorId),
-    guardduty_request(Config, get, Path, undefined).
+    guardduty_request(Config, get, Path).
 
 
 %%------------------------------------------------------------------------------
@@ -77,63 +77,50 @@ list_detectors() -> list_detectors(default_config()).
 list_detectors(Config) ->
     list_detectors(undefined, undefined, Config).
 
--spec list_detectors(Marker   :: binary(),
-                     MaxItems :: integer()) -> gd_return().
+-spec list_detectors(Marker   :: undefined | binary(),
+                     MaxItems :: undefined | integer()) -> gd_return().
 list_detectors(Marker, MaxItems) ->
     list_detectors(Marker, MaxItems, default_config()).
 
--spec list_detectors(Marker   :: binary(),
-                     MaxItems :: integer(),
+-spec list_detectors(Marker   :: undefined | binary(),
+                     MaxItems :: undefined | integer(),
                      Config   :: aws_config()) -> gd_return().
 list_detectors(Marker, MaxItems, Config) ->
     Path = "/detector",
     QParams = filter_undef([{"Marker", Marker},
                             {"MaxItems", MaxItems}]),
-    guardduty_request(Config, get, Path, undefined, QParams).
+    guardduty_request(Config, get, Path, QParams).
 
 
 %%%------------------------------------------------------------------------------
 %%% Internal Functions
 %%%------------------------------------------------------------------------------
 
-guardduty_request(Config, Method, Path, Body) ->
-    guardduty_request(Config, Method, Path, Body, []).
+guardduty_request(Config, Method, Path) ->
+    guardduty_request(Config, Method, Path, []).
 
-guardduty_request(Config, Method, Path, Body, QParam) ->
+guardduty_request(Config, Method, Path, QParam) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
-            guardduty_request_no_update(Config1, Method, Path, Body, QParam);
+            guardduty_request_no_update(Config1, Method, Path, QParam);
         {error, Reason} ->
             {error, Reason}
     end.
 
-guardduty_request_no_update(Config, Method, Path, Body, QParam) ->
-    Form = case encode_body(Body) of
-               <<>>   -> erlcloud_http:make_query_string(QParam);
-               Value  -> Value
-           end,
-    Headers = headers(Method, Path, Config, encode_body(Body), QParam),
+guardduty_request_no_update(Config, Method, Path, QParam) ->
+    Headers = headers(Method, Path, Config, QParam),
     case erlcloud_aws:aws_request_form_raw(
            Method, Config#aws_config.guardduty_scheme, Config#aws_config.guardduty_host,
-           Config#aws_config.guardduty_port, Path, Form, Headers, Config) of
+           Config#aws_config.guardduty_port, Path, <<>>, Headers, Config) of
         {ok, Data} ->
             {ok, jsx:decode(Data)};
         E ->
             E
     end.
 
-encode_body(undefined) ->
-    <<>>;
-encode_body([]) ->
-    <<"{}">>;
-encode_body(Body) ->
-    jsx:encode(Body).
-
-headers(Method, Uri, Config, Body, QParam) ->
-    Headers = [{"host", Config#aws_config.guardduty_host},
-               {"content-type", "application/json"}],
+headers(Method, Uri, Config, QParam) ->
+    Headers = [{"host", Config#aws_config.guardduty_host}, {"content-type", "application/json"}],
     Region = erlcloud_aws:aws_region_from_host(Config#aws_config.guardduty_host),
-    erlcloud_aws:sign_v4(Method, Uri, Config,
-                         Headers, Body, Region, "guardduty", QParam).
+    erlcloud_aws:sign_v4(Method, Uri, Config, Headers, <<>>, Region, "guardduty", QParam).
 
 default_config() -> erlcloud_aws:default_config().

@@ -27,6 +27,12 @@
          profile/0, profile/1, profile/2
 ]).
 
+%% We're abusing application:get_env there
+-dialyzer([{nowarn_function, [get_role_credentials/1, get_credentials_from_role/1,
+                              clear_expired_configs/0, clear_config/1,
+                              auto_config_task_metadata/0, auto_config_metadata/0
+                             ]}]).
+
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 

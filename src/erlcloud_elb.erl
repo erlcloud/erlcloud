@@ -254,14 +254,18 @@ describe_load_balancers_all(Names) ->
 -spec describe_load_balancers_all(list(string()), aws_config()) ->
     {ok, [term()]} | {error, term()}.
 describe_load_balancers_all(Names, Config) ->
-    describe_all(
-        fun(Marker, Cfg) ->
-            describe_load_balancers(
-                Names, ?DEFAULT_MAX_RECORDS, Marker, Cfg
-            )
-        end, Config, none, []).
-    
-    
+    describe_load_balancers_all(Names, Config, none, []).
+
+describe_load_balancers_all(Names, AwsConfig, Marker, Acc) ->
+    case describe_load_balancers(Names, ?DEFAULT_MAX_RECORDS, Marker, AwsConfig) of
+        {ok, Res} ->
+            {ok, lists:append(Acc, Res)};
+        {{paged, NewMarker}, Res} ->
+            describe_load_balancers_all(Names, AwsConfig, NewMarker, lists:append(Acc, Res));
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
 extract_elb(Item) ->
     [
         {load_balancer_name, get_text("LoadBalancerName", Item)},
@@ -541,19 +545,6 @@ delete_load_balancer_policy(LB, PolicyName, Config) when is_list(LB),
 member_params(Prefix, MemberIdentifiers) ->
     MemberKeys = [Prefix ++ integer_to_list(I) || I <- lists:seq(1, length(MemberIdentifiers))],
     [{K, V} || {K, V} <- lists:zip(MemberKeys, MemberIdentifiers)].
- 
-
-describe_all(Fun, AwsConfig, Marker, Acc) ->
-    case Fun(Marker, AwsConfig) of
-        {ok, Res} ->
-            {ok, lists:append(Acc, Res)};
-        {ok, Res, NewMarker} ->
-            describe_all(Fun, AwsConfig, NewMarker, lists:append(Acc, Res));
-        {{paged, NewMarker}, Res} ->
-            describe_all(Fun, AwsConfig, NewMarker, lists:append(Acc, Res));
-        {error, Reason} ->
-            {error, Reason}
-    end.
 
 
 elb_query(Config, Action, Params) ->
