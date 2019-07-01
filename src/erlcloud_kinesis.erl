@@ -87,10 +87,15 @@ dynamize_option({next_token, Value}) ->
 dynamize_option({stream_creation_timestamp, Value}) ->
     {<<"StreamCreationTimestamp">>, Value};
 dynamize_option(Option) ->
-    error({erlcloud_kinesis, {invalid_option, Option}}).
+    {error, {invalid_option, Option}}.
 
 dynamize_options(Options) ->
-    [dynamize_option(Option) || Option <- Options].
+    lists:foldr(fun
+        (Option, Acc) when is_list(Acc) ->
+            [dynamize_option(Option) | Acc];
+        (_Option, Error) ->
+            Error
+    end, [], Options).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -207,7 +212,7 @@ delete_stream(StreamName, Config) when is_record(Config, aws_config) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec list_shards(binary()) -> erlcloud_kinesis_impl:json_return().
+-spec list_shards(binary()) -> erlcloud_kinesis_impl:json_return() | {error, any()}.
 list_shards(StreamName) ->
    list_shards(StreamName, default_config()).
 
@@ -242,8 +247,13 @@ list_shards(StreamName, Options, Config) when is_record(Config, aws_config) ->
                     ]}})
             end
     end,
-    Json = [{<<"StreamName">>, StreamName} | dynamize_options(Options)],
-    erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.ListShards", Json).
+    case dynamize_options(Options) of
+        DynamizedOptions when is_list(DynamizedOptions) ->
+            Json = [{<<"StreamName">>, StreamName} | dynamize_options(Options)],
+            erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.ListShards", Json);
+        Error ->
+            Error
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
