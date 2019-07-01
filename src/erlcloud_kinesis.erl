@@ -204,7 +204,7 @@ delete_stream(StreamName, Config) when is_record(Config, aws_config) ->
 %%             {<<"ShardId">>, <<"shardId-000000000003">>},
 %%             {<<"HashKeyRange">>, [
 %%                 {<<"EndingHashKey">>, <<"136112946768375385385349842972707284581">>},
-%%                 {<<"StartingHashKey">>, <<"102084710076281539039012382229530463437">>}
+%%                 {<<"StartingHashKey">>, <<"102084710022876281539039012382229530463437">>}
 %%             ]},
 %%             {<<"SequenceNumberRange">>, [
 %%                 {<<"StartingSequenceNumber">>, <<"49579844037771934846562125484723780283101668556216963122">>}
@@ -225,8 +225,12 @@ list_shards(StreamNameOrOptions) ->
 list_shards(StreamName, Config) when is_record(Config, aws_config), is_binary(StreamName) ->
     list_shards(StreamName, [], Config);
 list_shards(Options, Config) when is_record(Config, aws_config), is_list(Options) ->
-    Json = dynamize_options(Options),
-    erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.ListShards", Json);
+    case dynamize_options(Options) of
+        DynamizedOptions when is_list(DynamizedOptions) ->
+            erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.ListShards", DynamizedOptions);
+        Error ->
+            Error
+    end;
 list_shards(StreamName, Options) ->
     list_shards(StreamName, Options, default_config()).
 
