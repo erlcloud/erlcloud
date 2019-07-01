@@ -92,7 +92,12 @@ dynamize_option(Option) ->
 dynamize_options(Options) ->
     lists:foldr(fun
         (Option, Acc) when is_list(Acc) ->
-            [dynamize_option(Option) | Acc];
+            case dynamize_option(Option) of
+                {error, _} = Error ->
+                    Error;
+                DynamizedOption ->
+                    [DynamizedOption | Acc]
+            end;
         (_Option, Error) ->
             Error
     end, [], Options).
@@ -212,42 +217,29 @@ delete_stream(StreamName, Config) when is_record(Config, aws_config) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec list_shards(binary()) -> erlcloud_kinesis_impl:json_return() | {error, any()}.
-list_shards(StreamName) ->
-   list_shards(StreamName, default_config()).
+-spec list_shards(binary() | list_shards_opts()) -> erlcloud_kinesis_impl:json_return() | {error, any()}.
+list_shards(StreamNameOrOptions) ->
+   list_shards(StreamNameOrOptions, default_config()).
 
--spec list_shards(binary(), list_shards_opts() | aws_config()) -> erlcloud_kinesis_impl:json_return().
-list_shards(StreamName, Config) when is_record(Config, aws_config) ->
+-spec list_shards(binary() | list_shards_opts(), list_shards_opts() | aws_config()) -> erlcloud_kinesis_impl:json_return().
+list_shards(StreamName, Config) when is_record(Config, aws_config), is_binary(StreamName) ->
     list_shards(StreamName, [], Config);
+list_shards(Options, Config) when is_record(Config, aws_config), is_list(Options) ->
+    Json = dynamize_options(Options),
+    erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.ListShards", Json);
 list_shards(StreamName, Options) ->
     list_shards(StreamName, Options, default_config()).
 
 -spec list_shards(binary(), list_shards_opts(), aws_config()) -> erlcloud_kinesis_impl:json_return().
 list_shards(StreamName, Options, Config) when is_record(Config, aws_config) ->
-    DynamizedOptionsOrError = case lists:keymember(next_token, 1, Options) of
-        false ->
-            dynamize_options(Options);
-        true ->
-            case lists:keymember(stream_creation_timestamp, 1, Options) of
-                false ->
-                    dynamize_options(Options);
-                true ->
-                    {error, {incompatible_options, [next_token, stream_creation_timestamp]}}
-            end,
-            case lists:keymember(exclusive_start_shard_id, 1, Options) of
-                false ->
-                    dynamize_options(Options);
-                true ->
-                    {error, {incompatible_options, [next_token, exclusive_start_shard_id]}}
-            end
-    end,
-    case is_list(DynamizedOptionsOrError) of
-        true ->
-            Json = [{<<"StreamName">>, StreamName} | DynamizedOptionsOrError],
+    case dynamize_options(Options) of
+        DynamizedOptions when is_list(DynamizedOptions) ->
+            Json = [{<<"StreamName">>, StreamName} | DynamizedOptions],
             erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.ListShards", Json);
-        false ->
-            DynamizedOptionsOrError
+        Error ->
+            Error
     end.
+
 
 %%------------------------------------------------------------------------------
 %% @doc
