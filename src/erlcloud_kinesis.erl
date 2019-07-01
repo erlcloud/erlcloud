@@ -78,6 +78,8 @@ configure(AccessKeyID, SecretAccessKey, Host, Port) ->
 
 default_config() -> erlcloud_aws:default_config().
 
+dynamize_option({stream_name, Value}) ->
+    {<<"StreamName">>, Value};
 dynamize_option({exclusive_start_shard_id, Value}) ->
     {<<"ExclusiveStartShardId">>, Value};
 dynamize_option({max_results, Value}) when Value >= 1, Value =< 10000 ->
@@ -235,14 +237,10 @@ list_shards(StreamName, Options) ->
     list_shards(StreamName, Options, default_config()).
 
 -spec list_shards(binary(), list_shards_opts(), aws_config()) -> erlcloud_kinesis_impl:json_return().
-list_shards(StreamName, Options, Config) when is_record(Config, aws_config) ->
-    case dynamize_options(Options) of
-        DynamizedOptions when is_list(DynamizedOptions) ->
-            Json = [{<<"StreamName">>, StreamName} | DynamizedOptions],
-            erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.ListShards", Json);
-        Error ->
-            Error
-    end.
+list_shards(StreamName, Options, Config) ->
+    % Syntaxtic sugar as all other erlcloud_kinesis operating on a stream takes
+    % a stream name as 1st argument.
+    list_shards([{stream_name, StreamName} | Options], Config).
 
 
 %%------------------------------------------------------------------------------
