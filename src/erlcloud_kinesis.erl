@@ -224,35 +224,29 @@ list_shards(StreamName, Options) ->
 
 -spec list_shards(binary(), list_shards_opts(), aws_config()) -> erlcloud_kinesis_impl:json_return().
 list_shards(StreamName, Options, Config) when is_record(Config, aws_config) ->
-    case lists:keymember(next_token, 1, Options) of
+    DynamizedOptionsOrError = case lists:keymember(next_token, 1, Options) of
         false ->
-            ok;
+            dynamize_options(Options);
         true ->
             case lists:keymember(stream_creation_timestamp, 1, Options) of
                 false ->
-                    ok;
+                    dynamize_options(Options);
                 true ->
-                    error({erlcloud_kinesis, {incompatible_options, [
-                        next_token,
-                        stream_creation_timestamp
-                    ]}})
+                    {error, {incompatible_options, [next_token, stream_creation_timestamp]}}
             end,
             case lists:keymember(exclusive_start_shard_id, 1, Options) of
                 false ->
-                    ok;
+                    dynamize_options(Options);
                 true ->
-                    error({erlcloud_kinesis, {incompatible_options, [
-                        next_token,
-                        exclusive_start_shard_id
-                    ]}})
+                    {error, {incompatible_options, [next_token, exclusive_start_shard_id]}}
             end
     end,
-    case dynamize_options(Options) of
-        DynamizedOptions when is_list(DynamizedOptions) ->
-            Json = [{<<"StreamName">>, StreamName} | dynamize_options(Options)],
+    case is_list(DynamizedOptionsOrError) of
+        true ->
+            Json = [{<<"StreamName">>, StreamName} | DynamizedOptionsOrError],
             erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.ListShards", Json);
-        Error ->
-            Error
+        false ->
+            DynamizedOptionsOrError
     end.
 
 %%------------------------------------------------------------------------------
