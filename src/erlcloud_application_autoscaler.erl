@@ -623,8 +623,10 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
         {ok, {{200, _}, _, RespBody}} ->
             {ok, jsx:decode(RespBody)};
 
-        _Error ->
-            request_and_retry(Config, Headers, Body, retry({attempt, Attempt + 1}))
+        {error, {_, timeout}} ->
+            request_and_retry(Config, Headers, Body, retry({attempt, Attempt + 1}));
+        Error ->
+            request_and_retry(Config, Headers, Body, retry(Error))
     end.
 
 retry({attempt, Attempt}) when Attempt >= ?NUM_ATTEMPTS ->
