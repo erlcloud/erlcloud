@@ -348,15 +348,19 @@ deregister_scalable_target(Configuration, BodyConfigurations) ->
 describe_scalable_targets(Configuration, ServiceNamespace) when is_binary(ServiceNamespace)->
     describe_scalable_targets(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
 describe_scalable_targets(Configuration, BodyConfigurations) ->
-    {ok, Result} = request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScalableTargets"),
-    ScalableTargets = proplists:get_value(<<"ScalableTargets">>, Result),
-    PropRes = [extract_scalable_targets(E) || E <- ScalableTargets],
-    NextToken = proplists:get_value(<<"NextToken">>, Result, undefined),
-    MaybeHasNext = case NextToken of
-        undefined -> [];
-        Token -> [{next_token, Token}]
-    end,
-    {ok, PropRes ++ MaybeHasNext}.
+    case request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScalableTargets") of
+        {ok, Result} ->
+            ScalableTargets = proplists:get_value(<<"ScalableTargets">>, Result),
+            PropRes = [extract_scalable_targets(E) || E <- ScalableTargets],
+            NextToken = proplists:get_value(<<"NextToken">>, Result, undefined),
+            MaybeHasNext = case NextToken of
+                undefined -> [];
+                Token -> [{next_token, Token}]
+            end,
+            {ok, PropRes ++ MaybeHasNext};
+        {error, Error} ->
+            {error, Error}
+    end.
 
 %% DescribeScalingActivities
 
@@ -367,16 +371,20 @@ describe_scalable_targets(Configuration, BodyConfigurations) ->
 describe_scaling_activities(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
     describe_scaling_activities(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
 describe_scaling_activities(Configuration, BodyConfigurations) ->
-    {ok, Result} = request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScalingActivities"),
-    ScalingActivities = proplists:get_value(<<"ScalingActivities">>, Result),
-    PropRes = [extract_scaling_activities(E) || E <- ScalingActivities],
-    NextToken = proplists:get_value(<<"NextToken">>, Result, undefined),
-    MaybeHasNext = case NextToken of
-        undefined -> [];
-        Token -> [{next_token, Token}]
-    end,
-    {ok, PropRes ++ MaybeHasNext}.
-
+    case request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScalingActivities") of
+        {ok, Result} ->
+            {ok, Result} = request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScalingActivities"),
+            ScalingActivities = proplists:get_value(<<"ScalingActivities">>, Result),
+            PropRes = [extract_scaling_activities(E) || E <- ScalingActivities],
+            NextToken = proplists:get_value(<<"NextToken">>, Result, undefined),
+            MaybeHasNext = case NextToken of
+                undefined -> [];
+                Token -> [{next_token, Token}]
+            end,
+            {ok, PropRes ++ MaybeHasNext};
+        {error, Error} ->
+            {error, Error}
+    end.
 %% DescribeScalingPolicies
 
 -spec describe_scaling_policies(
@@ -386,15 +394,19 @@ describe_scaling_activities(Configuration, BodyConfigurations) ->
 describe_scaling_policies(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
     describe_scaling_policies(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
 describe_scaling_policies(Configuration, BodyConfigurations) ->
-    {ok, Result} = request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScalingPolicies"),
-    ScalingPolicies = proplists:get_value(<<"ScalingPolicies">>, Result),
-    PropRes = [extract_scaling_policies(Extracted) || Extracted <- ScalingPolicies],
-    NextToken = proplists:get_value(<<"NextToken">>, Result, undefined),
-    MaybeHasNext = case NextToken of
-        undefined -> [];
-        Token -> [{next_token, Token}]
-    end,
-    {ok, PropRes ++ MaybeHasNext}.
+    case request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScalingPolicies") of
+        {ok, Result} ->
+            ScalingPolicies = proplists:get_value(<<"ScalingPolicies">>, Result),
+            PropRes = [extract_scaling_policies(Extracted) || Extracted <- ScalingPolicies],
+            NextToken = proplists:get_value(<<"NextToken">>, Result, undefined),
+            MaybeHasNext = case NextToken of
+                undefined -> [];
+                Token -> [{next_token, Token}]
+            end,
+            {ok, PropRes ++ MaybeHasNext};
+        {error, Error} ->
+            {error, Error}
+    end.
 
 
 %% DescribeScheduledActions
@@ -406,15 +418,20 @@ describe_scaling_policies(Configuration, BodyConfigurations) ->
 describe_scheduled_actions(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
     describe_scheduled_actions(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
 describe_scheduled_actions(Configuration, BodyConfigurations) ->
-    {ok, Result} = request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScheduledActions"),
-    ScheduledActions = proplists:get_value(<<"ScheduledActions">>, Result),
-    PropRes = [extract_scheduled_action(Extracted) || Extracted <- ScheduledActions],
-    NextToken = proplists:get_value(<<"NextToken">>, Result, undefined),
-    MaybeHasNext = case NextToken of
-        undefined -> [];
-        Token -> [{next_token, Token}]
-    end,
-    {ok, PropRes ++ MaybeHasNext}.
+    case request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScheduledActions") of
+        {ok, Result} ->
+            ScheduledActions = proplists:get_value(<<"ScheduledActions">>, Result),
+            PropRes = [extract_scheduled_action(Extracted) || Extracted <- ScheduledActions],
+            NextToken = proplists:get_value(<<"NextToken">>, Result, undefined),
+            MaybeHasNext = case NextToken of
+                undefined -> [];
+                Token -> [{next_token, Token}]
+            end,
+            {ok, PropRes ++ MaybeHasNext};
+        {error, Error} ->
+            {error, Error}
+
+    end.
 
 
 %% PutScalingPolicy
@@ -460,10 +477,14 @@ put_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, Ser
                             BodyConfigurations :: aws_aas_request_body()
                             ) -> response().
 put_scaling_policy(Configuration, BodyConfigurations) ->
-    {ok, Result} = request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.PutScalingPolicy"),
-    Alarms = proplists:get_value(<<"Alarms">>, Result),
-    PropAlarms = [extract_alarm(E) || E <- Alarms],
-    [{policy_arn, proplists:get_value(<<"PolicyARN">>, Result)} | PropAlarms].
+    case request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.PutScalingPolicy") of
+        {ok, Result} ->
+            Alarms = proplists:get_value(<<"Alarms">>, Result),
+            PropAlarms = [extract_alarm(E) || E <- Alarms],
+            {ok, [{policy_arn, proplists:get_value(<<"PolicyARN">>, Result)} | PropAlarms]};
+        {error, Error} ->
+            {error, Error}
+    end.
 
 %% PutScheduledAction
 
