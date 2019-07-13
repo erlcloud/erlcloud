@@ -272,6 +272,8 @@ default_config() -> erlcloud_aws:default_config().
 
 %%%------------------------------------------------------------------------------
 %%% AWS Application Autoscaling functions.
+%%%
+%%% API Documentation on AWS: https://docs.aws.amazon.com/autoscaling/application/APIReference/Welcome.html
 %%%------------------------------------------------------------------------------
 
 %% DeleteScalingPolicy
@@ -290,10 +292,10 @@ delete_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, 
     delete_scaling_policy(Configuration, BodyProps).
 
 -spec delete_scaling_policy(Configuration :: aws_config(),
-                            BodyConfigurations :: aws_aas_request_body()
+                            BodyConfiguration :: aws_aas_request_body()
                         ) -> term().
-delete_scaling_policy(Configuration, BodyConfigurations) ->
-    request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScalingPolicies").
+delete_scaling_policy(Configuration, BodyConfiguration) ->
+    request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DescribeScalingPolicies").
 
 %% DeleteScheduledAction
 
@@ -313,10 +315,10 @@ delete_scheduled_action(Configuration, ResourceId, ScalableDimension, ScheduledA
 
 
 -spec delete_scheduled_action(Configuration :: aws_config(),
-                              BodyConfigurations :: aws_aas_request_body()
+                              BodyConfiguration :: aws_aas_request_body()
                             ) -> response().
-delete_scheduled_action(Configuration, BodyConfigurations) ->
-    request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DeleteScheduledAction").
+delete_scheduled_action(Configuration, BodyConfiguration) ->
+    request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DeleteScheduledAction").
 
 %% DeregisterScalableTarget
 
@@ -334,10 +336,10 @@ deregister_scalable_target(Configuration, ResourceId, ScalableDimension, Service
 
 -spec deregister_scalable_target(
                             Configuration :: erlcloud_aws:aws_config(),
-                            BodyConfigurations :: aws_aas_request_body()
+                            BodyConfiguration :: aws_aas_request_body()
                             ) -> response().
-deregister_scalable_target(Configuration, BodyConfigurations) ->
-    request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DeregisterScalableTarget").
+deregister_scalable_target(Configuration, BodyConfiguration) ->
+    request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DeregisterScalableTarget").
 
 %% DescribeScalableTarget
 
@@ -347,8 +349,8 @@ deregister_scalable_target(Configuration, BodyConfigurations) ->
                             ) -> response().
 describe_scalable_targets(Configuration, ServiceNamespace) when is_binary(ServiceNamespace)->
     describe_scalable_targets(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
-describe_scalable_targets(Configuration, BodyConfigurations) ->
-    case request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScalableTargets") of
+describe_scalable_targets(Configuration, BodyConfiguration) ->
+    case request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DescribeScalableTargets") of
         {ok, Result} ->
             ScalableTargets = proplists:get_value(<<"ScalableTargets">>, Result),
             PropRes = [extract_scalable_targets(E) || E <- ScalableTargets],
@@ -370,10 +372,10 @@ describe_scalable_targets(Configuration, BodyConfigurations) ->
                             ) -> response().
 describe_scaling_activities(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
     describe_scaling_activities(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
-describe_scaling_activities(Configuration, BodyConfigurations) ->
-    case request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScalingActivities") of
+describe_scaling_activities(Configuration, BodyConfiguration) ->
+    case request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DescribeScalingActivities") of
         {ok, Result} ->
-            {ok, Result} = request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScalingActivities"),
+            {ok, Result} = request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DescribeScalingActivities"),
             ScalingActivities = proplists:get_value(<<"ScalingActivities">>, Result),
             PropRes = [extract_scaling_activities(E) || E <- ScalingActivities],
             NextToken = proplists:get_value(<<"NextToken">>, Result, undefined),
@@ -393,8 +395,8 @@ describe_scaling_activities(Configuration, BodyConfigurations) ->
                             ) -> response().
 describe_scaling_policies(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
     describe_scaling_policies(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
-describe_scaling_policies(Configuration, BodyConfigurations) ->
-    case request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScalingPolicies") of
+describe_scaling_policies(Configuration, BodyConfiguration) ->
+    case request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DescribeScalingPolicies") of
         {ok, Result} ->
             ScalingPolicies = proplists:get_value(<<"ScalingPolicies">>, Result),
             PropRes = [extract_scaling_policies(Extracted) || Extracted <- ScalingPolicies],
@@ -417,8 +419,8 @@ describe_scaling_policies(Configuration, BodyConfigurations) ->
                             ) -> response().
 describe_scheduled_actions(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
     describe_scheduled_actions(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
-describe_scheduled_actions(Configuration, BodyConfigurations) ->
-    case request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.DescribeScheduledActions") of
+describe_scheduled_actions(Configuration, BodyConfiguration) ->
+    case request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DescribeScheduledActions") of
         {ok, Result} ->
             ScheduledActions = proplists:get_value(<<"ScheduledActions">>, Result),
             PropRes = [extract_scheduled_action(Extracted) || Extracted <- ScheduledActions],
@@ -474,10 +476,10 @@ put_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, Ser
 
 -spec put_scaling_policy(
                             Configuration :: erlcloud_aws:aws_config(),
-                            BodyConfigurations :: aws_aas_request_body()
+                            BodyConfiguration :: aws_aas_request_body()
                             ) -> response().
-put_scaling_policy(Configuration, BodyConfigurations) ->
-    case request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.PutScalingPolicy") of
+put_scaling_policy(Configuration, BodyConfiguration) ->
+    case request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.PutScalingPolicy") of
         {ok, Result} ->
             Alarms = proplists:get_value(<<"Alarms">>, Result),
             PropAlarms = [extract_alarm(E) || E <- Alarms],
@@ -557,10 +559,10 @@ put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamesp
     put_scheduled_action(Configuration, BodyProps).
 
 -spec put_scheduled_action(Configuration :: aws_config(),
-                              BodyConfigurations :: aws_aas_request_body()
+                              BodyConfiguration :: aws_aas_request_body()
                             ) -> response().
-put_scheduled_action(Configuration, BodyConfigurations) ->
-    request_with_action(Configuration, BodyConfigurations, "AnyScaleFrontendService.PutScheduledAction").
+put_scheduled_action(Configuration, BodyConfiguration) ->
+    request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.PutScheduledAction").
 
 %% RegisterScalableTarget
 
@@ -609,27 +611,58 @@ register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNa
     register_scalable_target(Configuration, BodyProps ++ MaybeBodyWithMax ++ MaybeBodyWithMin).
 
 -spec register_scalable_target(
-    Configurations :: erlcloud_aws:aws_config(),
-    BodyConfigurations :: aws_aas_request_body()
+    Configuration :: erlcloud_aws:aws_config(),
+    BodyConfiguration :: aws_aas_request_body()
 ) -> response().
-register_scalable_target(Configurations, BodyConfigurations) ->
-    request_with_action(Configurations, BodyConfigurations, "AnyScaleFrontendService.RegisterScalableTarget").
+register_scalable_target(Configuration, BodyConfiguration) ->
+    request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.RegisterScalableTarget").
 
 
 %%%------------------------------------------------------------------------------
 %%% Internal functions.
 %%%------------------------------------------------------------------------------
 
-request_with_action(Configuration, BodyConfigurations, Action) ->
-    Body = jsx:encode(BodyConfigurations),
+aas_result_fun(#aws_request{response_type = ok} = Request) ->
+    Request;
+aas_result_fun(#aws_request{response_type = error,
+                           error_type = aws,
+                           response_status = Status} = Request) when
+%% Retry conflicting operations 409,Conflict and 500s
+%% including 503, SlowDown, Reduce your request rate.
+      Status =:= 409; Status >= 500 ->
+    Request#aws_request{should_retry = true};
+aas_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
+    Request#aws_request{should_retry = false}.
+
+
+request_with_action(Configuration, BodyConfiguration, Action) ->
+    Body = jsx:encode(BodyConfiguration),
     case erlcloud_aws:update_config(Configuration) of
         {ok, Config} ->
             HeadersPrev = headers(Config, Action, Body),
             Headers = [{"content-type", "application/x-amz-json-1.1"} | HeadersPrev],
-            request_and_retry(Config, Headers, Body, {attempt, 0});
+            Request = prepare_record(Config, post, Headers, Body, Action),
+            erlcloud_retry:request(Config, Request, aas_result_fun/1);
+            %request_and_retry(Config, Headers, Body, {attempt, 0});
         {error, Reason} ->
             {error, Reason}
     end.
+
+prepare_record(Config, Method, Headers, Body, Action) ->
+    %%% URI: awsConfig.Scheme + awsConfig.Host + [awsConfig.Port]
+    %%% URI: https://autoscaling.us-west-2.amazonaws.com/
+
+    RequestURI = lists:flatten([
+        Config#aws_config.autoscaling_scheme,
+        Config#aws_config.autoscaling_host,
+        port_spec(Config)
+    ]),
+
+    #aws_request{service = application_autoscaling,
+                           method = Method,
+                           request_headers = Headers,
+                           request_body = Body,
+                           uri = RequestURI}.
 
 request_and_retry(_, _, _, {error, Reason}) ->
     {error, Reason};
@@ -637,13 +670,10 @@ request_and_retry(_, _, _, {attempt, Attempt}) when Attempt =:= 11 ->
     {error, no_answer};
 request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
     case erlcloud_httpc:request(url(Config), post, Headers, Body, timeout(Attempt, Config), Config) of
-
         {ok, {{200, _}, _, <<>>}} ->
             ok;
-
         {ok, {{200, _}, _, RespBody}} ->
             {ok, jsx:decode(RespBody)};
-
         {error, {_, timeout}} ->
             request_and_retry(Config, Headers, Body, retry({attempt, Attempt + 1}));
         Error ->
@@ -685,5 +715,4 @@ port_spec(#aws_config{autoscaling_port=Port}) ->
 headers(Config, Operation, Body) ->
     Headers = [{"host", Config#aws_config.autoscaling_host},
                {"x-amz-target", Operation}],
-
     erlcloud_aws:sign_v4_headers(Config, Headers, Body, erlcloud_aws:aws_region_from_host(Config#aws_config.autoscaling_host), "application-autoscaling").
