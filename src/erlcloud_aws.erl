@@ -765,7 +765,11 @@ service_config( <<"guardduty">> = Service, Region, Config ) ->
     Config#aws_config{guardduty_host = Host};
 service_config( <<"cur">>, Region, Config ) ->
     Host = service_host(<<"cur">>, Region),
+    Config#aws_config{cur_host = Host};
+service_config( <<"application_autoscaling">>, Region, Config ) ->
+    Host = service_host(<<"application_autoscaling">>, Region),
     Config#aws_config{cur_host = Host}.
+
 
 %%%---------------------------------------------------------------------------
 -spec service_host( Service :: binary(),
