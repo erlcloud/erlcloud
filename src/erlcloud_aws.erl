@@ -766,8 +766,8 @@ service_config( <<"guardduty">> = Service, Region, Config ) ->
 service_config( <<"cur">>, Region, Config ) ->
     Host = service_host(<<"cur">>, Region),
     Config#aws_config{cur_host = Host};
-service_config( <<"application-autoscaling">>, Region, Config ) ->
-    Host = service_host(<<"application-autoscaling">>, Region),
+service_config( <<"application_autoscaling">>, Region, Config ) ->
+    Host = service_host(<<"application_autoscaling">>, Region),
     Config#aws_config{cur_host = Host}.
 
 
