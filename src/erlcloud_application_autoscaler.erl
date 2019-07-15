@@ -235,22 +235,22 @@ new(AccessKeyID, SecretAccessKey) ->
 new(AccessKeyID, SecretAccessKey, Host) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
-                autoscaling_host=Host}.
+                application_autoscaling_host=Host}.
 
 -spec new(string(), string(), string(), non_neg_integer()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host, Port) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
-                autoscaling_host=Host,
-                autoscaling_port=Port}.
+                application_autoscaling_host=Host,
+                application_autoscaling_port=Port}.
 
 -spec new(string(), string(), string(), non_neg_integer(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
     #aws_config{access_key_id=AccessKeyID,
                 secret_access_key=SecretAccessKey,
-                autoscaling_host=Host,
-                autoscaling_port=Port,
-                autoscaling_scheme=Scheme}.
+                application_autoscaling_host=Host,
+                application_autoscaling_port=Port,
+                application_autoscaling_scheme=Scheme}.
 
 -spec configure(string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey) ->
@@ -276,7 +276,12 @@ default_config() -> erlcloud_aws:default_config().
 %%% API Documentation on AWS: https://docs.aws.amazon.com/autoscaling/application/APIReference/Welcome.html
 %%%------------------------------------------------------------------------------
 
-%% DeleteScalingPolicy
+%%------------------------------------------------------------------------------
+%% @doc.
+%% DeleteScalingPolicy.
+%%
+%% https://docs.aws.amazon.com/autoscaling/application/APIReference/API_DeleteScalingPolicy.html
+%%------------------------------------------------------------------------------
 
 -spec delete_scaling_policy(Configuration :: aws_config(),
                             PolicyName :: binary(),
@@ -297,7 +302,12 @@ delete_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, 
 delete_scaling_policy(Configuration, BodyConfiguration) ->
     request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DescribeScalingPolicies").
 
-%% DeleteScheduledAction
+%%------------------------------------------------------------------------------
+%% @doc.
+%% DeleteScheduledAction.
+%%
+%% https://docs.aws.amazon.com/autoscaling/application/APIReference/API_DeleteScheduledAction.html
+%%------------------------------------------------------------------------------
 
 -spec delete_scheduled_action(
                             Configuration :: erlcloud_aws:aws_config(),
@@ -320,7 +330,12 @@ delete_scheduled_action(Configuration, ResourceId, ScalableDimension, ScheduledA
 delete_scheduled_action(Configuration, BodyConfiguration) ->
     request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DeleteScheduledAction").
 
-%% DeregisterScalableTarget
+%%------------------------------------------------------------------------------
+%% @doc.
+%% DeregisterScalableTarget.
+%%
+%% https://docs.aws.amazon.com/autoscaling/application/APIReference/API_DeregisterScalableTarget.html
+%%------------------------------------------------------------------------------
 
 -spec deregister_scalable_target(
                             Configuration :: erlcloud_aws:aws_config(),
@@ -341,7 +356,12 @@ deregister_scalable_target(Configuration, ResourceId, ScalableDimension, Service
 deregister_scalable_target(Configuration, BodyConfiguration) ->
     request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DeregisterScalableTarget").
 
-%% DescribeScalableTarget
+%%------------------------------------------------------------------------------
+%% @doc.
+%% DescribeScalableTargets.
+%%
+%% https://docs.aws.amazon.com/autoscaling/application/APIReference/API_DescribeScalableTargets.html
+%%------------------------------------------------------------------------------
 
 -spec describe_scalable_targets(
                             erlcloud_aws:aws_config(),
@@ -364,7 +384,12 @@ describe_scalable_targets(Configuration, BodyConfiguration) ->
             {error, Error}
     end.
 
-%% DescribeScalingActivities
+%%------------------------------------------------------------------------------
+%% @doc.
+%% DescribeScalingActivities.
+%%
+%% https://docs.aws.amazon.com/autoscaling/application/APIReference/API_DescribeScalingActivities.html
+%%------------------------------------------------------------------------------
 
 -spec describe_scaling_activities(
                             erlcloud_aws:aws_config(),
@@ -387,7 +412,13 @@ describe_scaling_activities(Configuration, BodyConfiguration) ->
         {error, Error} ->
             {error, Error}
     end.
-%% DescribeScalingPolicies
+
+%%------------------------------------------------------------------------------
+%% @doc.
+%% DescribeScalingPolicies.
+%%
+%% https://docs.aws.amazon.com/autoscaling/application/APIReference/API_DescribeScalingPolicies.html
+%%------------------------------------------------------------------------------
 
 -spec describe_scaling_policies(
                             erlcloud_aws:aws_config(),
@@ -411,7 +442,12 @@ describe_scaling_policies(Configuration, BodyConfiguration) ->
     end.
 
 
-%% DescribeScheduledActions
+%%------------------------------------------------------------------------------
+%% @doc.
+%% DescribeScheduledActions.
+%%
+%% https://docs.aws.amazon.com/autoscaling/application/APIReference/API_DescribeScheduledActions.html
+%%------------------------------------------------------------------------------
 
 -spec describe_scheduled_actions(
                             erlcloud_aws:aws_config(),
@@ -435,8 +471,12 @@ describe_scheduled_actions(Configuration, BodyConfiguration) ->
 
     end.
 
-
-%% PutScalingPolicy
+%%------------------------------------------------------------------------------
+%% @doc.
+%% PutScalingPolicy.
+%%
+%% https://docs.aws.amazon.com/autoscaling/application/APIReference/API_PutScalingPolicy.html
+%%------------------------------------------------------------------------------
 
 -spec put_scaling_policy(
                             Configuration :: aws_config(),
@@ -488,7 +528,12 @@ put_scaling_policy(Configuration, BodyConfiguration) ->
             {error, Error}
     end.
 
-%% PutScheduledAction
+%%------------------------------------------------------------------------------
+%% @doc.
+%% PutScheduledAction.
+%%
+%% https://docs.aws.amazon.com/autoscaling/application/APIReference/API_PutScheduledAction.html
+%%------------------------------------------------------------------------------
 
 -spec put_scheduled_action(
                             Configuration :: aws_config(),
@@ -564,7 +609,12 @@ put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamesp
 put_scheduled_action(Configuration, BodyConfiguration) ->
     request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.PutScheduledAction").
 
-%% RegisterScalableTarget
+%%------------------------------------------------------------------------------
+%% @doc.
+%% RegisterScalableTarget.
+%%
+%% https://docs.aws.amazon.com/autoscaling/application/APIReference/API_RegisterScalableTarget.html
+%%------------------------------------------------------------------------------
 
 -spec register_scalable_target(Configuration :: aws_config(),
                                ResourceId :: binary(),
@@ -641,14 +691,13 @@ request_with_action(Configuration, BodyConfiguration, Action) ->
         {ok, Config} ->
             HeadersPrev = headers(Config, Action, Body),
             Headers = [{"content-type", "application/x-amz-json-1.1"} | HeadersPrev],
-            Request = prepare_record(Config, post, Headers, Body, Action),
+            Request = prepare_record(Config, post, Headers, Body),
             erlcloud_retry:request(Config, Request, aas_result_fun/1);
-            %request_and_retry(Config, Headers, Body, {attempt, 0});
         {error, Reason} ->
             {error, Reason}
     end.
 
-prepare_record(Config, Method, Headers, Body, Action) ->
+prepare_record(Config, Method, Headers, Body) ->
     %%% URI: awsConfig.Scheme + awsConfig.Host + [awsConfig.Port]
     %%% URI: https://autoscaling.us-west-2.amazonaws.com/
 
@@ -664,48 +713,6 @@ prepare_record(Config, Method, Headers, Body, Action) ->
                            request_body = Body,
                            uri = RequestURI}.
 
-request_and_retry(_, _, _, {error, Reason}) ->
-    {error, Reason};
-request_and_retry(_, _, _, {attempt, Attempt}) when Attempt =:= 11 ->
-    {error, no_answer};
-request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
-    case erlcloud_httpc:request(url(Config), post, Headers, Body, timeout(Attempt, Config), Config) of
-        {ok, {{200, _}, _, <<>>}} ->
-            ok;
-        {ok, {{200, _}, _, RespBody}} ->
-            {ok, jsx:decode(RespBody)};
-        {error, {_, timeout}} ->
-            request_and_retry(Config, Headers, Body, retry({attempt, Attempt + 1}));
-        Error ->
-            request_and_retry(Config, Headers, Body, retry(Error))
-    end.
-
-retry({attempt, Attempt}) when Attempt >= ?NUM_ATTEMPTS ->
-    {error, max_limit_of_attempts};
-retry({attempt, Attempt}) ->
-    backoff(Attempt),
-    {attempt, Attempt + 1}.
-
-%% Sleep after an attempt
--spec backoff(pos_integer()) -> ok.
-backoff(1) -> ok;
-backoff(Attempt) ->
-    timer:sleep(erlcloud_util:rand_uniform((1 bsl (Attempt - 1)) * 100)).
-
--spec timeout(pos_integer(), aws_config()) -> pos_integer().
-%% HTTPC timeout for a request
-timeout(1, #aws_config{timeout = undefined}) ->
-    %% Shorter timeout on first request. This is to avoid long (5s) failover when first DDB
-    %% endpoint doesn't respond
-    1000;
-timeout(_, #aws_config{} = Cfg) ->
-    erlcloud_aws:get_timeout(Cfg).
-
-
--spec url(aws_config()) -> [].
-url(#aws_config{autoscaling_scheme = Scheme, autoscaling_host = Host} = Config) ->
-    lists:flatten([Scheme, Host, port_spec(Config)]).
-
 port_spec(#aws_config{autoscaling_port=80}) ->
     "";
 port_spec(#aws_config{autoscaling_port=Port}) ->
@@ -713,6 +720,6 @@ port_spec(#aws_config{autoscaling_port=Port}) ->
 
 
 headers(Config, Operation, Body) ->
-    Headers = [{"host", Config#aws_config.autoscaling_host},
+    Headers = [{"host", Config#aws_config.application_autoscaling_host},
                {"x-amz-target", Operation}],
-    erlcloud_aws:sign_v4_headers(Config, Headers, Body, erlcloud_aws:aws_region_from_host(Config#aws_config.autoscaling_host), "application-autoscaling").
+    erlcloud_aws:sign_v4_headers(Config, Headers, Body, erlcloud_aws:aws_region_from_host(Config#aws_config.application_autoscaling_host), "application-autoscaling").
