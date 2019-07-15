@@ -682,6 +682,8 @@ aas_result_fun(#aws_request{response_type = error,
       Status =:= 409; Status >= 500 ->
     Request#aws_request{should_retry = true};
 aas_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
+    Request#aws_request{should_retry = false};
+aas_result_fun(Request) ->
     Request#aws_request{should_retry = false}.
 
 
@@ -692,7 +694,7 @@ request_with_action(Configuration, BodyConfiguration, Action) ->
             HeadersPrev = headers(Config, Action, Body),
             Headers = [{"content-type", "application/x-amz-json-1.1"} | HeadersPrev],
             Request = prepare_record(Config, post, Headers, Body),
-            erlcloud_retry:request(Config, Request, aas_result_fun/1);
+            erlcloud_retry:request(Config, Request, fun aas_result_fun/1);
         {error, Reason} ->
             {error, Reason}
     end.
@@ -702,8 +704,8 @@ prepare_record(Config, Method, Headers, Body) ->
     %%% URI: https://autoscaling.us-west-2.amazonaws.com/
 
     RequestURI = lists:flatten([
-        Config#aws_config.autoscaling_scheme,
-        Config#aws_config.autoscaling_host,
+        Config#aws_config.application_autoscaling_scheme,
+        Config#aws_config.application_autoscaling_host,
         port_spec(Config)
     ]),
 
@@ -713,9 +715,9 @@ prepare_record(Config, Method, Headers, Body) ->
                            request_body = Body,
                            uri = RequestURI}.
 
-port_spec(#aws_config{autoscaling_port=80}) ->
+port_spec(#aws_config{application_autoscaling_port=80}) ->
     "";
-port_spec(#aws_config{autoscaling_port=Port}) ->
+port_spec(#aws_config{application_autoscaling_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
 
 
