@@ -155,6 +155,7 @@ aws_region_from_host(Host) ->
         %% we need to account for that:
         %%  us-west-2: s3.us-west-2.amazonaws.com
         %%  cn-north-1 (AWS China): s3.cn-north-1.amazonaws.com.cn
+        %%  cn-northwest-1 (AWS China): s3.cn-northwest-1.amazonaws.com.cn
         %% it's assumed that the first element is the aws service (s3, ec2, etc),
         %% the second is the region identifier, the rest is ignored
         %% the exception (of course) is the dynamodb streams and the marketplace which follows a
@@ -688,6 +689,9 @@ service_config( <<"emr">>, Region, Config ) ->
 service_config( <<"iam">> = Service, <<"cn-north-1">> = Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ iam_host = Host };
+service_config( <<"iam">> = Service, <<"cn-northwest-1">> = Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ iam_host = Host };
 service_config( <<"iam">>, _Region, Config ) -> Config;
 service_config( <<"inspector">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
@@ -782,14 +786,20 @@ service_config( <<"application_autoscaling">>, Region, Config ) ->
 %% names.
 %%
 service_host( <<"s3">>, <<"us-east-1">> ) -> "s3-external-1.amazonaws.com";
+service_host( <<"s3">>, <<"us-gov-west-1">> ) -> "s3-fips-us-gov-west-1.amazonaws.com";
 service_host( <<"s3">>, <<"cn-north-1">> ) -> "s3.cn-north-1.amazonaws.com.cn";
-service_host( <<"s3">>, <<"us-gov-west-1">> ) ->
-    "s3-fips-us-gov-west-1.amazonaws.com";
+service_host( <<"s3">>, <<"cn-northwest-1">> ) -> "s3.cn-northwest-1.amazonaws.com.cn";
 service_host( <<"s3">>, Region ) ->
     binary_to_list( <<"s3-", Region/binary, ".amazonaws.com">> );
+service_host( <<"iam">>, <<"cn-north-1">> ) -> "iam.amazonaws.com.cn";
+service_host( <<"iam">>, <<"cn-northwest-1">> ) -> "iam.amazonaws.com.cn";
 service_host( <<"sdb">>, <<"us-east-1">> ) -> "sdb.amazonaws.com";
 service_host( <<"states">>, Region ) ->
     binary_to_list( <<"states.", Region/binary, ".amazonaws.com">> );
+service_host( Service, <<"cn-north-1">> = Region ) when is_binary(Service) ->
+    binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com.cn">> );
+service_host( Service, <<"cn-northwest-1">> =Region ) when is_binary(Service) ->
+    binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com.cn">> );
 service_host( Service, Region ) when is_binary(Service) ->
     binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com">> ).
 
