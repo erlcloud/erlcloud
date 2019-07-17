@@ -280,8 +280,61 @@ error_handling_tests(_) ->
              OkResult})
         ],
     
-    error_tests(?_f(erlcloud_ddb2:get_item(<<"table">>, {<<"k">>, <<"v">>})), Tests).
+    error_tests(?_f(erlcloud_ddb2:get_item(<<"table">>, {<<"k">>, <<"v">>})), Tests),
 
+    TransactionErrorResult = {error, {<<"TransactionCanceledException">>,
+                                      {<<"Transaction cancelled, please refer cancellation reasons for specific reasons [None, ConditionalCheckFailed]">>,
+                                       [{<<"None">>, null}, {<<"ConditionalCheckFailed">>, <<"The conditional request failed">>}]}}},
+
+    TransactOkResponse = httpc_response(200, "{}"),
+    TransactOkResult = {ok, []},
+
+    TransactTests =
+        [?_ddb_test(
+            {"Test return output for TransactionCanceledException error",
+             [httpc_response(400, "
+{
+    \"__type\":\"com.amazonaws.dynamodb.v20120810#TransactionCanceledException\",
+    \"CancellationReasons\": [
+        {
+            \"Code\":\"None\",
+        },
+        {
+            \"Code\":\"ConditionalCheckFailed\",
+            \"Message\":\"The conditional request failed\",
+        }
+    ],
+    \"message\":\"Transaction cancelled, please refer cancellation reasons for specific reasons [None, ConditionalCheckFailed]\"
+}"
+                            )],
+              TransactionErrorResult}),
+         ?_ddb_test(
+            {"Test retry after ProvisionedThroughputExceeded cancellation reason",
+             [httpc_response(400, "
+{
+    \"__type\":\"com.amazonaws.dynamodb.v20120810#TransactionCanceledException\",
+    \"CancellationReasons\": [
+        {
+            \"Code\":\"None\",
+        },
+        {
+            \"Code\":\"ProvisionedThroughputExceeded\",
+            \"Message\":\"The level of configured provisioned throughput for the table was exceeded. Consider increasing your provisioning level with the UpdateTable API\",
+        }
+    ],
+    \"message\":\"Transaction cancelled, please refer cancellation reasons for specific reasons [None, ProvisionedThroughputExceeded]\"
+}"
+                            ),
+              TransactOkResponse],
+             TransactOkResult})
+        ],
+
+    Transact = [{put, {<<"table">>, [{<<"k">>, {s, <<"v">>}}], []}},
+                {condition_check, {<<"table">>, [{<<"k">>, {s, <<"v2">>}}],
+                                   [{condition_expression, <<"approved = :a">>},
+                                    {expression_attribute_values, [{<<":a">>, <<"yes">>}]}]}}],
+
+    error_tests(?_f(erlcloud_ddb2:transact_write_items(Transact)), TransactTests).
 
 %% BatchGetItem test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchGetItem.html
