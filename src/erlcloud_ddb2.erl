@@ -61,12 +61,18 @@
 %% contain typed attribute values so that they may be correctly passed
 %% to subsequent calls.
 %%
-%% DynamoDB errors are return in the form `{error, {ErrorCode,
-%% Message}}' where `ErrorCode' and 'Message' are both binary
+%% DynamoDB errors for most cases are returned in the form
+%% `{error, {ErrorCode, Message}}' where `ErrorCode' and `Message' are both binary
 %% strings. List of error codes:
 %% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html]. So
 %% to handle conditional check failures, match `{error,
 %% {<<"ConditionalCheckFailedException">>, _}}'.
+%% Note that in the case of a `TransactionCanceledException' DynamoDB error,
+%% the error response has the form `{error, {<<"TransactionCanceledException">>,
+%% {Message, CancellationReasons}}}' where `Message' is a binary string and
+%% `CancellationReasons' is an ordered list in the form `[{Code, Message}]',
+%% where `Code' is the status code of the result and `Message' is the cancellation
+%% reason message description.
 %%
 %% `erlcloud_ddb_util' provides a higher level API that implements common
 %% operations that may require multiple DynamoDB API calls.
@@ -3213,6 +3219,12 @@ transact_get_items(RequestItems, Opts) ->
 %% DynamoDB API:
 %% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactGetItems.html]
 %%
+%% Note that in the case of a `TransactionCanceledException' DynamoDB error, the error
+%% response has the form `{error, {<<"TransactionCanceledException">>, {Message, CancellationReasons}}}'
+%% where `Message' is a binary string and `CancellationReasons' is an ordered list in the form
+%% `[{Code, Message}]', where `Code' is the status code of the result and `Message' is the cancellation
+%% reason message description.
+%%
 %% ===Example===
 %%
 %% Get two items in a transaction.
@@ -3347,6 +3359,12 @@ transact_write_items(RequestItems, Opts) ->
 %% @doc
 %% DynamoDB API:
 %% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactWriteItems.html]
+%%
+%% Note that in the case of a `TransactionCanceledException' DynamoDB error, the error
+%% response has the form `{error, {<<"TransactionCanceledException">>, {Message, CancellationReasons}}}'
+%% where `Message' is a binary string and `CancellationReasons' is an ordered list in the form
+%% `[{Code, Message}]', where `Code' is the status code of the result and `Message' is the cancellation
+%% reason message description.
 %%
 %% ===Example===
 %%

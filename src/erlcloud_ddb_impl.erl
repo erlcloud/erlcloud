@@ -240,11 +240,19 @@ client_error(Body, DDBError) ->
                         [_, Type] when
                               Type =:= <<"ProvisionedThroughputExceededException">> orelse
                               Type =:= <<"ThrottlingException">> ->
-                            DDBError#ddb2_error{error_type = ddb, 
+                            DDBError#ddb2_error{error_type = ddb,
                                                 should_retry = true,
                                                 reason = {Type, Message}};
+                        [_, Type] when
+                              Type =:= <<"TransactionCanceledException">> ->
+                            CancellationReasons0 = proplists:get_value(<<"CancellationReasons">>, Json, []),
+                            CancellationReasons = [{proplists:get_value(<<"Code">>, R),
+                                                    proplists:get_value(<<"Message">>, R, null)} || R <- CancellationReasons0],
+                            DDBError#ddb2_error{error_type = ddb,
+                                                should_retry = should_retry_canceled_transaction(CancellationReasons),
+                                                reason = {Type, {Message, CancellationReasons}}};
                         [_, Type] ->
-                            DDBError#ddb2_error{error_type = ddb, 
+                            DDBError#ddb2_error{error_type = ddb,
                                                 should_retry = false,
                                                 reason = {Type, Message}};
                         _ ->
@@ -268,3 +276,10 @@ port_spec(#aws_config{ddb_port=80}) ->
 port_spec(#aws_config{ddb_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
 
+-spec should_retry_canceled_transaction(proplists:proplist()) -> boolean().
+should_retry_canceled_transaction(CancellationReasons) ->
+    %% Retry canceled transaction if cancellation reasons are either:
+    %% `None', `ThrottlingError' and/or `ProvisionedThroughputExceeded'
+    lists:filter(fun({Reason, _Message}) ->
+                     not lists:member(Reason, [<<"None">>, <<"ThrottlingError">>, <<"ProvisionedThroughputExceeded">>])
+                 end, CancellationReasons) == [].
