@@ -212,7 +212,10 @@ extract_scheduled_action(J) ->
         {scalable_dimension, <<"ScalableDimension">>, optional_string},
         {service_namespace, <<"ServiceNamespace">>, optional_string},
         {scheduled_action_arn, <<"ScheduledActionARN">>, optional_string},
-        {scheduled_action_name, <<"ScheduledActionName">>, optional_string}
+        {scheduled_action_name, <<"ScheduledActionName">>, optional_string},
+        {start_time, <<"StartTime">>, optional_integer},
+        {end_time, <<"EndTime">>, optional_integer},
+        {schedule, <<"Schedule">>, optional_string}
     ], J),
     Action = proplists:get_value(<<"ScalableTargetAction">>, J),
     PropAction = erlcloud_json:decode([
