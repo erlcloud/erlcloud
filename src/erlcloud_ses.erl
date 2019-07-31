@@ -145,26 +145,33 @@ delete_identity(Identity, Config) ->
         {error, Reason} -> {error, Reason}
     end.
 
-%%%------------------------------------------------------------------------------
-%%%
-%%% Custom Verification Templates
-%%%
-%%% Template attributes:
-%%%   { template_name , string() }
-%%%   { from_email_address , string() }
-%%%   { template_subject , string() }
-%%%   { template_content , string() }     -- please see notes in API Guide on what is allowed
-%%%   { success_redirect_url , string() }
-%%%   { failure_redirect_url , string() }
-%%%
-%%% On template creation, all attributes are mandatory.
-%%% On template updates, only include the attributes you need to modify
-%%%
-%%%
-%%% Please consult: https://docs.aws.amazon.com/ses/latest/APIReference/API_GetCustomVerificationEmailTemplate.html
-%%% for a full reference to these APIs
-%%%
-%%%------------------------------------------------------------------------------
+%%------------------------------------------------------------------------------
+%% @doc
+%% Custom Verification Templates
+%% SES API:
+%% [https://docs.aws.amazon.com/ses/latest/APIReference/API_GetCustomVerificationEmailTemplate.html]
+%%
+%% Template attributes:
+%%   { template_name , string() }
+%%   { from_email_address , string() }
+%%   { template_subject , string() }
+%%   { template_content , string() }     -- please see notes in API Guide on what is allowed
+%%   { success_redirect_url , string() }
+%%   { failure_redirect_url , string() }
+%%
+%% On template creation, all attributes are mandatory.
+%% On template updates, only include the attributes you need to modify
+%% When listing templates, all attributes are included except template_content, use the get function to retrieve it
+%%
+%%  create_custom_verification_email_template
+%%  update_custom_verification_email_template
+%%  send_custom_verification_email
+%%  delete_custom_verification_email_template
+%%  get_custom_verification_email_template
+%%  list_custom_verification_email_templates
+%%
+%% @end
+%%------------------------------------------------------------------------------
 
 -type custom_template_attribute_names() :: template_name | from_email_address | template_subject | template_content | success_redirect_url | failure_redirect_url .
 -type custom_template_attributes() :: [ { custom_template_attribute_names() , string() } ].
