@@ -47,6 +47,7 @@
           create_custom_verification_email_template/7,
           update_custom_verification_email_template/2,
           update_custom_verification_email_template/3,
+          send_custom_verification_email/2,
           send_custom_verification_email/3,
           delete_custom_verification_email_template/1,
           delete_custom_verification_email_template/2,
@@ -159,9 +160,16 @@ delete_identity(Identity, Config) ->
 %%% On template updates, only include the attributes you need to modify
 %%%------------------------------------------------------------------------------
 
+-type custom_template_attribute_names() :: template_name | from_email_address | template_subject | template_content | success_redirect_url | failure_redirect_url .
+-type custom_template_attributes() :: [ { custom_template_attribute_names() , string() } ].
+
+-type create_custom_verification_email_template_result() :: ok | { error , term() }.
+
+-spec create_custom_verification_email_template( string() , string() ,string() ,string() ,string() ,string() ) -> create_custom_verification_email_template_result().
 create_custom_verification_email_template( TemplateName , FromEmailAddress , TemplateSubject , TemplateContent , SuccessRedirectionURL , FailureRedirectionURL ) ->
   create_custom_verification_email_template( TemplateName , FromEmailAddress , TemplateSubject , TemplateContent , SuccessRedirectionURL , FailureRedirectionURL , default_config() ).
 
+-spec create_custom_verification_email_template( string() , string() ,string() ,string() ,string() ,string() , aws_config() ) -> create_custom_verification_email_template_result().
 create_custom_verification_email_template( TemplateName , FromEmailAddress , TemplateSubject , TemplateContent , SuccessRedirectionURL , FailureRedirectionURL ,Config ) ->
   Params = encode_params(
             [   { template_name , TemplateName} ,
@@ -176,9 +184,13 @@ create_custom_verification_email_template( TemplateName , FromEmailAddress , Tem
     {error, Reason} -> {error, Reason}
   end.
 
+-type update_custom_verification_email_template_result() :: ok | { error , term() }.
+
+-spec update_custom_verification_email_template( string() , [ { atom() , string() }] ) -> update_custom_verification_email_template_result().
 update_custom_verification_email_template( TemplateName , Attributes ) ->
   update_custom_verification_email_template( TemplateName , Attributes , default_config() ).
 
+-spec update_custom_verification_email_template( string() , [ { atom() , string() } ] , aws_config() ) -> update_custom_verification_email_template_result().
 update_custom_verification_email_template( TemplateName , Attributes , Config ) ->
   Params = encode_params( [ { template_name , TemplateName } | Attributes ] ) ,
   case ses_request(Config, "UpdateCustomVerificationEmailTemplate", Params) of
@@ -187,6 +199,13 @@ update_custom_verification_email_template( TemplateName , Attributes , Config ) 
     {error, Reason} -> {error, Reason}
   end.
 
+-type send_custom_verification_email_result() :: { ok , term() } | { error , term() }.
+
+-spec send_custom_verification_email( string() , string() ) -> send_custom_verification_email_result().
+send_custom_verification_email( EmailAddress , TemplateName ) ->
+  send_custom_verification_email( EmailAddress , TemplateName , default_config() ).
+
+-spec send_custom_verification_email( string() , string() , aws_config()) -> send_custom_verification_email_result().
 send_custom_verification_email( EmailAddress , TemplateName , Config ) ->
   Params = encode_params( [   { email_address , EmailAddress} ,
                               { template_name , TemplateName} ] ),
@@ -196,9 +215,13 @@ send_custom_verification_email( EmailAddress , TemplateName , Config ) ->
     {error, Reason} -> {error, Reason}
   end.
 
+-type delete_custom_verification_email_template_result() :: ok | {error,term()}.
+
+-spec delete_custom_verification_email_template( string() ) -> delete_custom_verification_email_template_result().
 delete_custom_verification_email_template( TemplateName ) ->
   delete_custom_verification_email_template( TemplateName , default_config() ).
 
+-spec delete_custom_verification_email_template( string() , aws_config() ) -> delete_custom_verification_email_template_result().
 delete_custom_verification_email_template( TemplateName , Config ) ->
   Params = encode_params( [ { template_name , TemplateName } ] ),
   case ses_request(Config, "DeleteCustomVerificationEmailTemplate", Params) of
@@ -208,9 +231,13 @@ delete_custom_verification_email_template( TemplateName , Config ) ->
       { error , Reason }
   end.
 
+-type get_custom_verification_email_template_result() :: { ok , custom_template_attributes() } | { error , term() }.
+
+-spec get_custom_verification_email_template( string() ) -> get_custom_verification_email_template_result().
 get_custom_verification_email_template( TemplateName ) ->
   get_custom_verification_email_template( TemplateName , default_config() ).
 
+-spec get_custom_verification_email_template( string() , aws_config() ) -> get_custom_verification_email_template_result().
 get_custom_verification_email_template( TemplateName , Config ) ->
   Params = encode_params( [ { template_name , TemplateName } ] ),
   case ses_request(Config, "GetCustomVerificationEmailTemplate", Params) of
@@ -229,9 +256,13 @@ get_custom_verification_email_template( TemplateName , Config ) ->
       {error,Reason}
   end.
 
+-type list_custom_verification_email_templates_result() :: { ok , [ { custom_templates , [ custom_template_attributes() ] } ] } | { error , term() }.
+
+-spec list_custom_verification_email_templates() -> list_custom_verification_email_templates_result().
 list_custom_verification_email_templates() ->
   list_custom_verification_email_templates(default_config() ).
 
+-spec list_custom_verification_email_templates( aws_config() ) -> list_custom_verification_email_templates_result().
 list_custom_verification_email_templates( Config ) ->
   Params = [ { "MaxResults" , 50 } ] ,
   case ses_request(Config, "ListCustomVerificationEmailTemplates", Params) of
@@ -1051,6 +1082,9 @@ decode_send_data_points(SendDataPointsDoc) ->
                          Entry)
         || Entry <- SendDataPointsDoc].
 
+%% Added for decoding a custom template entry with the ListCustomVerificationEmailTemplates command
+%% Notice that the ListCustomVerificationEmailTemplates API does not return the TemplateContent
+%% You must use GetCustomVerificationEmailTemplate to retrieve TemplateContent
 decode_custom_template_entry(CustomTemplatesDoc) ->
   [ erlcloud_xml:decode([
     { template_name , "TemplateName" , text } ,
