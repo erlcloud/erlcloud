@@ -55,9 +55,8 @@
           list_custom_verification_email_templates/0,
           list_custom_verification_email_templates/1]).
 
-
--include("../include/erlcloud.hrl").
--include("../include/erlcloud_aws.hrl").
+-include("erlcloud.hrl").
+-include("erlcloud_aws.hrl").
 
 -define(API_VERSION, "2010-12-01").
 
