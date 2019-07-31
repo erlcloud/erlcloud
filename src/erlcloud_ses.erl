@@ -146,6 +146,7 @@ delete_identity(Identity, Config) ->
     end.
 
 %%%------------------------------------------------------------------------------
+%%%
 %%% Custom Verification Templates
 %%%
 %%% Template attributes:
@@ -158,6 +159,11 @@ delete_identity(Identity, Config) ->
 %%%
 %%% On template creation, all attributes are mandatory.
 %%% On template updates, only include the attributes you need to modify
+%%%
+%%%
+%%% Please consult: https://docs.aws.amazon.com/ses/latest/APIReference/API_GetCustomVerificationEmailTemplate.html
+%%% for a full reference to these APIs
+%%%
 %%%------------------------------------------------------------------------------
 
 -type custom_template_attribute_names() :: template_name | from_email_address | template_subject | template_content | success_redirect_url | failure_redirect_url .
