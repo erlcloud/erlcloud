@@ -43,8 +43,21 @@
 -export([verify_email_identity/1, verify_email_identity/2]).
 -export([verify_domain_identity/1, verify_domain_identity/2]).
 
--include("erlcloud.hrl").
--include("erlcloud_aws.hrl").
+-export([ create_custom_verification_email_template/6,
+          create_custom_verification_email_template/7,
+          update_custom_verification_email_template/2,
+          update_custom_verification_email_template/3,
+          send_custom_verification_email/3,
+          delete_custom_verification_email_template/1,
+          delete_custom_verification_email_template/2,
+          get_custom_verification_email_template/2,
+          get_custom_verification_email_template/1,
+          list_custom_verification_email_templates/0,
+          list_custom_verification_email_templates/1]).
+
+
+-include("../include/erlcloud.hrl").
+-include("../include/erlcloud_aws.hrl").
 
 -define(API_VERSION, "2010-12-01").
 
@@ -132,6 +145,104 @@ delete_identity(Identity, Config) ->
         {error, Reason} -> {error, Reason}
     end.
 
+%%%------------------------------------------------------------------------------
+%%% Custom Verification Templates
+%%%
+%%% Template attributes:
+%%%   { template_name , string() }
+%%%   { from_email_address , string() }
+%%%   { template_subject , string() }
+%%%   { template_content , string() }     -- please see notes in API Guide on what is allowed
+%%%   { success_redirect_url , string() }
+%%%   { failure_redirect_url , string() }
+%%%
+%%% On template creation, all attributes are mandatory.
+%%% On template updates, only include the attributes you need to modify
+%%%------------------------------------------------------------------------------
+
+create_custom_verification_email_template( TemplateName , FromEmailAddress , TemplateSubject , TemplateContent , SuccessRedirectionURL , FailureRedirectionURL ) ->
+  create_custom_verification_email_template( TemplateName , FromEmailAddress , TemplateSubject , TemplateContent , SuccessRedirectionURL , FailureRedirectionURL , default_config() ).
+
+create_custom_verification_email_template( TemplateName , FromEmailAddress , TemplateSubject , TemplateContent , SuccessRedirectionURL , FailureRedirectionURL ,Config ) ->
+  Params = encode_params(
+            [   { template_name , TemplateName} ,
+                { from_email_address , FromEmailAddress } ,
+                { template_subject , TemplateSubject } ,
+                { template_content , TemplateContent } ,
+                { success_redirect_url , SuccessRedirectionURL} ,
+                { failure_redirect_url , FailureRedirectionURL} ] ),
+  case ses_request(Config, "CreateCustomVerificationEmailTemplate", Params) of
+    {ok, _Doc} ->
+      ok;
+    {error, Reason} -> {error, Reason}
+  end.
+
+update_custom_verification_email_template( TemplateName , Attributes ) ->
+  update_custom_verification_email_template( TemplateName , Attributes , default_config() ).
+
+update_custom_verification_email_template( TemplateName , Attributes , Config ) ->
+  Params = encode_params( [ { template_name , TemplateName } | Attributes ] ) ,
+  case ses_request(Config, "UpdateCustomVerificationEmailTemplate", Params) of
+    {ok, _Doc} ->
+      ok ;
+    {error, Reason} -> {error, Reason}
+  end.
+
+send_custom_verification_email( EmailAddress , TemplateName , Config ) ->
+  Params = encode_params( [   { email_address , EmailAddress} ,
+                              { template_name , TemplateName} ] ),
+  case ses_request(Config, "SendCustomVerificationEmail", Params) of
+    {ok, Doc} ->
+      {ok, erlcloud_xml:decode([{message_id, "SendCustomVerificationEmailResult/MessageId", text}], Doc)};
+    {error, Reason} -> {error, Reason}
+  end.
+
+delete_custom_verification_email_template( TemplateName ) ->
+  delete_custom_verification_email_template( TemplateName , default_config() ).
+
+delete_custom_verification_email_template( TemplateName , Config ) ->
+  Params = encode_params( [ { template_name , TemplateName } ] ),
+  case ses_request(Config, "DeleteCustomVerificationEmailTemplate", Params) of
+    { ok , _Doc } ->
+      ok ;
+    { error , Reason } ->
+      { error , Reason }
+  end.
+
+get_custom_verification_email_template( TemplateName ) ->
+  get_custom_verification_email_template( TemplateName , default_config() ).
+
+get_custom_verification_email_template( TemplateName , Config ) ->
+  Params = encode_params( [ { template_name , TemplateName } ] ),
+  case ses_request(Config, "GetCustomVerificationEmailTemplate", Params) of
+    { ok , Doc } ->
+      {ok, erlcloud_xml:decode(
+          [
+            {template_name      , "GetCustomVerificationEmailTemplateResult/TemplateName", text },
+            {from_email_address , "GetCustomVerificationEmailTemplateResult/FromEmailAddress", text },
+            {template_subject   , "GetCustomVerificationEmailTemplateResult/TemplateSubject", text },
+            {template_content   , "GetCustomVerificationEmailTemplateResult/TemplateContent", text },
+            {success_redirect_url, "GetCustomVerificationEmailTemplateResult/SuccessRedirectionURL", text },
+            {failure_redirect_url, "GetCustomVerificationEmailTemplateResult/FailureRedirectionURL", text }
+          ],
+        Doc)};
+    { error , Reason } ->
+      {error,Reason}
+  end.
+
+list_custom_verification_email_templates() ->
+  list_custom_verification_email_templates(default_config() ).
+
+list_custom_verification_email_templates( Config ) ->
+  Params = [ { "MaxResults" , 50 } ] ,
+  case ses_request(Config, "ListCustomVerificationEmailTemplates", Params) of
+    { ok , Doc } ->
+      {ok, erlcloud_xml:decode([{custom_templates, "ListCustomVerificationEmailTemplatesResult/CustomVerificationEmailTemplates/member", fun decode_custom_template_entry/1},
+        {next_token, "ListCustomVerificationEmailTemplatesResult/NextToken", optional_text}],
+        Doc)};
+    { error , Reason } ->
+      {error,Reason}
+  end.
 
 %%%------------------------------------------------------------------------------
 %%% GetIdentityDkimAttributes
@@ -794,8 +905,23 @@ encode_params([{source, Source} | T], Acc) when is_list(Source); is_binary(Sourc
     encode_params(T, [{"Source", Source} | Acc]);
 encode_params([{subject, Subject} | T], Acc) ->
     encode_params(T, encode_content("Message.Subject", Subject, Acc));
+encode_params([{template_name, TemplateName} | T], Acc) when is_list(TemplateName); is_binary(TemplateName) ->
+  encode_params(T, [{"TemplateName", TemplateName} | Acc]);
+encode_params([{from_email_address, FromEmailAddress} | T], Acc) when is_list(FromEmailAddress); is_binary(FromEmailAddress) ->
+  encode_params(T, [{"FromEmailAddress", FromEmailAddress} | Acc]);
+encode_params([{template_subject, TemplateSubject} | T], Acc) when is_list(TemplateSubject); is_binary(TemplateSubject) ->
+  encode_params(T, [{"TemplateSubject", TemplateSubject} | Acc]);
+encode_params([{template_content, TemplateContent} | T], Acc) when is_list(TemplateContent); is_binary(TemplateContent) ->
+  encode_params(T, [{"TemplateContent", TemplateContent} | Acc]);
+encode_params([{success_redirect_url, SuccessRedirectionURL} | T], Acc) when is_list(SuccessRedirectionURL); is_binary(SuccessRedirectionURL) ->
+  encode_params(T, [{"SuccessRedirectionURL", SuccessRedirectionURL} | Acc]);
+encode_params([{failure_redirect_url, FailureRedirectionURL} | T], Acc) when is_list(FailureRedirectionURL); is_binary(FailureRedirectionURL) ->
+  encode_params(T, [{"FailureRedirectionURL", FailureRedirectionURL} | Acc]);
 encode_params([Option | _], _Acc) ->
-    error({erlcloud_ses, {invalid_parameter, Option}}).
+  error({erlcloud_ses, {invalid_parameter, Option}}).
+
+
+
 
 encode_list(Prefix, List, Acc) ->
     encode_list(Prefix, List, 1, Acc).
@@ -926,6 +1052,15 @@ decode_send_data_points(SendDataPointsDoc) ->
                          Entry)
         || Entry <- SendDataPointsDoc].
 
+decode_custom_template_entry(CustomTemplatesDoc) ->
+  [ erlcloud_xml:decode([
+    { template_name , "TemplateName" , text } ,
+    { from_email_address , "FromEmailAddress" , text  } ,
+    { template_subject , "TemplateSubject" , text  } ,
+    { success_redirect_url , "SuccessRedirectionURL" , text } ,
+    { failure_redirect_url , "FailureRedirectionURL" , text } ],
+    Entry)
+    || Entry <- CustomTemplatesDoc ].
 
 decode_error_code("IncompleteSignature") -> incomplete_signature;
 decode_error_code("InternalFailure") -> internal_failure;
@@ -943,7 +1078,14 @@ decode_error_code("OptInRequired") -> opt_in_required;
 decode_error_code("RequestExpired") -> request_expired;
 decode_error_code("ServiceUnavailable") -> service_unavailable;
 decode_error_code("Throttling") -> throttling;
-decode_error_code("ValidationError") -> validation_error.
+decode_error_code("ValidationError") -> validation_error;
+decode_error_code("LimitExceeded") -> limit_exceeded;
+decode_error_code("ConfigurationSetDoesNotExist") -> configuration_set_does_not_exist;
+decode_error_code("CustomVerificationEmailTemplateDoesNotExist") -> custom_verification_email_template_does_not_exist;
+decode_error_code("ProductionAccessNotGranted") -> production_access_not_granted;
+decode_error_code("CustomVerificationEmailInvalidContent") -> custom_verification_email_invalid_content;
+decode_error_code("FromEmailAddressNotVerified") -> from_email_address_not_verified;
+decode_error_code("CustomVerificationEmailTemplateAlreadyExists") -> custom_verification_email_template_already_exists.
 
 
 decode_error(Doc) ->
