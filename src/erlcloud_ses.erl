@@ -43,18 +43,12 @@
 -export([verify_email_identity/1, verify_email_identity/2]).
 -export([verify_domain_identity/1, verify_domain_identity/2]).
 
--export([ create_custom_verification_email_template/6,
-          create_custom_verification_email_template/7,
-          update_custom_verification_email_template/2,
-          update_custom_verification_email_template/3,
-          send_custom_verification_email/2,
-          send_custom_verification_email/3,
-          delete_custom_verification_email_template/1,
-          delete_custom_verification_email_template/2,
-          get_custom_verification_email_template/2,
-          get_custom_verification_email_template/1,
-          list_custom_verification_email_templates/0,
-          list_custom_verification_email_templates/1]).
+-export([create_custom_verification_email_template/6, create_custom_verification_email_template/7]).
+-export([update_custom_verification_email_template/2, update_custom_verification_email_template/3]).
+-export([send_custom_verification_email/2, send_custom_verification_email/3]).
+-export([delete_custom_verification_email_template/1, delete_custom_verification_email_template/2]).
+-export([get_custom_verification_email_template/1, get_custom_verification_email_template/2]).
+-export([list_custom_verification_email_templates/0, list_custom_verification_email_templates/1]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -83,6 +77,11 @@
               email/0, emails/0,
               domain/0,
               verification_status/0]).
+
+-type custom_template_attribute_names() :: template_name | from_email_address | template_subject | template_content | success_redirect_url | failure_redirect_url .
+-type custom_template_attributes() :: [{custom_template_attribute_names(), string()}].
+
+-export_type([custom_template_attribute_names/0, custom_template_attributes/0]).
 
 %%%------------------------------------------------------------------------------
 %%% Library initialization
@@ -173,55 +172,50 @@ delete_identity(Identity, Config) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--type custom_template_attribute_names() :: template_name | from_email_address | template_subject | template_content | success_redirect_url | failure_redirect_url .
--type custom_template_attributes() :: [ { custom_template_attribute_names() , string() } ].
+-type create_custom_verification_email_template_result() :: ok | { error, term() }.
 
--type create_custom_verification_email_template_result() :: ok | { error , term() }.
+-spec create_custom_verification_email_template( string(), string(), string(), string(), string(), string() ) -> create_custom_verification_email_template_result().
+create_custom_verification_email_template(TemplateName, FromEmailAddress, TemplateSubject, TemplateContent, SuccessRedirectionURL, FailureRedirectionURL) ->
+  create_custom_verification_email_template(TemplateName, FromEmailAddress, TemplateSubject, TemplateContent, SuccessRedirectionURL, FailureRedirectionURL ,default_config()).
 
--spec create_custom_verification_email_template( string() , string() ,string() ,string() ,string() ,string() ) -> create_custom_verification_email_template_result().
-create_custom_verification_email_template( TemplateName , FromEmailAddress , TemplateSubject , TemplateContent , SuccessRedirectionURL , FailureRedirectionURL ) ->
-  create_custom_verification_email_template( TemplateName , FromEmailAddress , TemplateSubject , TemplateContent , SuccessRedirectionURL , FailureRedirectionURL , default_config() ).
-
--spec create_custom_verification_email_template( string() , string() ,string() ,string() ,string() ,string() , aws_config() ) -> create_custom_verification_email_template_result().
-create_custom_verification_email_template( TemplateName , FromEmailAddress , TemplateSubject , TemplateContent , SuccessRedirectionURL , FailureRedirectionURL ,Config ) ->
-  Params = encode_params(
-            [   { template_name , TemplateName} ,
-                { from_email_address , FromEmailAddress } ,
-                { template_subject , TemplateSubject } ,
-                { template_content , TemplateContent } ,
-                { success_redirect_url , SuccessRedirectionURL} ,
-                { failure_redirect_url , FailureRedirectionURL} ] ),
+-spec create_custom_verification_email_template(string(), string(), string(), string(), string(), string(), aws_config()) ->
+        create_custom_verification_email_template_result().
+create_custom_verification_email_template(TemplateName, FromEmailAddress, TemplateSubject, TemplateContent, SuccessRedirectionURL, FailureRedirectionURL, Config) ->
+  Params = encode_params([{template_name, TemplateName},
+                          {from_email_address, FromEmailAddress},
+                          {template_subject, TemplateSubject},
+                          {template_content, TemplateContent},
+                          {success_redirect_url, SuccessRedirectionURL},
+                          {failure_redirect_url, FailureRedirectionURL}]),
   case ses_request(Config, "CreateCustomVerificationEmailTemplate", Params) of
-    {ok, _Doc} ->
-      ok;
+    {ok, _Doc} -> ok;
     {error, Reason} -> {error, Reason}
   end.
 
--type update_custom_verification_email_template_result() :: ok | { error , term() }.
+-type update_custom_verification_email_template_result() :: ok | { error, term() }.
 
--spec update_custom_verification_email_template( string() , [ { atom() , string() }] ) -> update_custom_verification_email_template_result().
-update_custom_verification_email_template( TemplateName , Attributes ) ->
-  update_custom_verification_email_template( TemplateName , Attributes , default_config() ).
+-spec update_custom_verification_email_template(string(), [{atom(), string()}]) -> update_custom_verification_email_template_result().
+update_custom_verification_email_template(TemplateName, Attributes) ->
+  update_custom_verification_email_template(TemplateName, Attributes,default_config()).
 
--spec update_custom_verification_email_template( string() , [ { atom() , string() } ] , aws_config() ) -> update_custom_verification_email_template_result().
-update_custom_verification_email_template( TemplateName , Attributes , Config ) ->
-  Params = encode_params( [ { template_name , TemplateName } | Attributes ] ) ,
+-spec update_custom_verification_email_template(string(), [{atom(), string()}], aws_config()) -> update_custom_verification_email_template_result().
+update_custom_verification_email_template(TemplateName, Attributes, Config) ->
+  Params = encode_params([{template_name, TemplateName} | Attributes]),
   case ses_request(Config, "UpdateCustomVerificationEmailTemplate", Params) of
-    {ok, _Doc} ->
-      ok ;
+    {ok, _Doc} -> ok ;
     {error, Reason} -> {error, Reason}
   end.
 
--type send_custom_verification_email_result() :: { ok , term() } | { error , term() }.
+-type send_custom_verification_email_result() :: {ok, term()} | {error, term()}.
 
--spec send_custom_verification_email( string() , string() ) -> send_custom_verification_email_result().
-send_custom_verification_email( EmailAddress , TemplateName ) ->
-  send_custom_verification_email( EmailAddress , TemplateName , default_config() ).
+-spec send_custom_verification_email(string(), string()) -> send_custom_verification_email_result().
+send_custom_verification_email(EmailAddress, TemplateName) ->
+  send_custom_verification_email(EmailAddress, TemplateName, default_config()).
 
--spec send_custom_verification_email( string() , string() , aws_config()) -> send_custom_verification_email_result().
-send_custom_verification_email( EmailAddress , TemplateName , Config ) ->
-  Params = encode_params( [   { email_address , EmailAddress} ,
-                              { template_name , TemplateName} ] ),
+-spec send_custom_verification_email(string(), string(), aws_config()) -> send_custom_verification_email_result().
+send_custom_verification_email(EmailAddress, TemplateName, Config) ->
+  Params = encode_params([{email_address, EmailAddress},
+                          {template_name, TemplateName}]),
   case ses_request(Config, "SendCustomVerificationEmail", Params) of
     {ok, Doc} ->
       {ok, erlcloud_xml:decode([{message_id, "SendCustomVerificationEmailResult/MessageId", text}], Doc)};
@@ -230,61 +224,55 @@ send_custom_verification_email( EmailAddress , TemplateName , Config ) ->
 
 -type delete_custom_verification_email_template_result() :: ok | {error,term()}.
 
--spec delete_custom_verification_email_template( string() ) -> delete_custom_verification_email_template_result().
-delete_custom_verification_email_template( TemplateName ) ->
-  delete_custom_verification_email_template( TemplateName , default_config() ).
+-spec delete_custom_verification_email_template(string()) -> delete_custom_verification_email_template_result().
+delete_custom_verification_email_template(TemplateName) ->
+  delete_custom_verification_email_template(TemplateName, default_config()).
 
--spec delete_custom_verification_email_template( string() , aws_config() ) -> delete_custom_verification_email_template_result().
-delete_custom_verification_email_template( TemplateName , Config ) ->
-  Params = encode_params( [ { template_name , TemplateName } ] ),
+-spec delete_custom_verification_email_template(string(), aws_config()) -> delete_custom_verification_email_template_result().
+delete_custom_verification_email_template(TemplateName, Config) ->
+  Params = encode_params([{template_name, TemplateName }]),
   case ses_request(Config, "DeleteCustomVerificationEmailTemplate", Params) of
-    { ok , _Doc } ->
-      ok ;
-    { error , Reason } ->
-      { error , Reason }
+    {ok, _Doc} -> ok;
+    {error, Reason} -> {error, Reason}
   end.
 
--type get_custom_verification_email_template_result() :: { ok , custom_template_attributes() } | { error , term() }.
+-type get_custom_verification_email_template_result() :: {ok, custom_template_attributes()} | {error, term()}.
 
--spec get_custom_verification_email_template( string() ) -> get_custom_verification_email_template_result().
-get_custom_verification_email_template( TemplateName ) ->
-  get_custom_verification_email_template( TemplateName , default_config() ).
+-spec get_custom_verification_email_template(string()) -> get_custom_verification_email_template_result().
+get_custom_verification_email_template(TemplateName) ->
+  get_custom_verification_email_template(TemplateName, default_config()).
 
 -spec get_custom_verification_email_template( string() , aws_config() ) -> get_custom_verification_email_template_result().
-get_custom_verification_email_template( TemplateName , Config ) ->
-  Params = encode_params( [ { template_name , TemplateName } ] ),
+get_custom_verification_email_template(TemplateName, Config) ->
+  Params = encode_params([{template_name, TemplateName}]),
   case ses_request(Config, "GetCustomVerificationEmailTemplate", Params) of
     { ok , Doc } ->
       {ok, erlcloud_xml:decode(
-          [
-            {template_name      , "GetCustomVerificationEmailTemplateResult/TemplateName", text },
-            {from_email_address , "GetCustomVerificationEmailTemplateResult/FromEmailAddress", text },
-            {template_subject   , "GetCustomVerificationEmailTemplateResult/TemplateSubject", text },
-            {template_content   , "GetCustomVerificationEmailTemplateResult/TemplateContent", text },
-            {success_redirect_url, "GetCustomVerificationEmailTemplateResult/SuccessRedirectionURL", text },
-            {failure_redirect_url, "GetCustomVerificationEmailTemplateResult/FailureRedirectionURL", text }
-          ],
-        Doc)};
-    { error , Reason } ->
-      {error,Reason}
+           [{template_name, "GetCustomVerificationEmailTemplateResult/TemplateName", text},
+            {from_email_address, "GetCustomVerificationEmailTemplateResult/FromEmailAddress", text},
+            {template_subject, "GetCustomVerificationEmailTemplateResult/TemplateSubject", text},
+            {template_content, "GetCustomVerificationEmailTemplateResult/TemplateContent", text},
+            {success_redirect_url, "GetCustomVerificationEmailTemplateResult/SuccessRedirectionURL", text},
+            {failure_redirect_url, "GetCustomVerificationEmailTemplateResult/FailureRedirectionURL", text}],
+            Doc)};
+    {error, Reason} -> {error, Reason}
   end.
 
--type list_custom_verification_email_templates_result() :: { ok , [ { custom_templates , [ custom_template_attributes() ] } ] } | { error , term() }.
+-type list_custom_verification_email_templates_result() :: {ok, [{custom_templates, [custom_template_attributes()]}]} | {error , term()}.
 
 -spec list_custom_verification_email_templates() -> list_custom_verification_email_templates_result().
 list_custom_verification_email_templates() ->
-  list_custom_verification_email_templates(default_config() ).
+  list_custom_verification_email_templates(default_config()).
 
--spec list_custom_verification_email_templates( aws_config() ) -> list_custom_verification_email_templates_result().
-list_custom_verification_email_templates( Config ) ->
-  Params = [ { "MaxResults" , 50 } ] ,
+-spec list_custom_verification_email_templates(aws_config()) -> list_custom_verification_email_templates_result().
+list_custom_verification_email_templates(Config) ->
+  Params = [{"MaxResults",50}],
   case ses_request(Config, "ListCustomVerificationEmailTemplates", Params) of
     { ok , Doc } ->
       {ok, erlcloud_xml:decode([{custom_templates, "ListCustomVerificationEmailTemplatesResult/CustomVerificationEmailTemplates/member", fun decode_custom_template_entry/1},
         {next_token, "ListCustomVerificationEmailTemplatesResult/NextToken", optional_text}],
         Doc)};
-    { error , Reason } ->
-      {error,Reason}
+    {error, Reason } -> {error, Reason}
   end.
 
 %%%------------------------------------------------------------------------------
@@ -948,23 +936,26 @@ encode_params([{source, Source} | T], Acc) when is_list(Source); is_binary(Sourc
     encode_params(T, [{"Source", Source} | Acc]);
 encode_params([{subject, Subject} | T], Acc) ->
     encode_params(T, encode_content("Message.Subject", Subject, Acc));
-encode_params([{template_name, TemplateName} | T], Acc) when is_list(TemplateName); is_binary(TemplateName) ->
-  encode_params(T, [{"TemplateName", TemplateName} | Acc]);
-encode_params([{from_email_address, FromEmailAddress} | T], Acc) when is_list(FromEmailAddress); is_binary(FromEmailAddress) ->
-  encode_params(T, [{"FromEmailAddress", FromEmailAddress} | Acc]);
-encode_params([{template_subject, TemplateSubject} | T], Acc) when is_list(TemplateSubject); is_binary(TemplateSubject) ->
-  encode_params(T, [{"TemplateSubject", TemplateSubject} | Acc]);
-encode_params([{template_content, TemplateContent} | T], Acc) when is_list(TemplateContent); is_binary(TemplateContent) ->
-  encode_params(T, [{"TemplateContent", TemplateContent} | Acc]);
-encode_params([{success_redirect_url, SuccessRedirectionURL} | T], Acc) when is_list(SuccessRedirectionURL); is_binary(SuccessRedirectionURL) ->
-  encode_params(T, [{"SuccessRedirectionURL", SuccessRedirectionURL} | Acc]);
-encode_params([{failure_redirect_url, FailureRedirectionURL} | T], Acc) when is_list(FailureRedirectionURL); is_binary(FailureRedirectionURL) ->
-  encode_params(T, [{"FailureRedirectionURL", FailureRedirectionURL} | Acc]);
+encode_params([{template_name, TemplateName} | T], Acc)
+    when is_list(TemplateName); is_binary(TemplateName) ->
+      encode_params(T, [{"TemplateName", TemplateName} | Acc]);
+encode_params([{from_email_address, FromEmailAddress} | T], Acc)
+    when is_list(FromEmailAddress); is_binary(FromEmailAddress) ->
+      encode_params(T, [{"FromEmailAddress", FromEmailAddress} | Acc]);
+encode_params([{template_subject, TemplateSubject} | T], Acc)
+    when is_list(TemplateSubject); is_binary(TemplateSubject) ->
+      encode_params(T, [{"TemplateSubject", TemplateSubject} | Acc]);
+encode_params([{template_content, TemplateContent} | T], Acc)
+    when is_list(TemplateContent); is_binary(TemplateContent) ->
+      encode_params(T, [{"TemplateContent", TemplateContent} | Acc]);
+encode_params([{success_redirect_url, SuccessRedirectionURL} | T], Acc)
+    when is_list(SuccessRedirectionURL); is_binary(SuccessRedirectionURL) ->
+      encode_params(T, [{"SuccessRedirectionURL", SuccessRedirectionURL} | Acc]);
+encode_params([{failure_redirect_url, FailureRedirectionURL} | T], Acc)
+    when is_list(FailureRedirectionURL); is_binary(FailureRedirectionURL) ->
+      encode_params(T, [{"FailureRedirectionURL", FailureRedirectionURL} | Acc]);
 encode_params([Option | _], _Acc) ->
-  error({erlcloud_ses, {invalid_parameter, Option}}).
-
-
-
+    error({erlcloud_ses, {invalid_parameter, Option}}).
 
 encode_list(Prefix, List, Acc) ->
     encode_list(Prefix, List, 1, Acc).
