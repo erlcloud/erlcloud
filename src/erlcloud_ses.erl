@@ -21,8 +21,13 @@
 -module(erlcloud_ses).
 
 -export([configure/2, configure/3, new/2, new/3]).
+-export([create_custom_verification_email_template/6, create_custom_verification_email_template/7]).
+
+-export([delete_custom_verification_email_template/1, delete_custom_verification_email_template/2]).
 
 -export([delete_identity/1, delete_identity/2]).
+
+-export([get_custom_verification_email_template/1, get_custom_verification_email_template/2]).
 
 -export([get_identity_dkim_attributes/1, get_identity_dkim_attributes/2]).
 -export([get_identity_notification_attributes/1, get_identity_notification_attributes/2]).
@@ -31,7 +36,11 @@
 -export([get_send_quota/0, get_send_quota/1]).
 -export([get_send_statistics/0, get_send_statistics/1]).
 
+-export([list_custom_verification_email_templates/0, list_custom_verification_email_templates/1]).
+
 -export([list_identities/0, list_identities/1, list_identities/2]).
+
+-export([send_custom_verification_email/2, send_custom_verification_email/3]).
 
 -export([send_email/4, send_email/5, send_email/6]).
 
@@ -39,16 +48,12 @@
 -export([set_identity_feedback_forwarding_enabled/2, set_identity_feedback_forwarding_enabled/3]).
 -export([set_identity_notification_topic/3, set_identity_notification_topic/4]).
 
+-export([update_custom_verification_email_template/2, update_custom_verification_email_template/3]).
+
 -export([verify_domain_dkim/1, verify_domain_dkim/2]).
 -export([verify_email_identity/1, verify_email_identity/2]).
 -export([verify_domain_identity/1, verify_domain_identity/2]).
 
--export([create_custom_verification_email_template/6, create_custom_verification_email_template/7]).
--export([update_custom_verification_email_template/2, update_custom_verification_email_template/3]).
--export([send_custom_verification_email/2, send_custom_verification_email/3]).
--export([delete_custom_verification_email_template/1, delete_custom_verification_email_template/2]).
--export([get_custom_verification_email_template/1, get_custom_verification_email_template/2]).
--export([list_custom_verification_email_templates/0, list_custom_verification_email_templates/1]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -58,6 +63,9 @@
 %%%------------------------------------------------------------------------------
 %%% Common types
 %%%------------------------------------------------------------------------------
+
+-type custom_template_attribute_names() :: template_name | from_email_address | template_subject | template_content | success_redirect_url | failure_redirect_url .
+-type custom_template_attributes() :: [{custom_template_attribute_names(), string()}].
 
 -type identity() :: string() | binary().
 
@@ -73,15 +81,11 @@
 
 -type verification_status() :: pending | success | failed | temporary_failure | not_started.
 
--export_type([identity/0, identities/0,
+-export_type([custom_template_attribute_names/0, custom_template_attributes/0,
+              identity/0, identities/0,
               email/0, emails/0,
               domain/0,
               verification_status/0]).
-
--type custom_template_attribute_names() :: template_name | from_email_address | template_subject | template_content | success_redirect_url | failure_redirect_url .
--type custom_template_attributes() :: [{custom_template_attribute_names(), string()}].
-
--export_type([custom_template_attribute_names/0, custom_template_attributes/0]).
 
 %%%------------------------------------------------------------------------------
 %%% Library initialization
