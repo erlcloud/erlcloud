@@ -517,6 +517,7 @@ list_objects(BucketName, Options, Config)
     Params = [{"delimiter", proplists:get_value(delimiter, Options)},
               {"marker", proplists:get_value(marker, Options)},
               {"max-keys", proplists:get_value(max_keys, Options)},
+              {"encoding-type", proplists:get_value(encoding_type, Options)},
               {"prefix", proplists:get_value(prefix, Options)}],
     Doc = s3_xml_request(Config, get, BucketName, "/", "", Params, <<>>, []),
     Attributes = [{name, "Name", text},
