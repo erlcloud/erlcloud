@@ -10,6 +10,14 @@
 
 -type(aws_assume_role() :: #aws_assume_role{}).
 
+-record(http_client_options, {
+	  insecure = true :: boolean() | undefined,
+	  proxy = undefined :: binary() | {binary(), non_neg_integer()} | {socks5, binary(), binary()} | {connect, binary(), binary()} | undefined,
+	  proxy_auth = undefined :: {binary(), binary()} | undefined
+}).
+
+-type(http_client_options() :: #http_client_options{}).
+
 -record(aws_config, {
           as_host="autoscaling.amazonaws.com"::string(),
           ec2_host="ec2.amazonaws.com"::string(),
@@ -154,7 +162,12 @@
           assume_role = #aws_assume_role{} :: aws_assume_role(), %% If a role to be assumed is given
           %% then we will try to assume the role during the update_config
           %% region override for API gateway type requests
-          aws_region=undefined::string()|undefined
+          aws_region=undefined::string()|undefined,
+          %% http proxy support
+          http_proxy=undefined::string()|undefined,
+          http_client_options = #http_client_options{} :: http_client_options() %% The http client options
+          %% are used to specify the proxy, proxy_auth and insecure which is
+          %% used to support proxy based requests to s3.
          }).
 -type(aws_config() :: #aws_config{}).
 
