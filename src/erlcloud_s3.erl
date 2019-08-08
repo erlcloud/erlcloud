@@ -825,6 +825,7 @@ get_or_head(Method, BucketName, Key, Options, Config) ->
      {content_encoding, proplists:get_value("content-encoding", Headers)},
      {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
      {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
+     {tag_count, proplists:get_value("x-amz-tagging-count", Headers, "null")},
      {content, Body}|
      extract_metadata(Headers)].
 
@@ -1008,7 +1009,9 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
        is_list(Options) ->
     RequestHeaders = [{"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}|HTTPHeaders]
         ++ [{"x-amz-meta-" ++ string:to_lower(MKey), MValue} ||
-               {MKey, MValue} <- proplists:get_value(meta, Options, [])],
+               {MKey, MValue} <- proplists:get_value(meta, Options, [])]
+        ++ [{"x-amz-tagging-" ++ MKey, MValue} ||
+               {MKey, MValue} <- proplists:get_value(tags, Options, [])],
     POSTData = iolist_to_binary(Value),
     {Headers, _Body} = s3_request(Config, put, BucketName, [$/|Key], "", [],
                                   POSTData, RequestHeaders),
@@ -1109,7 +1112,9 @@ start_multipart(BucketName, Key, Options, HTTPHeaders, Config)
 
     RequestHeaders = [{"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}|HTTPHeaders]
         ++ [{"x-amz-meta-" ++ string:to_lower(MKey), MValue} ||
-               {MKey, MValue} <- proplists:get_value(meta, Options, [])],
+               {MKey, MValue} <- proplists:get_value(meta, Options, [])]
+        ++ [{"x-amz-tagging-" ++ MKey, MValue} ||
+               {MKey, MValue} <- proplists:get_value(tags, Options, [])],
     POSTData = <<>>,
     case s3_xml_request2(Config, post, BucketName, [$/|Key], "uploads", [],
                          POSTData, RequestHeaders) of
