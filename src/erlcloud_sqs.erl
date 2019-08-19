@@ -393,7 +393,12 @@ decode_msg_attribute_name(Name) when is_list(Name) -> Name.
 decode_msg_attribute_value("SenderId", Value) -> Value;
 decode_msg_attribute_value("MessageGroupId", Value) -> Value;
 decode_msg_attribute_value("MessageDeduplicationId", Value) -> Value;
-decode_msg_attribute_value(_Name, Value) -> list_to_integer(Value).
+decode_msg_attribute_value(_Name, Value) ->
+    try list_to_integer(Value)
+    catch
+        _:_:_ ->
+            Value
+    end.
 
 decode_messages(Messages) ->
     [decode_message(Message) || Message <- Messages].
