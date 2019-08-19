@@ -396,7 +396,7 @@ decode_msg_attribute_value("MessageDeduplicationId", Value) -> Value;
 decode_msg_attribute_value(_Name, Value) ->
     try list_to_integer(Value)
     catch
-        _:_:_ ->
+        _:_ ->
             Value
     end.
 
