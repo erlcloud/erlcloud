@@ -4,7 +4,7 @@
 -include("erlcloud.hrl").
 
 -type decode_return() :: [{Name :: atom(), Value :: string() | integer()}].
--type decode_value_type() :: optional_string | optional_integer | {optional_map, fun(([{Key :: binary(), Value :: string() | integer()}]) -> decode_return())}.
+-type decode_value_type() :: optional_string | optional_integer | optional_boolean | {optional_map, fun(([{Key :: binary(), Value :: string() | integer()}]) -> decode_return())}.
 -type decode_value() :: {atom(), JsonField :: binary(), Type :: decode_value_type()}.
 -type decode_value_r() :: {pos_integer(), JsonField :: binary(), Type :: atom()}.
 
@@ -33,6 +33,7 @@ get_value(JsonField, Type, Json) ->
     case Type of
         optional_string -> proplists:get_value(JsonField, Json, undefined);
         optional_integer -> proplists:get_value(JsonField, Json, undefined);
+        optional_boolean -> proplists:get_value(JsonField, Json, undefined);
         string -> proplists:get_value(JsonField, Json, "");
         integer -> proplists:get_value(JsonField, Json, 0);
         Fun when is_function(Fun, 1) ->

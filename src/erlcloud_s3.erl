@@ -35,7 +35,7 @@
          upload_part/5, upload_part/7,
          complete_multipart/4, complete_multipart/6,
          abort_multipart/3, abort_multipart/6,
-         list_multipart_uploads/1, list_multipart_uploads/2,
+         list_multipart_uploads/1, list_multipart_uploads/2, list_multipart_uploads/4,
          get_object_url/2, get_object_url/3,
          get_bucket_and_key/1,
          list_bucket_inventory/1, list_bucket_inventory/2, list_bucket_inventory/3,

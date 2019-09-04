@@ -21,8 +21,13 @@
 -module(erlcloud_ses).
 
 -export([configure/2, configure/3, new/2, new/3]).
+-export([create_custom_verification_email_template/6, create_custom_verification_email_template/7]).
+
+-export([delete_custom_verification_email_template/1, delete_custom_verification_email_template/2]).
 
 -export([delete_identity/1, delete_identity/2]).
+
+-export([get_custom_verification_email_template/1, get_custom_verification_email_template/2]).
 
 -export([get_identity_dkim_attributes/1, get_identity_dkim_attributes/2]).
 -export([get_identity_notification_attributes/1, get_identity_notification_attributes/2]).
@@ -31,7 +36,11 @@
 -export([get_send_quota/0, get_send_quota/1]).
 -export([get_send_statistics/0, get_send_statistics/1]).
 
+-export([list_custom_verification_email_templates/0, list_custom_verification_email_templates/1]).
+
 -export([list_identities/0, list_identities/1, list_identities/2]).
+
+-export([send_custom_verification_email/2, send_custom_verification_email/3]).
 
 -export([send_email/4, send_email/5, send_email/6]).
 
@@ -39,9 +48,12 @@
 -export([set_identity_feedback_forwarding_enabled/2, set_identity_feedback_forwarding_enabled/3]).
 -export([set_identity_notification_topic/3, set_identity_notification_topic/4]).
 
+-export([update_custom_verification_email_template/2, update_custom_verification_email_template/3]).
+
 -export([verify_domain_dkim/1, verify_domain_dkim/2]).
 -export([verify_email_identity/1, verify_email_identity/2]).
 -export([verify_domain_identity/1, verify_domain_identity/2]).
+
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -51,6 +63,9 @@
 %%%------------------------------------------------------------------------------
 %%% Common types
 %%%------------------------------------------------------------------------------
+
+-type custom_template_attribute_names() :: template_name | from_email_address | template_subject | template_content | success_redirect_url | failure_redirect_url .
+-type custom_template_attributes() :: [{custom_template_attribute_names(), string()}].
 
 -type identity() :: string() | binary().
 
@@ -66,7 +81,8 @@
 
 -type verification_status() :: pending | success | failed | temporary_failure | not_started.
 
--export_type([identity/0, identities/0,
+-export_type([custom_template_attribute_names/0, custom_template_attributes/0,
+              identity/0, identities/0,
               email/0, emails/0,
               domain/0,
               verification_status/0]).
@@ -97,6 +113,80 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
     ok.
 
 default_config() -> erlcloud_aws:default_config().
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% SES API:
+%% [https://docs.aws.amazon.com/ses/latest/APIReference/API_CreateCustomVerificationEmailTemplate.html]
+%%
+%% ===Example===
+%%
+%% Creates a new custom verification email template.
+%%
+%% `
+%%  ok = erlcloud_ses:create_custom_verification_email_template_result(
+%%          "templaneName",
+%%          "support@example.com",
+%%          "Welcome to support",
+%%          "limited html content",
+%%          "https://www.example.com/success",
+%%          "https://www.example.com/failure" ).
+%% '
+%%
+%% Please consult the following for what is and not allowed in the HTML content parameter
+%% [https://docs.aws.amazon.com/ses/latest/DeveloperGuide/custom-verification-emails.html#custom-verification-emails-faq]
+%% @end
+%%------------------------------------------------------------------------------
+
+-type create_custom_verification_email_template_result() :: ok | { error, term() }.
+
+-spec create_custom_verification_email_template( string(), string(), string(), string(), string(), string() ) -> create_custom_verification_email_template_result().
+create_custom_verification_email_template(TemplateName, FromEmailAddress, TemplateSubject, TemplateContent, SuccessRedirectionURL, FailureRedirectionURL) ->
+  create_custom_verification_email_template(TemplateName, FromEmailAddress, TemplateSubject, TemplateContent, SuccessRedirectionURL, FailureRedirectionURL ,default_config()).
+
+-spec create_custom_verification_email_template(string(), string(), string(), string(), string(), string(), aws_config()) ->
+  create_custom_verification_email_template_result().
+create_custom_verification_email_template(TemplateName, FromEmailAddress, TemplateSubject, TemplateContent, SuccessRedirectionURL, FailureRedirectionURL, Config) ->
+  Params = encode_params([{template_name, TemplateName},
+    {from_email_address, FromEmailAddress},
+    {template_subject, TemplateSubject},
+    {template_content, TemplateContent},
+    {success_redirect_url, SuccessRedirectionURL},
+    {failure_redirect_url, FailureRedirectionURL}]),
+  case ses_request(Config, "CreateCustomVerificationEmailTemplate", Params) of
+    {ok, _Doc} -> ok;
+    {error, Reason} -> {error, Reason}
+  end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% SES API:
+%% [https://docs.aws.amazon.com/ses/latest/APIReference/API_DeleteCustomVerificationEmailTemplate.html]
+%%
+%% ===Example===
+%%
+%% Deletes an existing custom verification email template.
+%%
+%% `
+%%  ok = erlcloud_ses:delete_custom_verification_email_template("templaneName").
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-type delete_custom_verification_email_template_result() :: ok | {error,term()}.
+
+-spec delete_custom_verification_email_template(string()) -> delete_custom_verification_email_template_result().
+delete_custom_verification_email_template(TemplateName) ->
+  delete_custom_verification_email_template(TemplateName, default_config()).
+
+-spec delete_custom_verification_email_template(string(), aws_config()) -> delete_custom_verification_email_template_result().
+delete_custom_verification_email_template(TemplateName, Config) ->
+  Params = encode_params([{template_name, TemplateName }]),
+  case ses_request(Config, "DeleteCustomVerificationEmailTemplate", Params) of
+    {ok, _Doc} -> ok;
+    {error, Reason} -> {error, Reason}
+  end.
 
 
 %%%------------------------------------------------------------------------------
@@ -132,6 +222,52 @@ delete_identity(Identity, Config) ->
         {error, Reason} -> {error, Reason}
     end.
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% SES API:
+%% [https://docs.aws.amazon.com/ses/latest/APIReference/API_GetCustomVerificationEmailTemplate.html]
+%%
+%% ===Example===
+%%
+%% Returns the custom email verification template for the template name you specify.
+%%
+%% `
+%%  {ok,[{template_name,"templateName"},
+%%     {from_email_address,"support@example.com"},
+%%     {template_subject,"Welcome to Example.com"},
+%%     {template_content,"<html>\n<head></head>\n <body style=\"font-family:sans-serif;\">\n<h1 style=
+%%          \"text-align:center\">Ready to start with Example.com</h1>\n<p>Example.com is very happy to
+%%          welcome you to the ACME system Please click\non the link below to activate
+%%          your account.</p>\n</body>\n</html>"},
+%%     {success_redirect_url,"https://www.example.com/success"},
+%%     {failure_redirect_url,"http://example.arilia.com"}]} =
+%%        erlcloud_ses:delete_custom_verification_email_template("templaneName").
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-type get_custom_verification_email_template_result() :: {ok, custom_template_attributes()} | {error, term()}.
+
+-spec get_custom_verification_email_template(string()) -> get_custom_verification_email_template_result().
+get_custom_verification_email_template(TemplateName) ->
+  get_custom_verification_email_template(TemplateName, default_config()).
+
+-spec get_custom_verification_email_template( string() , aws_config() ) -> get_custom_verification_email_template_result().
+get_custom_verification_email_template(TemplateName, Config) ->
+  Params = encode_params([{template_name, TemplateName}]),
+  case ses_request(Config, "GetCustomVerificationEmailTemplate", Params) of
+    { ok , Doc } ->
+      {ok, erlcloud_xml:decode(
+        [{template_name, "GetCustomVerificationEmailTemplateResult/TemplateName", text},
+          {from_email_address, "GetCustomVerificationEmailTemplateResult/FromEmailAddress", text},
+          {template_subject, "GetCustomVerificationEmailTemplateResult/TemplateSubject", text},
+          {template_content, "GetCustomVerificationEmailTemplateResult/TemplateContent", text},
+          {success_redirect_url, "GetCustomVerificationEmailTemplateResult/SuccessRedirectionURL", text},
+          {failure_redirect_url, "GetCustomVerificationEmailTemplateResult/FailureRedirectionURL", text}],
+        Doc)};
+    {error, Reason} -> {error, Reason}
+  end.
 
 %%%------------------------------------------------------------------------------
 %%% GetIdentityDkimAttributes
@@ -368,6 +504,48 @@ get_send_statistics(Config) ->
         {error, Reason} -> {error, Reason}
     end.
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% SES API:
+%% [https://docs.aws.amazon.com/ses/latest/APIReference/API_ListCustomVerificationEmailTemplates.html]
+%%
+%% ===Example===
+%%
+%% Lists the existing custom verification email templates for your account in the current AWS Region.
+%%
+%% `
+%%  {ok,[{custom_templates,[[{template_name,"template1"},
+%%                         {from_email_address,"support@example.com"},
+%%                         {template_subject,"Welcome to support"},
+%%                         {success_redirect_url,"https://www.example.com/success"},
+%%                         {failure_redirect_url,"https://www.example.com/failure"}],
+%%                        [{template_name,"template2"},
+%%                         {from_email_address,"applications@example.com"},
+%%                         {template_subject,"Welcome to Applications"},
+%%                         {success_redirect_url,"https://www.example.com/success"},
+%%                         {failure_redirect_url,"https://www.example.com/failure"}]]}]} =
+%%                  erlcloud_ses:list_custom_verification_email_templates().
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-type list_custom_verification_email_templates_result() :: {ok, [{custom_templates, [custom_template_attributes()]}]} | {error , term()}.
+
+-spec list_custom_verification_email_templates() -> list_custom_verification_email_templates_result().
+list_custom_verification_email_templates() ->
+  list_custom_verification_email_templates(default_config()).
+
+-spec list_custom_verification_email_templates(aws_config()) -> list_custom_verification_email_templates_result().
+list_custom_verification_email_templates(Config) ->
+  Params = [{"MaxResults",50}],
+  case ses_request(Config, "ListCustomVerificationEmailTemplates", Params) of
+    { ok , Doc } ->
+      {ok, erlcloud_xml:decode([{custom_templates, "ListCustomVerificationEmailTemplatesResult/CustomVerificationEmailTemplates/member", fun decode_custom_template_entry/1},
+        {next_token, "ListCustomVerificationEmailTemplatesResult/NextToken", optional_text}],
+        Doc)};
+    {error, Reason } -> {error, Reason}
+  end.
 
 %%%------------------------------------------------------------------------------
 %%% ListIdentities
@@ -431,6 +609,38 @@ list_identities(Opts, Config) ->
         {error, Reason} -> {error, Reason}
     end.
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% SES API:
+%% [https://docs.aws.amazon.com/ses/latest/APIReference/API_SendCustomVerificationEmail.html]
+%%
+%% ===Example===
+%%
+%% Send a custom verification email.
+%%
+%% `
+%%  {ok, [{message_id, "abcdefghijkllkjdlkj"}]} =
+%%            erlcloud_ses:send_custom_verification_email_result("newclient@newco.com", "templateName").
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-type send_custom_verification_email_result() :: {ok, term()} | {error, term()}.
+
+-spec send_custom_verification_email(string(), string()) -> send_custom_verification_email_result().
+send_custom_verification_email(EmailAddress, TemplateName) ->
+  send_custom_verification_email(EmailAddress, TemplateName, default_config()).
+
+-spec send_custom_verification_email(string(), string(), aws_config()) -> send_custom_verification_email_result().
+send_custom_verification_email(EmailAddress, TemplateName, Config) ->
+  Params = encode_params([{email_address, EmailAddress},
+    {template_name, TemplateName}]),
+  case ses_request(Config, "SendCustomVerificationEmail", Params) of
+    {ok, Doc} ->
+      {ok, erlcloud_xml:decode([{message_id, "SendCustomVerificationEmailResult/MessageId", text}], Doc)};
+    {error, Reason} -> {error, Reason}
+  end.
 
 %%%------------------------------------------------------------------------------
 %%% SendEmail
@@ -642,6 +852,46 @@ set_identity_notification_topic(Identity, NotificationType, SnsTopic, Config) ->
         {error, Reason} -> {error, Reason}
     end.
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% SES API:
+%% [https://docs.aws.amazon.com/ses/latest/APIReference/API_UpdateCustomVerificationEmailTemplate.html]
+%%
+%%  Template attributes
+%%   { template_name , string() }
+%%   { from_email_address , string() }
+%%   { template_subject , string() }
+%%   { template_content , string() }
+%%   { success_redirect_url , string() }
+%%   { failure_redirect_url , string() }
+%%
+%% ===Example===
+%%
+%% Updates an existing custom verification email template.
+%%
+%% `
+%%  ok = erlcloud_ses:update_custom_verification_email_template("templateName",
+%%                                                     [{template_subject, "New subject"},
+%%                                                      {from_email_address, "support2@example.com"}]).
+%% '
+%% Please consult the following for what is and not allowed in the HTML content parameter
+%% [https://docs.aws.amazon.com/ses/latest/DeveloperGuide/custom-verification-emails.html#custom-verification-emails-faq]
+%% @end
+%%------------------------------------------------------------------------------
+
+-type update_custom_verification_email_template_result() :: ok | { error, term() }.
+
+-spec update_custom_verification_email_template(string(), [{atom(), string()}]) -> update_custom_verification_email_template_result().
+update_custom_verification_email_template(TemplateName, Attributes) ->
+  update_custom_verification_email_template(TemplateName, Attributes,default_config()).
+
+-spec update_custom_verification_email_template(string(), [{atom(), string()}], aws_config()) -> update_custom_verification_email_template_result().
+update_custom_verification_email_template(TemplateName, Attributes, Config) ->
+  Params = encode_params([{template_name, TemplateName} | Attributes]),
+  case ses_request(Config, "UpdateCustomVerificationEmailTemplate", Params) of
+    {ok, _Doc} -> ok ;
+    {error, Reason} -> {error, Reason}
+  end.
 
 %%%------------------------------------------------------------------------------
 %%% VerifyDomainDkim
@@ -718,7 +968,6 @@ verify_domain_identity(Domain, Config) ->
         {error, Reason} -> {error, Reason}
     end.
 
-
 %%%------------------------------------------------------------------------------
 %%% VerifyEmailIdentity
 %%%------------------------------------------------------------------------------
@@ -794,6 +1043,24 @@ encode_params([{source, Source} | T], Acc) when is_list(Source); is_binary(Sourc
     encode_params(T, [{"Source", Source} | Acc]);
 encode_params([{subject, Subject} | T], Acc) ->
     encode_params(T, encode_content("Message.Subject", Subject, Acc));
+encode_params([{template_name, TemplateName} | T], Acc)
+    when is_list(TemplateName); is_binary(TemplateName) ->
+      encode_params(T, [{"TemplateName", TemplateName} | Acc]);
+encode_params([{from_email_address, FromEmailAddress} | T], Acc)
+    when is_list(FromEmailAddress); is_binary(FromEmailAddress) ->
+      encode_params(T, [{"FromEmailAddress", FromEmailAddress} | Acc]);
+encode_params([{template_subject, TemplateSubject} | T], Acc)
+    when is_list(TemplateSubject); is_binary(TemplateSubject) ->
+      encode_params(T, [{"TemplateSubject", TemplateSubject} | Acc]);
+encode_params([{template_content, TemplateContent} | T], Acc)
+    when is_list(TemplateContent); is_binary(TemplateContent) ->
+      encode_params(T, [{"TemplateContent", TemplateContent} | Acc]);
+encode_params([{success_redirect_url, SuccessRedirectionURL} | T], Acc)
+    when is_list(SuccessRedirectionURL); is_binary(SuccessRedirectionURL) ->
+      encode_params(T, [{"SuccessRedirectionURL", SuccessRedirectionURL} | Acc]);
+encode_params([{failure_redirect_url, FailureRedirectionURL} | T], Acc)
+    when is_list(FailureRedirectionURL); is_binary(FailureRedirectionURL) ->
+      encode_params(T, [{"FailureRedirectionURL", FailureRedirectionURL} | Acc]);
 encode_params([Option | _], _Acc) ->
     error({erlcloud_ses, {invalid_parameter, Option}}).
 
@@ -926,6 +1193,18 @@ decode_send_data_points(SendDataPointsDoc) ->
                          Entry)
         || Entry <- SendDataPointsDoc].
 
+%% Added for decoding a custom template entry with the ListCustomVerificationEmailTemplates command
+%% Notice that the ListCustomVerificationEmailTemplates API does not return the TemplateContent
+%% You must use GetCustomVerificationEmailTemplate to retrieve TemplateContent
+decode_custom_template_entry(CustomTemplatesDoc) ->
+  [ erlcloud_xml:decode([
+    { template_name , "TemplateName" , text } ,
+    { from_email_address , "FromEmailAddress" , text  } ,
+    { template_subject , "TemplateSubject" , text  } ,
+    { success_redirect_url , "SuccessRedirectionURL" , text } ,
+    { failure_redirect_url , "FailureRedirectionURL" , text } ],
+    Entry)
+    || Entry <- CustomTemplatesDoc ].
 
 decode_error_code("IncompleteSignature") -> incomplete_signature;
 decode_error_code("InternalFailure") -> internal_failure;
@@ -943,7 +1222,14 @@ decode_error_code("OptInRequired") -> opt_in_required;
 decode_error_code("RequestExpired") -> request_expired;
 decode_error_code("ServiceUnavailable") -> service_unavailable;
 decode_error_code("Throttling") -> throttling;
-decode_error_code("ValidationError") -> validation_error.
+decode_error_code("ValidationError") -> validation_error;
+decode_error_code("LimitExceeded") -> limit_exceeded;
+decode_error_code("ConfigurationSetDoesNotExist") -> configuration_set_does_not_exist;
+decode_error_code("CustomVerificationEmailTemplateDoesNotExist") -> custom_verification_email_template_does_not_exist;
+decode_error_code("ProductionAccessNotGranted") -> production_access_not_granted;
+decode_error_code("CustomVerificationEmailInvalidContent") -> custom_verification_email_invalid_content;
+decode_error_code("FromEmailAddressNotVerified") -> from_email_address_not_verified;
+decode_error_code("CustomVerificationEmailTemplateAlreadyExists") -> custom_verification_email_template_already_exists.
 
 
 decode_error(Doc) ->

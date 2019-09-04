@@ -12,6 +12,7 @@
          delete_message/2, delete_message/3,
          delete_queue/1, delete_queue/2,
          purge_queue/1, purge_queue/2,
+         get_queue_url/1, get_queue_url/2,
          get_queue_attributes/1, get_queue_attributes/2, get_queue_attributes/3,
          list_queues/0, list_queues/1, list_queues/2,
          receive_message/1, receive_message/2, receive_message/3, receive_message/4,
@@ -185,6 +186,20 @@ purge_queue(QueueName) ->
 purge_queue(QueueName, Config)
   when is_list(QueueName), is_record(Config, aws_config) ->
     sqs_simple_request(Config, QueueName, "PurgeQueue", []).
+
+-spec get_queue_url(string()) -> proplist() | no_return().
+get_queue_url(QueueName) ->
+    get_queue_url(QueueName, default_config()).
+
+-spec get_queue_url(string(), aws_config()) -> proplist() | no_return().
+get_queue_url(QueueName, Config) ->
+    Doc = sqs_xml_request(Config, "/", "GetQueueUrl", [{"QueueName", QueueName}]),
+    erlcloud_xml:decode(
+        [
+            {queue_url, "GetQueueUrlResult/QueueUrl", text}
+        ],
+        Doc
+    ).
 
 -spec get_queue_attributes(string()) -> proplist() | no_return().
 get_queue_attributes(QueueName) ->
@@ -378,7 +393,12 @@ decode_msg_attribute_name(Name) when is_list(Name) -> Name.
 decode_msg_attribute_value("SenderId", Value) -> Value;
 decode_msg_attribute_value("MessageGroupId", Value) -> Value;
 decode_msg_attribute_value("MessageDeduplicationId", Value) -> Value;
-decode_msg_attribute_value(_Name, Value) -> list_to_integer(Value).
+decode_msg_attribute_value(_Name, Value) ->
+    try list_to_integer(Value)
+    catch
+        _:_ ->
+            Value
+    end.
 
 decode_messages(Messages) ->
     [decode_message(Message) || Message <- Messages].

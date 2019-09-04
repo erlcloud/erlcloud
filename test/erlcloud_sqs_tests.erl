@@ -18,6 +18,7 @@ erlcloud_api_test_() ->
      fun stop/1,
      [
       fun set_queue_attributes/1,
+      fun get_queue_url/1,
       fun send_message_with_message_opts/1,
       fun send_message_with_message_attributes/1,
       fun receive_messages_with_message_attributes/1,
@@ -160,6 +161,27 @@ set_queue_attributes(_) ->
       <RequestId>40945605-b328-53b5-aed4-1cc24a7240e8</RequestId>
    </ResponseMetadata>
 </SetQueueAttributesResponse>",
+    input_tests(Response, Tests).
+
+get_queue_url(_) ->
+    Expected = [
+        {"Action", "GetQueueUrl"},
+        {"QueueName", "Queue"}
+    ],
+    Tests =
+        [?_sqs_test(
+            {"Test queue URL getting.",
+             ?_f(erlcloud_sqs:get_queue_url("Queue")),
+             Expected})],
+    Response = "
+<GetQueueUrlResponse>
+    <GetQueueUrlResult>
+        <QueueUrl>https://sqs.us-east-2.amazonaws.com/123456789012/Queue</QueueUrl>
+    </GetQueueUrlResult>
+    <ResponseMetadata>
+        <RequestId>470a6f13-2ed9-4181-ad8a-2fdea142988e</RequestId>
+    </ResponseMetadata>
+</GetQueueUrlResponse>",
     input_tests(Response, Tests).
 
 send_message_with_message_opts(_) ->

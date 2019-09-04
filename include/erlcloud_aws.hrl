@@ -88,6 +88,9 @@
           autoscaling_scheme="https://"::string(),
           autoscaling_host="autoscaling.us-east-1.amazonaws.com"::string(),
           autoscaling_port=80::non_neg_integer(),
+          application_autoscaling_scheme="https://"::string(),
+          application_autoscaling_host="autoscaling.us-east-1.amazonaws.com"::string(),
+          application_autoscaling_port=80::non_neg_integer(),
           directconnect_scheme="https://"::string(),
           directconnect_host="directconnect.us-east-1.amazonaws.com"::string(),
           directconnect_port=80::non_neg_integer(),
@@ -107,6 +110,9 @@
           mms_scheme="https://"::string(),
           mms_host="metering.marketplace.us-east-1.amazonaws.com"::string(),
           mms_port=443::non_neg_integer(),
+          guardduty_scheme="https://"::string(),
+          guardduty_host="guardduty.us-east-1.amazonaws.com"::string(),
+          guardduty_port=443::non_neg_integer(),
           cur_scheme="https://"::string(),
           cur_host="cur.us-east-1.amazonaws.com"::string(),
           cur_port=443::non_neg_integer(),
@@ -137,6 +143,11 @@
           %% If you provide a custom function be aware of this anticipated change.
           %% See erlcloud_retry for full documentation.
           retry=fun erlcloud_retry:no_retry/1::erlcloud_retry:retry_fun(),
+
+          %% By default treat all non 2xx http error codes as errors.
+          %% But in some cases, like lambda call it useful to override such
+          %% behaviour by custom one.
+          retry_response_type=fun erlcloud_retry:only_http_errors/1::erlcloud_retry:response_type_fun(),
           %% Currently matches DynamoDB retry
           %% It's likely this is too many retries for other services
           retry_num=10::non_neg_integer(),

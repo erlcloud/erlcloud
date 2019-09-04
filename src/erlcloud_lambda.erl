@@ -33,7 +33,7 @@
     'python2.7' | 'python3.6' | 'dotnetcore1.0' | 'dotnetcore2.0' | 'dotnetcore2.1' | 'nodejs4.3-edge' | 'go1.x').
 -type(return_val()  :: any()).
 
-
+-import(erlcloud_util, [filter_undef/1]).
 
 %%------------------------------------------------------------------------------
 %% Library initialization.
@@ -717,9 +717,6 @@ from_record(#erlcloud_lambda_code{s3Bucket        = S3Bucket,
             {<<"S3ObjectVersion">>, S3ObjectVersion},
             {<<"ZipFile">>, ZipFile}],
     filter_undef(List).
-
-filter_undef(List) ->
-    lists:filter(fun({_Name, Value}) -> Value =/= undefined end, List).
 
 base_path() ->
     "/" ++ ?API_VERSION ++ "/".

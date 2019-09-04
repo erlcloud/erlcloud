@@ -7,6 +7,7 @@
 
 -export([create_stream/2, create_stream/3,
          delete_stream/1, delete_stream/2,
+         list_shards/1, list_shards/2, list_shards/3,
          list_streams/0, list_streams/1, list_streams/2, list_streams/3,
          describe_stream/1, describe_stream/2, describe_stream/3, describe_stream/4,
          describe_stream_summary/1, describe_stream_summary/2,
@@ -29,6 +30,11 @@
 -include("erlcloud_aws.hrl").
 
 -type get_records_limit() :: 1..10000.
+
+-type exclusive_start_shard_id_opt() :: {exclusive_start_shard_id, string()}.
+-type max_results_opt() :: {max_results, non_neg_integer()}.
+-type next_token_opt() :: {next_token, string()}.
+-type stream_creation_timestamp_opt() :: {stream_creation_timestamp, integer()}.
 
 -spec new(string(), string()) -> aws_config().
 
@@ -71,6 +77,32 @@ configure(AccessKeyID, SecretAccessKey, Host, Port) ->
     erlcloud_config:configure(AccessKeyID, SecretAccessKey, Host, Port, fun new/4).
 
 default_config() -> erlcloud_aws:default_config().
+
+dynamize_option({stream_name, Value}) ->
+    {<<"StreamName">>, Value};
+dynamize_option({exclusive_start_shard_id, Value}) ->
+    {<<"ExclusiveStartShardId">>, Value};
+dynamize_option({max_results, Value}) when Value >= 1, Value =< 10000 ->
+    {<<"MaxResults">>, Value};
+dynamize_option({next_token, Value}) ->
+    {<<"NextToken">>, Value};
+dynamize_option({stream_creation_timestamp, Value}) ->
+    {<<"StreamCreationTimestamp">>, Value};
+dynamize_option(Option) ->
+    {error, {invalid_option, Option}}.
+
+dynamize_options(Options) ->
+    lists:foldr(fun
+        (Option, Acc) when is_list(Acc) ->
+            case dynamize_option(Option) of
+                {error, _} = Error ->
+                    Error;
+                DynamizedOption ->
+                    [DynamizedOption | Acc]
+            end;
+        (_Option, Error) ->
+            Error
+    end, [], Options).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -129,6 +161,87 @@ delete_stream(StreamName) ->
 delete_stream(StreamName, Config) when is_record(Config, aws_config) ->
    Json = [{<<"StreamName">>, StreamName}],
    erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.DeleteStream", Json).
+
+
+-type list_shards_opts() :: [
+    exclusive_start_shard_id_opt() |
+    max_results_opt() |
+    next_token_opt() |
+    stream_creation_timestamp_opt()
+].
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% Kinesis API:
+%% [https://docs.aws.amazon.com/kinesis/latest/APIReference/API_ListShards.html]
+%%
+%% ===Example===
+%%
+%% This operation returns the following information about the stream: an array of shard objects that comprise the stream.
+%%
+%% `
+%% erlcloud_kinesis:list_shards(<<"staging">>).
+%% {ok, [
+%%     {<<"NextToken">>, <<"AAAAAAAAAAGK9EEG0sJqVhCUS2JsgigQ5dcpB4q9PYswrH2oK44Skbjtm+WR0xA7/hrAFFsohevH1/OyPnbzKBS1byPyCZuVcokYtQe/b1m4c0SCI7jctPT0oUTLRdwSRirKm9dp9YC/EL+kZHOvYAUnztVGsOAPEFC3ECf/bVC927bDZBbRRzy/44OHfWmrCLcbcWqehRh5D14WnL3yLsumhiHDkyuxSlkBepauvMnNLtTOlRtmQ5Q5reoujfq2gzeCSOtLcfXgBMztJqohPdgMzjTQSbwB9Am8rMpHLsDbSdMNXmITvw==">>},
+%%     {<<"Shards">>, [
+%%         [
+%%             {<<"ShardId">>, <<"shardId-000000000001">>},
+%%             {<<"HashKeyRange">>, [
+%%                 {<<"EndingHashKey">>, <<"68056473384187692692674921486353642280">>},
+%%                 {<<"StartingHashKey">>, <<"34028236692093846346337460743176821145">>}
+%%             ]},
+%%             {<<"SequenceNumberRange">>, [
+%%                 {<<"StartingSequenceNumber">>, <<"49579844037727333356165064238440708846556371693205002258">>}
+%%             ]}
+%%         ], [
+%%             {<<"ShardId">>, <<"shardId-000000000002">>},
+%%             {<<"HashKeyRange">>, [
+%%                 {<<"EndingHashKey">>, <<"102084710076281539039012382229530463436">>},
+%%                 {<<"StartingHashKey">>, <<"68056473384187692692674921486353642281">>}
+%%             ]},
+%%             {<<"SequenceNumberRange">>, [
+%%                 {<<"StartingSequenceNumber">>, <<"49579844037749634101363594861582244564829020124710982690">>}
+%%             ]}
+%%         ], [
+%%             {<<"ShardId">>, <<"shardId-000000000003">>},
+%%             {<<"HashKeyRange">>, [
+%%                 {<<"EndingHashKey">>, <<"136112946768375385385349842972707284581">>},
+%%                 {<<"StartingHashKey">>, <<"102084710022876281539039012382229530463437">>}
+%%             ]},
+%%             {<<"SequenceNumberRange">>, [
+%%                 {<<"StartingSequenceNumber">>, <<"49579844037771934846562125484723780283101668556216963122">>}
+%%             ]}
+%%         ]
+%%    ]}
+%% ]}
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec list_shards(binary() | list_shards_opts()) -> erlcloud_kinesis_impl:json_return() | {error, any()}.
+list_shards(StreamNameOrOptions) ->
+   list_shards(StreamNameOrOptions, default_config()).
+
+-spec list_shards(binary() | list_shards_opts(), list_shards_opts() | aws_config()) -> erlcloud_kinesis_impl:json_return().
+list_shards(StreamName, Config) when is_record(Config, aws_config), is_binary(StreamName) ->
+    list_shards(StreamName, [], Config);
+list_shards(Options, Config) when is_record(Config, aws_config), is_list(Options) ->
+    case dynamize_options(Options) of
+        DynamizedOptions when is_list(DynamizedOptions) ->
+            erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.ListShards", DynamizedOptions);
+        Error ->
+            Error
+    end;
+list_shards(StreamName, Options) ->
+    list_shards(StreamName, Options, default_config()).
+
+-spec list_shards(binary(), list_shards_opts(), aws_config()) -> erlcloud_kinesis_impl:json_return().
+list_shards(StreamName, Options, Config) ->
+    % Syntaxtic sugar as all other erlcloud_kinesis operating on a stream takes
+    % a stream name as 1st argument.
+    list_shards([{stream_name, StreamName} | Options], Config).
+
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -234,15 +347,15 @@ describe_stream(StreamName, Limit, Config)
        Limit >= 1, Limit =< 10000 ->
     Json = [{<<"StreamName">>, StreamName}, {<<"Limit">>, Limit}],
     erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.DescribeStream", Json);
-describe_stream(StreamName, Limit, ExcludeShard) ->
-    describe_stream(StreamName, Limit, ExcludeShard, default_config()).
+describe_stream(StreamName, Limit, ExclusiveStartShardId) ->
+    describe_stream(StreamName, Limit, ExclusiveStartShardId, default_config()).
 
 -spec describe_stream(binary(), get_records_limit(), string(), aws_config()) -> erlcloud_kinesis_impl:json_return().
-describe_stream(StreamName, Limit, ExcludeShard, Config)
+describe_stream(StreamName, Limit, ExclusiveStartShardId, Config)
   when is_record(Config, aws_config),
        is_integer(Limit),
        Limit >= 1, Limit =< 10000 ->
-    Json = [{<<"StreamName">>, StreamName}, {<<"Limit">>, Limit}, {<<"ExclusiveStartShardId">>, ExcludeShard}],
+    Json = [{<<"StreamName">>, StreamName}, {<<"Limit">>, Limit}, {<<"ExclusiveStartShardId">>, ExclusiveStartShardId}],
     erlcloud_kinesis_impl:request(Config, "Kinesis_20131202.DescribeStream", Json).
 
 
