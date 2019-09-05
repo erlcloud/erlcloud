@@ -220,6 +220,7 @@
     sse_description/0,
     sse_specification/0,
     stream_specification/0,
+    stream_view_type/0,
     select/0,
     table_name/0,
     tag_key/0,
