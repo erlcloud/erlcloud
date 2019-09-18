@@ -15,6 +15,7 @@
 
 -define(API_VERSION, "2011-06-15").
 -define(UTC_TO_GREGORIAN, 62167219200).
+-define(EXTERNAL_ID_MAX_LEN, 1224).
 
 
 assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds) ->
@@ -37,7 +38,7 @@ assume_role(AwsConfig, RoleArn, RoleSessionName, DurationSeconds, ExternalId)
     ExternalIdPart =
         case ExternalId of
             undefined -> [];
-            _ when length(ExternalId) >= 2, length(ExternalId) =< 96 -> [{"ExternalId", ExternalId}]
+            _ when length(ExternalId) >= 2, length(ExternalId) =< ?EXTERNAL_ID_MAX_LEN -> [{"ExternalId", ExternalId}]
         end,
 
     Xml = sts_query(AwsConfig, "AssumeRole", Params ++ ExternalIdPart),
