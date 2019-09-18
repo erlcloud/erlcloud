@@ -43,10 +43,16 @@ request(URL, Method, Hdrs, Body, Timeout,
     when is_function(F, 6) ->
     F(URL, Method, Hdrs, Body, Timeout, Config).
 
-request_lhttpc(URL, Method, Hdrs, Body, Timeout, #aws_config{lhttpc_pool = undefined}) ->
+request_lhttpc(URL, Method, Hdrs, Body, Timeout, #aws_config{lhttpc_pool = undefined, http_proxy = undefined}) ->
     lhttpc:request(URL, Method, Hdrs, Body, Timeout, []);
-request_lhttpc(URL, Method, Hdrs, Body, Timeout, #aws_config{lhttpc_pool = Pool}) ->
+request_lhttpc(URL, Method, Hdrs, Body, Timeout, #aws_config{http_proxy = HttpProxy, lhttpc_pool = undefined}) ->
+    LHttpcOpts = [{proxy, HttpProxy}],
+    lhttpc:request(URL, Method, Hdrs, Body, Timeout, LHttpcOpts);
+request_lhttpc(URL, Method, Hdrs, Body, Timeout, #aws_config{lhttpc_pool = Pool, http_proxy = undefined}) ->
     LHttpcOpts = [{pool, Pool}, {pool_ensure, true}],
+    lhttpc:request(URL, Method, Hdrs, Body, Timeout, LHttpcOpts);
+request_lhttpc(URL, Method, Hdrs, Body, Timeout, #aws_config{lhttpc_pool = Pool, http_proxy = HttpProxy}) ->
+    LHttpcOpts = [{pool, Pool}, {pool_ensure, true}, {proxy, HttpProxy}],
     lhttpc:request(URL, Method, Hdrs, Body, Timeout, LHttpcOpts).
 
 %% Guard clause protects against empty bodied requests from being
@@ -70,7 +76,13 @@ request_httpc(URL, Method, Hdrs, Body, Timeout, _Config) ->
                                  [{timeout, Timeout}],
                                  [{body_format, binary}])).
 
-request_hackney(URL, Method, Hdrs, Body, Timeout, #aws_config{hackney_pool = Pool}) ->
+request_hackney(URL, Method, Hdrs, Body, Timeout,
+                #aws_config{hackney_pool = Pool,
+			    hackney_client_options = #hackney_client_options{
+						     insecure = Insecure,
+						     proxy = Proxy,
+						     proxy_auth = ProxyAuth}}
+	       ) ->
     BinURL = to_binary(URL),
     BinHdrs = [{to_binary(K), to_binary(V)} || {K, V} <- Hdrs],
     PoolOpt = if Pool =:= undefined ->
@@ -78,10 +90,12 @@ request_hackney(URL, Method, Hdrs, Body, Timeout, #aws_config{hackney_pool = Poo
                  true ->
                       [{pool, Pool}]
               end,
+    HttpProxyOpt = [{proxy, Proxy}, {proxy_auth, ProxyAuth}],
     response_hackney(hackney:request(Method,
                                      BinURL, BinHdrs,
                                      Body,
-                                     [{recv_timeout, Timeout}] ++ PoolOpt)).
+                                     [{recv_timeout, Timeout}, {insecure, Insecure}] ++
+                                         PoolOpt ++ HttpProxyOpt)).
 
 response_httpc({ok, {{_HTTPVer, Status, StatusLine}, Headers, Body}}) ->
     {ok, {{Status, StatusLine}, Headers, Body}};

@@ -44,7 +44,13 @@
          delete_bucket_inventory/2, delete_bucket_inventory/3,
          put_bucket_encryption/2, put_bucket_encryption/3, put_bucket_encryption/4,
          get_bucket_encryption/1, get_bucket_encryption/2,
-         delete_bucket_encryption/1, delete_bucket_encryption/2
+         delete_bucket_encryption/1, delete_bucket_encryption/2,
+         put_object_tagging/3, put_object_tagging/4,
+         delete_object_tagging/2, delete_object_tagging/3,
+         get_object_tagging/2, get_object_tagging/3,
+         put_bucket_tagging/2, put_bucket_tagging/3,
+         delete_bucket_tagging/1, delete_bucket_tagging/2,
+         get_bucket_tagging/1, get_bucket_tagging/2
     ]).
 
 -ifdef(TEST).
@@ -511,6 +517,7 @@ list_objects(BucketName, Options, Config)
     Params = [{"delimiter", proplists:get_value(delimiter, Options)},
               {"marker", proplists:get_value(marker, Options)},
               {"max-keys", proplists:get_value(max_keys, Options)},
+              {"encoding-type", proplists:get_value(encoding_type, Options)},
               {"prefix", proplists:get_value(prefix, Options)}],
     Doc = s3_xml_request(Config, get, BucketName, "/", "", Params, <<>>, []),
     Attributes = [{name, "Name", text},
@@ -818,6 +825,7 @@ get_or_head(Method, BucketName, Key, Options, Config) ->
      {content_encoding, proplists:get_value("content-encoding", Headers)},
      {delete_marker, list_to_existing_atom(proplists:get_value("x-amz-delete-marker", Headers, "false"))},
      {version_id, proplists:get_value("x-amz-version-id", Headers, "null")},
+     {tag_count, proplists:get_value("x-amz-tagging-count", Headers, "null")},
      {content, Body}|
      extract_metadata(Headers)].
 
@@ -1001,7 +1009,9 @@ put_object(BucketName, Key, Value, Options, HTTPHeaders, Config)
        is_list(Options) ->
     RequestHeaders = [{"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}|HTTPHeaders]
         ++ [{"x-amz-meta-" ++ string:to_lower(MKey), MValue} ||
-               {MKey, MValue} <- proplists:get_value(meta, Options, [])],
+               {MKey, MValue} <- proplists:get_value(meta, Options, [])]
+        ++ [{"x-amz-tagging-" ++ MKey, MValue} ||
+               {MKey, MValue} <- proplists:get_value(tags, Options, [])],
     POSTData = iolist_to_binary(Value),
     {Headers, _Body} = s3_request(Config, put, BucketName, [$/|Key], "", [],
                                   POSTData, RequestHeaders),
@@ -1102,7 +1112,9 @@ start_multipart(BucketName, Key, Options, HTTPHeaders, Config)
 
     RequestHeaders = [{"x-amz-acl", encode_acl(proplists:get_value(acl, Options))}|HTTPHeaders]
         ++ [{"x-amz-meta-" ++ string:to_lower(MKey), MValue} ||
-               {MKey, MValue} <- proplists:get_value(meta, Options, [])],
+               {MKey, MValue} <- proplists:get_value(meta, Options, [])]
+        ++ [{"x-amz-tagging-" ++ MKey, MValue} ||
+               {MKey, MValue} <- proplists:get_value(tags, Options, [])],
     POSTData = <<>>,
     case s3_xml_request2(Config, post, BucketName, [$/|Key], "uploads", [],
                          POSTData, RequestHeaders) of
@@ -1277,6 +1289,83 @@ set_bucket_attribute(BucketName, AttributeName, Value, Config)
     POSTData = list_to_binary(xmerl:export_simple([XML], xmerl_xml)),
     Headers = [{"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, "/", Subresource, [], POSTData, Headers).
+
+-spec put_object_tagging(string(), string(), list({string(), string()})) -> ok.
+put_object_tagging(BucketName, Key, TagList) when is_list(BucketName) ->
+    put_object_tagging(BucketName, Key, TagList, default_config()).
+
+-spec put_object_tagging(string(), string(), list({string(), string()}), aws_config()) -> ok.
+put_object_tagging(BucketName, Key, TagList, #aws_config{} = Config) when is_list(BucketName) ->
+    TaggingXML = {'Tagging',
+      [{'TagSet', encode_tags(TagList)}]},
+    POSTData = unicode:characters_to_binary(xmerl:export_simple([TaggingXML], xmerl_xml)),
+    Md5 = base64:encode(crypto:hash(md5, POSTData)),
+    Headers = [{"content-md5", Md5}, {"content-type", "application/xml"}],
+    s3_simple_request(Config, put, BucketName, [$/|Key], "tagging", [], POSTData, Headers).
+
+-spec delete_object_tagging(string(), string()) -> ok.
+delete_object_tagging(BucketName, Key) when is_list(BucketName) ->
+    delete_object_tagging(BucketName, Key, default_config()).
+
+-spec delete_object_tagging(string(), string(), aws_config()) -> ok.
+delete_object_tagging(BucketName, Key, #aws_config{} = Config) when is_list(BucketName) ->
+    s3_simple_request(Config, delete, BucketName, [$/|Key], "tagging", [], <<>>, []).
+
+-spec get_object_tagging(string(), string()) -> {ok, list({string(), string()})}.
+get_object_tagging(BucketName, Key) when is_list(BucketName) ->
+    get_object_tagging(BucketName, Key, default_config()).
+
+-spec get_object_tagging(string(), string(), aws_config()) -> {ok, list({string(), string()})}.
+get_object_tagging(BucketName, Key, #aws_config{} = Config) when is_list(BucketName) ->
+    Doc = s3_xml_request(Config, get, BucketName, [$/|Key], "tagging", [], <<>>, []),
+    {ok,
+     [extract_tag(Node) || Node <- xmerl_xpath:string("/Tagging/TagSet/Tag", Doc)]}.
+
+-spec put_bucket_tagging(string(), list({string(), string()})) -> ok.
+put_bucket_tagging(BucketName, TagList) when is_list(BucketName) ->
+    put_bucket_tagging(BucketName, TagList, default_config()).
+
+-spec put_bucket_tagging(string(), list({string(), string()}), aws_config()) -> ok.
+put_bucket_tagging(BucketName, TagList, #aws_config{} = Config) when is_list(BucketName) ->
+    TaggingXML = {'Tagging',
+		  [{'TagSet', encode_tags(TagList)}]},
+    POSTData = list_to_binary(xmerl:export_simple([TaggingXML], xmerl_xml)),
+    Md5 = base64:encode(crypto:hash(md5, POSTData)),
+    Headers = [{"content-md5", Md5}, {"content-type", "application/xml"}],
+    s3_simple_request(Config, put, BucketName, "/", "tagging", [], POSTData, Headers).
+
+-spec delete_bucket_tagging(string()) -> ok.
+delete_bucket_tagging(BucketName) when is_list(BucketName) ->
+    delete_bucket_tagging(BucketName, default_config()).
+
+-spec delete_bucket_tagging(string(), aws_config()) -> ok.
+delete_bucket_tagging(BucketName, #aws_config{} = Config) when is_list(BucketName) ->
+    s3_simple_request(Config, delete, BucketName, "/", "tagging", [], <<>>, []).
+
+-spec get_bucket_tagging(string()) -> {ok, list({string(), string()})}.
+get_bucket_tagging(BucketName) when is_list(BucketName) ->
+    get_bucket_tagging(BucketName, default_config()).
+
+-spec get_bucket_tagging(string(), aws_config()) -> {ok, list({string(), string()})}.
+get_bucket_tagging(BucketName, #aws_config{} = Config) when is_list(BucketName) ->
+    Doc = s3_xml_request(Config, get, BucketName, "/", "tagging", [], <<>>, []),
+    {ok,
+     [extract_tag(Node) || Node <- xmerl_xpath:string("/Tagging/TagSet/Tag", Doc)]}.
+
+extract_tag(Node) ->
+    List = erlcloud_xml:decode([{key, "Key", text}, {value, "Value", text}], Node),
+    {proplists:get_value(key, List), proplists:get_value(value, List)}.
+
+encode_tags(Taglist) ->
+    lists:map(fun encode_one_tag/1, Taglist).
+
+encode_one_tag({Key, Value}) ->
+    {'Tag',
+     [
+      {'Key', [Key]},
+      {'Value', [Value]}
+     ]
+    }.
 
 -spec list_bucket_inventory(string()) ->
     {ok, Result:: list(term())} | {error, Reason::term()}.
