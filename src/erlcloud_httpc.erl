@@ -78,7 +78,7 @@ request_httpc(URL, Method, Hdrs, Body, Timeout, _Config) ->
 
 request_hackney(URL, Method, Hdrs, Body, Timeout,
                 #aws_config{hackney_pool = Pool,
-			    http_client_options = #http_client_options{
+			    hackney_client_options = #hackney_client_options{
 						     insecure = Insecure,
 						     proxy = Proxy,
 						     proxy_auth = ProxyAuth}}

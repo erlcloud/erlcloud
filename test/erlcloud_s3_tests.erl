@@ -40,7 +40,8 @@ operation_test_() ->
             fun put_bucket_encryption_test/1,
             fun get_bucket_encryption_test/1,
             fun get_bucket_encryption_not_found_test/1,
-            fun delete_bucket_encryption_test/1
+            fun delete_bucket_encryption_test/1,
+            fun hackney_proxy_put_validation_test/1
         ]}.
 
 start() ->
@@ -62,9 +63,26 @@ httpc_expect(Response) ->
     httpc_expect(get, Response).
 
 httpc_expect(Method, Response) ->
-    fun(_Url, Method2, _Headers, _Body, _Timeout, _Config) ->
-            Method = Method2,
-            Response
+    fun(_Url, Method2, _Headers, _Body, _Timeout, _Config = #aws_config{hackney_client_options = #hackney_client_options{insecure = Insecure,
+															 proxy = Proxy,
+															 proxy_auth = Proxy_auth},
+								       http_client = Http_client}) ->
+
+            case Http_client of
+              hackney ->
+                Method = Method2,
+                Insecure = false,
+                Proxy = "10.10.10.10",
+                Proxy_auth = {"AAAA", "BBBB"};
+
+              _else ->
+                Method = Method2,
+                Insecure = true,
+                Proxy = undefined,
+                Proxy_auth = undefined
+	    end,
+
+	    Response
     end.
 
 get_bucket_lifecycle_tests(_) ->
@@ -792,3 +810,16 @@ delete_bucket_encryption_test(_) ->
     meck:expect(erlcloud_httpc, request, httpc_expect(delete, Response)),
     Result = erlcloud_s3:delete_bucket_encryption("bucket", config()),
     ?_assertEqual(ok, Result).
+
+hackney_proxy_put_validation_test(_) ->
+    Response = {ok, {{200, "OK"}, [{"x-amz-version-id", "version_id"}], <<>>}},
+    Config2 = #aws_config{hackney_client_options = #hackney_client_options{insecure = false,
+			   proxy = "10.10.10.10",
+			   proxy_auth = {"AAAA", "BBBB"}},
+			  http_client = hackney},
+    meck:expect(erlcloud_httpc, request, httpc_expect(put, Response)),
+    Result = erlcloud_s3:put_object("BucketName", "Key", "Data", config(Config2)),
+    ?_assertEqual([{version_id, "version_id"}
+                  ,{"x-amz-version-id", "version_id"}
+                  ], Result).
+

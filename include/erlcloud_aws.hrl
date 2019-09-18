@@ -10,13 +10,13 @@
 
 -type(aws_assume_role() :: #aws_assume_role{}).
 
--record(http_client_options, {
+-record(hackney_client_options, {
 	  insecure = true :: boolean() | undefined,
 	  proxy = undefined :: binary() | {binary(), non_neg_integer()} | {socks5, binary(), binary()} | {connect, binary(), binary()} | undefined,
 	  proxy_auth = undefined :: {binary(), binary()} | undefined
 }).
 
--type(http_client_options() :: #http_client_options{}).
+-type(hackney_client_options() :: #hackney_client_options{}).
 
 -record(aws_config, {
           as_host="autoscaling.amazonaws.com"::string(),
@@ -165,7 +165,7 @@
           aws_region=undefined::string()|undefined,
           %% http proxy support
           http_proxy=undefined::string()|undefined,
-          http_client_options = #http_client_options{} :: http_client_options() %% The http client options
+          hackney_client_options = #hackney_client_options{} :: hackney_client_options() %% The hackney client options
           %% are used to specify the proxy, proxy_auth and insecure which is
           %% used to support proxy based requests to s3.
          }).
