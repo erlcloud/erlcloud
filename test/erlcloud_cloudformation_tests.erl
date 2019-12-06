@@ -5,6 +5,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
+-include("erlcloud_cloudformation.hrl").
 
 -define(_cloudformation_test(T), {?LINE, T}).
 
@@ -16,6 +17,10 @@
 
 describe_cloudformation_test_() ->
     {foreach, fun start/0, fun stop/1, [
+        fun create_stack_input_tests/1,
+        fun create_stack_input_with_parameters_tests/1,
+        fun create_stack_input_with_tags_tests/1,
+        fun create_stack_input_with_rollback_config_tests/1,
         fun list_stacks_all_output_tests/1,
         fun list_stack_resources_output_tests/1,
         fun get_template_summary_output_tests/1,
@@ -95,6 +100,113 @@ input_test(Response, {Line, {Description, Fun, Params}})
 %%==============================================================================
 %% Input Tests
 %%==============================================================================
+
+create_stack_input_tests(_) ->
+    Response = {ok, element(1, xmerl_scan:string(
+            binary_to_list(<<"<CreateStacksResponse>null</CreateStacksResponse>">>)
+        ))},
+
+    ExpectedParams = [
+        {"Action","CreateStack"},
+        {"Version","2010-05-15"},
+        {"OnFailure","ROLLBACK"},
+        {"StackName","TestStack"}
+    ],
+
+    input_test(Response, ?_cloudformation_test({"Test create stack input",
+        ?_f(erlcloud_cloudformation:create_stack(#cloudformation_create_stack_input{stack_name="TestStack"}, #aws_config{})),
+        ExpectedParams})).
+
+create_stack_input_with_parameters_tests(_) ->
+    Response = {ok, element(1, xmerl_scan:string(
+            binary_to_list(<<"<CreateStacksResponse>null</CreateStacksResponse>">>)
+        ))},
+
+    ExpectedParams = [
+        {"Action","CreateStack"},
+        {"Version","2010-05-15"},
+        {"OnFailure","ROLLBACK"},
+        {"StackName","TestStack"},
+        {"Parameters.member.1.ParameterKey", "TestParamKey1"},
+        {"Parameters.member.1.ParameterValue", "TestParamVal1"},
+        {"Parameters.member.2.ParameterKey", "TestParamKey2"},
+        {"Parameters.member.2.ParameterValue", "TestParamVal2"},
+        {"Parameters.member.3.ParameterKey", "TestParamKey3"},
+        {"Parameters.member.3.ParameterValue", "TestParamVal3"}
+    ],
+
+    input_test(Response, ?_cloudformation_test({"Test create stack input",
+        ?_f(erlcloud_cloudformation:create_stack(
+            #cloudformation_create_stack_input{
+                stack_name="TestStack",
+                parameters=[
+                    #cloudformation_parameter{parameter_key="TestParamKey1", parameter_value="TestParamVal1"},
+                    #cloudformation_parameter{parameter_key="TestParamKey2", parameter_value="TestParamVal2"},
+                    #cloudformation_parameter{parameter_key="TestParamKey3", parameter_value="TestParamVal3"}
+                ]
+            },
+            #aws_config{}
+        )),
+        ExpectedParams})).
+
+create_stack_input_with_tags_tests(_) ->
+    Response = {ok, element(1, xmerl_scan:string(
+            binary_to_list(<<"<CreateStacksResponse>null</CreateStacksResponse>">>)
+        ))},
+
+    ExpectedParams = [
+        {"Action","CreateStack"},
+        {"Version","2010-05-15"},
+        {"OnFailure","ROLLBACK"},
+        {"StackName","TestStack"},
+        {"Tags.member.1.Key", "TagKey1"},
+        {"Tags.member.1.Value", "TagVal1"},
+        {"Tags.member.2.Key", "TagKey2"},
+        {"Tags.member.2.Value", "TagVal2"}
+    ],
+
+    input_test(Response, ?_cloudformation_test({"Test create stack input",
+        ?_f(erlcloud_cloudformation:create_stack(
+            #cloudformation_create_stack_input{
+                stack_name="TestStack",
+                tags=[
+                    #cloudformation_tag{key="TagKey0", value="TagVal0"},
+                    #cloudformation_tag{key="TagKey1", value="TagVal1"}
+                ]
+            },
+            #aws_config{}
+        )),
+        ExpectedParams})).
+
+create_stack_input_with_rollback_config_tests(_) ->
+    Response = {ok, element(1, xmerl_scan:string(
+            binary_to_list(<<"<CreateStacksResponse>null</CreateStacksResponse>">>)
+        ))},
+
+    ExpectedParams = [
+        {"Action","CreateStack"},
+        {"Version","2010-05-15"},
+        {"OnFailure","ROLLBACK"},
+        {"StackName","TestStack"},
+        {"RollbackConfiguration.MonitoringTimeInMinutes", 10},
+        {"RollbackConfiguration.RollbackTriggers.member.1.Arn", "TestARN"},
+        {"RollbackConfiguration.RollbackTriggers.member.1.Type", "TestType"}
+    ],
+
+    input_test(Response, ?_cloudformation_test({"Test create stack input",
+        ?_f(erlcloud_cloudformation:create_stack(
+            #cloudformation_create_stack_input{
+                stack_name="TestStack",
+                rollback_configuration = #cloudformation_rollback_configuration{
+                    monitoring_time_in_minutes = 10,
+                    rollback_triggers = [
+                        #cloudformation_rollback_trigger{arn="TestARN", type="TestType"}
+                    ]
+                }
+            },
+            #aws_config{}
+        )),
+        ExpectedParams})).
 
 list_stacks_all_input_tests(_) ->
     Response = {ok, element(1, xmerl_scan:string(

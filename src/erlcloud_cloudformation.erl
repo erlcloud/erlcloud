@@ -2,6 +2,7 @@
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
+-include("erlcloud_cloudformation.hrl").
 
 -define(API_VERSION, "2010-05-15").
 
@@ -23,6 +24,8 @@
 
 %% Cloud Formation API Functions
 -export ([
+          create_stack/2,
+          create_stack/1,
           list_stacks_all/1,
           list_stacks_all/2,
           list_stacks/2,
@@ -74,6 +77,27 @@ new(AccessKeyID, SecretAccessKey) ->
 %%==============================================================================
 %% Cloud Formation API Functions
 %%==============================================================================
+-spec create_stack(cloudformation_create_stack_input()) ->
+    {ok, string()} | {error, error_reason()}.
+create_stack(Spec) ->
+    create_stack(Spec, default_config()).
+
+-spec create_stack(cloudformation_create_stack_input(), aws_config()) ->
+    {ok, string()} | {error, error_reason()}.
+create_stack(Spec, Config = #aws_config{}) ->
+
+    Params = create_stack_input_to_params(Spec),
+    case cloudformation_request(Config, "CreateStack", Params) of
+        {ok, XmlNode} ->
+            StackId = erlcloud_xml:get_text(
+                    "/CreateStackResponse/CreateStackResult/StackId",
+                    XmlNode,
+                    undefined),
+            {ok, StackId};
+        {error, Error} ->
+            {error, Error}
+    end.
+
 -spec list_stacks_all(params()) -> {ok, cloudformation_list()} | {error, error_reason()}.
 list_stacks_all(Params) ->
     list_stacks_all(Params, default_config()).
@@ -659,6 +683,113 @@ extract_account_limit(XmlNode) ->
             {value, "Value", optional_text}
         ], XmlNode).
 
+create_stack_input_to_params(Spec) ->
+    lists:flatten([
+        base_create_stack_input_params(Spec),
+        member_object_array("Parameters", fun cloudformation_parameter_fields/1, Spec#cloudformation_create_stack_input.parameters),
+        member_list("Capabilities", Spec#cloudformation_create_stack_input.capabilities),
+        member_list("NotificationARNs", Spec#cloudformation_create_stack_input.notification_arns),
+        member_list("ResourceTypes", Spec#cloudformation_create_stack_input.resource_types),
+        member_object(
+            "RollbackConfiguration",
+            fun cloudformation_rollback_configuration_fields/1,
+            Spec#cloudformation_create_stack_input.rollback_configuration
+        ),
+        member_object_array("Tags", fun cloudformation_tag_fields/1, Spec#cloudformation_create_stack_input.tags)
+    ]).
 
+base_create_stack_input_params(Spec) ->
+    [
+        { "ClientRequestToken", Spec#cloudformation_create_stack_input.client_request_token },
+        { "DisableRollback", Spec#cloudformation_create_stack_input.disable_rollback },
+        { "EnableTerminationProtection", Spec#cloudformation_create_stack_input.enable_termination_protection },
+        { "OnFailure", Spec#cloudformation_create_stack_input.on_failure },
+        { "RoleARN", Spec#cloudformation_create_stack_input.role_arn },
+        { "StackName", Spec#cloudformation_create_stack_input.stack_name },
+        { "StackPolicyBody", Spec#cloudformation_create_stack_input.stack_policy_body },
+        { "StackPolicyUrl", Spec#cloudformation_create_stack_input.stack_policy_url },
+        { "TemplateBody", Spec#cloudformation_create_stack_input.template_body },
+        { "TemplateURL", Spec#cloudformation_create_stack_input.template_url },
+        { "TimeoutInMinutes", Spec#cloudformation_create_stack_input.timeout_in_minutes }
+    ].
 
+member_object(_Prefix, _Fun, undefined) ->
+    [];
+member_object(Prefix, FieldFun, Object) ->
+    lists:map(
+        fun({Key, Value}) ->
+            {Prefix ++ "." ++ Key, Value}
+        end,
+        FieldFun(Object)
+    ).
+
+member_object_array(Prefix, FieldFun, List) when is_list(List) ->
+    lists:flatten(lists:foldl(
+        fun(Parameter, Acc) ->
+            [lists:map(
+                fun({Key, Value}) ->
+                    {Prefix ++ ".member." ++ integer_to_list(length(Acc)+1) ++ "." ++ Key, Value}
+                end,
+                FieldFun(Parameter)
+            ) | Acc]
+        end,
+        [],
+        List
+    ));
+member_object_array(_Prefix, _Fun, _) ->
+    [].
+
+member_list(Prefix, List) when is_list(List) ->
+    lists:flatten(lists:foldl(
+        fun(Member, Acc) ->
+            {Prefix ++ ".member." ++ integer_to_list(length(Acc)+1) ++ "." ++ Member} ++ Acc
+        end,
+        [],
+        List
+    ));
+member_list(_Prefix, _) ->
+    [].
+
+cloudformation_parameter_fields(#cloudformation_parameter{} = Parameters) ->
+    Params = [
+        { "ParameterKey", Parameters#cloudformation_parameter.parameter_key},
+        { "ParameterValue", Parameters#cloudformation_parameter.parameter_value},
+        { "ResolvedValue", Parameters#cloudformation_parameter.resolved_value},
+        { "UsePreviousValue", Parameters#cloudformation_parameter.use_previous_value}
+    ],
+    filter_undefined(Params);
+cloudformation_parameter_fields(_) ->
+    [].
+
+cloudformation_tag_fields(#cloudformation_tag{} = Tag) ->
+    Params = [
+        { "Key", Tag#cloudformation_tag.key},
+        { "Value", Tag#cloudformation_tag.value}
+    ],
+    filter_undefined(Params);
+cloudformation_tag_fields(_) ->
+    [].
+
+cloudformation_rollback_configuration_fields(#cloudformation_rollback_configuration{} = RollbackConfig) ->
+    lists:flatten([
+        [{"MonitoringTimeInMinutes", RollbackConfig#cloudformation_rollback_configuration.monitoring_time_in_minutes}],
+        member_object_array(
+            "RollbackTriggers",
+            fun cloudformation_rollback_trigger_fields/1,
+            RollbackConfig#cloudformation_rollback_configuration.rollback_triggers
+        )
+    ]);
+cloudformation_rollback_configuration_fields(_) ->
+    [].
+
+cloudformation_rollback_trigger_fields(#cloudformation_rollback_trigger{} = RollbackTrigger) ->
+    filter_undefined([
+        {"Arn", RollbackTrigger#cloudformation_rollback_trigger.arn},
+        {"Type", RollbackTrigger#cloudformation_rollback_trigger.type}
+    ]);
+cloudformation_rollback_trigger_fields(_) ->
+    [].
+
+filter_undefined(Params) ->
+    [{K, V} || {K, V} <- Params, V =/= undefined].
 
