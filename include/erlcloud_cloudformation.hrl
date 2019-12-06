@@ -1,5 +1,5 @@
--ifndef(erlcloud_ec2_hrl).
--define(erlcloud_ec2_hrl, 0).
+-ifndef(erlcloud_cloudformation_hrl).
+-define(erlcloud_cloudformation_hrl, 0).
 
 -include("erlcloud.hrl").
 
