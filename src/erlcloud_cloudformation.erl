@@ -170,17 +170,13 @@ delete_stack(Spec = #cloudformation_delete_stack_input{}) ->
     delete_stack(Spec, default_config()).
 
 -spec delete_stack(cloudformation_delete_stack_input(), aws_config()) ->
-    {ok, string()} | {error, error_reason()}.
+    ok | {error, error_reason()}.
 delete_stack(Spec = #cloudformation_delete_stack_input{}, Config = #aws_config{}) ->
 
     Params = delete_stack_input_to_params(Spec),
     case cloudformation_request(Config, "DeleteStack", Params) of
-        {ok, XmlNode} ->
-            RequestId = erlcloud_xml:get_text(
-                    "/DeleteStackResponse/DeleteStackResult/RequestId",
-                    XmlNode,
-                    undefined),
-            {ok, RequestId};
+        {ok, _XmlNode} ->
+            ok;
         {error, Error} ->
             {error, Error}
     end.
