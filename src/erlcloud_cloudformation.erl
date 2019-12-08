@@ -30,6 +30,8 @@
           list_stacks_all/2,
           list_stacks/2,
           list_stacks/1,
+          delete_stack/2,
+          delete_stack/1,
           list_stack_resources_all/2,
           list_stack_resources_all/3,
           list_stack_resources/2,
@@ -79,12 +81,12 @@ new(AccessKeyID, SecretAccessKey) ->
 %%==============================================================================
 -spec create_stack(cloudformation_create_stack_input()) ->
     {ok, string()} | {error, error_reason()}.
-create_stack(Spec) ->
+create_stack(Spec = #cloudformation_create_stack_input{}) ->
     create_stack(Spec, default_config()).
 
 -spec create_stack(cloudformation_create_stack_input(), aws_config()) ->
     {ok, string()} | {error, error_reason()}.
-create_stack(Spec, Config = #aws_config{}) ->
+create_stack(Spec = #cloudformation_create_stack_input{}, Config = #aws_config{}) ->
 
     Params = create_stack_input_to_params(Spec),
     case cloudformation_request(Config, "CreateStack", Params) of
@@ -135,6 +137,27 @@ list_stacks(Params, Config = #aws_config{}) ->
                         "/ListStacksResponse/ListStacksResult",
                         XmlNode)),
             {ok, StackSummaries, NextToken};
+        {error, Error} ->
+            {error, Error}
+    end.
+
+-spec delete_stack(cloudformation_delete_stack_input()) ->
+    {ok, string()} | {error, error_reason()}.
+delete_stack(Spec = #cloudformation_delete_stack_input{}) ->
+    delete_stack(Spec, default_config()).
+
+-spec delete_stack(cloudformation_delete_stack_input(), aws_config()) ->
+    {ok, string()} | {error, error_reason()}.
+delete_stack(Spec = #cloudformation_delete_stack_input{}, Config = #aws_config{}) ->
+
+    Params = delete_stack_input_to_params(Spec),
+    case cloudformation_request(Config, "DeleteStack", Params) of
+        {ok, XmlNode} ->
+            RequestId = erlcloud_xml:get_text(
+                    "/DeleteStackResponse/DeleteStackResult/RequestId",
+                    XmlNode,
+                    undefined),
+            {ok, RequestId};
         {error, Error} ->
             {error, Error}
     end.
@@ -715,6 +738,19 @@ base_create_stack_input_params(Spec) ->
         { "TemplateBody", Spec#cloudformation_create_stack_input.template_body },
         { "TemplateURL", Spec#cloudformation_create_stack_input.template_url },
         { "TimeoutInMinutes", Spec#cloudformation_create_stack_input.timeout_in_minutes }
+    ].
+
+delete_stack_input_to_params(#cloudformation_delete_stack_input{} = Spec) ->
+    lists:flatten([
+        base_delete_stack_input_params(Spec),
+        erlcloud_util:encode_list("RetainResources", Spec#cloudformation_delete_stack_input.retain_resources)
+    ]).
+
+base_delete_stack_input_params(Spec) ->
+    [
+        { "ClientRequestToken", Spec#cloudformation_delete_stack_input.client_request_token },
+        { "RoleARN", Spec#cloudformation_delete_stack_input.role_arn },
+        { "StackName", Spec#cloudformation_delete_stack_input.stack_name }
     ].
 
 cloudformation_parameters_fields(CloudformationParameters) ->

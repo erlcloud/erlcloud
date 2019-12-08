@@ -22,6 +22,9 @@ describe_cloudformation_test_() ->
         fun create_stack_input_with_tags_tests/1,
         fun create_stack_input_with_rollback_config_tests/1,
         fun list_stacks_all_output_tests/1,
+        fun delete_stack_input_tests/1,
+        fun delete_stack_input_with_retain_resources_tests/1,
+        fun delete_stack_input_with_client_request_token_tests/1,
         fun list_stack_resources_output_tests/1,
         fun get_template_summary_output_tests/1,
         fun get_template_output_tests/1,
@@ -218,6 +221,72 @@ list_stacks_all_input_tests(_) ->
     input_test(Response, ?_cloudformation_test({"Test list all stacks input",
         ?_f(erlcloud_cloudformation:list_stacks_all([], #aws_config{})),
         ExpectedParams})).
+
+delete_stack_input_tests(_) ->
+    Response = {ok, element(1, xmerl_scan:string(
+            binary_to_list(<<"<DeleteStackResponse>null</DeleteStackResponse>">>)
+        ))},
+
+    ExpectedParams = [
+        {"Action", "DeleteStack"},
+        {"Version", "2010-05-15"},
+        {"StackName", "TestStack"}
+    ],
+
+    input_test(Response, ?_cloudformation_test({"Test Delete Stack input",
+            ?_f(erlcloud_cloudformation:delete_stack(
+                #cloudformation_delete_stack_input{stack_name="TestStack"},
+                #aws_config{}
+            )),
+            ExpectedParams})).
+
+delete_stack_input_with_retain_resources_tests(_) ->
+    Response = {ok, element(1, xmerl_scan:string(
+            binary_to_list(<<"<DeleteStackResponse>null</DeleteStackResponse>">>)
+        ))},
+
+    ExpectedParams = [
+        {"Action", "DeleteStack"},
+        {"Version", "2010-05-15"},
+        {"StackName", "TestStack"},
+        {"RetainResources.member.1", "arn::ec2::MyTestInstance1"},
+        {"RetainResources.member.2", "arn::ec2::MyTestInstance2"}
+    ],
+
+    input_test(Response, ?_cloudformation_test({"Test Delete Stack input",
+            ?_f(erlcloud_cloudformation:delete_stack(
+                #cloudformation_delete_stack_input{
+                    stack_name="TestStack",
+                    retain_resources = [
+                        "arn::ec2::MyTestInstance1",
+                        "arn::ec2::MyTestInstance2"
+                    ]
+                },
+                #aws_config{}
+            )),
+            ExpectedParams})).
+
+delete_stack_input_with_client_request_token_tests(_) ->
+    Response = {ok, element(1, xmerl_scan:string(
+            binary_to_list(<<"<DeleteStackResponse>null</DeleteStackResponse>">>)
+        ))},
+
+    ExpectedParams = [
+        {"Action","DeleteStack"},
+        {"Version","2010-05-15"},
+        {"StackName","TestStack"},
+        {"ClientRequestToken","TestClientRequestToken"}
+    ],
+
+    input_test(Response, ?_cloudformation_test({"Test Delete Stack input",
+            ?_f(erlcloud_cloudformation:delete_stack(
+                #cloudformation_delete_stack_input{
+                    stack_name="TestStack",
+                    client_request_token="TestClientRequestToken"
+                },
+                #aws_config{}
+            )),
+            ExpectedParams})).
 
 list_stack_resources_input_tests(_) ->
     Response = {ok, element(1, xmerl_scan:string(
