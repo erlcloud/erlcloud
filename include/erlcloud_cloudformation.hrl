@@ -4,20 +4,20 @@
 -include("erlcloud.hrl").
 
 -record(cloudformation_create_stack_input, {
-    capabilities :: [string()], %% list containing CAPABILITY_IAM | CAPABILITY_NAMED_IAM | CAPABILITY_AUTO_EXPAND
+    capabilities = [] :: [string()], %% list containing CAPABILITY_IAM | CAPABILITY_NAMED_IAM | CAPABILITY_AUTO_EXPAND
     client_request_token :: string(),
     disable_rollback :: boolean(),
     enable_termination_protection :: boolean(),
-    notification_arns :: [string()],
+    notification_arns = [] :: [string()],
     on_failure = "ROLLBACK" :: string(), %% DO_NOTHING | ROLLBACK | DELETE
-    parameters :: [cloudformation_parameter()],
-    resource_types :: [string()],
+    parameters = [] :: [cloudformation_parameter()],
+    resource_types = [] :: [string()],
     role_arn :: string(),
     rollback_configuration :: cloudformation_rollback_configuration(),
     stack_name :: string(),
     stack_policy_body :: string(),
     stack_policy_url :: string(),
-    tags :: [cloudformation_tag()],
+    tags = []:: [cloudformation_tag()],
     template_body :: string(),
     template_url :: string(),
     timeout_in_minutes :: integer()
