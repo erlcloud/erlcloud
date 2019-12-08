@@ -686,16 +686,20 @@ extract_account_limit(XmlNode) ->
 create_stack_input_to_params(Spec) ->
     lists:flatten([
         base_create_stack_input_params(Spec),
-        member_object_array("Parameters", fun cloudformation_parameter_fields/1, Spec#cloudformation_create_stack_input.parameters),
-        member_list("Capabilities", Spec#cloudformation_create_stack_input.capabilities),
-        member_list("NotificationARNs", Spec#cloudformation_create_stack_input.notification_arns),
-        member_list("ResourceTypes", Spec#cloudformation_create_stack_input.resource_types),
-        member_object(
+        erlcloud_util:encode_object_list(
+            "Parameters",
+            cloudformation_parameters_fields(Spec#cloudformation_create_stack_input.parameters)),
+        erlcloud_util:encode_list("Capabilities", Spec#cloudformation_create_stack_input.capabilities),
+        erlcloud_util:encode_list("NotificationARNs", Spec#cloudformation_create_stack_input.notification_arns),
+        erlcloud_util:encode_list("ResourceTypes", Spec#cloudformation_create_stack_input.resource_types),
+        erlcloud_util:encode_object(
             "RollbackConfiguration",
-            fun cloudformation_rollback_configuration_fields/1,
-            Spec#cloudformation_create_stack_input.rollback_configuration
+            cloudformation_rollback_configuration_fields(Spec#cloudformation_create_stack_input.rollback_configuration)
         ),
-        member_object_array("Tags", fun cloudformation_tag_fields/1, Spec#cloudformation_create_stack_input.tags)
+        erlcloud_util:encode_object_list(
+            "Tags",
+            cloudformation_tags_fields(Spec#cloudformation_create_stack_input.tags)
+        )
     ]).
 
 base_create_stack_input_params(Spec) ->
@@ -713,42 +717,8 @@ base_create_stack_input_params(Spec) ->
         { "TimeoutInMinutes", Spec#cloudformation_create_stack_input.timeout_in_minutes }
     ].
 
-member_object(_Prefix, _Fun, undefined) ->
-    [];
-member_object(Prefix, FieldFun, Object) ->
-    lists:map(
-        fun({Key, Value}) ->
-            {Prefix ++ "." ++ Key, Value}
-        end,
-        FieldFun(Object)
-    ).
-
-member_object_array(Prefix, FieldFun, List) when is_list(List) ->
-    lists:flatten(lists:foldl(
-        fun(Parameter, Acc) ->
-            [lists:map(
-                fun({Key, Value}) ->
-                    {Prefix ++ ".member." ++ integer_to_list(length(Acc)+1) ++ "." ++ Key, Value}
-                end,
-                FieldFun(Parameter)
-            ) | Acc]
-        end,
-        [],
-        List
-    ));
-member_object_array(_Prefix, _Fun, _) ->
-    [].
-
-member_list(Prefix, List) when is_list(List) ->
-    lists:flatten(lists:foldl(
-        fun(Member, Acc) ->
-            {Prefix ++ ".member." ++ integer_to_list(length(Acc)+1) ++ "." ++ Member} ++ Acc
-        end,
-        [],
-        List
-    ));
-member_list(_Prefix, _) ->
-    [].
+cloudformation_parameters_fields(CloudformationParameters) ->
+    lists:map(fun cloudformation_parameter_fields/1, CloudformationParameters).
 
 cloudformation_parameter_fields(#cloudformation_parameter{} = Parameters) ->
     Params = [
@@ -760,6 +730,9 @@ cloudformation_parameter_fields(#cloudformation_parameter{} = Parameters) ->
     filter_undefined(Params);
 cloudformation_parameter_fields(_) ->
     [].
+
+cloudformation_tags_fields(Tags) ->
+    lists:map(fun cloudformation_tag_fields/1, Tags).
 
 cloudformation_tag_fields(#cloudformation_tag{} = Tag) ->
     Params = [
@@ -773,14 +746,18 @@ cloudformation_tag_fields(_) ->
 cloudformation_rollback_configuration_fields(#cloudformation_rollback_configuration{} = RollbackConfig) ->
     lists:flatten([
         [{"MonitoringTimeInMinutes", RollbackConfig#cloudformation_rollback_configuration.monitoring_time_in_minutes}],
-        member_object_array(
+        erlcloud_util:encode_object_list(
             "RollbackTriggers",
-            fun cloudformation_rollback_trigger_fields/1,
-            RollbackConfig#cloudformation_rollback_configuration.rollback_triggers
+            cloudformation_rollback_triggers_fields(
+                RollbackConfig#cloudformation_rollback_configuration.rollback_triggers
+            )
         )
     ]);
 cloudformation_rollback_configuration_fields(_) ->
     [].
+
+cloudformation_rollback_triggers_fields(RollbackTriggers) ->
+    lists:map(fun cloudformation_rollback_trigger_fields/1, RollbackTriggers).
 
 cloudformation_rollback_trigger_fields(#cloudformation_rollback_trigger{} = RollbackTrigger) ->
     filter_undefined([
