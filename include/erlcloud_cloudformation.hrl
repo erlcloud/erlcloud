@@ -23,6 +23,25 @@
     timeout_in_minutes :: integer()
 }).
 
+-record(cloudformation_update_stack_input, {
+    capabilities = [] :: [string()], %% list containing CAPABILITY_IAM | CAPABILITY_NAMED_IAM | CAPABILITY_AUTO_EXPAND
+    client_request_token :: string(),
+    notification_arns = [] :: [string()],
+    parameters = [] :: [cloudformation_parameter()],
+    resource_types = [] :: [string()],
+    role_arn :: string(),
+    rollback_configuration :: cloudformation_rollback_configuration(),
+    stack_name :: string(),
+    stack_policy_body :: string(),
+    stack_policy_during_update_body :: string(),
+    stack_policy_during_update_url :: string(),
+    stack_policy_url :: string(),
+    tags = []:: [cloudformation_tag()],
+    template_body :: string(),
+    template_url :: string(),
+    use_previous_template :: boolean()
+}).
+
 -record(cloudformation_delete_stack_input, {
     client_request_token :: string(),
     retain_resources = [] :: [string()],
@@ -53,6 +72,7 @@
 }).
 
 -type(cloudformation_create_stack_input() :: #cloudformation_create_stack_input{}).
+-type(cloudformation_update_stack_input() :: #cloudformation_update_stack_input{}).
 -type(cloudformation_delete_stack_input() :: #cloudformation_delete_stack_input{}).
 -type(cloudformation_parameter() :: #cloudformation_parameter{}).
 -type(cloudformation_rollback_configuration() :: #cloudformation_rollback_configuration{}).

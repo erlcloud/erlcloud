@@ -28,6 +28,8 @@
           create_stack/1,
           list_stacks_all/1,
           list_stacks_all/2,
+          update_stack/2,
+          update_stack/1,
           list_stacks/2,
           list_stacks/1,
           delete_stack/2,
@@ -137,6 +139,27 @@ list_stacks(Params, Config = #aws_config{}) ->
                         "/ListStacksResponse/ListStacksResult",
                         XmlNode)),
             {ok, StackSummaries, NextToken};
+        {error, Error} ->
+            {error, Error}
+    end.
+
+-spec update_stack(cloudformation_update_stack_input()) ->
+    {ok, string()} | {error, error_reason()}.
+update_stack(Spec = #cloudformation_update_stack_input{}) ->
+    update_stack(Spec, default_config()).
+
+-spec update_stack(cloudformation_update_stack_input(), aws_config()) ->
+    {ok, string()} | {error, error_reason()}.
+update_stack(Spec = #cloudformation_update_stack_input{}, Config = #aws_config{}) ->
+
+    Params = update_stack_input_to_params(Spec),
+    case cloudformation_request(Config, "UpdateStack", Params) of
+        {ok, XmlNode} ->
+            StackId = erlcloud_xml:get_text(
+                    "/UpdateStackResponse/UpdateStackResult/StackId",
+                    XmlNode,
+                    undefined),
+            {ok, StackId};
         {error, Error} ->
             {error, Error}
     end.
@@ -734,10 +757,44 @@ base_create_stack_input_params(Spec) ->
         { "RoleARN", Spec#cloudformation_create_stack_input.role_arn },
         { "StackName", Spec#cloudformation_create_stack_input.stack_name },
         { "StackPolicyBody", Spec#cloudformation_create_stack_input.stack_policy_body },
-        { "StackPolicyUrl", Spec#cloudformation_create_stack_input.stack_policy_url },
+        { "StackPolicyURL", Spec#cloudformation_create_stack_input.stack_policy_url },
         { "TemplateBody", Spec#cloudformation_create_stack_input.template_body },
         { "TemplateURL", Spec#cloudformation_create_stack_input.template_url },
         { "TimeoutInMinutes", Spec#cloudformation_create_stack_input.timeout_in_minutes }
+    ].
+
+update_stack_input_to_params(Spec) ->
+    lists:flatten([
+        update_create_stack_input_params(Spec),
+        erlcloud_util:encode_list("Capabilities", Spec#cloudformation_update_stack_input.capabilities),
+        erlcloud_util:encode_list("NotificationARNs", Spec#cloudformation_update_stack_input.notification_arns),
+        erlcloud_util:encode_object_list(
+            "Parameters",
+            cloudformation_parameters_fields(Spec#cloudformation_update_stack_input.parameters)
+        ),
+        erlcloud_util:encode_list("ResourceTypes", Spec#cloudformation_update_stack_input.resource_types),
+        erlcloud_util:encode_object(
+            "RollbackConfiguration",
+            cloudformation_rollback_configuration_fields(Spec#cloudformation_update_stack_input.rollback_configuration)
+        ),
+        erlcloud_util:encode_object_list(
+            "Tags",
+            cloudformation_tags_fields(Spec#cloudformation_update_stack_input.tags)
+        )
+    ]).
+
+update_create_stack_input_params(Spec) ->
+    [
+        { "ClientRequestToken", Spec#cloudformation_update_stack_input.client_request_token },
+        { "RoleARN", Spec#cloudformation_update_stack_input.role_arn },
+        { "StackName", Spec#cloudformation_update_stack_input.stack_name },
+        { "StackPolicyBody", Spec#cloudformation_update_stack_input.stack_policy_body },
+        { "StackPolicyDuringUpdateBody", Spec#cloudformation_update_stack_input.stack_policy_during_update_body },
+        { "StackPolicyDuringUpdateURL", Spec#cloudformation_update_stack_input.stack_policy_during_update_url},
+        { "StackPolicyURL", Spec#cloudformation_update_stack_input.stack_policy_url },
+        { "TemplateBody", Spec#cloudformation_update_stack_input.template_body },
+        { "TemplateURL", Spec#cloudformation_update_stack_input.template_url },
+        { "UsePreviousTemplate", Spec#cloudformation_update_stack_input.use_previous_template }
     ].
 
 delete_stack_input_to_params(#cloudformation_delete_stack_input{} = Spec) ->
