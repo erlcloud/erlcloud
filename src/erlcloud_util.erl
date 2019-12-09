@@ -1,9 +1,23 @@
 -module(erlcloud_util).
--export([sha_mac/2, sha256_mac/2, md5/1, sha256/1, rand_uniform/1,
+
+-export([
+    sha_mac/2,
+    sha256_mac/2,
+    md5/1,
+    sha256/1,
+    rand_uniform/1,
     is_dns_compliant_name/1,
-    query_all/4, query_all/5, query_all_token/4, make_response/2,
-    get_items/2, to_string/1, encode_list/2, next_token/2,
-    filter_undef/1]).
+    query_all/4, query_all/5,
+    query_all_token/4,
+    make_response/2,
+    get_items/2,
+    to_string/1,
+    encode_list/2,
+    encode_object/2,
+    encode_object_list/2,
+    next_token/2,
+    filter_undef/1
+]).
 
 -define(MAX_ITEMS, 1000).
 
@@ -95,10 +109,38 @@ query_all(QueryFun, Config, Action, Params, MaxItems, Marker, Acc) ->
             Error
     end.
 
+-spec encode_list(string(), [term()]) ->
+    {ok, proplists:proplist()}.
 encode_list(ElementName, Elements) ->
     Numbered = lists:zip(lists:seq(1, length(Elements)), Elements),
     [{ElementName ++ ".member." ++ integer_to_list(N), Element} ||
         {N, Element} <- Numbered].
+
+-spec encode_object(string(), proplists:proplist()) ->
+    {ok, proplists:proplist()}.
+encode_object(ElementName, ElementParameters) ->
+    lists:map(
+        fun({Key, Value}) ->
+            {ElementName ++ "." ++ Key, Value}
+        end,
+        ElementParameters
+    ).
+
+-spec encode_object_list(string(), [proplists:proplist()]) ->
+    {ok, proplists:proplist()}.
+encode_object_list(Prefix, ElementParameterList) ->
+    lists:flatten(lists:foldl(
+        fun(ElementMap, Acc) ->
+            [lists:map(
+                fun({Key, Value}) ->
+                    {Prefix ++ ".member." ++ integer_to_list(length(Acc)+1) ++ "." ++ Key, Value}
+                end,
+                ElementMap
+            ) | Acc]
+        end,
+        [],
+        ElementParameterList
+    )).
 
 make_response(Xml, Result) ->
     IsTruncated = erlcloud_xml:get_bool("/*/*/IsTruncated", Xml),
