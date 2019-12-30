@@ -217,6 +217,9 @@ undynamize_value_untyped({<<"BS">>, Values}, _) ->
     [base64:decode(Value) || Value <- Values];
 undynamize_value_untyped({<<"L">>, List}, Opts) ->
     [undynamize_value_untyped(Value, Opts) || [Value] <- List];
+undynamize_value_untyped({<<"M">>, [{}]}, _Opts) ->
+    %% jsx returns [{}] for empty objects
+    [];
 undynamize_value_untyped({<<"M">>, Map}, Opts) ->
     [undynamize_attr_untyped(Attr, Opts) || Attr <- Map].
 
@@ -269,6 +272,8 @@ undynamize_value_typed({<<"BS">>, Values}, _) ->
     {bs, [base64:decode(Value) || Value <- Values]};
 undynamize_value_typed({<<"L">>, List}, Opts) ->
     {l, [undynamize_value_typed(Value, Opts) || [Value] <- List]};
+undynamize_value_typed({<<"M">>, [{}]}, _Opts) ->
+    {m, []};
 undynamize_value_typed({<<"M">>, Map}, Opts) ->
     {m, [undynamize_attr_typed(Attr, Opts) || Attr <- Map]}.
 
