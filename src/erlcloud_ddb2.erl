@@ -237,6 +237,13 @@
     write_units/0
    ]).
 
+-ifdef(TEST).
+% Ensure we always evaluate the checks when running the test cases.
+-define(COSTLY_IDEMPOTENCY_CHECK(Check), (Check)).
+-else.
+-define(COSTLY_IDEMPOTENCY_CHECK(Check), (fun () -> (Check) end)).
+-endif.
+
 %%%------------------------------------------------------------------------------
 %%% Library initialization.
 %%%------------------------------------------------------------------------------
@@ -1391,7 +1398,8 @@ batch_get_item(RequestItems, Opts, Config) ->
                Config,
                "DynamoDB_20120810.BatchGetItem",
                [{<<"RequestItems">>, dynamize_batch_get_item_request_items(RequestItems)}]
-                ++ AwsOpts),
+                ++ AwsOpts,
+               [idempotent]),
     case out(Return, 
              fun(Json, UOpts) -> undynamize_record(batch_get_item_record(), Json, UOpts) end, 
              DdbOpts) of
@@ -1516,7 +1524,8 @@ batch_write_item(RequestItems, Opts, Config) ->
                Config,
                "DynamoDB_20120810.BatchWriteItem",
                [{<<"RequestItems">>, dynamize_batch_write_item_request_items(RequestItems)}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               [idempotent]),
     case out(Return, 
              fun(Json, UOpts) -> undynamize_record(batch_write_item_record(), Json, UOpts) end, 
              DdbOpts) of
@@ -1587,7 +1596,8 @@ create_backup(BackupName, TableName, Opts, Config)
      Config,
      "DynamoDB_20120810.CreateBackup",
      [{<<"TableName">>, TableName},
-      {<<"BackupName">>, BackupName}]),
+      {<<"BackupName">>, BackupName}],
+     [{idempotent, false}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(create_backup_record(), Json, UOpts) end,
         DdbOpts, #ddb2_create_backup.backup_details).
 
@@ -1650,7 +1660,8 @@ create_global_table(GlobalTableName, ReplicationGroup, Opts, Config) ->
                Config,
                "DynamoDB_20120810.CreateGlobalTable",
                [{<<"GlobalTableName">>, GlobalTableName},
-                {<<"ReplicationGroup">>, dynamize_maybe_list(fun dynamize_replica/1, ReplicationGroup)}]),
+                {<<"ReplicationGroup">>, dynamize_maybe_list(fun dynamize_replica/1, ReplicationGroup)}],
+               [{idempotent, false}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(create_global_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_create_global_table.global_table_description).
 
@@ -1761,7 +1772,8 @@ create_table(Table, AttrDefs, KeySchema, Opts, Config) ->
         [{<<"TableName">>, Table},
          {<<"AttributeDefinitions">>, dynamize_attr_defs(AttrDefs)},
          {<<"KeySchema">>, dynamize_key_schema(KeySchema)}]
-        ++ AwsOpts),
+        ++ AwsOpts,
+        [{idempotent, false}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(create_table_record(), Json, UOpts) end,
         DdbOpts, #ddb2_create_table.table_description).
 
@@ -1888,7 +1900,8 @@ delete_backup(BackupArn, Opts, Config)
     Return = erlcloud_ddb_impl:request(
      Config,
      "DynamoDB_20120810.DeleteBackup",
-     [{<<"BackupArn">>, BackupArn}]),
+     [{<<"BackupArn">>, BackupArn}],
+     [{idempotent, false}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(delete_backup_record(), Json, UOpts) end,
         DdbOpts, #ddb2_delete_backup.backup_description).
 
@@ -1976,14 +1989,27 @@ delete_item(Table, Key, Opts) ->
 -spec delete_item(table_name(), key(), delete_item_opts(), aws_config()) -> delete_item_return().
 delete_item(Table, Key, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(delete_item_opts(), Opts),
+    IsIdempotent = do_delete_item_opts_keep_idempotency(Opts),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.DeleteItem",
                [{<<"TableName">>, Table},
                 {<<"Key">>, dynamize_key(Key)}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               [{idempotent, IsIdempotent}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(delete_item_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_delete_item.attributes, {ok, []}).
+
+-spec do_delete_item_opts_keep_idempotency(delete_item_opts()) -> boolean().
+do_delete_item_opts_keep_idempotency(Opts) ->
+    lists:all(fun does_delete_item_opt_keep_idempotency/1, Opts).
+
+-spec does_delete_item_opt_keep_idempotency(delete_item_opt()) -> boolean().
+does_delete_item_opt_keep_idempotency({OptName, _}) ->
+    % https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DeleteItem.html
+    not lists:member(OptName, [condition_expression,
+                               conditional_op,
+                               expected]).
 
 %%%------------------------------------------------------------------------------
 %%% DeleteTable
@@ -2027,7 +2053,8 @@ delete_table(Table, Opts, Config) ->
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.DeleteTable",
-               [{<<"TableName">>, Table}]),
+               [{<<"TableName">>, Table}],
+               [{idempotent, false}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(delete_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_delete_table.table_description).
 
@@ -2076,7 +2103,8 @@ describe_backup(BackupArn, Opts, Config)
     Return = erlcloud_ddb_impl:request(
      Config,
      "DynamoDB_20120810.DescribeBackup",
-     [{<<"BackupArn">>, BackupArn}]),
+     [{<<"BackupArn">>, BackupArn}],
+     [idempotent]),
     out(Return, fun(Json, UOpts) -> undynamize_record(describe_backup_record(), Json, UOpts) end,
         DdbOpts, #ddb2_describe_backup.backup_description).
 
@@ -2141,7 +2169,8 @@ describe_continuous_backups(TableName, Opts, Config)
     Return = erlcloud_ddb_impl:request(
      Config,
      "DynamoDB_20120810.DescribeContinuousBackups",
-     [{<<"TableName">>, TableName}]),
+     [{<<"TableName">>, TableName}],
+     [idempotent]),
     out(Return, fun(Json, UOpts) -> undynamize_record(continuous_backups_record(), Json, UOpts) end,
         DdbOpts, #ddb2_describe_continuous_backups.continuous_backups_description).
 
@@ -2191,7 +2220,8 @@ describe_global_table(GlobalTableName, Opts, Config) ->
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.DescribeGlobalTable",
-               [{<<"GlobalTableName">>, GlobalTableName}]),
+               [{<<"GlobalTableName">>, GlobalTableName}],
+               [idempotent]),
     out(Return, fun(Json, UOpts) -> undynamize_record(describe_global_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_describe_table.table).
 
@@ -2239,7 +2269,8 @@ describe_limits(Opts, Config) ->
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.DescribeLimits",
-               []),
+               [],
+               [idempotent]),
     case out(Return, fun(Json, UOpts) -> undynamize_record(describe_limits_record(), Json, UOpts) end,
              DdbOpts) of
         {simple, Record} -> {ok, Record};
@@ -2289,7 +2320,8 @@ describe_table(Table, Opts, Config) ->
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.DescribeTable",
-               [{<<"TableName">>, Table}]),
+               [{<<"TableName">>, Table}],
+               [idempotent]),
     out(Return, fun(Json, UOpts) -> undynamize_record(describe_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_describe_table.table).
 
@@ -2348,7 +2380,8 @@ describe_time_to_live(Table, DbOpts, Config) ->
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.DescribeTimeToLive",
-               [{<<"TableName">>, Table}]),
+               [{<<"TableName">>, Table}],
+               [idempotent]),
     out(Return, fun(Json, UOpts) -> undynamize_record(describe_time_to_live_record(), Json, UOpts) end, 
         DbOpts, #ddb2_describe_time_to_live.time_to_live_description).
 
@@ -2418,7 +2451,8 @@ get_item(Table, Key, Opts, Config) ->
                "DynamoDB_20120810.GetItem",
                [{<<"TableName">>, Table},
                 {<<"Key">>, dynamize_key(Key)}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               [idempotent]),
     out(Return, fun(Json, UOpts) -> undynamize_record(get_item_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_get_item.item, {ok, []}).
 
@@ -2504,7 +2538,8 @@ list_backups(Opts, Config) ->
     Return = erlcloud_ddb_impl:request(
      Config,
      "DynamoDB_20120810.ListBackups",
-     AwsOpts),
+     AwsOpts,
+     [idempotent]),
     out(Return, fun(Json, UOpts) -> undynamize_record(list_backups_record(), Json, UOpts) end,
         DdbOpts, #ddb2_list_backups.backup_summaries).
 
@@ -2570,7 +2605,8 @@ list_global_tables(Opts, Config) ->
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.ListGlobalTables",
-               AwsOpts),
+               AwsOpts,
+               [idempotent]),
     out(Return, fun(Json, UOpts) -> undynamize_record(list_global_tables_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_list_global_tables.global_tables, {ok, []}).
 
@@ -2628,7 +2664,8 @@ list_tables(Opts, Config) ->
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.ListTables",
-               AwsOpts),
+               AwsOpts,
+               [idempotent]),
     out(Return, fun(Json, UOpts) -> undynamize_record(list_tables_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_list_tables.table_names, {ok, []}).
 
@@ -2694,7 +2731,8 @@ list_tags_of_resource(ResourceArn, Opts, Config) ->
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.ListTagsOfResource",
-               [{<<"ResourceArn">>, ResourceArn} | AwsOpts]),
+               [{<<"ResourceArn">>, ResourceArn} | AwsOpts],
+               [idempotent]),
     out(Return, fun(Json, UOpts) -> undynamize_record(list_tags_of_resource_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_list_tags_of_resource.tags, {ok, []}).
 
@@ -2792,14 +2830,27 @@ put_item(Table, Item, Opts) ->
 -spec put_item(table_name(), in_item(), put_item_opts(), aws_config()) -> put_item_return().
 put_item(Table, Item, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(put_item_opts(), Opts),
+    IsIdempotent = do_put_item_opts_keep_idempotency(Opts),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.PutItem",
                [{<<"TableName">>, Table},
                 {<<"Item">>, dynamize_item(Item)}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               [{idempotent, IsIdempotent}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(put_item_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_put_item.attributes, {ok, []}).
+
+-spec do_put_item_opts_keep_idempotency(put_item_opts()) -> boolean().
+do_put_item_opts_keep_idempotency(Opts) ->
+    lists:all(fun does_put_item_opt_keep_idempotency/1, Opts).
+
+-spec does_put_item_opt_keep_idempotency(put_item_opt()) -> boolean().
+does_put_item_opt_keep_idempotency({OptName, _}) ->
+    % https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html
+    not lists:member(OptName, [condition_expression,
+                               conditional_op,
+                               expected]).
 
 %%%------------------------------------------------------------------------------
 %%% Query
@@ -2908,7 +2959,8 @@ q(Table, KeyConditionsOrExpression, Opts, Config) ->
                "DynamoDB_20120810.Query",
                [{<<"TableName">>, Table},
                 dynamize_q_key_conditions_or_expression(KeyConditionsOrExpression)]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               [idempotent]),
     out(Return, fun(Json, UOpts) -> undynamize_record(q_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_q.items, {ok, []}).
 
@@ -2958,7 +3010,8 @@ restore_table_from_backup(BackupArn, TargetTableName, Opts, Config)
      Config,
      "DynamoDB_20120810.RestoreTableFromBackup",
      [{<<"BackupArn">>, BackupArn},
-      {<<"TargetTableName">>, TargetTableName}]),
+      {<<"TargetTableName">>, TargetTableName}],
+     [{idempotent, false}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(restore_table_from_backup_record(), Json, UOpts) end,
         DdbOpts, #ddb2_restore_table_from_backup.table_description).
 
@@ -3017,7 +3070,8 @@ restore_table_to_point_in_time(SourceTableName, TargetTableName, Opts, Config)
       Config,
       "DynamoDB_20120810.RestoreTableToPointInTime",
       [{<<"SourceTableName">>, SourceTableName},
-        {<<"TargetTableName">>, TargetTableName}] ++ AwsOpts),
+        {<<"TargetTableName">>, TargetTableName}] ++ AwsOpts,
+      [{idempotent, false}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(restore_table_to_point_in_time(), Json, UOpts) end,
         DdbOpts, #ddb2_restore_table_to_point_in_time.table_description).
 
@@ -3107,7 +3161,8 @@ scan(Table, Opts, Config) ->
                Config,
                "DynamoDB_20120810.Scan",
                [{<<"TableName">>, Table}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               [idempotent]),
     out(Return, fun(Json, UOpts) -> undynamize_record(scan_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_scan.items, {ok, []}).
 
@@ -3154,7 +3209,8 @@ tag_resource(ResourceArn, Tags, Config) ->
       Config,
       "DynamoDB_20120810.TagResource",
       [{<<"ResourceArn">>, ResourceArn},
-       {<<"Tags">>, dynamize_tags(Tags)}]).
+       {<<"Tags">>, dynamize_tags(Tags)}],
+      [idempotent]).
 
 %%%-----------------------------------------------------------------------------
 %%% TransactGetItems
@@ -3250,7 +3306,8 @@ transact_get_items(TransactItems, Opts, Config) ->
                Config,
                "DynamoDB_20120810.TransactGetItems",
                [{<<"TransactItems">>, dynamize_transact_get_items_transact_items(TransactItems)}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               [idempotent]),
     case out(Return,
              fun(Json, UOpts) -> undynamize_record(transact_get_items_record(), Json, UOpts) end, DdbOpts) of
         {simple, #ddb2_transact_get_items{responses = Responses}} ->
@@ -3387,11 +3444,15 @@ transact_write_items(RequestItems, Opts) ->
                               transact_write_items_return().
 transact_write_items(TransactItems, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(transact_write_items_opts(), Opts),
+    IsIdempotent = ?COSTLY_IDEMPOTENCY_CHECK(
+                      do_transact_write_items_opts_ensure_idempotency(Opts)
+                      orelse are_transact_write_items_transact_items_idempotent(TransactItems)),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.TransactWriteItems",
                [{<<"TransactItems">>, dynamize_transact_write_items_transact_items(TransactItems)}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               [{idempotent, IsIdempotent}]),
     case out(Return,
              fun(Json, UOpts) -> undynamize_record(transact_write_items_record(), Json, UOpts) end, DdbOpts,
              #ddb2_transact_write_items.attributes, {ok, []}) of
@@ -3399,6 +3460,51 @@ transact_write_items(TransactItems, Opts, Config) ->
         {ok, _} = Out -> Out;
         {error, _} = Out -> Out
     end.
+
+-spec do_transact_write_items_opts_ensure_idempotency(transact_write_items_opts()) -> boolean().
+do_transact_write_items_opts_ensure_idempotency(Opts) ->
+    lists:any(fun does_transact_write_items_opt_ensure_idempotency/1, Opts).
+
+-spec does_transact_write_items_opt_ensure_idempotency(transact_write_items_opt()) -> boolean().
+does_transact_write_items_opt_ensure_idempotency({OptName, _}) ->
+    case OptName of
+        client_request_token ->
+            % https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactWriteItems.html#DDB-TransactWriteItems-request-ClientRequestToken
+            true; % (_Assuming_ we won't still be retrying in 10 minutes.)
+        _ ->
+            false
+    end.
+
+-spec are_transact_write_items_transact_items_idempotent(transact_write_items_transact_items()) -> boolean().
+are_transact_write_items_transact_items_idempotent(TransactItems)
+  when is_list(TransactItems) ->
+    lists:all(fun is_transact_write_items_transact_item_idempotent/1, TransactItems);
+are_transact_write_items_transact_items_idempotent(TransactItem) ->
+    is_transact_write_items_transact_item_idempotent(TransactItem).
+
+-spec is_transact_write_items_transact_item_idempotent(transact_write_items_transact_item()) -> boolean().
+is_transact_write_items_transact_item_idempotent(TransactItem) ->
+    case TransactItem of
+        {condition_check, _} ->
+            false;
+        {delete, {_, _, TransactItemOpts}} ->
+            do_transact_write_items_transact_item_opts_keep_idempotency(TransactItemOpts);
+        {put, {_, _, TransactItemOpts}} ->
+            do_transact_write_items_transact_item_opts_keep_idempotency(TransactItemOpts);
+        {update, {_, _, Expression, TransactItemOpts}} ->
+            is_expression_idempotent(Expression)
+            andalso do_transact_write_items_transact_item_opts_keep_idempotency(TransactItemOpts)
+    end.
+
+-spec do_transact_write_items_transact_item_opts_keep_idempotency(transact_write_items_transact_item_opts())
+        -> boolean().
+do_transact_write_items_transact_item_opts_keep_idempotency(TransactItemOpts) ->
+    lists:all(fun does_transact_write_items_transact_item_opt_keep_idempotency/1, TransactItemOpts).
+
+-spec does_transact_write_items_transact_item_opt_keep_idempotency(transact_write_items_transact_item_opt())
+        -> boolean().
+does_transact_write_items_transact_item_opt_keep_idempotency({OptName, _}) ->
+    OptName =/= condition_expression.
 
 %%%------------------------------------------------------------------------------
 %%% UntagResource
@@ -3433,7 +3539,8 @@ untag_resource(ResourceArn, TagKeys, Config) ->
       Config,
       "DynamoDB_20120810.UntagResource",
       [{<<"ResourceArn">>, ResourceArn},
-       {<<"TagKeys">>, TagKeys}]).
+       {<<"TagKeys">>, TagKeys}],
+      [idempotent]).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateContinuousBackups
@@ -3478,7 +3585,8 @@ update_continuous_backups(TableName, PointInTimeRecoveryEnabled, Opts, Config)
      Config,
      "DynamoDB_20120810.UpdateContinuousBackups",
      [{<<"TableName">>, TableName},
-      {<<"PointInTimeRecoverySpecification">>, dynamize_point_in_time_recovery_enabled(PointInTimeRecoveryEnabled)}]),
+      {<<"PointInTimeRecoverySpecification">>, dynamize_point_in_time_recovery_enabled(PointInTimeRecoveryEnabled)}],
+     [idempotent]),
     out(Return, fun(Json, UOpts) -> undynamize_record(continuous_backups_record(), Json, UOpts) end,
         DdbOpts, #ddb2_describe_continuous_backups.continuous_backups_description).
 
@@ -3595,15 +3703,56 @@ update_item(Table, Key, UpdatesOrExpression, Opts) ->
                  -> update_item_return().
 update_item(Table, Key, UpdatesOrExpression, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(update_item_opts(), Opts),
+    IsIdempotent = ?COSTLY_IDEMPOTENCY_CHECK(
+                      are_in_updates_or_expression_idempotent(UpdatesOrExpression)
+                      andalso do_update_item_opts_keep_idempotency(Opts)),
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.UpdateItem",
                [{<<"TableName">>, Table},
                 {<<"Key">>, dynamize_key(Key)}]
                ++ dynamize_update_item_updates_or_expression(UpdatesOrExpression)
-               ++ AwsOpts),
+               ++ AwsOpts,
+               [{idempotent, IsIdempotent}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_item_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_update_item.attributes, {ok, []}).
+
+-spec are_in_updates_or_expression_idempotent(in_updates() | expression()) -> boolean().
+are_in_updates_or_expression_idempotent(<<UpdateExpression/bytes>>) ->
+    is_expression_idempotent(UpdateExpression);
+are_in_updates_or_expression_idempotent(Updates) ->
+    are_in_updates_idempotent(Updates).
+
+-spec is_expression_idempotent(expression()) -> boolean().
+is_expression_idempotent(_) ->
+    % TODO: parse update expression to determine this
+    false.
+
+-spec are_in_updates_idempotent(in_updates()) -> boolean().
+are_in_updates_idempotent(Updates) when is_list(Updates) ->
+    lists:all(fun is_in_update_idempotent/1, Updates);
+are_in_updates_idempotent(Update) ->
+    is_in_update_idempotent(Update).
+
+-spec is_in_update_idempotent(in_update()) -> boolean().
+is_in_update_idempotent(Update) ->
+    case Update of
+        {_, delete} -> true;
+        {_, _} -> true;
+        {_, _, put} -> true;
+        {_, _, add} -> false;
+        {_, _, delete} -> true
+    end.
+
+-spec do_update_item_opts_keep_idempotency(update_item_opts()) -> boolean().
+do_update_item_opts_keep_idempotency(Opts) ->
+    lists:all(fun does_update_item_opt_keep_idempotency/1, Opts).
+
+-spec does_update_item_opt_keep_idempotency(delete_item_opt()) -> boolean().
+does_update_item_opt_keep_idempotency({OptName, _}) ->
+    not lists:member(OptName, [condition_expression,
+                               conditional_op,
+                               expected]).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateGlobalTable
@@ -3664,7 +3813,8 @@ update_global_table(GlobalTableName, ReplicaUpdates, Opts, Config) ->
                Config,
                "DynamoDB_20120810.UpdateGlobalTable",
                [{<<"GlobalTableName">>, GlobalTableName},
-                {<<"ReplicaUpdates">>, dynamize_maybe_list(fun dynamize_replica_update/1, ReplicaUpdates)}]),
+                {<<"ReplicaUpdates">>, dynamize_maybe_list(fun dynamize_replica_update/1, ReplicaUpdates)}],
+               [{idempotent, false}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_global_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_update_global_table.global_table_description).
 
@@ -3749,7 +3899,8 @@ update_table(Table, Opts, Config) when is_list(Opts) ->
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.UpdateTable",
-               [{<<"TableName">>, Table} | AwsOpts]),
+               [{<<"TableName">>, Table} | AwsOpts],
+               [{idempotent, false}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_update_table.table_description);
 update_table(Table, ReadUnits, WriteUnits) ->
@@ -3835,7 +3986,8 @@ update_time_to_live(Table, Opts, Config) when is_list(Opts) ->
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.UpdateTimeToLive",
-               Body),
+               Body,
+               [{idempotent, false}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_time_to_live_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_update_time_to_live.time_to_live_specification);
 
