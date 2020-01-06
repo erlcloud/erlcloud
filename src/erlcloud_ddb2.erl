@@ -399,10 +399,10 @@ default_config() -> erlcloud_aws:default_config().
 -type ok_return(T) :: {ok, T} | {error, term()}.
 -type client_request_token() :: binary().
 
--type auto_scaling_target_tracking_scaling_policy_configuration_update_opt() :: {target_value, number()}|
-                                                                                {disable_scale_in, boolean()}|
+-type auto_scaling_target_tracking_scaling_policy_configuration_update_opt() :: {disable_scale_in, boolean()}|
                                                                                 {scale_in_cooldown, pos_integer()}|
-                                                                                {scale_out_cooldown, pos_integer()}.
+                                                                                {scale_out_cooldown, pos_integer()}|
+                                                                                {target_value, number()}.
 -type auto_scaling_target_tracking_scaling_policy_configuration_update_opts() :: [auto_scaling_target_tracking_scaling_policy_configuration_update_opt()].
 
 -type auto_scaling_policy_opt() :: {policy_name, binary()}|
@@ -887,6 +887,7 @@ undynamize_global_table_status(<<"ACTIVE">>, _)   -> active.
 
 -spec undynamize_replica_status(binary(), undynamize_opts()) -> replica_status().
 undynamize_replica_status(<<"CREATING">>, _) -> creating;
+undynamize_replica_status(<<"CREATION_FAILED">>, _) -> creation_failed;
 undynamize_replica_status(<<"UPDATING">>, _) -> updating;
 undynamize_replica_status(<<"DELETING">>, _) -> deleting;
 undynamize_replica_status(<<"ACTIVE">>, _)   -> active.
@@ -2556,7 +2557,7 @@ describe_table_replica_auto_scaling(Table, Opts) ->
 %%
 %% ===Example===
 %%
-%% Describe "Thread" table.
+%% Describes auto scaling settings across replicas of the global table called "Thread" at once.
 %%
 %% `
 %% {ok, Description} =
@@ -4065,7 +4066,7 @@ update_global_table_settings(GlobalTableName, Opts) ->
 %%
 %% Update global table settings for a table called "Thread" in us-west-2 and eu-west-2.
 %%
-%% ```
+%% `
 %% ReadUnits = 10,
 %% WriteUnits = 10,
 %% erlcloud_ddb2:update_global_table_settings(
@@ -4082,7 +4083,7 @@ update_global_table_settings(GlobalTableName, Opts) ->
 %%                                {replica_global_secondary_index_settings_update, [[{index_name, <<"id-index">>},
 %%                                                                                   {provisioned_read_capacity_units, ReadUnits}]]},
 %%                                {replica_provisioned_read_capacity_units, ReadUnits}]]}])
-%% '''
+%% '
 %% @end
 %%------------------------------------------------------------------------------
 

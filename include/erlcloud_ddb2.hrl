@@ -16,7 +16,7 @@
 
 -type date_time() :: number().
 -type global_table_status() :: creating | active | deleting | updating.
--type replica_status() :: creating | active | deleting | active.
+-type replica_status() :: creating | creation_failed | updating | deleting | active.
 -type table_status() :: creating | updating | deleting | active.
 -type backup_status() :: creating | deleted | available.
 -type index_status() :: creating | updating | deleting | active.
@@ -168,7 +168,7 @@
         }).
 
 -record(ddb2_table_auto_scaling_description,
-        {replicas :: undefined,
+        {replicas :: undefined | [#ddb2_replica_auto_scaling_description{}],
          table_name :: undefined | binary(),
          table_status :: undefined | table_status()}).
 
@@ -240,7 +240,7 @@
         }).
 
 -record(ddb2_describe_table_replica_auto_scaling,
-        {table_auto_scaling_description :: undefined}).
+        {table_auto_scaling_description :: undefined | #ddb2_table_auto_scaling_description{}}).
 
 -record(ddb2_time_to_live_description,
         {attribute_name :: undefined | erlcloud_ddb2:attr_name(),
