@@ -104,8 +104,10 @@
          describe_backup/1, describe_backup/2, describe_backup/3,
          describe_continuous_backups/1, describe_continuous_backups/2, describe_continuous_backups/3,
          describe_global_table/1, describe_global_table/2, describe_global_table/3,
+         describe_global_table_settings/1, describe_global_table_settings/2, describe_global_table_settings/3,
          describe_limits/0, describe_limits/1, describe_limits/2,
          describe_table/1, describe_table/2, describe_table/3,
+         describe_table_replica_auto_scaling/1, describe_table_replica_auto_scaling/2, describe_table_replica_auto_scaling/3,
          describe_time_to_live/1, describe_time_to_live/2, describe_time_to_live/3,
          get_item/2, get_item/3, get_item/4,
          list_backups/0, list_backups/1, list_backups/2,
@@ -125,7 +127,9 @@
          update_continuous_backups/2, update_continuous_backups/3, update_continuous_backups/4,
          update_item/3, update_item/4, update_item/5,
          update_global_table/2, update_global_table/3, update_global_table/4,
+         update_global_table_settings/2, update_global_table_settings/3,
          update_table/2, update_table/3, update_table/4, update_table/5,
+         update_table_replica_auto_scaling/2, update_table_replica_auto_scaling/3,
          update_time_to_live/2, update_time_to_live/3, update_time_to_live/4
         ]).
 
@@ -164,7 +168,10 @@
     delete_item_opts/0,
     delete_item_return/0,
     delete_table_return/0,
+    describe_global_table_return/0,
+    describe_global_table_settings_return/0,
     describe_table_return/0,
+    describe_table_replica_auto_scaling_return/0,
     describe_time_to_live_return/0,
     expected_opt/0,
     expression/0,
@@ -232,7 +239,10 @@
     update_item_opt/0,
     update_item_opts/0,
     update_item_return/0,
+    update_global_table_return/0,
+    update_global_table_settings_return/0,
     update_table_return/0,
+    update_table_replica_auto_scaling_return/0,
     update_time_to_live_return/0,
     write_units/0
    ]).
@@ -388,6 +398,24 @@ default_config() -> erlcloud_aws:default_config().
 -type out_item() :: [out_attr() | in_attr()]. % in_attr in the case of typed_record
 -type ok_return(T) :: {ok, T} | {error, term()}.
 -type client_request_token() :: binary().
+
+-type auto_scaling_target_tracking_scaling_policy_configuration_update_opt() :: {target_value, number()}|
+                                                                                {disable_scale_in, boolean()}|
+                                                                                {scale_in_cooldown, pos_integer()}|
+                                                                                {scale_out_cooldown, pos_integer()}.
+-type auto_scaling_target_tracking_scaling_policy_configuration_update_opts() :: [auto_scaling_target_tracking_scaling_policy_configuration_update_opt()].
+
+-type auto_scaling_policy_opt() :: {policy_name, binary()}|
+                                   {target_tracking_scaling_policy_configuration, auto_scaling_target_tracking_scaling_policy_configuration_update_opts()}.
+
+-type auto_scaling_policy_opts() :: [auto_scaling_policy_opt()].
+
+-type auto_scaling_settings_update_opt() :: {auto_scaling_disabled, boolean()}|
+                                            {auto_scaling_role_arn, binary()}|
+                                            {maximum_units, non_neg_integer()}|
+                                            {minimum_units, non_neg_integer()}|
+                                            {scaling_policy_update, auto_scaling_policy_opts()}.
+-type auto_scaling_settings_update_opts() :: [auto_scaling_settings_update_opt()].
 
 %%%------------------------------------------------------------------------------
 %%% Shared Dynamizers
@@ -643,6 +671,46 @@ dynamize_return_item_collection_metrics(none) ->
 dynamize_return_item_collection_metrics(size) ->
     <<"SIZE">>.
 
+-spec dynamize_auto_scaling_target_tracking_scaling_policy_configuration_update_opt(auto_scaling_target_tracking_scaling_policy_configuration_update_opt()) -> json_pair().
+dynamize_auto_scaling_target_tracking_scaling_policy_configuration_update_opt({target_value, TargetValue}) ->
+    {<<"TargetValue">>, TargetValue};
+dynamize_auto_scaling_target_tracking_scaling_policy_configuration_update_opt({disable_scale_in, DisableScaleIn}) ->
+    {<<"DisableScaleIn">>, DisableScaleIn};
+dynamize_auto_scaling_target_tracking_scaling_policy_configuration_update_opt({scale_in_cooldown, ScaleInCooldown}) ->
+    {<<"ScaleInCooldown">>, ScaleInCooldown};
+dynamize_auto_scaling_target_tracking_scaling_policy_configuration_update_opt({scale_out_cooldown, ScaleOutCooldown}) ->
+    {<<"ScaleOutCooldown">>, ScaleOutCooldown}.
+
+-spec dynamize_auto_scaling_target_tracking_scaling_policy_configuration_update_opts(auto_scaling_policy_opts()) -> jsx:json_term().
+dynamize_auto_scaling_target_tracking_scaling_policy_configuration_update_opts(Opts) ->
+    dynamize_maybe_list(fun dynamize_auto_scaling_target_tracking_scaling_policy_configuration_update_opt/1, Opts).
+
+-spec dynamize_auto_scaling_policy_update_opt(auto_scaling_policy_opt()) -> json_pair().
+dynamize_auto_scaling_policy_update_opt({policy_name, PolicyName}) ->
+    {<<"PolicyName">>, PolicyName};
+dynamize_auto_scaling_policy_update_opt({target_tracking_scaling_policy_configuration, TargetTrackingScalingPolicyConfiguration}) ->
+    {<<"TargetTrackingScalingPolicyConfiguration">>, dynamize_auto_scaling_target_tracking_scaling_policy_configuration_update_opts(TargetTrackingScalingPolicyConfiguration)}.
+
+-spec dynamize_auto_scaling_policy_update_opts(auto_scaling_policy_opts()) -> jsx:json_term().
+dynamize_auto_scaling_policy_update_opts(Opts) ->
+    dynamize_maybe_list(fun dynamize_auto_scaling_policy_update_opt/1, Opts).
+
+-spec dynamize_auto_scaling_settings_update_opt(auto_scaling_settings_update_opt()) -> json_pair().
+dynamize_auto_scaling_settings_update_opt({auto_scaling_disabled, AutoScalingDisabled}) ->
+    {<<"AutoScalingDisabled">>, AutoScalingDisabled};
+dynamize_auto_scaling_settings_update_opt({auto_scaling_role_arn, AutoScalingRoleArn}) ->
+    {<<"AutoScalingRoleArn">>, AutoScalingRoleArn};
+dynamize_auto_scaling_settings_update_opt({maximum_units, MaximumUnits}) ->
+    {<<"MaximumUnits">>, MaximumUnits};
+dynamize_auto_scaling_settings_update_opt({minimum_units, MinimumUnits}) ->
+    {<<"MinimumUnits">>, MinimumUnits};
+dynamize_auto_scaling_settings_update_opt({scaling_policy_update, ScalingPolicyUpdate}) ->
+    {<<"ScalingPolicyUpdate">>, dynamize_auto_scaling_policy_update_opts(ScalingPolicyUpdate)}.
+
+-spec dynamize_auto_scaling_settings_update_opts(auto_scaling_settings_update_opts()) -> jsx:json_term().
+dynamize_auto_scaling_settings_update_opts(Opts) ->
+    dynamize_maybe_list(fun dynamize_auto_scaling_settings_update_opt/1, Opts).
+
 %%%------------------------------------------------------------------------------
 %%% Shared Undynamizers
 %%%------------------------------------------------------------------------------
@@ -816,6 +884,12 @@ undynamize_global_table_status(<<"CREATING">>, _) -> creating;
 undynamize_global_table_status(<<"UPDATING">>, _) -> updating;
 undynamize_global_table_status(<<"DELETING">>, _) -> deleting;
 undynamize_global_table_status(<<"ACTIVE">>, _)   -> active.
+
+-spec undynamize_replica_status(binary(), undynamize_opts()) -> replica_status().
+undynamize_replica_status(<<"CREATING">>, _) -> creating;
+undynamize_replica_status(<<"UPDATING">>, _) -> updating;
+undynamize_replica_status(<<"DELETING">>, _) -> deleting;
+undynamize_replica_status(<<"ACTIVE">>, _)   -> active.
 
 -spec undynamize_replica_description(jsx:json_term(), undynamize_opts()) -> replica_description().
 undynamize_replica_description(ReplicaDescription, _) ->
@@ -1239,6 +1313,115 @@ restore_summary_record() ->
       {<<"SourceTableArn">>,  #ddb2_restore_summary.source_table_arn, fun id/2}
     ]}.
 
+-spec auto_scaling_target_tracking_scaling_policy_configuration_description_record() -> record_desc().
+auto_scaling_target_tracking_scaling_policy_configuration_description_record() ->
+    {#ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description{},
+     [{<<"TargetValue">>, #ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description.target_value, fun id/2},
+      {<<"DisableScaleIn">>, #ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description.disable_scale_in, fun id/2},
+      {<<"ScaleInCooldown">>, #ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description.scale_in_cooldown, fun id/2},
+      {<<"ScaleOutCooldown">>, #ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description.scale_out_cooldown, fun id/2}]}.
+
+-spec auto_scaling_policy_description_record() -> record_desc().
+auto_scaling_policy_description_record() ->
+    {#ddb2_auto_scaling_policy_description{},
+     [{<<"PolicyName">>, #ddb2_auto_scaling_policy_description.policy_name, fun id/2},
+      {<<"TargetTrackingScalingPolicyConfiguration">>, #ddb2_auto_scaling_policy_description.target_tracking_scaling_policy_configuration,
+       fun(V, Opts) -> undynamize_record(auto_scaling_target_tracking_scaling_policy_configuration_description_record(), V, Opts) end}]}.
+
+-spec auto_scaling_settings_description_record() -> record_desc().
+auto_scaling_settings_description_record() ->
+    {#ddb2_auto_scaling_settings_description{},
+     [{<<"AutoScalingDisabled">>, #ddb2_auto_scaling_settings_description.auto_scaling_disabled, fun id/2},
+      {<<"AutoScalingRoleArn">>, #ddb2_auto_scaling_settings_description.auto_scaling_role_arn, fun id/2},
+      {<<"MaximumUnits">>, #ddb2_auto_scaling_settings_description.maximum_units, fun id/2},
+      {<<"MinimumUnits">>, #ddb2_auto_scaling_settings_description.minimum_units, fun id/2},
+      {<<"ScalingPolicies">>, #ddb2_auto_scaling_settings_description.scaling_policies,
+       fun(V, Opts) -> [undynamize_record(auto_scaling_policy_description_record(), I, Opts) || I <- V] end}]}.
+
+-spec replica_global_secondary_index_settings_description_record() -> record_desc().
+replica_global_secondary_index_settings_description_record() ->
+    {#ddb2_replica_global_secondary_index_settings_description{},
+     [{<<"IndexName">>, #ddb2_replica_global_secondary_index_settings_description.index_name, fun id/2},
+      {<<"IndexStatus">>, #ddb2_replica_global_secondary_index_settings_description.index_status, fun undynamize_index_status/2},
+      {<<"ProvisionedReadCapacityAutoScalingSettings">>, #ddb2_replica_global_secondary_index_settings_description.provisioned_read_capacity_auto_scaling_settings,
+       fun(V, Opts) -> undynamize_record(auto_scaling_settings_description_record(), V, Opts) end},
+      {<<"ProvisionedReadCapacityUnits">>, #ddb2_replica_global_secondary_index_settings_description.provisioned_read_capacity_units, fun id/2},
+      {<<"ProvisionedWriteCapacityAutoScalingSettings">>, #ddb2_replica_global_secondary_index_settings_description.provisioned_write_capacity_auto_scaling_settings,
+       fun(V, Opts) -> undynamize_record(auto_scaling_settings_description_record(), V, Opts) end},
+      {<<"ProvisionedWriteCapacityUnits">>, #ddb2_replica_global_secondary_index_settings_description.provisioned_write_capacity_units, fun id/2}]}.
+
+-spec replica_global_secondary_index_auto_scaling_description_record() -> record_desc().
+replica_global_secondary_index_auto_scaling_description_record() ->
+    {#ddb2_replica_global_secondary_index_auto_scaling_description{},
+     [{<<"IndexName">>, #ddb2_replica_global_secondary_index_auto_scaling_description.index_name, fun id/2},
+      {<<"IndexStatus">>, #ddb2_replica_global_secondary_index_auto_scaling_description.index_status, fun undynamize_index_status/2},
+      {<<"ProvisionedReadCapacityAutoScalingSettings">>, #ddb2_replica_global_secondary_index_auto_scaling_description.provisioned_read_capacity_auto_scaling_settings,
+       fun(V, Opts) -> undynamize_record(auto_scaling_settings_description_record(), V, Opts) end},
+      {<<"ProvisionedWriteCapacityAutoScalingSettings">>, #ddb2_replica_global_secondary_index_auto_scaling_description.provisioned_write_capacity_auto_scaling_settings,
+       fun(V, Opts) -> undynamize_record(auto_scaling_settings_description_record(), V, Opts) end}]}.
+
+-spec replica_settings_description_record() -> record_desc().
+replica_settings_description_record() ->
+    {#ddb2_replica_settings_description{},
+     [{<<"RegionName">>, #ddb2_replica_settings_description.region_name, fun id/2},
+      {<<"ReplicaBillingModeSummary">>, #ddb2_replica_settings_description.replica_billing_mode_summary, fun undynamize_billing_mode_summary/2},
+      {<<"ReplicaGlobalSecondaryIndexSettings">>, #ddb2_replica_settings_description.replica_global_secondary_index_settings,
+       fun(V, Opts) -> [undynamize_record(replica_global_secondary_index_settings_description_record(), I, Opts) || I <- V] end},
+      {<<"ReplicaProvisionedReadCapacityAutoScalingSettings">>, #ddb2_replica_settings_description.replica_provisioned_read_capacity_auto_scaling_settings,
+       fun(V, Opts) -> undynamize_record(auto_scaling_settings_description_record(), V, Opts) end},
+      {<<"ReplicaProvisionedReadCapacityUnits">>, #ddb2_replica_settings_description.replica_provisioned_read_capacity_units, fun id/2},
+      {<<"ReplicaProvisionedWriteCapacityAutoScalingSettings">>, #ddb2_replica_settings_description.replica_provisioned_write_capacity_auto_scaling_settings,
+       fun(V, Opts) -> undynamize_record(auto_scaling_settings_description_record(), V, Opts) end},
+      {<<"ReplicaProvisionedWriteCapacityUnits">>, #ddb2_replica_settings_description.replica_provisioned_write_capacity_units, fun id/2},
+      {<<"ReplicaStatus">>, #ddb2_replica_settings_description.replica_status, fun undynamize_replica_status/2}]}.
+
+-spec provisioned_throughput_override_record() -> record_desc().
+provisioned_throughput_override_record() ->
+    {#ddb2_provisioned_throughput_override{},
+     [{<<"ReadCapacityUnits">>, #ddb2_provisioned_throughput_override.read_capacity_units, fun id/2}]}.
+
+undynamize_provisioned_throughput_override(V, Opts) ->
+    undynamize_record(provisioned_throughput_override_record(), V, Opts).
+
+-spec replica_global_secondary_index_description_record() -> record_desc().
+replica_global_secondary_index_description_record() ->
+    {#ddb2_replica_global_secondary_index_description{},
+     [{<<"IndexName">>, #ddb2_replica_global_secondary_index_description.index_name, fun id/2},
+      {<<"ProvisionedThroughputOverride">>, #ddb2_replica_global_secondary_index_description.provisioned_throughput_override,
+       fun undynamize_provisioned_throughput_override/2}]}.
+
+-spec replica_description_record() -> record_desc().
+replica_description_record() ->
+    {#ddb2_replica_description{},
+     [{<<"GlobalSecondaryIndexes">>, #ddb2_replica_description.global_secondary_indexes,
+       fun(V, Opts) -> [undynamize_record(replica_global_secondary_index_description_record(), I, Opts) || I <- V] end},
+      {<<"KMSMasterKeyId">>, #ddb2_replica_description.kms_master_key_id, fun id/2},
+      {<<"ProvisionedThroughputOverride">>, #ddb2_replica_description.provisioned_throughput_override, fun undynamize_provisioned_throughput_override/2},
+      {<<"RegionName">>, #ddb2_replica_description.region_name, fun id/2},
+      {<<"ReplicaStatus">>, #ddb2_replica_description.replica_status, fun undynamize_replica_status/2},
+      {<<"ReplicaStatusDescription">>, #ddb2_replica_description.replica_status_description, fun id/2},
+      {<<"ReplicaStatusPercentProgress">>, #ddb2_replica_description.replica_status_percent_progress, fun id/2}]}.
+
+-spec replica_auto_scaling_description_record() -> record_desc().
+replica_auto_scaling_description_record() ->
+    {#ddb2_replica_auto_scaling_description{},
+     [{<<"GlobalSecondaryIndexes">>, #ddb2_replica_auto_scaling_description.global_secondary_indexes,
+       fun(V, Opts) -> [undynamize_record(replica_global_secondary_index_auto_scaling_description_record(), I, Opts) || I <- V] end},
+      {<<"RegionName">>, #ddb2_replica_auto_scaling_description.region_name, fun id/2},
+      {<<"ReplicaProvisionedReadCapacityAutoScalingSettings">>, #ddb2_replica_auto_scaling_description.replica_provisioned_read_capacity_auto_scaling_settings,
+       fun(V, Opts) -> undynamize_record(auto_scaling_settings_description_record(), V, Opts) end},
+      {<<"ReplicaProvisionedWriteCapacityAutoScalingSettings">>, #ddb2_replica_auto_scaling_description.replica_provisioned_write_capacity_auto_scaling_settings,
+       fun(V, Opts) -> undynamize_record(auto_scaling_settings_description_record(), V, Opts) end},
+      {<<"ReplicaStatus">>, #ddb2_replica_auto_scaling_description.replica_status, fun undynamize_replica_status/2}]}.
+
+-spec table_auto_scaling_description_record() -> record_desc().
+table_auto_scaling_description_record() ->
+    {#ddb2_table_auto_scaling_description{},
+     [{<<"Replicas">>, #ddb2_table_auto_scaling_description.replicas,
+       fun(V, Opts) -> [undynamize_record(replica_auto_scaling_description_record(), I, Opts) || I <- V] end},
+      {<<"TableName">>, #ddb2_table_auto_scaling_description.table_name, fun id/2},
+      {<<"TableStatus">>, #ddb2_table_auto_scaling_description.table_status, fun undynamize_table_status/2}]}.
+
 -spec table_description_record() -> record_desc().
 table_description_record() ->
     {#ddb2_table_description{},
@@ -1247,6 +1430,7 @@ table_description_record() ->
       {<<"CreationDateTime">>, #ddb2_table_description.creation_date_time, fun id/2},
       {<<"GlobalSecondaryIndexes">>, #ddb2_table_description.global_secondary_indexes,
        fun(V, Opts) -> [undynamize_record(global_secondary_index_description_record(), I, Opts) || I <- V] end},
+      {<<"GlobalTableVersion">>, #ddb2_table_description.global_table_version, fun id/2},
       {<<"ItemCount">>, #ddb2_table_description.item_count, fun id/2},
       {<<"KeySchema">>, #ddb2_table_description.key_schema, fun undynamize_key_schema/2},
       {<<"LatestStreamArn">>, #ddb2_table_description.latest_stream_arn, fun id/2},
@@ -1255,6 +1439,8 @@ table_description_record() ->
        fun(V, Opts) -> [undynamize_record(local_secondary_index_description_record(), I, Opts) || I <- V] end},
       {<<"ProvisionedThroughput">>, #ddb2_table_description.provisioned_throughput,
        fun(V, Opts) -> undynamize_record(provisioned_throughput_description_record(), V, Opts) end},
+      {<<"Replicas">>, #ddb2_table_description.replicas,
+       fun(V, Opts) -> [undynamize_record(replica_description_record(), I, Opts) || I <- V] end},
       {<<"RestoreSummary">>, #ddb2_table_description.restore_summary,
        fun(V, Opts) -> undynamize_record(restore_summary_record(), V, Opts) end},
       {<<"SSEDescription">>, #ddb2_table_description.sse_description, fun undynamize_sse_description/2},
@@ -2196,6 +2382,54 @@ describe_global_table(GlobalTableName, Opts, Config) ->
         DdbOpts, #ddb2_describe_table.table).
 
 %%%------------------------------------------------------------------------------
+%%% DescribeGlobalTableSettings
+%%%------------------------------------------------------------------------------
+
+-type describe_global_table_settings_return() :: ddb_return(#ddb2_describe_global_table_settings{}, #ddb2_replica_settings_description{}).
+
+-spec describe_global_table_settings_record() -> record_desc().
+describe_global_table_settings_record() ->
+    {#ddb2_describe_global_table_settings{},
+     [{<<"GlobalTableName">>, #ddb2_describe_global_table_settings.global_table_name, fun id/2},
+      {<<"ReplicaSettings">>, #ddb2_describe_global_table_settings.replica_settings,
+       fun(V, Opts) -> [undynamize_record(replica_settings_description_record(), I, Opts) || I <- V] end}]}.
+
+-spec describe_global_table_settings(table_name()) -> describe_global_table_settings_return().
+describe_global_table_settings(GlobalTableName) ->
+    describe_global_table_settings(GlobalTableName, []).
+
+-spec describe_global_table_settings(table_name(), ddb_opts()) -> describe_global_table_settings_return().
+describe_global_table_settings(GlobalTableName, Opts) ->
+    describe_global_table_settings(GlobalTableName, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% DynamoDB API:
+%% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeGlobalTableSettings.html]
+%%
+%% Note: This method only applies to Version 2017.11.29 of global tables.
+%%
+%% ===Example===
+%%
+%% Describes Region-specific settings for "Thread" global table.
+%%
+%% `
+%% {ok, GlobalTableSettings} =
+%%     erlcloud_ddb2:describe_global_table_settings(<<"Thread">>),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+-spec describe_global_table_settings(table_name(), ddb_opts(), aws_config()) -> describe_global_table_settings_return().
+describe_global_table_settings(GlobalTableName, Opts, Config) ->
+    {[], DdbOpts} = opts([], Opts),
+    Return = erlcloud_ddb_impl:request(
+        Config,
+        "DynamoDB_20120810.DescribeGlobalTableSettings",
+        [{<<"GlobalTableName">>, GlobalTableName}]),
+    out(Return, fun(Json, UOpts) -> undynamize_record(describe_global_table_settings_record(), Json, UOpts) end,
+        DdbOpts, #ddb2_describe_global_table_settings.replica_settings).
+
+%%%------------------------------------------------------------------------------
 %%% DescribeLimits
 %%%------------------------------------------------------------------------------
 
@@ -2292,6 +2526,53 @@ describe_table(Table, Opts, Config) ->
                [{<<"TableName">>, Table}]),
     out(Return, fun(Json, UOpts) -> undynamize_record(describe_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_describe_table.table).
+
+%%%------------------------------------------------------------------------------
+%%% DescribeTableReplicaAutoScaling
+%%%------------------------------------------------------------------------------
+
+-type describe_table_replica_auto_scaling_return() :: ddb_return(#ddb2_describe_table_replica_auto_scaling{}, #ddb2_table_auto_scaling_description{}).
+
+-spec describe_table_replica_auto_scaling_record() -> record_desc().
+describe_table_replica_auto_scaling_record() ->
+    {#ddb2_describe_table_replica_auto_scaling{},
+     [{<<"TableAutoScalingDescription">>, #ddb2_describe_table_replica_auto_scaling.table_auto_scaling_description,
+       fun(V, Opts) -> undynamize_record(table_auto_scaling_description_record(), V, Opts) end}
+     ]}.
+
+-spec describe_table_replica_auto_scaling(table_name()) -> describe_table_replica_auto_scaling_return().
+describe_table_replica_auto_scaling(Table) ->
+    describe_table_replica_auto_scaling(Table, [], default_config()).
+
+-spec describe_table_replica_auto_scaling(table_name(), ddb_opts()) -> describe_table_replica_auto_scaling_return().
+describe_table_replica_auto_scaling(Table, Opts) ->
+    describe_table_replica_auto_scaling(Table, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeTableReplicaAutoScaling.html]
+%% Note: This method only applies to Version 2019.11.21 of global tables.
+%%
+%% ===Example===
+%%
+%% Describe "Thread" table.
+%%
+%% `
+%% {ok, Description} =
+%%     erlcloud_ddb2:describe_table_replica_auto_scaling(<<"Thread">>),
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+-spec describe_table_replica_auto_scaling(table_name(), ddb_opts(), aws_config()) -> describe_table_replica_auto_scaling_return().
+describe_table_replica_auto_scaling(Table, Opts, Config) ->
+    {[], DdbOpts} = opts([], Opts),
+    Return = erlcloud_ddb_impl:request(
+        Config,
+        "DynamoDB_20120810.DescribeTableReplicaAutoScaling",
+        [{<<"TableName">>, Table}]),
+    out(Return, fun(Json, UOpts) -> undynamize_record(describe_table_replica_auto_scaling_record(), Json, UOpts) end,
+        DdbOpts, #ddb2_describe_table_replica_auto_scaling.table_auto_scaling_description).
 
 %%%------------------------------------------------------------------------------
 %%% DescribeTimeToLive
@@ -3669,6 +3950,154 @@ update_global_table(GlobalTableName, ReplicaUpdates, Opts, Config) ->
         DdbOpts, #ddb2_update_global_table.global_table_description).
 
 %%%------------------------------------------------------------------------------
+%%% UpdateGlobalTableSettings
+%%%------------------------------------------------------------------------------
+
+-type update_global_table_settings_return() :: ddb_return(#ddb2_update_global_table_settings{}, [#ddb2_replica_settings_description{}]).
+
+-type global_table_global_secondary_index_settings_update_opt() :: {index_name, binary()}|
+                                                                   {provisioned_write_capacity_auto_scaling_settings_update, auto_scaling_settings_update_opts()}|
+                                                                   {provisioned_read_capacity_units, read_units()}|
+                                                                   {provisioned_write_capacity_units, write_units()}.
+
+-type global_table_global_secondary_index_settings_update_opts() :: [global_table_global_secondary_index_settings_update_opt()].
+
+-type replica_global_secondary_index_settings_update_opt() :: {index_name, binary()}|
+                                                              {provisioned_read_capacity_auto_scaling_settings_update, auto_scaling_settings_update_opts()}|
+                                                              {provisioned_read_capacity_units, read_units()}.
+
+-type replica_global_secondary_index_settings_update_opts() :: [replica_global_secondary_index_settings_update_opt()].
+
+-type replica_settings_update_opt() :: {region_name, binary()}|
+                                       {replica_global_secondary_index_settings_update, [global_table_global_secondary_index_settings_update_opts()]}|
+                                       {replica_provisioned_read_capacity_auto_scaling_settings_update, auto_scaling_settings_update_opts()}|
+                                       {replica_provisioned_read_capacity_units, read_units()}.
+
+-type replica_settings_update_opts() :: [replica_settings_update_opts()].
+
+-spec dynamize_global_table_global_secondary_index_settings_update_opt(global_table_global_secondary_index_settings_update_opt()) -> json_pair().
+dynamize_global_table_global_secondary_index_settings_update_opt({index_name, IndexName}) ->
+    {<<"IndexName">>, IndexName};
+dynamize_global_table_global_secondary_index_settings_update_opt({provisioned_write_capacity_auto_scaling_settings_update, Update}) ->
+    {<<"ProvisionedWriteCapacityAutoScalingSettingsUpdate">>, dynamize_auto_scaling_settings_update_opts(Update)};
+dynamize_global_table_global_secondary_index_settings_update_opt({provisioned_read_capacity_units, ProvisionedReadCapacityUnits}) ->
+    {<<"ProvisionedReadCapacityUnits">>, ProvisionedReadCapacityUnits};
+dynamize_global_table_global_secondary_index_settings_update_opt({provisioned_write_capacity_units, ProvisionedWriteCapacityUnits}) ->
+    {<<"ProvisionedWriteCapacityUnits">>, ProvisionedWriteCapacityUnits}.
+
+-spec dynamize_global_table_global_secondary_index_settings_update_opts(global_table_global_secondary_index_settings_update_opts()) -> jsx:json_term().
+dynamize_global_table_global_secondary_index_settings_update_opts(Opts) ->
+    dynamize_maybe_list(fun dynamize_global_table_global_secondary_index_settings_update_opt/1, Opts).
+
+-spec dynamize_global_table_global_secondary_index_settings_update([global_table_global_secondary_index_settings_update_opts()]) -> jsx:json_term().
+dynamize_global_table_global_secondary_index_settings_update(Updates) ->
+    [dynamize_global_table_global_secondary_index_settings_update_opts(Update) || Update <- Updates].
+
+-spec dynamize_replica_global_secondary_index_settings_update_opt(replica_global_secondary_index_settings_update_opt()) -> json_pair().
+dynamize_replica_global_secondary_index_settings_update_opt({index_name, IndexName}) ->
+    {<<"IndexName">>, IndexName};
+dynamize_replica_global_secondary_index_settings_update_opt({provisioned_read_capacity_auto_scaling_settings_update, Update}) ->
+    {<<"ProvisionedReadCapacityAutoScalingSettingsUpdate">>, dynamize_auto_scaling_settings_update_opts(Update)};
+dynamize_replica_global_secondary_index_settings_update_opt({provisioned_read_capacity_units, Units}) ->
+    {<<"ProvisionedReadCapacityUnits">>, Units}.
+
+-spec dynamize_replica_global_secondary_index_settings_update_opts(replica_global_secondary_index_settings_update_opts()) -> jsx:json_term().
+dynamize_replica_global_secondary_index_settings_update_opts(Opts) ->
+    dynamize_maybe_list(fun dynamize_replica_global_secondary_index_settings_update_opt/1, Opts).
+
+-spec dynamize_replica_global_secondary_index_settings_update([replica_global_secondary_index_settings_update_opts()]) -> jsx:json_term().
+dynamize_replica_global_secondary_index_settings_update(Updates) ->
+    [dynamize_replica_global_secondary_index_settings_update_opts(Update) || Update <- Updates].
+
+-spec dynamize_replica_settings_update_opt(replica_settings_update_opt()) -> json_pair().
+dynamize_replica_settings_update_opt({region_name, RegionName}) ->
+    {<<"RegionName">>, RegionName};
+dynamize_replica_settings_update_opt({replica_global_secondary_index_settings_update, Update}) ->
+    {<<"ReplicaGlobalSecondaryIndexSettingsUpdate">>, dynamize_replica_global_secondary_index_settings_update(Update)};
+dynamize_replica_settings_update_opt({replica_provisioned_read_capacity_auto_scaling_settings_update, Update}) ->
+    {<<"ReplicaProvisionedReadCapacityAutoScalingSettingsUpdate">>, dynamize_auto_scaling_settings_update_opts(Update)};
+dynamize_replica_settings_update_opt({replica_provisioned_read_capacity_units, Units}) ->
+    {<<"ReplicaProvisionedReadCapacityUnits">>, Units}.
+
+-spec dynamize_replica_settings_update_opts(replica_settings_update_opts()) -> jsx:json_term().
+dynamize_replica_settings_update_opts(Opts) ->
+    dynamize_maybe_list(fun dynamize_replica_settings_update_opt/1, Opts).
+
+-spec dynamize_replica_settings_updates([replica_settings_update_opts()]) -> jsx:json_term().
+dynamize_replica_settings_updates(Updates) ->
+    [dynamize_replica_settings_update_opts(Update) || Update <- Updates].
+
+-type update_global_table_settings_opt() :: {global_table_billing_mode, billing_mode()}|
+                                            {global_table_global_secondary_index_settings_update, [global_table_global_secondary_index_settings_update_opts()]}|
+                                            {global_table_provisioned_write_capacity_auto_scaling_settings_update, auto_scaling_settings_update_opts()}|
+                                            {global_table_provisioned_write_capacity_units, write_units()}|
+                                            {replica_settings_update, [replica_settings_update_opts()]}|
+                                            out_opt().
+
+-type update_global_table_settings_opts() :: [update_global_table_settings_opt()].
+
+-spec update_global_table_settings_opts() -> opt_table().
+update_global_table_settings_opts() ->
+    [{global_table_billing_mode, <<"GlobalTableBillingMode">>, fun dynamize_billing_mode/1},
+     {global_table_global_secondary_index_settings_update, <<"GlobalTableGlobalSecondaryIndexSettingsUpdate">>, fun dynamize_global_table_global_secondary_index_settings_update/1},
+     {global_table_provisioned_write_capacity_auto_scaling_settings_update, <<"GlobalTableProvisionedWriteCapacityAutoScalingSettingsUpdate">>, fun dynamize_auto_scaling_settings_update_opts/1},
+     {global_table_provisioned_write_capacity_units, <<"GlobalTableProvisionedWriteCapacityUnits">>, fun id/1},
+     {replica_settings_update, <<"ReplicaSettingsUpdate">>, fun dynamize_replica_settings_updates/1}].
+
+-spec update_global_table_settings_record() -> record_desc().
+update_global_table_settings_record() ->
+    {#ddb2_update_global_table_settings{},
+     [{<<"GlobalTableName">>, #ddb2_update_global_table_settings.global_table_name, fun id/2},
+      {<<"ReplicaSettings">>, #ddb2_update_global_table_settings.replica_settings,
+       fun(V, Opts) -> [undynamize_record(replica_settings_description_record(), I, Opts) || I <- V] end}]}.
+
+
+-spec update_global_table_settings(table_name(), update_global_table_settings_opts()) -> update_global_table_settings_return().
+update_global_table_settings(GlobalTableName, Opts) ->
+    update_global_table_settings(GlobalTableName, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% DynamoDB API:
+%% [https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateGlobalTableSettings.html]
+%%
+%% ===Example===
+%%
+%% Update global table settings for a table called "Thread" in us-west-2 and eu-west-2.
+%%
+%% ```
+%% ReadUnits = 10,
+%% WriteUnits = 10,
+%% erlcloud_ddb2:update_global_table_settings(
+%%   <<"Thread">>,
+%%   [{global_table_billing_mode, provisioned},
+%%    {global_table_global_secondary_index_settings_update, [[{index_name, <<"id-index">>},
+%%                                                            {provisioned_write_capacity_units, WriteUnits}]]},
+%%    {global_table_provisioned_write_capacity_units, WriteUnits},
+%%    {replica_settings_update, [[{region_name, <<"us-west-2">>},
+%%                                {replica_global_secondary_index_settings_update, [[{index_name, <<"id-index">>},
+%%                                                                                   {provisioned_read_capacity_units, ReadUnits}]]},
+%%                                {replica_provisioned_read_capacity_units, ReadUnits}],
+%%                               [{region_name, <<"eu-west-2">>},
+%%                                {replica_global_secondary_index_settings_update, [[{index_name, <<"id-index">>},
+%%                                                                                   {provisioned_read_capacity_units, ReadUnits}]]},
+%%                                {replica_provisioned_read_capacity_units, ReadUnits}]]}])
+%% '''
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec update_global_table_settings(table_name(), update_global_table_settings_opts(), aws_config()) -> update_global_table_settings_return().
+update_global_table_settings(GlobalTableName, Opts, Config) ->
+    {AwsOpts, DdbOpts} = opts(update_global_table_settings_opts(), Opts),
+    Return = erlcloud_ddb_impl:request(
+        Config,
+        "DynamoDB_20120810.UpdateGlobalTableSettings",
+        [{<<"GlobalTableName">>, GlobalTableName} | AwsOpts]),
+    out(Return, fun(Json, UOpts) -> undynamize_record(update_global_table_settings_record(), Json, UOpts) end,
+        DdbOpts, #ddb2_update_global_table_settings.replica_settings).
+
+
+%%%------------------------------------------------------------------------------
 %%% UpdateTable
 %%%------------------------------------------------------------------------------
 
@@ -3678,6 +4107,32 @@ update_global_table(GlobalTableName, ReplicaUpdates, Opts, Config) ->
                                          {index_name(), delete} |
                                          global_secondary_index_def().
 -type global_secondary_index_updates() :: maybe_list(global_secondary_index_update()).
+
+-type provisioned_throughput_override_opt() :: {read_capacity_units, non_neg_integer()}.
+-type provisioned_throughput_override_opts() :: [provisioned_throughput_override_opt()].
+
+-type create_replication_group_member_action_opt() :: {global_secondary_indexes, binary()}|
+                                                      {kms_master_key_id, binary()}|
+                                                      {provisioned_throughput_override, provisioned_throughput_override_opts()}|
+                                                      {region_name, binary()}.
+
+-type create_replication_group_member_action_opts() :: [create_replication_group_member_action_opt()].
+
+-type delete_replication_group_member_action_opt() :: {region_name, binary()}.
+
+-type delete_replication_group_member_action_opts() :: [create_replication_group_member_action_opt()].
+
+-type update_replication_group_member_action_opt() :: {global_secondary_indexes, binary()}|
+                                                      {kms_master_key_id, binary()}|
+                                                      {provisioned_throughput_override, provisioned_throughput_override_opts()}|
+                                                      {region_name, binary()}.
+
+-type update_replication_group_member_action_opts() :: [update_replication_group_member_action_opt()].
+
+-type replication_group_update_opt() :: {create, create_replication_group_member_action_opts()}|
+                                        {delete, delete_replication_group_member_action_opts()}|
+                                        {update, update_replication_group_member_action_opts()}.
+-type replication_group_update_opts() :: [replication_group_update_opt()].
 
 -spec dynamize_global_secondary_index_update(global_secondary_index_update()) -> jsx:json_term().
 dynamize_global_secondary_index_update({IndexName, ReadUnits, WriteUnits})
@@ -3697,6 +4152,62 @@ dynamize_global_secondary_index_update(Index) ->
 dynamize_global_secondary_index_updates(Updates) ->
     dynamize_maybe_list(fun dynamize_global_secondary_index_update/1, Updates).
 
+-spec dynamize_provisioned_throughput_override_opt(provisioned_throughput_override_opt()) -> json_pair().
+dynamize_provisioned_throughput_override_opt({read_capacity_units, ReadCapacityUnits}) ->
+    {<<"ReadCapacityUnits">>, ReadCapacityUnits}.
+
+-spec dynamize_provisioned_throughput_override_opts(provisioned_throughput_override_opts()) -> jsx:json_term().
+dynamize_provisioned_throughput_override_opts(Opts) ->
+    dynamize_maybe_list(fun dynamize_provisioned_throughput_override_opt/1, Opts).
+
+-spec dynamize_create_replication_group_member_action_opt(create_replication_group_member_action_opt()) -> json_pair().
+dynamize_create_replication_group_member_action_opt({global_secondary_indexes, GlobalSecondaryIndexes}) ->
+    {<<"GlobalSecondaryIndexes">>, GlobalSecondaryIndexes};
+dynamize_create_replication_group_member_action_opt({kms_master_key_id, KMSMasterKeyId}) ->
+    {<<"KMSMasterKeyId">>, KMSMasterKeyId};
+dynamize_create_replication_group_member_action_opt({provisioned_throughput_override, ProvisionedThroughputOverride}) ->
+    {<<"ProvisionedThroughputOverride">>, dynamize_provisioned_throughput_override_opts(ProvisionedThroughputOverride)};
+dynamize_create_replication_group_member_action_opt({region_name, RegionName}) ->
+    {<<"RegionName">>, RegionName}.
+
+-spec dynamize_create_replication_group_member_action_opts(create_replication_group_member_action_opts()) -> jsx:json_term().
+dynamize_create_replication_group_member_action_opts(Opts) ->
+    dynamize_maybe_list(fun dynamize_create_replication_group_member_action_opt/1, Opts).
+
+-spec dynamize_delete_replication_group_member_action_opt(delete_replication_group_member_action_opt()) -> json_pair().
+dynamize_delete_replication_group_member_action_opt({region_name, RegionName}) ->
+    {<<"RegionName">>, RegionName}.
+
+-spec dynamize_delete_replication_group_member_action_opts(delete_replication_group_member_action_opts()) -> jsx:json_term().
+dynamize_delete_replication_group_member_action_opts(Opts) ->
+    dynamize_maybe_list(fun dynamize_delete_replication_group_member_action_opt/1, Opts).
+
+-spec dynamize_update_replication_group_member_action_opt(update_replication_group_member_action_opt()) -> json_pair().
+dynamize_update_replication_group_member_action_opt({global_secondary_indexes, GlobalSecondaryIndexes}) ->
+    {<<"GlobalSecondaryIndexes">>, GlobalSecondaryIndexes};
+dynamize_update_replication_group_member_action_opt({kms_master_key_id, KMSMasterKeyId}) ->
+    {<<"KMSMasterKeyId">>, KMSMasterKeyId};
+dynamize_update_replication_group_member_action_opt({provisioned_throughput_override, ProvisionedThroughputOverride}) ->
+    {<<"ProvisionedThroughputOverride">>, ProvisionedThroughputOverride};
+dynamize_update_replication_group_member_action_opt({region_name, RegionName}) ->
+    {<<"RegionName">>, RegionName}.
+
+-spec dynamize_update_replication_group_member_action_opts(update_replication_group_member_action_opts()) -> jsx:json_term().
+dynamize_update_replication_group_member_action_opts(Opts) ->
+    dynamize_maybe_list(fun dynamize_update_replication_group_member_action_opt/1, Opts).
+
+-spec dynamize_replication_group_update(replication_group_update_opt()) -> json_pair().
+dynamize_replication_group_update({create, Create}) ->
+    {<<"Create">>, dynamize_create_replication_group_member_action_opts(Create)};
+dynamize_replication_group_update({delete, Delete}) ->
+    {<<"Delete">>, dynamize_delete_replication_group_member_action_opts(Delete)};
+dynamize_replication_group_update({update, Update}) ->
+    {<<"Update">>, dynamize_update_replication_group_member_action_opts(Update)}.
+
+-spec dynamize_replication_group_updates(replication_group_update_opts()) -> jsx:json_term().
+dynamize_replication_group_updates(Updates) ->
+    [dynamize_maybe_list(fun dynamize_replication_group_update/1, Update) || Update <- Updates].
+
 -type update_table_opt() :: {billing_mode, billing_mode()} |
                             {provisioned_throughput, {read_units(), write_units()}} |
                             {attribute_definitions, attr_defs()} |
@@ -3712,7 +4223,8 @@ update_table_opts() ->
      {attribute_definitions, <<"AttributeDefinitions">>, fun dynamize_attr_defs/1},
      {global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>,
       fun dynamize_global_secondary_index_updates/1},
-     {stream_specification, <<"StreamSpecification">>, fun dynamize_stream_specification/1}].
+     {stream_specification, <<"StreamSpecification">>, fun dynamize_stream_specification/1},
+     {replica_updates, <<"ReplicaUpdates">>, fun dynamize_replication_group_updates/1}].
 
 -spec update_table_record() -> record_desc().
 update_table_record() ->
@@ -3766,6 +4278,141 @@ update_table(Table, ReadUnits, WriteUnits, Opts) ->
 update_table(Table, ReadUnits, WriteUnits, Opts, Config) ->
     update_table(Table, [{provisioned_throughput, {ReadUnits, WriteUnits}} | Opts], Config).
 
+
+%%%------------------------------------------------------------------------------
+%%% UpdateTableReplicaAutoScaling
+%%%------------------------------------------------------------------------------
+
+-type update_table_replica_auto_scaling_return() :: ddb_return(#ddb2_update_table_replica_auto_scaling{}, #ddb2_table_auto_scaling_description{}).
+
+-type global_secondary_index_auto_scaling_update_opt() :: {index_name, binary()}|
+                                                          {provisioned_read_capacity_auto_scaling_update, auto_scaling_settings_update_opts()}.
+
+-type global_secondary_index_auto_scaling_update_opts() :: [global_secondary_index_auto_scaling_update_opt()].
+
+-type replica_global_secondary_index_auto_scaling_opt() :: {index_name, binary()}|
+                                                           {provisioned_read_capacity_auto_scaling_update, auto_scaling_settings_update_opts()}.
+
+-type replica_global_secondary_index_auto_scaling_opts() :: [replica_global_secondary_index_auto_scaling_opt()].
+
+-type replica_auto_scaling_update_opt() :: {region_name, binary()}|
+                                           {replica_global_secondary_index_updates, [replica_global_secondary_index_auto_scaling_opts()]}|
+                                           {replica_provisioned_read_capacity_auto_scaling_update, auto_scaling_settings_update_opts()}.
+-type replica_auto_scaling_update_opts() :: [replica_auto_scaling_update_opt()].
+
+-spec dynamize_global_secondary_index_auto_scaling_update_opt(global_secondary_index_auto_scaling_update_opt()) -> json_pair().
+dynamize_global_secondary_index_auto_scaling_update_opt({index_name, IndexName}) ->
+    {<<"IndexName">>, IndexName};
+dynamize_global_secondary_index_auto_scaling_update_opt({provisioned_write_capacity_auto_scaling_update, ProvisionedWriteCapacityAutoScalingUpdate}) ->
+    {<<"ProvisionedWriteCapacityAutoScalingUpdate">>, dynamize_maybe_list(fun dynamize_auto_scaling_settings_update_opt/1,
+                                                                          ProvisionedWriteCapacityAutoScalingUpdate)}.
+
+-spec dynamize_global_secondary_index_auto_scaling_update_opts([replica_global_secondary_index_auto_scaling_opts()]) -> jsx:json_term().
+dynamize_global_secondary_index_auto_scaling_update_opts(GlobalSecondaryIndexUpdates) ->
+    [dynamize_maybe_list(fun dynamize_global_secondary_index_auto_scaling_update_opt/1,
+                         Update) || Update <- GlobalSecondaryIndexUpdates].
+
+-spec dynamize_replica_global_secondary_index_auto_scaling_update_opt(replica_global_secondary_index_auto_scaling_opt()) -> json_pair().
+dynamize_replica_global_secondary_index_auto_scaling_update_opt({index_name, IndexName}) ->
+    {<<"IndexName">>, IndexName};
+dynamize_replica_global_secondary_index_auto_scaling_update_opt({provisioned_read_capacity_auto_scaling_update, ProvisionedReadCapacityAutoScalingUpdate}) ->
+    {<<"ProvisionedReadCapacityAutoScalingUpdate">>, dynamize_auto_scaling_settings_update_opts(ProvisionedReadCapacityAutoScalingUpdate)}.
+
+-spec dynamize_replica_global_secondary_index_auto_scaling_update_opts(replica_global_secondary_index_auto_scaling_opts()) -> jsx:json_term().
+dynamize_replica_global_secondary_index_auto_scaling_update_opts(Opts) ->
+    dynamize_maybe_list(fun dynamize_replica_global_secondary_index_auto_scaling_update_opt/1,
+                        Opts).
+
+-spec dynamize_replica_auto_scaling_update(replica_auto_scaling_update_opt()) -> json_pair().
+dynamize_replica_auto_scaling_update({region_name, RegionName}) ->
+    {<<"RegionName">>, RegionName};
+dynamize_replica_auto_scaling_update({replica_global_secondary_index_updates, ReplicaGlobalSecondaryIndexUpdates}) ->
+    {<<"ReplicaGlobalSecondaryIndexUpdates">>, [dynamize_replica_global_secondary_index_auto_scaling_update_opts(Update) || Update <- ReplicaGlobalSecondaryIndexUpdates]};
+dynamize_replica_auto_scaling_update({replica_provisioned_read_capacity_auto_scaling_update, ReplicaProvisionedReadCapacityAutoScalingUpdate}) ->
+    {<<"ReplicaProvisionedReadCapacityAutoScalingUpdate">>, dynamize_auto_scaling_settings_update_opts(ReplicaProvisionedReadCapacityAutoScalingUpdate)}.
+
+-spec dynamize_replica_auto_scaling_updates([replica_auto_scaling_update_opts()]) -> jsx:json_term().
+dynamize_replica_auto_scaling_updates(ReplicaUpdates) ->
+    [dynamize_maybe_list(fun dynamize_replica_auto_scaling_update/1,
+                         Update) || Update <- ReplicaUpdates].
+
+-spec maybe_update_config_timeout(aws_config(), MinDesiredTimeout :: pos_integer()) -> aws_config().
+maybe_update_config_timeout(Config, MinDesiredTimeout) ->
+    UpdatedTimeout = case erlcloud_aws:get_timeout(Config) of
+                         undefined -> MinDesiredTimeout;
+                         ProvidedTimeout -> ProvidedTimeout
+                     end,
+    Config#aws_config{timeout = UpdatedTimeout}.
+
+-type update_table_replica_auto_scaling_opt() :: {global_secondary_index_updates, [global_secondary_index_auto_scaling_update_opts()]}|
+                                                 {provisioned_write_capacity_auto_scaling_update, auto_scaling_settings_update_opts()}|
+                                                 {replica_updates, [replica_auto_scaling_update_opts()]}|
+                                                 out_opt().
+-type update_table_replica_auto_scaling_opts() :: [update_table_replica_auto_scaling_opt()].
+
+-spec update_table_replica_auto_scaling_opts() -> opt_table().
+update_table_replica_auto_scaling_opts() ->
+    [{global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>,
+      fun dynamize_global_secondary_index_auto_scaling_update_opts/1},
+     {provisioned_write_capacity_auto_scaling_update, <<"ProvisionedWriteCapacityAutoScalingUpdate">>,
+      fun dynamize_auto_scaling_settings_update_opts/1},
+     {replica_updates, <<"ReplicaUpdates">>,
+      fun dynamize_replica_auto_scaling_updates/1}].
+
+-spec update_table_replica_auto_scaling_record() -> record_desc().
+update_table_replica_auto_scaling_record() ->
+    {#ddb2_update_table_replica_auto_scaling{},
+     [{<<"TableAutoScalingDescription">>, #ddb2_update_table_replica_auto_scaling.table_auto_scaling_description,
+       fun(V, Opts) -> undynamize_record(table_auto_scaling_description_record(), V, Opts) end}]}.
+
+-spec update_table_replica_auto_scaling(table_name(), update_table_replica_auto_scaling_opts()) -> update_table_replica_auto_scaling_return().
+update_table_replica_auto_scaling(Table, Opts) ->
+    update_table_replica_auto_scaling(Table, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% DynamoDB API:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTableReplicaAutoScaling.html]
+%%
+%% Note: This method only applies to Version 2019.11.21 of global tables.
+%% Note:
+%%
+%% ===Example===
+%%
+%% Update table "Thread" to scale between 10 and 20 provisioned read and write units uniformly across replica regions.
+%% ```
+%% AutoScalingSettingsUpdate = [{maximum_units, 20},
+%%                              {minimum_units, 10},
+%%                              {scaling_policy_update, [{target_tracking_scaling_policy_configuration, [{target_value, 60.0}]}]}],
+%% erlcloud_ddb2:update_table_replica_auto_scaling(
+%%   <<"Thread">>,
+%%   [{global_secondary_index_updates, [[{index_name, <<"id-index">>},
+%%                                       {provisioned_write_capacity_auto_scaling_update, AutoScalingSettingsUpdate}]]},
+%%    {provisioned_write_capacity_auto_scaling_update, AutoScalingSettingsUpdate},
+%%    {replica_updates, [[{region_name, <<"us-west-2">>},
+%%                        {replica_global_secondary_index_updates, [[{index_name, <<"id-index">>},
+%%                                                                   {provisioned_read_capacity_auto_scaling_update, AutoScalingSettingsUpdate}]]},
+%%                        {replica_provisioned_read_capacity_auto_scaling_update, AutoScalingSettingsUpdate}],
+%%                       [{region_name, <<"eu-west-2">>},
+%%                        {replica_global_secondary_index_updates, [[{index_name, <<"id-index">>},
+%%                                                                   {provisioned_read_capacity_auto_scaling_update, AutoScalingSettingsUpdate}]]},
+%%                        {replica_provisioned_read_capacity_auto_scaling_update, AutoScalingSettingsUpdate}]]}]).
+%% '''
+%% @end
+%%------------------------------------------------------------------------------
+-spec update_table_replica_auto_scaling(table_name(), update_table_replica_auto_scaling_opts(), aws_config()) -> update_table_replica_auto_scaling_return().
+update_table_replica_auto_scaling(Table, Opts, Config) when is_list(Opts) ->
+    % The default timeout for this endpoint is updated to 25 seconds below due to the endpoint
+    % regularly taking around 20 seconds during testing.
+    % Any non-default timeout already written to the config will not be overridden.
+    UpdatedConfig = maybe_update_config_timeout(Config, 25000),
+    {AwsOpts, DdbOpts} = opts(update_table_replica_auto_scaling_opts(), Opts),
+    Return = erlcloud_ddb_impl:request(
+        UpdatedConfig,
+        "DynamoDB_20120810.UpdateTableReplicaAutoScaling",
+        [{<<"TableName">>, Table} | AwsOpts]),
+    out(Return, fun(Json, UOpts) -> undynamize_record(update_table_replica_auto_scaling_record(), Json, UOpts) end,
+        DdbOpts, #ddb2_update_table_replica_auto_scaling.table_auto_scaling_description).
 
 %%%------------------------------------------------------------------------------
 %%% UpdateTimeToLive

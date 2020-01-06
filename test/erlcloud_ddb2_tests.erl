@@ -53,8 +53,12 @@ operation_test_() ->
       fun describe_limits_output_tests/1,
       fun describe_global_table_input_tests/1,
       fun describe_global_table_output_tests/1,
+      fun describe_global_table_settings_input_tests/1,
+      fun describe_global_table_settings_output_tests/1,
       fun describe_table_input_tests/1,
       fun describe_table_output_tests/1,
+      fun describe_table_replica_auto_scaling_input_tests/1,
+      fun describe_table_replica_auto_scaling_output_tests/1,
       fun describe_time_to_live_input_tests/1,
       fun describe_time_to_live_output_tests/1,
       fun get_item_input_tests/1,
@@ -92,8 +96,12 @@ operation_test_() ->
       fun update_item_output_tests/1,
       fun update_global_table_input_tests/1,
       fun update_global_table_output_tests/1,
+      fun update_global_table_settings_input_tests/1,
+      fun update_global_table_settings_output_tests/1,
       fun update_table_input_tests/1,
       fun update_table_output_tests/1,
+      fun update_table_replica_auto_scaling_input_tests/1,
+      fun update_table_replica_auto_scaling_output_tests/1,
       fun update_time_to_live_input_tests/1,
       fun update_time_to_live_output_tests/1
      ]}.
@@ -2641,6 +2649,254 @@ describe_global_table_output_tests(_) ->
                                      #ddb2_replica_description{region_name = <<"eu-west-1">>}]}}})],
     output_tests(?_f(erlcloud_ddb2:describe_global_table(<<"Thread">>)), Tests).
 
+%% DescribeGlobalTableSettings tests based on the API request/response syntax:
+%% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeGlobalTableSettings.html
+describe_global_table_settings_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"DescribeGlobalTableSettings example request",
+             ?_f(erlcloud_ddb2:describe_global_table_settings(<<"Thread">>)), "
+{
+    \"GlobalTableName\":\"Thread\"
+}"
+            })
+        ],
+    Response = "
+{
+  \"GlobalTableName\": \"Thread\",
+  \"ReplicaSettings\": [
+    {
+      \"RegionName\": \"us-west-2\",
+      \"ReplicaBillingModeSummary\": {
+        \"BillingMode\": \"PROVISIONED\",
+        \"LastUpdateToPayPerRequestDateTime\": 1578092745.455
+      },
+      \"ReplicaGlobalSecondaryIndexSettings\": [
+        {
+          \"IndexName\": \"id-index\",
+          \"IndexStatus\": \"ACTIVE\",
+          \"ProvisionedReadCapacityAutoScalingSettings\": {
+            \"AutoScalingDisabled\": false,
+            \"AutoScalingRoleArn\": \"arn:test\",
+            \"MaximumUnits\": 20,
+            \"MinimumUnits\": 10,
+            \"ScalingPolicies\": [
+              {
+                \"PolicyName\": \"PolicyName\",
+                \"TargetTrackingScalingPolicyConfiguration\": {
+                  \"DisableScaleIn\": false,
+                  \"ScaleInCooldown\": 600,
+                  \"ScaleOutCooldown\": 600,
+                  \"TargetValue\": 70.0
+                }
+              }
+            ]
+          },
+          \"ProvisionedReadCapacityUnits\": 10,
+          \"ProvisionedWriteCapacityAutoScalingSettings\": {
+            \"AutoScalingDisabled\": false,
+            \"AutoScalingRoleArn\": \"arn:test\",
+            \"MaximumUnits\": 20,
+            \"MinimumUnits\": 10,
+            \"ScalingPolicies\": [
+              {
+                \"PolicyName\": \"PolicyName\",
+                \"TargetTrackingScalingPolicyConfiguration\": {
+                  \"DisableScaleIn\": true,
+                  \"ScaleInCooldown\": 600,
+                  \"ScaleOutCooldown\": 600,
+                  \"TargetValue\": 70.0
+                }
+              }
+            ]
+          },
+          \"ProvisionedWriteCapacityUnits\": 10
+        }
+      ],
+      \"ReplicaProvisionedReadCapacityAutoScalingSettings\": {
+        \"AutoScalingDisabled\": true,
+        \"AutoScalingRoleArn\": \"arn:test\",
+        \"MaximumUnits\": 20,
+        \"MinimumUnits\": 10,
+        \"ScalingPolicies\": [
+          {
+            \"PolicyName\": \"policy\",
+            \"TargetTrackingScalingPolicyConfiguration\": {
+              \"DisableScaleIn\": false,
+              \"ScaleInCooldown\": 600,
+              \"ScaleOutCooldown\": 600,
+              \"TargetValue\": 70.0
+            }
+          }
+        ]
+      },
+      \"ReplicaProvisionedReadCapacityUnits\": 10,
+      \"ReplicaProvisionedWriteCapacityAutoScalingSettings\": {
+        \"AutoScalingDisabled\": false,
+        \"AutoScalingRoleArn\": \"arn:test\",
+        \"MaximumUnits\": 20,
+        \"MinimumUnits\": 10,
+        \"ScalingPolicies\": [
+          {
+            \"PolicyName\": \"policy\",
+            \"TargetTrackingScalingPolicyConfiguration\": {
+              \"DisableScaleIn\": false,
+              \"ScaleInCooldown\": 600,
+              \"ScaleOutCooldown\": 600,
+              \"TargetValue\": 70.0
+            }
+          }
+        ]
+      },
+      \"ReplicaProvisionedWriteCapacityUnits\": 10,
+      \"ReplicaStatus\": \"ACTIVE\"
+    }
+  ]
+}",
+    input_tests(Response, Tests).
+
+describe_global_table_settings_output_tests(_) ->
+    Tests =
+    [?_ddb_test(
+        {"DescribeGlobalTableSettings example response", "
+{
+  \"GlobalTableName\": \"Thread\",
+  \"ReplicaSettings\": [
+    {
+      \"RegionName\": \"us-west-2\",
+      \"ReplicaBillingModeSummary\": {
+        \"BillingMode\": \"PROVISIONED\",
+        \"LastUpdateToPayPerRequestDateTime\": 1578092745.455
+      },
+      \"ReplicaGlobalSecondaryIndexSettings\": [
+        {
+          \"IndexName\": \"id-index\",
+          \"IndexStatus\": \"ACTIVE\",
+          \"ProvisionedReadCapacityAutoScalingSettings\": {
+            \"AutoScalingDisabled\": false,
+            \"AutoScalingRoleArn\": \"arn:test\",
+            \"MaximumUnits\": 20,
+            \"MinimumUnits\": 10,
+            \"ScalingPolicies\": [
+              {
+                \"PolicyName\": \"PolicyName\",
+                \"TargetTrackingScalingPolicyConfiguration\": {
+                  \"DisableScaleIn\": false,
+                  \"ScaleInCooldown\": 600,
+                  \"ScaleOutCooldown\": 600,
+                  \"TargetValue\": 70.0
+                }
+              }
+            ]
+          },
+          \"ProvisionedReadCapacityUnits\": 10,
+          \"ProvisionedWriteCapacityAutoScalingSettings\": {
+            \"AutoScalingDisabled\": false,
+            \"AutoScalingRoleArn\": \"arn:test\",
+            \"MaximumUnits\": 20,
+            \"MinimumUnits\": 10,
+            \"ScalingPolicies\": [
+              {
+                \"PolicyName\": \"PolicyName\",
+                \"TargetTrackingScalingPolicyConfiguration\": {
+                  \"DisableScaleIn\": false,
+                  \"ScaleInCooldown\": 600,
+                  \"ScaleOutCooldown\": 600,
+                  \"TargetValue\": 70.0
+                }
+              }
+            ]
+          },
+          \"ProvisionedWriteCapacityUnits\": 10
+        }
+      ],
+      \"ReplicaProvisionedReadCapacityAutoScalingSettings\": {
+        \"AutoScalingDisabled\": false,
+        \"AutoScalingRoleArn\": \"arn:test\",
+        \"MaximumUnits\": 20,
+        \"MinimumUnits\": 10,
+        \"ScalingPolicies\": [
+          {
+            \"PolicyName\": \"PolicyName\",
+            \"TargetTrackingScalingPolicyConfiguration\": {
+              \"DisableScaleIn\": false,
+              \"ScaleInCooldown\": 600,
+              \"ScaleOutCooldown\": 600,
+              \"TargetValue\": 70.0
+            }
+          }
+        ]
+      },
+      \"ReplicaProvisionedReadCapacityUnits\": 10,
+      \"ReplicaProvisionedWriteCapacityAutoScalingSettings\": {
+        \"AutoScalingDisabled\": false,
+        \"AutoScalingRoleArn\": \"arn:test\",
+        \"MaximumUnits\": 20,
+        \"MinimumUnits\": 10,
+        \"ScalingPolicies\": [
+          {
+            \"PolicyName\": \"PolicyName\",
+            \"TargetTrackingScalingPolicyConfiguration\": {
+              \"DisableScaleIn\": false,
+              \"ScaleInCooldown\": 600,
+              \"ScaleOutCooldown\": 600,
+              \"TargetValue\": 70.0
+            }
+          }
+        ]
+      },
+      \"ReplicaProvisionedWriteCapacityUnits\": 10,
+      \"ReplicaStatus\": \"ACTIVE\"
+    }
+  ]
+}", {ok, [#ddb2_replica_settings_description{region_name = <<"us-west-2">>,
+                                             replica_billing_mode_summary = #ddb2_billing_mode_summary{billing_mode = provisioned,
+                                                                                                       last_update_to_pay_per_request_date_time = 1578092745.455},
+                                             replica_global_secondary_index_settings = [#ddb2_replica_global_secondary_index_settings_description{index_name = <<"id-index">>,
+                                                                                                                                                  index_status = active,
+                                                                                                                                                  provisioned_read_capacity_auto_scaling_settings = #ddb2_auto_scaling_settings_description{auto_scaling_disabled = false,
+                                                                                                                                                                                                                                            auto_scaling_role_arn = <<"arn:test">>,
+                                                                                                                                                                                                                                            maximum_units = 20,
+                                                                                                                                                                                                                                            minimum_units = 10,
+                                                                                                                                                                                                                                            scaling_policies = [#ddb2_auto_scaling_policy_description{policy_name = <<"PolicyName">>,
+                                                                                                                                                                                                                                                                                                      target_tracking_scaling_policy_configuration = #ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description{disable_scale_in = false,
+                                                                                                                                                                                                                                                                                                                                                                                                                                 scale_in_cooldown = 600,
+                                                                                                                                                                                                                                                                                                                                                                                                                                 scale_out_cooldown = 600,
+                                                                                                                                                                                                                                                                                                                                                                                                                                 target_value = 70.0}}]},
+                                                                                                                                                  provisioned_read_capacity_units = 10,
+                                                                                                                                                  provisioned_write_capacity_auto_scaling_settings = #ddb2_auto_scaling_settings_description{auto_scaling_disabled = false,
+                                                                                                                                                                                                                                             auto_scaling_role_arn = <<"arn:test">>,
+                                                                                                                                                                                                                                             maximum_units = 20,
+                                                                                                                                                                                                                                             minimum_units = 10,
+                                                                                                                                                                                                                                             scaling_policies = [#ddb2_auto_scaling_policy_description{policy_name = <<"PolicyName">>,
+                                                                                                                                                                                                                                                                                                      target_tracking_scaling_policy_configuration = #ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description{disable_scale_in = false,
+                                                                                                                                                                                                                                                                                                                                                                                                                                 scale_in_cooldown = 600,
+                                                                                                                                                                                                                                                                                                                                                                                                                                 scale_out_cooldown = 600,
+                                                                                                                                                                                                                                                                                                                                                                                                                                 target_value = 70.0}}]},
+                                                                                                                                                  provisioned_write_capacity_units = 10}],
+                                             replica_provisioned_read_capacity_auto_scaling_settings = #ddb2_auto_scaling_settings_description{auto_scaling_disabled = false,
+                                                                                                                                               auto_scaling_role_arn = <<"arn:test">>,
+                                                                                                                                               maximum_units = 20,
+                                                                                                                                               minimum_units = 10,
+                                                                                                                                               scaling_policies = [#ddb2_auto_scaling_policy_description{policy_name = <<"PolicyName">>,
+                                                                                                                                                                                                         target_tracking_scaling_policy_configuration = #ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description{disable_scale_in = false,
+                                                                                                                                                                                                                                                                                                                                    scale_in_cooldown = 600,
+                                                                                                                                                                                                                                                                                                                                    scale_out_cooldown = 600,
+                                                                                                                                                                                                                                                                                                                                    target_value = 70.0}}]},
+                                             replica_provisioned_read_capacity_units = 10,
+                                             replica_provisioned_write_capacity_auto_scaling_settings = #ddb2_auto_scaling_settings_description{auto_scaling_disabled = false,
+                                                                                                                                                auto_scaling_role_arn = <<"arn:test">>,
+                                                                                                                                                maximum_units = 20,
+                                                                                                                                                minimum_units = 10,
+                                                                                                                                                scaling_policies = [#ddb2_auto_scaling_policy_description{policy_name = <<"PolicyName">>,
+                                                                                                                                                                                                          target_tracking_scaling_policy_configuration = #ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description{disable_scale_in = false,
+                                                                                                                                                                                                                                                                                                                                     scale_in_cooldown = 600,
+                                                                                                                                                                                                                                                                                                                                     scale_out_cooldown = 600,
+                                                                                                                                                                                                                                                                                                                                     target_value = 70.0}}]},
+                                             replica_provisioned_write_capacity_units = 10,
+                                             replica_status = active}]}})],
+    output_tests(?_f(erlcloud_ddb2:describe_global_table_settings(<<"Thread">>)), Tests).
+
 %% DescribeTable test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeTable.html
 describe_table_input_tests(_) ->
@@ -2851,6 +3107,216 @@ describe_table_output_tests(_) ->
     
     output_tests(?_f(erlcloud_ddb2:describe_table(<<"name">>)), Tests).
 
+
+%% DescribeTableReplicaAutoScaling test based on API request/response syntax
+describe_table_replica_auto_scaling_input_tests(_) ->
+    Tests =
+        [?_ddb_test(
+            {"DescribeTableReplicaAutoScaling example request",
+             ?_f(erlcloud_ddb2:describe_table_replica_auto_scaling(<<"Thread">>)), "
+{
+    \"TableName\":\"Thread\"
+}"
+             })],
+    Response = "
+{
+  \"TableAutoScalingDescription\": {
+    \"Replicas\": [
+      {
+        \"GlobalSecondaryIndexes\": [
+          {
+            \"IndexName\": \"id-index\",
+            \"IndexStatus\": \"ACTIVE\",
+            \"ProvisionedReadCapacityAutoScalingSettings\": {
+              \"AutoScalingDisabled\": false,
+              \"AutoScalingRoleArn\": \"arn:test\",
+              \"MaximumUnits\": 20,
+              \"MinimumUnits\": 10,
+              \"ScalingPolicies\": [
+                {
+                  \"PolicyName\": \"PolicyName\",
+                  \"TargetTrackingScalingPolicyConfiguration\": {
+                    \"DisableScaleIn\": false,
+                    \"ScaleInCooldown\": 600,
+                    \"ScaleOutCooldown\": 600,
+                    \"TargetValue\": 70.0
+                  }
+                }
+              ]
+            },
+            \"ProvisionedWriteCapacityAutoScalingSettings\": {
+              \"AutoScalingDisabled\": false,
+              \"AutoScalingRoleArn\": \"arn:test\",
+              \"MaximumUnits\": 20,
+              \"MinimumUnits\": 10,
+              \"ScalingPolicies\": [
+                {
+                  \"PolicyName\": \"PolicyName\",
+                  \"TargetTrackingScalingPolicyConfiguration\": {
+                    \"DisableScaleIn\": false,
+                    \"ScaleInCooldown\": 600,
+                    \"ScaleOutCooldown\": 600,
+                    \"TargetValue\": 70.0
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        \"RegionName\": \"us-west-2\",
+        \"ReplicaProvisionedReadCapacityAutoScalingSettings\": {
+          \"AutoScalingDisabled\": false,
+          \"AutoScalingRoleArn\": \"arn:test\",
+          \"MaximumUnits\": 20,
+          \"MinimumUnits\": 10,
+          \"ScalingPolicies\": [
+            {
+              \"PolicyName\": \"PolicyName\",
+              \"TargetTrackingScalingPolicyConfiguration\": {
+                \"DisableScaleIn\": false,
+                \"ScaleInCooldown\": 600,
+                \"ScaleOutCooldown\": 600,
+                \"TargetValue\": 70.0
+              }
+            }
+          ]
+        },
+        \"ReplicaProvisionedWriteCapacityAutoScalingSettings\": {
+          \"AutoScalingDisabled\": false,
+          \"AutoScalingRoleArn\": \"arn:test\",
+          \"MaximumUnits\": 20,
+          \"MinimumUnits\": 10,
+          \"ScalingPolicies\": [
+            {
+              \"PolicyName\": \"PolicyName\",
+              \"TargetTrackingScalingPolicyConfiguration\": {
+                \"DisableScaleIn\": false,
+                \"ScaleInCooldown\": 600,
+                \"ScaleOutCooldown\": 600,
+                \"TargetValue\": 70.0
+              }
+            }
+          ]
+        },
+        \"ReplicaStatus\": \"ACTIVE\"
+      }
+    ],
+    \"TableName\": \"Thread\",
+    \"TableStatus\": \"ACTIVE\"
+  }
+}",
+        input_tests(Response, Tests).
+
+describe_table_replica_auto_scaling_output_tests(_) ->
+    AutoScalingSettings = #ddb2_auto_scaling_settings_description{auto_scaling_disabled = false,
+                                                                  auto_scaling_role_arn = <<"arn:test">>,
+                                                                  maximum_units = 20,
+                                                                  minimum_units = 10,
+                                                                  scaling_policies = [#ddb2_auto_scaling_policy_description{policy_name = <<"PolicyName">>,
+                                                                                                                            target_tracking_scaling_policy_configuration = #ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description{disable_scale_in = false,
+                                                                                                                                                                                                                                                       scale_in_cooldown = 600,
+                                                                                                                                                                                                                                                       scale_out_cooldown = 600,
+                                                                                                                                                                                                                                                       target_value = 70.0}}]},
+    Tests =
+    [?_ddb_test(
+        {"DescribeGlobalTableSettings example response", "
+{
+  \"TableAutoScalingDescription\": {
+    \"Replicas\": [
+      {
+        \"GlobalSecondaryIndexes\": [
+          {
+            \"IndexName\": \"id-index\",
+            \"IndexStatus\": \"ACTIVE\",
+            \"ProvisionedReadCapacityAutoScalingSettings\": {
+              \"AutoScalingDisabled\": false,
+              \"AutoScalingRoleArn\": \"arn:test\",
+              \"MaximumUnits\": 20,
+              \"MinimumUnits\": 10,
+              \"ScalingPolicies\": [
+                {
+                  \"PolicyName\": \"PolicyName\",
+                  \"TargetTrackingScalingPolicyConfiguration\": {
+                    \"DisableScaleIn\": false,
+                    \"ScaleInCooldown\": 600,
+                    \"ScaleOutCooldown\": 600,
+                    \"TargetValue\": 70.0
+                  }
+                }
+              ]
+            },
+            \"ProvisionedWriteCapacityAutoScalingSettings\": {
+              \"AutoScalingDisabled\": false,
+              \"AutoScalingRoleArn\": \"arn:test\",
+              \"MaximumUnits\": 20,
+              \"MinimumUnits\": 10,
+              \"ScalingPolicies\": [
+                {
+                  \"PolicyName\": \"PolicyName\",
+                  \"TargetTrackingScalingPolicyConfiguration\": {
+                    \"DisableScaleIn\": false,
+                    \"ScaleInCooldown\": 600,
+                    \"ScaleOutCooldown\": 600,
+                    \"TargetValue\": 70.0
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        \"RegionName\": \"us-west-2\",
+        \"ReplicaProvisionedReadCapacityAutoScalingSettings\": {
+          \"AutoScalingDisabled\": false,
+          \"AutoScalingRoleArn\": \"arn:test\",
+          \"MaximumUnits\": 20,
+          \"MinimumUnits\": 10,
+          \"ScalingPolicies\": [
+            {
+              \"PolicyName\": \"PolicyName\",
+              \"TargetTrackingScalingPolicyConfiguration\": {
+                \"DisableScaleIn\": false,
+                \"ScaleInCooldown\": 600,
+                \"ScaleOutCooldown\": 600,
+                \"TargetValue\": 70.0
+              }
+            }
+          ]
+        },
+        \"ReplicaProvisionedWriteCapacityAutoScalingSettings\": {
+          \"AutoScalingDisabled\": false,
+          \"AutoScalingRoleArn\": \"arn:test\",
+          \"MaximumUnits\": 20,
+          \"MinimumUnits\": 10,
+          \"ScalingPolicies\": [
+            {
+              \"PolicyName\": \"PolicyName\",
+              \"TargetTrackingScalingPolicyConfiguration\": {
+                \"DisableScaleIn\": false,
+                \"ScaleInCooldown\": 600,
+                \"ScaleOutCooldown\": 600,
+                \"TargetValue\": 70.0
+              }
+            }
+          ]
+        },
+        \"ReplicaStatus\": \"ACTIVE\"
+      }
+    ],
+    \"TableName\": \"Thread\",
+    \"TableStatus\": \"ACTIVE\"
+  }
+}",
+         {ok, #ddb2_table_auto_scaling_description{replicas = [#ddb2_replica_auto_scaling_description{global_secondary_indexes = [#ddb2_replica_global_secondary_index_auto_scaling_description{index_name = <<"id-index">>,
+                                                                                                                                                                                                index_status = active,
+                                                                                                                                                                                                provisioned_read_capacity_auto_scaling_settings = AutoScalingSettings,
+                                                                                                                                                                                                provisioned_write_capacity_auto_scaling_settings = AutoScalingSettings}],
+                                                                                                      region_name = <<"us-west-2">>,
+                                                                                                      replica_provisioned_read_capacity_auto_scaling_settings = AutoScalingSettings,
+                                                                                                      replica_provisioned_write_capacity_auto_scaling_settings = AutoScalingSettings,
+                                                                                                      replica_status = active}],
+                                                    table_name = <<"Thread">>,
+                                                    table_status = active}}})],
+    output_tests(?_f(erlcloud_ddb2:describe_table_replica_auto_scaling(<<"Thread">>)), Tests).
 
 %% DescribeTimeToLive test
 describe_time_to_live_input_tests(_) ->
@@ -5598,6 +6064,375 @@ update_global_table_output_tests(_) ->
                 replication_group = [#ddb2_replica_description{region_name = <<"eu-west-1">>}]}}})],
     output_tests(?_f(erlcloud_ddb2:update_global_table(<<"Thread">>, {create, {region_name, <<"us-east-1">>}})), Tests).
 
+update_global_table_settings_input_tests(_) ->
+    ReadUnits = 10,
+    WriteUnits = 10,
+    StaticProvisionOpts = [{global_table_billing_mode, provisioned},
+                           {global_table_global_secondary_index_settings_update, [[{index_name, <<"id-index">>},
+                                                                                   {provisioned_write_capacity_units, WriteUnits}]]},
+                           {global_table_provisioned_write_capacity_units, WriteUnits},
+                           {replica_settings_update, [[{region_name, <<"us-west-2">>},
+                                                       {replica_global_secondary_index_settings_update, [[{index_name, <<"id-index">>},
+                                                                                                          {provisioned_read_capacity_units, ReadUnits}]]},
+                                                       {replica_provisioned_read_capacity_units, ReadUnits}]]}],
+    AutoScalingSettingsUpdate = [{maximum_units, 20},
+                                 {minimum_units, 10},
+                                 {scaling_policy_update, [{target_tracking_scaling_policy_configuration, [{disable_scale_in, false},
+                                                                                                          {scale_in_cooldown, 600},
+                                                                                                          {scale_out_cooldown, 600},
+                                                                                                          {target_value, 70.0}]}]}],
+    AutoScalingProvisionOpts = [{global_table_billing_mode, provisioned},
+                                {global_table_global_secondary_index_settings_update, [[{index_name, <<"id-index">>},
+                                                                                        {provisioned_write_capacity_auto_scaling_settings_update, AutoScalingSettingsUpdate}]]},
+                                {global_table_provisioned_write_capacity_auto_scaling_settings_update, AutoScalingSettingsUpdate},
+                                {replica_settings_update, [[{region_name, <<"us-west-2">>},
+                                                            {replica_global_secondary_index_settings_update, [[{index_name, <<"id-index">>},
+                                                                                                               {provisioned_read_capacity_auto_scaling_settings_update, AutoScalingSettingsUpdate}]]},
+                                                            {replica_provisioned_read_capacity_auto_scaling_settings_update, AutoScalingSettingsUpdate}]]}],
+    Tests =
+        [?_ddb_test(
+            {"UpdateGlobalTableSettings example request: update all read/write capacity to static values",
+             ?_f(erlcloud_ddb2:update_global_table_settings(<<"Thread">>, StaticProvisionOpts)), "
+{
+  \"GlobalTableBillingMode\": \"PROVISIONED\",
+  \"GlobalTableGlobalSecondaryIndexSettingsUpdate\": [
+    {
+      \"IndexName\": \"id-index\",
+      \"ProvisionedWriteCapacityUnits\": 10
+    }
+  ],
+  \"GlobalTableName\": \"Thread\",
+  \"GlobalTableProvisionedWriteCapacityUnits\": 10,
+  \"ReplicaSettingsUpdate\": [
+    {
+      \"RegionName\": \"us-west-2\",
+      \"ReplicaGlobalSecondaryIndexSettingsUpdate\": [
+        {
+          \"IndexName\": \"id-index\",
+          \"ProvisionedReadCapacityUnits\": 10
+        }
+      ],
+      \"ReplicaProvisionedReadCapacityUnits\": 10
+    }
+  ]
+}"
+             }),
+         ?_ddb_test(
+             {"UpdateGlobalTableSettings example request: update all read/write capacity to autoscale",
+              ?_f(erlcloud_ddb2:update_global_table_settings(<<"Thread">>, AutoScalingProvisionOpts)), "
+{
+  \"GlobalTableBillingMode\": \"PROVISIONED\",
+  \"GlobalTableGlobalSecondaryIndexSettingsUpdate\": [
+    {
+      \"IndexName\": \"id-index\",
+      \"ProvisionedWriteCapacityAutoScalingSettingsUpdate\": {
+        \"MaximumUnits\": 20,
+        \"MinimumUnits\": 10,
+        \"ScalingPolicyUpdate\": {
+          \"TargetTrackingScalingPolicyConfiguration\": {
+            \"DisableScaleIn\": false,
+            \"ScaleInCooldown\": 600,
+            \"ScaleOutCooldown\": 600,
+            \"TargetValue\": 70.0
+          }
+        }
+      }
+    }
+  ],
+  \"GlobalTableName\": \"Thread\",
+  \"GlobalTableProvisionedWriteCapacityAutoScalingSettingsUpdate\": {
+    \"MaximumUnits\": 20,
+    \"MinimumUnits\": 10,
+    \"ScalingPolicyUpdate\": {
+      \"TargetTrackingScalingPolicyConfiguration\": {
+        \"DisableScaleIn\": false,
+        \"ScaleInCooldown\": 600,
+        \"ScaleOutCooldown\": 600,
+        \"TargetValue\": 70.0
+      }
+    }
+  },
+  \"ReplicaSettingsUpdate\": [
+    {
+      \"RegionName\": \"us-west-2\",
+      \"ReplicaGlobalSecondaryIndexSettingsUpdate\": [
+        {
+          \"IndexName\": \"id-index\",
+          \"ProvisionedReadCapacityAutoScalingSettingsUpdate\": {
+            \"MaximumUnits\": 20,
+            \"MinimumUnits\": 10,
+            \"ScalingPolicyUpdate\": {
+              \"TargetTrackingScalingPolicyConfiguration\": {
+                \"DisableScaleIn\": false,
+                \"ScaleInCooldown\": 600,
+                \"ScaleOutCooldown\": 600,
+                \"TargetValue\": 70.0
+              }
+            }
+          }
+        }
+      ],
+      \"ReplicaProvisionedReadCapacityAutoScalingSettingsUpdate\": {
+        \"MaximumUnits\": 20,
+        \"MinimumUnits\": 10,
+        \"ScalingPolicyUpdate\": {
+          \"TargetTrackingScalingPolicyConfiguration\": {
+            \"DisableScaleIn\": false,
+            \"ScaleInCooldown\": 600,
+            \"ScaleOutCooldown\": 600,
+            \"TargetValue\": 70.0
+          }
+        }
+      }
+    }
+  ]
+}"
+              })],
+    Response = "
+{
+  \"GlobalTableName\": \"Thread\",
+  \"ReplicaSettings\": [
+    {
+      \"RegionName\": \"us-west-2\",
+      \"ReplicaBillingModeSummary\": {
+        \"BillingMode\": \"PROVISIONED\",
+        \"LastUpdateToPayPerRequestDateTime\": 1578092745.455
+      },
+      \"ReplicaGlobalSecondaryIndexSettings\": [
+        {
+          \"IndexName\": \"id-index\",
+          \"IndexStatus\": \"ACTIVE\",
+          \"ProvisionedReadCapacityAutoScalingSettings\": {
+            \"AutoScalingDisabled\": false,
+            \"AutoScalingRoleArn\": \"arn:test\",
+            \"MaximumUnits\": 20,
+            \"MinimumUnits\": 10,
+            \"ScalingPolicies\": [
+              {
+                \"PolicyName\": \"PolicyName\",
+                \"TargetTrackingScalingPolicyConfiguration\": {
+                  \"DisableScaleIn\": false,
+                  \"ScaleInCooldown\": 600,
+                  \"ScaleOutCooldown\": 600,
+                  \"TargetValue\": 70.0
+                }
+              }
+            ]
+          },
+          \"ProvisionedReadCapacityUnits\": 10,
+          \"ProvisionedWriteCapacityAutoScalingSettings\": {
+            \"AutoScalingDisabled\": false,
+            \"AutoScalingRoleArn\": \"string\",
+            \"MaximumUnits\": 20,
+            \"MinimumUnits\": 10,
+            \"ScalingPolicies\": [
+              {
+                \"PolicyName\": \"PolicyName\",
+                \"TargetTrackingScalingPolicyConfiguration\": {
+                  \"DisableScaleIn\": false,
+                  \"ScaleInCooldown\": 600,
+                  \"ScaleOutCooldown\": 600,
+                  \"TargetValue\": 70.0
+                }
+              }
+            ]
+          },
+          \"ProvisionedWriteCapacityUnits\": 10
+        }
+      ],
+      \"ReplicaProvisionedReadCapacityAutoScalingSettings\": {
+        \"AutoScalingDisabled\": false,
+        \"AutoScalingRoleArn\": \"string\",
+        \"MaximumUnits\": 20,
+        \"MinimumUnits\": 10,
+        \"ScalingPolicies\": [
+          {
+            \"PolicyName\": \"PolicyName\",
+            \"TargetTrackingScalingPolicyConfiguration\": {
+              \"DisableScaleIn\": false,
+              \"ScaleInCooldown\": 600,
+              \"ScaleOutCooldown\": 600,
+              \"TargetValue\": 70.0
+            }
+          }
+        ]
+      },
+      \"ReplicaProvisionedReadCapacityUnits\": 10,
+      \"ReplicaProvisionedWriteCapacityAutoScalingSettings\": {
+        \"AutoScalingDisabled\": false,
+        \"AutoScalingRoleArn\": \"string\",
+        \"MaximumUnits\": 20,
+        \"MinimumUnits\": 10,
+        \"ScalingPolicies\": [
+          {
+            \"PolicyName\": \"PolicyName\",
+            \"TargetTrackingScalingPolicyConfiguration\": {
+              \"DisableScaleIn\": false,
+              \"ScaleInCooldown\": 600,
+              \"ScaleOutCooldown\": 600,
+              \"TargetValue\": 70.0
+            }
+          }
+        ]
+      },
+      \"ReplicaProvisionedWriteCapacityUnits\": 10,
+      \"ReplicaStatus\": \"ACTIVE\"
+    }
+  ]
+}",
+    input_tests(Response, Tests).
+
+update_global_table_settings_output_tests(_) ->
+    AutoScalingSettings = #ddb2_auto_scaling_settings_description{auto_scaling_disabled = false,
+                                                                  auto_scaling_role_arn = <<"arn:test">>,
+                                                                  maximum_units = 20,
+                                                                  minimum_units = 10,
+                                                                  scaling_policies = [#ddb2_auto_scaling_policy_description{policy_name = <<"PolicyName">>,
+                                                                                                                            target_tracking_scaling_policy_configuration = #ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description{disable_scale_in = false,
+                                                                                                                                                                                                                                                       scale_in_cooldown = 600,
+                                                                                                                                                                                                                                                       scale_out_cooldown = 600,
+                                                                                                                                                                                                                                                       target_value = 70.0}}]},
+    Tests =
+        [?_ddb_test(
+            {"UpdateGlobalTableSettings example response: update all read/write capacity to static values", "
+{
+  \"GlobalTableName\": \"Thread\",
+  \"ReplicaSettings\": [
+    {
+      \"RegionName\": \"us-west-2\",
+      \"ReplicaBillingModeSummary\": {
+        \"BillingMode\": \"PROVISIONED\",
+        \"LastUpdateToPayPerRequestDateTime\": 1578092745.455
+      },
+      \"ReplicaGlobalSecondaryIndexSettings\": [
+        {
+          \"IndexName\": \"id-index\",
+          \"IndexStatus\": \"ACTIVE\",
+          \"ProvisionedReadCapacityUnits\": 10,
+          \"ProvisionedWriteCapacityUnits\": 10
+        }
+      ],
+      \"ReplicaProvisionedReadCapacityUnits\": 10,
+      \"ReplicaProvisionedWriteCapacityUnits\": 10,
+      \"ReplicaStatus\": \"ACTIVE\"
+    }
+  ]
+}",
+             {ok, [#ddb2_replica_settings_description{region_name = <<"us-west-2">>,
+                                                      replica_billing_mode_summary = #ddb2_billing_mode_summary{billing_mode = provisioned,
+                                                                                                                last_update_to_pay_per_request_date_time = 1578092745.455},
+                                                      replica_global_secondary_index_settings = [#ddb2_replica_global_secondary_index_settings_description{index_name = <<"id-index">>,
+                                                                                                                                                           index_status = active,
+                                                                                                                                                           provisioned_read_capacity_units = 10,
+                                                                                                                                                           provisioned_write_capacity_units = 10}],
+                                                      replica_provisioned_read_capacity_units = 10,
+                                                      replica_provisioned_write_capacity_units = 10,
+                                                      replica_status = active}]}}
+        ),
+         ?_ddb_test(
+             {"UpdateGlobalTableSettings example response: update all read/write capacity to autoscale", "
+{
+  \"GlobalTableName\": \"Thread\",
+  \"ReplicaSettings\": [
+    {
+      \"RegionName\": \"us-west-2\",
+      \"ReplicaBillingModeSummary\": {
+        \"BillingMode\": \"PROVISIONED\",
+        \"LastUpdateToPayPerRequestDateTime\": 1578092745.455
+      },
+      \"ReplicaGlobalSecondaryIndexSettings\": [
+        {
+          \"IndexName\": \"id-index\",
+          \"IndexStatus\": \"ACTIVE\",
+          \"ProvisionedReadCapacityAutoScalingSettings\": {
+            \"AutoScalingDisabled\": false,
+            \"AutoScalingRoleArn\": \"arn:test\",
+            \"MaximumUnits\": 20,
+            \"MinimumUnits\": 10,
+            \"ScalingPolicies\": [
+              {
+                \"PolicyName\": \"PolicyName\",
+                \"TargetTrackingScalingPolicyConfiguration\": {
+                  \"DisableScaleIn\": false,
+                  \"ScaleInCooldown\": 600,
+                  \"ScaleOutCooldown\": 600,
+                  \"TargetValue\": 70.0
+                }
+              }
+            ]
+          },
+          \"ProvisionedWriteCapacityAutoScalingSettings\": {
+            \"AutoScalingDisabled\": false,
+            \"AutoScalingRoleArn\": \"arn:test\",
+            \"MaximumUnits\": 20,
+            \"MinimumUnits\": 10,
+            \"ScalingPolicies\": [
+              {
+                \"PolicyName\": \"PolicyName\",
+                \"TargetTrackingScalingPolicyConfiguration\": {
+                  \"DisableScaleIn\": false,
+                  \"ScaleInCooldown\": 600,
+                  \"ScaleOutCooldown\": 600,
+                  \"TargetValue\": 70.0
+                }
+              }
+            ]
+          },
+        }
+      ],
+      \"ReplicaProvisionedReadCapacityAutoScalingSettings\": {
+        \"AutoScalingDisabled\": false,
+        \"AutoScalingRoleArn\": \"arn:test\",
+        \"MaximumUnits\": 20,
+        \"MinimumUnits\": 10,
+        \"ScalingPolicies\": [
+          {
+            \"PolicyName\": \"PolicyName\",
+            \"TargetTrackingScalingPolicyConfiguration\": {
+              \"DisableScaleIn\": false,
+              \"ScaleInCooldown\": 600,
+              \"ScaleOutCooldown\": 600,
+              \"TargetValue\": 70.0
+            }
+          }
+        ]
+      },
+      \"ReplicaProvisionedWriteCapacityAutoScalingSettings\": {
+        \"AutoScalingDisabled\": false,
+        \"AutoScalingRoleArn\": \"arn:test\",
+        \"MaximumUnits\": 20,
+        \"MinimumUnits\": 10,
+        \"ScalingPolicies\": [
+          {
+            \"PolicyName\": \"PolicyName\",
+            \"TargetTrackingScalingPolicyConfiguration\": {
+              \"DisableScaleIn\": false,
+              \"ScaleInCooldown\": 600,
+              \"ScaleOutCooldown\": 600,
+              \"TargetValue\": 70.0
+            }
+          }
+        ]
+      },
+      \"ReplicaStatus\": \"ACTIVE\"
+    }
+  ]
+}
+
+",
+              {ok, [#ddb2_replica_settings_description{region_name = <<"us-west-2">>,
+                                                       replica_billing_mode_summary = #ddb2_billing_mode_summary{billing_mode = provisioned,
+                                                                                                                 last_update_to_pay_per_request_date_time = 1578092745.455},
+                                                       replica_global_secondary_index_settings = [#ddb2_replica_global_secondary_index_settings_description{index_name = <<"id-index">>,
+                                                                                                                                                            index_status = active,
+                                                                                                                                                            provisioned_read_capacity_auto_scaling_settings = AutoScalingSettings,
+                                                                                                                                                            provisioned_write_capacity_auto_scaling_settings = AutoScalingSettings}],
+                                                       replica_provisioned_read_capacity_auto_scaling_settings = AutoScalingSettings,
+                                                       replica_provisioned_write_capacity_auto_scaling_settings = AutoScalingSettings,
+                                                       replica_status = active}]}}
+         )],
+    output_tests(?_f(erlcloud_ddb2:update_global_table_settings(<<"Thread">>, [])), Tests).
+
 %% UpdateTable test based on the API examples:
 %% http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTable.html
 update_table_input_tests(_) ->
@@ -6025,6 +6860,309 @@ update_table_output_tests(_) ->
         ],
     
     output_tests(?_f(erlcloud_ddb2:update_table(<<"name">>, 5, 15)), Tests).
+
+update_table_replica_auto_scaling_input_tests(_) ->
+    AutoScalingSettingsUpdate = [{auto_scaling_disabled, false},
+                                 {auto_scaling_role_arn, <<"arn:test">>},
+                                 {maximum_units, 20},
+                                 {minimum_units, 10},
+                                 {scaling_policy_update, [{policy_name, <<"PolicyName">>},
+                                                          {target_tracking_scaling_policy_configuration, [{disable_scale_in, false},
+                                                                                                         {scale_in_cooldown, 600},
+                                                                                                         {scale_out_cooldown, 600},
+                                                                                                         {target_value, 70.0}]}]}],
+    Opts = [{global_secondary_index_updates, [[{index_name, <<"id-index">>},
+                                               {provisioned_write_capacity_auto_scaling_update, AutoScalingSettingsUpdate}]]},
+            {provisioned_write_capacity_auto_scaling_update, AutoScalingSettingsUpdate},
+            {replica_updates, [[{region_name, <<"us-west-2">>},
+                                {replica_global_secondary_index_updates, [[{index_name, <<"id-index">>},
+                                                                           {provisioned_read_capacity_auto_scaling_update, AutoScalingSettingsUpdate}]]},
+                                {replica_provisioned_read_capacity_auto_scaling_update, AutoScalingSettingsUpdate}]]}],
+    Tests =
+        [?_ddb_test({"UpdateTableReplicaAutoScaling example request",
+                     ?_f(erlcloud_ddb2:update_table_replica_auto_scaling(<<"Thread">>, Opts)),
+                     "
+{
+  \"GlobalSecondaryIndexUpdates\": [
+    {
+      \"IndexName\": \"id-index\",
+      \"ProvisionedWriteCapacityAutoScalingUpdate\": {
+        \"AutoScalingDisabled\": false,
+        \"AutoScalingRoleArn\": \"arn:test\",
+        \"MaximumUnits\": 20,
+        \"MinimumUnits\": 10,
+        \"ScalingPolicyUpdate\": {
+          \"PolicyName\": \"PolicyName\",
+          \"TargetTrackingScalingPolicyConfiguration\": {
+            \"DisableScaleIn\": false,
+            \"ScaleInCooldown\": 600,
+            \"ScaleOutCooldown\": 600,
+            \"TargetValue\": 70.0
+          }
+        }
+      }
+    }
+  ],
+  \"ProvisionedWriteCapacityAutoScalingUpdate\": {
+    \"AutoScalingDisabled\": false,
+    \"AutoScalingRoleArn\": \"arn:test\",
+    \"MaximumUnits\": 20,
+    \"MinimumUnits\": 10,
+    \"ScalingPolicyUpdate\": {
+      \"PolicyName\": \"PolicyName\",
+      \"TargetTrackingScalingPolicyConfiguration\": {
+        \"DisableScaleIn\": false,
+        \"ScaleInCooldown\": 600,
+        \"ScaleOutCooldown\": 600,
+        \"TargetValue\": 70.0
+      }
+    }
+  },
+  \"ReplicaUpdates\": [
+    {
+      \"RegionName\": \"us-west-2\",
+      \"ReplicaGlobalSecondaryIndexUpdates\": [
+        {
+          \"IndexName\": \"id-index\",
+          \"ProvisionedReadCapacityAutoScalingUpdate\": {
+            \"AutoScalingDisabled\": false,
+            \"AutoScalingRoleArn\": \"arn:test\",
+            \"MaximumUnits\": 20,
+            \"MinimumUnits\": 10,
+            \"ScalingPolicyUpdate\": {
+              \"PolicyName\": \"PolicyName\",
+              \"TargetTrackingScalingPolicyConfiguration\": {
+                \"DisableScaleIn\": false,
+                \"ScaleInCooldown\": 600,
+                \"ScaleOutCooldown\": 600,
+                \"TargetValue\": 70.0
+              }
+            }
+          }
+        }
+      ],
+      \"ReplicaProvisionedReadCapacityAutoScalingUpdate\": {
+        \"AutoScalingDisabled\": false,
+        \"AutoScalingRoleArn\": \"arn:test\",
+        \"MaximumUnits\": 20,
+        \"MinimumUnits\": 10,
+        \"ScalingPolicyUpdate\": {
+          \"PolicyName\": \"PolicyName\",
+          \"TargetTrackingScalingPolicyConfiguration\": {
+            \"DisableScaleIn\": false,
+            \"ScaleInCooldown\": 600,
+            \"ScaleOutCooldown\": 600,
+            \"TargetValue\": 70.0
+          }
+        }
+      }
+    }
+  ],
+  \"TableName\": \"Thread\"
+}
+
+"})],
+
+    Response = "
+{
+  \"TableAutoScalingDescription\": {
+    \"Replicas\": [
+      {
+        \"GlobalSecondaryIndexes\": [
+          {
+            \"IndexName\": \"id-index\",
+            \"IndexStatus\": \"ACTIVE\",
+            \"ProvisionedReadCapacityAutoScalingSettings\": {
+              \"AutoScalingDisabled\": false,
+              \"AutoScalingRoleArn\": \"arn:test\",
+              \"MaximumUnits\": 20,
+              \"MinimumUnits\": 10,
+              \"ScalingPolicies\": [
+                {
+                  \"PolicyName\": \"PolicyName\",
+                  \"TargetTrackingScalingPolicyConfiguration\": {
+                    \"DisableScaleIn\": false,
+                    \"ScaleInCooldown\": 600,
+                    \"ScaleOutCooldown\": 600,
+                    \"TargetValue\": 70.0
+                  }
+                }
+              ]
+            },
+            \"ProvisionedWriteCapacityAutoScalingSettings\": {
+              \"AutoScalingDisabled\": false,
+              \"AutoScalingRoleArn\": \"arn:test\",
+              \"MaximumUnits\": 20,
+              \"MinimumUnits\": 10,
+              \"ScalingPolicies\": [
+                {
+                  \"PolicyName\": \"PolicyName\",
+                  \"TargetTrackingScalingPolicyConfiguration\": {
+                    \"DisableScaleIn\": false,
+                    \"ScaleInCooldown\": 600,
+                    \"ScaleOutCooldown\": 600,
+                    \"TargetValue\": 70.0
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        \"RegionName\": \"us-west-2\",
+        \"ReplicaProvisionedReadCapacityAutoScalingSettings\": {
+          \"AutoScalingDisabled\": false,
+          \"AutoScalingRoleArn\": \"arn:test\",
+          \"MaximumUnits\": 20,
+          \"MinimumUnits\": 10,
+          \"ScalingPolicies\": [
+            {
+              \"PolicyName\": \"PolicyName\",
+              \"TargetTrackingScalingPolicyConfiguration\": {
+                \"DisableScaleIn\": false,
+                \"ScaleInCooldown\": 600,
+                \"ScaleOutCooldown\": 600,
+                \"TargetValue\": 70.0
+              }
+            }
+          ]
+        },
+        \"ReplicaProvisionedWriteCapacityAutoScalingSettings\": {
+          \"AutoScalingDisabled\": false,
+          \"AutoScalingRoleArn\": \"arn:test\",
+          \"MaximumUnits\": 20,
+          \"MinimumUnits\": 10,
+          \"ScalingPolicies\": [
+            {
+              \"PolicyName\": \"PolicyName\",
+              \"TargetTrackingScalingPolicyConfiguration\": {
+                \"DisableScaleIn\": false,
+                \"ScaleInCooldown\": 600,
+                \"ScaleOutCooldown\": 600,
+                \"TargetValue\": 70.0
+              }
+            }
+          ]
+        },
+        \"ReplicaStatus\": \"ACTIVE\"
+      }
+    ],
+    \"TableName\": \"Thread\",
+    \"TableStatus\": \"ACTIVE\"
+  }
+}",
+    input_tests(Response, Tests).
+
+update_table_replica_auto_scaling_output_tests(_) ->
+    AutoScalingSettings = #ddb2_auto_scaling_settings_description{auto_scaling_disabled = false,
+                                                                  auto_scaling_role_arn = <<"arn:test">>,
+                                                                  maximum_units = 20,
+                                                                  minimum_units = 10,
+                                                                  scaling_policies = [#ddb2_auto_scaling_policy_description{policy_name = <<"PolicyName">>,
+                                                                                                                            target_tracking_scaling_policy_configuration = #ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description{disable_scale_in = false,
+                                                                                                                                                                                                                                                       scale_in_cooldown = 600,
+                                                                                                                                                                                                                                                       scale_out_cooldown = 600,
+                                                                                                                                                                                                                                                       target_value = 70.0}}]},
+    Tests =
+        [?_ddb_test(
+            {"UpdateTableReplicaAutoScaling example", "
+{
+  \"TableAutoScalingDescription\": {
+    \"Replicas\": [
+      {
+        \"GlobalSecondaryIndexes\": [
+          {
+            \"IndexName\": \"id-index\",
+            \"IndexStatus\": \"ACTIVE\",
+            \"ProvisionedReadCapacityAutoScalingSettings\": {
+              \"AutoScalingDisabled\": false,
+              \"AutoScalingRoleArn\": \"arn:test\",
+              \"MaximumUnits\": 20,
+              \"MinimumUnits\": 10,
+              \"ScalingPolicies\": [
+                {
+                  \"PolicyName\": \"PolicyName\",
+                  \"TargetTrackingScalingPolicyConfiguration\": {
+                    \"DisableScaleIn\": false,
+                    \"ScaleInCooldown\": 600,
+                    \"ScaleOutCooldown\": 600,
+                    \"TargetValue\": 70.0
+                  }
+                }
+              ]
+            },
+            \"ProvisionedWriteCapacityAutoScalingSettings\": {
+              \"AutoScalingDisabled\": false,
+              \"AutoScalingRoleArn\": \"arn:test\",
+              \"MaximumUnits\": 20,
+              \"MinimumUnits\": 10,
+              \"ScalingPolicies\": [
+                {
+                  \"PolicyName\": \"PolicyName\",
+                  \"TargetTrackingScalingPolicyConfiguration\": {
+                    \"DisableScaleIn\": false,
+                    \"ScaleInCooldown\": 600,
+                    \"ScaleOutCooldown\": 600,
+                    \"TargetValue\": 70.0
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        \"RegionName\": \"us-west-2\",
+        \"ReplicaProvisionedReadCapacityAutoScalingSettings\": {
+          \"AutoScalingDisabled\": false,
+          \"AutoScalingRoleArn\": \"arn:test\",
+          \"MaximumUnits\": 20,
+          \"MinimumUnits\": 10,
+          \"ScalingPolicies\": [
+            {
+              \"PolicyName\": \"PolicyName\",
+              \"TargetTrackingScalingPolicyConfiguration\": {
+                \"DisableScaleIn\": false,
+                \"ScaleInCooldown\": 600,
+                \"ScaleOutCooldown\": 600,
+                \"TargetValue\": 70.0
+              }
+            }
+          ]
+        },
+        \"ReplicaProvisionedWriteCapacityAutoScalingSettings\": {
+          \"AutoScalingDisabled\": false,
+          \"AutoScalingRoleArn\": \"arn:test\",
+          \"MaximumUnits\": 20,
+          \"MinimumUnits\": 10,
+          \"ScalingPolicies\": [
+            {
+              \"PolicyName\": \"PolicyName\",
+              \"TargetTrackingScalingPolicyConfiguration\": {
+                \"DisableScaleIn\": false,
+                \"ScaleInCooldown\": 600,
+                \"ScaleOutCooldown\": 600,
+                \"TargetValue\": 70.0
+              }
+            }
+          ]
+        },
+        \"ReplicaStatus\": \"ACTIVE\"
+      }
+    ],
+    \"TableName\": \"Thread\",
+    \"TableStatus\": \"ACTIVE\"
+  }
+}",
+             {ok, #ddb2_table_auto_scaling_description{replicas = [#ddb2_replica_auto_scaling_description{global_secondary_indexes = [#ddb2_replica_global_secondary_index_auto_scaling_description{index_name = <<"id-index">>,
+                                                                                                                                                                                                    index_status = active,
+                                                                                                                                                                                                    provisioned_read_capacity_auto_scaling_settings = AutoScalingSettings,
+                                                                                                                                                                                                    provisioned_write_capacity_auto_scaling_settings = AutoScalingSettings}],
+                                                                                                          region_name = <<"us-west-2">>,
+                                                                                                          replica_provisioned_read_capacity_auto_scaling_settings = AutoScalingSettings,
+                                                                                                          replica_provisioned_write_capacity_auto_scaling_settings = AutoScalingSettings,
+                                                                                                          replica_status = active}],
+                                                       table_name = <<"Thread">>,
+                                                       table_status = active}}
+})],
+    output_tests(?_f(erlcloud_ddb2:update_table_replica_auto_scaling(<<"Thread">>, [])), Tests).
 
 %% UpdateTimeToLive test:
 update_time_to_live_input_tests(_) ->

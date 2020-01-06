@@ -16,15 +16,77 @@
 
 -type date_time() :: number().
 -type global_table_status() :: creating | active | deleting | updating.
+-type replica_status() :: creating | active | deleting | active.
 -type table_status() :: creating | updating | deleting | active.
 -type backup_status() :: creating | deleted | available.
 -type index_status() :: creating | updating | deleting | active.
 -type continuous_backups_status() :: enabled | disabled.
 -type point_in_time_recovery_status() :: enabling | enabled | disabled.
 
+-record(ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description,
+        {target_value :: undefined | number(),
+         disable_scale_in :: undefined | boolean(),
+         scale_in_cooldown :: undefined | number(),
+         scale_out_cooldown :: undefined | number()}).
+
+-record(ddb2_auto_scaling_policy_description,
+        {policy_name :: undefined | binary(),
+         target_tracking_scaling_policy_configuration :: undefined | #ddb2_auto_scaling_target_tracking_scaling_policy_configuration_description{}}).
+
+-record(ddb2_auto_scaling_settings_description,
+        {auto_scaling_disabled :: undefined | boolean(),
+         auto_scaling_role_arn :: undefined | binary(),
+         maximum_units :: undefined | pos_integer(),
+         minimum_units :: undefined | pos_integer(),
+         scaling_policies :: undefined | [#ddb2_auto_scaling_policy_description{}]}).
+
+-record(ddb2_provisioned_throughput_override,
+        {read_capacity_units :: undefined | pos_integer()}).
+
+-record(ddb2_replica_global_secondary_index_description,
+        {index_name :: undefined | binary(),
+         provisioned_throughput_override :: undefined | #ddb2_provisioned_throughput_override{}}).
+
+-record(ddb2_replica_auto_scaling_description,
+        {global_secondary_indexes :: undefined | [#ddb2_replica_global_secondary_index_description{}],
+         region_name :: undefined | binary(),
+         replica_provisioned_read_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{},
+         replica_provisioned_write_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{},
+         replica_status :: undefined | replica_status()}).
+
 -record(ddb2_replica_description,
-        {region_name :: undefined | binary()
+        {global_secondary_indexes :: undefined | [#ddb2_replica_global_secondary_index_description{}],
+         kms_master_key_id :: undefined | binary(),
+         provisioned_throughput_override :: undefined | #ddb2_provisioned_throughput_override{},
+         region_name :: undefined | binary(),
+         replica_status :: undefined | replica_status(),
+         replica_status_description :: undefined | binary(),
+         replica_status_percent_progress :: undefined | binary()
         }).
+
+-record(ddb2_replica_global_secondary_index_settings_description,
+        {index_name :: undefined | binary(),
+         index_status :: undefined | index_status(),
+         provisioned_read_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{},
+         provisioned_read_capacity_units :: undefined | pos_integer(),
+         provisioned_write_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{},
+         provisioned_write_capacity_units :: undefined | pos_integer()}).
+
+-record(ddb2_replica_global_secondary_index_auto_scaling_description,
+        {index_name :: undefined | binary(),
+         index_status :: undefined | binary(),
+         provisioned_read_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{},
+         provisioned_write_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{}}).
+
+-record(ddb2_replica_settings_description,
+        {region_name :: undefined | binary(),
+         replica_billing_mode_summary :: undefined | binary(),
+         replica_global_secondary_index_settings :: undefined | [#ddb2_replica_global_secondary_index_settings_description{}],
+         replica_provisioned_read_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{},
+         replica_provisioned_read_capacity_units :: undefined | number(),
+         replica_provisioned_write_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{},
+         replica_provisioned_write_capacity_units :: undefined | number(),
+         replica_status :: undefined | replica_status()}).
 
 -record(ddb2_global_table_description,
         {creation_date_time :: undefined | number(),
@@ -88,12 +150,14 @@
          billing_mode_summary :: undefined | #ddb2_billing_mode_summary{},
          creation_date_time :: undefined | number(),
          global_secondary_indexes :: undefined | [#ddb2_global_secondary_index_description{}],
+         global_table_version :: undefined | binary(),
          item_count :: undefined | integer(),
          key_schema :: undefined | erlcloud_ddb2:key_schema(),
          latest_stream_arn :: undefined | binary(),
          latest_stream_label :: undefined | binary(),
          local_secondary_indexes :: undefined | [#ddb2_local_secondary_index_description{}],
          provisioned_throughput :: undefined | #ddb2_provisioned_throughput_description{},
+         replicas :: undefined | [#ddb2_replica_description{}],
          restore_summary :: undefined | #ddb2_restore_summary{},
          sse_description :: undefined | erlcloud_ddb2:sse_description(),
          stream_specification :: undefined | erlcloud_ddb2:stream_specification(),
@@ -102,6 +166,11 @@
          table_size_bytes :: undefined | integer(),
          table_status :: undefined | table_status()
         }).
+
+-record(ddb2_table_auto_scaling_description,
+        {replicas :: undefined,
+         table_name :: undefined | binary(),
+         table_status :: undefined | table_status()}).
 
 -record(ddb2_consumed_capacity,
         {capacity_units :: undefined | number(),
@@ -155,6 +224,10 @@
         {global_table_description :: undefined | #ddb2_global_table_description{}
         }).
 
+-record(ddb2_describe_global_table_settings,
+        {global_table_name :: undefined | binary(),
+         replica_settings :: undefined | [#ddb2_replica_settings_description{}]}).
+
 -record(ddb2_describe_limits,
         {account_max_read_capacity_units :: undefined | pos_integer(),
          account_max_write_capacity_units :: undefined | pos_integer(),
@@ -165,6 +238,9 @@
 -record(ddb2_describe_table,
         {table :: undefined | #ddb2_table_description{}
         }).
+
+-record(ddb2_describe_table_replica_auto_scaling,
+        {table_auto_scaling_description :: undefined}).
 
 -record(ddb2_time_to_live_description,
         {attribute_name :: undefined | erlcloud_ddb2:attr_name(),
@@ -226,9 +302,16 @@
         {global_table_description :: undefined | #ddb2_global_table_description{}
         }).
 
+-record(ddb2_update_global_table_settings,
+        {global_table_name :: undefined | binary(),
+         replica_settings :: undefined | [#ddb2_replica_settings_description{}]}).
+
 -record(ddb2_update_table,
         {table_description :: undefined | #ddb2_table_description{}
         }).
+
+-record(ddb2_update_table_replica_auto_scaling,
+        {table_auto_scaling_description :: undefined | #ddb2_table_auto_scaling_description{}}).
 
 -record(ddb2_time_to_live_specification, 
         {attribute_name :: undefined | erlcloud_ddb2:attr_name(),
