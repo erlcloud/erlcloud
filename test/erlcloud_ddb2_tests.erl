@@ -2928,6 +2928,7 @@ describe_table_input_tests(_) ->
             }
         ],
         \"CreationDateTime\": 1.363729002358E9,
+        \"GlobalTableVersion\": \"2019.11.21\",
         \"ItemCount\": 0,
         \"KeySchema\": [
             {
@@ -2957,6 +2958,16 @@ describe_table_input_tests(_) ->
                 \"Projection\": {
                     \"ProjectionType\": \"KEYS_ONLY\"
                 }
+            }
+        ],
+        \"Replicas\": [
+            {
+                \"RegionName\": \"us-west-2\",
+                \"ReplicaStatus\": \"ACTIVE\",
+            },
+            {
+                \"RegionName\": \"eu-west-2\",
+                \"ReplicaStatus\": \"ACTIVE\"
             }
         ],
         \"ProvisionedThroughput\": {
@@ -3023,6 +3034,7 @@ describe_table_output_tests(_) ->
             }
         ],          
         \"CreationDateTime\": 1.363729002358E9,
+        \"GlobalTableVersion\": \"2019.11.21\",
         \"ItemCount\": 0,
         \"KeySchema\": [
             {
@@ -3054,6 +3066,16 @@ describe_table_output_tests(_) ->
                 }
             }
         ],
+        \"Replicas\": [
+            {
+                \"RegionName\": \"us-west-2\",
+                \"ReplicaStatus\": \"ACTIVE\",
+            },
+            {
+                \"RegionName\": \"eu-west-2\",
+                \"ReplicaStatus\": \"ACTIVE\"
+            }
+        ],
         \"ProvisionedThroughput\": {
             \"NumberOfDecreasesToday\": 0,
             \"ReadCapacityUnits\": 5,
@@ -3069,6 +3091,7 @@ describe_table_output_tests(_) ->
                                         {<<"LastPostDateTime">>, s},
                                         {<<"Subject">>, s}],
                creation_date_time = 1363729002.358,
+               global_table_version = <<"2019.11.21">>,
                item_count = 0,
                key_schema = {<<"ForumName">>, <<"Subject">>},
                local_secondary_indexes =
@@ -3100,6 +3123,10 @@ describe_table_output_tests(_) ->
                       number_of_decreases_today = 0,
                       read_capacity_units = 5,
                       write_capacity_units = 5},
+               replicas = [#ddb2_replica_description{region_name = <<"us-west-2">>,
+                                                     replica_status = active},
+                           #ddb2_replica_description{region_name = <<"eu-west-2">>,
+                                                     replica_status = active}],
                table_name = <<"Thread">>,
                table_size_bytes = 0,
                table_status = active}}})
