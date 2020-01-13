@@ -20,6 +20,7 @@
          request_to_return/1,
          sign_v4_headers/5,
          sign_v4/8,
+         sign_v4_url/8,
          get_service_status/1,
          is_throttling_error_response/1,
          get_timeout/1,
@@ -1003,6 +1004,30 @@ sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams) ->
     Authorization = authorization(Config, CredentialScope, SignedHeaders, Signature),
     [{"Authorization", lists:flatten(Authorization)} | Headers2].
 
+%% https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
+-spec sign_v4_url(atom(), list(), aws_config(), string(), string(), string(), list(), integer()) -> string().
+sign_v4_url(Method, Uri, Config, Host, Region, Service, QueryParams, ExpireTime) ->
+    Date = iso_8601_basic_time(),
+    CredentialScope = credential_scope(Date, Region, Service),
+    Creds = lists:flatten([Config#aws_config.access_key_id, $/, CredentialScope]),
+    NewQueryParams = add_auth_params(QueryParams, Date, ExpireTime, Creds),
+
+    %% host is the only "required" header.
+    Headers = [{"host", Host}],
+
+    %% Payload is not signed.
+    PayloadHash = "UNSIGNED-PAYLOAD",
+
+    {Request, _} = canonical_request(Method, Uri, NewQueryParams, Headers, PayloadHash),
+    ToSign = to_sign(Date, CredentialScope, Request),
+    SigningKey = signing_key(Config, Date, Region, Service),
+    Signature = base16(erlcloud_util:sha256_mac( SigningKey, ToSign)),
+
+    %% Complete url to be returned.
+    lists:flatten(["https://", Host, Uri, "?",
+                   canonical_query_string(NewQueryParams), "&", 
+                   "X-Amz-Signature", "=", Signature]).
+
 iso_8601_basic_time() ->
     {{Year,Month,Day},{Hour,Min,Sec}} = calendar:universal_time(),
     lists:flatten([
@@ -1053,6 +1078,13 @@ canonical_query_string(Params) ->
                      _ -> [Key, "=", Value]
                  end
                  || {Key, Value} <- Sorted, Value =/= none, Value =/= undefined], "&").
+
+add_auth_params(QueryParams, Date, ExpireTime, Creds) ->
+    [{"X-Amz-Algorithm", "AWS4-HMAC-SHA256"},
+     {"X-Amz-Date", Date},
+     {"X-Amz-Expires", integer_to_list(ExpireTime)},
+     {"X-Amz-SignedHeaders", "host"},
+     {"X-Amz-Credential", Creds} | QueryParams].
 
 trimall(Value) ->
     %% TODO - remove excess internal whitespace in header values

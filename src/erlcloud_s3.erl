@@ -38,6 +38,7 @@
          list_multipart_uploads/1, list_multipart_uploads/2, list_multipart_uploads/4,
          get_object_url/2, get_object_url/3,
          get_bucket_and_key/1,
+         aws_region_from_host/1,
          list_bucket_inventory/1, list_bucket_inventory/2, list_bucket_inventory/3,
          get_bucket_inventory/2, get_bucket_inventory/3,
          put_bucket_inventory/2, put_bucket_inventory/3,
@@ -1956,6 +1957,8 @@ port_spec(#aws_config{s3_port=Port}) ->
 
 %% Extract region form s3 endpoint names.
 %% http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region
+-spec aws_region_from_host(string()) -> string().
+
 aws_region_from_host(Host) ->
     case string:tokens(Host, ".") of
         %% s3.cn-north-1.amazonaws.com.cn
