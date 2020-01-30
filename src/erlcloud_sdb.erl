@@ -59,29 +59,29 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 
 default_config() -> erlcloud_aws:default_config().
 
--spec create_domain(string()) -> proplist() | no_return().
+-spec create_domain(string()) -> proplist().
 create_domain(Name) ->
     create_domain(Name, default_config()).
 
--spec create_domain(string(), aws_config()) -> proplist() | no_return().
+-spec create_domain(string(), aws_config()) -> proplist().
 create_domain(Name, Config)
   when is_list(Name) ->
     sdb_simple_request(Config, "CreateDomain", [{"DomainName", Name}]).
 
--spec delete_domain(string()) -> proplist() | no_return().
+-spec delete_domain(string()) -> proplist().
 delete_domain(Name) ->
     delete_domain(Name, default_config()).
 
--spec delete_domain(string(), aws_config()) -> proplist() | no_return().
+-spec delete_domain(string(), aws_config()) -> proplist().
 delete_domain(Name, Config)
   when is_list(Name) ->
     sdb_simple_request(Config, "DeleteDomain", [{"DomainName", Name}]).
 
--spec domain_metadata(string()) -> proplist() | no_return().
+-spec domain_metadata(string()) -> proplist().
 domain_metadata(Name) ->
     domain_metadata(Name, default_config()).
 
--spec domain_metadata(string(), aws_config()) -> proplist() | no_return().
+-spec domain_metadata(string(), aws_config()) -> proplist().
 domain_metadata(Name, Config)
   when is_list(Name) ->
     {Doc, Result} = sdb_request(Config, "DomainMetadata", [{"DomainName", Name}]),
@@ -97,36 +97,36 @@ domain_metadata(Name, Config)
                                    ], MR),
     [{domain_metadata, Metadata}|Result].
 
--spec batch_put_attributes(string(), [{string(), sdb_attributes()}]) -> proplist() | no_return().
+-spec batch_put_attributes(string(), [{string(), sdb_attributes()}]) -> proplist().
 batch_put_attributes(DomainName, Items) ->
     batch_put_attributes(DomainName, Items, default_config()).
 
--spec batch_put_attributes(string(), [{string(), sdb_attributes()}], aws_config()) -> proplist() | no_return().
+-spec batch_put_attributes(string(), [{string(), sdb_attributes()}], aws_config()) -> proplist().
 batch_put_attributes(DomainName, Items, Config)
   when is_list(DomainName), is_list(Items) ->
     ItemParams = [[{"ItemName", Name}|attributes_list(Attrs)] || {Name, Attrs} <- Items],
     sdb_simple_request(Config, "BatchPutAttributes",
                        [{"DomainName", DomainName}|erlcloud_aws:param_list(ItemParams, "Item")]).
 
--spec delete_attributes(string(), string()) -> proplist() | no_return().
+-spec delete_attributes(string(), string()) -> proplist().
 delete_attributes(DomainName, ItemName) ->
     delete_attributes(DomainName, ItemName, []).
 
--spec delete_attributes(string(), string(), sdb_delete_attributes() | aws_config()) -> proplist() | no_return().
+-spec delete_attributes(string(), string(), sdb_delete_attributes() | aws_config()) -> proplist().
 delete_attributes(DomainName, ItemName, Config)
   when is_record(Config, aws_config) ->
     delete_attributes(DomainName, ItemName, [], Config);
 delete_attributes(DomainName, ItemName, Attributes) ->
     delete_attributes(DomainName, ItemName, Attributes, []).
 
--spec delete_attributes(string(), string(), sdb_delete_attributes(), sdb_conditionals() | aws_config()) -> proplist() | no_return().
+-spec delete_attributes(string(), string(), sdb_delete_attributes(), sdb_conditionals() | aws_config()) -> proplist().
 delete_attributes(DomainName, ItemName, Attributes, Config)
   when is_record(Config, aws_config) ->
     delete_attributes(DomainName, ItemName, Attributes, [], Config);
 delete_attributes(DomainName, ItemName, Attributes, Conditionals) ->
     delete_attributes(DomainName, ItemName, Attributes, Conditionals, default_config()).
 
--spec delete_attributes(string(), string(), sdb_delete_attributes(), sdb_conditionals(), aws_config()) -> proplist() | no_return().
+-spec delete_attributes(string(), string(), sdb_delete_attributes(), sdb_conditionals(), aws_config()) -> proplist().
 delete_attributes(DomainName, ItemName, Attributes, Conditionals, Config)
   when is_list(DomainName), is_list(ItemName), is_list(Attributes),
        is_list(Conditionals) ->
@@ -134,11 +134,11 @@ delete_attributes(DomainName, ItemName, Attributes, Conditionals, Config)
               delete_attributes_list(Attributes)] ++ conditionals_list(Conditionals),
     sdb_simple_request(Config, "DeleteAttributes", Params).
 
--spec get_attributes(string(), string()) -> proplist() | no_return().
+-spec get_attributes(string(), string()) -> proplist().
 get_attributes(DomainName, ItemName) ->
     get_attributes(DomainName, ItemName, []).
 
--spec get_attributes(string(), string(), [string()] | boolean() | aws_config()) -> proplist() | no_return().
+-spec get_attributes(string(), string(), [string()] | boolean() | aws_config()) -> proplist().
 get_attributes(DomainName, ItemName, Config)
   when is_record(Config, aws_config) ->
     get_attributes(DomainName, ItemName, [], Config);
@@ -148,7 +148,7 @@ get_attributes(DomainName, ItemName, ConsistentRead)
 get_attributes(DomainName, ItemName, AttributeNames) ->
     get_attributes(DomainName, ItemName, AttributeNames, false).
 
--spec get_attributes(string(), string(), [string()], boolean() | aws_config()) -> proplist() | no_return().
+-spec get_attributes(string(), string(), [string()], boolean() | aws_config()) -> proplist().
 get_attributes(DomainName, ItemName, AttributeNames, Config)
   when is_record(Config, aws_config) ->
     get_attributes(DomainName, ItemName, AttributeNames, false, Config);
@@ -156,7 +156,7 @@ get_attributes(DomainName, ItemName, AttributeNames, ConsistentRead) ->
     get_attributes(DomainName, ItemName, AttributeNames, ConsistentRead,
                    default_config()).
 
--spec get_attributes(string(), string(), [string()], boolean(), aws_config()) -> proplist() | no_return().
+-spec get_attributes(string(), string(), [string()], boolean(), aws_config()) -> proplist().
 get_attributes(DomainName, ItemName, AttributeNames, ConsistentRead, Config) ->
     {Doc, Result} = sdb_request(Config, "GetAttributes",
                                 [{"DomainName", DomainName}, {"ItemName", ItemName},
@@ -172,11 +172,11 @@ extract_attributes(Attributes) ->
 extract_attribute(Node) ->
     {erlcloud_xml:get_text("Name", Node), erlcloud_xml:get_text("Value", Node)}.
 
--spec list_domains() -> proplist() | no_return().
+-spec list_domains() -> proplist().
 list_domains() ->
     list_domains(default_config()).
 
--spec list_domains(string() | 1..100 | none | aws_config()) -> proplist() | no_return().
+-spec list_domains(string() | 1..100 | none | aws_config()) -> proplist().
 list_domains(Config) when is_record(Config, aws_config) ->
     list_domains("", Config);
 list_domains(MaxDomains) when is_integer(MaxDomains); MaxDomains =:= none ->
@@ -184,7 +184,7 @@ list_domains(MaxDomains) when is_integer(MaxDomains); MaxDomains =:= none ->
 list_domains(FirstToken) ->
     list_domains(FirstToken, none).
 
--spec list_domains(string(), 1..100 | none | aws_config()) -> proplist() | no_return().
+-spec list_domains(string(), 1..100 | none | aws_config()) -> proplist().
 list_domains(FirstToken, Config) when is_record(Config, aws_config) ->
     list_domains(FirstToken, none, Config);
 list_domains(FirstToken, MaxDomains) ->
@@ -200,13 +200,13 @@ maybe_add_nexttoken([], Params) ->
 maybe_add_nexttoken(Token, Params) ->
     [{"NextToken", Token} | Params].
 
--spec list_domains(string(), 1..100 | none, aws_config()) -> proplist() | no_return().
+-spec list_domains(string(), 1..100 | none, aws_config()) -> proplist().
 list_domains(FirstToken, MaxDomains, Config)
   when is_list(FirstToken),
        is_integer(MaxDomains) orelse MaxDomains =:= none ->
 
-    Params = 
-    maybe_add_nexttoken(FirstToken, 
+    Params =
+    maybe_add_nexttoken(FirstToken,
     maybe_add_maxdomains(MaxDomains, [])),
 
     {Doc, Result} = sdb_request(Config, "ListDomains", Params),
@@ -214,18 +214,18 @@ list_domains(FirstToken, MaxDomains, Config)
     [{domains, erlcloud_xml:get_list("/ListDomainsResponse/ListDomainsResult/DomainName", Doc)},
      {next_token, erlcloud_xml:get_text("/ListDomainsResponse/ListDomainsResult/NextToken", Doc)}|Result].
 
--spec put_attributes(string(), string(), sdb_attributes()) -> proplist() | no_return().
+-spec put_attributes(string(), string(), sdb_attributes()) -> proplist().
 put_attributes(DomainName, ItemName, Attributes) ->
     put_attributes(DomainName, ItemName, Attributes, []).
 
--spec put_attributes(string(), string(), sdb_attributes(), sdb_conditionals() | aws_config()) -> proplist() | no_return().
+-spec put_attributes(string(), string(), sdb_attributes(), sdb_conditionals() | aws_config()) -> proplist().
 put_attributes(DomainName, ItemName, Attributes, Config)
   when is_record(Config, aws_config) ->
     put_attributes(DomainName, ItemName, Attributes, [], Config);
 put_attributes(DomainName, ItemName, Attributes, Conditionals) ->
     put_attributes(DomainName, ItemName, Attributes, Conditionals, default_config()).
 
--spec put_attributes(string(), string(), sdb_attributes(), sdb_conditionals(), aws_config()) -> proplist() | no_return().
+-spec put_attributes(string(), string(), sdb_attributes(), sdb_conditionals(), aws_config()) -> proplist().
 put_attributes(DomainName, ItemName, Attributes, Conditionals, Config)
   when is_list(DomainName), is_list(ItemName), is_list(Attributes),
        is_list(Conditionals) ->
@@ -236,10 +236,10 @@ put_attributes(DomainName, ItemName, Attributes, Conditionals, Config)
 %% These functions will return the first page of results along with
 %% a token to retrieve the next page, if any.
 
--spec select(string()) -> proplist() | no_return().
+-spec select(string()) -> proplist().
 select(SelectExpression) -> select(SelectExpression, none).
 
--spec select(string(), string() | none | boolean() | aws_config()) -> proplist() | no_return().
+-spec select(string(), string() | none | boolean() | aws_config()) -> proplist().
 select(SelectExpression, Config)
   when is_record(Config, aws_config) ->
     select(SelectExpression, none, Config);
@@ -249,14 +249,14 @@ select(SelectExpression, ConsistentRead)
 select(SelectExpression, NextToken) ->
     select(SelectExpression, NextToken, false).
 
--spec select(string(), string() | none, boolean() | aws_config()) -> proplist() | no_return().
+-spec select(string(), string() | none, boolean() | aws_config()) -> proplist().
 select(SelectExpression, NextToken, Config)
   when is_record(Config, aws_config) ->
     select(SelectExpression, NextToken, false, Config);
 select(SelectExpression, NextToken, ConsistentRead) ->
     select(SelectExpression, NextToken, ConsistentRead, default_config()).
 
--spec select(string(), string() | none, boolean(), aws_config()) -> proplist() | no_return().
+-spec select(string(), string() | none, boolean(), aws_config()) -> proplist().
 select(SelectExpression, NextToken, ConsistentRead, Config)
   when is_list(SelectExpression),
        is_list(NextToken) orelse NextToken =:= none,
@@ -274,24 +274,24 @@ select(SelectExpression, NextToken, ConsistentRead, Config)
 %% These functions will make multiple requests until all
 %% pages of results have been consumed.
 
--spec select_all(string()) -> proplist() | no_return().
+-spec select_all(string()) -> proplist().
 select_all(SelectExpression) ->
     select_all(SelectExpression, false).
 
--spec select_all(string(), boolean()) -> proplist() | no_return().
+-spec select_all(string(), boolean()) -> proplist().
 select_all(SelectExpression, ConsistentRead)
     when is_boolean(ConsistentRead) ->
     select_all(SelectExpression, ConsistentRead, default_config());
 select_all(SelectExpression, Config) ->
     select_all(SelectExpression, false, Config).
 
--spec select_all(string(), boolean(), aws_config()) -> proplist() | no_return().
+-spec select_all(string(), boolean(), aws_config()) -> proplist().
 select_all(SelectExpression, ConsistentRead, Config)
   when is_list(SelectExpression),
        is_boolean(ConsistentRead) ->
     select_all(SelectExpression, none, ConsistentRead, Config, [], []).
 
--spec select_all(string(), string() | none | done, boolean(), aws_config(), proplist(), proplist()) -> proplist() | no_return().
+-spec select_all(string(), string() | none | done, boolean(), aws_config(), proplist(), proplist()) -> proplist().
 select_all(_, done, _, _, Items, Metadata) ->
     [{items, Items}|Metadata];
 select_all(SelectExpression, NextToken, ConsistentRead, Config, Items, Metadata) ->

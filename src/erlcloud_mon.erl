@@ -59,7 +59,7 @@
         MetricName      ::string(),
         DimensionFilter ::[{string(),string()}],
         NextToken       ::string()
-                          ) -> term() | no_return().
+                          ) -> term().
 
 list_metrics(
   Namespace,
@@ -75,7 +75,7 @@ list_metrics(
         DimensionFilter ::[{string(),string()}],
         NextToken       ::string(),
         Config          ::aws_config()
-                          ) -> term() | no_return().
+                          ) -> term().
 
 list_metrics(
   Namespace,
@@ -321,7 +321,7 @@ extract_actions_dafm(Node) ->
 -spec put_metric_data(
         Namespace   ::string(),
         MetricData  ::[metric_datum()]
-                      ) -> term() | no_return().
+                      ) -> term().
 
 put_metric_data(Namespace, MetricData) ->
     put_metric_data(Namespace, MetricData, default_config()).
@@ -330,7 +330,7 @@ put_metric_data(Namespace, MetricData) ->
         Namespace   ::string(),
         MetricData  ::[metric_datum()],
         Config      ::aws_config()
-                      ) -> term() | no_return().
+                      ) -> term().
 
 put_metric_data(Namespace, MetricData, #aws_config{} = Config) ->
 
@@ -407,7 +407,7 @@ params_stat(Prefix, StatisticValues) ->
         Value       ::string(),
         Unit        ::unit(),
         Timestamp   ::datetime()|string()
-                      ) -> term() | no_return().
+                      ) -> term().
 
 put_metric_data(Namespace, MetricName, Value, Unit, Timestamp) ->
     put_metric_data(Namespace, MetricName, Value, Unit, Timestamp, default_config()).
@@ -419,7 +419,7 @@ put_metric_data(Namespace, MetricName, Value, Unit, Timestamp) ->
         Unit        ::unit(),
         Timestamp   ::datetime()|string(),
         Config      ::aws_config()
-                      ) -> term() | no_return().
+                      ) -> term().
 
 put_metric_data(Namespace, MetricName, Value, Unit, Timestamp, #aws_config{} = Config) ->
     Params =
@@ -437,7 +437,7 @@ put_metric_data(Namespace, MetricName, Value, Unit, Timestamp, #aws_config{} = C
 
 %%------------------------------------------------------------------------------
 %% @doc CloudWatch API - GetMetricStatistics - Easy average version
-%% Gets average and max stats at 60 second intervals for 
+%% Gets average and max stats at 60 second intervals for
 %% the given metric on the given instance for the given interval
 %% @end
 %%------------------------------------------------------------------------------
@@ -446,7 +446,7 @@ put_metric_data(Namespace, MetricName, Value, Unit, Timestamp, #aws_config{} = C
         StartTime   ::datetime() | string(),
         EndTime     ::datetime() | string(),
         InstanceId  ::string()
-       ) -> term() | no_return().
+       ) -> term().
 
 get_metric_statistics(
   MetricName,
@@ -478,8 +478,8 @@ get_metric_statistics(
 %%    "Percent",
 %%    ["Average", "Maximum"],
 %%    [{"InstanceType", "t2.micro"}]).
-%%                                     
-%% @end 
+%%
+%% @end
 %%------------------------------------------------------------------------------
 -spec get_metric_statistics(
         Namespace   ::string(),
@@ -490,7 +490,7 @@ get_metric_statistics(
         Unit        ::string(),
         Statistics  ::[string()],
         Dimensions  ::[{string(), string()}]
-                      ) -> term() | no_return().
+                      ) -> term().
 
 get_metric_statistics(
   Namespace,
@@ -524,7 +524,7 @@ get_metric_statistics(
         Statistics  ::[string()],
         Dimensions  ::[{string(), string()}],
         Config      ::aws_config()
-                      ) -> term() | no_return().
+                      ) -> term().
 
 get_metric_statistics(
   Namespace,
@@ -584,7 +584,7 @@ extract_metrics(Node, Statistics) ->
 %%------------------------------------------------------------------------------
 -spec get_alarm_state(
         AlarmName  ::string()
-                      ) -> string() | no_return().
+                      ) -> string().
 
 get_alarm_state(AlarmName) ->
 	get_alarm_state(AlarmName, default_config()).
@@ -592,7 +592,7 @@ get_alarm_state(AlarmName) ->
 -spec get_alarm_state(
         AlarmName  ::string(),
         Config     ::aws_config()
-                      ) -> string() | no_return().
+                      ) -> string().
 
 get_alarm_state(AlarmName, #aws_config{} = Config) ->
     Params = [{"AlarmNames.member.1", AlarmName}],
