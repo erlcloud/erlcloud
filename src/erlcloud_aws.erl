@@ -600,10 +600,12 @@ update_config(#aws_config{} = Config) ->
                    security_token = Credentials#metadata_credentials.security_token}}
     end.
 
+-dialyzer({no_return, clear_config/1}).
 -spec clear_config(aws_config()) -> ok.
 clear_config(#aws_config{assume_role = #aws_assume_role{role_arn = Arn, external_id = ExtId}}) ->
     unset_env_for_role_credentials(Arn, ExtId).
 
+-dialyzer({no_match, clear_expired_configs/0}).
 -spec clear_expired_configs() -> ok.
 clear_expired_configs() ->
     Env = application:get_all_env(erlcloud),
@@ -890,6 +892,7 @@ prop_to_list_defined( Name, Props ) ->
     end.
 
 
+-dialyzer({no_return, get_role_credentials/1}).
 -spec get_role_credentials(aws_config()) -> {ok, #role_credentials{}}.
 get_role_credentials(#aws_config{assume_role = AssumeRole} = Config) ->
     case get_env_for_role_credentials(AssumeRole#aws_assume_role.role_arn, AssumeRole#aws_assume_role.external_id) of
@@ -904,6 +907,7 @@ get_role_credentials(#aws_config{assume_role = AssumeRole} = Config) ->
             get_credentials_from_role(Config)
     end.
 
+-compile({nowarn_unused_function, get_credentials_from_role/1}).
 -spec get_credentials_from_role(aws_config()) -> {ok, #role_credentials{}}.
 get_credentials_from_role(#aws_config{assume_role = AssumeRole} = Config) ->
     %% We have to reset the assume role to make sure we do not
