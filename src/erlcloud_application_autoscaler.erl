@@ -61,6 +61,10 @@
 -type response_attribute() :: string() | integer().
 -type response_key() :: atom().
 -type response() :: [{response_key(), response_attribute()}].
+-type ok_error_response() :: {ok, jsx:json_term()}
+                           | {error, metadata_not_available
+                                   | container_credentials_unavailable
+                                   | erlcloud_aws:httpc_result_error()}.
 
 -type aws_aas_request_body() :: [proplist:proplist()].
 
@@ -318,9 +322,7 @@ delete_scaling_policy(Configuration, BodyConfiguration) ->
                             ScalableDimension :: binary(),
                             ScheduledActionName :: binary(),
                             ServiceNamespace :: binary()
-                        ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                           | container_credentials_unavailable
-                                                           | erlcloud_aws:httpc_result_error()}.
+                        ) -> ok_error_response().
 delete_scheduled_action(Configuration, ResourceId, ScalableDimension, ScheduledActionName, ServiceNamespace) ->
     BodyProps = [{<<"ScheduledActionName">>, ScheduledActionName},
                  {<<"ResourceId">>, ResourceId},
@@ -331,9 +333,7 @@ delete_scheduled_action(Configuration, ResourceId, ScalableDimension, ScheduledA
 
 -spec delete_scheduled_action(Configuration :: aws_config(),
                               BodyConfiguration :: aws_aas_request_body()
-                            ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                               | container_credentials_unavailable
-                                                               | erlcloud_aws:httpc_result_error()}.
+                            ) -> ok_error_response().
 delete_scheduled_action(Configuration, BodyConfiguration) ->
     request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DeleteScheduledAction").
 
@@ -349,9 +349,7 @@ delete_scheduled_action(Configuration, BodyConfiguration) ->
                             ResourceId :: binary(),
                             ScalableDimension :: binary(),
                             ServiceNamespace :: binary()
-                            ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                               | container_credentials_unavailable
-                                                               | erlcloud_aws:httpc_result_error()}.
+                            ) -> ok_error_response().
 deregister_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNamespace) ->
     BodyProps = [{<<"ResourceId">>, ResourceId},
                  {<<"ScalableDimension">>, ScalableDimension},
@@ -361,9 +359,7 @@ deregister_scalable_target(Configuration, ResourceId, ScalableDimension, Service
 -spec deregister_scalable_target(
                             Configuration :: erlcloud_aws:aws_config(),
                             BodyConfiguration :: aws_aas_request_body()
-                            ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                               | container_credentials_unavailable
-                                                               | erlcloud_aws:httpc_result_error()}.
+                            ) -> ok_error_response().
 deregister_scalable_target(Configuration, BodyConfiguration) ->
     request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DeregisterScalableTarget").
 
@@ -377,9 +373,7 @@ deregister_scalable_target(Configuration, BodyConfiguration) ->
 -spec describe_scalable_targets(
                             erlcloud_aws:aws_config(),
                             aws_aas_request_body() |  binary()
-                            ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                               | container_credentials_unavailable
-                                                               | erlcloud_aws:httpc_result_error()}.
+                            ) -> ok_error_response().
 describe_scalable_targets(Configuration, ServiceNamespace) when is_binary(ServiceNamespace)->
     describe_scalable_targets(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
 describe_scalable_targets(Configuration, BodyConfiguration) ->
@@ -407,9 +401,7 @@ describe_scalable_targets(Configuration, BodyConfiguration) ->
 -spec describe_scaling_activities(
                             erlcloud_aws:aws_config(),
                             aws_aas_request_body() |  binary()
-                            ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                               | container_credentials_unavailable
-                                                               | erlcloud_aws:httpc_result_error()}.
+                            ) -> ok_error_response().
 describe_scaling_activities(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
     describe_scaling_activities(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
 describe_scaling_activities(Configuration, BodyConfiguration) ->
@@ -438,9 +430,7 @@ describe_scaling_activities(Configuration, BodyConfiguration) ->
 -spec describe_scaling_policies(
                             erlcloud_aws:aws_config(),
                             aws_aas_request_body() |  binary()
-                            ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                               | container_credentials_unavailable
-                                                               | erlcloud_aws:httpc_result_error()}.
+                            ) -> ok_error_response().
 describe_scaling_policies(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
     describe_scaling_policies(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
 describe_scaling_policies(Configuration, BodyConfiguration) ->
@@ -469,9 +459,7 @@ describe_scaling_policies(Configuration, BodyConfiguration) ->
 -spec describe_scheduled_actions(
                             erlcloud_aws:aws_config(),
                             aws_aas_request_body() |  binary()
-                            ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                               | container_credentials_unavailable
-                                                               | erlcloud_aws:httpc_result_error()}.
+                            ) -> ok_error_response().
 describe_scheduled_actions(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
     describe_scheduled_actions(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
 describe_scheduled_actions(Configuration, BodyConfiguration) ->
@@ -503,9 +491,7 @@ describe_scheduled_actions(Configuration, BodyConfiguration) ->
                             ResourceId :: binary(),
                             ScalableDimension :: binary(),
                             ServiceNamespace :: binary()
-                        ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                           | container_credentials_unavailable
-                                                           | erlcloud_aws:httpc_result_error()}.
+                        ) -> ok_error_response().
 put_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, ServiceNamespace) ->
     BodyProps = [{<<"PolicyName">>, PolicyName},
                  {<<"ResourceId">>, ResourceId},
@@ -521,9 +507,7 @@ put_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, Ser
                             ServiceNamespace :: binary(),
                             PolicyType :: binary(),
                             Policy :: [proplist:proplist()]
-                        ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                           | container_credentials_unavailable
-                                                           | erlcloud_aws:httpc_result_error()}.
+                        ) -> ok_error_response().
 put_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, ServiceNamespace, PolicyType, Policy) ->
     BodyProps = [{<<"PolicyName">>, PolicyName},
                  {<<"ResourceId">>, ResourceId},
@@ -540,9 +524,7 @@ put_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, Ser
 -spec put_scaling_policy(
                             Configuration :: erlcloud_aws:aws_config(),
                             BodyConfiguration :: aws_aas_request_body()
-                            ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                               | container_credentials_unavailable
-                                                               | erlcloud_aws:httpc_result_error()}.
+                            ) -> ok_error_response().
 put_scaling_policy(Configuration, BodyConfiguration) ->
     case request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.PutScalingPolicy") of
         {ok, Result} ->
@@ -566,9 +548,7 @@ put_scaling_policy(Configuration, BodyConfiguration) ->
                             ScalableDimension :: binary(),
                             ServiceNamespace :: binary(),
                             ScheduledActionName :: binary()
-                        ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                           | container_credentials_unavailable
-                                                           | erlcloud_aws:httpc_result_error()}.
+                        ) -> ok_error_response().
 put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamespace, ScheduledActionName) ->
     BodyProps = [{<<"ScheduledActionName">>, ScheduledActionName},
                  {<<"ResourceId">>, ResourceId},
@@ -583,9 +563,7 @@ put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamesp
                             ServiceNamespace :: binary(),
                             ScheduledActionName :: binary(),
                             Schedule :: binary()
-                        ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                           | container_credentials_unavailable
-                                                           | erlcloud_aws:httpc_result_error()}.
+                        ) -> ok_error_response().
 put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamespace, ScheduledActionName, Schedule) ->
     BodyProps = [{<<"ScheduledActionName">>, ScheduledActionName},
                  {<<"ResourceId">>, ResourceId},
@@ -602,9 +580,7 @@ put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamesp
                             ScheduledActionName :: binary(),
                             Schedule :: binary(),
                             StartTime :: pos_integer()
-                        ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                           | container_credentials_unavailable
-                                                           | erlcloud_aws:httpc_result_error()}.
+                        ) -> ok_error_response().
 put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamespace, ScheduledActionName, Schedule, StartTime) ->
     BodyProps = [{<<"ScheduledActionName">>, ScheduledActionName},
                  {<<"ResourceId">>, ResourceId},
@@ -623,9 +599,7 @@ put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamesp
                             Schedule :: binary(),
                             StartTime :: pos_integer(),
                             EndTime :: pos_integer()
-                        ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                           | container_credentials_unavailable
-                                                           | erlcloud_aws:httpc_result_error()}.
+                        ) -> ok_error_response().
 put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamespace, ScheduledActionName, Schedule, StartTime, EndTime) ->
     BodyProps = [{<<"ScheduledActionName">>, ScheduledActionName},
                  {<<"ResourceId">>, ResourceId},
@@ -638,9 +612,7 @@ put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamesp
 
 -spec put_scheduled_action(Configuration :: aws_config(),
                               BodyConfiguration :: aws_aas_request_body()
-                            ) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                               | container_credentials_unavailable
-                                                               | erlcloud_aws:httpc_result_error()}.
+                            ) -> ok_error_response().
 put_scheduled_action(Configuration, BodyConfiguration) ->
     request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.PutScheduledAction").
 
@@ -654,9 +626,7 @@ put_scheduled_action(Configuration, BodyConfiguration) ->
 -spec register_scalable_target(Configuration :: aws_config(),
                                ResourceId :: binary(),
                                ScalableDimension :: binary(),
-                               ServiceNamespace :: binary()) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                                                              | container_credentials_unavailable
-                                                                                              | erlcloud_aws:httpc_result_error()}.
+                               ServiceNamespace :: binary()) -> ok_error_response().
 register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNamespace) ->
     BodyProps = [{<<"ResourceId">>, ResourceId},
                  {<<"ScalableDimension">>, ScalableDimension},
@@ -667,9 +637,7 @@ register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNa
                                ResourceId :: binary(),
                                ScalableDimension :: binary(),
                                ServiceNamespace :: binary(),
-                               ResourceARN :: binary()) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                                                         | container_credentials_unavailable
-                                                                                         | erlcloud_aws:httpc_result_error()}.
+                               ResourceARN :: binary()) -> ok_error_response().
 register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNamespace, ResourceARN) ->
     BodyProps = [{<<"ResourceId">>, ResourceId},
                  {<<"ScalableDimension">>, ScalableDimension},
@@ -683,9 +651,7 @@ register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNa
                                ServiceNamespace :: binary(),
                                ResourceARN :: binary(),
                                MinCapacity :: integer() | undefined,
-                               MaxCapacity :: integer() | undefined) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                                                                                      | container_credentials_unavailable
-                                                                                                      | erlcloud_aws:httpc_result_error()}.
+                               MaxCapacity :: integer() | undefined) -> ok_error_response().
 register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNamespace, ResourceARN, MinCapacity, MaxCapacity) ->
     BodyProps = [{<<"ResourceId">>, ResourceId},
                  {<<"ScalableDimension">>, ScalableDimension},
@@ -704,9 +670,7 @@ register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNa
 -spec register_scalable_target(
     Configuration :: erlcloud_aws:aws_config(),
     BodyConfiguration :: aws_aas_request_body()
-) -> {ok, jsx:json_term()} | {error, metadata_not_available
-                                   | container_credentials_unavailable
-                                   | erlcloud_aws:httpc_result_error()}.
+) -> ok_error_response().
 register_scalable_target(Configuration, BodyConfiguration) ->
     request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.RegisterScalableTarget").
 
