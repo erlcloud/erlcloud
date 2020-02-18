@@ -841,9 +841,7 @@ cloudformation_rollback_configuration_fields(#cloudformation_rollback_configurat
                 RollbackConfig#cloudformation_rollback_configuration.rollback_triggers
             )
         )
-    ]);
-cloudformation_rollback_configuration_fields(_) ->
-    [].
+    ]).
 
 cloudformation_rollback_triggers_fields(RollbackTriggers) ->
     lists:map(fun cloudformation_rollback_trigger_fields/1, RollbackTriggers).
