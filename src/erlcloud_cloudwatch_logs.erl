@@ -42,7 +42,10 @@
 -type metric_filters() :: jsx:json_term().
 
 -type tag():: {binary(), binary()}.
--type tags_return() :: jsx:json_term().
+-type tags_return() :: {error, metadata_not_available
+                             | container_credentials_unavailable
+                             | erlcloud_aws:httpc_result_error()}
+                     | {ok, jsx:json_term()}.
 
 
 %% Library initialization
@@ -483,7 +486,9 @@ list_tags_log_group(LogGroup, Config) ->
 -spec tag_log_group(
     log_group_name(),
     list(tag())
-) -> ok.
+) -> {ok, []}
+   | {ok, jsx:json_term()}
+   | {error, erlcloud_aws:httpc_result_error()}.
 
 tag_log_group(LogGroup, Tags) when is_list(Tags) ->
     tag_log_group(LogGroup, Tags, default_config()).
@@ -493,7 +498,9 @@ tag_log_group(LogGroup, Tags) when is_list(Tags) ->
     log_group_name(),
     list(tag()),
     aws_config()
-) -> ok.
+) -> {ok, []}
+   | {ok, jsx:json_term()}
+   | {error, erlcloud_aws:httpc_result_error()}.
 
 tag_log_group(LogGroup, Tags, Config) when is_list(Tags) ->
     Params = [{<<"logGroupName">>, LogGroup},
