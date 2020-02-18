@@ -549,7 +549,7 @@ config_env() ->
         _ -> {error, environment_config_unavailable}
     end.
 
--spec config_metadata(task_credentials | instance_metadata) -> {ok, #metadata_credentials{}} | {error, metadata_not_available | container_credentials_unavailable | httpc_result_error()}.
+-spec config_metadata(task_credentials | instance_metadata) -> {ok, aws_config()} | {error, metadata_not_available | container_credentials_unavailable | httpc_result_error()}.
 config_metadata(Source) ->
     Config = #aws_config{},
     case get_metadata_credentials( Source, Config ) of
