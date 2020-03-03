@@ -3446,7 +3446,8 @@ tag_resource(ResourceArn, Tags, Config) ->
                            projection_expression_opt().
 -type transact_get_items_opts() :: [transact_get_items_transact_item_opts()].
 
--type transact_get_items_get_item() :: {table_name(), key(), transact_get_items_transact_item_opts()}.
+-type transact_get_items_get_item() :: {table_name(), key()}
+                                     | {table_name(), key(), transact_get_items_opts()}.
 
 -type transact_get_items_get() :: {get, transact_get_items_get_item()}.
 
@@ -3456,7 +3457,7 @@ tag_resource(ResourceArn, Tags, Config) ->
 -type transact_get_items_return() :: ddb_return(#ddb2_transact_get_items{}, out_item()).
 
 -spec dynamize_transact_get_items_transact_items(transact_write_items_transact_items())
-                                          -> json_pair().
+                                          -> [jsx:json_term()].
 dynamize_transact_get_items_transact_items(TransactItems) ->
     dynamize_maybe_list(fun dynamize_transact_get_items_transact_item/1, TransactItems).
 
@@ -3605,7 +3606,7 @@ dynamize_transact_write_items_transact_item({update, {TableName, Key, UpdateExpr
     [{<<"Update">>, [{<<"TableName">>, TableName}, {<<"Key">>, dynamize_key(Key)}, {<<"UpdateExpression">>, dynamize_expression(UpdateExpression)} | AwsOpts]}].
 
 -spec dynamize_transact_write_items_transact_items(transact_write_items_transact_items())
-                                          -> json_pair().
+                                          -> [jsx:json_term()].
 dynamize_transact_write_items_transact_items(TransactItems) ->
     dynamize_maybe_list(fun dynamize_transact_write_items_transact_item/1, TransactItems).
 
@@ -3677,7 +3678,6 @@ transact_write_items(TransactItems, Opts, Config) ->
     case out(Return,
              fun(Json, UOpts) -> undynamize_record(transact_write_items_record(), Json, UOpts) end, DdbOpts,
              #ddb2_transact_write_items.attributes, {ok, []}) of
-        {simple, Record} -> {ok, Record};
         {ok, _} = Out -> Out;
         {error, _} = Out -> Out
     end.
@@ -4338,11 +4338,8 @@ dynamize_replica_auto_scaling_updates(ReplicaUpdates) ->
                          Update) || Update <- ReplicaUpdates].
 
 -spec maybe_update_config_timeout(aws_config(), MinDesiredTimeout :: pos_integer()) -> aws_config().
-maybe_update_config_timeout(Config, MinDesiredTimeout) ->
-    UpdatedTimeout = case erlcloud_aws:get_timeout(Config) of
-                         undefined -> MinDesiredTimeout;
-                         ProvidedTimeout -> ProvidedTimeout
-                     end,
+maybe_update_config_timeout(Config, _MinDesiredTimeout) ->
+    UpdatedTimeout = erlcloud_aws:get_timeout(Config),
     Config#aws_config{timeout = UpdatedTimeout}.
 
 -type update_table_replica_auto_scaling_opt() :: {global_secondary_index_updates, [global_secondary_index_auto_scaling_update_opts()]}|

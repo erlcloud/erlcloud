@@ -513,7 +513,7 @@ batch_write_retry(RequestItems, Config) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec wait_for_table_active(table_name(), pos_integer() | infinity, non_neg_integer(), aws_config()) ->
+-spec wait_for_table_active(table_name(), pos_integer() | infinity, non_neg_integer() | infinity, aws_config()) ->
     ok | {error, deleting | retry_threshold_exceeded | any()}.
 wait_for_table_active(Table, Interval, RetryTimes, Config) when is_binary(Table), Interval > 0, RetryTimes >= 0 ->
     case erlcloud_ddb2:describe_table(Table, [{out, record}], Config) of

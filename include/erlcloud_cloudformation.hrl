@@ -13,7 +13,7 @@
     parameters = [] :: [cloudformation_parameter()],
     resource_types = [] :: [string()],
     role_arn :: string(),
-    rollback_configuration :: cloudformation_rollback_configuration(),
+    rollback_configuration :: undefined | cloudformation_rollback_configuration(),
     stack_name :: string(),
     stack_policy_body :: string(),
     stack_policy_url :: string(),

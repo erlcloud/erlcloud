@@ -58,20 +58,24 @@
 %% Type Definitions
 %% ------------------------------------------------------------------
 
--type response_attribute() :: binary().
+-type response_attribute() :: string() | integer().
 -type response_key() :: atom().
--type response() :: [{response_key(), response_attribute()} | proplist:proplist()].
+-type response() :: [{response_key(), response_attribute()}].
+-type ok_error_response() :: {ok, jsx:json_term()}
+                           | {error, metadata_not_available
+                                   | container_credentials_unavailable
+                                   | erlcloud_aws:httpc_result_error()}.
 
 -type aws_aas_request_body() :: [proplist:proplist()].
 
--spec extract_alarm(J :: binary()) -> response().
+-spec extract_alarm(J :: proplist()) -> response().
 extract_alarm(J) ->
     erlcloud_json:decode([
         {alarm_name, <<"AlarmName">>, optional_string},
         {alarm_arn, <<"AlarmARN">>, optional_string}
     ], J).
 
--spec extract_step_adjustments(J :: binary) -> response().
+-spec extract_step_adjustments(J :: proplist()) -> response().
 extract_step_adjustments(J) ->
     erlcloud_json:decode([
         {metric_interval_lower_bound, <<"MetricIntervalLowerBound">>, optional_integer},
@@ -79,7 +83,7 @@ extract_step_adjustments(J) ->
         {scaling_adjustment, <<"ScalingAdjustment">>, optional_integer}
     ], J).
 
--spec extract_step_scaling_policy(J :: binary) -> response().
+-spec extract_step_scaling_policy(J :: proplist()) -> response().
 extract_step_scaling_policy(J) ->
     Scaling = erlcloud_json:decode([
         {adjustment_type, <<"AdjustmentType">>, optional_string},
@@ -94,21 +98,21 @@ extract_step_scaling_policy(J) ->
             [{step_adjustments,  [ extract_step_adjustments(Step) || Step <- Steps]} | Scaling]
     end.
 
--spec extract_dimensions(J :: binary) -> response().
+-spec extract_dimensions(J :: proplist()) -> response().
 extract_dimensions(J) ->
     erlcloud_json:decode([
         {name, <<"Name">>, optional_string},
         {value, <<"Value">>, optional_string}
     ], J).
 
--spec extract_predefined_metric_specifications(J :: binary) -> response().
+-spec extract_predefined_metric_specifications(J :: proplist()) -> response().
 extract_predefined_metric_specifications(J) ->
     erlcloud_json:decode([
         {predefined_metric_type, <<"PredefinedMetricType">>, optional_string},
         {resource_label, <<"ResourceLabel">>, optional_string}
     ], J).
 
--spec extract_customized_metric_specification(J :: binary) -> response().
+-spec extract_customized_metric_specification(J :: proplist()) -> response().
 extract_customized_metric_specification(J) ->
     CustomizedMetricSpecification = erlcloud_json:decode([
         {metric_name, <<"MetricName">>, optional_string},
@@ -124,7 +128,7 @@ extract_customized_metric_specification(J) ->
     end,
     CustomizedMetricSpecification ++ MaybeHasDimension.
 
--spec extract_target_tracking_policy(J :: binary) -> response().
+-spec extract_target_tracking_policy(J :: proplist()) -> response().
 extract_target_tracking_policy(J) ->
     Target = erlcloud_json:decode([
         {disable_scale_in, <<"DisableScaleIn">>, optional_boolean},
@@ -146,7 +150,7 @@ extract_target_tracking_policy(J) ->
     end,
     Target ++ MaybeHasCustomizedMetrics ++ MaybeHasPredefinedMetrics.
 
--spec extract_scaling_policies(J :: binary()) -> response().
+-spec extract_scaling_policies(J :: proplist()) -> response().
 extract_scaling_policies(J) ->
     Policy = erlcloud_json:decode([
         {creation_time, <<"CreationTime">>, optional_integer},
@@ -178,7 +182,7 @@ extract_scaling_policies(J) ->
     Policy ++ MaybeHasAlarms ++ MaybeHasStepScaling ++ MaybeHasTargetTracking.
 
 
--spec extract_scalable_targets(J :: binary()) -> response().
+-spec extract_scalable_targets(J :: proplist()) -> response().
 extract_scalable_targets(J) ->
     erlcloud_json:decode([
         {creation_time, <<"CreationTime">>, optional_integer},
@@ -190,7 +194,7 @@ extract_scalable_targets(J) ->
         {service_namespace, <<"ServiceNamespace">>, optional_string}
     ], J).
 
--spec extract_scaling_activities(J :: binary) -> response().
+-spec extract_scaling_activities(J :: proplist()) -> response().
 extract_scaling_activities(J) ->
     erlcloud_json:decode([
         {activity_id, <<"ActivityId">>, optional_string},
@@ -204,7 +208,7 @@ extract_scaling_activities(J) ->
         {status_message, <<"StatusMessage">>, optional_string}
     ], J).
 
--spec extract_scheduled_action(J :: binary) -> response().
+-spec extract_scheduled_action(J :: proplist()) -> response().
 extract_scheduled_action(J) ->
     Res = erlcloud_json:decode([
         {creation_time, <<"CreationTime">>, optional_integer},
@@ -318,7 +322,7 @@ delete_scaling_policy(Configuration, BodyConfiguration) ->
                             ScalableDimension :: binary(),
                             ScheduledActionName :: binary(),
                             ServiceNamespace :: binary()
-                        ) -> response().
+                        ) -> ok_error_response().
 delete_scheduled_action(Configuration, ResourceId, ScalableDimension, ScheduledActionName, ServiceNamespace) ->
     BodyProps = [{<<"ScheduledActionName">>, ScheduledActionName},
                  {<<"ResourceId">>, ResourceId},
@@ -329,7 +333,7 @@ delete_scheduled_action(Configuration, ResourceId, ScalableDimension, ScheduledA
 
 -spec delete_scheduled_action(Configuration :: aws_config(),
                               BodyConfiguration :: aws_aas_request_body()
-                            ) -> response().
+                            ) -> ok_error_response().
 delete_scheduled_action(Configuration, BodyConfiguration) ->
     request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DeleteScheduledAction").
 
@@ -345,7 +349,7 @@ delete_scheduled_action(Configuration, BodyConfiguration) ->
                             ResourceId :: binary(),
                             ScalableDimension :: binary(),
                             ServiceNamespace :: binary()
-                            ) -> response().
+                            ) -> ok_error_response().
 deregister_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNamespace) ->
     BodyProps = [{<<"ResourceId">>, ResourceId},
                  {<<"ScalableDimension">>, ScalableDimension},
@@ -355,7 +359,7 @@ deregister_scalable_target(Configuration, ResourceId, ScalableDimension, Service
 -spec deregister_scalable_target(
                             Configuration :: erlcloud_aws:aws_config(),
                             BodyConfiguration :: aws_aas_request_body()
-                            ) -> response().
+                            ) -> ok_error_response().
 deregister_scalable_target(Configuration, BodyConfiguration) ->
     request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.DeregisterScalableTarget").
 
@@ -369,7 +373,7 @@ deregister_scalable_target(Configuration, BodyConfiguration) ->
 -spec describe_scalable_targets(
                             erlcloud_aws:aws_config(),
                             aws_aas_request_body() |  binary()
-                            ) -> response().
+                            ) -> ok_error_response().
 describe_scalable_targets(Configuration, ServiceNamespace) when is_binary(ServiceNamespace)->
     describe_scalable_targets(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
 describe_scalable_targets(Configuration, BodyConfiguration) ->
@@ -397,7 +401,7 @@ describe_scalable_targets(Configuration, BodyConfiguration) ->
 -spec describe_scaling_activities(
                             erlcloud_aws:aws_config(),
                             aws_aas_request_body() |  binary()
-                            ) -> response().
+                            ) -> ok_error_response().
 describe_scaling_activities(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
     describe_scaling_activities(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
 describe_scaling_activities(Configuration, BodyConfiguration) ->
@@ -426,7 +430,7 @@ describe_scaling_activities(Configuration, BodyConfiguration) ->
 -spec describe_scaling_policies(
                             erlcloud_aws:aws_config(),
                             aws_aas_request_body() |  binary()
-                            ) -> response().
+                            ) -> ok_error_response().
 describe_scaling_policies(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
     describe_scaling_policies(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
 describe_scaling_policies(Configuration, BodyConfiguration) ->
@@ -455,7 +459,7 @@ describe_scaling_policies(Configuration, BodyConfiguration) ->
 -spec describe_scheduled_actions(
                             erlcloud_aws:aws_config(),
                             aws_aas_request_body() |  binary()
-                            ) -> response().
+                            ) -> ok_error_response().
 describe_scheduled_actions(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
     describe_scheduled_actions(Configuration, [{<<"ServiceNamespace">>, ServiceNamespace}]);
 describe_scheduled_actions(Configuration, BodyConfiguration) ->
@@ -487,7 +491,7 @@ describe_scheduled_actions(Configuration, BodyConfiguration) ->
                             ResourceId :: binary(),
                             ScalableDimension :: binary(),
                             ServiceNamespace :: binary()
-                        ) -> response().
+                        ) -> ok_error_response().
 put_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, ServiceNamespace) ->
     BodyProps = [{<<"PolicyName">>, PolicyName},
                  {<<"ResourceId">>, ResourceId},
@@ -503,7 +507,7 @@ put_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, Ser
                             ServiceNamespace :: binary(),
                             PolicyType :: binary(),
                             Policy :: [proplist:proplist()]
-                        ) -> response().
+                        ) -> ok_error_response().
 put_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, ServiceNamespace, PolicyType, Policy) ->
     BodyProps = [{<<"PolicyName">>, PolicyName},
                  {<<"ResourceId">>, ResourceId},
@@ -520,7 +524,7 @@ put_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, Ser
 -spec put_scaling_policy(
                             Configuration :: erlcloud_aws:aws_config(),
                             BodyConfiguration :: aws_aas_request_body()
-                            ) -> response().
+                            ) -> ok_error_response().
 put_scaling_policy(Configuration, BodyConfiguration) ->
     case request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.PutScalingPolicy") of
         {ok, Result} ->
@@ -544,7 +548,7 @@ put_scaling_policy(Configuration, BodyConfiguration) ->
                             ScalableDimension :: binary(),
                             ServiceNamespace :: binary(),
                             ScheduledActionName :: binary()
-                        ) -> response().
+                        ) -> ok_error_response().
 put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamespace, ScheduledActionName) ->
     BodyProps = [{<<"ScheduledActionName">>, ScheduledActionName},
                  {<<"ResourceId">>, ResourceId},
@@ -559,7 +563,7 @@ put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamesp
                             ServiceNamespace :: binary(),
                             ScheduledActionName :: binary(),
                             Schedule :: binary()
-                        ) -> response().
+                        ) -> ok_error_response().
 put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamespace, ScheduledActionName, Schedule) ->
     BodyProps = [{<<"ScheduledActionName">>, ScheduledActionName},
                  {<<"ResourceId">>, ResourceId},
@@ -576,7 +580,7 @@ put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamesp
                             ScheduledActionName :: binary(),
                             Schedule :: binary(),
                             StartTime :: pos_integer()
-                        ) -> response().
+                        ) -> ok_error_response().
 put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamespace, ScheduledActionName, Schedule, StartTime) ->
     BodyProps = [{<<"ScheduledActionName">>, ScheduledActionName},
                  {<<"ResourceId">>, ResourceId},
@@ -595,7 +599,7 @@ put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamesp
                             Schedule :: binary(),
                             StartTime :: pos_integer(),
                             EndTime :: pos_integer()
-                        ) -> response().
+                        ) -> ok_error_response().
 put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamespace, ScheduledActionName, Schedule, StartTime, EndTime) ->
     BodyProps = [{<<"ScheduledActionName">>, ScheduledActionName},
                  {<<"ResourceId">>, ResourceId},
@@ -608,7 +612,7 @@ put_scheduled_action(Configuration, ResourceId, ScalableDimension, ServiceNamesp
 
 -spec put_scheduled_action(Configuration :: aws_config(),
                               BodyConfiguration :: aws_aas_request_body()
-                            ) -> response().
+                            ) -> ok_error_response().
 put_scheduled_action(Configuration, BodyConfiguration) ->
     request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.PutScheduledAction").
 
@@ -622,7 +626,7 @@ put_scheduled_action(Configuration, BodyConfiguration) ->
 -spec register_scalable_target(Configuration :: aws_config(),
                                ResourceId :: binary(),
                                ScalableDimension :: binary(),
-                               ServiceNamespace :: binary()) -> response().
+                               ServiceNamespace :: binary()) -> ok_error_response().
 register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNamespace) ->
     BodyProps = [{<<"ResourceId">>, ResourceId},
                  {<<"ScalableDimension">>, ScalableDimension},
@@ -633,7 +637,7 @@ register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNa
                                ResourceId :: binary(),
                                ScalableDimension :: binary(),
                                ServiceNamespace :: binary(),
-                               ResourceARN :: binary()) -> response().
+                               ResourceARN :: binary()) -> ok_error_response().
 register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNamespace, ResourceARN) ->
     BodyProps = [{<<"ResourceId">>, ResourceId},
                  {<<"ScalableDimension">>, ScalableDimension},
@@ -647,7 +651,7 @@ register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNa
                                ServiceNamespace :: binary(),
                                ResourceARN :: binary(),
                                MinCapacity :: integer() | undefined,
-                               MaxCapacity :: integer() | undefined) -> response().
+                               MaxCapacity :: integer() | undefined) -> ok_error_response().
 register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNamespace, ResourceARN, MinCapacity, MaxCapacity) ->
     BodyProps = [{<<"ResourceId">>, ResourceId},
                  {<<"ScalableDimension">>, ScalableDimension},
@@ -666,7 +670,7 @@ register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNa
 -spec register_scalable_target(
     Configuration :: erlcloud_aws:aws_config(),
     BodyConfiguration :: aws_aas_request_body()
-) -> response().
+) -> ok_error_response().
 register_scalable_target(Configuration, BodyConfiguration) ->
     request_with_action(Configuration, BodyConfiguration, "AnyScaleFrontendService.RegisterScalableTarget").
 

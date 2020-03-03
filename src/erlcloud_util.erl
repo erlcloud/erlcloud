@@ -110,14 +110,14 @@ query_all(QueryFun, Config, Action, Params, MaxItems, Marker, Acc) ->
     end.
 
 -spec encode_list(string(), [term()]) ->
-    {ok, proplists:proplist()}.
+    proplists:proplist().
 encode_list(ElementName, Elements) ->
     Numbered = lists:zip(lists:seq(1, length(Elements)), Elements),
     [{ElementName ++ ".member." ++ integer_to_list(N), Element} ||
         {N, Element} <- Numbered].
 
 -spec encode_object(string(), proplists:proplist()) ->
-    {ok, proplists:proplist()}.
+    proplists:proplist().
 encode_object(ElementName, ElementParameters) ->
     lists:map(
         fun({Key, Value}) ->
@@ -127,7 +127,7 @@ encode_object(ElementName, ElementParameters) ->
     ).
 
 -spec encode_object_list(string(), [proplists:proplist()]) ->
-    {ok, proplists:proplist()}.
+    proplists:proplist().
 encode_object_list(Prefix, ElementParameterList) ->
     lists:flatten(lists:foldl(
         fun(ElementMap, Acc) ->

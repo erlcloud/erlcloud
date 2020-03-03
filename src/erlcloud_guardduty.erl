@@ -82,8 +82,8 @@ list_detectors(Config) ->
 list_detectors(Marker, MaxItems) ->
     list_detectors(Marker, MaxItems, default_config()).
 
--spec list_detectors(Marker   :: binary(),
-                     MaxItems :: integer(),
+-spec list_detectors(Marker   :: undefined | binary(),
+                     MaxItems :: undefined | integer(),
                      Config   :: aws_config()) -> gd_return().
 list_detectors(Marker, MaxItems, Config) ->
     Path = "/detector",
@@ -123,11 +123,7 @@ guardduty_request_no_update(Config, Method, Path, Body, QParam) ->
     end.
 
 encode_body(undefined) ->
-    <<>>;
-encode_body([]) ->
-    <<"{}">>;
-encode_body(Body) ->
-    jsx:encode(Body).
+    <<>>.
 
 headers(Method, Uri, Config, Body, QParam) ->
     Headers = [{"host", Config#aws_config.guardduty_host},

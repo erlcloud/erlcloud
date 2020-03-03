@@ -549,7 +549,7 @@ config_env() ->
         _ -> {error, environment_config_unavailable}
     end.
 
--spec config_metadata(task_credentials | instance_metadata) -> {ok, #metadata_credentials{}} | {error, metadata_not_available | container_credentials_unavailable | httpc_result_error()}.
+-spec config_metadata(task_credentials | instance_metadata) -> {ok, aws_config()} | {error, metadata_not_available | container_credentials_unavailable | httpc_result_error()}.
 config_metadata(Source) ->
     Config = #aws_config{},
     case get_metadata_credentials( Source, Config ) of
@@ -600,15 +600,17 @@ update_config(#aws_config{} = Config) ->
                    security_token = Credentials#metadata_credentials.security_token}}
     end.
 
+-dialyzer({no_return, clear_config/1}).
 -spec clear_config(aws_config()) -> ok.
 clear_config(#aws_config{assume_role = #aws_assume_role{role_arn = Arn, external_id = ExtId}}) ->
-    application:unset_env(erlcloud, {role_credentials, Arn, ExtId}).
+    unset_env_for_role_credentials(Arn, ExtId).
 
+-dialyzer({no_match, clear_expired_configs/0}).
 -spec clear_expired_configs() -> ok.
 clear_expired_configs() ->
     Env = application:get_all_env(erlcloud),
     Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
-    [application:unset_env(erlcloud, {role_credentials, Arn, ExtId}) ||
+    [unset_env_for_role_credentials(Arn, ExtId) ||
             {{role_credentials, Arn, ExtId},
               #role_credentials{expiration_gregorian_seconds = Ts}} <- Env,
         Ts < Now],
@@ -890,12 +892,10 @@ prop_to_list_defined( Name, Props ) ->
     end.
 
 
+-dialyzer({no_return, get_role_credentials/1}).
 -spec get_role_credentials(aws_config()) -> {ok, #role_credentials{}}.
 get_role_credentials(#aws_config{assume_role = AssumeRole} = Config) ->
-    case application:get_env(erlcloud,
-                             {role_credentials,
-                              AssumeRole#aws_assume_role.role_arn,
-                              AssumeRole#aws_assume_role.external_id}) of
+    case get_env_for_role_credentials(AssumeRole#aws_assume_role.role_arn, AssumeRole#aws_assume_role.external_id) of
         {ok, #role_credentials{expiration_gregorian_seconds = Expiration} = Credentials} ->
             Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
             %% Get new credentials if these will expire in less than 5 minutes
@@ -907,6 +907,7 @@ get_role_credentials(#aws_config{assume_role = AssumeRole} = Config) ->
             get_credentials_from_role(Config)
     end.
 
+-compile({nowarn_unused_function, get_credentials_from_role/1}).
 -spec get_credentials_from_role(aws_config()) -> {ok, #role_credentials{}}.
 get_credentials_from_role(#aws_config{assume_role = AssumeRole} = Config) ->
     %% We have to reset the assume role to make sure we do not
@@ -925,11 +926,7 @@ get_credentials_from_role(#aws_config{assume_role = AssumeRole} = Config) ->
         secret_access_key = proplists:get_value(secret_access_key, Creds),
         session_token = proplists:get_value(session_token, Creds),
         expiration_gregorian_seconds = ExpireAt},
-    application:set_env(erlcloud,
-                        {role_credentials,
-                         AssumeRole#aws_assume_role.role_arn,
-                         AssumeRole#aws_assume_role.external_id},
-                        Record),
+    set_env_for_role_credentials(AssumeRole#aws_assume_role.role_arn, AssumeRole#aws_assume_role.external_id, Record),
     {ok, Record}.
 
 port_to_str(Port) when is_integer(Port) ->
@@ -1368,3 +1365,29 @@ error_msg( Message ) ->
 error_msg( Format, Values ) ->
     Error = iolist_to_binary( io_lib:format( Format, Values ) ),
     throw( {error, Error} ).
+
+-dialyzer({nowarn_function, unset_env_for_role_credentials/2}).
+-spec unset_env_for_role_credentials(Arn, ExtId) -> ok
+      when Arn :: string() | undefined,
+           ExtId :: string() | undefined.
+unset_env_for_role_credentials(Arn, ExtId) ->
+     % application:unset_env is undocumented in regards to type(Par) =/= atom()
+    application:unset_env(erlcloud, {role_credentials, Arn, ExtId}).
+
+-dialyzer({nowarn_function, get_env_for_role_credentials/2}).
+-spec get_env_for_role_credentials(Arn, ExtId) -> undefined | {ok, Val}
+      when Arn :: string() | undefined,
+           ExtId :: string() | undefined,
+           Val :: term().
+get_env_for_role_credentials(Arn, ExtId) ->
+    % application:get_env is undocumented in regards to type(Par) =/= atom()
+    application:get_env(erlcloud, {role_credentials, Arn, ExtId}).
+
+-dialyzer({nowarn_function, set_env_for_role_credentials/3}).
+-spec set_env_for_role_credentials(Arn, ExtId, Val) -> ok
+      when Arn :: string() | undefined,
+           ExtId :: string() | undefined,
+           Val :: term().
+set_env_for_role_credentials(Arn, ExtId, Val) ->
+    % application:set_env is undocumented in regards to type(Par) =/= atom()
+    application:set_env(erlcloud, {role_credentials, Arn, ExtId}, Val).
