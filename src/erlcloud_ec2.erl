@@ -2459,10 +2459,30 @@ extract_vpc(Node) ->
       {dhcp_options_id, get_text("dhcpOptionsId", Node)},
       {instance_tenancy, get_text("instanceTenancy", Node)},
       {is_default, get_bool("isDefault", Node)},
-      {tag_set, 
+      {cidr_block_association_set, extract_cidr_block_association_set(Node)},
+      {tag_set,
         [extract_tag_item(Item)
          || Item <- xmerl_xpath:string("tagSet/item", Node)]}
- ].
+    ].
+
+extract_cidr_block_association_set(Node) ->
+    Items = xmerl_xpath:string("cidrBlockAssociationSet/item", Node),
+    [extract_cidr_block_association_item(Item) || Item <- Items].
+
+extract_cidr_block_association_item(Node) ->
+    [
+         {cidr_block, get_text("cidrBlock", Node)},
+         {association_id, get_text("associationId", Node)},
+         {cidr_block_state,
+            [{state, get_text("cidrBlockState/state", Node)}] ++
+            case get_text("cidrBlockState/statusMessage", Node, undefined) of
+                undefined ->
+                    [];
+                StatusMessage ->
+                    [{status_message, StatusMessage}]
+            end
+         }
+    ].
 
 -spec detach_internet_gateway(string(), string()) -> ok.
 detach_internet_gateway(GatewayID, VpcID) ->

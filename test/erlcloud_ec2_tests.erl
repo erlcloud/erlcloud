@@ -38,6 +38,7 @@ describe_test_() ->
      fun start/0,
      fun stop/1,
      [
+      fun describe_vpcs_tests/1,
       fun describe_tags_input_tests/1,
       fun describe_tags_output_tests/1,
       fun request_spot_fleet_input_tests/1,
@@ -181,6 +182,62 @@ output_tests(Fun, Tests) ->
 %%% Actual test specifiers
 %%%===================================================================
 
+describe_vpcs_tests(_) ->
+    Tests = [
+        ?_ec2_test({
+            "Describe all the vpcs",
+            "<DescribeVpcsResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+                <requestId>9a0571b9-6e91-47e7-b75f-785125322853</requestId>
+                <vpcSet>
+                    <item>
+                        <vpcId>vpc-00000000000000001</vpcId>
+                        <ownerId>000000000001</ownerId>
+                        <state>available</state>
+                        <cidrBlock>10.0.0.0/16</cidrBlock>
+                        <dhcpOptionsId>dopt-00000001</dhcpOptionsId>
+                        <cidrBlockAssociationSet>
+                            <item>
+                                <cidrBlock>10.0.0.0/16</cidrBlock>
+                                <associationId>vpc-cidr-assoc-00000000000000001</associationId>
+                                <cidrBlockState>
+                                    <state>associated</state>
+                                </cidrBlockState>
+                            </item>
+                        </cidrBlockAssociationSet>
+                        <tagSet>
+                            <item>
+                                <key>Key</key>
+                                <value>Value</value>
+                            </item>
+                        </tagSet>
+                        <instanceTenancy>default</instanceTenancy>
+                        <isDefault>false</isDefault>
+                    </item>
+                </vpcSet>
+            </DescribeVpcsResponse>",
+            {ok, [
+                [
+                    {vpc_id, "vpc-00000000000000001"},
+                    {state, "available"},
+                    {cidr_block, "10.0.0.0/16"},
+                    {dhcp_options_id, "dopt-00000001"},
+                    {instance_tenancy, "default"},
+                    {is_default, false},
+                    {cidr_block_association_set, [
+                        [
+                           {cidr_block, "10.0.0.0/16"},
+                           {association_id, "vpc-cidr-assoc-00000000000000001"},
+                           {cidr_block_state, [{state, "associated"}]}
+                        ]
+                    ]},
+                    {tag_set, [
+                        [{key, "Key"}, {value, "Value"}]
+                    ]}
+                ]
+            ]}
+        })
+    ],
+    output_tests(?_f(erlcloud_ec2:describe_vpcs()), Tests).
 
 %% DescribeTags test based on the API examples:
 %% http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-query-DescribeTags.html
