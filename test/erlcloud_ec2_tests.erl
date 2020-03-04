@@ -203,6 +203,14 @@ describe_vpcs_tests(_) ->
                                     <state>associated</state>
                                 </cidrBlockState>
                             </item>
+                            <item>
+                                <cidrBlock>10.1.0.0/16</cidrBlock>
+                                <associationId>vpc-cidr-assoc-00000000000000002</associationId>
+                                <cidrBlockState>
+                                    <state>test state</state>
+                                    <statusMessage>test status message</statusMessage>
+                                </cidrBlockState>
+                            </item>
                         </cidrBlockAssociationSet>
                         <tagSet>
                             <item>
@@ -228,6 +236,11 @@ describe_vpcs_tests(_) ->
                            {cidr_block, "10.0.0.0/16"},
                            {association_id, "vpc-cidr-assoc-00000000000000001"},
                            {cidr_block_state, [{state, "associated"}]}
+                        ],
+                        [
+                           {cidr_block, "10.1.0.0/16"},
+                           {association_id, "vpc-cidr-assoc-00000000000000002"},
+                           {cidr_block_state, [{state, "test state"}, {status_message, "test status message"}]}
                         ]
                     ]},
                     {tag_set, [
