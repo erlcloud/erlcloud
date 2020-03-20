@@ -1203,8 +1203,8 @@ profile( Name ) ->
 %%  source_profile = default
 %% </pre></code>
 %%
-%% and finally, will supports the <em>role_arn</em> specification, and will
-%% assume the role indicated using the credentials current when interpreting
+%% Finally, it supports the <em>role_arn</em> specification, and will
+%% assume the role indicated using the current credentials when interpreting
 %% the profile in which they it is declared:
 %%
 %% <code><pre>
@@ -1213,7 +1213,7 @@ profile( Name ) ->
 %%  source_profile = default
 %% </pre></code>
 %%
-%% When using the the <em>role_arn</em> specification, you may supply the
+%% When using the <em>role_arn</em> specification, you may supply the
 %% following two options to control the way in which the assume_role request
 %% is made via AWS STS service:
 %%
@@ -1230,7 +1230,7 @@ profile( Name ) ->
 %%  </li>
 %%  <li><code>'external_id'</code>
 %%    <p>The identifier that is used in the <code>ExternalId</code>
-%%    parameter.  If this option is not specified, then it will default to
+%%    parameter.  If this option isn't specified, then it will default to
 %%    'undefined', which will work for normal in-account roles, but will
 %%    need to be specified for roles in external accounts.</p>
 %%  </li>

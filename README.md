@@ -39,13 +39,13 @@ Service APIs implemented:
 - AWS Cost and Usage Report API
 - and more to come
 
-Majority of API functions have been implemented.
+The majority of API functions have been implemented.
 Not all functions have been thoroughly tested, so exercise care when integrating this library into production code.
 Please send issues and patches.
 
-The libraries can be used two ways:
-- either you can specify configuration parameters in the process dictionary. Useful for simple tasks
-- you can create a configuration object and pass that to each request as the final parameter. Useful for Cross AWS Account access
+The libraries can be used two ways.  You can
+- specify configuration parameters in the process dictionary. Useful for simple tasks, or
+- create a configuration object and pass that to each request as the final parameter. Useful for Cross AWS Account access
 
 ## Roadmap ##
 
@@ -94,10 +94,9 @@ application:ensure_all_started(erlcloud).
 ```
 ### Using Temporary Security Credentials
 
-The access to AWS resource might be managed through [third-party identity provider](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp.html).
-The access is managed using [temporary security credentials](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html).
+When access to AWS resources is managed through [third-party identity providers](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp.html) it is performed using [temporary security credentials](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html).
 
-You can provide your amazon credentials in OS environmental variables
+You can provide your AWS credentials in OS environment variables
 
 ```
 export AWS_ACCESS_KEY_ID=<Your AWS Access Key>
@@ -105,7 +104,7 @@ export AWS_SECRET_ACCESS_KEY=<Your AWS Secret Access Key>
 export AWS_SESSION_TOKEN=<Your AWS Security Token>
 export AWS_DEFAULT_REGION=<Your region>
 ```
-If you did not provide your amazon credentials in the OS environmental variables, then you need to provide configuration read from your profile:
+If you did not provide your AWS credentials in the OS environment variables, then you need to provide configuration read from your profile:
 ```
 {ok, Conf} = erlcloud_aws:profile().
 erlcloud_s3:list_buckets(Conf).
@@ -118,12 +117,12 @@ application:set_env(erlcloud, aws_security_token, "your token"),
 application:set_env(erlcloud, aws_region, "your region"),
 ```
 ### Using Access Key ###
-You can provide your amazon credentials in environmental variables.
+You can provide your AWS credentials in environmental variables.
 ```
 export AWS_ACCESS_KEY_ID=<Your AWS Access Key>
 export AWS_SECRET_ACCESS_KEY=<Your AWS Secret Access Key>
 ```
-If you did not provide your amazon credentials in the environmental variables, then you need to provide the per-process configuration:
+If you did not provide your AWS credentials in the environment variables, then you need to provide the per-process configuration:
 ```
 erlcloud_ec2:configure(AccessKeyId, SecretAccessKey [, Hostname]).
 ```
@@ -137,12 +136,12 @@ erlcloud_ec2:describe_images(EC2).
 ```
 
 ### aws_config
-[aws_config](https://github.com/erlcloud/erlcloud/blob/master/include/erlcloud_aws.hrl) record contains many valuable defaults,
+The [aws_config](https://github.com/erlcloud/erlcloud/blob/master/include/erlcloud_aws.hrl) record contains many valuable defaults,
 such as protocols and ports for AWS services. You can always redefine them by making new `#aws_config{}` record and
 changing particular fields, then passing the result to any erlcloud function.
 But if you want to change something in runtime this might be tedious and/or not flexible enough.
 
-Alternative approach is to set default fields within the `app.config -> erlcloud -> aws_config` section and
+An alternative approach is to set default fields within the `app.config -> erlcloud -> aws_config` section and
 rely on the config, used by all functions by default.
 
 Example of such app.config:
@@ -160,7 +159,7 @@ Example of such app.config:
 
 
 ### Basic use ###
-Then you can start making api calls, like:
+Then you can start making API calls, like:
 ```
 erlcloud_ec2:describe_images().
 % list buckets of Account stored in config in process dict
