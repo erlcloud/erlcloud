@@ -113,14 +113,15 @@ request_and_retry(Config, Headers, Body, ShouldDecode, {attempt, Attempt}) ->
            [{<<"content-type">>, <<"application/x-amz-json-1.1">>} | Headers],
            Body, erlcloud_aws:get_timeout(Config), Config) of
 
-        {ok, {{200, _}, _, RespBody}} ->
+        {ok, {{200, _}, RespHeaders, RespBody}} ->
             Result = case ShouldDecode of
                          true  -> decode(RespBody);
                          false -> RespBody
                      end,
             {ok, Result};
 
-        {ok, {{Status, StatusLine}, _, RespBody}} when Status >= 400 andalso Status < 500 ->
+        {ok, {{Status, StatusLine}, RespHeaders, RespBody}} when Status >= 400 andalso Status < 500 ->
+            error_logger:error_msg("Kinesis response headers 400-499 : ~p", [RespHeaders]),
             case client_error(Status, StatusLine, RespBody) of
                 {retry, Reason} ->
                     request_and_retry(Config, Headers, Body, ShouldDecode, RetryFun(Attempt, Reason));
