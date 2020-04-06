@@ -129,13 +129,16 @@ request_and_retry(Config, Headers, Body, ShouldDecode, {attempt, Attempt}) ->
                     {error, Reason}
             end;
 
-        {ok, {{Status, StatusLine}, _, RespBody}} when Status >= 500 ->
+        {ok, {{Status, StatusLine}, RespHeaders, RespBody}} when Status >= 500 ->
+            error_logger:error_msg("Kinesis response headers 500+ : ~p", [RespHeaders]),
             request_and_retry(Config, Headers, Body, ShouldDecode, RetryFun(Attempt, {http_error, Status, StatusLine, RespBody}));
 
-        {ok, {{Status, StatusLine}, _, RespBody}} ->
+        {ok, {{Status, StatusLine}, RespHeaders, RespBody}} ->
+            error_logger:error_msg("Kinesis response headers <400 : ~p", [RespHeaders]),
             {error, {http_error, Status, StatusLine, RespBody}};
 
         {error, Reason} ->
+            error_logger:error_msg("Kinesis response error other : ~p", [Reason]),
             %% TODO there may be some http errors, such as certificate error, that we don't want to retry
             request_and_retry(Config, Headers, Body, ShouldDecode, RetryFun(Attempt, Reason))
     end.
