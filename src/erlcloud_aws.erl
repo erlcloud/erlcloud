@@ -812,11 +812,11 @@ service_host( Service, Region ) when is_binary(Service) ->
         application:get_env(erlcloud, services_vpc_endpoints, []),
             Default).
 
--spec configure_vpc_endpoints(binary(), list(binary())) -> ok.
+-spec configure_vpc_endpoints(binary(), list(binary())) -> ok | {error, httpc_result_error()}.
 % take the list of possible endpoints and pick the one suites from our AZ.
 configure_vpc_endpoints(Service, Endpoints) when is_binary(Service) ->
     %% default config is fine. no IAM is used
-    case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", erlcloud_aws:default_config()) of
+    case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", default_config()) of
         {ok, AZ} ->
             case [{binary:match(AZ, E), E} || E <- Endpoints, is_binary(E)] of
                 [] ->  ok;
