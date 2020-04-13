@@ -14,7 +14,7 @@
          default_config_region/2, default_config_override/1,
          update_config/1,clear_config/1, clear_expired_configs/0,
          service_config/3, service_host/2,
-         configure_vpce/2, get_vpce/0,
+         configure_vpc_endpoints/2, get_vpc_endpoints/0,
          configure/1, format_timestamp/1,
          http_headers_body/1,
          http_body/1,
@@ -812,9 +812,9 @@ service_host( Service, Region ) when is_binary(Service) ->
         application:get_env(erlcloud, services_vpc_endpoints, []),
             Default).
 
--spec configure_vpce(binary(), list(binary())) -> ok.
+-spec configure_vpc_endpoints(binary(), list(binary())) -> ok.
 % take the list of possible endpoints and pick the one suites from our AZ.
-configure_vpce(Service, Endpoints) when is_binary(Service) ->
+configure_vpc_endpoints(Service, Endpoints) when is_binary(Service) ->
     %% default config is fine. no IAM is used
     case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", erlcloud_aws:default_config()) of
         {ok, AZ} ->
@@ -829,8 +829,8 @@ configure_vpce(Service, Endpoints) when is_binary(Service) ->
             Err
     end.
 
--spec get_vpce () -> list({binary(), binary()}).
-get_vpce() ->
+-spec get_vpc_endpoints () -> list({binary(), binary()}).
+get_vpc_endpoints() ->
     application:get_env(erlcloud, services_vpc_endpoints, []).
 
 -spec configure(aws_config()) -> {ok, aws_config()}.
