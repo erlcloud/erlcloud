@@ -818,7 +818,7 @@ configure_vpc_endpoints(Service, Endpoints) when is_binary(Service) ->
     %% default config is fine. no IAM is used
     case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", default_config()) of
         {ok, AZ} ->
-            case [{binary:match(AZ, E), E} || E <- Endpoints, is_binary(E)] of
+            case [{binary:match(E, AZ), E} || E <- Endpoints, is_binary(E)] of
                 [{nomatch, _}] ->  ok;
                 % take the first match
                 [{_, Endpoint} | _ ] ->
