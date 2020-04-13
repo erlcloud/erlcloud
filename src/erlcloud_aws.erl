@@ -806,7 +806,7 @@ service_host( Service, <<"cn-northwest-1">> =Region ) when is_binary(Service) ->
 % if configured use it, otherwise use default
 % magic can be done vi EC3 describe VpcEndpoints/filter by VPC/filter by AZ,
 % however permissions and describe* API throttling 
-service_host( Service, Region ) when is_binary(Service) ->
+service_host( Service, Region ) when is_binary(Service) andalso is_binary(Region) ->
     Default = binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com">> ),
     proplists:get_value(Service,
         application:get_env(erlcloud, services_vpc_endpoints, []),
@@ -819,8 +819,9 @@ configure_vpc_endpoints(Service, Endpoints) when is_binary(Service) ->
     case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", default_config()) of
         {ok, AZ} ->
             case [{binary:match(AZ, E), E} || E <- Endpoints, is_binary(E)] of
-                [] ->  ok;
-                [{_, Endpoint}] ->
+                [{nomatch, _}] ->  ok;
+                % take the first match
+                [{_, Endpoint} | _ ] ->
                     Old = application:get_env(erlcloud, services_vpc_endpoints, []),
                     New = lists:ukeysort(1, [{Service, Endpoint} | Old ]),
                     application:set_env(erlcloud, services_vpc_endpoints, New)
