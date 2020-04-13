@@ -19,6 +19,7 @@
                   lhttpc]},
   {modules, []},
   {env, [
+      % Example [{<<"kinesis">>, <<"myAZdnsentry.amazonaws.com">>}]
       {services_vpc_endpoints, []}
   ]},
   {licenses, ["MIT"]},
