@@ -796,14 +796,20 @@ service_host( <<"s3">>, Region ) ->
 service_host( <<"iam">>, <<"cn-north-1">> ) -> "iam.amazonaws.com.cn";
 service_host( <<"iam">>, <<"cn-northwest-1">> ) -> "iam.amazonaws.com.cn";
 service_host( <<"sdb">>, <<"us-east-1">> ) -> "sdb.amazonaws.com";
-service_host( <<"states">>, Region ) ->
-    binary_to_list( <<"states.", Region/binary, ".amazonaws.com">> );
 service_host( Service, <<"cn-north-1">> = Region ) when is_binary(Service) ->
     binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com.cn">> );
 service_host( Service, <<"cn-northwest-1">> =Region ) when is_binary(Service) ->
     binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com.cn">> );
+% services which can have VPCe configured to mitigate cross-AZ traffic
+% it's application level decision to use VPCe and to match AZ and pick correct DNS name
+% if configured use it, otherwise use default
+% magic can be done vi EC3 describe VpcEndpoints/filter by VPC/filter by AZ,
+% however permissions and describe* API throttling 
 service_host( Service, Region ) when is_binary(Service) ->
-    binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com">> ).
+    Default = binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com">> ),
+    proplists:get_value(Service,
+        application:get_env(erlcloud, services_vpc_endpoints, []),
+            Default).
 
 -spec configure(aws_config()) -> {ok, aws_config()}.
 
