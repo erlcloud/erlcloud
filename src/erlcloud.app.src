@@ -18,7 +18,11 @@
                   %% hackney,
                   lhttpc]},
   {modules, []},
-  {env, []},
+  {env, [
+      % Example   [{<<"kinesis">>, [<<"myAZ1.amazonaws.com">>, <<"myAZ2.amazonaws.com">>]}]
+      % or vi ENV [{<<"kinesis">>, {env, "KINESIS_VPC_ENDPOINTS"}]
+      {services_vpc_endpoints, []}
+  ]},
   {licenses, ["MIT"]},
   {links, [{"Github", "https://github.com/erlcloud/erlcloud"}]}
  ]
