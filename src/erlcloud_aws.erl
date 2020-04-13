@@ -819,11 +819,15 @@ get_host_vpc_endpoint(Service, Default) when is_binary(Service) ->
     Endpoints = case ConfiguredEndpoints of
         {env, EnvVarName} when is_list(EnvVarName) ->
             Es = string:split(os:getenv(EnvVarName, ""), ",", all),
-            [list_to_binary(E) || E <- Es];
+            [list_to_binary(E) || E <- Es, E /= ""];
         EndpointsList when is_list(EndpointsList) ->
             EndpointsList
     end,
-    % now get our AZ and match
+    % now match our AZ to configured ones
+    pick_vpc_endpoint(Endpoints, Default).
+
+pick_vpc_endpoint([], Default) -> Default;
+pick_vpc_endpoint(Endpoints, Default) ->
     case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", default_config()) of
         {ok, AZ} ->
             lists:foldl(
