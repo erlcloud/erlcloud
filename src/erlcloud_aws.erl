@@ -161,11 +161,14 @@ aws_region_from_host(Host) ->
         %% the second is the region identifier, the rest is ignored
         %% the exception (of course) is the dynamodb streams and the marketplace which follows a
         %% different format
+        %% another exception is VPC endpoints
         ["streams", "dynamodb", Value | _Rest] ->
             Value;
         [Prefix, "marketplace", Value | _Rest]
-            when Prefix =:= "metering"; Prefix =:= "entitlement" ->
-                Value;
+                when Prefix =:= "metering"; Prefix =:= "entitlement" ->
+            Value;
+        [_, _, Value, "vpce" | _Rest] ->
+            Value;
         [_, Value, _, _ | _Rest] ->
             Value;
         _ ->
