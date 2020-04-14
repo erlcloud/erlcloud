@@ -157,8 +157,25 @@ Example of such app.config:
 ].
 ```
 
+### VPC endpoints
+If you want to utilise AZ affinity for VPC endpoints you can configure those in application config via:
+```erlang
+{erlcloud, [
+    {services_vpc_endpoints, [
+        {<<"sqs">>, [<<"myAZ1.sqs-dns.amazonaws.com">>, <<"myAZ2.sqs-dns.amazonaws.com">>]},
+        {<<"kinesis">>, {env, "KINESIS_VPC_ENDPOINTS"}}
+    ]}
+]}
+```
+Two options supported:
+ - explicit lists of route53 AZ endpoints
+ - OS environment variable, comes handy for ECS deployments. Env should be of comma separated string like:`"myAZ1.sqs-dns.amazonaws.com,myAZ2.sqs-dns.amazonaws.com"`
+ 
+Upon config generation, `erlcloud` will check the AZ of the deployment 
+and match it to one of the pre-configured DNS records. First match is used and if not match found default is used. 
 
-### Basic use ###
+
+## Basic use ##
 Then you can start making API calls, like:
 ```
 erlcloud_ec2:describe_images().
