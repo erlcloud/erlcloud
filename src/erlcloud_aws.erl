@@ -827,7 +827,9 @@ get_host_vpc_endpoint(Service, Default) when is_binary(Service) ->
 
 pick_vpc_endpoint([], Default) -> Default;
 pick_vpc_endpoint(Endpoints, Default) ->
-    case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", default_config()) of
+    % it fine to use default here - no IAM is used, only for http client
+    % one cannot use auto_config()/default_cfg() as it creates an infinite recursion.
+    case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", #aws_config{}) of
         {ok, AZ} ->
             lists:foldl(
                 fun (E , Acc) ->

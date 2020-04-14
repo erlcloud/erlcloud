@@ -169,9 +169,9 @@ If you want to utilise AZ affinity for VPC endpoints you can configure those in 
 ```
 Two options supported:
  - explicit lists of route53 AZ endpoints
- - OS environment variable, comes handy for ECS deployments.
+ - OS environment variable, comes handy for ECS deployments. Env should be of comma separated string like:`"myAZ1.sqs-dns.amazonaws.com,myAZ2.sqs-dns.amazonaws.com"`
  
-Upon config generation, `erlcloud` will check the AZ of the deployment and match it to one of the pre-configured DNS records to use.
+Upon config generation, `erlcloud` will check the AZ of the deployment and match it to the first one of the pre-configured DNS records to use.
 
 
 ## Basic use ##
