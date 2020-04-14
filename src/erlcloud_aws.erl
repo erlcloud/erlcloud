@@ -831,7 +831,7 @@ pick_vpc_endpoint(Endpoints, Default) ->
     % one cannot use auto_config()/default_cfg() as it creates an infinite recursion.
     case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", #aws_config{}) of
         {ok, AZ} ->
-            lists:foldl(
+            AZEndpoint = lists:foldl(
                 fun (E , Acc) ->
                     case {binary:match(E, AZ), Acc == Default} of
                         {nomatch, _} -> Acc;
@@ -843,7 +843,8 @@ pick_vpc_endpoint(Endpoints, Default) ->
                 end,
                 Default,
                 Endpoints
-            );
+            ),
+            binary_to_list(AZEndpoint);
         {error, _} ->
             Default
     end.
