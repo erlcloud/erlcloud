@@ -802,8 +802,8 @@ service_host( Service, <<"cn-north-1">> = Region ) when is_binary(Service) ->
 service_host( Service, <<"cn-northwest-1">> = Region ) when is_binary(Service) ->
     binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com.cn">> );
 service_host( Service, Region ) when is_binary(Service) andalso is_binary(Region) ->
-    Default = binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com">> ),
-    get_host_vpc_endpoint(Service, Default).
+    Default = <<Service/binary, $., Region/binary, ".amazonaws.com">>,
+    binary_to_list(get_host_vpc_endpoint(Service, Default)).
 
 -spec get_host_vpc_endpoint(binary(), binary()) -> binary().
 % some services can have VPCe configured and we allow to mitigate cross-AZ traffic.
@@ -831,7 +831,7 @@ pick_vpc_endpoint(Endpoints, Default) ->
     % one cannot use auto_config()/default_cfg() as it creates an infinite recursion.
     case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", #aws_config{}) of
         {ok, AZ} ->
-            AZEndpoint = lists:foldl(
+            lists:foldl(
                 fun (E , Acc) ->
                     case {binary:match(E, AZ), Acc == Default} of
                         {nomatch, _} -> Acc;
@@ -843,8 +843,7 @@ pick_vpc_endpoint(Endpoints, Default) ->
                 end,
                 Default,
                 Endpoints
-            ),
-            binary_to_list(AZEndpoint);
+            );
         {error, _} ->
             Default
     end.
