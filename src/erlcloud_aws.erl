@@ -801,24 +801,23 @@ service_host( Service, <<"cn-north-1">> = Region ) when is_binary(Service) ->
     binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com.cn">> );
 service_host( Service, <<"cn-northwest-1">> = Region ) when is_binary(Service) ->
     binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com.cn">> );
-% services which can have VPCe configured to mitigate cross-AZ traffic.
-% It's application level decision to use VPCe and configure those
-% magic can be done vi EC2 DescribeVpcEndpoints/filter by VPC/filter by AZ,
-% however permissions and describe* API throttling is not what we want to deal with here.
 service_host( Service, Region ) when is_binary(Service) andalso is_binary(Region) ->
     Default = binary_to_list( <<Service/binary, $., Region/binary, ".amazonaws.com">> ),
     get_host_vpc_endpoint(Service, Default).
 
 -spec get_host_vpc_endpoint(binary(), binary()) -> binary().
-%% take the list of possibly configured endpoints
-%% and pick the one which suites from our AZ.
+% some services can have VPCe configured and we allow to mitigate cross-AZ traffic.
+% It's application level decision to use VPCe and configure those.
+% magic can be done via EC2 DescribeVpcEndpoints/filter by VPC/filter by AZ.
+% however, permissions and describe* API throttling is not what we want to deal with here.
 get_host_vpc_endpoint(Service, Default) when is_binary(Service) ->
-    ConfiguredEndpoints = proplists:get_value(Service,
-        application:get_env(erlcloud, services_vpc_endpoints, [])),
+    VPCEndpointsByService = application:get_env(erlcloud, services_vpc_endpoints, []),
+    ConfiguredEndpoints = proplists:get_value(Service, VPCEndpointsByService, []),
     %% resolve through ENV if any
     Endpoints = case ConfiguredEndpoints of
         {env, EnvVarName} when is_list(EnvVarName) ->
             Es = string:split(os:getenv(EnvVarName, ""), ",", all),
+            % ignore "" env var or ",," cases
             [list_to_binary(E) || E <- Es, E /= ""];
         EndpointsList when is_list(EndpointsList) ->
             EndpointsList

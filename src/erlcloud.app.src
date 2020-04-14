@@ -19,7 +19,7 @@
                   lhttpc]},
   {modules, []},
   {env, [
-      % Example   [{<<"kinesis">>, [<<"myAZ1.amazonaws.com">>, <<"myAZ2.amazonaws.com">>]}]
+      % Example    [{<<"kinesis">>, [<<"myAZ1.amazonaws.com">>, <<"myAZ2.amazonaws.com">>]}]
       % or via ENV [{<<"kinesis">>, {env, "KINESIS_VPC_ENDPOINTS"}]
       {services_vpc_endpoints, []}
   ]},
