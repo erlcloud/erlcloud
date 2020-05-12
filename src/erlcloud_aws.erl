@@ -1148,12 +1148,22 @@ sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams) ->
     sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams, Date).
 
 -spec sign_v4(atom(), list(), aws_config(), headers(), string() | binary(), string(), string(), list(), string()) -> headers().
-sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams, Date) ->
-    {PayloadHash, Headers1} =
-        sign_v4_content_sha256_header( [{"x-amz-date", Date} | Headers], Payload ),
-    Headers2 = case Config#aws_config.security_token of
-                   undefined -> Headers1;
-                   Token -> [{"x-amz-security-token", Token} | Headers1]
+sign_v4(Method, Uri, Config, Headers0, Payload, Region, Service, QueryParams, Date0) ->
+    % use passed-in x-amz-date header or create one
+    Headers1 =
+        case proplists:get_value("x-amz-date", Headers0) of
+            undefined ->
+                Date = Date0,
+                [{"x-amz-date", Date0} | Headers0];
+            Date ->
+                Headers0
+        end,
+
+    {PayloadHash, Headers2} =
+        sign_v4_content_sha256_header(Headers1, Payload),
+    Headers3 = case Config#aws_config.security_token of
+                   undefined -> Headers2;
+                   Token -> [{"x-amz-security-token", Token} | Headers2]
                end,
     {Request, SignedHeaders} = canonical_request(Method, Uri, QueryParams, Headers3, PayloadHash),
     CredentialScope = credential_scope(Date, Region, Service),
