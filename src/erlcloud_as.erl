@@ -28,7 +28,8 @@
          detach_instances/2, detach_instances/3, detach_instances/4,
 
          describe_lifecycle_hooks/1, describe_lifecycle_hooks/2, describe_lifecycle_hooks/3,
-         complete_lifecycle_action/4, complete_lifecycle_action/5
+         complete_lifecycle_action/4, complete_lifecycle_action/5,
+         record_lifecycle_action_heartbeat/3, record_lifecycle_action_heartbeat/4
 ]).
 
 -define(API_VERSION, "2011-01-01").
@@ -77,6 +78,9 @@
 
 -define(COMPLETE_LIFECYCLE_ACTION_ACTIVITY, 
         "/CompleteLifecycleActionResponse/ResponseMetadata/RequestId").
+
+-define(RECORD_LIFECYCLE_ACTION_HEARTBEAT_ACTIVITY, 
+        "/RecordLifecycleActionHeartbeatResponse/ResponseMetadata/RequestId").
 
 
 %% --------------------------------------------------------------------
@@ -690,6 +694,29 @@ complete_lifecycle_action(GroupName, LifecycleActionResult, LifecycleHookName, I
     case as_query(Config, "CompleteLifecycleAction", Params, ?API_VERSION) of
         {ok, Doc} ->
             RequestId = erlcloud_xml:get_text(?COMPLETE_LIFECYCLE_ACTION_ACTIVITY, Doc),            
+            {ok, RequestId};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+-spec record_lifecycle_action_heartbeat(string(), string(), {instance_id | token, string()}) -> {ok, string()} | {error, term()}.
+record_lifecycle_action_heartbeat(GroupName, LifecycleHookName, InstanceIdOrLifecycleActionToken) ->
+    record_lifecycle_action_heartbeat(GroupName, LifecycleHookName, InstanceIdOrLifecycleActionToken, erlcloud_aws:default_config()).
+
+-spec record_lifecycle_action_heartbeat(string(), string(), {instance_id | token, string()}, aws_config()) -> {ok, string()} | {error, term()}.
+record_lifecycle_action_heartbeat(GroupName, LifecycleHookName, InstanceIdOrLifecycleActionToken, Config) ->
+    InstanceIdOrLifecycleActionTokenParam = case InstanceIdOrLifecycleActionToken of
+        {instance_id,InstanceId} ->
+            {"InstanceId", InstanceId};
+        {token,LifecycleActionToken} ->
+            {"LifecycleActionToken", LifecycleActionToken}
+    end,
+    Params = [{"AutoScalingGroupName", GroupName},
+              {"LifecycleHookName", LifecycleHookName},
+              InstanceIdOrLifecycleActionTokenParam],
+    case as_query(Config, "RecordLifecycleActionHeartbeat", Params, ?API_VERSION) of
+        {ok, Doc} ->
+            RequestId = erlcloud_xml:get_text(?RECORD_LIFECYCLE_ACTION_HEARTBEAT_ACTIVITY, Doc),            
             {ok, RequestId};
         {error, Reason} ->
             {error, Reason}
