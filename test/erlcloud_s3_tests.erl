@@ -41,7 +41,8 @@ operation_test_() ->
             fun get_bucket_encryption_test/1,
             fun get_bucket_encryption_not_found_test/1,
             fun delete_bucket_encryption_test/1,
-            fun hackney_proxy_put_validation_test/1
+            fun hackney_proxy_put_validation_test/1,
+            fun get_bucket_and_key/1
         ]}.
 
 start() ->
@@ -823,3 +824,7 @@ hackney_proxy_put_validation_test(_) ->
                   ,{"x-amz-version-id", "version_id"}
                   ], Result).
 
+get_bucket_and_key(_) ->
+    ErlcloudS3ExportExample = "https://s3.amazonaws.com/some_bucket/path_to_file",
+    Result = erlcloud_s3:get_bucket_and_key(ErlcloudS3ExportExample),
+    ?_assertEqual({"some_bucket","path_to_file"}, Result).

@@ -1738,7 +1738,7 @@ create_notification_param_xml({cloud_function, CF}, Acc) -> [{'CloudFunction', [
 -spec get_bucket_and_key(string()) -> {string(), string()}.
 
 get_bucket_and_key(Uri) ->
-  {ok, Parsed} = http_uri:parse(Uri),
+  {ok, Parsed} = erlcloud_util:uri_parse(Uri),
   {Host, Path} = extract_host_and_path(Parsed),
   extract_location_fields(Host, Path).
 
