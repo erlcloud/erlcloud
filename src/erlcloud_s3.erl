@@ -1178,7 +1178,7 @@ make_presigned_v4_url(ExpireTime, BucketName, Method, Key, QueryParams, Headers0
     HostHeader =
         case lists:any(fun({"host", _}) -> true; (_) -> false end, Headers0) of
             true -> [];
-            _    -> [{"host", Host}]
+            _    -> [{"host", lists:flatten([Host, port_spec(Config)])}]
         end,
 
     Headers = lists:keysort(1, HostHeader ++ Headers0),
