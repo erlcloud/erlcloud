@@ -59,6 +59,9 @@
 
 %% CloudWatch API
 -export([
+    create_log_stream/2,
+    create_log_stream/3,
+
     describe_log_groups/0,
     describe_log_groups/1,
     describe_log_groups/2,
@@ -133,6 +136,38 @@ new(AccessKeyID, SecretAccessKey, Host) ->
 %%------------------------------------------------------------------------------
 %% @doc
 %%
+%% CreateLogStream action
+%% http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogStream.html
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec create_log_stream(
+        log_group_name(),
+        log_stream_name()
+) -> ok | error_result().
+create_log_stream(LogGroupName, LogStreamName) ->
+    create_log_stream(LogGroupName, LogStreamName, default_config()).
+
+
+-spec create_log_stream(
+        log_group_name(),
+        log_stream_name(),
+        aws_config()
+) -> ok | error_result().
+create_log_stream(LogGroupName, LogStreamName, Config) ->
+    case cw_request(Config, "CreateLogStream", [
+        {<<"logGroupName">>, LogGroupName},
+        {<<"logStreamName">>, LogStreamName}
+    ])
+    of
+        {ok, []} -> ok;
+        {error, _} = Error -> Error
+    end.
+
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
 %% DescribeLogGroups action
 %% http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeLogGroups.html
 %%
@@ -176,14 +211,14 @@ describe_log_groups(LogGroupNamePrefix, Limit, Config) ->
     aws_config()
 ) -> result_paged(log_group()).
 describe_log_groups(LogGroupNamePrefix, Limit, Token, Config) ->
-    case 
+    case
         cw_request(Config, "DescribeLogGroups",
             req_log_groups(LogGroupNamePrefix, Limit, Token)
         )
     of
         {ok, Json} ->
             LogGroups = proplists:get_value(<<"logGroups">>, Json, []),
-            NextToken = proplists:get_value(<<"nextToken">>, Json, undefined), 
+            NextToken = proplists:get_value(<<"nextToken">>, Json, undefined),
             {ok, LogGroups, NextToken};
         {error, _} = Error ->
             Error
@@ -263,7 +298,7 @@ describe_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Limit, Token,
     of
         {ok, Json} ->
             LogStream = proplists:get_value(<<"logStreams">>, Json, []),
-            NextToken = proplists:get_value(<<"nextToken">>, Json, undefined), 
+            NextToken = proplists:get_value(<<"nextToken">>, Json, undefined),
             {ok, LogStream, NextToken};
         {error, _} = Error ->
             Error
@@ -290,14 +325,14 @@ log_stream_order_by(last_event_time) -> <<"LastEventTime">>.
 %% https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutLogEvents.html
 %%
 %% ===Example===
-%% 
+%%
 %%   Put log events requires a Upload Sequence Token, it is available via DescribeLogStreams
 %%
 %% `
-%%   application:ensure_all_started(erlcloud). 
+%%   application:ensure_all_started(erlcloud).
 %%   {ok, Config} = erlcloud_aws:auto_config().
 %%   {ok, Streams, _} = erlcloud_cloudwatch_logs:describe_log_streams(GroupName, StreamName, Config).
-%%   {_, Seq} = lists:keyfind(<<"uploadSequenceToken">>, 1, hd(Streams)). 
+%%   {_, Seq} = lists:keyfind(<<"uploadSequenceToken">>, 1, hd(Streams)).
 %%
 %%   Batch = [#{timestamp => 1526233086694, message => <<"Example Message">>}].
 %%   erlcloud_cloudwatch_logs:put_logs_events(GroupName, StreamName, Seq, Batch, Config).
@@ -337,7 +372,7 @@ put_logs_events(LogGroup, LogStream, SeqToken, Events, Config) ->
         {error, _} = Error ->
             Error
     end.
-  
+
 req_logs_events(LogGroup, LogStream, SeqToken, Events) ->
     [
         {<<"logEvents">>, log_events(Events)},
