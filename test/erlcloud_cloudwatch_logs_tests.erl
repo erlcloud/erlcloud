@@ -89,6 +89,8 @@
 
 erlcloud_cloudwatch_test_() ->
     {foreach, fun start/0, fun stop/1, [
+        fun create_log_stream_input_test/1,
+
         fun describe_log_groups_input_tests/1,
         fun describe_log_groups_output_tests/1,
 
@@ -98,7 +100,7 @@ erlcloud_cloudwatch_test_() ->
         fun describe_log_streams_input_tests/1,
         fun describe_log_streams_output_tests/1,
 
-        fun put_logs_events_input_tests/1        
+        fun put_logs_events_input_tests/1
     ]}.
 
 
@@ -118,6 +120,34 @@ stop(_) ->
 %%==============================================================================
 %% Test functions
 %%==============================================================================
+
+
+create_log_stream_input_test(_) ->
+    input_tests(jsx:encode([]), [
+        ?_cloudwatch_test(
+            {"Tests creating log stream",
+             ?_f(erlcloud_cloudwatch_logs:create_log_stream(
+                 ?LOG_GROUP_NAME,
+                 ?LOG_STREAM_NAME
+             )),
+             [{<<"Action">>, <<"CreateLogStream">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME},
+              {<<"logStreamName">>, ?LOG_STREAM_NAME}]}
+        ),
+        ?_cloudwatch_test(
+            {"Tests creating log stream with custom AWS config provided",
+             ?_f(erlcloud_cloudwatch_logs:create_log_stream(
+                 ?LOG_GROUP_NAME,
+                 ?LOG_STREAM_NAME,
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"CreateLogStream">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME},
+              {<<"logStreamName">>, ?LOG_STREAM_NAME}]}
+        )
+    ]).
 
 
 describe_log_groups_input_tests(_) ->
@@ -337,7 +367,7 @@ describe_log_streams_input_tests(_) ->
         ?_cloudwatch_test(
             {"Tests describing log streams with with log group name and stream name prefix",
              ?_f(erlcloud_cloudwatch_logs:describe_log_streams(
-                 ?LOG_GROUP_NAME, 
+                 ?LOG_GROUP_NAME,
                  ?LOG_STREAM_NAME_PREFIX,
                  erlcloud_aws:default_config()
              )),
@@ -353,7 +383,7 @@ describe_log_streams_input_tests(_) ->
             {"Tests describing log streams with with log group name, stream name prefix"
              "and stream sorting",
              ?_f(erlcloud_cloudwatch_logs:describe_log_streams(
-                 ?LOG_GROUP_NAME, 
+                 ?LOG_GROUP_NAME,
                  ?LOG_STREAM_NAME_PREFIX,
                  last_event_time,
                  true,
@@ -371,7 +401,7 @@ describe_log_streams_input_tests(_) ->
             {"Tests describing log streams with with log group name, stream name prefix,"
              "stream sorting and limits",
              ?_f(erlcloud_cloudwatch_logs:describe_log_streams(
-                 ?LOG_GROUP_NAME, 
+                 ?LOG_GROUP_NAME,
                  ?LOG_STREAM_NAME_PREFIX,
                  last_event_time,
                  true,
@@ -390,7 +420,7 @@ describe_log_streams_input_tests(_) ->
             {"Tests describing log streams with with log group name, stream name prefix,"
              "stream sorting, limits and page token",
              ?_f(erlcloud_cloudwatch_logs:describe_log_streams(
-                 ?LOG_GROUP_NAME, 
+                 ?LOG_GROUP_NAME,
                  ?LOG_STREAM_NAME_PREFIX,
                  last_event_time,
                  true,
@@ -406,7 +436,7 @@ describe_log_streams_input_tests(_) ->
               {<<"logStreamNamePrefix">>, ?LOG_STREAM_NAME_PREFIX},
               {<<"nextToken">>, ?PAGING_TOKEN},
               {<<"orderBy">>,<<"LastEventTime">>}]}
-        )        
+        )
     ]).
 
 
