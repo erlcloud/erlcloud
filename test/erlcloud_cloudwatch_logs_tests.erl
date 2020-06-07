@@ -89,6 +89,8 @@
 
 erlcloud_cloudwatch_test_() ->
     {foreach, fun start/0, fun stop/1, [
+        fun create_log_group_input_test/1,
+
         fun create_log_stream_input_test/1,
 
         fun delete_log_stream_input_test/1,
@@ -122,6 +124,55 @@ stop(_) ->
 %%==============================================================================
 %% Test functions
 %%==============================================================================
+
+
+create_log_group_input_test(_) ->
+    input_tests(jsx:encode([]), [
+        ?_cloudwatch_test(
+            {"Tests creating log group",
+             ?_f(erlcloud_cloudwatch_logs:create_log_group(?LOG_GROUP_NAME)),
+             [{<<"Action">>, <<"CreateLogGroup">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME}]}
+        ),
+        ?_cloudwatch_test(
+            {"Tests creating log group with custom AWS config provided",
+             ?_f(erlcloud_cloudwatch_logs:create_log_group(
+                 ?LOG_GROUP_NAME,
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"CreateLogGroup">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME}]}
+        ),
+        ?_cloudwatch_test(
+            {"Tests creating log group with AWS Tags and KMS key",
+             ?_f(erlcloud_cloudwatch_logs:create_log_group(
+                 ?LOG_GROUP_NAME,
+                 [{<<"tag_name">>, <<"tag_value">>}],
+                 "alias/example",
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"CreateLogGroup">>},
+              {<<"tags">>, [{<<"tag_name">>, <<"tag_value">>}]},
+              {<<"kmsKeyId">>, <<"alias/example">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME}]}
+        ),
+        ?_cloudwatch_test(
+            {"Tests creating log group without AWS Tags and with KMS key",
+             ?_f(erlcloud_cloudwatch_logs:create_log_group(
+                ?LOG_GROUP_NAME,
+                undefined,
+                "alias/example",
+                erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"CreateLogGroup">>},
+              {<<"kmsKeyId">>, <<"alias/example">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME}]}
+        )
+    ]).
 
 
 create_log_stream_input_test(_) ->
