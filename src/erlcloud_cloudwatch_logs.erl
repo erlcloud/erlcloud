@@ -68,6 +68,9 @@
     create_log_stream/2,
     create_log_stream/3,
 
+    delete_log_group/1,
+    delete_log_group/2,
+
     delete_log_stream/2,
     delete_log_stream/3,
 
@@ -215,6 +218,33 @@ create_log_stream(LogGroupName, LogStreamName, Config) ->
     case cw_request(Config, "CreateLogStream", [
         {<<"logGroupName">>, LogGroupName},
         {<<"logStreamName">>, LogStreamName}
+    ])
+    of
+        {ok, []} -> ok;
+        {error, _} = Error -> Error
+    end.
+
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% DeleteLogGroup action
+%% http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DeleteLogGroup.html
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec delete_log_group(log_group_name()) -> ok | error_result().
+delete_log_group(LogGroupName) ->
+    delete_log_group(LogGroupName, default_config()).
+
+
+-spec delete_log_group(
+        log_group_name(),
+        aws_config()
+) -> ok | error_result().
+delete_log_group(LogGroupName, Config) ->
+    case cw_request(Config, "DeleteLogGroup", [
+        {<<"logGroupName">>, LogGroupName}
     ])
     of
         {ok, []} -> ok;
