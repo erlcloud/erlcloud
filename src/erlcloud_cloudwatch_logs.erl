@@ -30,6 +30,7 @@
 -type metric_namespace() :: string() | binary() | undefined.
 -type log_stream_order() :: log_stream_name | last_event_time | undefined.
 -type events() :: [#{message => binary(), timestamp => pos_integer()}].
+-type kms_key_id() :: string() | binary() | undefined.
 
 
 -type success_result_paged(ObjectType) :: {ok, [ObjectType], paging_token()}.
@@ -59,6 +60,11 @@
 
 %% CloudWatch API
 -export([
+    create_log_group/1,
+    create_log_group/2,
+    create_log_group/3,
+    create_log_group/4,
+
     create_log_stream/2,
     create_log_stream/3,
 
@@ -134,6 +140,54 @@ new(AccessKeyID, SecretAccessKey, Host) ->
 %%==============================================================================
 %% CloudWatch API
 %%==============================================================================
+
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% CreateLogGroup action
+%% http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec create_log_group(log_group_name()) -> ok | error_result().
+create_log_group(LogGroupName) ->
+    create_log_group(LogGroupName, default_config()).
+
+
+-spec create_log_group(
+        log_group_name(),
+        aws_config()
+) -> ok | error_result().
+create_log_group(LogGroupName, Config) ->
+    create_log_group(LogGroupName, undefined, undefined, Config).
+
+
+-spec create_log_group(
+        log_group_name(),
+        list(tag()),
+        aws_config()
+) -> ok | error_result().
+create_log_group(LogGroupName, Tags, Config) when is_list(Tags) ->
+    create_log_group(LogGroupName, Tags, undefined, Config).
+
+
+-spec create_log_group(
+        log_group_name(),
+        list(tag()),
+        kms_key_id(),
+        aws_config()
+) -> ok | error_result().
+create_log_group(LogGroupName, Tags, KmsKeyId, Config) ->
+    case cw_request(Config, "CreateLogGroup", [
+        {<<"logGroupName">>, LogGroupName},
+        {<<"tags">>, Tags},
+        {<<"kmsKeyId">>, KmsKeyId}
+    ])
+    of
+        {ok, []} -> ok;
+        {error, _} = Error -> Error
+    end.
 
 
 %%------------------------------------------------------------------------------
