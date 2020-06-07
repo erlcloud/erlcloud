@@ -93,6 +93,8 @@ erlcloud_cloudwatch_test_() ->
 
         fun create_log_stream_input_test/1,
 
+        fun delete_log_group_input_test/1,
+
         fun delete_log_stream_input_test/1,
 
         fun describe_log_groups_input_tests/1,
@@ -169,6 +171,28 @@ create_log_group_input_test(_) ->
              )),
              [{<<"Action">>, <<"CreateLogGroup">>},
               {<<"kmsKeyId">>, <<"alias/example">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME}]}
+        )
+    ]).
+
+
+delete_log_group_input_test(_) ->
+    input_tests(jsx:encode([]), [
+        ?_cloudwatch_test(
+            {"Tests creating log group",
+             ?_f(erlcloud_cloudwatch_logs:delete_log_group(?LOG_GROUP_NAME)),
+             [{<<"Action">>, <<"DeleteLogGroup">>},
+              {<<"Version">>, ?API_VERSION},
+              {<<"logGroupName">>, ?LOG_GROUP_NAME}]}
+        ),
+        ?_cloudwatch_test(
+            {"Tests creating log group with custom AWS config provided",
+             ?_f(erlcloud_cloudwatch_logs:delete_log_group(
+                 ?LOG_GROUP_NAME,
+                 erlcloud_aws:default_config()
+             )),
+             [{<<"Action">>, <<"DeleteLogGroup">>},
               {<<"Version">>, ?API_VERSION},
               {<<"logGroupName">>, ?LOG_GROUP_NAME}]}
         )
