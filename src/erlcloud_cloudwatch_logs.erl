@@ -30,6 +30,7 @@
 -type metric_namespace() :: string() | binary() | undefined.
 -type log_stream_order() :: log_stream_name | last_event_time | undefined.
 -type events() :: [#{message => binary(), timestamp => pos_integer()}].
+-type kms_key_id() :: string() | binary() | undefined.
 
 
 -type success_result_paged(ObjectType) :: {ok, [ObjectType], paging_token()}.
@@ -59,6 +60,20 @@
 
 %% CloudWatch API
 -export([
+    create_log_group/1,
+    create_log_group/2,
+    create_log_group/3,
+    create_log_group/4,
+
+    create_log_stream/2,
+    create_log_stream/3,
+
+    delete_log_group/1,
+    delete_log_group/2,
+
+    delete_log_stream/2,
+    delete_log_stream/3,
+
     describe_log_groups/0,
     describe_log_groups/1,
     describe_log_groups/2,
@@ -133,6 +148,145 @@ new(AccessKeyID, SecretAccessKey, Host) ->
 %%------------------------------------------------------------------------------
 %% @doc
 %%
+%% CreateLogGroup action
+%% http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec create_log_group(log_group_name()) -> ok | error_result().
+create_log_group(LogGroupName) ->
+    create_log_group(LogGroupName, default_config()).
+
+
+-spec create_log_group(
+        log_group_name(),
+        aws_config()
+) -> ok | error_result().
+create_log_group(LogGroupName, Config) ->
+    create_log_group(LogGroupName, undefined, undefined, Config).
+
+
+-spec create_log_group(
+        log_group_name(),
+        list(tag()),
+        aws_config()
+) -> ok | error_result().
+create_log_group(LogGroupName, Tags, Config) when is_list(Tags) ->
+    create_log_group(LogGroupName, Tags, undefined, Config).
+
+
+-spec create_log_group(
+        log_group_name(),
+        list(tag()),
+        kms_key_id(),
+        aws_config()
+) -> ok | error_result().
+create_log_group(LogGroupName, Tags, KmsKeyId, Config) ->
+    case cw_request(Config, "CreateLogGroup", [
+        {<<"logGroupName">>, LogGroupName},
+        {<<"tags">>, Tags},
+        {<<"kmsKeyId">>, KmsKeyId}
+    ])
+    of
+        {ok, []} -> ok;
+        {error, _} = Error -> Error
+    end.
+
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% CreateLogStream action
+%% http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogStream.html
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec create_log_stream(
+        log_group_name(),
+        log_stream_name()
+) -> ok | error_result().
+create_log_stream(LogGroupName, LogStreamName) ->
+    create_log_stream(LogGroupName, LogStreamName, default_config()).
+
+
+-spec create_log_stream(
+        log_group_name(),
+        log_stream_name(),
+        aws_config()
+) -> ok | error_result().
+create_log_stream(LogGroupName, LogStreamName, Config) ->
+    case cw_request(Config, "CreateLogStream", [
+        {<<"logGroupName">>, LogGroupName},
+        {<<"logStreamName">>, LogStreamName}
+    ])
+    of
+        {ok, []} -> ok;
+        {error, _} = Error -> Error
+    end.
+
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% DeleteLogGroup action
+%% http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DeleteLogGroup.html
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec delete_log_group(log_group_name()) -> ok | error_result().
+delete_log_group(LogGroupName) ->
+    delete_log_group(LogGroupName, default_config()).
+
+
+-spec delete_log_group(
+        log_group_name(),
+        aws_config()
+) -> ok | error_result().
+delete_log_group(LogGroupName, Config) ->
+    case cw_request(Config, "DeleteLogGroup", [
+        {<<"logGroupName">>, LogGroupName}
+    ])
+    of
+        {ok, []} -> ok;
+        {error, _} = Error -> Error
+    end.
+
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% DeleteLogStream action
+%% http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DeleteLogStream.html
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec delete_log_stream(
+        log_group_name(),
+        log_stream_name()
+) -> ok | error_result().
+delete_log_stream(LogGroupName, LogStreamName) ->
+    delete_log_stream(LogGroupName, LogStreamName, default_config()).
+
+
+-spec delete_log_stream(
+        log_group_name(),
+        log_stream_name(),
+        aws_config()
+) -> ok | error_result().
+delete_log_stream(LogGroupName, LogStreamName, Config) ->
+    case cw_request(Config, "DeleteLogStream", [
+        {<<"logGroupName">>, LogGroupName},
+        {<<"logStreamName">>, LogStreamName}
+    ])
+    of
+        {ok, []} -> ok;
+        {error, _} = Error -> Error
+    end.
+
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
 %% DescribeLogGroups action
 %% http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_DescribeLogGroups.html
 %%
@@ -176,14 +330,14 @@ describe_log_groups(LogGroupNamePrefix, Limit, Config) ->
     aws_config()
 ) -> result_paged(log_group()).
 describe_log_groups(LogGroupNamePrefix, Limit, Token, Config) ->
-    case 
+    case
         cw_request(Config, "DescribeLogGroups",
             req_log_groups(LogGroupNamePrefix, Limit, Token)
         )
     of
         {ok, Json} ->
             LogGroups = proplists:get_value(<<"logGroups">>, Json, []),
-            NextToken = proplists:get_value(<<"nextToken">>, Json, undefined), 
+            NextToken = proplists:get_value(<<"nextToken">>, Json, undefined),
             {ok, LogGroups, NextToken};
         {error, _} = Error ->
             Error
@@ -263,7 +417,7 @@ describe_log_streams(LogGroupName, LogStreamPrefix, OrderBy, Desc, Limit, Token,
     of
         {ok, Json} ->
             LogStream = proplists:get_value(<<"logStreams">>, Json, []),
-            NextToken = proplists:get_value(<<"nextToken">>, Json, undefined), 
+            NextToken = proplists:get_value(<<"nextToken">>, Json, undefined),
             {ok, LogStream, NextToken};
         {error, _} = Error ->
             Error
@@ -290,14 +444,14 @@ log_stream_order_by(last_event_time) -> <<"LastEventTime">>.
 %% https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutLogEvents.html
 %%
 %% ===Example===
-%% 
+%%
 %%   Put log events requires a Upload Sequence Token, it is available via DescribeLogStreams
 %%
 %% `
-%%   application:ensure_all_started(erlcloud). 
+%%   application:ensure_all_started(erlcloud).
 %%   {ok, Config} = erlcloud_aws:auto_config().
 %%   {ok, Streams, _} = erlcloud_cloudwatch_logs:describe_log_streams(GroupName, StreamName, Config).
-%%   {_, Seq} = lists:keyfind(<<"uploadSequenceToken">>, 1, hd(Streams)). 
+%%   {_, Seq} = lists:keyfind(<<"uploadSequenceToken">>, 1, hd(Streams)).
 %%
 %%   Batch = [#{timestamp => 1526233086694, message => <<"Example Message">>}].
 %%   erlcloud_cloudwatch_logs:put_logs_events(GroupName, StreamName, Seq, Batch, Config).
@@ -337,7 +491,7 @@ put_logs_events(LogGroup, LogStream, SeqToken, Events, Config) ->
         {error, _} = Error ->
             Error
     end.
-  
+
 req_logs_events(LogGroup, LogStream, SeqToken, Events) ->
     [
         {<<"logEvents">>, log_events(Events)},
