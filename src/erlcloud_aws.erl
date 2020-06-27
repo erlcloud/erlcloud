@@ -25,7 +25,7 @@
          is_throttling_error_response/1,
          get_timeout/1,
          profile/0, profile/1, profile/2,
-         iso_8601_basic_time/0,
+         iso_8601_basic_time/0, iso_8601_basic_time/1,
          to_sign/3,
          signing_key/4,
          base16/1,
@@ -1175,7 +1175,11 @@ sign_v4(Method, Uri, Config, Headers0, Payload, Region, Service, QueryParams, Da
 
 -spec iso_8601_basic_time() -> string().
 iso_8601_basic_time() ->
-    {{Year,Month,Day},{Hour,Min,Sec}} = calendar:universal_time(),
+    iso_8601_basic_time(calendar:universal_time()).
+
+-spec iso_8601_basic_time(tuple()) -> string().
+iso_8601_basic_time(Datetime) ->
+    {{Year,Month,Day},{Hour,Min,Sec}} = Datetime,
     lists:flatten([
         integer_to_list(Year), two_digits(Month), two_digits(Day), $T,
         two_digits(Hour), two_digits(Min), two_digits(Sec), $Z
