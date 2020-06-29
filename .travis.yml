@@ -3,7 +3,8 @@ language: erlang
 otp_release:
   - 19.3
   - 20.3
-  - 21.1.3
+  - 21.3
+  - 22.3
 env:
   global:
   - MAIN_OTP=20.3
