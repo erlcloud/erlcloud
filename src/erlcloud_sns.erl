@@ -525,7 +525,7 @@ publish(Type, RecipientArn, Message, Subject, Attributes, Config) ->
 
 -spec parse_event(iodata()) -> sns_event().
 parse_event(EventSource) ->
-    jsx:decode(EventSource).
+    jsx:decode(EventSource, [{return_maps, false}]).
 
 -spec get_event_type(sns_event()) -> sns_event_type().
 get_event_type(Event) ->
@@ -539,7 +539,7 @@ parse_event_message(Event) ->
     Message = proplists:get_value(<<"Message">>, Event, <<>>),
     case get_event_type(Event) of
         subscription_confirmation -> Message;
-        notification -> jsx:decode(Message)
+        notification -> jsx:decode(Message, [{return_maps, false}])
     end.
 
 -spec get_notification_attribute(binary(), sns_notification()) -> sns_application_attribute() | binary().

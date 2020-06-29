@@ -71,8 +71,8 @@ sort_json(V) ->
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(Body, Expected) ->
-    Want = sort_json(jsx:decode(list_to_binary(Expected))),
-    Actual = sort_json(jsx:decode(Body)),
+    Want = sort_json(decode(list_to_binary(Expected))),
+    Actual = sort_json(decode(Body)),
     case Want =:= Actual of
         true -> ok;
         false ->
@@ -189,7 +189,7 @@ create_trail_output_tests(_) ->
     Tests = 
         [?_cloudtrail_test(
             {"CreateTrail example response", Response,
-                {ok, jsx:decode(Response)}})
+                {ok, decode(Response)}})
         ],
     output_tests(?_f(erlcloud_cloudtrail:create_trail("test", "test_bucket", "test_prefix", "test_topic", true, erlcloud_aws:default_config())), Tests).
 
@@ -216,7 +216,7 @@ delete_trail_output_tests(_) ->
     Tests = 
         [?_cloudtrail_test(
             {"DeleteTrail example response", Response,
-                {ok, jsx:decode(Response)}})
+                {ok, decode(Response)}})
         ],
     output_tests(?_f(erlcloud_cloudtrail:delete_trail("test", erlcloud_aws:default_config())), Tests).
 
@@ -242,7 +242,7 @@ start_logging_output_tests(_) ->
     Tests = 
         [?_cloudtrail_test(
             {"StartLogging example response", Response,
-                {ok, jsx:decode(Response)}})
+                {ok, decode(Response)}})
         ],
     output_tests(?_f(erlcloud_cloudtrail:start_logging("test", erlcloud_aws:default_config())), Tests).
 
@@ -268,7 +268,7 @@ stop_logging_output_tests(_) ->
     Tests = 
         [?_cloudtrail_test(
             {"StopLogging example response", Response,
-                {ok, jsx:decode(Response)}})
+                {ok, decode(Response)}})
         ],
     output_tests(?_f(erlcloud_cloudtrail:stop_logging("test", erlcloud_aws:default_config())), Tests).
 
@@ -303,7 +303,7 @@ describe_trails_output_tests(_) ->
     Tests = 
         [?_cloudtrail_test(
             {"DescribeTrails example response", Response,
-                {ok, jsx:decode(Response)}})
+                {ok, decode(Response)}})
         ],
     output_tests(?_f(erlcloud_cloudtrail:describe_trails(["test"], erlcloud_aws:default_config())), Tests).
 
@@ -341,7 +341,7 @@ get_event_selectors_output_tests(_) ->
     Tests =
         [?_cloudtrail_test(
             {"GetEventSelectors example response", Response,
-                {ok, jsx:decode(Response)}})
+                {ok, decode(Response)}})
         ],
     output_tests(?_f(erlcloud_cloudtrail:get_event_selectors("test", erlcloud_aws:default_config())), Tests).
 
@@ -376,7 +376,7 @@ get_trail_status_output_tests(_) ->
     Tests = 
         [?_cloudtrail_test(
             {"GetTrailStatus example response", Response,
-                {ok, jsx:decode(Response)}})
+                {ok, decode(Response)}})
         ],
     output_tests(?_f(erlcloud_cloudtrail:get_trail_status("test", erlcloud_aws:default_config())), Tests).
 
@@ -412,8 +412,10 @@ update_trail_output_tests(_) ->
     Tests = 
         [?_cloudtrail_test(
             {"UpdateTrail example response", Response,
-                {ok, jsx:decode(Response)}})
+                {ok, decode(Response)}})
         ],
     output_tests(?_f(erlcloud_cloudtrail:update_trail("test", "test_bucket", "test_prefix", "test_topic", true, erlcloud_aws:default_config())), Tests).
 
 
+decode(S) ->
+    jsx:decode(S, [{return_maps, false}]).

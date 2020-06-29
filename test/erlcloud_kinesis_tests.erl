@@ -99,8 +99,8 @@ sort_json(V) ->
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(Body, Expected) ->
-    Want = sort_json(jsx:decode(list_to_binary(Expected))),
-    Actual = sort_json(jsx:decode(Body)),
+    Want = sort_json(decode(list_to_binary(Expected))),
+    Actual = sort_json(decode(Body)),
     case Want =:= Actual of
         true -> ok;
         false ->
@@ -195,7 +195,7 @@ create_stream_output_tests(_) ->
     Tests =
         [?_kinesis_test(
             {"CreateStream example response", "{}",
-             {ok, jsx:decode(<<"{}">>)}})
+             {ok, decode(<<"{}">>)}})
         ],
 
     output_tests(?_f(erlcloud_kinesis:create_stream(<<"streamName">>, 2)), Tests).
@@ -220,7 +220,7 @@ delete_stream_output_tests(_) ->
     Tests =
         [?_kinesis_test(
             {"DeleteStream example response", "{}",
-             {ok, jsx:decode(<<"{}">>)}})
+             {ok, decode(<<"{}">>)}})
         ],
 
     output_tests(?_f(erlcloud_kinesis:delete_stream(<<"streamName">>)), Tests).
@@ -954,7 +954,7 @@ merge_shards_output_tests(_) ->
     Tests =
         [?_kinesis_test(
             {"MergeShards example response", "{}",
-             {ok, jsx:decode(<<"{}">>)}})
+             {ok, decode(<<"{}">>)}})
         ],
 
     output_tests(?_f(erlcloud_kinesis:merge_shards(<<"test">>, <<"shardId-000000000001">>, <<"shardId-000000000003">>)), Tests).
@@ -981,7 +981,7 @@ split_shards_output_tests(_) ->
     Tests =
         [?_kinesis_test(
             {"SplitShard example response", "{}",
-             {ok, jsx:decode(<<"{}">>)}})
+             {ok, decode(<<"{}">>)}})
         ],
 
     output_tests(?_f(erlcloud_kinesis:split_shards(<<"test">>, <<"shardId-000000000000">>, <<"10">>)), Tests).
@@ -1028,7 +1028,7 @@ list_tags_for_stream_output_tests(_) ->
                  \"Tags\": [{\"Key\":\"key1\",\"Value\":\"val1\"}]}",
     Tests = [?_kinesis_test({"List tags response test",
                              Response,
-                             {ok, jsx:decode(list_to_binary(Response))}})],
+                             {ok, decode(list_to_binary(Response))}})],
     output_tests(
         ?_f(erlcloud_kinesis:list_tags_for_stream(<<"stream">>, <<"key1">>, 1)),
         Tests
@@ -1076,3 +1076,6 @@ remove_tags_from_stream_output_tests(_) ->
                                                      [<<"key">>])),
         Tests
     ).
+
+decode(S) ->
+    jsx:decode(S, [{return_maps, false}]).

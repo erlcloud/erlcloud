@@ -136,8 +136,8 @@ validate_body(<<>> = Actual, Want) ->
   ?debugFmt("~nEXPECTED~n~p~nACTUAL~n~p~n", [Want, Actual]),
   ?assertEqual(Want, Actual);
 validate_body(Body, Expected) ->
-    Want = sort_json(jsx:decode(list_to_binary(Expected))),
-    Actual = sort_json(jsx:decode(Body)),
+    Want = sort_json(jsx:decode(list_to_binary(Expected), [{return_maps, false}])),
+    Actual = sort_json(jsx:decode(Body, [{return_maps, false}])),
     case Want =:= Actual of
         true -> ok;
         false ->

@@ -57,8 +57,8 @@ sort_json(V) ->
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(Body, Expected) ->
-    Want = sort_json(jsx:decode(list_to_binary(Expected))),
-    Actual = sort_json(jsx:decode(Body)),
+    Want = sort_json(decode(list_to_binary(Expected))),
+    Actual = sort_json(decode(Body)),
     case Want =:= Actual of
         true -> ok;
         false ->
@@ -250,7 +250,7 @@ get_entitlement_output_tests(_) ->
         }
     ]
 }",
-             {ok, jsx:decode(<<"
+             {ok, decode(<<"
 {
     \"Entitlements\": [
         {
@@ -283,7 +283,7 @@ get_entitlement_output_tests(_) ->
         }
     ]
 }",
-             {ok, jsx:decode(<<"
+             {ok, decode(<<"
 {
     \"Entitlements\": [
         {
@@ -308,3 +308,6 @@ get_entitlement_output_tests(_) ->
            <<"string">>,
            [{customer_identifier, [<<"string">>]}, {dimension, [<<"string">>]}],
            [{next_token, <<"token">>}])), Tests).
+
+decode(S) ->
+    jsx:decode(S, [{return_maps, false}]).
