@@ -171,7 +171,7 @@ mes_request_no_update(#aws_config{mes_scheme = Scheme, mes_host = Host, mes_port
     Headers = headers(Config, Operation, Body),
     case erlcloud_aws:aws_request_form_raw(post, Scheme, Host, Port, "/", Body, Headers, Config) of
         {ok, Response} ->
-            {ok, jsx:decode(Response)};
+            {ok, jsx:decode(Response, [{return_maps, false}])};
         {error, Reason} ->
             {error, Reason}
     end.

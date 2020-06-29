@@ -416,7 +416,7 @@ dc_query(Operation, Params, Config) ->
                      [{<<"content-type">>, <<"application/x-amz-json-1.1">>} | Headers],
                      Body, 1000, Config)) of
        {ok, {_RespHeader, RespBody}} ->
-            {ok, jsx:decode(RespBody)};
+            {ok, jsx:decode(RespBody, [{return_maps, false}])};
         {error, Reason} ->
             {error, Reason}
     end.

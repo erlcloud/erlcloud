@@ -193,7 +193,7 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
 
         {ok, {{200, _}, _, RespBody}} ->
             %% TODO check crc
-            {ok, jsx:decode(RespBody)};
+            {ok, jsx:decode(RespBody, [{return_maps, false}])};
 
         Error ->
             DDBError = #ddb2_error{attempt = Attempt, 
@@ -230,7 +230,7 @@ client_error(Body, DDBError) ->
         false ->
             DDBError#ddb2_error{error_type = http, should_retry = false};
         true ->
-            Json = jsx:decode(Body),
+            Json = jsx:decode(Body, [{return_maps, false}]),
             case proplists:get_value(<<"__type">>, Json) of
                 undefined ->
                     DDBError#ddb2_error{error_type = http, should_retry = false};

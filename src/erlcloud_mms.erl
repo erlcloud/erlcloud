@@ -170,7 +170,7 @@ mms_request_no_update(#aws_config{mms_scheme = Scheme, mms_host = Host, mms_port
     Headers = headers(Config, Operation, Body),
     case erlcloud_aws:aws_request_form_raw(post, Scheme, Host, Port, "/", Body, Headers, Config) of
         {ok, Response} ->
-            {ok, jsx:decode(Response)};
+            {ok, jsx:decode(Response, [{return_maps, false}])};
         {error, Reason} ->
             {error, Reason}
     end.

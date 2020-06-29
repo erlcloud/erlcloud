@@ -189,7 +189,7 @@ input_test(ResponseBody, {Line, {Description, Fun, ExpectedParams}}) ->
                 erlcloud_httpc,
                 request,
                 fun(_Url, post, _Headers, RequestBody, _Timeout, _Config) ->
-                    ActualParams = jsx:decode(RequestBody),
+                    ActualParams = jsx:decode(RequestBody, [{return_maps, false}]),
                     ?assertEqual(sort_json(ExpectedParams), sort_json(ActualParams)),
                     {ok, {{200, "OK"}, [], ResponseBody}}
                 end

@@ -702,7 +702,7 @@ request_with_action(Configuration, BodyConfiguration, Action) ->
             Headers = [{"content-type", "application/x-amz-json-1.1"} | HeadersPrev],
             Request = prepare_record(Config, post, Headers, Body),
             Response = erlcloud_retry:request(Config, Request, fun aas_result_fun/1),
-            {ok, jsx:decode(Response#aws_request.response_body)};
+            {ok, jsx:decode(Response#aws_request.response_body, [{return_maps, false}])};
         {error, Reason} ->
             {error, Reason}
     end.

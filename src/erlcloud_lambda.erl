@@ -760,7 +760,7 @@ decode_body(Body, true) ->
 decode_body(<<>>, _RawBody) ->
     [];
 decode_body(BinData, _RawBody) ->
-    jsx:decode(BinData).
+    jsx:decode(BinData, [{return_maps, false}]).
 
 encode_body(Bin) when is_binary(Bin) ->
     Bin;

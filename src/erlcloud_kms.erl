@@ -1011,7 +1011,7 @@ kms_request_no_update(Config, Operation, Body) ->
                            request_body = Payload},
     case erlcloud_aws:request_to_return(erlcloud_retry:request(Config, Request, fun kms_result_fun/1)) of
         {ok, {_RespHeaders, <<>>}} -> {ok, []};
-        {ok, {_RespHeaders, RespBody}} -> {ok, jsx:decode(RespBody)};
+        {ok, {_RespHeaders, RespBody}} -> {ok, jsx:decode(RespBody, [{return_maps, false}])};
         {error, _} = Error-> Error
     end.
 
