@@ -177,8 +177,8 @@ create_log_group(LogGroupName, Tags, Config) when is_list(Tags) ->
 
 -spec create_log_group(
         log_group_name(),
-        list(tag()),
-        kms_key_id(),
+        undefined | list(tag()),
+        undefined | kms_key_id(),
         aws_config()
 ) -> ok | error_result().
 create_log_group(LogGroupName, Tags, KmsKeyId, Config) ->
