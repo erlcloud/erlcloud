@@ -16,7 +16,8 @@
     encode_object/2,
     encode_object_list/2,
     next_token/2,
-    filter_undef/1
+    filter_undef/1,
+    uri_parse/1
 ]).
 
 -define(MAX_ITEMS, 1000).
@@ -174,3 +175,25 @@ next_token(Path, XML) ->
 -spec filter_undef(proplists:proplist()) -> proplists:proplist().
 filter_undef(List) ->
     lists:filter(fun({_Name, Value}) -> Value =/= undefined end, List).
+
+-ifdef(OTP_RELEASE).
+-if(?OTP_RELEASE >= 23).
+uri_parse(Uri) ->
+    URIMap = uri_string:parse(Uri),
+    DefaultScheme = "https",
+    DefaultPort = 443,
+    Scheme = list_to_atom(maps:get(scheme, URIMap, DefaultScheme)),
+    UserInfo = maps:get(userinfo, URIMap, ""),
+    Host = maps:get(host, URIMap, ""),
+    Port = maps:get(port, URIMap, DefaultPort),
+    Path = maps:get(path, URIMap, ""),
+    Query = maps:get(query, URIMap, ""),
+    {ok, {Scheme, UserInfo, Host, Port, Path, Query}}.
+-else.
+uri_parse(Uri) ->
+    http_uri:parse(Uri).
+-endif.
+-else.
+uri_parse(Uri) ->
+    http_uri:parse(Uri).
+-endif.
