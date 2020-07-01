@@ -21,12 +21,32 @@
 
 -define(MAX_ITEMS, 1000).
 
+-ifdef(OTP_RELEASE).
+-if(?OTP_RELEASE >= 23).
+sha_mac(K, S) ->
+    crypto:mac(hmac, sha, K, S).
+-else.
 sha_mac(K, S) ->
     crypto:hmac(sha, K, S).
+-endif.
+-else.
+sha_mac(K, S) ->
+    crypto:hmac(sha, K, S).
+-endif.
 
 
+-ifdef(OTP_RELEASE).
+-if(?OTP_RELEASE >= 23).
+sha256_mac(K, S) ->
+    crypto:mac(hmac, sha256, K, S).
+-else.
 sha256_mac(K, S) ->
     crypto:hmac(sha256, K, S).
+-endif.
+-else.
+sha256_mac(K, S) ->
+    crypto:hmac(sha256, K, S).
+-endif.
 
 sha256(V) ->
     crypto:hash(sha256, V).
