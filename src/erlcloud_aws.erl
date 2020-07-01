@@ -819,7 +819,7 @@ get_host_vpc_endpoint(Service, Default) when is_binary(Service) ->
     %% resolve through ENV if any
     Endpoints = case ConfiguredEndpoints of
         {env, EnvVarName} when is_list(EnvVarName) ->
-            Es = string:split(os:getenv(EnvVarName, ""), ",", all),
+            Es = string_split(os:getenv(EnvVarName, ""), ","),
             % ignore "" env var or ",," cases
             [list_to_binary(E) || E <- Es, E /= ""];
         EndpointsList when is_list(EndpointsList) ->
@@ -827,6 +827,17 @@ get_host_vpc_endpoint(Service, Default) when is_binary(Service) ->
     end,
     % now match our AZ to configured ones
     pick_vpc_endpoint(Endpoints, Default).
+
+-ifdef(AT_LEAST_20).
+string_split(String, Char) ->
+    string:split(String, Char, all).
+-else.
+string_split(String, Char) ->
+    Subject = list_to_binary(String),
+    Pattern = list_to_binary(Char),
+    Options = [global],
+    [binary_to_list(Elem) || Elem <- binary:split(Subject, Pattern, Options)].
+-endif.
 
 pick_vpc_endpoint([], Default) -> Default;
 pick_vpc_endpoint(Endpoints, Default) ->
