@@ -68,7 +68,9 @@
         ]).
 
 %% Internal impl api
--export([request/3]).
+-export([request/3,
+         request/4
+        ]).
 
 -export_type([json_return/0, attempt/0, retry_fun/0]).
 
@@ -77,6 +79,12 @@
 -type operation() :: string().
 -spec request(aws_config(), operation(), jsx:json_term()) -> json_return().
 request(Config0, Operation, Json) ->
+    request(Config0, Operation, Json, [{idempotent, unknown}]).
+
+-type request_opt() :: idempotent | {idempotent, unknown|boolean()|lazy_boolean()}.
+-type lazy_boolean() :: fun (() -> boolean()).
+-spec request(aws_config(), operation(), jsx:json_term(), [request_opt()]) -> json_return().
+request(Config0, Operation, Json, Opts) ->
     Body = case Json of
                [] -> <<"{}">>;
                _ -> jsx:encode(Json)
@@ -84,7 +92,7 @@ request(Config0, Operation, Json) ->
     case erlcloud_aws:update_config(Config0) of
         {ok, Config} ->
             Headers = headers(Config, Operation, Body),
-            request_and_retry(Config, Headers, Body, {attempt, 1});
+            request_and_retry(Config, Headers, Body, Opts, {attempt, 1});
         {error, Reason} ->
             {error, Reason}
     end.
@@ -177,11 +185,11 @@ retry_v1_wrap(Error, RetryFun) ->
     RetryFun(Error#ddb2_error.attempt, Error#ddb2_error.reason).
 
 -type headers() :: [{string(), string()}].
--spec request_and_retry(aws_config(), headers(), jsx:json_text(), attempt()) ->
+-spec request_and_retry(aws_config(), headers(), jsx:json_text(), [request_opt()], attempt()) ->
                                ok | {ok, jsx:json_term()} | {error, term()}.
-request_and_retry(_, _, _, {error, Reason}) ->
+request_and_retry(_, _, _, _, {error, Reason}) ->
     {error, Reason};
-request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
+request_and_retry(Config, Headers, Body, Opts, {attempt, Attempt}) ->
     RetryFun = retry_fun(Config),
     case erlcloud_httpc:request(
            url(Config), post,
@@ -199,16 +207,15 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
             DDBError = #ddb2_error{attempt = Attempt, 
                                    request_headers = Headers, 
                                    request_body = Body},
-            request_and_retry(Config, Headers, Body, RetryFun(to_ddb_error(Error, DDBError)))
+            request_and_retry(Config, Headers, Body, Opts, RetryFun(to_ddb_error(Error, DDBError, Opts)))
     end.
 
-to_ddb_error({error, Reason}, DDBError) ->
-    %% TODO there may be some httpc errors, such as certificate error, that we don't want to retry
+to_ddb_error({error, Reason}, DDBError, Opts) ->
     DDBError#ddb2_error{
       error_type = httpc, 
-      should_retry = true,
+      should_retry = should_retry_upon_httpc_error(Reason, Opts),
       reason = Reason};
-to_ddb_error({ok, {{Status, StatusLine}, RespHeaders, RespBody}}, DDBError) ->
+to_ddb_error({ok, {{Status, StatusLine}, RespHeaders, RespBody}}, DDBError, _) ->
     DDBError2 = DDBError#ddb2_error{
                   reason = {http_error, Status, StatusLine, RespBody},
                   response_status = Status,
@@ -222,6 +229,67 @@ to_ddb_error({ok, {{Status, StatusLine}, RespHeaders, RespBody}}, DDBError) ->
             DDBError2#ddb2_error{error_type = http, should_retry = true};
        Status < 400 ->
             DDBError2#ddb2_error{error_type = http, should_retry = false}
+    end.
+
+-spec should_retry_upon_httpc_error(term(), [request_opt()]) -> boolean().
+should_retry_upon_httpc_error(Reason, Opts) ->
+    % FIXME: what about clients other than `lhttpc'?
+    case Reason of
+        connect_timeout ->
+            % https://github.com/erlcloud/lhttpc/blob/1.6.2/src/lhttpc_client.erl#L244-L248
+            true;
+        ssl_error ->
+            % Remote endpoint is not HTTPS
+            % https://github.com/erlcloud/lhttpc/blob/1.6.2/src/lhttpc_client.erl#L249-L250
+            false;
+        ssl_decode_error ->
+            % SSL negotiation went sour
+            % https://github.com/erlcloud/lhttpc/blob/1.6.2/src/lhttpc_client.erl#L254-L255
+            false;
+        {proxy_connection_refused, _, _} ->
+            % https://github.com/erlcloud/lhttpc/blob/1.6.2/src/lhttpc_client.erl#L365-L366
+            true;
+        origin_server_not_https ->
+            % https://github.com/erlcloud/lhttpc/blob/1.6.2/src/lhttpc_client.erl#L138-L141
+            false;
+        {{tls_alert,_}, _} ->
+            % Server certificate was considered invalid
+            % https://github.com/erlang/otp/blob/OTP-22.2.1/lib/ssl/src/ssl.erl#L257-L287
+            false;
+        {enetdown, _} ->
+            % Network is down
+            % https://erlang.org/doc/man/inet.html#error_codes
+            false;
+        {emfile, _} ->
+            % Too many open files
+            % https://erlang.org/doc/man/inet.html#error_codes
+            false;
+        {econnrefused, _} ->
+            % Connection refused
+            % https://erlang.org/doc/man/inet.html#error_codes
+            false;
+        {eacces, _} ->
+            % Permission denied
+            % https://erlang.org/doc/man/inet.html#error_codes
+            false;
+        {nxdomain, _} ->
+            % Hostname or domain name cannot be found
+            % https://erlang.org/doc/man/inet.html#error_codes
+            false;
+        _ ->
+            does_request_idempotency_allow_for_retries(Opts)
+    end.
+
+-spec does_request_idempotency_allow_for_retries([request_opt()]) -> boolean().
+does_request_idempotency_allow_for_retries(Opts) ->
+    case proplists:get_value(idempotent, Opts, false) of
+        unknown ->
+            % Keep behaviour consistent for existing callers of `:request/3'
+            true;
+        Boolean when is_boolean(Boolean) ->
+            Boolean;
+        LazyBoolean ->
+            LazyBoolean()
     end.
 
 -spec client_error(binary(), #ddb2_error{}) -> #ddb2_error{}.

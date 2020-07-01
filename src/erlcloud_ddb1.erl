@@ -14,6 +14,13 @@
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 
+-ifdef(TEST).
+% Ensure we always evaluate the checks when running the test cases.
+-define(COSTLY_IDEMPOTENCY_CHECK(Check), (Check)).
+-else.
+-define(COSTLY_IDEMPOTENCY_CHECK(Check), (fun () -> (Check) end)).
+-endif.
+
 %% DDB API Functions
 -export([batch_get_item/1, batch_get_item/2,
          batch_write_item/1, batch_write_item/2,
@@ -93,7 +100,7 @@ batch_get_item(RequestItems) ->
 -spec batch_get_item([batch_get_item_request_item()], aws_config()) -> json_return().
 batch_get_item(RequestItems, Config) ->
     Json = [{<<"RequestItems">>, [batch_get_item_request_item_json(R) || R <- RequestItems]}],
-    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.BatchGetItem", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.BatchGetItem", Json, [idempotent]).
 
 -type batch_write_item_put() :: {put, item()}.
 -type batch_write_item_delete() :: {delete, key()}.
@@ -117,7 +124,7 @@ batch_write_item(RequestItems) ->
 -spec batch_write_item([batch_write_item_request_item()], aws_config()) -> json_return().
 batch_write_item(RequestItems, Config) ->
     Json = [{<<"RequestItems">>, [batch_write_item_request_item_json(R) || R <- RequestItems]}],
-    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.BatchWriteItem", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.BatchWriteItem", Json, [idempotent]).
 
 
 -spec key_schema_value_json(key_schema_value()) -> jsx:json_term().
@@ -141,7 +148,7 @@ create_table(Table, KeySchema, ReadUnits, WriteUnits, Config) ->
             key_schema_json(KeySchema),
             {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
                                            {<<"WriteCapacityUnits">>, WriteUnits}]}],
-    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.CreateTable", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.CreateTable", Json, [{idempotent, false}]).
 
     
 -spec delete_item(table_name(), key()) -> json_return().
@@ -157,7 +164,8 @@ delete_item(Table, Key, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             key_json(Key)] 
         ++ Opts,
-    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.DeleteItem", Json).
+    IsIdempotent = do_opts_keep_idempotency(Opts),
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.DeleteItem", Json, [{idempotent, IsIdempotent}]).
 
     
 -spec delete_table(table_name()) -> json_return().
@@ -167,7 +175,7 @@ delete_table(Table) ->
 -spec delete_table(table_name(), aws_config()) -> json_return().
 delete_table(Table, Config) ->
     Json = [{<<"TableName">>, Table}],
-    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.DeleteTable", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.DeleteTable", Json, [{idempotent, false}]).
 
     
 -spec describe_table(table_name()) -> json_return().
@@ -177,7 +185,7 @@ describe_table(Table) ->
 -spec describe_table(table_name(), aws_config()) -> json_return().
 describe_table(Table, Config) ->
     Json = [{<<"TableName">>, Table}],
-    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.DescribeTable", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.DescribeTable", Json, [idempotent]).
 
 
 -spec get_item(table_name(), key()) -> json_return().
@@ -193,7 +201,7 @@ get_item(Table, Key, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             key_json(Key)] 
         ++ Opts,
-    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.GetItem", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.GetItem", Json, [idempotent]).
 
 
 -spec list_tables() -> json_return().
@@ -206,7 +214,7 @@ list_tables(Opts) ->
 
 -spec list_tables(opts(), aws_config()) -> json_return().
 list_tables(Opts, Config) ->
-    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.ListTables", Opts).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.ListTables", Opts, [idempotent]).
 
     
 -spec put_item(table_name(), item()) -> json_return().
@@ -222,7 +230,8 @@ put_item(Table, Item, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             item_json(Item)] 
         ++ Opts,
-    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.PutItem", Json).
+    IsIdempotent = do_opts_keep_idempotency(Opts),
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.PutItem", Json, [{idempotent, IsIdempotent}]).
 
 
 -spec q(table_name(), hash_key()) -> json_return().
@@ -238,7 +247,7 @@ q(Table, HashKey, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             hash_key_json(HashKey)] 
         ++ Opts,
-    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.Query", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.Query", Json, [idempotent]).
 
 
 -spec scan(table_name()) -> json_return().
@@ -253,7 +262,7 @@ scan(Table, Opts) ->
 scan(Table, Opts, Config) ->
     Json = [{<<"TableName">>, Table}]
         ++ Opts,
-    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.Scan", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.Scan", Json, [idempotent]).
 
 
 -spec update_item(table_name(), key(), updates()) -> json_return().
@@ -270,7 +279,9 @@ update_item(Table, Key, Updates, Opts, Config) ->
             key_json(Key),
             updates_json(Updates)] 
         ++ Opts,
-    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.UpdateItem", Json).
+    IsIdempotent = ?COSTLY_IDEMPOTENCY_CHECK(are_updates_idempotent(Updates)
+                                             andalso do_opts_keep_idempotency(Opts)),
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.UpdateItem", Json, [{idempotent, IsIdempotent}]).
 
     
 -spec update_table(table_name(), non_neg_integer(), non_neg_integer()) -> json_return().
@@ -282,7 +293,7 @@ update_table(Table, ReadUnits, WriteUnits, Config) ->
     Json = [{<<"TableName">>, Table},
             {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
                                            {<<"WriteCapacityUnits">>, WriteUnits}]}],
-    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.UpdateTable", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.UpdateTable", Json, [{idempotent, false}]).
 
 %% backoff and retry are here for backwards compat. Use the ones in erlcloud_ddb_impl instead.
 
@@ -302,6 +313,42 @@ retry(Attempt, Reason) when Attempt >= ?NUM_ATTEMPTS ->
 retry(Attempt, _) ->
     backoff(Attempt),
     {attempt, Attempt + 1}.
-    
+
+-spec are_updates_idempotent(updates()) -> boolean().
+are_updates_idempotent(UpdatesMap) when is_map(UpdatesMap) ->
+    Updates = maps:to_list(UpdatesMap),
+    are_updates_idempotent(Updates);
+are_updates_idempotent([{}]) ->
+    true;
+are_updates_idempotent(Updates) ->
+    lists:all(fun is_update_idempotent/1, Updates).
+
+-spec is_update_idempotent({_, jsx:json_term()}) -> boolean().
+is_update_idempotent({_, Map}) when is_map(Map) ->
+    is_update_content_idempotent(Map);
+is_update_idempotent({_, KvList}) ->
+    Map = maps:from_list(KvList),
+    is_update_content_idempotent(Map).
+
+is_update_content_idempotent(#{<<"Action">> := Action}) ->
+    % https://docs.amazonaws.cn/en_us/amazondynamodb/latest/developerguide/API_UpdateItem_v20111205.html#API_UpdateItem_Description
+    case Action of
+        <<"PUT">> -> true;
+        <<"DELETE">> -> true;
+        <<"ADD">> -> false
+    end.
+
+-spec do_opts_keep_idempotency(opts()) -> boolean().
+do_opts_keep_idempotency(OptsMap) when is_map(OptsMap) ->
+    Opts = maps:to_list(OptsMap),
+    do_opts_keep_idempotency(Opts);
+do_opts_keep_idempotency([{}]) ->
+    true;
+do_opts_keep_idempotency(Opts) ->
+    % * https://docs.amazonaws.cn/en_us/amazondynamodb/latest/developerguide/API_DeleteItem_v20111205.html#API_DeleteItem_RequestParameters
+    % * https://docs.amazonaws.cn/en_us/amazondynamodb/latest/developerguide/API_PutItem_v20111205.html#API_PutItem_RequestParameters
+    % * https://docs.amazonaws.cn/en_us/amazondynamodb/latest/developerguide/API_UpdateItem_v20111205.html#API_UpdateItem_RequestParameters
+    not lists:keymember(<<"Expected">>, 1, Opts).
+
 
 default_config() -> erlcloud_aws:default_config().
