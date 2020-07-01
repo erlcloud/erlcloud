@@ -84,7 +84,7 @@ ifeq ($(REBAR_VSN),2)
 		-I include \
 		--plt .dialyzer_plt
 else
-	@$(REBAR) dialyzer
+	@$(REBAR) as eunit_check dialyzer
 endif
 
 doc:
