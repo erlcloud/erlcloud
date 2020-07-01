@@ -57,23 +57,32 @@ else
 	@$(REBAR) eunit
 endif
 
+.dialyzer_plt:
+	dialyzer --build_plt -r deps \
+		--apps erts kernel stdlib inets crypto public_key ssl xmerl \
+		--fullpath \
+		--output_plt .dialyzer_plt
+
 check:
 ifeq ($(REBAR_VSN),2)
 	@$(REBAR) compile
-	dialyzer --verbose --no_check_plt --no_native --fullpath \
+	$(MAKE) .dialyzer_plt
+	dialyzer --no_check_plt --fullpath \
 		$(CHECK_FILES) \
-		-Wunmatched_returns \
-		-Werror_handling
+		-I include \
+		--plt .dialyzer_plt
 else
 	@$(REBAR) dialyzer
 endif
 
 check-eunit: eunit
 ifeq ($(REBAR_VSN),2)
-	dialyzer --verbose --no_check_plt --no_native --fullpath \
+	@$(REBAR) compile
+	$(MAKE) .dialyzer_plt
+	dialyzer --no_check_plt --fullpath \
 		$(CHECK_EUNIT_FILES) \
-		-Wunmatched_returns \
-		-Werror_handling
+		-I include \
+		--plt .dialyzer_plt
 else
 	@$(REBAR) dialyzer
 endif
