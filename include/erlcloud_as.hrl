@@ -26,15 +26,15 @@
 -record(aws_autoscaling_group, {
           group_name :: string(),
           availability_zones :: undefined | list(string()),
-          load_balancer_names :: list(string()),
+          load_balancer_names :: undefined | list(string()),
           tags :: list(aws_autoscaling_tag()),
           desired_capacity :: undefined | integer(),
           min_size :: undefined | integer(),
           max_size :: undefined | integer(),
           launch_configuration_name :: undefined | string(),
           vpc_zone_id :: undefined | list(string()),
-          instances :: list(aws_autoscaling_instance()),
-          status :: string()
+          instances :: undefined | list(aws_autoscaling_instance()),
+          status :: undefined | string()
          }).
 -type(aws_autoscaling_group() :: #aws_autoscaling_group{}).
 
@@ -42,7 +42,7 @@
           name :: string(),
           image_id :: string(),
           instance_type :: string(),
-          tenancy :: string(),
+          tenancy :: undefined | string(),
           user_data :: undefined | string(),
           security_groups = [] :: list(string()),
           public_ip_address = false :: undefined | boolean(),
@@ -61,7 +61,7 @@
           status_code :: string(),
           status_msg :: string(),
           start_time :: datetime(),
-          end_time :: datetime(),
+          end_time :: undefined | datetime(),
           progress :: integer()
          }).
 -type(aws_autoscaling_activity() :: #aws_autoscaling_activity{}).
