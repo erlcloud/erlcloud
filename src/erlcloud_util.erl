@@ -17,7 +17,9 @@
     encode_object_list/2,
     next_token/2,
     filter_undef/1,
-    uri_parse/1
+    uri_parse/1,
+    http_uri_decode/1,
+    http_uri_encode/1
 ]).
 
 -define(MAX_ITEMS, 1000).
@@ -216,4 +218,31 @@ uri_parse(Uri) ->
 -else.
 uri_parse(Uri) ->
     http_uri:parse(Uri).
+-endif.
+
+-ifdef(OTP_RELEASE).
+-if(?OTP_RELEASE >= 23).
+http_uri_decode(HexEncodedURI) ->
+    [{URI, true}] = uri_string:dissect_query(HexEncodedURI),
+    URI.
+-else.
+http_uri_decode(HexEncodedURI) ->
+    http_uri:decode(HexEncodedURI).
+-endif.
+-else.
+http_uri_decode(HexEncodedURI) ->
+    http_uri:decode(HexEncodedURI).
+-endif.
+
+-ifdef(OTP_RELEASE).
+-if(?OTP_RELEASE >= 23).
+http_uri_encode(URI) ->
+    uri_string:compose_query([{URI, true}]).
+-else.
+http_uri_encode(URI) ->
+    http_uri:encode(URI).
+-endif.
+-else.
+http_uri_encode(URI) ->
+    http_uri:encode(URI).
 -endif.

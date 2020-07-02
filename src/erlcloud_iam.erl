@@ -1055,7 +1055,7 @@ data_fun("Boolean") -> {erlcloud_xml, get_bool};
 data_fun("Uri") -> {?MODULE, get_uri}.
 
 get_uri(Key, Item) ->
-    http_uri:decode(erlcloud_xml:get_text(Key, Item)).
+    erlcloud_util:http_uri_decode(erlcloud_xml:get_text(Key, Item)).
 
 make_list_virtual_mfa_devices_params(undefined, undefined, undefined) ->
     [];
