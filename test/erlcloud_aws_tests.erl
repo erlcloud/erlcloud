@@ -68,9 +68,9 @@ request_retry_test(_) ->
               meck:sequence(erlcloud_httpc, request, 6, ResponseSeq),
               erlcloud_aws:aws_request(get, "host", "/", [], config())
         end,
-    [?_assertNotException(_, _, <<"OkBody">> = MeckAndRequest([Response400, Response200])),
-     ?_assertNotException(_, _, <<"OkBody">> = MeckAndRequest([Response400, Response500, Response200])),
-     ?_assertNotException(_, _, <<"OkBody">> = MeckAndRequest([Response429, Response200])),
+    [?_assertMatch(<<"OkBody">>, MeckAndRequest([Response400, Response200])),
+     ?_assertMatch(<<"OkBody">>, MeckAndRequest([Response400, Response500, Response200])),
+     ?_assertMatch(<<"OkBody">>, MeckAndRequest([Response429, Response200])),
      ?_assertMatch({error, {http_error, 400, "Bad Request", _ErrorMsg}},
                    MeckAndRequest({[Response400, Response500, Response400, Response200], xml4}))
      ].
