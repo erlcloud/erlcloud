@@ -21,3 +21,4 @@ eunit.coverage.xml
 ercloud.iml
 *[#]*[#]
 *[#]*
+.dialyzer_plt
