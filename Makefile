@@ -18,7 +18,6 @@ CHECK_FILES=\
 	ebin/*.beam
 
 CHECK_EUNIT_FILES=\
-	$(CHECK_FILES) \
 	.eunit/*.beam
 
 
@@ -49,6 +48,13 @@ else
 	@$(REBAR) as warnings compile
 endif
 
+eunit_warnings:
+ifeq ($(REBAR_VSN),2)
+	@echo skip checking warnings
+else
+	@$(REBAR) as test compile
+endif
+
 eunit:
 ifeq ($(REBAR_VSN),2)
 	@$(REBAR) compile
@@ -75,7 +81,7 @@ else
 	@$(REBAR) dialyzer
 endif
 
-check-eunit: eunit
+check-eunit:
 ifeq ($(REBAR_VSN),2)
 	@$(REBAR) compile
 	$(MAKE) .dialyzer_plt
@@ -84,7 +90,7 @@ ifeq ($(REBAR_VSN),2)
 		-I include \
 		--plt .dialyzer_plt
 else
-	@$(REBAR) dialyzer
+	@$(REBAR) as test dialyzer
 endif
 
 doc:

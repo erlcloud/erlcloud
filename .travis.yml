@@ -19,7 +19,9 @@ install:
   - make travis-install
 script:
   - make check_warnings
+  - make eunit_warnings
   - make check
+  - make check-eunit
   - make eunit
 deploy:
   skip_cleanup: true
