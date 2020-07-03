@@ -73,8 +73,8 @@ httpc_expect(Method, Response) ->
               hackney ->
                 Method = Method2,
                 Insecure = false,
-                Proxy = "10.10.10.10",
-                Proxy_auth = {"AAAA", "BBBB"};
+                Proxy = <<"10.10.10.10">>,
+                Proxy_auth = {<<"AAAA">>, <<"BBBB">>};
 
               _else ->
                 Method = Method2,
@@ -815,8 +815,8 @@ delete_bucket_encryption_test(_) ->
 hackney_proxy_put_validation_test(_) ->
     Response = {ok, {{200, "OK"}, [{"x-amz-version-id", "version_id"}], <<>>}},
     Config2 = #aws_config{hackney_client_options = #hackney_client_options{insecure = false,
-			   proxy = "10.10.10.10",
-			   proxy_auth = {"AAAA", "BBBB"}},
+			   proxy = <<"10.10.10.10">>,
+			   proxy_auth = {<<"AAAA">>, <<"BBBB">>}},
 			  http_client = hackney},
     meck:expect(erlcloud_httpc, request, httpc_expect(put, Response)),
     Result = erlcloud_s3:put_object("BucketName", "Key", "Data", config(Config2)),

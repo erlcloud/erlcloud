@@ -470,11 +470,11 @@ put_bucket_policy(BucketName, Policy, Config)
   when is_list(BucketName), is_binary(Policy), is_record(Config, aws_config) ->
     s3_simple_request(Config, put, BucketName, "/", "policy", [], Policy, []).
 
--spec get_bucket_lifecycle(BucketName::string()) -> ok | {error, Reason::term()}.
+-spec get_bucket_lifecycle(BucketName::string()) -> {ok, list(proplist())} | {error, Reason::term()}.
 get_bucket_lifecycle(BucketName) ->
     get_bucket_lifecycle(BucketName, default_config()).
 
--spec get_bucket_lifecycle(BucketName::string(), Config::aws_config()) -> {ok, Policy::string()} | {error, Reason::term()}.
+-spec get_bucket_lifecycle(BucketName::string(), Config::aws_config()) -> {ok, list(proplist())} | {error, Reason::term()}.
 get_bucket_lifecycle(BucketName, Config)
     when is_record(Config, aws_config) ->
         case s3_request2(Config, get, BucketName, "/", "lifecycle", [], <<>>, []) of
@@ -1701,7 +1701,7 @@ delete_bucket_encryption(BucketName, Config) ->
 %% takes an S3 bucket notification configuration and creates an xmerl simple
 %% form out of it.
 %% for the examples of input / output of this function, see tests.
--spec create_notification_xml(proplist()) -> tuple().
+-spec create_notification_xml(list(proplist())) -> tuple().
 create_notification_xml(Confs) ->
     {'NotificationConfiguration', [create_notification_xml(ConfName, Params)
         || [{ConfName, Params}] <- Confs]}.
