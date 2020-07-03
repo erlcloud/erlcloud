@@ -38,14 +38,14 @@
 }).
 
 -record(ecs_deployment, {
-    created_at :: undefined | pos_integer(),
+    created_at :: undefined | pos_integer() | float(),
     desired_count :: undefined | pos_integer(),
     id :: undefined | binary(),
-    pending_count :: undefined | pos_integer(),
-    running_count :: undefined | pos_integer(),
+    pending_count :: undefined | non_neg_integer(),
+    running_count :: undefined | non_neg_integer(),
     status :: undefined | binary(),
     task_definition:: undefined | binary(),
-    updated_at :: undefined | pos_integer()
+    updated_at :: undefined | float()
 }).
 
 -record(ecs_event, {
@@ -62,12 +62,12 @@
 }).
 
 -record(ecs_cluster, {
-    active_services_count :: undefined | pos_integer(),
+    active_services_count :: undefined | non_neg_integer(),
     cluster_arn :: undefined | binary(),
     cluster_name :: undefined | binary(),
-    pending_tasks_count :: undefined | pos_integer(),
-    registered_container_instances_count :: undefined | pos_integer(),
-    running_tasks_count :: undefined | pos_integer(),
+    pending_tasks_count :: undefined | non_neg_integer(),
+    registered_container_instances_count :: undefined | non_neg_integer(),
+    running_tasks_count :: undefined | non_neg_integer(),
     status :: undefined | binary()
 }).
 
@@ -79,9 +79,9 @@
     desired_count :: undefined | pos_integer(),
     events :: undefined | [#ecs_event{}],
     load_balancers :: undefined | [#ecs_load_balancer{}],
-    pending_count :: undefined | pos_integer(),
+    pending_count :: undefined | non_neg_integer(),
     role_arn :: undefined | binary(),
-    running_count :: undefined | pos_integer(),
+    running_count :: undefined | non_neg_integer(),
     service_arn :: undefined | binary(),
     service_name :: undefined | binary(),
     status :: undefined | binary(),
@@ -89,11 +89,11 @@
 }).
 
 -record(ecs_resource, {
-   double_value :: undefined | pos_integer(),
-   integer_value :: undefined | pos_integer(),
-   long_value :: undefined | pos_integer(),
+   double_value :: undefined | non_neg_integer(),
+   integer_value :: undefined | non_neg_integer(),
+   long_value :: undefined | non_neg_integer(),
    name :: undefined | binary(),
-   string_set_value :: undefined | binary(),
+   string_set_value :: undefined | [binary()],
    type :: undefined | binary()
 }).
 
@@ -109,10 +109,10 @@
     attributes :: undefined | [#ecs_attribute{}],
     container_instance_arn :: undefined | binary(),
     ec2_instance_id :: undefined | binary(),
-    pending_tasks_count :: undefined | pos_integer(),
+    pending_tasks_count :: undefined | non_neg_integer(),
     registered_resources :: undefined | [#ecs_resource{}],
     remaining_resources :: undefined | [#ecs_resource{}],
-    running_tasks_count :: undefined | pos_integer(),
+    running_tasks_count :: undefined | non_neg_integer(),
     status :: undefined | binary(),
     version_info :: undefined | #ecs_version_info{}
 }).
@@ -210,7 +210,7 @@
 -record(ecs_task_definition, {
     container_definitions :: undefined | [#ecs_container_definition{}],
     family :: undefined | binary(),
-    network_mode :: undefined | binary(),
+    network_mode :: undefined | ecs_network_mode(),
     requires_attributes :: undefined | [#ecs_attribute{}],
     revision :: undefined | pos_integer(),
     status :: undefined | binary(),

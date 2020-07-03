@@ -1319,7 +1319,7 @@ describe_container_instances_output_tests(_) ->
                 failures = []
             }}})
         ],
-    output_tests(?_f(erlcloud_ecs:describe_container_instances("f9cc75bb-0c94-46b9-bf6d-49d320bc1551", [{out, record}])), Tests).
+    output_tests(?_f(erlcloud_ecs:describe_container_instances(["f9cc75bb-0c94-46b9-bf6d-49d320bc1551"], [{out, record}])), Tests).
 
 %% DescribeServices test based on the API examples:
 %% http://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_DescribeServices.html
@@ -3284,7 +3284,7 @@ input_tests(Response, Tests) ->
 %%%===================================================================
 
 %% returns the mock of the erlcloud_httpc function output tests expect to be called.
--spec output_expect(string()) -> fun().
+-spec output_expect(binary()) -> fun().
 output_expect(Response) ->
     fun(_Url, post, _Headers, _Body, _Timeout, _Config) ->
             {ok, {{200, "OK"}, [], Response}}
