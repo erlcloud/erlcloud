@@ -29,24 +29,24 @@
           image_id::string(),
           min_count=1::pos_integer(),
           max_count=1::pos_integer(),
-          key_name::string(),
+          key_name::undefined | string(),
           group_set=["default"]::[string()],
           user_data::undefined|binary(),
           instance_type::string(),
-          availability_zone::string(),
-          placement_group::string(),
-          kernel_id::string(),
-          ramdisk_id::string(),
+          availability_zone::undefined | string(),
+          placement_group::undefined | string(),
+          kernel_id::undefined | string(),
+          ramdisk_id::undefined | string(),
           block_device_mapping=[]::[ec2_block_device_mapping()],
           monitoring_enabled=false::boolean(),
           subnet_id::string(),
           disable_api_termination=false::boolean(),
-          instance_initiated_shutdown_behavior::ec2_shutdown_behavior(),
+          instance_initiated_shutdown_behavior::undefined | ec2_shutdown_behavior(),
           net_if=[] :: [#ec2_net_if{}],
           ebs_optimized = false :: boolean(),
-          iam_instance_profile_name = undefined :: string(),
-          spot_price::string(),
-          weighted_capacity::number()
+          iam_instance_profile_name :: undefined | string(),
+          spot_price::undefined | string(),
+          weighted_capacity::undefined | number()
          }).
 -record(ec2_image_spec, {
           image_location::string(),
@@ -70,15 +70,15 @@
          }).
 -record(spot_fleet_request_config_spec, {
           allocation_strategy::undefined|lowest_price|diversified,
-          client_token::string(),
-          excess_capacity_termination_policy::no_termination|default,
+          client_token::undefined|string(),
+          excess_capacity_termination_policy::undefined|no_termination|default,
           iam_fleet_role::string(),
           launch_specification=[]::[#ec2_instance_spec{}],
           spot_price::string(),
           target_capacity::pos_integer(),
-          terminate_instances_with_expiration::true|false,
-          valid_from::datetime(),
-          valid_until::datetime()
+          terminate_instances_with_expiration::undefined|true|false,
+          valid_from::undefined|datetime(),
+          valid_until::undefined|datetime()
          }).
 -record(ec2_spot_fleet_request, {
           spot_fleet_request_config::#spot_fleet_request_config_spec{}

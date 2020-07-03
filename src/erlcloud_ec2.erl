@@ -229,7 +229,7 @@
 -define(FLOWS_MR_MIN, 1).
 -define(FLOWS_MR_MAX, 1000).
 
--type filter_list() :: [{string() | atom(),[string()]}] | none.
+-type filter_list() :: [{string() | atom(),[string()] | string()}] | none.
 -type ec2_param_list() :: [{string(),string()}].
 -type ec2_selector() :: proplist().
 -type ec2_token() :: string() | undefined.
