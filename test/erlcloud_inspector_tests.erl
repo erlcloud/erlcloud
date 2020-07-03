@@ -499,7 +499,7 @@ update_assessment_tests(_) ->
 %%% Input test helpers
 %%%===================================================================
 
--type expected_body() :: string().
+-type expected_body() :: binary().
 
 sort_json([{_, _} | _] = Json) ->
     %% Value is an object
@@ -526,7 +526,7 @@ validate_body(Body, Expected) ->
 
 %% returns the mock of the erlcloud_httpc function input tests expect to be called.
 %% Validates the request body and responds with the provided response.
--spec input_expect(string(), expected_body()) -> fun().
+-spec input_expect(binary(), expected_body()) -> fun().
 input_expect(Response, Expected) ->
     fun(_Url, post, _Headers, Body, _Timeout, _Config) ->
             validate_body(Body, Expected),
@@ -536,7 +536,7 @@ input_expect(Response, Expected) ->
 
 %% input_test converts an input_test specifier into an eunit test generator
 -type input_test_spec() :: {pos_integer(), {fun(), expected_body()} | {string(), fun(), expected_body()}}.
--spec input_test(string(), input_test_spec()) -> tuple().
+-spec input_test(binary(), input_test_spec()) -> tuple().
 input_test(Response, {Line, {Description, Fun, Expected}})
   when is_list(Description) ->
     {Description,
@@ -549,7 +549,7 @@ input_test(Response, {Line, {Description, Fun, Expected}})
 
 
 %% input_tests converts a list of input_test specifiers into an eunit test generator
--spec input_tests(string(), [input_test_spec()]) -> [tuple()].
+-spec input_tests(binary(), [input_test_spec()]) -> [tuple()].
 input_tests(Response, Tests) ->
     [input_test(Response, Test) || Test <- Tests].
 
@@ -565,7 +565,7 @@ output_expect(Response) ->
     end.
 
 %% output_test converts an output_test specifier into an eunit test generator
--type output_test_spec() :: {pos_integer(), {string(), term()} | {string(), string(), term()}}.
+-type output_test_spec() :: {pos_integer(), {string(), term()} | {string(), binary(), term()}}.
 -spec output_test(fun(), output_test_spec()) -> tuple().
 output_test(Fun, {Line, {Description, Response, Result}}) ->
     {Description,
