@@ -140,7 +140,7 @@ output_expect_seq(Responses) ->
 
 
 %% output_test converts an output_test specifier into an eunit test generator
--type output_test_spec() :: {pos_integer(), {string(), term()} | {string(), string(), term()}}.
+-type output_test_spec() :: {pos_integer(), {string(), term()} | {string(), string() | [string()], term()}}.
 -spec output_test(fun(), output_test_spec(), fun()) -> tuple().
 output_test(Fun, {Line, {Description, Response, Result}}, OutputFun) ->
     {Description,
