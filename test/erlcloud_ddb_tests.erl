@@ -180,9 +180,13 @@ error_tests(Fun, Tests) ->
 
 input_exception_test_() ->
     [?_assertError({erlcloud_ddb, {invalid_attr_value, {n, "string"}}},
-                   erlcloud_ddb:get_item(<<"Table">>, {n, "string"})),
-     %% This test causes an expected dialyzer error
-     ?_assertError({erlcloud_ddb, {invalid_item, <<"Attr">>}},
+                   erlcloud_ddb:get_item(<<"Table">>, {n, "string"}))]
+    ++ input_exception_failures_test_().
+
+-dialyzer({nowarn_function, input_exception_failures_test_/0}).
+input_exception_failures_test_() ->
+    %% This test causes an expected dialyzer error
+    [?_assertError({erlcloud_ddb, {invalid_item, <<"Attr">>}},
                    erlcloud_ddb:put_item(<<"Table">>, <<"Attr">>)),
      ?_assertError({erlcloud_ddb, {invalid_opt, {myopt, myval}}},
                    erlcloud_ddb:list_tables([{myopt, myval}]))
