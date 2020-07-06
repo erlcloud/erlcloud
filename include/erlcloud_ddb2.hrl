@@ -47,8 +47,14 @@
         {index_name :: undefined | binary(),
          provisioned_throughput_override :: undefined | #ddb2_provisioned_throughput_override{}}).
 
+-record(ddb2_replica_global_secondary_index_auto_scaling_description,
+        {index_name :: undefined | binary(),
+         index_status :: undefined | index_status(),
+         provisioned_read_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{},
+         provisioned_write_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{}}).
+
 -record(ddb2_replica_auto_scaling_description,
-        {global_secondary_indexes :: undefined | [#ddb2_replica_global_secondary_index_description{}],
+        {global_secondary_indexes :: undefined | [#ddb2_replica_global_secondary_index_auto_scaling_description{}],
          region_name :: undefined | binary(),
          replica_provisioned_read_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{},
          replica_provisioned_write_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{},
@@ -72,15 +78,13 @@
          provisioned_write_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{},
          provisioned_write_capacity_units :: undefined | pos_integer()}).
 
--record(ddb2_replica_global_secondary_index_auto_scaling_description,
-        {index_name :: undefined | binary(),
-         index_status :: undefined | binary(),
-         provisioned_read_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{},
-         provisioned_write_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{}}).
+-record(ddb2_billing_mode_summary,
+        {billing_mode :: undefined | erlcloud_ddb2:billing_mode(),
+        last_update_to_pay_per_request_date_time :: undefined | date_time()}).
 
 -record(ddb2_replica_settings_description,
         {region_name :: undefined | binary(),
-         replica_billing_mode_summary :: undefined | binary(),
+         replica_billing_mode_summary :: undefined | #ddb2_billing_mode_summary{},
          replica_global_secondary_index_settings :: undefined | [#ddb2_replica_global_secondary_index_settings_description{}],
          replica_provisioned_read_capacity_auto_scaling_settings :: undefined | #ddb2_auto_scaling_settings_description{},
          replica_provisioned_read_capacity_units :: undefined | number(),
@@ -105,16 +109,12 @@
          replication_group :: undefined | [#ddb2_replica{}]
         }).
 
--record(ddb2_billing_mode_summary,
-       {billing_mode :: undefined | erlcloud_ddb2:billing_mode(),
-        last_update_to_pay_per_request_date_time :: undefined | date_time()}).
-
 -record(ddb2_provisioned_throughput_description,
         {last_decrease_date_time :: undefined | date_time(),
          last_increase_date_time :: undefined | date_time(),
          number_of_decreases_today :: undefined | integer(),
-         read_capacity_units :: undefined | pos_integer(),
-         write_capacity_units :: undefined | pos_integer()
+         read_capacity_units :: undefined | non_neg_integer(),
+         write_capacity_units :: undefined | non_neg_integer()
         }).
 
 -record(ddb2_global_secondary_index_description,
@@ -361,7 +361,7 @@
          provisioned_throughput :: undefined | #ddb2_provisioned_throughput{},
          table_arn :: undefined | binary(),
          table_creation_date_time :: undefined | number(),
-         table_id :: undefined | number(),
+         table_id :: undefined | number() | binary(),
          table_name :: undefined | binary(),
          table_size_bytes :: undefined | integer()
         }).
@@ -388,7 +388,7 @@
         {global_secondary_indexes :: undefined | [#ddb2_global_secondary_index_info{}],
          local_secondary_indexes  :: undefined | [#ddb2_local_secondary_index_info{}],
          sse_description :: undefined | erlcloud_ddb2:sse_description(),
-         stream_description :: undefined | #ddb2_stream_description{},
+         stream_description :: undefined | #ddb2_stream_description{} | {boolean(), erlcloud_ddb2:stream_view_type()},
          time_to_live_description :: undefined | #ddb2_time_to_live_description{}
         }).
 
