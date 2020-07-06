@@ -164,9 +164,9 @@ create_event_source_mapping(EventSourceArn, FunctionName,
 %%
 %%------------------------------------------------------------------------------
 -spec create_function(Code         :: erlcloud_lambda_code(),
-                            FunctionName :: string(),
-                            Handler      :: string(),
-                            Role         :: string(),
+                            FunctionName :: binary(),
+                            Handler      :: binary(),
+                            Role         :: binary(),
                             Runtime      :: runtime(),
                             Options      :: proplist()) -> return_val().
 create_function(#erlcloud_lambda_code{} = Code,
@@ -175,9 +175,9 @@ create_function(#erlcloud_lambda_code{} = Code,
                     Runtime, Options, default_config()).
 
 -spec create_function(Code         :: erlcloud_lambda_code(),
-                            FunctionName :: string(),
-                            Handler      :: string(),
-                            Role         :: string(),
+                            FunctionName :: binary(),
+                            Handler      :: binary(),
+                            Role         :: binary(),
                             Runtime      :: runtime(),
                             Options      :: proplist(),
                             Config       :: aws_config()) -> return_val().
