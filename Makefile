@@ -41,23 +41,25 @@ else
 	$(REBAR) shell
 endif
 
-check_warnings:
+deps: get-deps
+
+check_warnings: deps
 ifeq ($(REBAR_VSN),2)
-	@echo skip checking warnings
+	@$(REBAR) compile
 else
 	@$(REBAR) as warnings compile
 endif
 
-eunit_warnings:
+eunit_warnings: deps
 ifeq ($(REBAR_VSN),2)
-	@echo skip checking warnings
+	@$(REBAR) compile_only=true eunit
 else
 	@$(REBAR) as test compile
 endif
 
-eunit:
+eunit: deps
 ifeq ($(REBAR_VSN),2)
-	@$(REBAR) compile
+	$(MAKE) compile
 	@$(REBAR) eunit skip_deps=true
 else
 	@$(REBAR) eunit
@@ -69,9 +71,9 @@ endif
 		--fullpath \
 		--output_plt .dialyzer_plt
 
-check:
+check: deps
 ifeq ($(REBAR_VSN),2)
-	@$(REBAR) compile
+	$(MAKE) compile
 	$(MAKE) .dialyzer_plt
 	dialyzer --no_check_plt --fullpath \
 		$(CHECK_FILES) \
@@ -81,10 +83,11 @@ else
 	@$(REBAR) dialyzer
 endif
 
-check-eunit:
+check-eunit: deps
 ifeq ($(REBAR_VSN),2)
-	@$(REBAR) compile
+	$(MAKE) compile
 	$(MAKE) .dialyzer_plt
+	@$(REBAR) compile_only=true eunit
 	dialyzer --no_check_plt --fullpath \
 		$(CHECK_EUNIT_FILES) \
 		-I include \
