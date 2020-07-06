@@ -66,7 +66,7 @@
                                    | container_credentials_unavailable
                                    | erlcloud_aws:httpc_result_error()}.
 
--type aws_aas_request_body() :: [proplist:proplist()].
+-type aws_aas_request_body() :: proplists:proplist().
 
 -spec extract_alarm(J :: proplist()) -> response().
 extract_alarm(J) ->
@@ -317,7 +317,7 @@ delete_scaling_policy(Configuration, BodyConfiguration) ->
 %%------------------------------------------------------------------------------
 
 -spec delete_scheduled_action(
-                            Configuration :: erlcloud_aws:aws_config(),
+                            Configuration :: aws_config(),
                             ResourceId :: binary(),
                             ScalableDimension :: binary(),
                             ScheduledActionName :: binary(),
@@ -345,7 +345,7 @@ delete_scheduled_action(Configuration, BodyConfiguration) ->
 %%------------------------------------------------------------------------------
 
 -spec deregister_scalable_target(
-                            Configuration :: erlcloud_aws:aws_config(),
+                            Configuration :: aws_config(),
                             ResourceId :: binary(),
                             ScalableDimension :: binary(),
                             ServiceNamespace :: binary()
@@ -357,7 +357,7 @@ deregister_scalable_target(Configuration, ResourceId, ScalableDimension, Service
     deregister_scalable_target(Configuration, BodyProps).
 
 -spec deregister_scalable_target(
-                            Configuration :: erlcloud_aws:aws_config(),
+                            Configuration :: aws_config(),
                             BodyConfiguration :: aws_aas_request_body()
                             ) -> ok_error_response().
 deregister_scalable_target(Configuration, BodyConfiguration) ->
@@ -371,7 +371,7 @@ deregister_scalable_target(Configuration, BodyConfiguration) ->
 %%------------------------------------------------------------------------------
 
 -spec describe_scalable_targets(
-                            erlcloud_aws:aws_config(),
+                            aws_config(),
                             aws_aas_request_body() |  binary()
                             ) -> ok_error_response().
 describe_scalable_targets(Configuration, ServiceNamespace) when is_binary(ServiceNamespace)->
@@ -399,7 +399,7 @@ describe_scalable_targets(Configuration, BodyConfiguration) ->
 %%------------------------------------------------------------------------------
 
 -spec describe_scaling_activities(
-                            erlcloud_aws:aws_config(),
+                            aws_config(),
                             aws_aas_request_body() |  binary()
                             ) -> ok_error_response().
 describe_scaling_activities(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
@@ -428,7 +428,7 @@ describe_scaling_activities(Configuration, BodyConfiguration) ->
 %%------------------------------------------------------------------------------
 
 -spec describe_scaling_policies(
-                            erlcloud_aws:aws_config(),
+                            aws_config(),
                             aws_aas_request_body() |  binary()
                             ) -> ok_error_response().
 describe_scaling_policies(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
@@ -457,7 +457,7 @@ describe_scaling_policies(Configuration, BodyConfiguration) ->
 %%------------------------------------------------------------------------------
 
 -spec describe_scheduled_actions(
-                            erlcloud_aws:aws_config(),
+                            aws_config(),
                             aws_aas_request_body() |  binary()
                             ) -> ok_error_response().
 describe_scheduled_actions(Configuration, ServiceNamespace) when is_binary(ServiceNamespace) ->
@@ -506,7 +506,7 @@ put_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, Ser
                             ScalableDimension :: binary(),
                             ServiceNamespace :: binary(),
                             PolicyType :: binary(),
-                            Policy :: [proplist:proplist()]
+                            Policy :: [proplists:proplist()]
                         ) -> ok_error_response().
 put_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, ServiceNamespace, PolicyType, Policy) ->
     BodyProps = [{<<"PolicyName">>, PolicyName},
@@ -522,7 +522,7 @@ put_scaling_policy(Configuration, PolicyName, ResourceId, ScalableDimension, Ser
     end.
 
 -spec put_scaling_policy(
-                            Configuration :: erlcloud_aws:aws_config(),
+                            Configuration :: aws_config(),
                             BodyConfiguration :: aws_aas_request_body()
                             ) -> ok_error_response().
 put_scaling_policy(Configuration, BodyConfiguration) ->
@@ -668,7 +668,7 @@ register_scalable_target(Configuration, ResourceId, ScalableDimension, ServiceNa
     register_scalable_target(Configuration, BodyProps ++ MaybeBodyWithMax ++ MaybeBodyWithMin).
 
 -spec register_scalable_target(
-    Configuration :: erlcloud_aws:aws_config(),
+    Configuration :: aws_config(),
     BodyConfiguration :: aws_aas_request_body()
 ) -> ok_error_response().
 register_scalable_target(Configuration, BodyConfiguration) ->
