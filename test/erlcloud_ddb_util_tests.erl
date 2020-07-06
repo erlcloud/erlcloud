@@ -1516,8 +1516,13 @@ set_out_opt_test_() ->
                     erlcloud_ddb_util:set_out_opt([{typed_out, true}]))},
      {"set_out_opt typed_out=false sets out=record",
       ?_assertEqual([{out, record}],
-                    erlcloud_ddb_util:set_out_opt([{typed_out, false}]))},
-     {"set_out_opt preserves location of out opt",
+                    erlcloud_ddb_util:set_out_opt([{typed_out, false}]))}]
+    ++ set_out_opt_failures_test_().
+
+% these will generate dialyzer warnings, so we isolate them
+-dialyzer({nowarn_function, set_out_opt_failures_test_/0}).
+set_out_opt_failures_test_() ->
+    [{"set_out_opt preserves location of out opt",
       ?_assertEqual([{foo, bar}, {out, record}],
                     erlcloud_ddb_util:set_out_opt([{typed_out, false}, {foo, bar}, {out, record}]))},
      {"set_out_opt overrides out opt with valid value",

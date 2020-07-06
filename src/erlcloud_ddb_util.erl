@@ -51,7 +51,7 @@
 -type range_key_name() :: erlcloud_ddb2:range_key_name().
 -type table_name() :: erlcloud_ddb2:table_name().
 
--type items_return() :: {ok, [out_item()]}
+-type items_return() :: {ok, [out_item() | binary()]}
                       | {ok, non_neg_integer()}
                       | {error, term()}.
 

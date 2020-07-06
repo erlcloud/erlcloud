@@ -279,16 +279,16 @@
 -record(ddb2_q, 
         {consumed_capacity :: undefined | #ddb2_consumed_capacity{},
          count :: undefined | non_neg_integer(),
-         items :: undefined | [erlcloud_ddb2:out_item()],
-         last_evaluated_key :: undefined | erlcloud_ddb2:key(),
+         items :: undefined | [erlcloud_ddb2:out_item()] | [binary()],
+         last_evaluated_key :: undefined | erlcloud_ddb2:key() | binary(),
          scanned_count :: undefined | non_neg_integer()
         }).
 
 -record(ddb2_scan, 
         {consumed_capacity :: undefined | #ddb2_consumed_capacity{},
          count :: undefined | non_neg_integer(),
-         items :: undefined | [erlcloud_ddb2:out_item()],
-         last_evaluated_key :: undefined | erlcloud_ddb2:key(),
+         items :: undefined | [erlcloud_ddb2:out_item()] | [binary()],
+         last_evaluated_key :: undefined | erlcloud_ddb2:key() | binary(),
          scanned_count :: undefined | non_neg_integer()
         }).
 
