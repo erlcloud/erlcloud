@@ -29,7 +29,7 @@ config() ->
                 retry_num = 3}.
 
 request_default_test(_) ->
-    ok = erlcloud_aws:aws_request(get, "host", "/", [], "id", "key"),
+    _Body = erlcloud_aws:aws_request(get, "host", "/", [], "id", "key"),
     Url = get_url_from_history(meck:history(erlcloud_httpc)),
     test_url(https, "host", 443, "/", Url).
 
@@ -77,12 +77,12 @@ request_retry_test(_) ->
 
 
 request_prot_host_port_str_test(_) ->
-    ok = erlcloud_aws:aws_request(get, "http", "host1", "9999", "/path1", [], "id", "key"),
+    _Body = erlcloud_aws:aws_request(get, "http", "host1", "9999", "/path1", [], "id", "key"),
     Url = get_url_from_history(meck:history(erlcloud_httpc)),
     test_url(http, "host1", 9999, "/path1", Url).
 
 request_prot_host_port_int_test(_) ->
-    ok = erlcloud_aws:aws_request(get, "http", "host1", 9999, "/path1", [], "id", "key"),
+    _Body = erlcloud_aws:aws_request(get, "http", "host1", 9999, "/path1", [], "id", "key"),
     Url = get_url_from_history(meck:history(erlcloud_httpc)),
     test_url(http, "host1", 9999, "/path1", Url).
 
