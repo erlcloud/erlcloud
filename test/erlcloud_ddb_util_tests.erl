@@ -652,8 +652,8 @@ q_all_tests(_) ->
     multi_call_tests(Tests).
 
 q_all_attributes() ->
-    Item1 = <<"item_1">>,
-    Item2 = <<"item_2">>,
+    Item1 = [{<<"key">>, <<"item_1">>}],
+    Item2 = [{<<"key">>, <<"item_2">>}],
     meck:new(EDDB = erlcloud_ddb2),
     meck:sequence(EDDB, q, 4, [
         {ok, #ddb2_q{last_evaluated_key = <<"key">>,
@@ -799,8 +799,8 @@ scan_all_tests(_) ->
     multi_call_tests(Tests).
 
 scan_all_attributes() ->
-    Item1 = <<"item_1">>,
-    Item2 = <<"item_2">>,
+    Item1 = [{<<"key">>, <<"item_1">>}],
+    Item2 = [{<<"key">>, <<"item_2">>}],
     meck:new(EDDB = erlcloud_ddb2),
     meck:sequence(EDDB, scan, 3, [
         {ok, #ddb2_scan{last_evaluated_key = <<"key">>,
