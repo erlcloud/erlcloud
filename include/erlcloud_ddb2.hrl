@@ -280,7 +280,7 @@
         {consumed_capacity :: undefined | #ddb2_consumed_capacity{},
          count :: undefined | non_neg_integer(),
          items :: undefined | [erlcloud_ddb2:out_item()],
-         last_evaluated_key :: undefined | erlcloud_ddb2:key() | binary(),
+         last_evaluated_key :: undefined | erlcloud_ddb2:key(),
          scanned_count :: undefined | non_neg_integer()
         }).
 
@@ -288,7 +288,7 @@
         {consumed_capacity :: undefined | #ddb2_consumed_capacity{},
          count :: undefined | non_neg_integer(),
          items :: undefined | [erlcloud_ddb2:out_item()],
-         last_evaluated_key :: undefined | erlcloud_ddb2:key() | binary(),
+         last_evaluated_key :: undefined | erlcloud_ddb2:key(),
          scanned_count :: undefined | non_neg_integer()
         }).
 

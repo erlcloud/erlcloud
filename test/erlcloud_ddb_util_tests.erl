@@ -656,7 +656,7 @@ q_all_attributes() ->
     Item2 = [{<<"key">>, <<"item_2">>}],
     meck:new(EDDB = erlcloud_ddb2),
     meck:sequence(EDDB, q, 4, [
-        {ok, #ddb2_q{last_evaluated_key = <<"key">>,
+        {ok, #ddb2_q{last_evaluated_key = {<<"key">>, <<"last1">>},
                      items              = [Item1]}},
         {ok, #ddb2_q{last_evaluated_key = undefined,
                      items              = [Item2]}}
@@ -668,7 +668,7 @@ q_all_attributes() ->
 q_all_count() ->
     meck:new(EDDB = erlcloud_ddb2),
     meck:sequence(EDDB, q, 4, [
-        {ok, #ddb2_q{last_evaluated_key = <<"key">>,
+        {ok, #ddb2_q{last_evaluated_key = {<<"key">>, <<"last1">>},
                      items              = undefined,
                      count              = 2}},
         {ok, #ddb2_q{last_evaluated_key = undefined,
@@ -803,7 +803,7 @@ scan_all_attributes() ->
     Item2 = [{<<"key">>, <<"item_2">>}],
     meck:new(EDDB = erlcloud_ddb2),
     meck:sequence(EDDB, scan, 3, [
-        {ok, #ddb2_scan{last_evaluated_key = <<"key">>,
+        {ok, #ddb2_scan{last_evaluated_key = {<<"key">>, <<"last1">>},
                         items              = [Item1]}},
         {ok, #ddb2_scan{last_evaluated_key = undefined,
                         items              = [Item2]}}
@@ -815,7 +815,7 @@ scan_all_attributes() ->
 scan_all_count() ->
     meck:new(EDDB = erlcloud_ddb2),
     meck:sequence(EDDB, scan, 3, [
-        {ok, #ddb2_scan{last_evaluated_key = <<"key">>,
+        {ok, #ddb2_scan{last_evaluated_key = {<<"key">>, <<"last1">>},
                         items              = undefined,
                         count              = 2}},
         {ok, #ddb2_scan{last_evaluated_key = undefined,
