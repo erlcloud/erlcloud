@@ -3446,7 +3446,7 @@ tag_resource(ResourceArn, Tags, Config) ->
 -type transact_get_items_transact_item_opts() :: expression_attribute_names_opt() |
                            projection_expression_opt() |
                            return_consumed_capacity_opt() |
-                           {out, record}.
+                           out_opt().
 -type transact_get_items_opts() :: [transact_get_items_transact_item_opts()].
 
 -type transact_get_items_get_item() :: {table_name(), key()}
