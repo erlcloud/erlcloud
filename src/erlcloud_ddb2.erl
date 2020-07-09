@@ -1874,9 +1874,9 @@ dynamize_sse_specification({enabled, Enabled}) when is_boolean(Enabled) ->
 -type create_table_opt() :: {billing_mode, billing_mode()} |
                             {local_secondary_indexes, local_secondary_indexes()} |
                             {global_secondary_indexes, global_secondary_indexes()} |
+                            {provisioned_throughput, {read_units(), write_units()}} |
                             {sse_specification, sse_specification()} |
-                            {stream_specification, stream_specification()} |
-                            {provisioned_throughput, {read_units(), write_units()}}.
+                            {stream_specification, stream_specification()}.
 -type create_table_opts() :: [create_table_opt()].
 
 -spec create_table_opts(key_schema()) -> opt_table().
