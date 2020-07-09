@@ -50,9 +50,10 @@ else
 	@$(REBAR) as warnings compile
 endif
 
-eunit_warnings: deps
+warnings: deps
 ifeq ($(REBAR_VSN),2)
-	@$(REBAR) compile_only=true eunit
+	@WARNINGS_AS_ERRORS=true $(REBAR) compile
+	@WARNINGS_AS_ERRORS=true $(REBAR) compile_only=true eunit
 else
 	@$(REBAR) as test compile
 endif
@@ -74,22 +75,11 @@ endif
 check: deps
 ifeq ($(REBAR_VSN),2)
 	$(MAKE) compile
-	$(MAKE) .dialyzer_plt
-	dialyzer --no_check_plt --fullpath \
-		$(CHECK_FILES) \
-		-I include \
-		--plt .dialyzer_plt
-else
-	@$(REBAR) dialyzer
-endif
-
-check-eunit: deps
-ifeq ($(REBAR_VSN),2)
-	$(MAKE) compile
-	$(MAKE) .dialyzer_plt
 	@$(REBAR) compile_only=true eunit
+	$(MAKE) .dialyzer_plt
 	dialyzer --no_check_plt --fullpath \
 		$(CHECK_EUNIT_FILES) \
+		$(CHECK_FILES) \
 		-I include \
 		--plt .dialyzer_plt
 else
