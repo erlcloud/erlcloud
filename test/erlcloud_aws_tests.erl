@@ -16,7 +16,7 @@ request_test_() ->
 
 start() ->
     meck:new(erlcloud_httpc),
-    meck:expect(erlcloud_httpc, request, fun(_,_,_,_,_,_) -> {ok, {{200, "OK"}, [], ok}} end),
+    meck:expect(erlcloud_httpc, request, fun(_,_,_,_,_,_) -> {ok, {{200, "OK"}, [], <<"OkBody">>}} end),
     ok.
 
 stop(_) ->
@@ -29,7 +29,7 @@ config() ->
                 retry_num = 3}.
 
 test_request_default(_) ->
-    _Body = erlcloud_aws:aws_request(get, "host", "/", [], "id", "key"),
+    <<"OkBody">> = erlcloud_aws:aws_request(get, "host", "/", [], "id", "key"),
     Url = get_url_from_history(meck:history(erlcloud_httpc)),
     test_url(https, "host", 443, "/", Url).
 
@@ -66,7 +66,7 @@ test_request_retry(_) ->
               erlcloud_aws:aws_request_xml4(get, "host", "/", [], "any", config());
           (ResponseSeq) ->
               meck:sequence(erlcloud_httpc, request, 6, ResponseSeq),
-              erlcloud_aws:aws_request(get, "host", "/", [], config())
+              <<"OkBody">> = erlcloud_aws:aws_request(get, "host", "/", [], config())
         end,
     [?_assertMatch(<<"OkBody">>, MeckAndRequest([Response400, Response200])),
      ?_assertMatch(<<"OkBody">>, MeckAndRequest([Response400, Response500, Response200])),
@@ -77,12 +77,12 @@ test_request_retry(_) ->
 
 
 test_request_prot_host_port_str(_) ->
-    _Body = erlcloud_aws:aws_request(get, "http", "host1", "9999", "/path1", [], "id", "key"),
+    <<"OkBody">> = erlcloud_aws:aws_request(get, "http", "host1", "9999", "/path1", [], "id", "key"),
     Url = get_url_from_history(meck:history(erlcloud_httpc)),
     test_url(http, "host1", 9999, "/path1", Url).
 
 test_request_prot_host_port_int(_) ->
-    _Body = erlcloud_aws:aws_request(get, "http", "host1", 9999, "/path1", [], "id", "key"),
+    <<"OkBody">> = erlcloud_aws:aws_request(get, "http", "host1", 9999, "/path1", [], "id", "key"),
     Url = get_url_from_history(meck:history(erlcloud_httpc)),
     test_url(http, "host1", 9999, "/path1", Url).
 
