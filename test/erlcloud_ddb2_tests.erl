@@ -2010,8 +2010,8 @@ create_table_output_tests(_) ->
         ],
         \"ProvisionedThroughput\": {
             \"NumberOfDecreasesToday\": 0,
-            \"ReadCapacityUnits\": 0,
-            \"WriteCapacityUnits\": 0
+            \"ReadCapacityUnits\": 1,
+            \"WriteCapacityUnits\": 1
         },
         \"TableName\": \"Thread\",
         \"TableSizeBytes\": 0,
@@ -2033,8 +2033,8 @@ create_table_output_tests(_) ->
                       last_decrease_date_time = undefined,
                       last_increase_date_time = undefined,
                       number_of_decreases_today = 0,
-                      read_capacity_units = 0,
-                      write_capacity_units = 0},
+                      read_capacity_units = 1,
+                      write_capacity_units = 1},
                table_name = <<"Thread">>,
                table_size_bytes = 0,
                table_status = creating}}})

@@ -113,8 +113,8 @@
         {last_decrease_date_time :: undefined | date_time(),
          last_increase_date_time :: undefined | date_time(),
          number_of_decreases_today :: undefined | integer(),
-         read_capacity_units :: undefined | non_neg_integer(),
-         write_capacity_units :: undefined | non_neg_integer()
+         read_capacity_units :: undefined | pos_integer(),
+         write_capacity_units :: undefined | pos_integer()
         }).
 
 -record(ddb2_global_secondary_index_description,
