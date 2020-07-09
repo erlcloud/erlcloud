@@ -7,12 +7,12 @@ request_test_() ->
     {foreach,
      fun start/0,
      fun stop/1,
-     [fun request_default_test/1,
-      fun request_retry_test/1,
-      fun request_prot_host_port_str_test/1,
-      fun request_prot_host_port_int_test/1,
-      fun get_service_status_test/1,
-      fun auto_config_with_env/1]}.
+     [fun test_request_default/1,
+      fun test_request_retry/1,
+      fun test_request_prot_host_port_str/1,
+      fun test_request_prot_host_port_int/1,
+      fun test_get_service_status/1,
+      fun test_auto_config_with_env/1]}.
 
 start() ->
     meck:new(erlcloud_httpc),
@@ -28,12 +28,12 @@ config() ->
                 retry = fun erlcloud_retry:default_retry/1,
                 retry_num = 3}.
 
-request_default_test(_) ->
+test_request_default(_) ->
     _Body = erlcloud_aws:aws_request(get, "host", "/", [], "id", "key"),
     Url = get_url_from_history(meck:history(erlcloud_httpc)),
     test_url(https, "host", 443, "/", Url).
 
-request_retry_test(_) ->
+test_request_retry(_) ->
     Response400 = {ok, {{400, "Bad Request"}, [],
         <<"<ErrorResponse xmlns=\"http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/\">\n"
           "  <Error>\n"
@@ -76,17 +76,17 @@ request_retry_test(_) ->
      ].
 
 
-request_prot_host_port_str_test(_) ->
+test_request_prot_host_port_str(_) ->
     _Body = erlcloud_aws:aws_request(get, "http", "host1", "9999", "/path1", [], "id", "key"),
     Url = get_url_from_history(meck:history(erlcloud_httpc)),
     test_url(http, "host1", 9999, "/path1", Url).
 
-request_prot_host_port_int_test(_) ->
+test_request_prot_host_port_int(_) ->
     _Body = erlcloud_aws:aws_request(get, "http", "host1", 9999, "/path1", [], "id", "key"),
     Url = get_url_from_history(meck:history(erlcloud_httpc)),
     test_url(http, "host1", 9999, "/path1", Url).
 
-get_service_status_test(_) ->
+test_get_service_status(_) ->
     StatusJsonS3 = jsx:encode(
         [{<<"archive">>,
             [[{<<"service_name">>,
@@ -157,7 +157,7 @@ get_service_status_test(_) ->
      ].
 
 
-auto_config_with_env(_) ->
+test_auto_config_with_env(_) ->
     % Note: meck do not support os module
     X_AWS_ACCESS  = os:getenv("AWS_ACCESS_KEY_ID"),
     X_AWS_SECRET  = os:getenv("AWS_SECRET_ACCESS_KEY"),
