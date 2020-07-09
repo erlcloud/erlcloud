@@ -198,7 +198,7 @@ input_tests(Response, Tests) ->
 %%%===================================================================
 
 %% returns the mock of the erlcloud_httpc function output tests expect to be called.
--spec output_expect(string()) -> fun().
+-spec output_expect(string()) -> meck:ret_spec().
 output_expect(Response) ->
     meck:val({ok, {{200, "OK"}, [], list_to_binary(Response)}}).
 
