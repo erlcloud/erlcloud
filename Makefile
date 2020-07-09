@@ -79,7 +79,6 @@ ifeq ($(REBAR_VSN),2)
 	$(MAKE) .dialyzer_plt
 	dialyzer --no_check_plt --fullpath \
 		$(CHECK_EUNIT_FILES) \
-		$(CHECK_FILES) \
 		-I include \
 		--plt .dialyzer_plt
 else
