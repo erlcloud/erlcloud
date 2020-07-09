@@ -361,7 +361,7 @@
          provisioned_throughput :: undefined | #ddb2_provisioned_throughput{},
          table_arn :: undefined | binary(),
          table_creation_date_time :: undefined | number(),
-         table_id :: undefined | number() | binary(),
+         table_id :: undefined | binary(),
          table_name :: undefined | binary(),
          table_size_bytes :: undefined | integer()
         }).
