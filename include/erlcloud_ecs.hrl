@@ -38,14 +38,14 @@
 }).
 
 -record(ecs_deployment, {
-    created_at :: undefined | pos_integer() | float(),
+    created_at :: undefined | pos_integer(),
     desired_count :: undefined | pos_integer(),
     id :: undefined | binary(),
     pending_count :: undefined | non_neg_integer(),
     running_count :: undefined | non_neg_integer(),
     status :: undefined | binary(),
     task_definition:: undefined | binary(),
-    updated_at :: undefined | float()
+    updated_at :: undefined | pos_integer()
 }).
 
 -record(ecs_event, {

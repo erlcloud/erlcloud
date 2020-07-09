@@ -174,14 +174,14 @@ create_service_input_tests(_) ->
         },
         \"deployments\": [
           {
-            \"createdAt\": 1430326887.362,
+            \"createdAt\": 1430326887362,
             \"desiredCount\": 10,
             \"id\": \"ecs-svc/9223370606527888445\",
             \"pendingCount\": 0,
             \"runningCount\": 0,
             \"status\": \"PRIMARY\",
             \"taskDefinition\": \"arn:aws:ecs:us-east-1:012345678910:task-definition/ecs-demo:1\",
-            \"updatedAt\": 1430326887.362
+            \"updatedAt\": 1430326887362
           }
         ],
         \"desiredCount\": 10,
@@ -210,14 +210,14 @@ create_service_output_tests(_) ->
         },
         \"deployments\": [
           {
-            \"createdAt\": 1430326887.362,
+            \"createdAt\": 1430326887362,
             \"desiredCount\": 10,
             \"id\": \"ecs-svc/9223370606527888445\",
             \"pendingCount\": 0,
             \"runningCount\": 0,
             \"status\": \"PRIMARY\",
             \"taskDefinition\": \"arn:aws:ecs:us-east-1:012345678910:task-definition/ecs-demo:1\",
-            \"updatedAt\": 1430326887.362
+            \"updatedAt\": 1430326887362
           }
         ],
         \"desiredCount\": 10,
@@ -238,14 +238,14 @@ create_service_output_tests(_) ->
                         minimum_healthy_percent = 100
                      },
                      deployments = [#ecs_deployment{
-                        created_at = 1430326887.362,
+                        created_at = 1430326887362,
                         desired_count = 10,
                         id = <<"ecs-svc/9223370606527888445">>,
                         pending_count = 0,
                         running_count = 0,
                         status = <<"PRIMARY">>,
                         task_definition = <<"arn:aws:ecs:us-east-1:012345678910:task-definition/ecs-demo:1">>,
-                        updated_at = 1430326887.362
+                        updated_at = 1430326887362
                      }],
                      desired_count = 10,
                      events = [],
@@ -338,14 +338,14 @@ delete_service_input_tests(_) ->
         },
         \"deployments\": [
           {
-            \"createdAt\": 1430326887.362,
+            \"createdAt\": 1430326887362,
             \"desiredCount\": 10,
             \"id\": \"ecs-svc/9223370606527888445\",
             \"pendingCount\": 0,
             \"runningCount\": 0,
             \"status\": \"PRIMARY\",
             \"taskDefinition\": \"arn:aws:ecs:us-east-1:012345678910:task-definition/ecs-demo:1\",
-            \"updatedAt\": 1430326887.362
+            \"updatedAt\": 1430326887362
           }
         ],
         \"desiredCount\": 10,
@@ -374,14 +374,14 @@ delete_service_output_tests(_) ->
         },
         \"deployments\": [
           {
-            \"createdAt\": 1430326887.362,
+            \"createdAt\": 1430326887362,
             \"desiredCount\": 10,
             \"id\": \"ecs-svc/9223370606527888445\",
             \"pendingCount\": 0,
             \"runningCount\": 0,
             \"status\": \"PRIMARY\",
             \"taskDefinition\": \"arn:aws:ecs:us-east-1:012345678910:task-definition/ecs-demo:1\",
-            \"updatedAt\": 1430326887.362
+            \"updatedAt\": 1430326887362
           }
         ],
         \"desiredCount\": 10,
@@ -402,14 +402,14 @@ delete_service_output_tests(_) ->
                         minimum_healthy_percent = 100
                      },
                      deployments = [#ecs_deployment{
-                        created_at = 1430326887.362,
+                        created_at = 1430326887362,
                         desired_count = 10,
                         id = <<"ecs-svc/9223370606527888445">>,
                         pending_count = 0,
                         running_count = 0,
                         status = <<"PRIMARY">>,
                         task_definition = <<"arn:aws:ecs:us-east-1:012345678910:task-definition/ecs-demo:1">>,
-                        updated_at = 1430326887.362
+                        updated_at = 1430326887362
                      }],
                      desired_count = 10,
                      events = [],
@@ -1349,14 +1349,14 @@ describe_services_input_tests(_) ->
       },
       \"deployments\": [
         {
-          \"createdAt\": 1432829320.611,
+          \"createdAt\": 1432829320611,
           \"desiredCount\": 4,
           \"id\": \"ecs-svc/9223370604025455196\",
           \"pendingCount\": 0,
           \"runningCount\": 4,
           \"status\": \"PRIMARY\",
           \"taskDefinition\": \"arn:aws:ecs:us-west-2:012345678910:task-definition/hpcc-t2-medium:1\",
-          \"updatedAt\": 1432829320.611
+          \"updatedAt\": 1432829320611
         }
       ],
       \"desiredCount\": 4,
@@ -1390,14 +1390,14 @@ describe_services_output_tests(_) ->
       },
       \"deployments\": [
         {
-          \"createdAt\": 1432829320.611,
+          \"createdAt\": 1432829320611,
           \"desiredCount\": 4,
           \"id\": \"ecs-svc/9223370604025455196\",
           \"pendingCount\": 0,
           \"runningCount\": 4,
           \"status\": \"PRIMARY\",
           \"taskDefinition\": \"arn:aws:ecs:us-west-2:012345678910:task-definition/hpcc-t2-medium:1\",
-          \"updatedAt\": 1432829320.611
+          \"updatedAt\": 1432829320611
         }
       ],
       \"desiredCount\": 4,
@@ -1423,14 +1423,14 @@ describe_services_output_tests(_) ->
                         },
                         deployments = [
                             #ecs_deployment{
-                                created_at = 1432829320.611,
+                                created_at = 1432829320611,
                                 desired_count = 4,
                                 id = <<"ecs-svc/9223370604025455196">>,
                                 pending_count = 0,
                                 running_count = 4,
                                 status = <<"PRIMARY">>,
                                 task_definition = <<"arn:aws:ecs:us-west-2:012345678910:task-definition/hpcc-t2-medium:1">>,
-                                updated_at = 1432829320.611
+                                updated_at = 1432829320611
                             }
                         ],
                         desired_count = 4,
@@ -3130,14 +3130,14 @@ update_service_input_tests(_) ->
     },
     \"deployments\": [
       {
-        \"createdAt\": 1430333711.033,
+        \"createdAt\": 1430333711033,
         \"desiredCount\": 3,
         \"id\": \"ecs-svc/9223370606521064774\",
         \"pendingCount\": 0,
         \"runningCount\": 0,
         \"status\": \"PRIMARY\",
         \"taskDefinition\": \"arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:10\",
-        \"updatedAt\": 1430336267.173
+        \"updatedAt\": 1430336267173
       }
     ],
     \"desiredCount\": 3,
@@ -3167,14 +3167,14 @@ update_service_output_tests(_) ->
     },
     \"deployments\": [
       {
-        \"createdAt\": 1430333711.033,
+        \"createdAt\": 1430333711033,
         \"desiredCount\": 3,
         \"id\": \"ecs-svc/9223370606521064774\",
         \"pendingCount\": 0,
         \"runningCount\": 0,
         \"status\": \"PRIMARY\",
         \"taskDefinition\": \"arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:10\",
-        \"updatedAt\": 1430336267.173
+        \"updatedAt\": 1430336267173
       }
     ],
     \"desiredCount\": 3,
@@ -3197,14 +3197,14 @@ update_service_output_tests(_) ->
                     },
                     deployments = [
                         #ecs_deployment{
-                            created_at = 1430333711.033,
+                            created_at = 1430333711033,
                             desired_count = 3,
                             id = <<"ecs-svc/9223370606521064774">>,
                             pending_count = 0,
                             running_count = 0,
                             status = <<"PRIMARY">>,
                             task_definition = <<"arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:10">>,
-                            updated_at = 1430336267.173
+                            updated_at = 1430336267173
                         }
                     ],
                     desired_count = 3,
