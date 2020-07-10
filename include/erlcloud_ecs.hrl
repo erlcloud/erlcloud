@@ -38,18 +38,18 @@
 }).
 
 -record(ecs_deployment, {
-    created_at :: undefined | pos_integer(),
+    created_at :: undefined | number(),
     desired_count :: undefined | pos_integer(),
     id :: undefined | binary(),
     pending_count :: undefined | non_neg_integer(),
     running_count :: undefined | non_neg_integer(),
     status :: undefined | binary(),
     task_definition:: undefined | binary(),
-    updated_at :: undefined | pos_integer()
+    updated_at :: undefined | number()
 }).
 
 -record(ecs_event, {
-    created_at :: undefined | pos_integer(),
+    created_at :: undefined | number(),
     id :: undefined | binary(),
     message :: undefined | binary()
 }).
@@ -73,7 +73,7 @@
 
 -record(ecs_service, {
     cluster_arn :: undefined | binary(),
-    created_at :: undefined | pos_integer(),
+    created_at :: undefined | number(),
     deployment_configuration :: undefined | #ecs_deployment_configuration{},
     deployments :: undefined | [#ecs_deployment{}],
     desired_count :: undefined | pos_integer(),
@@ -251,7 +251,7 @@
     cluster_arn :: undefined | binary(),
     container_instance_arn :: undefined | binary(),
     containers :: undefined | [#ecs_container{}],
-    created_at :: undefined | pos_integer(),
+    created_at :: undefined | number(),
     desired_status:: undefined | binary(),
     last_status :: undefined | binary(),
     overrides :: undefined | #ecs_task_override{},
