@@ -555,12 +555,12 @@ get_shard_iterator_request(Config, Json) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_records(string()) -> erlcloud_kinesis_impl:json_return().
+-spec get_records(binary()) -> erlcloud_kinesis_impl:json_return().
 get_records(ShardIterator) ->
     Json = [{<<"ShardIterator">>, ShardIterator}],
     get_normalized_records(default_config(), Json).
 
--spec get_records(string(), get_records_limit()| aws_config()) -> erlcloud_kinesis_impl:json_return().
+-spec get_records(binary(), get_records_limit()| aws_config()) -> erlcloud_kinesis_impl:json_return().
 get_records(ShardIterator, Config) when is_record(Config, aws_config) ->
     Json = [{<<"ShardIterator">>, ShardIterator}],
     get_normalized_records(Config, Json);
@@ -712,8 +712,8 @@ put_record(StreamName, PartitionKey, Data, ExplicitHashKey, Ordering, Options, C
 %% @end
 %%------------------------------------------------------------------------------
 
--type put_records_item() :: {Data :: string(), PartitionKey :: string()}
-                          | {Data :: string(), ExplicitHashKey :: string(), PartitionKey :: string()}.
+-type put_records_item() :: {Data :: binary(), PartitionKey :: binary()}
+                          | {Data :: binary(), ExplicitHashKey :: binary(), PartitionKey :: binary()}.
 -type put_records_items() :: [put_records_item()].
 
 -spec put_records(binary(), put_records_items()) -> erlcloud_kinesis_impl:json_return().
@@ -771,13 +771,13 @@ prepare_put_records_item({Data, ExplicitHashKey, PartitionKey}, Fun) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec merge_shards(binary(), string(), string()) -> erlcloud_kinesis_impl:json_return().
+-spec merge_shards(binary(), binary(), binary()) -> erlcloud_kinesis_impl:json_return().
 
 merge_shards(StreamName, AdjacentShardToMerge, ShardToMerge) ->
   Json = [{<<"StreamName">>, StreamName}, {<<"AdjacentShardToMerge">>, AdjacentShardToMerge}, {<<"ShardToMerge">>, ShardToMerge}],
   erlcloud_kinesis_impl:request(default_config(), "Kinesis_20131202.MergeShards", Json).
 
--spec merge_shards(binary(), string(), string(), aws_config()) -> erlcloud_kinesis_impl:json_return().
+-spec merge_shards(binary(), binary(), binary(), aws_config()) -> erlcloud_kinesis_impl:json_return().
 
 merge_shards(StreamName, AdjacentShardToMerge, ShardToMerge, Config) when is_record(Config, aws_config) ->
   Json = [{<<"StreamName">>, StreamName}, {<<"AdjacentShardToMerge">>, AdjacentShardToMerge}, {<<"ShardToMerge">>, ShardToMerge}],
@@ -800,13 +800,13 @@ merge_shards(StreamName, AdjacentShardToMerge, ShardToMerge, Config) when is_rec
 %% @end
 %%------------------------------------------------------------------------------
 
--spec split_shards(binary(), string(), string()) -> erlcloud_kinesis_impl:json_return().
+-spec split_shards(binary(), binary(), binary()) -> erlcloud_kinesis_impl:json_return().
 
 split_shards(StreamName, ShardToSplit, NewStartingHashKey) ->
   Json = [{<<"StreamName">>, StreamName}, {<<"ShardToSplit">>, ShardToSplit}, {<<"NewStartingHashKey">>, NewStartingHashKey}],
   erlcloud_kinesis_impl:request(default_config(), "Kinesis_20131202.SplitShard", Json).
 
--spec split_shards(binary(), string(), string(), aws_config()) -> erlcloud_kinesis_impl:json_return().
+-spec split_shards(binary(), binary(), binary(), aws_config()) -> erlcloud_kinesis_impl:json_return().
 
 split_shards(StreamName, ShardToSplit, NewStartingHashKey, Config) when is_record(Config, aws_config) ->
   Json = [{<<"StreamName">>, StreamName}, {<<"ShardToSplit">>, ShardToSplit}, {<<"NewStartingHashKey">>, NewStartingHashKey}],

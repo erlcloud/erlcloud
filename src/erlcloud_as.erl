@@ -331,18 +331,16 @@ create_launch_config(#aws_launch_config{
                      },
                      Config) ->
     Params = 
-        lists:concat([
           [
            {"LaunchConfigurationName", LCName},
            {"ImageId", ImageId},
            {"InstanceType", Type}
-          ],
-          when_defined(UserData, [{"UserData", UserData}], []),
-          when_defined(PublicIP, [{"AssociatePublicIpAddress", atom_to_list(PublicIP)}], []),
-          when_defined(Monitoring, [{"InstanceMonitoring.Enabled", atom_to_list(Monitoring)}], []),
-          member_params("SecurityGroups.member.", SGroups),
-          when_defined(KeyPair, [{"KeyName", KeyPair}], [])
-    ]),
+          ]
+          ++ when_defined(UserData, [{"UserData", UserData}], [])
+          ++ when_defined(PublicIP, [{"AssociatePublicIpAddress", atom_to_list(PublicIP)}], [])
+          ++ when_defined(Monitoring, [{"InstanceMonitoring.Enabled", atom_to_list(Monitoring)}], [])
+          ++ member_params("SecurityGroups.member.", SGroups)
+          ++ when_defined(KeyPair, [{"KeyName", KeyPair}], []),
     io:format("~p ~n", [Params]),
     create_launch_config(Params, Config);
 
@@ -373,23 +371,21 @@ create_auto_scaling_group(#aws_autoscaling_group{
                           },
                           Config) ->
     ProcessedTags = lists:flatten([tag_to_member_param(T, Idx) || {T, Idx} <- lists:zip(Tags, lists:seq(1, length(Tags)))]),
-    Params = lists:concat([
-                 [
+    Params = [
                   {"AutoScalingGroupName", GName},
                   {"LaunchConfigurationName", LaunchName},
                   {"MaxSize", integer_to_list(MaxSize)},
                   {"MinSize", integer_to_list(MinSize)}
-                 ],
-                 case VpcZoneIds of
+             ]
+             ++ case VpcZoneIds of
                      undefined -> [];
                      _         ->[{"VPCZoneIdentifier", string:join(VpcZoneIds, ",")}]
-                 end,
-                 case AZones of
+                end
+             ++ case AZones of
                      undefined -> [];
                      _         -> member_params("AvailabilityZones.member.", AZones)
-                 end,
-                 ProcessedTags
-             ]),
+                end
+             ++ ProcessedTags,
     create_auto_scaling_group(Params, Config);
 
 create_auto_scaling_group(Params, Config) ->
@@ -418,35 +414,33 @@ update_auto_scaling_group(#aws_autoscaling_group{
                               availability_zones = AZones
                           },
                           Config) ->
-    Params = lists:concat([
-                 [
+    Params = [
                   {"AutoScalingGroupName", GName}
-                 ],
-                 case LaunchName of
+             ]
+             ++ case LaunchName of
                      undefined -> [];
                      _         -> [{"LaunchConfigurationName", LaunchName}]
-                 end,
-                 case DesiredCapacity of
+                end
+             ++ case DesiredCapacity of
                      undefined -> [];
                      _         -> [{"DesiredCapacity", integer_to_list(DesiredCapacity)}]
-                 end,
-                 case MaxSize of
+                end
+             ++ case MaxSize of
                      undefined -> [];
                      _         -> [{"MaxSize", integer_to_list(MaxSize)}]
-                 end,
-                 case MinSize of
+                end
+             ++ case MinSize of
                      undefined -> [];
                      _         -> [{"MinSize", integer_to_list(MinSize)}]
-                 end,
-                 case VpcZoneIds of
+                end
+             ++ case VpcZoneIds of
                      undefined -> [];
                      _         ->[{"VPCZoneIdentifier", string:join(VpcZoneIds, ",")}]
-                 end,
-                 case AZones of
+                end
+             ++ case AZones of
                      undefined -> [];
                      _         -> member_params("AvailabilityZones.member.", AZones)
-                 end
-             ]),
+                end,
     update_auto_scaling_group(Params, Config);
 
 update_auto_scaling_group(Params, Config) ->

@@ -56,7 +56,7 @@
 -type cloudsearch_domain_tag() :: [{TagKey :: binary(), TagValue :: string()}].
 -type cloudsearch_index_field_option() :: {
         OptionName :: binary(),
-        OptionValue :: boolean() | string() | null | integer() | float() | list()
+        OptionValue :: boolean() | string() | null | integer() | float() | list() | binary()
 }.
 -type cloudsearch_index_field() :: [cloudsearch_index_field_option()].
 

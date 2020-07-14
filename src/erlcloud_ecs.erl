@@ -678,7 +678,8 @@ container_definition_opts() ->
         {working_directory, <<"workingDirectory">>, fun to_binary/1}
     ].
 
--spec encode_container_definitions(Defs :: container_definition_opts()) -> [aws_opts()].
+-spec encode_container_definitions(Defs :: container_definition_opts()
+                                         | [container_definition_opts()]) -> [aws_opts()].
 encode_container_definitions(Defs) ->
     encode_maybe_list(fun container_definition_opts/0, Defs).
     
@@ -1177,7 +1178,8 @@ decode_container_overrides_list(V, Opts) ->
 %%%------------------------------------------------------------------------------
 %% CreateCluster
 %%%------------------------------------------------------------------------------
--type create_cluster_opt() :: {cluster_name, string_param()}.
+-type create_cluster_opt() :: {cluster_name, string_param()} |
+                              out_opt().
 -type create_cluster_opts() :: [create_cluster_opt()].
 
 -spec create_cluster_opts() -> opt_table().
@@ -1227,7 +1229,8 @@ create_cluster(Opts, #aws_config{} = Config) ->
                               cluster_opt() |
                               deployment_configuration() |
                               load_balancers_opt() |
-                              role_opt().
+                              role_opt() |
+                              out_opt().
 -type create_service_opts() :: [create_service_opt()].
 
 -spec create_service_opts() -> opt_table().
@@ -1329,7 +1332,8 @@ delete_cluster(ClusterName, Opts, #aws_config{} = Config) ->
 %%%------------------------------------------------------------------------------
 %% DeleteService
 %%%------------------------------------------------------------------------------
--type delete_service_opt() :: {cluster, string_param()}.
+-type delete_service_opt() :: {cluster, string_param()} |
+                              out_opt().
 -type delete_service_opts() :: [delete_service_opt()].
 
 -spec delete_service_opts() -> opt_table().
@@ -1381,7 +1385,8 @@ delete_service(ServiceName, Opts, #aws_config{} = Config) ->
 %% DeregisterContainerInstance
 %%%------------------------------------------------------------------------------
 -type deregister_container_instance_opt() :: {cluster, string_param()} |
-                                             {force, boolean()}.
+                                             {force, boolean()} |
+                                             out_opt().
 -type deregister_container_instance_opts() :: [deregister_container_instance_opt()].
 
 -spec deregister_container_instance_opts() -> opt_table().
@@ -1483,7 +1488,8 @@ deregister_task_definition(TaskDefinition, Opts, Config) ->
 %%%------------------------------------------------------------------------------
 %% DescribeClusters
 %%%------------------------------------------------------------------------------
--type describe_clusters_opt() :: {clusters, [string_param()]}.
+-type describe_clusters_opt() :: {clusters, [string_param()]} |
+                                 out_opt().
 -type describe_clusters_opts() :: [describe_clusters_opt()].
 
 -spec describe_clusters_opts() -> opt_table().
@@ -1536,7 +1542,8 @@ describe_clusters(Opts, #aws_config{} = Config) ->
 %%%------------------------------------------------------------------------------
 %% DescribeContainerInstances
 %%%------------------------------------------------------------------------------
--type describe_container_instances_opt() :: {cluster, string_param()}.
+-type describe_container_instances_opt() :: {cluster, string_param()} |
+                                            out_opt().
 -type describe_container_instances_opts() :: [describe_container_instances_opt()].
 
 -spec describe_container_instances_opts() -> opt_table().
@@ -1594,7 +1601,8 @@ describe_container_instances(Instances, Opts, #aws_config{} = Config) ->
 %%%------------------------------------------------------------------------------
 %% DescribeServices
 %%%------------------------------------------------------------------------------
--type describe_services_opt() :: {cluster, string_param()}.
+-type describe_services_opt() :: {cluster, string_param()} |
+                                 out_opt().
 -type describe_services_opts() :: [describe_services_opt()].
 
 -spec describe_services_opts() -> opt_table().
@@ -1696,7 +1704,7 @@ describe_task_definition(TaskDefinition, Opts, #aws_config{} = Config) ->
 %%%------------------------------------------------------------------------------
 %% DescribeTasks
 %%%------------------------------------------------------------------------------
--type describe_tasks_opt() :: {cluster, string_param()}.
+-type describe_tasks_opt() :: {cluster, string_param()} | out_opt().
 -type describe_tasks_opts() :: [describe_tasks_opt()].
 
 -spec describe_tasks_opts() -> opt_table().
@@ -1756,7 +1764,8 @@ describe_tasks(Tasks, Opts, #aws_config{} = Config) ->
 %% ListClusters 
 %%%------------------------------------------------------------------------------
 -type list_clusters_opt() :: {max_results, 1..100} | 
-                             {next_token, binary()}.
+                             {next_token, binary()} |
+                             out_opt().
 
 -type list_clusters_opts() :: [list_clusters_opt()].
 
@@ -1808,7 +1817,8 @@ list_clusters(Opts, Config) ->
 %%%------------------------------------------------------------------------------
 -type list_container_instances_opt() :: {cluster, string_param()} |
                                         {max_results, 1..100} |
-                                        {next_token, binary()}.
+                                        {next_token, binary()} |
+                                        out_opt().
 
 -type list_container_instances_opts() :: [list_container_instances_opt()].
 
@@ -1861,7 +1871,8 @@ list_container_instances(Opts, Config) ->
 %%%------------------------------------------------------------------------------
 -type list_services_opt() :: {cluster, string_param()} |
                                         {max_results, 1..100} |
-                                        {next_token, binary()}.
+                                        {next_token, binary()} |
+                                        out_opt().
 
 -type list_services_opts() :: [list_services_opt()].
 
@@ -1915,7 +1926,8 @@ list_services(Opts, Config) ->
 -type list_task_definition_families_opt() :: {family_prefix, string_param()} |
                                              {status, active | inactive | all} |
                                              {max_results, 1..100} |
-                                             {next_token, binary()}.
+                                             {next_token, binary()} |
+                                        out_opt().
 
 -type list_task_definition_families_opts() :: [list_task_definition_families_opt()].
 
@@ -1975,7 +1987,8 @@ list_task_definition_families(Opts, Config) ->
                                      {status, active | inactive} |
                                      {sort, asc | desc} |
                                      {max_results, 1..100} |
-                                     {next_token, binary()}.
+                                     {next_token, binary()} |
+                                     out_opt().
 
 -type list_task_definitions_opts() :: [list_task_definitions_opt()].
 
@@ -2036,7 +2049,8 @@ list_task_definitions(Opts, Config) ->
                           {family, string_param()} |
                           {sort, asc | desc} |
                           {max_results, 1..100} |
-                          {next_token, binary()}.
+                          {next_token, binary()} |
+                          out_opt().
 
 -type list_tasks_opts() :: [list_tasks_opt()].
 
@@ -2097,7 +2111,8 @@ list_tasks(Opts, Config) ->
 %%%------------------------------------------------------------------------------
 -type register_task_definition_opt() :: {network_mode, ecs_network_mode()} |
                                         {task_role_arn, string_param()} |
-                                        volumes().
+                                        volumes() |
+                                        out_opt().
 -type register_task_definition_opts() :: [register_task_definition_opt()].
 
 -spec register_task_definition_opts() -> opt_table().
@@ -2163,8 +2178,9 @@ register_task_definition(ContainerDefinitions, Family, Opts, Config) ->
 -type run_task_opt() :: {cluster, string_param()} |
                         {count, pos_integer()} |
                         task_overrides_opt() |
-                        placement_strategy_opt() |
-                        {started_by, string_param()}.
+                        placement_strategy() |
+                        {started_by, string_param()} |
+                        out_opt().
 
 -type run_task_opts() :: [run_task_opt()].
 -spec run_task_opts() -> opt_table().
@@ -2227,7 +2243,8 @@ run_task(TaskDefinition, Opts, Config) ->
 %%%------------------------------------------------------------------------------
 -type start_task_opt() :: {cluster, string_param()} |
                           task_overrides_opt() |
-                          {started_by, string_param()}.
+                          {started_by, string_param()} |
+                          out_opt().
 
 -type start_task_opts() :: [start_task_opt()].
 -spec start_task_opts() -> opt_table().
@@ -2295,7 +2312,8 @@ start_task(TaskDefinition, ContainerInstances, Opts, Config) ->
 %% StopTask
 %%%------------------------------------------------------------------------------
 -type stop_task_opt() :: {cluster, string_param()} |
-                         {reason, string_param()}.
+                         {reason, string_param()} |
+                         out_opt().
 -type stop_task_opts() :: [stop_task_opt()].
 -spec stop_task_opts() -> opt_table().
 stop_task_opts() ->
@@ -2342,7 +2360,7 @@ stop_task(Task, Opts, #aws_config{} = Config) ->
 %%%------------------------------------------------------------------------------
 %% UpdateContainerAgent 
 %%%------------------------------------------------------------------------------
--type update_container_agent_opts() :: [{cluster, string_param()}].
+-type update_container_agent_opts() :: [{cluster, string_param()} | out_opt()].
 -spec update_container_agent_opts() -> opt_table().
 update_container_agent_opts() ->
     [{cluster, <<"cluster">>, fun to_binary/1}].
@@ -2393,7 +2411,8 @@ update_container_agent(ContainerInstance, Opts, Config) ->
 -type update_service_opt() :: {cluster, string_param()} |
                               deployment_configuration() |
                               {desired_count, pos_integer()} |
-                              {task_definition, string_param()}.
+                              {task_definition, string_param()} |
+                              out_opt().
 -type update_service_opts() :: [update_service_opt()].
 -spec update_service_opts() -> opt_table().
 update_service_opts() ->

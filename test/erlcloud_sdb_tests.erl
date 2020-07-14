@@ -1,9 +1,17 @@
 -module(erlcloud_sdb_tests).
 
--ifdef(TEST).
--compile(export_all).
-
 -include_lib("eunit/include/eunit.hrl").
+
+-export([setup/0]).
+-export([cleanup/1]).
+-export([select_single_response/0]).
+-export([select_next_token/0]).
+-export([select_all_single_response/0]).
+-export([select_all_failure/0]).
+-export([select_all_503/0]).
+-export([select_all_next_token/0]).
+-export([select_all_next_and_failure/0]).
+-export([select_all_two_results/0]).
 
 setup() ->
     erlcloud_sdb:configure("fake", "fake-secret"),
@@ -153,5 +161,3 @@ extract_token_test() ->
     ?assertEqual(next_token(), erlcloud_sdb:extract_token(parse_document(only_token_response_body()))),
     ?assertEqual(next_token(), erlcloud_sdb:extract_token(parse_document(single_result_and_token_response_body()))),
     ?assertEqual(done, erlcloud_sdb:extract_token(parse_document(single_result_response_body("item0")))).
-
--endif.

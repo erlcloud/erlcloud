@@ -465,7 +465,7 @@ log_stream_order_by(last_event_time) -> <<"LastEventTime">>.
     log_stream_name(),
     seq_token(),
     events()
-) -> datum:either( seq_token() ).
+) -> {ok, seq_token()} | {error, erlcloud_aws:httpc_result_error()}.
 
 put_logs_events(LogGroup, LogStream, SeqToken, Events) ->
     put_logs_events(LogGroup, LogStream, SeqToken, Events, default_config()).
@@ -477,7 +477,7 @@ put_logs_events(LogGroup, LogStream, SeqToken, Events) ->
     seq_token(),
     events(),
     aws_config()
-) -> datum:either( seq_token() ).
+) -> {ok, seq_token()} | {error, erlcloud_aws:httpc_result_error()}.
 
 put_logs_events(LogGroup, LogStream, SeqToken, Events, Config) ->
     case

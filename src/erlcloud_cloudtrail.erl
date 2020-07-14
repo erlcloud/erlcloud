@@ -118,38 +118,38 @@ describe_trails(Trails, IncludeShadowTrails, Config) ->
         end,
     ct_request("DescribeTrails", Json, Config).
 
--spec get_trail_status([string()] ) -> ct_return().
+-spec get_trail_status(string() ) -> ct_return().
 get_trail_status(Trail) ->
     get_trail_status(Trail, default_config()).
 
--spec get_trail_status([string()], aws_config()) -> ct_return().
+-spec get_trail_status(string(), aws_config()) -> ct_return().
 get_trail_status(Trail, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}],
     ct_request("GetTrailStatus", Json, Config).
 
--spec get_event_selectors([string()]) -> ct_return().
+-spec get_event_selectors(string()) -> ct_return().
 get_event_selectors(Trail) ->
     get_event_selectors(Trail, default_config()).
 
--spec get_event_selectors([string()], aws_config()) -> ct_return().
+-spec get_event_selectors(string(), aws_config()) -> ct_return().
 get_event_selectors(Trail, Config) ->
     Json = [{<<"TrailName">>, list_to_binary(Trail)}],
     ct_request("GetEventSelectors", Json, Config).
 
--spec start_logging([string()] ) -> ct_return().
+-spec start_logging(string() ) -> ct_return().
 start_logging(Trail) ->
     start_logging(Trail, default_config()).
 
--spec start_logging([string()], aws_config()) -> ct_return().
+-spec start_logging(string(), aws_config()) -> ct_return().
 start_logging(Trail, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}],
     ct_request("StartLogging", Json, Config).
 
--spec stop_logging([string()] ) -> ct_return().
+-spec stop_logging(string() ) -> ct_return().
 stop_logging(Trail) ->
     stop_logging(Trail, default_config()).
 
--spec stop_logging([string()], aws_config()) -> ct_return().
+-spec stop_logging(string(), aws_config()) -> ct_return().
 stop_logging(Trail, Config) ->
     Json = [{<<"Name">>, list_to_binary(Trail)}],
     ct_request("StopLogging", Json, Config).

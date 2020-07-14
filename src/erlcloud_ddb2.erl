@@ -1874,6 +1874,7 @@ dynamize_sse_specification({enabled, Enabled}) when is_boolean(Enabled) ->
 -type create_table_opt() :: {billing_mode, billing_mode()} |
                             {local_secondary_indexes, local_secondary_indexes()} |
                             {global_secondary_indexes, global_secondary_indexes()} |
+                            {provisioned_throughput, {read_units(), write_units()}} |
                             {sse_specification, sse_specification()} |
                             {stream_specification, stream_specification()}.
 -type create_table_opts() :: [create_table_opt()].
@@ -3443,7 +3444,9 @@ tag_resource(ResourceArn, Tags, Config) ->
 %%%-----------------------------------------------------------------------------
 
 -type transact_get_items_transact_item_opts() :: expression_attribute_names_opt() |
-                           projection_expression_opt().
+                           projection_expression_opt() |
+                           return_consumed_capacity_opt() |
+                           out_opt().
 -type transact_get_items_opts() :: [transact_get_items_transact_item_opts()].
 
 -type transact_get_items_get_item() :: {table_name(), key()}
@@ -3456,7 +3459,7 @@ tag_resource(ResourceArn, Tags, Config) ->
 
 -type transact_get_items_return() :: ddb_return(#ddb2_transact_get_items{}, out_item()).
 
--spec dynamize_transact_get_items_transact_items(transact_write_items_transact_items())
+-spec dynamize_transact_get_items_transact_items(transact_get_items_transact_items())
                                           -> [jsx:json_term()].
 dynamize_transact_get_items_transact_items(TransactItems) ->
     dynamize_maybe_list(fun dynamize_transact_get_items_transact_item/1, TransactItems).
@@ -3563,9 +3566,12 @@ return_value_on_condition_check_failure_opt() ->
                            expression_attribute_values_opt() |
                            condition_expression_opt() |
                            return_value_on_condition_check_failure_opt().
--type transact_write_items_condition_check_item() :: {table_name(), key(), transact_write_items_transact_item_opt()}.
--type transact_write_items_delete_item() :: {table_name(), key(), transact_write_items_transact_item_opts()}.
--type transact_write_items_put_item() :: {table_name(), in_item(), transact_write_items_transact_item_opts()}.
+-type transact_write_items_condition_check_item() :: {table_name(), key(), transact_write_items_transact_item_opts()}
+                                                   | {table_name(), key(), binary(), transact_write_items_transact_item_opts()}.
+-type transact_write_items_delete_item() :: {table_name(), key()}
+                                       | {table_name(), key(), transact_write_items_transact_item_opts()}.
+-type transact_write_items_put_item() :: {table_name(), in_item()}
+                                       | {table_name(), in_item(), transact_write_items_transact_item_opts()}.
 -type transact_write_items_update_item() :: {table_name(), key(), expression(), transact_write_items_transact_item_opts()}.
 
 -type transact_write_items_condition_check() :: {condition_check, transact_write_items_condition_check_item()}.

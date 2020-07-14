@@ -5,6 +5,7 @@ otp_release:
   - 20.3
   - 21.3
   - 22.3
+  - 23.0
 env:
   global:
   - MAIN_OTP=20.3
@@ -18,7 +19,7 @@ branches:
 install:
   - make travis-install
 script:
-  - make check_warnings
+  - make warnings
   - make check
   - make eunit
 deploy:

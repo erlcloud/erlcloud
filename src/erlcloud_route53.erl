@@ -77,7 +77,7 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 %% @end
 %% --------------------------------------------------------------------
 -spec describe_zone(ZoneId :: string()) ->
-             {ok, list(aws_route53_zone())} |
+             {ok, aws_route53_zone()} |
              {error, term()}.
 describe_zone(ZoneId) ->
     describe_zone(ZoneId, erlcloud_aws:default_config()).
@@ -88,7 +88,7 @@ describe_zone(ZoneId) ->
 %% --------------------------------------------------------------------
 -spec describe_zone(ZoneId :: string(),
                     AwsConfig :: aws_config()) ->
-             {ok, list(aws_route53_zone())} |
+             {ok, aws_route53_zone()} |
              {error, term()}.
 describe_zone(ZoneId, AwsConfig) ->
     describe_zone(ZoneId, [], AwsConfig).
@@ -100,7 +100,7 @@ describe_zone(ZoneId, AwsConfig) ->
 -spec describe_zone(ZoneId :: string(),
                     Options   :: list({string(), string()}),
                     AwsConfig :: aws_config()) ->
-    {ok, list(aws_route53_zone())} |
+    {ok, aws_route53_zone()} |
     {error, term()}.
 describe_zone(ZoneId, Options, Config) when is_list(Options),
                                             is_record(Config, aws_config) ->
@@ -132,7 +132,7 @@ describe_zones(AwsConfig) ->
 %% @doc Describes all zones using provided config + AWS options
 %% @end
 %% --------------------------------------------------------------------
--spec describe_zones(Options   :: list({string(), string()}),
+-spec describe_zones(Options   :: list({string(), string() | integer()}),
                      AwsConfig :: aws_config()) ->
              {ok, list(aws_route53_zone())} |
              {ok, list(aws_route53_zone()), string()} |
@@ -498,7 +498,7 @@ key_replace_or_add(Key, Value, List) ->
     end.
 
 -spec route53_query(get | post, aws_config(), string(), string(),
-                    list({string(), string()}), string()) ->
+                    list({string(), string() | integer()}), string()) ->
     {ok, term()} | {error, term()}.
 route53_query(Method, Config, Action, Path, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion} | Params],

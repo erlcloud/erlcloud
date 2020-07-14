@@ -5,55 +5,55 @@
 
 -record(cloudformation_create_stack_input, {
     capabilities = [] :: [string()], %% list containing CAPABILITY_IAM | CAPABILITY_NAMED_IAM | CAPABILITY_AUTO_EXPAND
-    client_request_token :: string(),
-    disable_rollback :: boolean(),
-    enable_termination_protection :: boolean(),
+    client_request_token :: undefined | string(),
+    disable_rollback :: undefined | boolean(),
+    enable_termination_protection :: undefined | boolean(),
     notification_arns = [] :: [string()],
     on_failure = "ROLLBACK" :: string(), %% DO_NOTHING | ROLLBACK | DELETE
     parameters = [] :: [cloudformation_parameter()],
     resource_types = [] :: [string()],
-    role_arn :: string(),
+    role_arn :: undefined | string(),
     rollback_configuration :: undefined | cloudformation_rollback_configuration(),
     stack_name :: string(),
-    stack_policy_body :: string(),
-    stack_policy_url :: string(),
+    stack_policy_body :: undefined | string(),
+    stack_policy_url :: undefined | string(),
     tags = []:: [cloudformation_tag()],
-    template_body :: string(),
-    template_url :: string(),
-    timeout_in_minutes :: integer()
+    template_body :: undefined | string(),
+    template_url :: undefined | string(),
+    timeout_in_minutes :: undefined | integer()
 }).
 
 -record(cloudformation_update_stack_input, {
     capabilities = [] :: [string()], %% list containing CAPABILITY_IAM | CAPABILITY_NAMED_IAM | CAPABILITY_AUTO_EXPAND
-    client_request_token :: string(),
+    client_request_token :: undefined | string(),
     notification_arns = [] :: [string()],
     parameters = [] :: [cloudformation_parameter()],
     resource_types = [] :: [string()],
-    role_arn :: string(),
-    rollback_configuration :: cloudformation_rollback_configuration(),
+    role_arn :: undefined | string(),
+    rollback_configuration :: undefined | cloudformation_rollback_configuration(),
     stack_name :: string(),
-    stack_policy_body :: string(),
-    stack_policy_during_update_body :: string(),
-    stack_policy_during_update_url :: string(),
-    stack_policy_url :: string(),
+    stack_policy_body :: undefined | string(),
+    stack_policy_during_update_body :: undefined | string(),
+    stack_policy_during_update_url :: undefined | string(),
+    stack_policy_url :: undefined | string(),
     tags = []:: [cloudformation_tag()],
-    template_body :: string(),
-    template_url :: string(),
-    use_previous_template :: boolean()
+    template_body :: undefined | string(),
+    template_url :: undefined | string(),
+    use_previous_template :: undefined | boolean()
 }).
 
 -record(cloudformation_delete_stack_input, {
-    client_request_token :: string(),
+    client_request_token :: undefined | string(),
     retain_resources = [] :: [string()],
-    role_arn :: string(),
-    stack_name :: string()
+    role_arn :: undefined | string(),
+    stack_name :: undefined | string()
 }).
 
 -record(cloudformation_parameter, {
     parameter_key :: string(),
     parameter_value :: string(),
-    resolved_value :: string(),
-    use_previous_value :: boolean()
+    resolved_value :: undefined | string(),
+    use_previous_value :: undefined | boolean()
 }).
 
 -record(cloudformation_rollback_configuration, {

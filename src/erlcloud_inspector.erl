@@ -134,16 +134,16 @@ inspector_result_fun(#aws_request{response_type = error, error_type = aws} = Req
 -type attribute() :: proplists:proplist().
 
 -spec add_attributes_to_findings
-          (Attributes :: [attribute()],
-           FindingArns :: [string()]) ->
+          (Attributes :: attribute(),
+           FindingArns :: [string() | binary()]) ->
           inspector_return_val().
 add_attributes_to_findings(Attributes, FindingArns) ->
     add_attributes_to_findings(Attributes, FindingArns, default_config()).
 
 
 -spec add_attributes_to_findings
-          (Attributes :: [attribute()],
-           FindingArns :: [string()],
+          (Attributes :: attribute(),
+           FindingArns :: [string() | binary()],
            Config :: aws_config()) ->
           inspector_return_val().
 add_attributes_to_findings(Attributes, FindingArns, Config) ->
@@ -159,16 +159,16 @@ add_attributes_to_findings(Attributes, FindingArns, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec attach_assessment_and_rules_package
-          (AssessmentArn :: string(),
-           RulesPackageArn :: string()) ->
+          (AssessmentArn :: string() | binary(),
+           RulesPackageArn :: string() | binary()) ->
           inspector_return_val().
 attach_assessment_and_rules_package(AssessmentArn, RulesPackageArn) ->
     attach_assessment_and_rules_package(AssessmentArn, RulesPackageArn, default_config()).
 
 
 -spec attach_assessment_and_rules_package
-          (AssessmentArn :: string(),
-           RulesPackageArn :: string(),
+          (AssessmentArn :: string() | binary(),
+           RulesPackageArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 attach_assessment_and_rules_package(AssessmentArn, RulesPackageArn, Config) ->
@@ -184,16 +184,16 @@ attach_assessment_and_rules_package(AssessmentArn, RulesPackageArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec create_application
-          (ApplicationName :: string(),
-           ResourceGroupArn :: string()) ->
+          (ApplicationName :: string() | binary(),
+           ResourceGroupArn :: string() | binary()) ->
           inspector_return_val().
 create_application(ApplicationName, ResourceGroupArn) ->
     create_application(ApplicationName, ResourceGroupArn, default_config()).
 
 
 -spec create_application
-          (ApplicationName :: string(),
-           ResourceGroupArn :: string(),
+          (ApplicationName :: string() | binary(),
+           ResourceGroupArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 create_application(ApplicationName, ResourceGroupArn, Config) ->
@@ -209,8 +209,8 @@ create_application(ApplicationName, ResourceGroupArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec create_assessment
-          (ApplicationArn :: string(),
-           AssessmentName :: string(),
+          (ApplicationArn :: string() | binary(),
+           AssessmentName :: string() | binary(),
            DurationInSeconds :: integer()) ->
           inspector_return_val().
 create_assessment(ApplicationArn, AssessmentName, DurationInSeconds) ->
@@ -218,8 +218,8 @@ create_assessment(ApplicationArn, AssessmentName, DurationInSeconds) ->
 
 
 -spec create_assessment
-          (ApplicationArn :: string(),
-           AssessmentName :: string(),
+          (ApplicationArn :: string() | binary(),
+           AssessmentName :: string() | binary(),
            DurationInSeconds :: integer(),
            Options :: inspector_opts()) ->
           inspector_return_val().
@@ -228,8 +228,8 @@ create_assessment(ApplicationArn, AssessmentName, DurationInSeconds, Options) ->
 
 
 -spec create_assessment
-          (ApplicationArn :: string(),
-           AssessmentName :: string(),
+          (ApplicationArn :: string() | binary(),
+           AssessmentName :: string() | binary(),
            DurationInSeconds :: integer(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
@@ -271,14 +271,14 @@ create_resource_group(ResourceGroupTags, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec delete_application
-          (ApplicationArn :: string()) ->
+          (ApplicationArn :: string() | binary()) ->
           inspector_return_val().
 delete_application(ApplicationArn) ->
     delete_application(ApplicationArn, default_config()).
 
 
 -spec delete_application
-          (ApplicationArn :: string(),
+          (ApplicationArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 delete_application(ApplicationArn, Config) ->
@@ -293,14 +293,14 @@ delete_application(ApplicationArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec delete_assessment
-          (AssessmentArn :: string()) ->
+          (AssessmentArn :: string() | binary()) ->
           inspector_return_val().
 delete_assessment(AssessmentArn) ->
     delete_assessment(AssessmentArn, default_config()).
 
 
 -spec delete_assessment
-          (AssessmentArn :: string(),
+          (AssessmentArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 delete_assessment(AssessmentArn, Config) ->
@@ -315,14 +315,14 @@ delete_assessment(AssessmentArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec delete_run
-          (RunArn :: string()) ->
+          (RunArn :: string() | binary()) ->
           inspector_return_val().
 delete_run(RunArn) ->
     delete_run(RunArn, default_config()).
 
 
 -spec delete_run
-          (RunArn :: string(),
+          (RunArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 delete_run(RunArn, Config) ->
@@ -337,14 +337,14 @@ delete_run(RunArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec describe_application
-          (ApplicationArn :: string()) ->
+          (ApplicationArn :: string() | binary()) ->
           inspector_return_val().
 describe_application(ApplicationArn) ->
     describe_application(ApplicationArn, default_config()).
 
 
 -spec describe_application
-          (ApplicationArn :: string(),
+          (ApplicationArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 describe_application(ApplicationArn, Config) ->
@@ -359,14 +359,14 @@ describe_application(ApplicationArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec describe_assessment
-          (AssessmentArn :: string()) ->
+          (AssessmentArn :: string() | binary()) ->
           inspector_return_val().
 describe_assessment(AssessmentArn) ->
     describe_assessment(AssessmentArn, default_config()).
 
 
 -spec describe_assessment
-          (AssessmentArn :: string(),
+          (AssessmentArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 describe_assessment(AssessmentArn, Config) ->
@@ -401,14 +401,14 @@ describe_cross_account_access_role(Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec describe_finding
-          (FindingArn :: string()) ->
+          (FindingArn :: string() | binary()) ->
           inspector_return_val().
 describe_finding(FindingArn) ->
     describe_finding(FindingArn, default_config()).
 
 
 -spec describe_finding
-          (FindingArn :: string(),
+          (FindingArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 describe_finding(FindingArn, Config) ->
@@ -423,14 +423,14 @@ describe_finding(FindingArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec describe_resource_group
-          (ResourceGroupArn :: string()) ->
+          (ResourceGroupArn :: string() | binary()) ->
           inspector_return_val().
 describe_resource_group(ResourceGroupArn) ->
     describe_resource_group(ResourceGroupArn, default_config()).
 
 
 -spec describe_resource_group
-          (ResourceGroupArn :: string(),
+          (ResourceGroupArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 describe_resource_group(ResourceGroupArn, Config) ->
@@ -445,14 +445,14 @@ describe_resource_group(ResourceGroupArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec describe_rules_package
-          (RulesPackageArn :: string()) ->
+          (RulesPackageArn :: string() | binary()) ->
           inspector_return_val().
 describe_rules_package(RulesPackageArn) ->
     describe_rules_package(RulesPackageArn, default_config()).
 
 
 -spec describe_rules_package
-          (RulesPackageArn :: string(),
+          (RulesPackageArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 describe_rules_package(RulesPackageArn, Config) ->
@@ -467,14 +467,14 @@ describe_rules_package(RulesPackageArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec describe_run
-          (RunArn :: string()) ->
+          (RunArn :: string() | binary()) ->
           inspector_return_val().
 describe_run(RunArn) ->
     describe_run(RunArn, default_config()).
 
 
 -spec describe_run
-          (RunArn :: string(),
+          (RunArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 describe_run(RunArn, Config) ->
@@ -489,16 +489,16 @@ describe_run(RunArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec detach_assessment_and_rules_package
-          (AssessmentArn :: string(),
-           RulesPackageArn :: string()) ->
+          (AssessmentArn :: string() | binary(),
+           RulesPackageArn :: string() | binary()) ->
           inspector_return_val().
 detach_assessment_and_rules_package(AssessmentArn, RulesPackageArn) ->
     detach_assessment_and_rules_package(AssessmentArn, RulesPackageArn, default_config()).
 
 
 -spec detach_assessment_and_rules_package
-          (AssessmentArn :: string(),
-           RulesPackageArn :: string(),
+          (AssessmentArn :: string() | binary(),
+           RulesPackageArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 detach_assessment_and_rules_package(AssessmentArn, RulesPackageArn, Config) ->
@@ -514,14 +514,14 @@ detach_assessment_and_rules_package(AssessmentArn, RulesPackageArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec get_assessment_telemetry
-          (AssessmentArn :: string()) ->
+          (AssessmentArn :: string() | binary()) ->
           inspector_return_val().
 get_assessment_telemetry(AssessmentArn) ->
     get_assessment_telemetry(AssessmentArn, default_config()).
 
 
 -spec get_assessment_telemetry
-          (AssessmentArn :: string(),
+          (AssessmentArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 get_assessment_telemetry(AssessmentArn, Config) ->
@@ -565,14 +565,14 @@ list_applications(Options, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec list_assessment_agents
-          (AssessmentArn :: string()) ->
+          (AssessmentArn :: string() | binary()) ->
           inspector_return_val().
 list_assessment_agents(AssessmentArn) ->
     list_assessment_agents(AssessmentArn, []).
 
 
 -spec list_assessment_agents
-          (AssessmentArn :: string(),
+          (AssessmentArn :: string() | binary(),
            Options :: inspector_opts()) ->
           inspector_return_val().
 list_assessment_agents(AssessmentArn, Options) ->
@@ -580,7 +580,7 @@ list_assessment_agents(AssessmentArn, Options) ->
 
 
 -spec list_assessment_agents
-          (AssessmentArn :: string(),
+          (AssessmentArn :: string() | binary(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
           inspector_return_val().
@@ -626,14 +626,14 @@ list_assessments(Options, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec list_attached_assessments
-          (RulesPackageArn :: string()) ->
+          (RulesPackageArn :: string() | binary()) ->
           inspector_return_val().
 list_attached_assessments(RulesPackageArn) ->
     list_attached_assessments(RulesPackageArn, []).
 
 
 -spec list_attached_assessments
-          (RulesPackageArn :: string(),
+          (RulesPackageArn :: string() | binary(),
            Options :: inspector_opts()) ->
           inspector_return_val().
 list_attached_assessments(RulesPackageArn, Options) ->
@@ -641,7 +641,7 @@ list_attached_assessments(RulesPackageArn, Options) ->
 
 
 -spec list_attached_assessments
-          (RulesPackageArn :: string(),
+          (RulesPackageArn :: string() | binary(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
           inspector_return_val().
@@ -658,14 +658,14 @@ list_attached_assessments(RulesPackageArn, Options, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec list_attached_rules_packages
-          (AssessmentArn :: string()) ->
+          (AssessmentArn :: string() | binary()) ->
           inspector_return_val().
 list_attached_rules_packages(AssessmentArn) ->
     list_attached_rules_packages(AssessmentArn, []).
 
 
 -spec list_attached_rules_packages
-          (AssessmentArn :: string(),
+          (AssessmentArn :: string() | binary(),
            Options :: inspector_opts()) ->
           inspector_return_val().
 list_attached_rules_packages(AssessmentArn, Options) ->
@@ -673,7 +673,7 @@ list_attached_rules_packages(AssessmentArn, Options) ->
 
 
 -spec list_attached_rules_packages
-          (AssessmentArn :: string(),
+          (AssessmentArn :: string() | binary(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
           inspector_return_val().
@@ -704,7 +704,7 @@ list_findings(Options) ->
 
 
 -spec list_findings
-          (Options :: inspector_opts(), 
+          (Options :: inspector_opts(),
            Config :: aws_config()) ->
           inspector_return_val().
 list_findings(Options, Config) ->
@@ -733,7 +733,7 @@ list_rules_packages(Options) ->
 
 
 -spec list_rules_packages
-          (Options :: inspector_opts(), 
+          (Options :: inspector_opts(),
            Config :: aws_config()) ->
           inspector_return_val().
 list_rules_packages(Options, Config) ->
@@ -762,7 +762,7 @@ list_runs(Options) ->
 
 
 -spec list_runs
-          (Options :: inspector_opts(), 
+          (Options :: inspector_opts(),
            Config :: aws_config()) ->
           inspector_return_val().
 list_runs(Options, Config) ->
@@ -777,14 +777,14 @@ list_runs(Options, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec list_tags_for_resource
-          (ResourceArn :: string()) ->
+          (ResourceArn :: string() | binary()) ->
           inspector_return_val().
 list_tags_for_resource(ResourceArn) ->
     list_tags_for_resource(ResourceArn, []).
 
 
 -spec list_tags_for_resource
-          (ResourceArn :: string(),
+          (ResourceArn :: string() | binary(),
            Options :: inspector_opts()) ->
           inspector_return_val().
 list_tags_for_resource(ResourceArn, Options) ->
@@ -792,7 +792,7 @@ list_tags_for_resource(ResourceArn, Options) ->
 
 
 -spec list_tags_for_resource
-          (ResourceArn :: string(),
+          (ResourceArn :: string() | binary(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
           inspector_return_val().
@@ -826,7 +826,7 @@ localize_text(LocalizedTexts) ->
 
 -spec localize_text
           (LocalizedTexts :: [localized_text()],
-           Locale :: string()) ->
+           Locale :: string() | binary()) ->
           inspector_return_val().
 localize_text(LocalizedTexts, Locale) ->
     localize_text(LocalizedTexts, Locale, default_config()).
@@ -834,7 +834,7 @@ localize_text(LocalizedTexts, Locale) ->
 
 -spec localize_text
           (LocalizedTexts :: [localized_text()],
-           Locale :: string(),
+           Locale :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 localize_text(LocalizedTexts, Locale, Config) ->
@@ -850,14 +850,14 @@ localize_text(LocalizedTexts, Locale, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec preview_agents_for_resource_group
-          (ResourceGroupArn :: string()) ->
+          (ResourceGroupArn :: string() | binary()) ->
           inspector_return_val().
 preview_agents_for_resource_group(ResourceGroupArn) ->
     preview_agents_for_resource_group(ResourceGroupArn, []).
 
 
 -spec preview_agents_for_resource_group
-          (ResourceGroupArn :: string(),
+          (ResourceGroupArn :: string() | binary(),
            Options :: inspector_opts()) ->
           inspector_return_val().
 preview_agents_for_resource_group(ResourceGroupArn, Options) ->
@@ -865,7 +865,7 @@ preview_agents_for_resource_group(ResourceGroupArn, Options) ->
 
 
 -spec preview_agents_for_resource_group
-          (ResourceGroupArn :: string(),
+          (ResourceGroupArn :: string() | binary(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
           inspector_return_val().
@@ -882,14 +882,14 @@ preview_agents_for_resource_group(ResourceGroupArn, Options, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec register_cross_account_access_role
-          (RoleArn :: string()) ->
+          (RoleArn :: string() | binary()) ->
           inspector_return_val().
 register_cross_account_access_role(RoleArn) ->
     register_cross_account_access_role(RoleArn, []).
 
 
 -spec register_cross_account_access_role
-          (RoleArn :: string(),
+          (RoleArn :: string() | binary(),
            Options :: inspector_opts()) ->
           inspector_return_val().
 register_cross_account_access_role(RoleArn, Options) ->
@@ -897,7 +897,7 @@ register_cross_account_access_role(RoleArn, Options) ->
 
 
 -spec register_cross_account_access_role
-          (RoleArn :: string(),
+          (RoleArn :: string() | binary(),
            Options :: inspector_opts(),
            Config :: aws_config()) ->
           inspector_return_val().
@@ -914,16 +914,16 @@ register_cross_account_access_role(RoleArn, Options, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec remove_attributes_from_findings
-          (AttributeKeys :: [string()],
-           FindingArns :: [string()]) ->
+          (AttributeKeys :: [string() | binary()],
+           FindingArns :: [string() | binary()]) ->
           inspector_return_val().
 remove_attributes_from_findings(AttributeKeys, FindingArns) ->
     remove_attributes_from_findings(AttributeKeys, FindingArns, default_config()).
 
 
 -spec remove_attributes_from_findings
-          (AttributeKeys :: [string()],
-           FindingArns :: [string()],
+          (AttributeKeys :: [string() | binary()],
+           FindingArns :: [string() | binary()],
            Config :: aws_config()) ->
           inspector_return_val().
 remove_attributes_from_findings(AttributeKeys, FindingArns, Config) ->
@@ -939,16 +939,16 @@ remove_attributes_from_findings(AttributeKeys, FindingArns, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec run_assessment
-          (AssessmentArn :: string(),
-           RunName :: string()) ->
+          (AssessmentArn :: string() | binary(),
+           RunName :: string() | binary()) ->
           inspector_return_val().
 run_assessment(AssessmentArn, RunName) ->
     run_assessment(AssessmentArn, RunName, default_config()).
 
 
 -spec run_assessment
-          (AssessmentArn :: string(),
-           RunName :: string(),
+          (AssessmentArn :: string() | binary(),
+           RunName :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 run_assessment(AssessmentArn, RunName, Config) ->
@@ -964,7 +964,7 @@ run_assessment(AssessmentArn, RunName, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec set_tags_for_resource
-          (ResourceArn :: string(),
+          (ResourceArn :: string() | binary(),
            Tags :: term()) ->
           inspector_return_val().
 set_tags_for_resource(ResourceArn, Tags) ->
@@ -972,8 +972,8 @@ set_tags_for_resource(ResourceArn, Tags) ->
 
 
 -spec set_tags_for_resource
-          (ResourceArn :: string(),
-           Tags :: string(),
+          (ResourceArn :: string() | binary(),
+           Tags :: term(),
            Config :: aws_config()) ->
           inspector_return_val().
 set_tags_for_resource(ResourceArn, Tags, Config) ->
@@ -989,7 +989,7 @@ set_tags_for_resource(ResourceArn, Tags, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec start_data_collection
-          (AssessmentArn :: string()) ->
+          (AssessmentArn :: string() | binary()) ->
           inspector_return_val().
 start_data_collection(RunArn) ->
     start_data_collection(RunArn, default_config()).
@@ -1011,7 +1011,7 @@ start_data_collection(AssessmentArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec stop_data_collection
-          (AssessmentArn :: string()) ->
+          (AssessmentArn :: string() | binary()) ->
           inspector_return_val().
 stop_data_collection(RunArn) ->
     stop_data_collection(RunArn, default_config()).
@@ -1033,18 +1033,18 @@ stop_data_collection(AssessmentArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec update_application
-          (ApplicationArn :: string(),
-           ApplicationName :: string(),
-           ResourceGroupArn :: string()) ->
+          (ApplicationArn :: string() | binary(),
+           ApplicationName :: string() | binary(),
+           ResourceGroupArn :: string() | binary()) ->
           inspector_return_val().
 update_application(ApplicationArn, ApplicationName, ResourceGroupArn) ->
     update_application(ApplicationArn, ApplicationName, ResourceGroupArn, default_config()).
 
 
 -spec update_application
-          (ApplicationArn :: string(),
-           ApplicationName :: string(),
-           ResourceGroupArn :: string(),
+          (ApplicationArn :: string() | binary(),
+           ApplicationName :: string() | binary(),
+           ResourceGroupArn :: string() | binary(),
            Config :: aws_config()) ->
           inspector_return_val().
 update_application(ApplicationArn, ApplicationName, ResourceGroupArn, Config) ->
@@ -1061,8 +1061,8 @@ update_application(ApplicationArn, ApplicationName, ResourceGroupArn, Config) ->
 %%%------------------------------------------------------------------------------
 
 -spec update_assessment
-          (AssessmentArn :: string(),
-           AssessmentName :: string(),
+          (AssessmentArn :: string() | binary(),
+           AssessmentName :: string() | binary(),
            DurationInSeconds :: integer()) ->
           inspector_return_val().
 update_assessment(AssessmentArn, AssessmentName, DurationInSeconds) ->
@@ -1070,8 +1070,8 @@ update_assessment(AssessmentArn, AssessmentName, DurationInSeconds) ->
 
 
 -spec update_assessment
-          (AssessmentArn :: string(),
-           AssessmentName :: string(),
+          (AssessmentArn :: string() | binary(),
+           AssessmentName :: string() | binary(),
            DurationInSeconds :: integer(),
            Config :: aws_config()) ->
           inspector_return_val().

@@ -1223,6 +1223,7 @@ describe_spot_price_history_test_() ->
     {timeout, 60, fun () -> test_pagination(Tests, generate_spot_price_history_response, describe_spot_price_history, [], ["", "", [], ""]) end}
 .
 
+-dialyzer({nowarn_function, describe_spot_price_history_boundaries_test_/0}).
 describe_spot_price_history_boundaries_test_() ->
     [
         ?_assertException(error, function_clause, erlcloud_ec2:describe_spot_price_history(["", "", [], ""], 4, undefined)),

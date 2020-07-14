@@ -285,7 +285,7 @@ set_topic_attributes_input_tests(_) ->
     Tests =
         [?_sns_test(
             {"Test sets topic's attribute.",
-             ?_f(erlcloud_sns:set_topic_attributes("DisplayName", "MyTopicName", "arn:aws:sns:us-west-2:123456789012:MyTopic")),
+             ?_f(erlcloud_sns:set_topic_attributes('DisplayName', "MyTopicName", "arn:aws:sns:us-west-2:123456789012:MyTopic")),
              [
               {"Action", "SetTopicAttributes"},
               {"AttributeName", "DisplayName"},
@@ -313,7 +313,7 @@ set_topic_attributes_output_tests(_) ->
                     </SetTopicAttributesResponse>",
                 ok})
             ],
-    output_tests(?_f(erlcloud_sns:set_topic_attributes("DisplayName", "MyTopicName", "arn:aws:sns:us-west-2:123456789012:MyTopic")), Tests).
+    output_tests(?_f(erlcloud_sns:set_topic_attributes('DisplayName', "MyTopicName", "arn:aws:sns:us-west-2:123456789012:MyTopic")), Tests).
 
 
 %% Set subscription attributes test based on the API examples:
@@ -322,7 +322,7 @@ set_subscription_attributes_input_tests(_) ->
     Tests =
     [?_sns_test(
         {"Test sets subscriptions's attribute.",
-         ?_f(erlcloud_sns:set_subscription_attributes("FilterPolicy", "{\"a\": [\"b\"]}", "arn:aws:sns:us-east-1:123456789012:My-Topic:80289ba6-0fd4-4079-afb4-ce8c8260f0ca")),
+         ?_f(erlcloud_sns:set_subscription_attributes('FilterPolicy', "{\"a\": [\"b\"]}", "arn:aws:sns:us-east-1:123456789012:My-Topic:80289ba6-0fd4-4079-afb4-ce8c8260f0ca")),
          [
              {"Action", "SetSubscriptionAttributes"},
              {"AttributeName", "FilterPolicy"},
@@ -350,7 +350,7 @@ set_subscription_attributes_output_tests(_) ->
         </SetSubscriptionAttributesResponse>",
          ok})
     ],
-    output_tests(?_f(erlcloud_sns:set_subscription_attributes("FilterPolicy", "{\"a\": [\"b\"]}", "arn:aws:sns:us-east-1:123456789012:My-Topic:80289ba6-0fd4-4079-afb4-ce8c8260f0ca")), Tests).
+    output_tests(?_f(erlcloud_sns:set_subscription_attributes('FilterPolicy', "{\"a\": [\"b\"]}", "arn:aws:sns:us-east-1:123456789012:My-Topic:80289ba6-0fd4-4079-afb4-ce8c8260f0ca")), Tests).
 
 
 %% List topics test based on the API example:
@@ -762,6 +762,7 @@ doesnt_support_gopher(_) ->
     ?_assertError({sns_error, {unsupported_scheme,"gopher://"}},
                   erlcloud_sns:publish_to_topic("topicarn", "message", "subject", Config)).
 
+-dialyzer({nowarn_function, doesnt_accept_non_strings/1}).
 doesnt_accept_non_strings(_) ->
     Config = (erlcloud_aws:default_config())#aws_config{sns_scheme=https},
     ?_assertError({sns_error, badarg},

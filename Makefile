@@ -18,7 +18,6 @@ CHECK_FILES=\
 	ebin/*.beam
 
 CHECK_EUNIT_FILES=\
-	$(CHECK_FILES) \
 	.eunit/*.beam
 
 
@@ -42,16 +41,26 @@ else
 	$(REBAR) shell
 endif
 
-check_warnings:
+deps: get-deps
+
+check_warnings: deps
 ifeq ($(REBAR_VSN),2)
-	@echo skip checking warnings
+	@$(REBAR) compile
 else
 	@$(REBAR) as warnings compile
 endif
 
-eunit:
+warnings: deps
 ifeq ($(REBAR_VSN),2)
-	@$(REBAR) compile
+	@WARNINGS_AS_ERRORS=true $(REBAR) compile
+	@WARNINGS_AS_ERRORS=true $(REBAR) compile_only=true eunit
+else
+	@$(REBAR) as test compile
+endif
+
+eunit: deps
+ifeq ($(REBAR_VSN),2)
+	$(MAKE) compile
 	@$(REBAR) eunit skip_deps=true
 else
 	@$(REBAR) eunit
@@ -63,28 +72,17 @@ endif
 		--fullpath \
 		--output_plt .dialyzer_plt
 
-check:
+check: deps
 ifeq ($(REBAR_VSN),2)
-	@$(REBAR) compile
-	$(MAKE) .dialyzer_plt
-	dialyzer --no_check_plt --fullpath \
-		$(CHECK_FILES) \
-		-I include \
-		--plt .dialyzer_plt
-else
-	@$(REBAR) dialyzer
-endif
-
-check-eunit: eunit
-ifeq ($(REBAR_VSN),2)
-	@$(REBAR) compile
+	$(MAKE) compile
+	@$(REBAR) compile_only=true eunit
 	$(MAKE) .dialyzer_plt
 	dialyzer --no_check_plt --fullpath \
 		$(CHECK_EUNIT_FILES) \
 		-I include \
 		--plt .dialyzer_plt
 else
-	@$(REBAR) dialyzer
+	@$(REBAR) as test dialyzer
 endif
 
 doc:

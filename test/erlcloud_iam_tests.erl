@@ -198,7 +198,7 @@ input_tests(Response, Tests) ->
 %%%===================================================================
 
 %% returns the mock of the erlcloud_httpc function output tests expect to be called.
--spec output_expect(string()) -> fun().
+-spec output_expect(string()) -> meck:ret_spec().
 output_expect(Response) ->
     meck:val({ok, {{200, "OK"}, [], list_to_binary(Response)}}).
 
@@ -207,7 +207,7 @@ output_expect_seq(Responses) ->
     meck:seq([{ok, {{200, "OK"}, [], list_to_binary(Response)}} || Response <- Responses]).
 
 %% output_test converts an output_test specifier into an eunit test generator
--type output_test_spec() :: {pos_integer(), {string(), term()} | {string(), string(), term()}}.
+-type output_test_spec() :: {pos_integer(), {string(), term()} | {string(), string() | [string()], term()}}.
 -spec output_test(fun(), output_test_spec(), fun()) -> tuple().
 output_test(Fun, {Line, {Description, Response, Result}}, OutputFun) ->
     {Description,
@@ -923,7 +923,7 @@ get_access_key_last_used_output_tests() ->
                         {access_key_last_used_service_name, "s3"}]
                  }})
             ],
-    output_tests(?_f(erlcloud_iam:get_access_key_last_used_output("KEYID")), Tests).
+    output_tests(?_f(erlcloud_iam:get_access_key_last_used("KEYID")), Tests).
 
 %% ListUsers test based on the API examples:
 %% http://docs.aws.amazon.com/IAM/latest/APIReference/API_ListUsers.html
