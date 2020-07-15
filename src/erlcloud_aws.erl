@@ -745,6 +745,9 @@ service_config( <<"sdb">> = Service, Region, Config ) ->
 service_config( <<"ses">>, Region, Config ) ->
     Host = service_host( <<"email">>, Region ),
     Config#aws_config{ ses_host = Host };
+service_config( <<"sm">> = Service, Region, Config) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{ sm_host = Host };
 service_config( <<"sns">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ sns_host = Host };
