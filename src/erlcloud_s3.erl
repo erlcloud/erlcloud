@@ -510,7 +510,7 @@ put_bucket_lifecycle(BucketName, Policy, Config)
     put_bucket_lifecycle(BucketName, list_to_binary(XmlPolicy), Config);
 put_bucket_lifecycle(BucketName, XmlPolicy, Config)
   when is_list(BucketName), is_binary(XmlPolicy), is_record(Config, aws_config) ->
-    Md5 = base64:encode(crypto:hash(md5, XmlPolicy)),
+    Md5 = base64:encode(erlang:md5(XmlPolicy)),
     s3_simple_request(Config, put, BucketName, "/", "lifecycle",
                       [], XmlPolicy, [{"Content-MD5", Md5}]).
 
@@ -1411,7 +1411,7 @@ put_object_tagging(BucketName, Key, TagList, #aws_config{} = Config) when is_lis
     TaggingXML = {'Tagging',
       [{'TagSet', encode_tags(TagList)}]},
     POSTData = unicode:characters_to_binary(xmerl:export_simple([TaggingXML], xmerl_xml)),
-    Md5 = base64:encode(crypto:hash(md5, POSTData)),
+    Md5 = base64:encode(erlang:md5(POSTData)),
     Headers = [{"content-md5", Md5}, {"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, [$/|Key], "tagging", [], POSTData, Headers).
 
@@ -1442,7 +1442,7 @@ put_bucket_tagging(BucketName, TagList, #aws_config{} = Config) when is_list(Buc
     TaggingXML = {'Tagging',
 		  [{'TagSet', encode_tags(TagList)}]},
     POSTData = list_to_binary(xmerl:export_simple([TaggingXML], xmerl_xml)),
-    Md5 = base64:encode(crypto:hash(md5, POSTData)),
+    Md5 = base64:encode(erlang:md5(POSTData)),
     Headers = [{"content-md5", Md5}, {"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, "/", "tagging", [], POSTData, Headers).
 
@@ -1631,7 +1631,7 @@ put_bucket_inventory(BucketName, Inventory, #aws_config{} = Config)
         -> ok | {error, Reason::term()}.
 put_bucket_inventory(BucketName, InventoryId, XmlInventory, #aws_config{} = Config)
     when is_list(BucketName), is_list(InventoryId), is_binary(XmlInventory) ->
-    Md5 = base64:encode(crypto:hash(md5, XmlInventory)),
+    Md5 = base64:encode(erlang:md5(XmlInventory)),
     Params = [{"id", InventoryId}],
     Headers = [{"Content-MD5", Md5}, {"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, "/", "inventory", Params, XmlInventory, Headers).

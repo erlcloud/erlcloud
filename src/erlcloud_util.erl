@@ -59,7 +59,7 @@ sha256(V) ->
     crypto:hash(sha256, V).
 
 md5(V) ->
-    crypto:hash(md5, V).
+    erlang:md5(V).
 
 -ifndef(ERLANG_OTP_VERSION_19).
 rand_uniform(N) ->
