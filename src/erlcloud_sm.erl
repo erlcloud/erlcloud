@@ -16,7 +16,11 @@
 %%% Shared types
 %%%------------------------------------------------------------------------------
 
--type version_type() :: id | stage.
+-type return_type() :: {ok, proplists:proplist()} | {error, term()}.
+
+-type version_atom() :: id | stage.
+
+-type version_type() :: {version_atom(), binary()} | undefined.
 
 %%%------------------------------------------------------------------------------
 %%% Library initialization.
@@ -57,18 +61,18 @@ new(AccessKeyID, SecretAccessKey, Host, Port) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_secret_value(SecretId :: binary()) -> proplist().
+-spec get_secret_value(SecretId :: binary()) -> return_type().
 get_secret_value(SecretId) ->
     get_secret_value(SecretId, undefined, erlcloud_aws:default_config()).
 
 
--spec get_secret_value(SecretId :: binary(), Version :: {version_type(), binary()}) -> proplist().
+-spec get_secret_value(SecretId :: binary(), Version :: version_type()) -> return_type().
 get_secret_value(SecretId, Version) ->
     get_secret_value(SecretId, Version, erlcloud_aws:default_config()).
 
 
--spec get_secret_value(SecretId :: binary(), Version :: {version_type(), binary()},
-        Config :: aws_config()) -> proplist().
+-spec get_secret_value(SecretId :: binary(), Version :: version_type(),
+        Config :: aws_config()) -> return_type().
 get_secret_value(SecretId, Version, Config) ->
     Json = case Version of
         undefined -> [{<<"SecretId">>, SecretId}];
@@ -91,10 +95,11 @@ sm_request(Config, Operation, Body) ->
 
 
 sm_request_no_update(Config, Operation, Body) ->
-    Payload = case Body of
-                  [] -> <<"{}">>;
-                  _ -> jsx:encode(Body)
-              end,
+%%    Payload = case Body of
+%%                  [] -> <<"{}">>;
+%%                  _ -> jsx:encode(Body)
+%%              end,
+    Payload = jsx:encode(Body),
     Headers = headers(Config, Operation, Payload),
     Request = #aws_request{service = sm,
         uri = uri(Config),
