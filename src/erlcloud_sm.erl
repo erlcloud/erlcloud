@@ -19,7 +19,6 @@
 -type return_type() :: {ok, proplists:proplist()} | {error, term()}.
 
 -type version_atom() :: id | stage.
-
 -type version_type() :: {version_atom(), binary()} | undefined.
 
 %%%------------------------------------------------------------------------------
@@ -95,10 +94,6 @@ sm_request(Config, Operation, Body) ->
 
 
 sm_request_no_update(Config, Operation, Body) ->
-%%    Payload = case Body of
-%%                  [] -> <<"{}">>;
-%%                  _ -> jsx:encode(Body)
-%%              end,
     Payload = jsx:encode(Body),
     Headers = headers(Config, Operation, Payload),
     Request = #aws_request{service = sm,
