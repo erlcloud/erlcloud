@@ -1242,38 +1242,10 @@ decode_error(Doc) ->
 %%%------------------------------------------------------------------------------
 
 ses_request(Config, Action, Params) ->
-    case erlcloud_aws:update_config(Config) of
-        {ok, Config1} ->
-            ses_request_no_update(Config1, Action, Params);
-        {error, Reason} ->
-            {error, Reason}
-    end.
-
-ses_request_no_update(Config, Action, Params) ->
-    Date = httpd_util:rfc1123_date(),
-    Signature = base64:encode_to_string(
-                  erlcloud_util:sha256_mac(Config#aws_config.secret_access_key, Date)),
-    Auth = lists:flatten(
-             ["AWS3-HTTPS AWSAccessKeyId=",
-              Config#aws_config.access_key_id, 
-              ",Algorithm=HmacSHA256,Signature=",
-              Signature]),
-             
-    Headers = [{"Date", Date},
-               {"X-Amzn-Authorization", Auth}],
-    Headers2 = case Config#aws_config.security_token of
-                   undefined ->
-                       Headers;
-                   Token ->
-                       [{"x-amz-security-token", Token} | Headers]
-               end,
-    QParams = [{"Action", Action}, 
-               {"Version", ?API_VERSION} | 
+    QParams = [{"Action", Action},
+               {"Version", ?API_VERSION} |
                Params],
-    Query = erlcloud_http:make_query_string(QParams),
-
-    case erlcloud_aws:aws_request_form(
-           post, "https", Config#aws_config.ses_host, 443, "/", Query, Headers2, Config) of
+    case erlcloud_aws:aws_request4(post, "https", Config#aws_config.ses_host, 443, "/", QParams, "ses", Config) of
         {ok, Body} ->
             {ok, element(1, xmerl_scan:string(binary_to_list(Body)))};
         {error, {http_error, Code, _, ErrBody}} when Code >= 400; Code =< 599 ->
