@@ -143,13 +143,8 @@ output_tests(Fun, Tests) ->
 get_secret_value_input_tests(_) ->
     Tests = [
         ?_sm_test(
-            {"get_secret_value1 input test",
-                ?_f(erlcloud_sm:get_secret_value(?SECRET_ID)),
-                jsx:encode([{<<"SecretId">>, ?SECRET_ID}])
-            }),
-        ?_sm_test(
             {"get_secret_value2id input test",
-                ?_f(erlcloud_sm:get_secret_value(?SECRET_ID, {id, ?VERSION_ID})),
+                ?_f(erlcloud_sm:get_secret_value(?SECRET_ID, [{version_id, ?VERSION_ID}])),
                 jsx:encode([
                     {<<"SecretId">>, ?SECRET_ID},
                     {<<"VersionId">>, ?VERSION_ID}
@@ -157,7 +152,7 @@ get_secret_value_input_tests(_) ->
         }),
         ?_sm_test(
             {"get_secret_value2stage input test",
-                ?_f(erlcloud_sm:get_secret_value(?SECRET_ID, {stage, ?VERSION_STAGE})),
+                ?_f(erlcloud_sm:get_secret_value(?SECRET_ID, [{version_stage, ?VERSION_STAGE}])),
                 jsx:encode([
                     {<<"SecretId">>, ?SECRET_ID},
                     {<<"VersionStage">>, ?VERSION_STAGE}
@@ -187,7 +182,6 @@ get_secret_value_output_tests(_) ->
             {ok, ?GET_SECRET_VALUE_RESP}}
         )],
 
-    output_tests(?_f(erlcloud_sm:get_secret_value(?SECRET_ID)), Tests),
-    output_tests(?_f(erlcloud_sm:get_secret_value(?SECRET_ID, {id, ?VERSION_ID})), Tests),
-    output_tests(?_f(erlcloud_sm:get_secret_value(?SECRET_ID, {stage, ?VERSION_STAGE})), Tests).
+    output_tests(?_f(erlcloud_sm:get_secret_value(?SECRET_ID, [{version_id, ?VERSION_ID}])), Tests),
+    output_tests(?_f(erlcloud_sm:get_secret_value(?SECRET_ID, [{version_stage, ?VERSION_STAGE}])), Tests).
 

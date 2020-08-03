@@ -9,7 +9,7 @@
 
 %%% API
 -export([
-    get_secret_value/1, get_secret_value/2, get_secret_value/3
+    get_secret_value/2, get_secret_value/3
 ]).
 
 %%%------------------------------------------------------------------------------
@@ -18,8 +18,8 @@
 
 -type return_type() :: {ok, proplists:proplist()} | {error, term()}.
 
--type version_atom() :: id | stage.
--type version_type() :: {version_atom(), binary()} | undefined.
+-type get_secret_value_option() :: {version_id | version_stage, binary()}.
+-type get_secret_value_options() :: [get_secret_value_option()].
 
 %%%------------------------------------------------------------------------------
 %%% Library initialization.
@@ -60,24 +60,23 @@ new(AccessKeyID, SecretAccessKey, Host, Port) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_secret_value(SecretId :: binary()) -> return_type().
-get_secret_value(SecretId) ->
-    get_secret_value(SecretId, undefined, erlcloud_aws:default_config()).
+-spec get_secret_value(SecretId :: binary(), Opts :: get_secret_value_options()) -> return_type().
+get_secret_value(SecretId, Opts) ->
+    get_secret_value(SecretId, Opts, erlcloud_aws:default_config()).
 
 
--spec get_secret_value(SecretId :: binary(), Version :: version_type()) -> return_type().
-get_secret_value(SecretId, Version) ->
-    get_secret_value(SecretId, Version, erlcloud_aws:default_config()).
-
-
--spec get_secret_value(SecretId :: binary(), Version :: version_type(),
+-spec get_secret_value(SecretId :: binary(), Opts :: get_secret_value_options(),
         Config :: aws_config()) -> return_type().
-get_secret_value(SecretId, Version, Config) ->
-    Json = case Version of
-        undefined -> [{<<"SecretId">>, SecretId}];
-        {id, Val} -> [{<<"SecretId">>, SecretId}, {<<"VersionId">>, Val}];
-        {stage, Val} -> [{<<"SecretId">>, SecretId}, {<<"VersionStage">>, Val}]
-    end,
+get_secret_value(SecretId, Opts, Config) ->
+    Json = lists:map(
+        fun({Version, Val}) ->
+            case Version of
+                version_id -> {<<"VersionId">>, Val};
+                version_stage -> {<<"VersionStage">>, Val};
+                _ -> {Version, Val}
+            end
+        end,
+        [{<<"SecretId">>, SecretId} | Opts]),
     sm_request(Config, "secretsmanager.GetSecretValue", Json).
 
 %%%------------------------------------------------------------------------------
