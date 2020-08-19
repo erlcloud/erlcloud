@@ -16,7 +16,7 @@
 %%% Shared types
 %%%------------------------------------------------------------------------------
 
--type return_type() :: {ok, proplists:proplist()} | {error, term()}.
+-type sm_response() :: {ok, proplists:proplist()} | {error, term()}.
 
 -type get_secret_value_option() :: {version_id | version_stage, binary()}.
 -type get_secret_value_options() :: [get_secret_value_option()].
@@ -60,21 +60,19 @@ new(AccessKeyID, SecretAccessKey, Host, Port) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_secret_value(SecretId :: binary(), Opts :: get_secret_value_options()) -> return_type().
+-spec get_secret_value(SecretId :: binary(), Opts :: get_secret_value_options()) -> sm_response().
 get_secret_value(SecretId, Opts) ->
     get_secret_value(SecretId, Opts, erlcloud_aws:default_config()).
 
 
 -spec get_secret_value(SecretId :: binary(), Opts :: get_secret_value_options(),
-        Config :: aws_config()) -> return_type().
+        Config :: aws_config()) -> sm_response().
 get_secret_value(SecretId, Opts, Config) ->
     Json = lists:map(
-        fun({Version, Val}) ->
-            case Version of
-                version_id -> {<<"VersionId">>, Val};
-                version_stage -> {<<"VersionStage">>, Val};
-                _ -> {Version, Val}
-            end
+        fun
+            ({version_id, Val}) -> {<<"VersionId">>, Val};
+            ({version_stage, Val}) -> {<<"VersionStage">>, Val};
+            (Other) -> Other
         end,
         [{<<"SecretId">>, SecretId} | Opts]),
     sm_request(Config, "secretsmanager.GetSecretValue", Json).
@@ -112,7 +110,7 @@ headers(Config, Operation, Body) ->
         {"x-amz-target", Operation},
         {"content-type", "application/x-amz-json-1.1"}],
     Region = erlcloud_aws:aws_region_from_host(Config#aws_config.sm_host),
-    erlcloud_aws:sign_v4_headers(Config, Headers, Body, Region, "secretmanager").
+    erlcloud_aws:sign_v4_headers(Config, Headers, Body, Region, "secretsmanager").
 
 
 uri(#aws_config{sm_scheme = Scheme, sm_host = Host} = Config) ->
