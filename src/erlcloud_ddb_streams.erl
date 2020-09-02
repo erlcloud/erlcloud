@@ -869,11 +869,8 @@ client_error(#aws_request{response_body = Body} = Request) ->
     %% == IMPLEMENTATION NOTES ==
     %% We store the error reason in `httpc_error_reason` for now,
     %% this may be changed at any time later
-    case jsx:is_json(Body) of
-        false ->
-            Request#aws_request{should_retry = false};
-        true ->
-            Json = erlcloud_json:decode_bin(Body),
+    try erlcloud_json:decode_bin(Body) of
+        Json ->
             case proplists:get_value(<<"__type">>, Json) of
                 undefined ->
                     Request#aws_request{should_retry = false};
@@ -892,6 +889,9 @@ client_error(#aws_request{response_body = Body} = Request) ->
                             Request#aws_request{should_retry = false}
                     end
             end
+    catch
+        _Any:_Reason ->
+            Request#aws_request{should_retry = false}
     end.
 
 -spec headers(aws_config(), string(), binary()) -> [{string(), string()}].

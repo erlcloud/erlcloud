@@ -226,11 +226,8 @@ to_ddb_error({ok, {{Status, StatusLine}, RespHeaders, RespBody}}, DDBError) ->
 
 -spec client_error(binary(), #ddb2_error{}) -> #ddb2_error{}.
 client_error(Body, DDBError) ->
-    case jsx:is_json(Body) of
-        false ->
-            DDBError#ddb2_error{error_type = http, should_retry = false};
-        true ->
-            Json = erlcloud_json:decode_bin(Body),
+    try erlcloud_json:decode_bin(Body) of
+        Json ->
             case proplists:get_value(<<"__type">>, Json) of
                 undefined ->
                     DDBError#ddb2_error{error_type = http, should_retry = false};
@@ -259,6 +256,9 @@ client_error(Body, DDBError) ->
                             DDBError#ddb2_error{error_type = http, should_retry = false}
                     end
             end
+    catch
+        _Any:_Reason ->
+            DDBError#ddb2_error{error_type = http, should_retry = false}
     end.
 
 -spec headers(aws_config(), string(), binary()) -> headers().
