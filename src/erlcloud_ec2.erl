@@ -597,7 +597,7 @@ import_key_pair(KeyName, PublicKeyMaterial) -> import_key_pair(KeyName, PublicKe
 -spec import_key_pair(string(), string(), aws_config()) -> ok_error(proplist()).
 import_key_pair(KeyName, PublicKeyMaterial, Config)
   when is_record(Config, aws_config) ->
-    Params = [{"KeyName", KeyName}, {"PublicKeyMaterial", base64:encode_to_string(PublicKeyMaterial)}],
+    Params = [{"KeyName", KeyName}, {"PublicKeyMaterial", binary_to_list(erlcloud_base64:encode(PublicKeyMaterial))}],
     case ec2_query(Config, "ImportKeyPair", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             {ok, [
@@ -1395,7 +1395,7 @@ describe_instance_attribute(InstanceID, Attribute, Config)
                     undefined;
                 [Node | _] ->
                     case Attribute of
-                        user_data -> base64:decode(get_text(Node));
+                        user_data -> erlcloud_base64:decode(get_text(Node));
                         disable_api_termination -> list_to_existing_atom(get_text(Node));
                         instance_initiated_shutdown_behavior -> list_to_existing_atom(get_text(Node));
                         block_device_mapping ->
@@ -2232,7 +2232,7 @@ extract_launch_specification(Node) ->
      {image_id, get_text("imageId", Node)},
      {key_name, get_text("keyName", Node, none)},
      {group_set, get_list("groupSet/item/groupId", Node)},
-     {user_data, base64:decode(get_text("userData/data", Node))},
+     {user_data, erlcloud_base64:decode(get_text("userData/data", Node))},
      {instance_type, get_text("instanceType", Node)},
      {availability_zone, get_text("placement/availabilityZone", Node)},
      {kernel_id, get_text("kernelId", Node)},
@@ -2528,7 +2528,7 @@ get_console_output(InstanceID, Config)
             {ok, [
                 {instance_id, get_text("/GetConsoleOutputResponse/instanceId", Doc)},
                 {timestamp, erlcloud_xml:get_time("/GetConsoleOutputResponse/timestamp", Doc)},
-                {output, base64:decode(get_text("/GetConsoleOutputResponse/output", Doc))}
+                {output, erlcloud_base64:decode(get_text("/GetConsoleOutputResponse/output", Doc))}
             ]};
         {error, _} = Error ->
             Error
@@ -2588,7 +2588,7 @@ modify_instance_attribute(InstanceID, Attribute, Value, Config) ->
             instance_type when is_list(Value) -> {"instanceType", [{"Value", Value}]};
             kernel when is_list(Value) -> {"kernel", [{"Value", Value}]};
             ramdisk when is_list(Value) -> {"ramdisk", [{"Value", Value}]};
-            user_data when is_list(Value); is_binary(Value) -> {"userData", [{"Value", base64:encode(Value)}]};
+            user_data when is_list(Value); is_binary(Value) -> {"userData", [{"Value", erlcloud_base64:encode(Value)}]};
             disable_api_termination when is_boolean(Value) ->
                 {"disableApiTermination", [{"Value", Value}]};
             instance_initiated_shutdown_behavior
@@ -2749,7 +2749,7 @@ request_spot_instances(Request, Config) ->
               {"LaunchSpecification.UserData",
                case InstanceSpec#ec2_instance_spec.user_data of
                    undefined -> undefined;
-                   Data -> base64:encode(Data)
+                   Data -> erlcloud_base64:encode(Data)
                end},
               {"LaunchSpecification.InstanceType", InstanceSpec#ec2_instance_spec.instance_type},
               {"LaunchSpecification.KernelId", InstanceSpec#ec2_instance_spec.kernel_id},
@@ -2934,7 +2934,7 @@ request_spot_fleet(Request, Config) ->
                 {Prefix ++ "UserData",
                     case InstanceSpec#ec2_instance_spec.user_data of
                         undefined -> undefined;
-                        Data -> base64:encode(Data)
+                        Data -> erlcloud_base64:encode(Data)
                     end},
                 {Prefix ++ "InstanceType", InstanceSpec#ec2_instance_spec.instance_type},
                 {Prefix ++ "KernelId", InstanceSpec#ec2_instance_spec.kernel_id},
@@ -3045,7 +3045,7 @@ run_instances(InstanceSpec, Config)
               {"UserData",
                case InstanceSpec#ec2_instance_spec.user_data of
                    undefined -> undefined;
-                   Data -> base64:encode(Data)
+                   Data -> erlcloud_base64:encode(Data)
                end},
               {"InstanceType", InstanceSpec#ec2_instance_spec.instance_type},
               {"KernelId", InstanceSpec#ec2_instance_spec.kernel_id},

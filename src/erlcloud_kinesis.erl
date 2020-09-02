@@ -597,7 +597,7 @@ get_normalized_records(Config, Json, ShouldDecode)
     end.
 
 
-normalize_record([{K,V} | T]) when K == <<"Data">> -> [ {K, base64:decode(V)} | normalize_record(T) ];
+normalize_record([{K,V} | T]) when K == <<"Data">> -> [ {K, erlcloud_base64:decode(V)} | normalize_record(T) ];
 normalize_record([K | T]) -> [K | normalize_record(T) ];
 normalize_record([]) -> [].
 
@@ -667,7 +667,7 @@ put_record(StreamName, PartitionKey, Data, ExplicitHashKey, Ordering, Options) -
     erlcloud_kinesis_impl:json_return().
 put_record(StreamName, PartitionKey, Data, ExplicitHashKey, Ordering, Options, Config) when is_record(Config, aws_config) ->
     Encoded  = case proplists:get_value(encode, Options, true) of
-                   true  -> base64:encode(Data);
+                   true  -> erlcloud_base64:encode(Data);
                    false -> Data
                end,
     Optional = [{<<"ExplicitHashKey">>, ExplicitHashKey},
@@ -737,7 +737,7 @@ put_records(StreamName, Items, EncodingFun, Config) when is_function(EncodingFun
     Json = prepare_put_records_data(StreamName, Items, EncodingFun),
     erlcloud_kinesis_impl:request(Config, Operation, Json).
 
-default_put_encoding(D) -> base64:encode(D).
+default_put_encoding(D) -> erlcloud_base64:encode(D).
 
 put_records_operation() ->
     "Kinesis_20131202.PutRecords".

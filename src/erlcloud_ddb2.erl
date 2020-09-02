@@ -453,7 +453,7 @@ dynamize_value({s, Value}) when is_binary(Value); is_list(Value); is_atom(Value)
 dynamize_value({n, Value}) when is_number(Value) ->
     {<<"N">>, dynamize_number(Value)};
 dynamize_value({b, Value}) when is_binary(Value); is_list(Value) ->
-    {<<"B">>, base64:encode(Value)};
+    {<<"B">>, erlcloud_base64:encode(Value)};
 dynamize_value({bool, Value}) when is_boolean(Value) ->
     {<<"BOOL">>, Value};
 dynamize_value({null, true}) ->
@@ -464,7 +464,7 @@ dynamize_value({ss, Value}) when is_list(Value) ->
 dynamize_value({ns, Value}) when is_list(Value) ->
     {<<"NS">>, [dynamize_number(V) || V <- Value]};
 dynamize_value({bs, Value}) when is_list(Value) ->
-    {<<"BS">>, [base64:encode(V) || V <- Value]};
+    {<<"BS">>, [erlcloud_base64:encode(V) || V <- Value]};
 
 dynamize_value({l, Value}) when is_list(Value) ->
     {<<"L">>, [[dynamize_value(V)] || V <- Value]};
@@ -745,7 +745,7 @@ undynamize_value({<<"S">>, Value}, _) when is_binary(Value) ->
 undynamize_value({<<"N">>, Value}, Opts) ->
     undynamize_number(Value, Opts);
 undynamize_value({<<"B">>, Value}, _) ->
-    base64:decode(Value);
+    erlcloud_base64:decode(Value);
 undynamize_value({<<"BOOL">>, Value}, _) when is_boolean(Value) ->
     Value;
 undynamize_value({<<"NULL">>, true}, _) ->
@@ -755,7 +755,7 @@ undynamize_value({<<"SS">>, Values}, _) when is_list(Values) ->
 undynamize_value({<<"NS">>, Values}, Opts) ->
     [undynamize_number(Value, Opts) || Value <- Values];
 undynamize_value({<<"BS">>, Values}, _) ->
-    [base64:decode(Value) || Value <- Values];
+    [erlcloud_base64:decode(Value) || Value <- Values];
 undynamize_value({<<"L">>, List}, Opts) ->
     [undynamize_value(Value, Opts) || [Value] <- List];
 undynamize_value({<<"M">>, [{}]}, _Opts) ->
@@ -795,7 +795,7 @@ undynamize_value_typed({<<"S">>, Value}, _) when is_binary(Value) ->
 undynamize_value_typed({<<"N">>, Value}, Opts) ->
     {n, undynamize_number(Value, Opts)};
 undynamize_value_typed({<<"B">>, Value}, _) ->
-    {b, base64:decode(Value)};
+    {b, erlcloud_base64:decode(Value)};
 undynamize_value_typed({<<"BOOL">>, Value}, _) when is_boolean(Value) ->
     {bool, Value};
 undynamize_value_typed({<<"NULL">>, true}, _) ->
@@ -805,7 +805,7 @@ undynamize_value_typed({<<"SS">>, Values}, _) when is_list(Values) ->
 undynamize_value_typed({<<"NS">>, Values}, Opts) ->
     {ns, [undynamize_number(Value, Opts) || Value <- Values]};
 undynamize_value_typed({<<"BS">>, Values}, _) ->
-    {bs, [base64:decode(Value) || Value <- Values]};
+    {bs, [erlcloud_base64:decode(Value) || Value <- Values]};
 undynamize_value_typed({<<"L">>, List}, Opts) ->
     {l, [undynamize_value_typed(Value, Opts) || [Value] <- List]};
 undynamize_value_typed({<<"M">>, [{}]}, _Opts) ->

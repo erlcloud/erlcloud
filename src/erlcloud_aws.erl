@@ -144,7 +144,7 @@ aws_request2_no_update(Method, Protocol, Host, Port, Path, Params, #aws_config{}
     {QueryToSign, Headers} = encode_params(QParams, []),
     RequestToSign = [string:to_upper(atom_to_list(Method)), $\n,
                      string:to_lower(Host), $\n, Path, $\n, QueryToSign],
-    Signature = base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, RequestToSign)),
+    Signature = erlcloud_base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, RequestToSign)),
 
     Query = [QueryToSign, "&Signature=", erlcloud_http:url_encode(Signature)],
 

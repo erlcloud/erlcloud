@@ -272,7 +272,7 @@ dynamize_set(ss, Values) ->
 dynamize_set(ns, Values) ->
     [dynamize_number(Value) || Value <- Values];
 dynamize_set(bs, Values) ->
-    [base64:encode(Value) || Value <- Values].
+    [erlcloud_base64:encode(Value) || Value <- Values].
 
 -spec dynamize_value(in_attr_value()) -> json_attr_value().
 dynamize_value({s, Value}) when is_binary(Value) ->
@@ -284,7 +284,7 @@ dynamize_value({s, Value}) when is_atom(Value) ->
 dynamize_value({n, Value}) when is_number(Value) ->
     {<<"N">>, dynamize_number(Value)};
 dynamize_value({b, Value}) when is_binary(Value) orelse is_list(Value) ->
-    {<<"B">>, base64:encode(Value)};
+    {<<"B">>, erlcloud_base64:encode(Value)};
 
 dynamize_value({ss, Value}) when is_list(Value) ->
     {<<"SS">>, dynamize_set(ss, Value)};
@@ -416,13 +416,13 @@ undynamize_value({<<"S">>, Value}) when is_binary(Value) ->
 undynamize_value({<<"N">>, Value}) ->
     undynamize_number(Value);
 undynamize_value({<<"B">>, Value}) ->
-    base64:decode(Value);
+    erlcloud_base64:decode(Value);
 undynamize_value({<<"SS">>, Values}) when is_list(Values) ->
     Values;
 undynamize_value({<<"NS">>, Values}) ->
     [undynamize_number(Value) || Value <- Values];
 undynamize_value({<<"BS">>, Values}) ->
-    [base64:decode(Value) || Value <- Values].
+    [erlcloud_base64:decode(Value) || Value <- Values].
 
 -spec undynamize_attr(json_attr()) -> out_attr().
 undynamize_attr({Name, [ValueJson]}) ->
@@ -445,7 +445,7 @@ undynamize_value_typed({<<"S">>, Value}) ->
 undynamize_value_typed({<<"N">>, Value}) ->
     {n, undynamize_number(Value)};
 undynamize_value_typed({<<"B">>, Value}) ->
-    {b, base64:decode(Value)}.
+    {b, erlcloud_base64:decode(Value)}.
 
 -spec undynamize_key(json_key()) -> key().
 undynamize_key([{<<"HashKeyElement">>, [HashKey]}]) ->

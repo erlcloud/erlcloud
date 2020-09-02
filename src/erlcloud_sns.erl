@@ -850,7 +850,7 @@ fields_for_attribute(Name, Value) ->
 fields_for_attribute(Value) when is_list(Value) ->
     [{"Value.DataType", "String"}, {"Value.StringValue", Value}];
 fields_for_attribute(Value) when is_binary(Value) ->
-    [{"Value.DataType", "Binary"}, {"Value.BinaryValue", base64:encode_to_string(Value)}];
+    [{"Value.DataType", "Binary"}, {"Value.BinaryValue", binary_to_list(erlcloud_base64:encode(Value))}];
 fields_for_attribute(Value) when is_float(Value) ->
     [{"Value.DataType", "Number"}, {"Value.StringValue", float_to_list(Value)}];
 fields_for_attribute(Value) when is_integer(Value) ->
