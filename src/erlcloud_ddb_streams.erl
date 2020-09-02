@@ -815,7 +815,7 @@ request(Config, Operation, Json) ->
 request2(Config, Operation, Json) ->
     Body = case Json of
                [] -> <<"{}">>;
-               _ -> jsx:encode(Json)
+               _ -> erlcloud_json:encode(Json)
            end,
     Headers = headers(Config, Operation, Body),
     Request = #aws_request{service = ddb_streams,
@@ -829,7 +829,7 @@ request2(Config, Operation, Json) ->
 request_to_return(#aws_request{response_type = ok,
                                response_body = Body}) ->
     %% TODO check crc
-    {ok, jsx:decode(Body, [{return_maps, false}])};
+    {ok, erlcloud_json:decode_bin(Body)};
 request_to_return(#aws_request{response_type = error,
                                error_type = aws,
                                httpc_error_reason = undefined,
@@ -873,7 +873,7 @@ client_error(#aws_request{response_body = Body} = Request) ->
         false ->
             Request#aws_request{should_retry = false};
         true ->
-            Json = jsx:decode(Body, [{return_maps, false}]),
+            Json = erlcloud_json:decode_bin(Body),
             case proplists:get_value(<<"__type">>, Json) of
                 undefined ->
                     Request#aws_request{should_retry = false};

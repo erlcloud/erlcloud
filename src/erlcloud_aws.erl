@@ -914,7 +914,7 @@ get_credentials_from_metadata(Config) ->
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
-                    Creds = jsx:decode(Json, [{return_maps, false}]),
+                    Creds = erlcloud_json:decode_bin(Json),
                     get_credentials_from_metadata_xform( Creds )
             end
     end.
@@ -927,7 +927,7 @@ get_credentials_from_task_metadata(Config) ->
         {error, Reason} ->
             {error, Reason};
         {ok, Json} ->
-            Creds = jsx:decode(Json, [{return_maps, false}]),
+            Creds = erlcloud_json:decode_bin(Json),
             get_credentials_from_metadata_xform( Creds )
     end.
 
@@ -1173,7 +1173,7 @@ get_service_status(ServiceNames) when is_list(ServiceNames) ->
         "/data.json", "", [], default_config()),
 
     case get_filtered_statuses(ServiceNames,
-            proplists:get_value(<<"current">>, jsx:decode(Json, [{return_maps, false}])))
+            proplists:get_value(<<"current">>, erlcloud_json:decode_bin(Json)))
     of
         [] -> ok;
         ReturnStatuses -> ReturnStatuses

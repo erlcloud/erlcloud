@@ -79,7 +79,7 @@
 request(Config0, Operation, Json) ->
     Body = case Json of
                [] -> <<"{}">>;
-               _ -> jsx:encode(Json)
+               _ -> erlcloud_json:encode(Json)
            end,
     case erlcloud_aws:update_config(Config0) of
         {ok, Config} ->
@@ -193,7 +193,7 @@ request_and_retry(Config, Headers, Body, {attempt, Attempt}) ->
 
         {ok, {{200, _}, _, RespBody}} ->
             %% TODO check crc
-            {ok, jsx:decode(RespBody, [{return_maps, false}])};
+            {ok, erlcloud_json:decode_bin(RespBody)};
 
         Error ->
             DDBError = #ddb2_error{attempt = Attempt, 
@@ -230,7 +230,7 @@ client_error(Body, DDBError) ->
         false ->
             DDBError#ddb2_error{error_type = http, should_retry = false};
         true ->
-            Json = jsx:decode(Body, [{return_maps, false}]),
+            Json = erlcloud_json:decode_bin(Body),
             case proplists:get_value(<<"__type">>, Json) of
                 undefined ->
                     DDBError#ddb2_error{error_type = http, should_retry = false};

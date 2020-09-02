@@ -87,7 +87,7 @@ test_request_prot_host_port_int(_) ->
     test_url(http, "host1", 9999, "/path1", Url).
 
 test_get_service_status(_) ->
-    StatusJsonS3 = jsx:encode(
+    StatusJsonS3 = erlcloud_json:encode(
         [{<<"archive">>,
             [[{<<"service_name">>,
                <<"Amazon Simple Storage Service (US Standard)">>},
@@ -124,7 +124,7 @@ test_get_service_status(_) ->
             ]}
         ]
     ),
-    OKStatusEmptyJson = jsx:encode(
+    OKStatusEmptyJson = erlcloud_json:encode(
         [{<<"archive">>,
             [[{<<"service_name">>,
                <<"Amazon Simple Storage Service (US Standard)">>},

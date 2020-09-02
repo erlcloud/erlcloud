@@ -695,14 +695,14 @@ aas_result_fun(Request) ->
 
 
 request_with_action(Configuration, BodyConfiguration, Action) ->
-    Body = jsx:encode(BodyConfiguration),
+    Body = erlcloud_json:encode(BodyConfiguration),
     case erlcloud_aws:update_config(Configuration) of
         {ok, Config} ->
             HeadersPrev = headers(Config, Action, Body),
             Headers = [{"content-type", "application/x-amz-json-1.1"} | HeadersPrev],
             Request = prepare_record(Config, post, Headers, Body),
             Response = erlcloud_retry:request(Config, Request, fun aas_result_fun/1),
-            {ok, jsx:decode(Response#aws_request.response_body, [{return_maps, false}])};
+            {ok, erlcloud_json:decode_bin(Response#aws_request.response_body)};
         {error, Reason} ->
             {error, Reason}
     end.

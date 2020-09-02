@@ -129,7 +129,7 @@ create_state_machine(Definition, StateMachineName, RoleArn) ->
 create_state_machine(Definition, StateMachineName, RoleArn, Config)
         when is_binary(StateMachineName), is_binary(RoleArn), is_map(Definition) ->
     Req = #{
-        <<"definition">>    => jsx:encode(Definition),
+        <<"definition">>    => erlcloud_json:encode(Definition),
         <<"name">>          => StateMachineName,
         <<"roleArn">>       => RoleArn
     },
@@ -511,7 +511,7 @@ send_task_success(Output, TaskToken) ->
 send_task_success(Output, TaskToken, Config) ->
     Req = #{
         <<"taskToken">>     => TaskToken,
-        <<"output">>        => jsx:encode(Output)
+        <<"output">>        => erlcloud_json:encode(Output)
     },
     step_request(Config, post, "SendTaskSuccess", Req).
 
@@ -544,7 +544,7 @@ start_execution(StateMachineArn, Options) ->
     {ok, map()} | {error, any()}.
 start_execution(StateMachineArn, Options, Config)
         when is_binary(StateMachineArn), is_map(Options) ->
-    InputValue = jsx:encode(maps:get(<<"input">>, Options, #{})),
+    InputValue = erlcloud_json:encode(maps:get(<<"input">>, Options, #{})),
     OptReq = maps:merge(#{<<"input">> => InputValue}, maps:with([<<"name">>], Options)),
     Req = #{<<"stateMachineArn">> => StateMachineArn},
     step_request(Config, post, "StartExecution", maps:merge(OptReq, Req)).
@@ -620,7 +620,7 @@ update_state_machine(StateMachineArn, Options, Config)
         undefined ->
             OptReq;
         Definition when is_map(Definition) ->
-            maps:put(<<"definition">>, jsx:encode(Definition), OptReq)
+            maps:put(<<"definition">>, erlcloud_json:encode(Definition), OptReq)
     end,
     Req = #{<<"stateMachineArn">> => StateMachineArn},
     step_request(Config, post, "UpdateStateMachine", maps:merge(OptReqJson, Req)).
@@ -631,7 +631,7 @@ update_state_machine(StateMachineArn, Options, Config)
 step_request(Config, Method, OpName, Request) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config} ->
-            Body       = jsx:encode(Request),
+            Body       = erlcloud_json:encode(Request),
             Headers    = get_headers(Config, "AWSStepFunctions." ++ OpName, Body),
             AwsRequest = #aws_request{service         = states,
                                       uri             = get_url(Config),
@@ -651,7 +651,7 @@ request(Config, Request) ->
         {ok, {_, <<"{}">>}} ->
             ok;
         {ok, {_, RespBody}} ->
-            {ok, jsx:decode(RespBody, [return_maps])};
+            {ok, erlcloud_json:decode_bin_with_maps(RespBody)};
         {error, _} = Error ->
             Error
     end.

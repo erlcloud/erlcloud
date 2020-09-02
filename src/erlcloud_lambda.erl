@@ -760,7 +760,7 @@ decode_body(Body, true) ->
 decode_body(<<>>, _RawBody) ->
     [];
 decode_body(BinData, _RawBody) ->
-    jsx:decode(BinData, [{return_maps, false}]).
+    erlcloud_json:decode_bin(BinData).
 
 encode_body(Bin) when is_binary(Bin) ->
     Bin;
@@ -769,7 +769,7 @@ encode_body(undefined) ->
 encode_body([]) ->
     <<"{}">>;
 encode_body(Body) ->
-    jsx:encode(Body).
+    erlcloud_json:encode(Body).
 
 headers(Method, Uri, Hdrs, Config, Body, QParam) ->
     Headers = [{"host", Config#aws_config.lambda_host},

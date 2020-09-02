@@ -50,28 +50,13 @@ stop(_) ->
 %%% Input test helpers
 %%%===================================================================
 
-sort_json([{_, _} | _] = Json) ->
-    %% Value is an object
-    SortedChildren = [{K, sort_json(V)} || {K, V} <- Json],
-    lists:keysort(1, SortedChildren);
-sort_json([_ | _] = Json) ->
-    %% Value is an array
-    [sort_json(I) || I <- Json];
-sort_json(V) ->
-    V.
-
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), binary()) -> ok.
 validate_body(Body, Expected) ->
-    Want = sort_json(jsx:decode(Expected)),
-    Actual = sort_json(jsx:decode(Body)),
-    case Want =:= Actual of
-        true ->
-            ok;
-        false ->
-            ?debugFmt("~nEXPECTED~n~p~nACTUAL~n~p~n", [Want, Actual])
-    end,
-    ?assertEqual(Want, Actual).
+    ?assertEqual(
+        erlcloud_test_util:normalize_json(Expected),
+        erlcloud_test_util:normalize_json(Body)
+    ).
 
 %% returns the mock of the erlcloud_httpc function input tests expect to be called.
 %% Validates the request body and responds with the provided response.
@@ -145,7 +130,7 @@ get_secret_value_input_tests(_) ->
         ?_sm_test(
             {"get_secret_value2id input test",
                 ?_f(erlcloud_sm:get_secret_value(?SECRET_ID, [{version_id, ?VERSION_ID}])),
-                jsx:encode([
+                erlcloud_json:encode([
                     {<<"SecretId">>, ?SECRET_ID},
                     {<<"VersionId">>, ?VERSION_ID}
                 ])
@@ -153,7 +138,7 @@ get_secret_value_input_tests(_) ->
         ?_sm_test(
             {"get_secret_value2stage input test",
                 ?_f(erlcloud_sm:get_secret_value(?SECRET_ID, [{version_stage, ?VERSION_STAGE}])),
-                jsx:encode([
+                erlcloud_json:encode([
                     {<<"SecretId">>, ?SECRET_ID},
                     {<<"VersionStage">>, ?VERSION_STAGE}
                 ])
@@ -178,7 +163,7 @@ get_secret_value_input_tests(_) ->
 get_secret_value_output_tests(_) ->
     Tests = [?_sm_test(
         {"get_secret_value output test",
-            jsx:encode(?GET_SECRET_VALUE_RESP),
+            erlcloud_json:encode(?GET_SECRET_VALUE_RESP),
             {ok, ?GET_SECRET_VALUE_RESP}}
         )],
 

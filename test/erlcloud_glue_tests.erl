@@ -396,7 +396,7 @@ test_error_retry() ->
 do_test(Request, ExpectedResult, TestedFun) ->
     erlcloud_glue:configure("test-access-key", "test-secret-key"),
     ?assertEqual(ExpectedResult, TestedFun()),
-    Encoded = jsx:encode(Request),
+    Encoded = erlcloud_json:encode(Request),
     ?assertMatch([{_, {?EHTTPC, request, [_, post, _, Encoded, _, _]}, _}],
                  meck:history(?EHTTPC)).
 
@@ -432,4 +432,4 @@ do_erlcloud_httpc_request(_, post, Headers, _, _, _) ->
             "UpdateJob"             -> ?UPDATE_JOB;
             "UpdateTable"           -> #{}
         end,
-    {ok, {{200, "OK"}, [], jsx:encode(RespBody)}}.
+    {ok, {{200, "OK"}, [], erlcloud_json:encode(RespBody)}}.

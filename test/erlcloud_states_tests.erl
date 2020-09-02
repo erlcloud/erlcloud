@@ -56,37 +56,37 @@ erlcloud_states_test_() ->
         ]
     }.
 
-meck_aws_body("CreateActivity") -> jsx:encode(?VALID_JSON);
-meck_aws_body("CreateStateMachine") -> jsx:encode(?VALID_JSON);
+meck_aws_body("CreateActivity") -> erlcloud_json:encode(?VALID_JSON);
+meck_aws_body("CreateStateMachine") -> erlcloud_json:encode(?VALID_JSON);
 meck_aws_body("DeleteActivity") -> <<>>;
 meck_aws_body("DeleteStateMachine") -> <<>>;
-meck_aws_body("DescribeActivity") -> jsx:encode(?VALID_JSON);
-meck_aws_body("DescribeExecution") -> jsx:encode(?VALID_JSON);
-meck_aws_body("DescribeStateMachine") -> jsx:encode(?VALID_JSON);
-meck_aws_body("DescribeStateMachineForExecution") -> jsx:encode(?VALID_JSON);
-meck_aws_body("GetActivityTask") -> jsx:encode(?VALID_JSON);
-meck_aws_body("GetExecutionHistory") -> jsx:encode(?VALID_JSON);
-meck_aws_body("ListActivities") -> jsx:encode(?VALID_JSON);
-meck_aws_body("ListExecutions") -> jsx:encode(?VALID_JSON);
-meck_aws_body("ListStateMachines") -> jsx:encode(?VALID_JSON);
+meck_aws_body("DescribeActivity") -> erlcloud_json:encode(?VALID_JSON);
+meck_aws_body("DescribeExecution") -> erlcloud_json:encode(?VALID_JSON);
+meck_aws_body("DescribeStateMachine") -> erlcloud_json:encode(?VALID_JSON);
+meck_aws_body("DescribeStateMachineForExecution") -> erlcloud_json:encode(?VALID_JSON);
+meck_aws_body("GetActivityTask") -> erlcloud_json:encode(?VALID_JSON);
+meck_aws_body("GetExecutionHistory") -> erlcloud_json:encode(?VALID_JSON);
+meck_aws_body("ListActivities") -> erlcloud_json:encode(?VALID_JSON);
+meck_aws_body("ListExecutions") -> erlcloud_json:encode(?VALID_JSON);
+meck_aws_body("ListStateMachines") -> erlcloud_json:encode(?VALID_JSON);
 meck_aws_body("SendTaskFailure") -> <<>>;
 meck_aws_body("SendTaskHeartbeat") -> <<>>;
 meck_aws_body("SendTaskSuccess") -> <<>>;
-meck_aws_body("StartExecution") -> jsx:encode(?VALID_JSON);
-meck_aws_body("StopExecution") -> jsx:encode(?VALID_JSON);
-meck_aws_body("UpdateStateMachine") -> jsx:encode(?VALID_JSON).
+meck_aws_body("StartExecution") -> erlcloud_json:encode(?VALID_JSON);
+meck_aws_body("StopExecution") -> erlcloud_json:encode(?VALID_JSON);
+meck_aws_body("UpdateStateMachine") -> erlcloud_json:encode(?VALID_JSON).
 
 test_create_activity() ->
     erlcloud_states:configure("test-access-key", "test-secret-key"),
     TestFun = fun() -> erlcloud_states:create_activity(?SOME_BINARY) end,
-    ReqJson = jsx:encode(#{<<"name">> => ?SOME_BINARY}),
+    ReqJson = erlcloud_json:encode(#{<<"name">> => ?SOME_BINARY}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_create_sm() ->
     erlcloud_states:configure("test-access-key", "test-secret-key"),
     TestFun = fun() -> erlcloud_states:create_state_machine(?VALID_JSON, ?SOME_BINARY, ?OTHER_BINARY) end,
-    ReqJson = jsx:encode(
-        #{<<"definition">>  => jsx:encode(?VALID_JSON),
+    ReqJson = erlcloud_json:encode(
+        #{<<"definition">>  => erlcloud_json:encode(?VALID_JSON),
           <<"name">>        => ?SOME_BINARY,
           <<"roleArn">>     => ?OTHER_BINARY}),
     check_map_response(TestFun), check_output_req(ReqJson).
@@ -94,43 +94,43 @@ test_create_sm() ->
  test_delete_activity() ->
      erlcloud_states:configure("test-access-key", "test-secret-key"),
      TestFun = fun() -> erlcloud_states:delete_activity(?SOME_BINARY) end,
-     ReqJson = jsx:encode(#{<<"activityArn">> => ?SOME_BINARY}),
+     ReqJson = erlcloud_json:encode(#{<<"activityArn">> => ?SOME_BINARY}),
      check_null_response(TestFun), check_output_req(ReqJson).
 
  test_delete_sm() ->
      erlcloud_states:configure("test-access-key", "test-secret-key"),
      TestFun = fun() -> erlcloud_states:delete_state_machine(?SOME_BINARY) end,
-     ReqJson = jsx:encode(#{<<"stateMachineArn">>  => ?SOME_BINARY}),
+     ReqJson = erlcloud_json:encode(#{<<"stateMachineArn">>  => ?SOME_BINARY}),
      check_null_response(TestFun), check_output_req(ReqJson).
 
  test_describe_activity() ->
      erlcloud_states:configure("test-access-key", "test-secret-key"),
      TestFun = fun() -> erlcloud_states:describe_activity(?SOME_BINARY) end,
-     ReqJson = jsx:encode(#{<<"activityArn">>  => ?SOME_BINARY}),
+     ReqJson = erlcloud_json:encode(#{<<"activityArn">>  => ?SOME_BINARY}),
      check_map_response(TestFun), check_output_req(ReqJson).
 
  test_describe_execution() ->
      erlcloud_states:configure("test-access-key", "test-secret-key"),
      TestFun = fun() -> erlcloud_states:describe_execution(?SOME_BINARY) end,
-     ReqJson = jsx:encode(#{<<"executionArn">>  => ?SOME_BINARY}),
+     ReqJson = erlcloud_json:encode(#{<<"executionArn">>  => ?SOME_BINARY}),
      check_map_response(TestFun), check_output_req(ReqJson).
 
  test_describe_sm() ->
      erlcloud_states:configure("test-access-key", "test-secret-key"),
      TestFun = fun() -> erlcloud_states:describe_state_machine(?SOME_BINARY) end,
-     ReqJson = jsx:encode(#{<<"stateMachineArn">>  => ?SOME_BINARY}),
+     ReqJson = erlcloud_json:encode(#{<<"stateMachineArn">>  => ?SOME_BINARY}),
      check_map_response(TestFun), check_output_req(ReqJson).
 
  test_describe_sm_for_execution() ->
      erlcloud_states:configure("test-access-key", "test-secret-key"),
      TestFun = fun() -> erlcloud_states:describe_state_machine_for_execution(?SOME_BINARY) end,
-     ReqJson = jsx:encode(#{<<"executionArn">>  => ?SOME_BINARY}),
+     ReqJson = erlcloud_json:encode(#{<<"executionArn">>  => ?SOME_BINARY}),
      check_map_response(TestFun), check_output_req(ReqJson).
 
 test_get_activity_task() ->
     erlcloud_states:configure("test-access-key", "test-secret-key"),
     TestFun = fun() -> erlcloud_states:get_activity_task(?SOME_BINARY) end,
-    ReqJson = jsx:encode(#{<<"activityArn">>  => ?SOME_BINARY}),
+    ReqJson = erlcloud_json:encode(#{<<"activityArn">>  => ?SOME_BINARY}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_get_activity_task_opt() ->
@@ -139,14 +139,14 @@ test_get_activity_task_opt() ->
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
     TestFun = fun() -> erlcloud_states:get_activity_task(?SOME_BINARY, Options, Cfg) end,
-    ReqJson = jsx:encode(maps:merge(#{<<"activityArn">>   => ?SOME_BINARY},
+    ReqJson = erlcloud_json:encode(maps:merge(#{<<"activityArn">>   => ?SOME_BINARY},
                                     ValidOptions)),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_get_execution_history() ->
     erlcloud_states:configure("test-access-key", "test-secret-key"),
     TestFun = fun() -> erlcloud_states:get_execution_history(?SOME_BINARY) end,
-    ReqJson = jsx:encode(#{<<"executionArn">>  => ?SOME_BINARY}),
+    ReqJson = erlcloud_json:encode(#{<<"executionArn">>  => ?SOME_BINARY}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_get_execution_history_opt() ->
@@ -157,14 +157,14 @@ test_get_execution_history_opt() ->
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
     TestFun = fun() -> erlcloud_states:get_execution_history(?SOME_BINARY, Options, Cfg) end,
-    ReqJson = jsx:encode(maps:merge(#{<<"executionArn">>   => ?SOME_BINARY},
+    ReqJson = erlcloud_json:encode(maps:merge(#{<<"executionArn">>   => ?SOME_BINARY},
                                     ValidOptions)),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_list_activities() ->
     erlcloud_states:configure("test-access-key", "test-secret-key"),
     TestFun = fun() -> erlcloud_states:list_activities() end,
-    ReqJson = jsx:encode(#{}),
+    ReqJson = erlcloud_json:encode(#{}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_list_activities_opt() ->
@@ -174,13 +174,13 @@ test_list_activities_opt() ->
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
     TestFun = fun() -> erlcloud_states:list_activities(Options, Cfg) end,
-    ReqJson = jsx:encode(ValidOptions),
+    ReqJson = erlcloud_json:encode(ValidOptions),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_list_executions() ->
     erlcloud_states:configure("test-access-key", "test-secret-key"),
     TestFun = fun() -> erlcloud_states:list_executions(?SOME_BINARY) end,
-    ReqJson = jsx:encode(#{<<"stateMachineArn">> => ?SOME_BINARY}),
+    ReqJson = erlcloud_json:encode(#{<<"stateMachineArn">> => ?SOME_BINARY}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_list_executions_opt() ->
@@ -191,14 +191,14 @@ test_list_executions_opt() ->
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
     TestFun = fun() -> erlcloud_states:list_executions(?SOME_BINARY, Options, Cfg) end,
-    ReqJson = jsx:encode(maps:merge(#{<<"stateMachineArn">> => ?SOME_BINARY},
+    ReqJson = erlcloud_json:encode(maps:merge(#{<<"stateMachineArn">> => ?SOME_BINARY},
                                     ValidOptions)),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_list_sms() ->
     erlcloud_states:configure("test-access-key", "test-secret-key"),
     TestFun = fun() -> erlcloud_states:list_state_machines() end,
-    ReqJson = jsx:encode(#{}),
+    ReqJson = erlcloud_json:encode(#{}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_list_sms_opt() ->
@@ -208,13 +208,13 @@ test_list_sms_opt() ->
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
     TestFun = fun() -> erlcloud_states:list_state_machines(Options, Cfg) end,
-    ReqJson = jsx:encode(ValidOptions),
+    ReqJson = erlcloud_json:encode(ValidOptions),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_send_task_failure() ->
     erlcloud_states:configure("test-access-key", "test-secret-key"),
     TestFun = fun() -> erlcloud_states:send_task_failure(?SOME_BINARY) end,
-    ReqJson = jsx:encode(#{<<"taskToken">> => ?SOME_BINARY}),
+    ReqJson = erlcloud_json:encode(#{<<"taskToken">> => ?SOME_BINARY}),
     check_null_response(TestFun), check_output_req(ReqJson).
 
 test_send_task_failure_opt() ->
@@ -224,28 +224,28 @@ test_send_task_failure_opt() ->
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
     TestFun = fun() -> erlcloud_states:send_task_failure(?SOME_BINARY, Options, Cfg) end,
-    ReqJson = jsx:encode(maps:merge(#{<<"taskToken">> => ?SOME_BINARY},
+    ReqJson = erlcloud_json:encode(maps:merge(#{<<"taskToken">> => ?SOME_BINARY},
                                     ValidOptions)),
     check_null_response(TestFun), check_output_req(ReqJson).
 
 test_send_task_heartbeat() ->
     erlcloud_states:configure("test-access-key", "test-secret-key"),
     TestFun = fun() -> erlcloud_states:send_task_heartbeat(?SOME_BINARY) end,
-    ReqJson = jsx:encode(#{<<"taskToken">> => ?SOME_BINARY}),
+    ReqJson = erlcloud_json:encode(#{<<"taskToken">> => ?SOME_BINARY}),
     check_null_response(TestFun), check_output_req(ReqJson).
 
 test_send_task_success() ->
     erlcloud_states:configure("test-access-key", "test-secret-key"),
     TestFun = fun() -> erlcloud_states:send_task_success(?VALID_JSON, ?OTHER_BINARY) end,
-    ReqJson = jsx:encode(#{<<"output">>     => jsx:encode(?VALID_JSON),
+    ReqJson = erlcloud_json:encode(#{<<"output">>     => erlcloud_json:encode(?VALID_JSON),
                            <<"taskToken">>  => ?OTHER_BINARY}),
     check_null_response(TestFun), check_output_req(ReqJson).
 
 test_start_execution() ->
     erlcloud_states:configure("test-access-key", "test-secret-key"),
     TestFun = fun() -> erlcloud_states:start_execution(?SOME_BINARY) end,
-    ReqJson = jsx:encode(#{<<"stateMachineArn">>    => ?SOME_BINARY,
-                           <<"input">>              => jsx:encode(#{})}),
+    ReqJson = erlcloud_json:encode(#{<<"stateMachineArn">>    => ?SOME_BINARY,
+                           <<"input">>              => erlcloud_json:encode(#{})}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_start_execution_opt() ->
@@ -255,15 +255,15 @@ test_start_execution_opt() ->
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
     TestFun = fun() -> erlcloud_states:start_execution(?SOME_BINARY, Options, Cfg) end,
-    ReqJson = jsx:encode(#{<<"stateMachineArn">>    => ?SOME_BINARY,
+    ReqJson = erlcloud_json:encode(#{<<"stateMachineArn">>    => ?SOME_BINARY,
                            <<"name">>               => ?OTHER_BINARY,
-                           <<"input">>              => jsx:encode(?VALID_JSON)}),
+                           <<"input">>              => erlcloud_json:encode(?VALID_JSON)}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_stop_execution() ->
     erlcloud_states:configure("test-access-key", "test-secret-key"),
     TestFun = fun() -> erlcloud_states:stop_execution(?SOME_BINARY) end,
-    ReqJson = jsx:encode(#{<<"executionArn">> => ?SOME_BINARY}),
+    ReqJson = erlcloud_json:encode(#{<<"executionArn">> => ?SOME_BINARY}),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_stop_execution_opt() ->
@@ -273,15 +273,15 @@ test_stop_execution_opt() ->
     Options = maps:merge(?VALID_JSON, ValidOptions),
     Cfg = erlcloud_aws:default_config(),
     TestFun = fun() -> erlcloud_states:stop_execution(?SOME_BINARY, Options, Cfg) end,
-    ReqJson = jsx:encode(maps:merge(#{<<"executionArn">> => ?SOME_BINARY},
+    ReqJson = erlcloud_json:encode(maps:merge(#{<<"executionArn">> => ?SOME_BINARY},
                                     ValidOptions)),
     check_map_response(TestFun), check_output_req(ReqJson).
 
 test_update_sm() ->
     erlcloud_states:configure("test-access-key", "test-secret-key"),
     TestFun = fun() -> erlcloud_states:create_state_machine(?VALID_JSON, ?SOME_BINARY, ?OTHER_BINARY) end,
-    ReqJson = jsx:encode(
-        #{<<"definition">>  => jsx:encode(?VALID_JSON),
+    ReqJson = erlcloud_json:encode(
+        #{<<"definition">>  => erlcloud_json:encode(?VALID_JSON),
           <<"name">>        => ?SOME_BINARY,
           <<"roleArn">>     => ?OTHER_BINARY}),
     check_map_response(TestFun), check_output_req(ReqJson).

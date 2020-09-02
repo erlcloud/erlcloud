@@ -510,7 +510,7 @@ test_list_discovered_resources() ->
 do_test(Request, ExpectedResult, TestedFun) ->
     configure("test-access-key", "test-secret-key"),
     ?assertEqual(ExpectedResult, TestedFun()),
-    Encoded = jsx:encode(Request),
+    Encoded = erlcloud_json:encode(Request),
     ?assertMatch([{_, {?EHTTPC, request, [_, post, _, Encoded, _, _]}, _}],
                  meck:history(?EHTTPC)).
 
@@ -535,7 +535,7 @@ do_erlcloud_httpc_request(_, post, Headers, _, _, _) ->
             "GetResourceConfigHistory"            -> ?GET_RESOURCE_CONFIG_HISTORY_RESP;
             "ListDiscoveredResources"             -> ?LIST_DISCOVERED_RESOURCES_RESP
         end,
-    {ok, {{200, "OK"}, [], jsx:encode(RespBody)}}.
+    {ok, {{200, "OK"}, [], erlcloud_json:encode(RespBody)}}.
 
 configure(AccessKeyId, SecretAccessKey) ->
     put(aws_config, #aws_config{access_key_id = AccessKeyId,

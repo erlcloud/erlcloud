@@ -85,7 +85,7 @@ describe_report_definitions(Options, Config) ->
 request(Config0, Operation, Input) ->
     case erlcloud_aws:update_config(Config0) of
         {ok, Config} ->
-            Body       = jsx:encode(Input),
+            Body       = erlcloud_json:encode(Input),
             Headers    = get_headers(Config, Operation, Body),
             AwsRequest = #aws_request{service         = cur,
                                       uri             = get_url(Config),
@@ -102,7 +102,7 @@ request(Config, Request) ->
     case erlcloud_aws:request_to_return(Result) of
         {ok, {_, <<>>}}     -> {ok, #{}};
         {ok, {_, RespBody}} ->
-            {ok, jsx:decode(RespBody, [return_maps])};
+            {ok, erlcloud_json:decode_bin_with_maps(RespBody)};
         {error, _} = Error  -> Error
     end.
 

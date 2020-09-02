@@ -809,7 +809,7 @@ default_config() -> erlcloud_aws:default_config().
 request(Config0, OperationName, Request) ->
     case erlcloud_aws:update_config(Config0) of
         {ok, Config} ->
-            Body       = jsx:encode(Request),
+            Body       = erlcloud_json:encode(Request),
             Operation  = "AWSGlue." ++ OperationName,
             Headers    = get_headers(Config, Operation, Body),
             AwsRequest = #aws_request{service         = glue,
@@ -826,7 +826,7 @@ request(Config, Request) ->
     Result = erlcloud_retry:request(Config, Request, fun handle_result/1),
     case erlcloud_aws:request_to_return(Result) of
         {ok, {_, <<>>}}     -> {ok, #{}};
-        {ok, {_, RespBody}} -> {ok, jsx:decode(RespBody, [return_maps])};
+        {ok, {_, RespBody}} -> {ok, erlcloud_json:decode_bin_with_maps(RespBody)};
         {error, _} = Error  -> Error
     end.
 

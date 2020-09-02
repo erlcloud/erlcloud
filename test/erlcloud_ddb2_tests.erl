@@ -119,16 +119,6 @@ stop(_) ->
 
 -type expected_body() :: string().
 
-sort_json([{_, _} | _] = Json) ->
-    %% Value is an object
-    SortedChildren = [{K, sort_json(V)} || {K,V} <- Json],
-    lists:keysort(1, SortedChildren);
-sort_json([_|_] = Json) ->
-    %% Value is an array
-    [sort_json(I) || I <- Json];
-sort_json(V) ->
-    V.
-
 %% verifies that the parameters in the body match the expected parameters
 -spec validate_body(binary(), expected_body()) -> ok.
 validate_body(<<>>, "") -> ok;
@@ -136,14 +126,7 @@ validate_body(<<>> = Actual, Want) ->
   ?debugFmt("~nEXPECTED~n~p~nACTUAL~n~p~n", [Want, Actual]),
   ?assertEqual(Want, Actual);
 validate_body(Body, Expected) ->
-    Want = sort_json(jsx:decode(list_to_binary(Expected), [{return_maps, false}])),
-    Actual = sort_json(jsx:decode(Body, [{return_maps, false}])),
-    case Want =:= Actual of
-        true -> ok;
-        false ->
-            ?debugFmt("~nEXPECTED~n~p~nACTUAL~n~p~n", [Want, Actual])
-    end,
-    ?assertEqual(Want, Actual).
+    erlcloud_test_util:validate_body(Body, list_to_binary(Expected)).
 
 %% returns the mock of the erlcloud_httpc function input tests expect to be called.
 %% Validates the request body and responds with the provided response.
@@ -308,11 +291,11 @@ error_handling_tests(_) ->
     \"__type\":\"com.amazonaws.dynamodb.v20120810#TransactionCanceledException\",
     \"CancellationReasons\": [
         {
-            \"Code\":\"None\",
+            \"Code\":\"None\"
         },
         {
             \"Code\":\"ConditionalCheckFailed\",
-            \"Message\":\"The conditional request failed\",
+            \"Message\":\"The conditional request failed\"
         }
     ],
     \"message\":\"Transaction cancelled, please refer cancellation reasons for specific reasons [None, ConditionalCheckFailed]\"
@@ -326,11 +309,11 @@ error_handling_tests(_) ->
     \"__type\":\"com.amazonaws.dynamodb.v20120810#TransactionCanceledException\",
     \"CancellationReasons\": [
         {
-            \"Code\":\"None\",
+            \"Code\":\"None\"
         },
         {
             \"Code\":\"ProvisionedThroughputExceeded\",
-            \"Message\":\"The level of configured provisioned throughput for the table was exceeded. Consider increasing your provisioning level with the UpdateTable API\",
+            \"Message\":\"The level of configured provisioned throughput for the table was exceeded. Consider increasing your provisioning level with the UpdateTable API\"
         }
     ],
     \"message\":\"Transaction cancelled, please refer cancellation reasons for specific reasons [None, ProvisionedThroughputExceeded]\"
@@ -2966,7 +2949,7 @@ describe_table_input_tests(_) ->
         \"Replicas\": [
             {
                 \"RegionName\": \"us-west-2\",
-                \"ReplicaStatus\": \"ACTIVE\",
+                \"ReplicaStatus\": \"ACTIVE\"
             },
             {
                 \"RegionName\": \"eu-west-2\",
@@ -3072,7 +3055,7 @@ describe_table_output_tests(_) ->
         \"Replicas\": [
             {
                 \"RegionName\": \"us-west-2\",
-                \"ReplicaStatus\": \"ACTIVE\",
+                \"ReplicaStatus\": \"ACTIVE\"
             },
             {
                 \"RegionName\": \"eu-west-2\",
@@ -6407,7 +6390,7 @@ update_global_table_settings_output_tests(_) ->
                 }
               }
             ]
-          },
+          }
         }
       ],
       \"ReplicaProvisionedReadCapacityAutoScalingSettings\": {

@@ -91,7 +91,7 @@ sm_request(Config, Operation, Body) ->
 
 
 sm_request_no_update(Config, Operation, Body) ->
-    Payload = jsx:encode(Body),
+    Payload = erlcloud_json:encode(Body),
     Headers = headers(Config, Operation, Payload),
     Request = #aws_request{service = sm,
         uri = uri(Config),
@@ -100,7 +100,7 @@ sm_request_no_update(Config, Operation, Body) ->
         request_body = Payload},
     case erlcloud_aws:request_to_return(erlcloud_retry:request(Config, Request, fun sm_result_fun/1)) of
         {ok, {_RespHeaders, <<>>}} -> {ok, []};
-        {ok, {_RespHeaders, RespBody}} -> {ok, jsx:decode(RespBody)};
+        {ok, {_RespHeaders, RespBody}} -> {ok, erlcloud_json:decode_bin(RespBody)};
         {error, _} = Error -> Error
     end.
 
