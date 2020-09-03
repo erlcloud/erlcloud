@@ -14,14 +14,17 @@
 -type decode_value_r() :: {pos_integer(), JsonField :: binary(), Type :: atom()}.
 
 -spec decode_bin(binary()) -> jsx:json_term().
+-spec decode_bin_with_maps(binary()) -> jiffy:json_value().
+-spec encode(jsx:json_term()) -> binary().
+
+-ifdef(ENABLE_NIF_DECODERS).
+
 decode_bin(Binary) ->
     jiffy_to_jsx(jiffy:decode(Binary, [copy_strings])).
 
--spec decode_bin_with_maps(binary()) -> jiffy:json_value().
 decode_bin_with_maps(Binary) ->
     jiffy:decode(Binary, [return_maps, copy_strings]).
 
--spec encode(jsx:json_term()) -> binary().
 encode(Term) ->
     iolist_to_binary(jiffy:encode(jsx_to_jiffy(Term))).
 
@@ -42,6 +45,19 @@ jsx_to_jiffy(List) when is_list(List) ->
     [ jsx_to_jiffy(V) || V <- List ];
 jsx_to_jiffy(V) ->
     V.
+
+-else.
+
+decode_bin(Binary) ->
+    jsx:decode(Binary).
+
+decode_bin_with_maps(Binary) ->
+    jsx:decode(Binary, [return_maps]).
+
+encode(Term) ->
+    jsx:encode(Term).
+
+-endif.
 
 -spec decode([decode_value()], proplist()) -> decode_return().
 decode(Values, Json) ->
