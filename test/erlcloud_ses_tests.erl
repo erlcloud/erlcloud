@@ -384,7 +384,7 @@ send_raw_email_tests(_) ->
          ?assertEqual({ok, [{message_id, "00000131d51d2292-159ad6eb-077c-46e6-ad09-ae7c05925ed4-000000"}]},
                       erlcloud_ses:send_raw_email(<<"To: d@to.com\nCC: c@cc.com\nBCC: a@bcc.com, b@bcc.com\nSubject: Subject\nMIME-Version: 1.0\nContent-type: Multipart/Mixed; boundary=\"NextPart\"\n\n--NextPart\nContent-Type: text/plain\n\nEmail Body\n\n--NextPart--">>,
                                               [{source, "e@from.com"},
-                                               {destinations, {destination_addresses, ["d@to.com", <<"c@cc.com">>, <<"a@bcc.com">>, "b@bcc.com"]}}]))
+                                               {destinations, ["d@to.com", <<"c@cc.com">>, <<"a@bcc.com">>, "b@bcc.com"]}]))
      end
     ].
 
