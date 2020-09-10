@@ -34,6 +34,7 @@
          make_presigned_v4_url/5,
          make_presigned_v4_url/6,
          make_presigned_v4_url/7,
+         make_presigned_v4_url/8,
          start_multipart/2, start_multipart/5,
          upload_part/5, upload_part/7,
          complete_multipart/4, complete_multipart/6,
@@ -1142,7 +1143,7 @@ signature(Config, Path, Date, Region, Method, QueryParams, Headers, Payload) ->
   [Result] = erlcloud_aws:base16(erlcloud_util:sha256_mac(SigningKey, ToSign)),
   Result.
 
--spec make_presigned_v4_url(integer(), string(), atom(), string(), proplist()) -> {ok, string()} | {error, term()}.
+-spec make_presigned_v4_url(integer(), string(), atom(), string(), [atom() | tuple()]) -> string().
 make_presigned_v4_url(ExpireTime, BucketName, Method, Key, Params) ->
   make_presigned_v4_url(ExpireTime, BucketName, Method, Key, Params, default_config()).
 
@@ -1163,13 +1164,25 @@ make_presigned_v4_url(ExpireTime, BucketName, Method, Key, QueryParams, Config) 
 
 -spec make_presigned_v4_url(integer(), string(), atom(), string(), proplist(), proplist(), aws_config()) -> string().
 make_presigned_v4_url(ExpireTime, BucketName, Method, Key, QueryParams, Headers0, Config) when is_integer(ExpireTime) ->
+    make_presigned_v4_url(ExpireTime, BucketName, Method, Key, QueryParams, Headers0, undefined, Config).
+
+% Headers0: [{"casefolded-string", val}...]
+-spec make_presigned_v4_url(integer(), string(), atom(), string(), proplist(), proplist(), string() | undefined, aws_config()) -> string().
+make_presigned_v4_url(ExpireTime, BucketName, Method, Key, QueryParams, Headers0, Date0, Config) when is_integer(ExpireTime) ->
     {Host, Path, URL} = get_object_url_elements(BucketName, Key, Config),
     Region = erlcloud_aws:aws_region_from_host(Config#aws_config.s3_host),
-    Date = erlcloud_aws:iso_8601_basic_time(),
+    Date = case Date0 of undefined -> erlcloud_aws:iso_8601_basic_time(); _ -> Date0 end,
 
     Credential = erlcloud_aws:credential(Config, Date, Region, "s3"),
 
-    Headers = lists:keysort(1, [{"host", Host} | Headers0]),
+    % if a host header was passed in, use that; otherwise default to config
+    HostHeader =
+        case lists:any(fun({"host", _}) -> true; (_) -> false end, Headers0) of
+            true -> [];
+            _    -> [{"host", Host}]
+        end,
+
+    Headers = lists:keysort(1, HostHeader ++ Headers0),
     SignedHeaders = string:join([element(1, X) || X <- Headers], ";"),
 
     QP1 = [{"X-Amz-Algorithm", "AWS4-HMAC-SHA256"},
@@ -1966,7 +1979,12 @@ s3_request(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) 
 
 %% s3_request2 returns {ok, Body} or {error, Reason} instead of throwing as s3_request does
 %% This is the preferred pattern for new APIs
-s3_request2(Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers) ->
+s3_request2(Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers0) ->
+    Headers =
+        case proplists:get_value("content-type", Headers0) of
+            undefined -> [{"content-type", "text/xml"} | Headers0];
+            _         -> Headers0
+        end,
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
             case s3_request4_no_update(Config1, Method, Bucket, Path,
