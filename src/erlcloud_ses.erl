@@ -12,7 +12,6 @@
 %%  * ListIdentityPolicies
 %%  * ListVerifiedEmailAddresses (deprecated; use ListIdentities)
 %%  * PutIdentityPolicy
-%%  * SendRawEmail
 %%  * VerifyEmailAddress (deprecated; use VerifyEmailIdentity)
 %%
 %% @end
@@ -43,6 +42,8 @@
 -export([send_custom_verification_email/2, send_custom_verification_email/3]).
 
 -export([send_email/4, send_email/5, send_email/6]).
+
+-export([send_raw_email/1, send_raw_email/2, send_raw_email/3]).
 
 -export([set_identity_dkim_enabled/2, set_identity_dkim_enabled/3]).
 -export([set_identity_feedback_forwarding_enabled/2, set_identity_feedback_forwarding_enabled/3]).
@@ -732,6 +733,66 @@ send_email(Destination, Body, Subject, Source, Opts, Config) ->
         {error, Reason} -> {error, Reason}
     end.
 
+%%%------------------------------------------------------------------------------
+%%% SendRawEmail
+%%%------------------------------------------------------------------------------
+
+-type send_raw_email_message() :: binary() | string().
+
+-type send_raw_email_opt() :: {source, email()} |
+                              {destinations, emails()}.
+
+-type send_raw_email_opts() :: [send_raw_email_opt()].
+
+-type send_raw_email_result() :: {ok, [{message_id, string()}]} | {error, term()}.
+
+
+send_raw_email(RawMessage) ->
+    send_raw_email(RawMessage, [], default_config()).
+
+send_raw_email(RawMessage, #aws_config{} = Config) ->
+    send_raw_email(RawMessage, [], Config);
+send_raw_email(RawMessage, Opts) ->
+    send_raw_email(RawMessage, Opts, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% SES API:
+%% [https://docs.aws.amazon.com/ses/latest/APIReference/API_SendRawEmail.html]
+%%
+%% ===Example===
+%%
+%% Send a raw email.
+%%
+%% `
+%% {ok, [{message_id, "00000131d51d2292-159ad6eb-077c-46e6-ad09-ae7c05925ed4-000000"}]} =
+%%     erlcloud_ses:send_raw_email(<<"From: b@from.com\nTo: a@to.com\nSubject: Subject\nMIME-Version: 1.0\nContent-type: Multipart/Mixed; boundary=\"NextPart\"\n\n--NextPart\nContent-Type: text/plain\n\nEmail Body\n\n--NextPart--">>, []).
+%% '
+%%
+%% All supported inputs.
+%%
+%% `
+%%  {ok, [{message_id, "00000131d51d2292-159ad6eb-077c-46e6-ad09-ae7c05925ed4-000000"}]} =
+%% erlcloud_ses:send_email(<<"To: d@to.com\nCC: c@cc.com\nBCC: a@bcc.com, b@bcc.com\nSubject: Subject\nMIME-Version: 1.0\nContent-type: Multipart/Mixed; boundary=\"NextPart\"\n\n--NextPart\nContent-Type: text/plain\n\nEmail Body\n\n--NextPart--">>,
+%%                         [{destinations, [<<"a@bcc.com">>, "b@bcc.com", <<"c@cc.com">>, "d@to.com"]},
+%%                          {source, "e@from.com"}].
+%% '
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec send_raw_email(send_raw_email_message(),
+                     send_raw_email_opts(),
+                     aws_config()) ->
+        send_raw_email_result().
+send_raw_email(RawMessage, Opts, Config) ->
+    Params = encode_params([{raw_message, RawMessage},
+                            {send_raw_email_opts, Opts}]),
+    case ses_request(Config, "SendRawEmail", Params) of
+        {ok, Doc} ->
+            {ok, erlcloud_xml:decode([{message_id, "SendRawEmailResult/MessageId", text}], Doc)};
+        {error, Reason} -> {error, Reason}
+    end.
+
 
 %%%------------------------------------------------------------------------------
 %%% SetIdentityDkimEnabled
@@ -1035,8 +1096,12 @@ encode_params([{next_token, NextToken} | T], Acc) when is_list(NextToken); is_bi
     encode_params(T, [{"NextToken", NextToken} | Acc]);
 encode_params([{notification_type, NotificationType} | T], Acc) ->
     encode_params(T, encode_notification_type(NotificationType, Acc));
+encode_params([{raw_message, RawMessage} | T], Acc) ->
+    encode_params(T,  [{"RawMessage.Data", base64:encode(RawMessage)} | Acc]);
 encode_params([{send_email_opts, Opts} | T], Acc) ->
     encode_params(T, encode_opts(Opts, Acc));
+encode_params([{send_raw_email_opts, Opts} | T], Acc) ->
+    encode_params(T, encode_raw_opts(Opts, Acc));
 encode_params([{sns_topic, SnsTopic} | T], Acc) when is_list(SnsTopic); is_binary(SnsTopic) ->
     encode_params(T, [{"SnsTopic", SnsTopic} | Acc]);
 encode_params([{source, Source} | T], Acc) when is_list(Source); is_binary(Source) ->
@@ -1093,6 +1158,12 @@ encode_destination(ToAddress, Acc) when is_list(ToAddress); is_binary(ToAddress)
     %% Single entry
     encode_destination_pairs([{to_addresses, [ToAddress]}], Acc).
 
+encode_destinations([Dest | _T] = Destinations, Acc) when is_list(Dest); is_binary(Dest) ->
+    encode_list("Destinations", Destinations, Acc);
+encode_destinations(ToAddress, Acc) when is_list(ToAddress); is_binary(ToAddress) ->
+    %% Single entry
+    encode_destinations([ToAddress], Acc).
+
 encode_content_pairs(_, [], Acc) ->
     Acc;
 encode_content_pairs(Prefix, [{charset, Charset} | T], Acc) ->
@@ -1128,6 +1199,12 @@ encode_opts([{reply_to_addresses, List} | T], Acc) ->
 encode_opts([{return_path, ReturnPath} | T], Acc) ->
     encode_opts(T, [{"ReturnPath", ReturnPath} | Acc]).
 
+encode_raw_opts([], Acc) ->
+    Acc;
+encode_raw_opts([{source, Source} | T], Acc) when is_list(Source); is_binary(Source) ->
+    encode_raw_opts(T, [{"Source", Source} | Acc]);
+encode_raw_opts([{destinations, Destination} | T], Acc) ->
+    encode_raw_opts(T, encode_destinations(Destination, Acc)).
 
 encode_identity_type(email_address, Acc) ->
     [{"IdentityType", "EmailAddress"} | Acc];
@@ -1229,7 +1306,10 @@ decode_error_code("CustomVerificationEmailTemplateDoesNotExist") -> custom_verif
 decode_error_code("ProductionAccessNotGranted") -> production_access_not_granted;
 decode_error_code("CustomVerificationEmailInvalidContent") -> custom_verification_email_invalid_content;
 decode_error_code("FromEmailAddressNotVerified") -> from_email_address_not_verified;
-decode_error_code("CustomVerificationEmailTemplateAlreadyExists") -> custom_verification_email_template_already_exists.
+decode_error_code("CustomVerificationEmailTemplateAlreadyExists") -> custom_verification_email_template_already_exists;
+decode_error_code("AccountSendingPaused") -> account_sending_paused;
+decode_error_code("ConfigurationSetSendingPaused") -> configuration_set_sending_paused;
+decode_error_code("MailFromDomainNotVerified") -> mail_from_domain_not_verified.
 
 
 decode_error(Doc) ->
