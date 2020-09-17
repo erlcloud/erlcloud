@@ -1273,6 +1273,7 @@ generate_one_instance(N) ->
                 <productCodes/>
                 <instanceType>t2.small</instanceType>
                 <launchTime>2016-09-26T10:35:00.000Z</launchTime>
+                <platform/>
                 <placement>
                     <availabilityZone>us-east-1a</availabilityZone>
                     <groupName/>
