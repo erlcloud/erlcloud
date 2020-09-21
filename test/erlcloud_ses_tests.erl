@@ -323,7 +323,7 @@ send_email_tests(_) ->
      end,
      fun() ->
          configure(),
-         Expected = "Action=SendEmail&Version=2010-12-01&Destination.BccAddresses.member.1=a%40bcc.com&Destination.BccAddresses.member.2=b%40bcc.com&Destination.CcAddresses.member.1=c%40cc.com&Destination.ToAddresses.member.1=d%40to.com&Message.Body.Html.Charset=html%20charset&Message.Body.Html.Data=html%20data&Message.Body.Text.Charset=text%20charset&Message.Body.Text.Data=text%20data&Message.Subject.Charset=subject%20charset&Message.Subject.Data=subject%20data&Source=e%40from.com&ReplyToAddresses.member.1=f%40reply.com&ReplyToAddresses.member.2=g%40reply.com&ReturnPath=return%20path",
+         Expected = "Action=SendEmail&Version=2010-12-01&Destination.BccAddresses.member.1=a%40bcc.com&Destination.BccAddresses.member.2=b%40bcc.com&Destination.CcAddresses.member.1=c%40cc.com&Destination.ToAddresses.member.1=d%40to.com&Message.Body.Html.Charset=html%20charset&Message.Body.Html.Data=html%20data&Message.Body.Text.Charset=text%20charset&Message.Body.Text.Data=text%20data&Message.Subject.Charset=subject%20charset&Message.Subject.Data=subject%20data&Source=e%40from.com&ConfigurationSetName=configuration%20set&ReplyToAddresses.member.1=f%40reply.com&ReplyToAddresses.member.2=g%40reply.com&ReturnPath=return%20path&Tags.member.1.Value=value-1&Tags.member.1.Name=tag-1&Tags.member.2.Value=value-2&Tags.member.2.Name=tag-2",
          Response =
 "<SendEmailResponse xmlns=\"http://ses.amazonaws.com/doc/2010-12-01/\">
 <SendEmailResult>
@@ -345,8 +345,10 @@ send_email_tests(_) ->
                                               [{charset, "subject charset"},
                                                {data, "subject data"}],
                                               "e@from.com",
-                                              [{reply_to_addresses, [<<"f@reply.com">>, "g@reply.com"]},
-                                               {return_path, "return path"}]))
+                                              [{configuration_set_name, "configuration set"},
+                                               {reply_to_addresses, [<<"f@reply.com">>, "g@reply.com"]},
+                                               {return_path, "return path"},
+                                               {tags, [{"tag-1", "value-1"}, {"tag-2", "value-2"}]}]))
      end
     ].
 
