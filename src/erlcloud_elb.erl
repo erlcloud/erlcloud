@@ -245,7 +245,7 @@ describe_load_balancers_all() ->
 -spec describe_load_balancers_all(list(string()) | aws_config()) ->
     {ok, [term()]} | {error, term()}.
 describe_load_balancers_all(Config) when is_record(Config, aws_config) ->
-    describe_load_balancers_all([], default_config());
+    describe_load_balancers_all([], Config);
 describe_load_balancers_all(Names) ->
     describe_load_balancers_all(Names, default_config()).
 
