@@ -695,7 +695,7 @@ maybe_cw_request({error, _} = Error, _Action, _Params) ->
 maybe_json({ok, <<>>}) ->
     {ok, []};
 maybe_json({ok, Response}) ->
-    {ok, jsx:decode(Response, [{return_maps, false}])};
+    {ok, erlcloud_json:decode_bin(Response)};
 maybe_json({error, _} = Error) ->
     Error.
 
@@ -714,7 +714,7 @@ make_signed_headers(Config, Action, Body) ->
 make_request_body(Action, RequestParams) ->
     DefaultParams = [{<<"Action">>, Action}, {<<"Version">>, ?API_VERSION}],
     Params = lists:append(DefaultParams, RequestParams),
-    jsx:encode(prepare_request_params(Params)).
+    erlcloud_json:encode(prepare_request_params(Params)).
 
 
 prepare_request_params(Params) ->

@@ -58,34 +58,12 @@ stop(_) ->
 
 -type expected_body() :: string().
 
-sort_json([{_, _} | _] = Json) ->
-    %% Value is an object
-    SortedChildren = [{K, sort_json(V)} || {K,V} <- Json],
-    lists:keysort(1, SortedChildren);
-sort_json([_|_] = Json) ->
-    %% Value is an array
-    [sort_json(I) || I <- Json];
-sort_json(V) ->
-    V.
-
-%% verifies that the parameters in the body match the expected parameters
--spec validate_body(binary(), expected_body()) -> ok.
-validate_body(Body, Expected) ->
-    Want = sort_json(decode(list_to_binary(Expected))),
-    Actual = sort_json(decode(Body)),
-    case Want =:= Actual of
-        true -> ok;
-        false ->
-            ?debugFmt("~nEXPECTED~n~p~nACTUAL~n~p~n", [Want, Actual])
-    end,
-    ?assertEqual(Want, Actual).
-
 %% returns the mock of the httpc function input tests expect to be called.
 %% Validates the request body and responds with the provided response.
 -spec input_expect(string(), expected_body()) -> fun().
 input_expect(Response, Expected) ->
     fun(_Url, post, _Headers, Body, _Timeout, _Config) ->
-            validate_body(Body, Expected),
+            erlcloud_test_util:validate_body(Body, list_to_binary(Expected)),
             {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
@@ -418,4 +396,4 @@ update_trail_output_tests(_) ->
 
 
 decode(S) ->
-    jsx:decode(S, [{return_maps, false}]).
+    erlcloud_json:decode_bin(S).

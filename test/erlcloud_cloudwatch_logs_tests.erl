@@ -129,7 +129,7 @@ stop(_) ->
 
 
 create_log_group_input_test(_) ->
-    input_tests(jsx:encode([]), [
+    input_tests([], [
         ?_cloudwatch_test(
             {"Tests creating log group",
              ?_f(erlcloud_cloudwatch_logs:create_log_group(?LOG_GROUP_NAME)),
@@ -178,7 +178,7 @@ create_log_group_input_test(_) ->
 
 
 delete_log_group_input_test(_) ->
-    input_tests(jsx:encode([]), [
+    input_tests([], [
         ?_cloudwatch_test(
             {"Tests creating log group",
              ?_f(erlcloud_cloudwatch_logs:delete_log_group(?LOG_GROUP_NAME)),
@@ -200,7 +200,7 @@ delete_log_group_input_test(_) ->
 
 
 create_log_stream_input_test(_) ->
-    input_tests(jsx:encode([]), [
+    input_tests([], [
         ?_cloudwatch_test(
             {"Tests creating log stream",
              ?_f(erlcloud_cloudwatch_logs:create_log_stream(
@@ -228,7 +228,7 @@ create_log_stream_input_test(_) ->
 
 
 delete_log_stream_input_test(_) ->
-    input_tests(jsx:encode([]), [
+    input_tests([], [
         ?_cloudwatch_test(
             {"Tests creating log stream",
              ?_f(erlcloud_cloudwatch_logs:delete_log_stream(
@@ -256,7 +256,7 @@ delete_log_stream_input_test(_) ->
 
 
 describe_log_groups_input_tests(_) ->
-    input_tests(jsx:encode([{<<"logGroups">>, []}]), [
+    input_tests([{<<"logGroups">>, []}], [
         ?_cloudwatch_test(
             {"Tests describing log groups with no parameters",
              ?_f(erlcloud_cloudwatch_logs:describe_log_groups()),
@@ -327,7 +327,7 @@ describe_log_groups_input_tests(_) ->
 
 
 describe_metric_filters_input_tests(_) ->
-    input_tests(jsx:encode([{<<"metricFilters">>, []}]), [
+    input_tests([{<<"metricFilters">>, []}], [
         ?_cloudwatch_test(
             {"Tests describing metric filters with no parameters",
              ?_f(erlcloud_cloudwatch_logs:describe_metric_filters()),
@@ -442,7 +442,7 @@ describe_log_groups_output_tests(_) ->
     output_tests(?_f(erlcloud_cloudwatch_logs:describe_log_groups()), [
         ?_cloudwatch_test(
             {"Tests describing all log groups",
-             jsx:encode([{<<"logGroups">>, [?LOG_GROUP]}]),
+             erlcloud_json:encode([{<<"logGroups">>, [?LOG_GROUP]}]),
              {ok, [?LOG_GROUP], undefined}}
         )
     ]).
@@ -452,13 +452,13 @@ describe_metric_filters_output_tests(_) ->
     output_tests(?_f(erlcloud_cloudwatch_logs:describe_metric_filters()), [
         ?_cloudwatch_test(
             {"Tests describing all metric filters",
-             jsx:encode([{<<"metricFilters">>, [?METRIC_FILTER]}]),
+             erlcloud_json:encode([{<<"metricFilters">>, [?METRIC_FILTER]}]),
              {ok, [?METRIC_FILTER], undefined}}
         )
     ]).
 
 describe_log_streams_input_tests(_) ->
-    input_tests(jsx:encode([{<<"logStreams">>, []}]), [
+    input_tests([{<<"logStreams">>, []}], [
         ?_cloudwatch_test(
             {"Tests describing log streams with with log group name",
              ?_f(erlcloud_cloudwatch_logs:describe_log_streams(?LOG_GROUP_NAME)),
@@ -549,7 +549,7 @@ describe_log_streams_output_tests(_) ->
     output_tests(?_f(erlcloud_cloudwatch_logs:describe_log_streams(?LOG_GROUP_NAME)), [
         ?_cloudwatch_test(
             {"Tests describing all log streams",
-             jsx:encode([{<<"logStreams">>, [?LOG_STREAM]}]),
+             erlcloud_json:encode([{<<"logStreams">>, [?LOG_STREAM]}]),
              {ok, [?LOG_STREAM], undefined}}
         )
     ]).
@@ -557,7 +557,7 @@ describe_log_streams_output_tests(_) ->
 
 
 put_logs_events_input_tests(_) ->
-    input_tests(jsx:encode([{<<"uploadSequenceToken">>, ?LOG_SEQUENCE}]), [
+    input_tests([{<<"uploadSequenceToken">>, ?LOG_SEQUENCE}], [
         ?_cloudwatch_test(
             {"Tests publishing of batch log events",
              ?_f(erlcloud_cloudwatch_logs:put_logs_events(
@@ -592,9 +592,8 @@ input_test(ResponseBody, {Line, {Description, Fun, ExpectedParams}}) ->
                 erlcloud_httpc,
                 request,
                 fun(_Url, post, _Headers, RequestBody, _Timeout, _Config) ->
-                    ActualParams = jsx:decode(RequestBody, [{return_maps, false}]),
-                    ?assertEqual(sort_json(ExpectedParams), sort_json(ActualParams)),
-                    {ok, {{200, "OK"}, [], ResponseBody}}
+                    erlcloud_test_util:validate_body(ExpectedParams, RequestBody),
+                    {ok, {{200, "OK"}, [], erlcloud_json:encode(ResponseBody)}}
                 end
             ),
             erlcloud_cloudwatch_logs:configure(?ACCESS_KEY_ID, ?SECRET_ACCESS_KEY),
@@ -621,12 +620,3 @@ output_test(Fun, {Line, {Description, ResponseBody, Expected}}) ->
             ?assertEqual(Expected, _Actual = Fun())
         end
     }}.
-
-
-sort_json([{_, _} | _] = Json) ->
-    Sorted = [{Key, sort_json(Value)} || {Key, Value} <- Json],
-    lists:keysort(1, Sorted);
-sort_json([_ | _] = Json) ->
-    [sort_json(Item) || Item <- Json];
-sort_json(Value) ->
-    Value.

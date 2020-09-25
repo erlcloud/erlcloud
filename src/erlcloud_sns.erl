@@ -504,7 +504,7 @@ publish(Type, RecipientArn, Message, Subject, Attributes, Config) ->
     MessageParams =
         case Message of
             [{_,_} |_] ->
-                EncodedMessage = jsx:encode(Message),
+                EncodedMessage = erlcloud_json:encode(Message),
                 [{"Message",            EncodedMessage},
                  {"MessageStructure",   "json"}];
             Message ->
@@ -525,7 +525,7 @@ publish(Type, RecipientArn, Message, Subject, Attributes, Config) ->
 
 -spec parse_event(iodata()) -> sns_event().
 parse_event(EventSource) ->
-    jsx:decode(EventSource, [{return_maps, false}]).
+    erlcloud_json:decode_bin(EventSource).
 
 -spec get_event_type(sns_event()) -> sns_event_type().
 get_event_type(Event) ->
@@ -539,7 +539,7 @@ parse_event_message(Event) ->
     Message = proplists:get_value(<<"Message">>, Event, <<>>),
     case get_event_type(Event) of
         subscription_confirmation -> Message;
-        notification -> jsx:decode(Message, [{return_maps, false}])
+        notification -> erlcloud_json:decode_bin(Message)
     end.
 
 -spec get_notification_attribute(binary(), sns_notification()) -> sns_application_attribute() | binary().
@@ -850,7 +850,7 @@ fields_for_attribute(Name, Value) ->
 fields_for_attribute(Value) when is_list(Value) ->
     [{"Value.DataType", "String"}, {"Value.StringValue", Value}];
 fields_for_attribute(Value) when is_binary(Value) ->
-    [{"Value.DataType", "Binary"}, {"Value.BinaryValue", base64:encode_to_string(Value)}];
+    [{"Value.DataType", "Binary"}, {"Value.BinaryValue", binary_to_list(erlcloud_base64:encode(Value))}];
 fields_for_attribute(Value) when is_float(Value) ->
     [{"Value.DataType", "Number"}, {"Value.StringValue", float_to_list(Value)}];
 fields_for_attribute(Value) when is_integer(Value) ->

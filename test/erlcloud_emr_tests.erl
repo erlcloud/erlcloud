@@ -133,7 +133,7 @@ stop(_) ->
 
 
 emr_input_tests(_) ->
-    input_tests(jsx:encode(?RUN_JOB_FLOW_OUTPUT), [
+    input_tests(erlcloud_json:encode(?RUN_JOB_FLOW_OUTPUT), [
         ?_emr_test(
             {"Run job flow input",
              ?_f(erlcloud_emr:run_job_flow(?RUN_JOB_FLOW_INPUT)),
@@ -161,14 +161,14 @@ emr_output_tests(_) ->
     output_tests(?_f(erlcloud_emr:run_job_flow(?RUN_JOB_FLOW_INPUT)), [
         ?_emr_test(
             {"Job flow output test",
-             jsx:encode(?RUN_JOB_FLOW_OUTPUT),
+             erlcloud_json:encode(?RUN_JOB_FLOW_OUTPUT),
              {ok, ?RUN_JOB_FLOW_OUTPUT}}
         )
     ]),
     output_tests(?_f(erlcloud_emr:add_job_flow_steps(?JOB_FLOW_ID, ?JOB_FLOW_STEPS)), [
         ?_emr_test(
            {"Add job flow output test",
-            jsx:encode(?ADD_JOB_FLOW_OUTPUT),
+            erlcloud_json:encode(?ADD_JOB_FLOW_OUTPUT),
             {ok, ?ADD_JOB_FLOW_OUTPUT}}
         )
     ]).
@@ -189,8 +189,7 @@ input_test(ResponseBody, {Line, {Description, Fun, ExpectedParams}}) ->
                 erlcloud_httpc,
                 request,
                 fun(_Url, post, _Headers, RequestBody, _Timeout, _Config) ->
-                    ActualParams = jsx:decode(RequestBody, [{return_maps, false}]),
-                    ?assertEqual(sort_json(ExpectedParams), sort_json(ActualParams)),
+                    erlcloud_test_util:validate_body(ExpectedParams, RequestBody),
                     {ok, {{200, "OK"}, [], ResponseBody}}
                 end
             ),
@@ -218,12 +217,3 @@ output_test(Fun, {Line, {Description, ResponseBody, Expected}}) ->
             ?assertEqual(Expected, _Actual = Fun())
         end
     }}.
-
-
-sort_json([{_, _} | _] = Json) ->
-    Sorted = [{Key, sort_json(Value)} || {Key, Value} <- Json],
-    lists:keysort(1, Sorted);
-sort_json([_ | _] = Json) ->
-    [sort_json(Item) || Item <- Json];
-sort_json(Value) ->
-    Value.

@@ -191,7 +191,7 @@ ct_request(Operation, [], Config) ->
 ct_request(Operation, Body, Config) ->
     #aws_config{cloudtrail_scheme = Scheme, 
                 cloudtrail_host = Host} = Config,
-    request_impl(post, Scheme, Host, port_spec(Config), "/", Operation, [], jsx:encode(Body), Config).
+    request_impl(post, Scheme, Host, port_spec(Config), "/", Operation, [], erlcloud_json:encode(Body), Config).
  
 request_impl(Method, Scheme, Host, Port, Path, Operation, Params, Body, #aws_config{} = Config) ->
     %% TODO: Make api prefix a part of aws_config
@@ -205,7 +205,7 @@ request_impl(Method, Scheme, Host, Port, Path, Operation, Params, Body, #aws_con
        {ok, RespBody} ->
             case Config#aws_config.cloudtrail_raw_result of
                 true -> {ok, RespBody};
-                _ -> {ok, jsx:decode(RespBody, [{return_maps, false}])}
+                _    -> {ok, erlcloud_json:decode_bin(RespBody)}
             end;
         {error, Reason} ->
             {error, Reason}

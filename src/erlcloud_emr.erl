@@ -194,7 +194,7 @@ request(Action, Json, Scheme, Host, Port, Service, Opts, Cfg0) ->
     end.
 
 request_no_update(Action, Json, Scheme, Host, Port, Service, Opts, Cfg) ->
-    ReqBody = jsx:encode(if Json == [] -> [{}];
+    ReqBody = erlcloud_json:encode(if Json == [] -> [{}];
                                   true -> Json end),
     H1 = [{"host", Host}],
     H2 = [{"content-type", "application/x-amz-json-1.1"},
@@ -207,11 +207,11 @@ request_no_update(Action, Json, Scheme, Host, Port, Service, Opts, Cfg) ->
                           raw -> {ok, Body};
                           _   -> case Body of
                                      <<>> -> {ok, <<>>};
-                                     _    -> {ok, jsx:decode(Body, [{return_maps, false}])}
+                                     _    -> {ok, erlcloud_json:decode_bin(Body)}
                                  end
                       end;
         {error, {http_error, _Code, _StatusLine, ErrBody}} ->
-            {error, {aws_error, jsx:decode(ErrBody, [{return_maps, false}])}};
+            {error, {aws_error, erlcloud_json:decode_bin(ErrBody)}};
         {error, {socket_error, Reason}} ->
             {error, {socket_error, Reason}}
     end.

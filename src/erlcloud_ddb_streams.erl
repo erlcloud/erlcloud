@@ -204,7 +204,7 @@ undynamize_value_untyped({<<"S">>, Value}, _) when is_binary(Value) ->
 undynamize_value_untyped({<<"N">>, Value}, Opts) ->
     undynamize_number(Value, Opts);
 undynamize_value_untyped({<<"B">>, Value}, _) ->
-    base64:decode(Value);
+    erlcloud_base64:decode(Value);
 undynamize_value_untyped({<<"BOOL">>, Value}, _) when is_boolean(Value) ->
     Value;
 undynamize_value_untyped({<<"NULL">>, true}, _) ->
@@ -214,7 +214,7 @@ undynamize_value_untyped({<<"SS">>, Values}, _) when is_list(Values) ->
 undynamize_value_untyped({<<"NS">>, Values}, Opts) ->
     [undynamize_number(Value, Opts) || Value <- Values];
 undynamize_value_untyped({<<"BS">>, Values}, _) ->
-    [base64:decode(Value) || Value <- Values];
+    [erlcloud_base64:decode(Value) || Value <- Values];
 undynamize_value_untyped({<<"L">>, List}, Opts) ->
     [undynamize_value_untyped(Value, Opts) || [Value] <- List];
 undynamize_value_untyped({<<"M">>, [{}]}, _Opts) ->
@@ -259,7 +259,7 @@ undynamize_value_typed({<<"S">>, Value}, _) when is_binary(Value) ->
 undynamize_value_typed({<<"N">>, Value}, Opts) ->
     {n, undynamize_number(Value, Opts)};
 undynamize_value_typed({<<"B">>, Value}, _) ->
-    {b, base64:decode(Value)};
+    {b, erlcloud_base64:decode(Value)};
 undynamize_value_typed({<<"BOOL">>, Value}, _) when is_boolean(Value) ->
     {bool, Value};
 undynamize_value_typed({<<"NULL">>, true}, _) ->
@@ -269,7 +269,7 @@ undynamize_value_typed({<<"SS">>, Values}, _) when is_list(Values) ->
 undynamize_value_typed({<<"NS">>, Values}, Opts) ->
     {ns, [undynamize_number(Value, Opts) || Value <- Values]};
 undynamize_value_typed({<<"BS">>, Values}, _) ->
-    {bs, [base64:decode(Value) || Value <- Values]};
+    {bs, [erlcloud_base64:decode(Value) || Value <- Values]};
 undynamize_value_typed({<<"L">>, List}, Opts) ->
     {l, [undynamize_value_typed(Value, Opts) || [Value] <- List]};
 undynamize_value_typed({<<"M">>, [{}]}, _Opts) ->
@@ -815,7 +815,7 @@ request(Config, Operation, Json) ->
 request2(Config, Operation, Json) ->
     Body = case Json of
                [] -> <<"{}">>;
-               _ -> jsx:encode(Json)
+               _ -> erlcloud_json:encode(Json)
            end,
     Headers = headers(Config, Operation, Body),
     Request = #aws_request{service = ddb_streams,
@@ -829,7 +829,7 @@ request2(Config, Operation, Json) ->
 request_to_return(#aws_request{response_type = ok,
                                response_body = Body}) ->
     %% TODO check crc
-    {ok, jsx:decode(Body, [{return_maps, false}])};
+    {ok, erlcloud_json:decode_bin(Body)};
 request_to_return(#aws_request{response_type = error,
                                error_type = aws,
                                httpc_error_reason = undefined,
@@ -869,11 +869,8 @@ client_error(#aws_request{response_body = Body} = Request) ->
     %% == IMPLEMENTATION NOTES ==
     %% We store the error reason in `httpc_error_reason` for now,
     %% this may be changed at any time later
-    case jsx:is_json(Body) of
-        false ->
-            Request#aws_request{should_retry = false};
-        true ->
-            Json = jsx:decode(Body, [{return_maps, false}]),
+    try erlcloud_json:decode_bin(Body) of
+        Json ->
             case proplists:get_value(<<"__type">>, Json) of
                 undefined ->
                     Request#aws_request{should_retry = false};
@@ -892,6 +889,9 @@ client_error(#aws_request{response_body = Body} = Request) ->
                             Request#aws_request{should_retry = false}
                     end
             end
+    catch
+        _Any:_Reason ->
+            Request#aws_request{should_retry = false}
     end.
 
 -spec headers(aws_config(), string(), binary()) -> [{string(), string()}].

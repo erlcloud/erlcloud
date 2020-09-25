@@ -311,7 +311,7 @@ delete_objects_batch(BucketName, KeyList, Config)
     Payload = unicode:characters_to_list(
       "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Delete>" ++ Data ++ "</Delete>",
       utf8),
-    Headers = [{"content-md5", base64:encode(erlcloud_util:md5(Payload))},
+    Headers = [{"content-md5", erlcloud_base64:encode(erlcloud_util:md5(Payload))},
       {"content-length", integer_to_list(string:len(Payload))},
       {"content-type", "application/xml"}],
     Doc =  s3_xml_request(Config, post, BucketName, [$/], "delete", [], Payload, Headers),
@@ -495,7 +495,7 @@ put_bucket_lifecycle(BucketName, Policy, Config)
     put_bucket_lifecycle(BucketName, list_to_binary(XmlPolicy), Config);
 put_bucket_lifecycle(BucketName, XmlPolicy, Config)
   when is_list(BucketName), is_binary(XmlPolicy), is_record(Config, aws_config) ->
-    Md5 = base64:encode(crypto:hash(md5, XmlPolicy)),
+    Md5 = erlcloud_base64:encode(crypto:hash(md5, XmlPolicy)),
     s3_simple_request(Config, put, BucketName, "/", "lifecycle",
                       [], XmlPolicy, [{"Content-MD5", Md5}]).
 
@@ -1059,7 +1059,7 @@ sign_get(Expire_time, BucketName, Key, Config)
         SecurityToken -> "x-amz-security-token:" ++ SecurityToken ++ "\n"
     end,
     To_sign = lists:flatten(["GET\n\n\n", Expires, "\n", SecurityTokenToSign, "/", BucketName, "/", Key]),
-    Sig = base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, To_sign)),
+    Sig = erlcloud_base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, To_sign)),
     {Sig, Expires}.
 
 -spec make_link(integer(), string(), string()) -> {integer(), string(), string()}.
@@ -1312,7 +1312,7 @@ put_object_tagging(BucketName, Key, TagList, #aws_config{} = Config) when is_lis
     TaggingXML = {'Tagging',
       [{'TagSet', encode_tags(TagList)}]},
     POSTData = unicode:characters_to_binary(xmerl:export_simple([TaggingXML], xmerl_xml)),
-    Md5 = base64:encode(crypto:hash(md5, POSTData)),
+    Md5 = erlcloud_base64:encode(crypto:hash(md5, POSTData)),
     Headers = [{"content-md5", Md5}, {"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, [$/|Key], "tagging", [], POSTData, Headers).
 
@@ -1343,7 +1343,7 @@ put_bucket_tagging(BucketName, TagList, #aws_config{} = Config) when is_list(Buc
     TaggingXML = {'Tagging',
 		  [{'TagSet', encode_tags(TagList)}]},
     POSTData = list_to_binary(xmerl:export_simple([TaggingXML], xmerl_xml)),
-    Md5 = base64:encode(crypto:hash(md5, POSTData)),
+    Md5 = erlcloud_base64:encode(crypto:hash(md5, POSTData)),
     Headers = [{"content-md5", Md5}, {"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, "/", "tagging", [], POSTData, Headers).
 
@@ -1532,7 +1532,7 @@ put_bucket_inventory(BucketName, Inventory, #aws_config{} = Config)
         -> ok | {error, Reason::term()}.
 put_bucket_inventory(BucketName, InventoryId, XmlInventory, #aws_config{} = Config)
     when is_list(BucketName), is_list(InventoryId), is_binary(XmlInventory) ->
-    Md5 = base64:encode(crypto:hash(md5, XmlInventory)),
+    Md5 = erlcloud_base64:encode(crypto:hash(md5, XmlInventory)),
     Params = [{"id", InventoryId}],
     Headers = [{"Content-MD5", Md5}, {"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, "/", "inventory", Params, XmlInventory, Headers).
