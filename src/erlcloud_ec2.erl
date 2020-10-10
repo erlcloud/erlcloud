@@ -1495,6 +1495,7 @@ extract_instance(Node) ->
      {product_codes, get_list("productCodes/item/productCode", Node)},
      {instance_type, get_text("instanceType", Node)},
      {launch_time, erlcloud_xml:get_time("launchTime", Node)},
+     {platform, get_text("platform", Node)},
      {placement, [{availability_zone, get_text("placement/availabilityZone", Node)}]},
      {kernel_id, get_text("kernelId", Node)},
      {ramdisk_id, get_text("ramdiskId", Node)},
