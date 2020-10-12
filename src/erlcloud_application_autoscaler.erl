@@ -702,7 +702,12 @@ request_with_action(Configuration, BodyConfiguration, Action) ->
             Headers = [{"content-type", "application/x-amz-json-1.1"} | HeadersPrev],
             Request = prepare_record(Config, post, Headers, Body),
             Response = erlcloud_retry:request(Config, Request, fun aas_result_fun/1),
-            {ok, jsx:decode(Response#aws_request.response_body, [{return_maps, false}])};
+            case Response#aws_request.response_type of
+                ok ->
+                    {ok, jsx:decode(Response#aws_request.response_body, [{return_maps, false}])};
+                _ ->
+                    {error, decode_error(Response)}
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
@@ -718,18 +723,26 @@ prepare_record(Config, Method, Headers, Body) ->
     ]),
 
     #aws_request{service = application_autoscaling,
-                           method = Method,
-                           request_headers = Headers,
-                           request_body = Body,
-                           uri = RequestURI}.
+                 method = Method,
+                 request_headers = Headers,
+                 request_body = Body,
+                 uri = RequestURI}.
 
 port_spec(#aws_config{application_autoscaling_port=80}) ->
     "";
 port_spec(#aws_config{application_autoscaling_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
 
-
 headers(Config, Operation, Body) ->
     Headers = [{"host", Config#aws_config.application_autoscaling_host},
                {"x-amz-target", Operation}],
     erlcloud_aws:sign_v4_headers(Config, Headers, Body, erlcloud_aws:aws_region_from_host(Config#aws_config.application_autoscaling_host), "application-autoscaling").
+
+%% Extracts and decodes the error from the response returning
+%% in the format of `{error, {ErrorType, Message}}' (matching to how errors are returned in `ercloud_ddb2' module)
+%% Example: {error, {<<"ConcurrentUpdateException">>, <<"You already have a pending update to an Auto Scaling resource.">>}}
+decode_error(Response) ->
+    DecodedError = jsx:decode(Response#aws_request.response_body, [{return_maps, false}]),
+    ErrorType = proplists:get_value(<<"__type">>, DecodedError, <<>>),
+    ErrorMessage = proplists:get_value(<<"Message">>, DecodedError, <<>>),
+    {error, {ErrorType, ErrorMessage}}.
