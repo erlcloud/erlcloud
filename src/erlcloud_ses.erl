@@ -663,8 +663,10 @@ send_custom_verification_email(EmailAddress, TemplateName, Config) ->
 
 -type send_email_source() :: email().
 
--type send_email_opt() :: {reply_to_addresses, emails()} |
-                          {return_path, email()}.
+-type send_email_opt() :: {configuration_set_name, string() | binary()} |
+                          {reply_to_addresses, emails()} |
+                          {return_path, email()} |
+                          {tags, [{string() | binary(), string() | binary()}]}.
 
 -type send_email_opts() :: [send_email_opt()].
 
@@ -1134,11 +1136,18 @@ encode_list(Prefix, List, Acc) ->
 
 encode_list(_, [], _, Acc) ->
     Acc;
+encode_list(Prefix, [{Name, Value} | T], N, Acc) when is_list(Name) orelse is_binary(Name), 
+                                                      is_list(Value) orelse is_binary(Value) ->
+    encode_list(Prefix, T, N + 1,
+     [{encode_param_index(Prefix, N) ++ ".Name", Name},
+      {encode_param_index(Prefix, N) ++ ".Value", Value} | Acc]);
 encode_list(Prefix, [H | T], N, Acc) when is_list(H); is_binary(H) ->
-    encode_list(Prefix, T, N + 1, [{Prefix ++ ".member." ++ integer_to_list(N), H} | Acc]);
+    encode_list(Prefix, T, N + 1, [{encode_param_index(Prefix, N), H} | Acc]);
 encode_list(Prefix, V, N, Acc) when is_list(V); is_binary(V) ->
     encode_list(Prefix, [V], N, Acc).
-
+  
+encode_param_index(Prefix, N) -> Prefix ++ ".member." ++ integer_to_list(N).
+  
 encode_destination_pairs([], Acc) ->
     Acc;
 encode_destination_pairs([{bcc_addresses, List} | T], Acc) ->
@@ -1194,10 +1203,14 @@ encode_body(Body, Acc) when is_list(Body); is_binary(Body) ->
     
 encode_opts([], Acc) ->
     Acc;
+encode_opts([{configuration_set_name, ConfigurationSet} | T], Acc) ->
+    encode_opts(T,  [{"ConfigurationSetName", ConfigurationSet} | Acc]);
 encode_opts([{reply_to_addresses, List} | T], Acc) ->
     encode_opts(T, encode_list("ReplyToAddresses", List, Acc));
 encode_opts([{return_path, ReturnPath} | T], Acc) ->
-    encode_opts(T, [{"ReturnPath", ReturnPath} | Acc]).
+    encode_opts(T, [{"ReturnPath", ReturnPath} | Acc]);
+encode_opts([{tags, Tags} | T], Acc) ->
+    encode_opts(T, encode_list("Tags", Tags, Acc)).
 
 encode_raw_opts([], Acc) ->
     Acc;
