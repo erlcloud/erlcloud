@@ -61,10 +61,13 @@
 -type response_attribute() :: string() | integer().
 -type response_key() :: atom().
 -type response() :: [{response_key(), response_attribute()}].
+-type error_type() :: binary().
+-type error_message() :: binary().
 -type ok_error_response() :: {ok, jsx:json_term()}
                            | {error, metadata_not_available
                                    | container_credentials_unavailable
-                                   | erlcloud_aws:httpc_result_error()}.
+                                   | erlcloud_aws:httpc_result_error()
+                                   | {error_type(), error_message()}}.
 
 -type aws_aas_request_body() :: proplists:proplist().
 
@@ -706,7 +709,7 @@ request_with_action(Configuration, BodyConfiguration, Action) ->
                 ok ->
                     {ok, jsx:decode(Response#aws_request.response_body, [{return_maps, false}])};
                 _ ->
-                    {error, decode_error(Response)}
+                    decode_error(Response)
             end;
         {error, Reason} ->
             {error, Reason}
@@ -741,8 +744,13 @@ headers(Config, Operation, Body) ->
 %% Extracts and decodes the error from the response returning
 %% in the format of `{error, {ErrorType, Message}}' (matching to how errors are returned in `ercloud_ddb2' module)
 %% Example: {error, {<<"ConcurrentUpdateException">>, <<"You already have a pending update to an Auto Scaling resource.">>}}
-decode_error(Response) ->
-    DecodedError = jsx:decode(Response#aws_request.response_body, [{return_maps, false}]),
-    ErrorType = proplists:get_value(<<"__type">>, DecodedError, <<>>),
-    ErrorMessage = proplists:get_value(<<"Message">>, DecodedError, <<>>),
-    {error, {ErrorType, ErrorMessage}}.
+decode_error(#aws_request{response_body = Body} = Response) ->
+    case jsx:is_json(Body) of
+        false ->
+            erlcloud_aws:request_to_return(Response);
+        true ->
+            DecodedError = jsx:decode(Body, [{return_maps, false}]),
+            ErrorType = proplists:get_value(<<"__type">>, DecodedError, <<>>),
+            ErrorMessage = proplists:get_value(<<"Message">>, DecodedError, <<>>),
+            {error, {ErrorType, ErrorMessage}}
+    end.
