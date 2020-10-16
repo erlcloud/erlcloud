@@ -1351,7 +1351,8 @@ extract_image(Node) ->
      {creation_date, erlcloud_xml:get_time("creationDate", Node)},
      {platform, get_text("platform", Node)},
      {block_device_mapping, [extract_block_device_mapping(Item) || Item <- xmerl_xpath:string("blockDeviceMapping/item", Node)]},
-     {product_codes, [extract_product_code(Item) || Item <- xmerl_xpath:string("productCodes/item", Node)]}
+     {product_codes, [extract_product_code(Item) || Item <- xmerl_xpath:string("productCodes/item", Node)]},
+     {tag_set, [extract_tag_item(Item) || Item <- xmerl_xpath:string("tagSet/item", Node, [])]}
     ].
 
 extract_block_device_mapping(Node) ->

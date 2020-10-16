@@ -783,7 +783,12 @@ describe_images_tests(_) ->
          <creationDate>2016-03-26T12:00:13Z</creationDate>
          <blockDeviceMapping/>
          <virtualizationType>hvm</virtualizationType>
-         <tagSet/>
+         <tagSet>
+                <item>
+                    <key>Key</key>
+                    <value>Value</value>
+                </item>
+         </tagSet>
          <hypervisor>xen</hypervisor>
       </item>
    </imagesSet>
@@ -805,7 +810,8 @@ describe_images_tests(_) ->
           {creation_date, {{2016,3,26},{12,0,13}}},
           {platform, "windows"},
           {block_device_mapping, []},
-          {product_codes, []}
+          {product_codes, []},
+          {tag_set, [[{key,"Key"},{value, "Value"}]]}
         ]]}})],
 
   %% Remaining AWS API examples return subsets of the same data
