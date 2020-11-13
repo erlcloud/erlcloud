@@ -1084,6 +1084,7 @@ task_record() ->
             {<<"createdAt">>, #ecs_task.created_at, fun id/2},
             {<<"desiredStatus">>, #ecs_task.desired_status, fun id/2},
             {<<"lastStatus">>, #ecs_task.last_status, fun id/2},
+            {<<"launchType">>, #ecs_task.launch_type, fun id/2},
             {<<"overrides">>, #ecs_task.overrides, fun decode_task_overrides/2},
             {<<"startedAt">>, #ecs_task.started_at, fun id/2},
             {<<"startedBy">>, #ecs_task.started_by, fun id/2},
@@ -2050,6 +2051,7 @@ list_task_definitions(Opts, Config) ->
                           {sort, asc | desc} |
                           {max_results, 1..100} |
                           {next_token, binary()} |
+                          {launch_type, string_param()} |
                           out_opt().
 
 -type list_tasks_opts() :: [list_tasks_opt()].
@@ -2065,6 +2067,7 @@ list_tasks_opts() ->
         {service_name, <<"serviceName">>, fun to_binary/1},
         {started_by, <<"startedBy">>, fun to_binary/1},
         {max_results, <<"maxResults">>, fun id/1},
+        {launch_type, <<"launchType">>, fun to_binary/1},
         {next_token, <<"nextToken">>, fun to_binary/1}
     ].
 

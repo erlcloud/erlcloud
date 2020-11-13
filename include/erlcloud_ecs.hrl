@@ -254,6 +254,7 @@
     created_at :: undefined | number(),
     desired_status:: undefined | binary(),
     last_status :: undefined | binary(),
+    launch_type :: undefined | binary(),
     overrides :: undefined | #ecs_task_override{},
     started_at :: undefined | pos_integer(),
     started_by :: undefined | binary(),
