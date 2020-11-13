@@ -5,6 +5,10 @@
 -author('elbrujohalcon@inaka.net').
 
 -export([add_permission/3, add_permission/4,
+         create_platform_application/2,
+         create_platform_application/3,
+         create_platform_application/4,
+         create_platform_application/5,
          create_platform_endpoint/2, create_platform_endpoint/3,
          create_platform_endpoint/4, create_platform_endpoint/5,
          create_platform_endpoint/6,
@@ -160,6 +164,30 @@ create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attribut
 -spec create_platform_endpoint(string(), string(), string(), [{sns_endpoint_attribute(), string()}], string(), string()) -> string().
 create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, AccessKeyID, SecretAccessKey) ->
     create_platform_endpoint(PlatformApplicationArn, Token, CustomUserData, Attributes, new_config(AccessKeyID, SecretAccessKey)).
+
+-spec create_platform_application(string(), string()) -> string().
+create_platform_application(Name, Platform) ->
+    create_platform_application(Name, Platform, []).
+
+-spec create_platform_application(string(), string(), [{sns_endpoint_attribute(), string()}]) -> string().
+create_platform_application(Name, Platform, Attributes) ->
+    create_platform_application(Name, Platform, Attributes, default_config()).
+
+-spec create_platform_application(string(), string(), [{sns_endpoint_attribute(), string()}], aws_config()) -> string().
+create_platform_application(Name, Platform, Attributes, Config) ->
+    Doc =
+        sns_xml_request(
+            Config, "CreatePlatformApplication",
+            [{"Name",       Name},
+             {"Platform",   Platform}
+             | encode_attributes(Attributes)
+            ]),
+    erlcloud_xml:get_text(
+        "CreatePlatformApplicationResult/PlatformApplicationArn", Doc).
+
+-spec create_platform_application(string(), string(), [{sns_endpoint_attribute(), string()}], string(), string()) -> string().
+create_platform_application(Name, Platform, Attributes, AccessKeyID, SecretAccessKey) ->
+    create_platform_application(Name, Platform, Attributes, new_config(AccessKeyID, SecretAccessKey)).
 
 
 -spec create_topic(string()) -> string().
@@ -682,7 +710,15 @@ encode_attributes(Attributes) ->
              {Prefix ++ ".value",   Value} | Acc]
         end, [], lists:zip(lists:seq(1, length(Attributes)), Attributes)).
 
-encode_attribute_name(custom_user_data) -> "CustomUserData";
+encode_attribute_name(platform_credential) -> "PlatformCredential";
+encode_attribute_name(platform_principal) -> "PlatformPrincipal";
+encode_attribute_name(event_endpoint_created) -> "EventEndpointCreated";
+encode_attribute_name(event_endpoint_deleted) -> "EventEndpointDeleted";
+encode_attribute_name(event_endpoint_updated) -> "EventEndpointUpdated";
+encode_attribute_name(event_delivery_failure) -> "EventDeliveryFailure";
+encode_attribute_name(success_feedback_role_arn) -> "SuccessFeedbackRoleArn";
+encode_attribute_name(failure_feedback_role_arn) -> "FailureFeedbackRoleArn";
+encode_attribute_name(success_feedback_sample_rate) -> "SuccessFeedbackSampleRate";
 encode_attribute_name(enabled) -> "Enabled";
 encode_attribute_name(token) -> "Token".
 
