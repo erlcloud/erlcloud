@@ -37,6 +37,8 @@ sns_api_test_() ->
       fun delete_topic_input_tests/1,
       fun subscribe_input_tests/1,
       fun subscribe_output_tests/1,
+      fun create_platform_application_input_tests/1,
+      fun create_platform_application_output_tests/1,
       fun set_topic_attributes_input_tests/1,
       fun set_topic_attributes_output_tests/1,
       fun set_subscription_attributes_input_tests/1,
@@ -278,6 +280,45 @@ subscribe_output_tests(_) ->
     output_tests(?_f(erlcloud_sns:subscribe("arn:aws:sqs:us-west-2:123456789012:MyQueue", sqs,
                                         "arn:aws:sns:us-west-2:123456789012:MyTopic")), Tests).
 
+
+create_platform_application_input_tests(_) ->
+    Tests =
+        [?_sns_test(
+            {"Test to create platform application.",
+                ?_f(erlcloud_sns:create_platform_application("TestApp", "ADM")),
+                [
+                    {"Action", "CreatePlatformApplication"},
+                    {"Name", "TestApp"},
+                    {"Platform", "ADM"}
+                ]})
+        ],
+
+    Response = "
+                <CreatePlatformApplicationResponse xmlns=\"https://sns.amazonaws.com/doc/2010-03-31/\">
+                    <CreatePlatformApplicationResult>
+                        <PlatformApplicationArn>arn:aws:sns:us-west-2:123456789012:app/ADM/TestApp</PlatformApplicationArn>
+                    </CreatePlatformApplicationResult>
+                    <ResponseMetadata>
+                        <RequestId>b6f0e78b-e9d4-5a0e-b973-adc04e8a4ff9</RequestId>
+                    </ResponseMetadata>
+                </CreatePlatformApplicationResponse>",
+
+    input_tests(Response, Tests).
+
+create_platform_application_output_tests(_) ->
+    Tests = [?_sns_test(
+        {"This is a create platform application test.",
+            "<CreatePlatformApplicationResponse xmlns=\"https://sns.amazonaws.com/doc/2010-03-31/\">
+                <CreatePlatformApplicationResult>
+                    <PlatformApplicationArn>arn:aws:sns:us-west-2:123456789012:app/ADM/TestApp</PlatformApplicationArn>
+                </CreatePlatformApplicationResult>
+                <ResponseMetadata>
+                    <RequestId>b6f0e78b-e9d4-5a0e-b973-adc04e8a4ff9</RequestId>
+                </ResponseMetadata>
+            </CreatePlatformApplicationResponse>",
+            "arn:aws:sns:us-west-2:123456789012:app/ADM/TestApp"})
+    ],
+    output_tests(?_f(erlcloud_sns:create_platform_application("ADM", "TestApp")), Tests).
 
 %% Set topic attributes test based on the API examples:
 %% http://docs.aws.amazon.com/sns/latest/APIReference/API_SetTopicAttributes.html
