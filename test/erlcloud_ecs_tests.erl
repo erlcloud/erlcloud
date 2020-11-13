@@ -1706,6 +1706,7 @@ describe_tasks_output_tests(_) ->
       ],
       \"desiredStatus\": \"RUNNING\",
       \"lastStatus\": \"RUNNING\",
+      \"launchType\": \"FARGATE\",
       \"overrides\": {
         \"containerOverrides\": [
           {
@@ -1753,6 +1754,7 @@ describe_tasks_output_tests(_) ->
                         ],
                         desired_status = <<"RUNNING">>,
                         last_status = <<"RUNNING">>,
+                        launch_type = <<"FARGATE">>,
                         overrides = #ecs_task_override{
                             container_overrides = [
                                 #ecs_container_override{
@@ -2416,6 +2418,7 @@ run_task_output_tests(_) ->
       ],
       \"desiredStatus\": \"RUNNING\",
       \"lastStatus\": \"PENDING\",
+      \"launchType\": \"EC2\",
       \"overrides\": {
         \"containerOverrides\": [
           {
@@ -2454,6 +2457,7 @@ run_task_output_tests(_) ->
                         ],
                         desired_status = <<"RUNNING">>,
                         last_status = <<"PENDING">>,
+                        launch_type = <<"EC2">>,
                         overrides = #ecs_task_override{
                             container_overrides = [
                                 #ecs_container_override{
@@ -2556,6 +2560,7 @@ start_task_output_tests(_) ->
       ],
       \"desiredStatus\": \"RUNNING\",
       \"lastStatus\": \"PENDING\",
+      \"launchType\": \"FARGATE\",
       \"overrides\": {
         \"containerOverrides\": [
           {
@@ -2594,6 +2599,7 @@ start_task_output_tests(_) ->
                         ],
                         desired_status = <<"RUNNING">>,
                         last_status = <<"PENDING">>,
+                        launch_type = <<"FARGATE">>,
                         overrides = #ecs_task_override{
                             container_overrides = [
                                 #ecs_container_override{
