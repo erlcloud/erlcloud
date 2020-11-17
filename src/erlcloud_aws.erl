@@ -822,9 +822,16 @@ get_host_vpc_endpoint(Service, Default) when is_binary(Service) ->
     %% resolve through ENV if any
     Endpoints = case ConfiguredEndpoints of
         {env, EnvVarName} when is_list(EnvVarName) ->
-            Es = string_split(os:getenv(EnvVarName, ""), ","),
             % ignore "" env var or ",," cases
-            [list_to_binary(E) || E <- Es, E /= ""];
+            % also handle "zoneID:zoneName" form when it comes from CFN
+            Es = string_split(string_split(os:getenv(EnvVarName, ""), ","), ":"),
+            lists:filtermap(
+                fun ([""]) -> false;
+                    ([Name]) -> {true, list_to_binary(Name)};
+                    ([_Id, Name]) -> {true, list_to_binary(Name)}
+                end,
+                Es
+            );
         EndpointsList when is_list(EndpointsList) ->
             EndpointsList
     end,
