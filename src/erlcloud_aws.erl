@@ -830,7 +830,7 @@ get_host_vpc_endpoint(Service, Default) when is_binary(Service) ->
                     (Value) ->
                         case string_split(Value, ":") of
                             [_Id, Name] -> {true, list_to_binary(Name)};
-                            [Name] ->{true, list_to_binary(Name)}
+                            [Name] -> {true, list_to_binary(Name)}
                         end
                 end,
                 Es
