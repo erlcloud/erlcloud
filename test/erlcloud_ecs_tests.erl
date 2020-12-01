@@ -1680,7 +1680,35 @@ describe_tasks_output_tests(_) ->
   \"failures\": [],
   \"tasks\": [
     {
+      \"attachments\": [
+        {
+            \"id\": \"a1fda7d8-9592-4644-81ad-14578bc379ed\",
+            \"type\": \"ElasticNetworkInterface\",
+            \"status\": \"ATTACHED\",
+            \"details\": [
+                {
+                    \"name\": \"subnetId\",
+                    \"value\": \"subnet-0c28a8c6b37e69447\"
+                },
+                {
+                    \"name\": \"networkInterfaceId\",
+                    \"value\": \"eni-07f4ac7c00742fbfe\"
+                },
+                {
+                    \"name\": \"macAddress\",
+                    \"value\": \"0e:2b:61:08:f9:21\"
+                },
+                {
+                    \"name\": \"privateIPv4Address\",
+                    \"value\": \"10.0.0.92\"
+                }
+            ]
+        }
+      ],
+      \"availabilityZone\": \"us-east-1a\",
       \"clusterArn\": \"arn:aws:ecs:us-east-1:012345678910:cluster/default\",
+      \"connectivity\": \"CONNECTED\",
+      \"connectivityAt\": \"2020-11-17T13:54:45.465000+00:00\",
       \"containerInstanceArn\": \"arn:aws:ecs:us-east-1:012345678910:container-instance/84818520-995f-4d94-9d70-7714bacc2953\",
       \"containers\": [
         {
@@ -1704,9 +1732,14 @@ describe_tasks_output_tests(_) ->
           \"taskArn\": \"arn:aws:ecs:us-east-1:012345678910:task/c09f0188-7f87-4b0f-bfc3-16296622b6fe\"
         }
       ],
+      \"cpu\": \"256\",
+      \"createdAt\": \"2020-11-17T13:54:33.275000+00:00\",
       \"desiredStatus\": \"RUNNING\",
+      \"group\": \"service:kktest-fargate-service\",
+      \"healthStatus\": \"UNKNOWN\",
       \"lastStatus\": \"RUNNING\",
       \"launchType\": \"FARGATE\",
+      \"memory\": \"512\",
       \"overrides\": {
         \"containerOverrides\": [
           {
@@ -1717,9 +1750,17 @@ describe_tasks_output_tests(_) ->
           }
         ]
       },
+      \"platformVersion\": \"1.3.0\",
+      \"pullStartedAt\": \"2020-11-17T13:55:30.792000+00:00\",
+      \"pullStoppedAt\": \"2020-11-17T13:55:35.792000+00:00\",
+      \"startedAt\": \"2020-11-17T13:55:37.792000+00:00\",
       \"startedBy\": \"ecs-svc/9223370606521064774\",
+      \"tags\": [
+        {\"key\": \"test-key\", \"value\": \"test-value\"}
+      ],
       \"taskArn\": \"arn:aws:ecs:us-east-1:012345678910:task/c09f0188-7f87-4b0f-bfc3-16296622b6fe\",
-      \"taskDefinitionArn\": \"arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:10\"
+      \"taskDefinitionArn\": \"arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:10\",
+      \"version\": 3
     }
   ]
 }
@@ -1728,7 +1769,23 @@ describe_tasks_output_tests(_) ->
                 failures = [],
                 tasks = [
                     #ecs_task{
+                        attachments = [
+                            #ecs_attachment{
+                                id = <<"a1fda7d8-9592-4644-81ad-14578bc379ed">>,
+                                type = <<"ElasticNetworkInterface">>,
+                                status = <<"ATTACHED">>,
+                                details = [
+                                    #ecs_attachment_detail{name = <<"subnetId">>, value = <<"subnet-0c28a8c6b37e69447">>},
+                                    #ecs_attachment_detail{name = <<"networkInterfaceId">>, value = <<"eni-07f4ac7c00742fbfe">>},
+                                    #ecs_attachment_detail{name = <<"macAddress">>, value = <<"0e:2b:61:08:f9:21">>},
+                                    #ecs_attachment_detail{name = <<"privateIPv4Address">>, value = <<"10.0.0.92">>}
+                                ]
+                            }
+                        ],
+                        availability_zone = <<"us-east-1a">>,
                         cluster_arn = <<"arn:aws:ecs:us-east-1:012345678910:cluster/default">>,
+                        connectivity = <<"CONNECTED">>,
+                        connectivity_at = <<"2020-11-17T13:54:45.465000+00:00">>,
                         container_instance_arn = <<"arn:aws:ecs:us-east-1:012345678910:container-instance/84818520-995f-4d94-9d70-7714bacc2953">>,
                         containers = [
                             #ecs_container{
@@ -1752,9 +1809,14 @@ describe_tasks_output_tests(_) ->
                                 task_arn = <<"arn:aws:ecs:us-east-1:012345678910:task/c09f0188-7f87-4b0f-bfc3-16296622b6fe">>
                             }
                         ],
+                        cpu = <<"256">>,
+                        created_at = <<"2020-11-17T13:54:33.275000+00:00">>,
+                        group = <<"service:kktest-fargate-service">>,
                         desired_status = <<"RUNNING">>,
                         last_status = <<"RUNNING">>,
                         launch_type = <<"FARGATE">>,
+                        health_status = <<"UNKNOWN">>,
+                        memory = <<"512">>,
                         overrides = #ecs_task_override{
                             container_overrides = [
                                 #ecs_container_override{
@@ -1765,9 +1827,19 @@ describe_tasks_output_tests(_) ->
                                 }
                             ]
                         },
+                        platform_version = <<"1.3.0">>,
+                        pull_started_at = <<"2020-11-17T13:55:30.792000+00:00">>,
+                        pull_stopped_at = <<"2020-11-17T13:55:35.792000+00:00">>,
+                        started_at = <<"2020-11-17T13:55:37.792000+00:00">>,
                         started_by = <<"ecs-svc/9223370606521064774">>,
+                        stopped_at = undefined,
+                        stopped_reason = undefined,
+                        tags = [
+                            #ecs_tag{key = <<"test-key">>, value = <<"test-value">>}
+                        ],
                         task_arn = <<"arn:aws:ecs:us-east-1:012345678910:task/c09f0188-7f87-4b0f-bfc3-16296622b6fe">>,
-                        task_definition_arn = <<"arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:10">>
+                        task_definition_arn = <<"arn:aws:ecs:us-east-1:012345678910:task-definition/hello_world:10">>,
+                        version = 3
                     }
                 ]
             }}})

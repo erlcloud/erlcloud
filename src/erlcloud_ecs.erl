@@ -1041,16 +1041,51 @@ network_binding_record() ->
         ]
     }.
 
+-spec network_interface_record() -> record_desc().
+network_interface_record() ->
+    {#ecs_network_interface{},
+        [
+            {<<"attachmentId">>, #ecs_network_interface.attachment_id, fun id/2},
+            {<<"privateIpv4Address">>, #ecs_network_interface.private_ipv4_address, fun id/2}
+        ]
+    }.
+
+-spec attachment_record() -> record_desc().
+attachment_record() ->
+    {#ecs_attachment{},
+        [
+            {<<"id">>, #ecs_attachment.id, fun id/2},
+            {<<"type">>, #ecs_attachment.type, fun id/2},
+            {<<"status">>, #ecs_attachment.status, fun id/2},
+            {<<"details">>, #ecs_attachment.details, fun decode_attachment_details_list/2}
+        ]
+    }.
+
+-spec attachment_detail_record() -> record_desc().
+attachment_detail_record() ->
+    {#ecs_attachment_detail{},
+        [
+            {<<"name">>, #ecs_attachment_detail.name, fun id/2},
+            {<<"value">>, #ecs_attachment_detail.value, fun id/2}
+        ]
+    }.
+
 -spec container_record() -> record_desc().
 container_record() ->
     {#ecs_container{},
         [
             {<<"containerArn">>, #ecs_container.container_arn, fun id/2},
+            {<<"cpu">>, #ecs_container.cpu, fun id/2},
             {<<"exitCode">>, #ecs_container.exit_code, fun id/2},
+            {<<"healthStatus">>, #ecs_container.health_status, fun id/2},
+            {<<"image">>, #ecs_container.image, fun id/2},
             {<<"lastStatus">>, #ecs_container.last_status, fun id/2},
+            {<<"memoryReservation">>, #ecs_container.memory_reservation, fun id/2},
             {<<"name">>, #ecs_container.name, fun id/2},
             {<<"networkBindings">>, #ecs_container.network_bindings, fun decode_network_bindings_list/2},
+            {<<"networkInterfaces">>, #ecs_container.network_interfaces, fun decode_network_interfaces_list/2},
             {<<"reason">>, #ecs_container.reason, fun id/2},
+            {<<"runtimeId">>, #ecs_container.runtime_id, fun id/2},
             {<<"taskArn">>, #ecs_container.task_arn, fun id/2}
         ]
     }.
@@ -1074,24 +1109,46 @@ task_override_record() ->
         ]
     }.
 
+-spec tag_record() -> record_desc().
+tag_record() ->
+    {#ecs_tag{},
+        [
+            {<<"key">>, #ecs_tag.key, fun id/2},
+            {<<"value">>, #ecs_tag.value, fun id/2}
+        ]
+    }.
+
 -spec task_record() -> record_desc().
 task_record() ->
     {#ecs_task{},
         [
+            {<<"attachments">>, #ecs_task.attachments, fun decode_attachments_list/2},
+            {<<"availabilityZone">>, #ecs_task.availability_zone, fun id/2},
             {<<"clusterArn">>, #ecs_task.cluster_arn, fun id/2},
+            {<<"connectivity">>, #ecs_task.connectivity, fun id/2},
+            {<<"connectivityAt">>, #ecs_task.connectivity_at, fun id/2},
             {<<"containerInstanceArn">>, #ecs_task.container_instance_arn, fun id/2},
             {<<"containers">>, #ecs_task.containers, fun decode_containers_list/2},
+            {<<"cpu">>, #ecs_task.cpu, fun id/2},
             {<<"createdAt">>, #ecs_task.created_at, fun id/2},
             {<<"desiredStatus">>, #ecs_task.desired_status, fun id/2},
+            {<<"group">>, #ecs_task.group, fun id/2},
+            {<<"healthStatus">>, #ecs_task.health_status, fun id/2},
             {<<"lastStatus">>, #ecs_task.last_status, fun id/2},
             {<<"launchType">>, #ecs_task.launch_type, fun id/2},
+            {<<"memory">>, #ecs_task.memory, fun id/2},
             {<<"overrides">>, #ecs_task.overrides, fun decode_task_overrides/2},
+            {<<"platformVersion">>, #ecs_task.platform_version, fun id/2},
+            {<<"pullStartedAt">>, #ecs_task.pull_started_at, fun id/2},
+            {<<"pullStoppedAt">>, #ecs_task.pull_stopped_at, fun id/2},
             {<<"startedAt">>, #ecs_task.started_at, fun id/2},
             {<<"startedBy">>, #ecs_task.started_by, fun id/2},
             {<<"stoppedAt">>, #ecs_task.stopped_at, fun id/2},
             {<<"stoppedReason">>, #ecs_task.stopped_reason, fun id/2},
+            {<<"tags">>, #ecs_task.tags, fun decode_tags_list/2},
             {<<"taskArn">>, #ecs_task.task_arn, fun id/2},
-            {<<"taskDefinitionArn">>, #ecs_task.task_definition_arn, fun id/2}
+            {<<"taskDefinitionArn">>, #ecs_task.task_definition_arn, fun id/2},
+            {<<"version">>, #ecs_task.version, fun id/2}
         ]
     }.
 
@@ -1161,14 +1218,26 @@ decode_volumes_from_list(V, Opts) ->
 decode_tasks_list(V, Opts) ->
     [decode_record(task_record(), I, Opts) || I <- V].
 
+decode_attachments_list(V, Opts) ->
+    [decode_record(attachment_record(), I, Opts) || I <- V].
+
+decode_attachment_details_list(V, Opts) ->
+    [decode_record(attachment_detail_record(), I, Opts) || I <- V].
+
 decode_containers_list(V, Opts) ->
     [decode_record(container_record(), I, Opts) || I <- V].
 
 decode_network_bindings_list(V, Opts) ->
     [decode_record(network_binding_record(), I, Opts) || I <- V].
 
+decode_network_interfaces_list(V, Opts) ->
+    [decode_record(network_interface_record(), I, Opts) || I <- V].
+
 decode_task_overrides(V, Opts) ->
     decode_record(task_override_record(), V, Opts).
+
+decode_tags_list(V, Opts) ->
+    [decode_record(tag_record(), I, Opts) || I <- V].
 
 decode_container_overrides_list(V, Opts) ->
     [decode_record(container_override_record(), I, Opts) || I <- V].
