@@ -303,7 +303,7 @@
     tags :: undefined | [#ecs_tag{}],
     task_arn :: undefined | binary(),
     task_definition_arn :: undefined | binary(),
-    version :: undefined | pos_integer()
+    version :: undefined | non_neg_integer()
 }).
 
 -record(ecs_describe_tasks, {
