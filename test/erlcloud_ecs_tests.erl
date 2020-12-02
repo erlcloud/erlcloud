@@ -1708,14 +1708,26 @@ describe_tasks_output_tests(_) ->
       \"availabilityZone\": \"us-east-1a\",
       \"clusterArn\": \"arn:aws:ecs:us-east-1:012345678910:cluster/default\",
       \"connectivity\": \"CONNECTED\",
-      \"connectivityAt\": \"2020-11-17T13:54:45.465000+00:00\",
+      \"connectivityAt\": 1605621285.465,
       \"containerInstanceArn\": \"arn:aws:ecs:us-east-1:012345678910:container-instance/84818520-995f-4d94-9d70-7714bacc2953\",
       \"containers\": [
         {
           \"containerArn\": \"arn:aws:ecs:us-east-1:012345678910:container/76c980a8-2454-4a9c-acc4-9eb103117273\",
+          \"cpu\": \"256\",
+          \"exitCode\": 0,
+          \"healthStatus\": \"UNKNOWN\",
+          \"image\": \"nginx:latest\",
           \"lastStatus\": \"RUNNING\",
+          \"memoryReservation\": \"512\",
           \"name\": \"mysql\",
           \"networkBindings\": [],
+          \"networkInterfaces\": [
+            {
+                \"attachmentId\": \"a1fda7d8-9592-4644-81ad-14578bc379ed\",
+                \"privateIpv4Address\": \"10.0.0.92\"
+            }
+          ],
+          \"runtimeId\": \"19c89c93db7d248eb14044ba24925d9e50ef581e5030b23490e71d1beff3fc4e\",
           \"taskArn\": \"arn:aws:ecs:us-east-1:012345678910:task/c09f0188-7f87-4b0f-bfc3-16296622b6fe\"
         },
         {
@@ -1733,7 +1745,7 @@ describe_tasks_output_tests(_) ->
         }
       ],
       \"cpu\": \"256\",
-      \"createdAt\": \"2020-11-17T13:54:33.275000+00:00\",
+      \"createdAt\": 1605621273.275,
       \"desiredStatus\": \"RUNNING\",
       \"group\": \"service:kktest-fargate-service\",
       \"healthStatus\": \"UNKNOWN\",
@@ -1751,10 +1763,12 @@ describe_tasks_output_tests(_) ->
         ]
       },
       \"platformVersion\": \"1.3.0\",
-      \"pullStartedAt\": \"2020-11-17T13:55:30.792000+00:00\",
-      \"pullStoppedAt\": \"2020-11-17T13:55:35.792000+00:00\",
-      \"startedAt\": \"2020-11-17T13:55:37.792000+00:00\",
+      \"pullStartedAt\": 1605621330.792,
+      \"pullStoppedAt\": 1605621335.792,
+      \"startedAt\": 1605621337.792,
       \"startedBy\": \"ecs-svc/9223370606521064774\",
+      \"stoppedAt\": 1606906997.776,
+      \"stoppedReason\": \"Task stopped by user\",
       \"tags\": [
         {\"key\": \"test-key\", \"value\": \"test-value\"}
       ],
@@ -1785,14 +1799,26 @@ describe_tasks_output_tests(_) ->
                         availability_zone = <<"us-east-1a">>,
                         cluster_arn = <<"arn:aws:ecs:us-east-1:012345678910:cluster/default">>,
                         connectivity = <<"CONNECTED">>,
-                        connectivity_at = <<"2020-11-17T13:54:45.465000+00:00">>,
+                        connectivity_at = 1605621285.465,
                         container_instance_arn = <<"arn:aws:ecs:us-east-1:012345678910:container-instance/84818520-995f-4d94-9d70-7714bacc2953">>,
                         containers = [
                             #ecs_container{
                                 container_arn = <<"arn:aws:ecs:us-east-1:012345678910:container/76c980a8-2454-4a9c-acc4-9eb103117273">>,
+                                cpu = <<"256">>,
+                                exit_code = 0,
+                                health_status = <<"UNKNOWN">>,
+                                image = <<"nginx:latest">>,
                                 last_status = <<"RUNNING">>,
+                                memory_reservation = <<"512">>,
                                 name = <<"mysql">>,
                                 network_bindings = [],
+                                network_interfaces = [
+                                    #ecs_network_interface{
+                                        attachment_id = <<"a1fda7d8-9592-4644-81ad-14578bc379ed">>,
+                                        private_ipv4_address = <<"10.0.0.92">>
+                                    }
+                                ],
+                                runtime_id = <<"19c89c93db7d248eb14044ba24925d9e50ef581e5030b23490e71d1beff3fc4e">>,
                                 task_arn = <<"arn:aws:ecs:us-east-1:012345678910:task/c09f0188-7f87-4b0f-bfc3-16296622b6fe">>
                             },
                             #ecs_container{
@@ -1810,7 +1836,7 @@ describe_tasks_output_tests(_) ->
                             }
                         ],
                         cpu = <<"256">>,
-                        created_at = <<"2020-11-17T13:54:33.275000+00:00">>,
+                        created_at = 1605621273.275,
                         group = <<"service:kktest-fargate-service">>,
                         desired_status = <<"RUNNING">>,
                         last_status = <<"RUNNING">>,
@@ -1828,12 +1854,12 @@ describe_tasks_output_tests(_) ->
                             ]
                         },
                         platform_version = <<"1.3.0">>,
-                        pull_started_at = <<"2020-11-17T13:55:30.792000+00:00">>,
-                        pull_stopped_at = <<"2020-11-17T13:55:35.792000+00:00">>,
-                        started_at = <<"2020-11-17T13:55:37.792000+00:00">>,
+                        pull_started_at = 1605621330.792,
+                        pull_stopped_at = 1605621335.792,
+                        started_at = 1605621337.792,
                         started_by = <<"ecs-svc/9223370606521064774">>,
-                        stopped_at = undefined,
-                        stopped_reason = undefined,
+                        stopped_at = 1606906997.776,
+                        stopped_reason = <<"Task stopped by user">>,
                         tags = [
                             #ecs_tag{key = <<"test-key">>, value = <<"test-value">>}
                         ],
