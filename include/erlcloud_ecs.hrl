@@ -226,14 +226,26 @@
     protocol :: undefined | ecs_protocol()
 }).
 
+-record(ecs_network_interface, {
+    attachment_id :: undefined | binary(),
+    private_ipv4_address :: undefined | binary()
+}).
+
 -record(ecs_container, {
     container_arn :: undefined | binary(),
-    exit_code :: undefined | pos_integer(),
+    cpu :: undefined | binary(),
+    exit_code :: undefined | integer(),
+    health_status :: undefined | binary(),
+    image :: undefined | binary(),
     last_status :: undefined | binary(),
+    memory_reservation :: undefined | binary(),
     name :: undefined | binary(),
     network_bindings :: undefined | [#ecs_network_binding{}],
+    network_interfaces :: undefined | [#ecs_network_interface{}],
     reason :: undefined | binary(),
+    runtime_id :: undefined | binary(),
     task_arn :: undefined | binary()
+
 }).
 
 -record(ecs_container_override, {
@@ -247,21 +259,51 @@
     task_role_arn :: undefined | binary() 
 }).
 
+-record(ecs_attachment_detail, {
+    name :: undefined | binary(),
+    value :: undefined | binary()
+}).
+
+-record(ecs_attachment, {
+    id :: undefined | binary(),
+    type :: undefined | binary(),
+    status :: undefined | binary(),
+    details :: undefined | [#ecs_attachment_detail{}]
+}).
+
+-record(ecs_tag, {
+    key :: undefined | binary(),
+    value :: undefined | binary()
+}).
+
 -record(ecs_task, {
+    attachments :: undefined | [#ecs_attachment{}],
+    availability_zone :: undefined | binary(),
     cluster_arn :: undefined | binary(),
+    connectivity :: undefined | binary(),
+    connectivity_at :: undefined | number(),
     container_instance_arn :: undefined | binary(),
     containers :: undefined | [#ecs_container{}],
+    cpu :: undefined | binary(),
     created_at :: undefined | number(),
-    desired_status:: undefined | binary(),
+    desired_status :: undefined | binary(),
+    group :: undefined | binary(),
+    health_status :: undefined | binary(),
     last_status :: undefined | binary(),
     launch_type :: undefined | binary(),
+    memory :: undefined | binary(),
     overrides :: undefined | #ecs_task_override{},
-    started_at :: undefined | pos_integer(),
+    platform_version :: undefined | binary(),
+    pull_started_at :: undefined | number(),
+    pull_stopped_at :: undefined | number(),
+    started_at :: undefined | number(),
     started_by :: undefined | binary(),
-    stopped_at :: undefined | pos_integer(),
+    stopped_at :: undefined | number(),
     stopped_reason :: undefined | binary(),
+    tags :: undefined | [#ecs_tag{}],
     task_arn :: undefined | binary(),
-    task_definition_arn :: undefined | binary()
+    task_definition_arn :: undefined | binary(),
+    version :: undefined | non_neg_integer()
 }).
 
 -record(ecs_describe_tasks, {
