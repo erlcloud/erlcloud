@@ -416,10 +416,10 @@ get_role(RoleName) when is_list(RoleName) ->
 -spec get_role(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_role(RoleName, Config) ->
     get_role_impl([{"RoleName", RoleName}], Config).
-    
+
 get_role_impl(RoleNameParam, #aws_config{} = Config) ->
     ItemPath = "/GetRoleResponse/GetRoleResult/Role",
-    case iam_query(Config, "GetRole", RoleNameParam, ItemPath, data_type("Role")) of
+    case iam_query(Config, "GetRole", RoleNameParam, ItemPath, data_type("RoleGetDetail")) of
         {ok, [Role]} -> {ok, Role};
         {error, _} = Error -> Error
     end.
@@ -981,6 +981,17 @@ data_type("Role") ->
      {"RoleId", role_id, "String"},
      {"RoleName", role_name, "String"},
      {"Path", path, "String"}];
+data_type("RoleGetDetail") ->
+    [{"Arn", arn, "String"},
+     {"CreateDate", create_date, "DateTime"},
+     {"AssumeRolePolicyDocument", assume_role_policy_doc, "Uri"},
+     {"RoleId", role_id, "String"},
+     {"RoleName", role_name, "String"},
+     {"Path", path, "String"},
+     {"RoleLastUsed", role_last_used, data_type("RoleLastUsed")}];
+data_type("RoleLastUsed") ->
+    [{"LastUsedDate", last_used_date, "DateTime"},
+     {"Region", region, "String"}];
 data_type("RoleDetail") ->
     [{"RolePolicyList/member", role_policy_list, data_type("PolicyDetail")},
      {"RoleName", role_name, "String"},
