@@ -708,28 +708,28 @@ get_role_input_tests(_) ->
             {"Test returning role.",
                 ?_f(erlcloud_iam:get_role("test")),
                 [
-                    {"Action", "GetRole"},
-                    {"RoleName", "test"}
-                ]})
+                 {"Action", "GetRole"},
+                 {"RoleName", "test"}
+                 ]})
         ],
 
     input_tests(?GET_ROLE_RESP, Tests).
 
 get_role_output_tests(_) ->
     Tests = [?_iam_test(
-        {"This returns the role",
-            ?GET_ROLE_RESP,
-            {ok, [{role_last_used,
-                [[{region,"us-east-1"},
-                    {last_used_date,{{2013,5,8},{23,34,1}}}]]},
-                {path,"/application_abc/component_xyz/"},
-                {role_name,"S3Access"},
-                {role_id,"AROADBQP57FF2AEXAMPLE"},
-                {assume_role_policy_doc,
-                    "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"},
-                {create_date,{{2012,5,8},{23,34,1}}},
-                {arn, "arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access"}]}
-        })
+             {"This returns the role",
+              ?GET_ROLE_RESP,
+              {ok, [{role_last_used,
+                    [[{region,"us-east-1"},
+                      {last_used_date,{{2013,5,8},{23,34,1}}}]]},
+                    {path,"/application_abc/component_xyz/"},
+                    {role_name,"S3Access"},
+                    {role_id,"AROADBQP57FF2AEXAMPLE"},
+                    {assume_role_policy_doc,
+                     "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"},
+                    {create_date,{{2012,5,8},{23,34,1}}},
+                    {arn, "arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access"}]}
+             })
     ],
     output_tests(?_f(erlcloud_iam:get_role("test")), Tests).
 
