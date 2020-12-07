@@ -2591,6 +2591,7 @@ to_binary(undefined) -> undefined;
 to_binary(true) -> true;
 to_binary(false) -> false;
 to_binary(L) when is_list(L), is_list(hd(L)) -> [to_binary(V) || V <- L];
+to_binary(L) when is_list(L), is_binary(hd(L)) -> [to_binary(V) || V <- L];
 to_binary(L) when is_list(L) -> list_to_binary(L);
 to_binary(B) when is_binary(B) -> B;
 to_binary(A) when is_atom(A) -> atom_to_binary(A, latin1).

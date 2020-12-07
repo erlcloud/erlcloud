@@ -1620,6 +1620,16 @@ describe_tasks_input_tests(_) ->
   ]
 }
 "
+            }),
+         ?_ecs_test(
+            {"DescribeTasks binary input example request",
+             ?_f(erlcloud_ecs:describe_tasks([<<"c09f0188-7f87-4b0f-bfc3-16296622b6fe">>])), "
+{
+  \"tasks\": [
+    \"c09f0188-7f87-4b0f-bfc3-16296622b6fe\"
+  ]
+}
+"
             })
         ],
     Response = "
