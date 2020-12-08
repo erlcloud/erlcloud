@@ -989,9 +989,6 @@ data_type("Role") ->
      {"RoleName", role_name, "String"},
      {"Path", path, "String"},
      {"RoleLastUsed", role_last_used, data_type("RoleLastUsed")}];
-data_type("RoleLastUsed") ->
-    [{"LastUsedDate", last_used_date, "DateTime"},
-     {"Region", region, "String"}];
 data_type("RoleDetail") ->
     [{"RolePolicyList/member", role_policy_list, data_type("PolicyDetail")},
      {"RoleName", role_name, "String"},
@@ -1001,6 +998,9 @@ data_type("RoleDetail") ->
      {"CreateDate", create_date, "DateTime"},
      {"AssumeRolePolicyDocument", assume_role_policy_document, "Uri"},
      {"Arn", arn, "String"}];
+data_type("RoleLastUsed") ->
+    [{"LastUsedDate", last_used_date, "DateTime"},
+     {"Region", region, "String"}];
 data_type("RolePolicyList") ->
     [{"PolicyDocument", policy_document, "Uri"},
      {"RoleName", role_name, "String"},
