@@ -419,7 +419,7 @@ get_role(RoleName, Config) ->
 
 get_role_impl(RoleNameParam, #aws_config{} = Config) ->
     ItemPath = "/GetRoleResponse/GetRoleResult/Role",
-    case iam_query(Config, "GetRole", RoleNameParam, ItemPath, data_type("RoleGetDetail")) of
+    case iam_query(Config, "GetRole", RoleNameParam, ItemPath, data_type("Role")) of
         {ok, [Role]} -> {ok, Role};
         {error, _} = Error -> Error
     end.
@@ -981,7 +981,7 @@ data_type("RoleList") ->
      {"RoleId", role_id, "String"},
      {"RoleName", role_name, "String"},
      {"Path", path, "String"}];
-data_type("RoleGetDetail") ->
+data_type("Role") ->
     [{"Arn", arn, "String"},
      {"CreateDate", create_date, "DateTime"},
      {"AssumeRolePolicyDocument", assume_role_policy_doc, "Uri"},
