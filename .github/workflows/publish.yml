@@ -1,0 +1,13 @@
+---
+name: publish
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  pub:
+    name: Publish to Hex.pm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: make travis-publish
