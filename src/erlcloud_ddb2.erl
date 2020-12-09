@@ -1159,7 +1159,7 @@ out({ok, Json}, Undynamize, Opts) ->
         simple ->
             {simple, Undynamize(Json, [])}
     end;
-out(Request, _Undynamize, _Opts) when is_list(Request)->
+out(Request, _Undynamize, _Opts) when is_list(Request) ->
     Request.
 
 %% Returns specified field of tuple for simple return
@@ -2668,7 +2668,7 @@ describe_time_to_live(Table, DbOpts) ->
 %%------------------------------------------------------------------------------
 -spec describe_time_to_live(table_name(), ddb_opts(), aws_config()) -> describe_time_to_live_return().
 describe_time_to_live(Table, DbOpts, Config) ->
-    NoRequest = proplists:get_value(DbOpts, no_request, false),
+    NoRequest = proplists:get_value(no_request, DbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
                NoRequest,
