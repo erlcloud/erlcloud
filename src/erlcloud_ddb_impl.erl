@@ -72,7 +72,7 @@
 
 -export_type([json_return/0, attempt/0, retry_fun/0]).
 
--type json_return() :: ok | {ok, jsx:json_term()} | {error, term()}.
+-type json_return() :: ok | {ok, jsx:json_term()} | {error, term()} | list().
 
 -type operation() :: string().
 
