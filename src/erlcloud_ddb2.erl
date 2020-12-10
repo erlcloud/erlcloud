@@ -1148,6 +1148,8 @@ out({error, Reason}, _, _) ->
     {error, Reason};
 out(ok, _, _) ->
     {error, unexpected_empty_response};
+out({ok, {request, _Headers, _Body}} = Request, _Undynamize, _Opts) ->
+    Request;
 out({ok, Json}, Undynamize, Opts) ->
     case proplists:get_value(out, Opts, simple) of
         json ->
@@ -1158,9 +1160,7 @@ out({ok, Json}, Undynamize, Opts) ->
             {ok, Undynamize(Json, [{typed, true}])};
         simple ->
             {simple, Undynamize(Json, [])}
-    end;
-out(Request, _Undynamize, _Opts) when is_list(Request) ->
-    Request.
+    end.
 
 %% Returns specified field of tuple for simple return
 -spec out(erlcloud_ddb_impl:json_return(), undynamize_fun(), ddb_opts(), pos_integer()) 
@@ -1584,13 +1584,12 @@ batch_get_item(RequestItems, Opts) ->
                             batch_get_item_return().
 batch_get_item(RequestItems, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(batch_get_item_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.BatchGetItem",
                [{<<"RequestItems">>, dynamize_batch_get_item_request_items(RequestItems)}]
-                ++ AwsOpts),
+                ++ AwsOpts,
+                DdbOpts),
     case out(Return, 
              fun(Json, UOpts) -> undynamize_record(batch_get_item_record(), Json, UOpts) end, 
              DdbOpts) of
@@ -1711,13 +1710,12 @@ batch_write_item(RequestItems, Opts) ->
                               batch_write_item_return().
 batch_write_item(RequestItems, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(batch_write_item_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.BatchWriteItem",
                [{<<"RequestItems">>, dynamize_batch_write_item_request_items(RequestItems)}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               DdbOpts),
     case out(Return, 
              fun(Json, UOpts) -> undynamize_record(batch_write_item_record(), Json, UOpts) end, 
              DdbOpts) of
@@ -1784,13 +1782,12 @@ create_backup(BackupName, TableName, Opts)
 create_backup(BackupName, TableName, Opts, Config)
     when is_binary(BackupName), is_binary(TableName) ->
     {_AwsOpts, DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
      Config,
-     NoRequest,
      "DynamoDB_20120810.CreateBackup",
      [{<<"TableName">>, TableName},
-      {<<"BackupName">>, BackupName}]),
+      {<<"BackupName">>, BackupName}],
+      DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(create_backup_record(), Json, UOpts) end,
         DdbOpts, #ddb2_create_backup.backup_details).
 
@@ -1849,13 +1846,12 @@ create_global_table(GlobalTableName, ReplicationGroup, Config) when is_record(Co
                          -> create_global_table_return().
 create_global_table(GlobalTableName, ReplicationGroup, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.CreateGlobalTable",
                [{<<"GlobalTableName">>, GlobalTableName},
-                {<<"ReplicationGroup">>, dynamize_maybe_list(fun dynamize_replica/1, ReplicationGroup)}]),
+                {<<"ReplicationGroup">>, dynamize_maybe_list(fun dynamize_replica/1, ReplicationGroup)}],
+                DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(create_global_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_create_global_table.global_table_description).
 
@@ -1961,15 +1957,14 @@ create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits)
     create_table(Table, AttrDefs, KeySchema, ReadUnits, WriteUnits, [], default_config());
 create_table(Table, AttrDefs, KeySchema, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(create_table_opts(KeySchema), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
         Config,
-        NoRequest,
         "DynamoDB_20120810.CreateTable",
         [{<<"TableName">>, Table},
          {<<"AttributeDefinitions">>, dynamize_attr_defs(AttrDefs)},
          {<<"KeySchema">>, dynamize_key_schema(KeySchema)}]
-        ++ AwsOpts),
+        ++ AwsOpts,
+        DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(create_table_record(), Json, UOpts) end,
         DdbOpts, #ddb2_create_table.table_description).
 
@@ -2093,12 +2088,11 @@ delete_backup(BackupArn, Opts)
 delete_backup(BackupArn, Opts, Config)
     when is_binary(BackupArn) ->
     {_AwsOpts, DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
      Config,
-     NoRequest,
      "DynamoDB_20120810.DeleteBackup",
-     [{<<"BackupArn">>, BackupArn}]),
+     [{<<"BackupArn">>, BackupArn}],
+     DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(delete_backup_record(), Json, UOpts) end,
         DdbOpts, #ddb2_delete_backup.backup_description).
 
@@ -2186,14 +2180,13 @@ delete_item(Table, Key, Opts) ->
 -spec delete_item(table_name(), key(), delete_item_opts(), aws_config()) -> delete_item_return().
 delete_item(Table, Key, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(delete_item_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.DeleteItem",
                [{<<"TableName">>, Table},
                 {<<"Key">>, dynamize_key(Key)}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(delete_item_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_delete_item.attributes, {ok, []}).
 
@@ -2236,12 +2229,11 @@ delete_table(Table, Opts) ->
 -spec delete_table(table_name(), ddb_opts(), aws_config()) -> delete_table_return().
 delete_table(Table, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.DeleteTable",
-               [{<<"TableName">>, Table}]),
+               [{<<"TableName">>, Table}],
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(delete_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_delete_table.table_description).
 
@@ -2287,12 +2279,11 @@ describe_backup(BackupArn, Opts)
 describe_backup(BackupArn, Opts, Config)
     when is_binary(BackupArn) ->
     {_AwsOpts, DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
      Config,
-     NoRequest,
      "DynamoDB_20120810.DescribeBackup",
-     [{<<"BackupArn">>, BackupArn}]),
+     [{<<"BackupArn">>, BackupArn}],
+     DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(describe_backup_record(), Json, UOpts) end,
         DdbOpts, #ddb2_describe_backup.backup_description).
 
@@ -2354,12 +2345,11 @@ describe_continuous_backups(TableName, Opts)
 describe_continuous_backups(TableName, Opts, Config)
     when is_binary(TableName) ->
     {_AwsOpts, DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
      Config,
-     NoRequest,
      "DynamoDB_20120810.DescribeContinuousBackups",
-     [{<<"TableName">>, TableName}]),
+     [{<<"TableName">>, TableName}],
+     DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(continuous_backups_record(), Json, UOpts) end,
         DdbOpts, #ddb2_describe_continuous_backups.continuous_backups_description).
 
@@ -2406,12 +2396,11 @@ describe_global_table(GlobalTableName, Config) when is_record(Config, aws_config
                            -> describe_global_table_return().
 describe_global_table(GlobalTableName, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.DescribeGlobalTable",
-               [{<<"GlobalTableName">>, GlobalTableName}]),
+               [{<<"GlobalTableName">>, GlobalTableName}],
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(describe_global_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_describe_table.table).
 
@@ -2456,12 +2445,11 @@ describe_global_table_settings(GlobalTableName, Opts) ->
 -spec describe_global_table_settings(table_name(), ddb_opts(), aws_config()) -> describe_global_table_settings_return().
 describe_global_table_settings(GlobalTableName, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
         Config,
-        NoRequest,
         "DynamoDB_20120810.DescribeGlobalTableSettings",
-        [{<<"GlobalTableName">>, GlobalTableName}]),
+        [{<<"GlobalTableName">>, GlobalTableName}],
+        DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(describe_global_table_settings_record(), Json, UOpts) end,
         DdbOpts, #ddb2_describe_global_table_settings.replica_settings).
 
@@ -2506,12 +2494,11 @@ describe_limits(Opts) ->
 -spec describe_limits(ddb_opts(), aws_config()) -> describe_limits_return().
 describe_limits(Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.DescribeLimits",
-               []),
+               [],
+               DdbOpts),
     case out(Return, fun(Json, UOpts) -> undynamize_record(describe_limits_record(), Json, UOpts) end,
              DdbOpts) of
         {simple, Record} -> {ok, Record};
@@ -2558,12 +2545,11 @@ describe_table(Table, Opts) ->
 -spec describe_table(table_name(), ddb_opts(), aws_config()) -> describe_table_return().
 describe_table(Table, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.DescribeTable",
-               [{<<"TableName">>, Table}]),
+               [{<<"TableName">>, Table}],
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(describe_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_describe_table.table).
 
@@ -2607,12 +2593,11 @@ describe_table_replica_auto_scaling(Table, Opts) ->
 -spec describe_table_replica_auto_scaling(table_name(), ddb_opts(), aws_config()) -> describe_table_replica_auto_scaling_return().
 describe_table_replica_auto_scaling(Table, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
         Config,
-        NoRequest,
         "DynamoDB_20120810.DescribeTableReplicaAutoScaling",
-        [{<<"TableName">>, Table}]),
+        [{<<"TableName">>, Table}],
+        DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(describe_table_replica_auto_scaling_record(), Json, UOpts) end,
         DdbOpts, #ddb2_describe_table_replica_auto_scaling.table_auto_scaling_description).
 
@@ -2668,12 +2653,11 @@ describe_time_to_live(Table, DbOpts) ->
 %%------------------------------------------------------------------------------
 -spec describe_time_to_live(table_name(), ddb_opts(), aws_config()) -> describe_time_to_live_return().
 describe_time_to_live(Table, DbOpts, Config) ->
-    NoRequest = proplists:get_value(no_request, DbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.DescribeTimeToLive",
-               [{<<"TableName">>, Table}]),
+               [{<<"TableName">>, Table}],
+               DbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(describe_time_to_live_record(), Json, UOpts) end, 
         DbOpts, #ddb2_describe_time_to_live.time_to_live_description).
 
@@ -2738,14 +2722,13 @@ get_item(Table, Key, Opts) ->
 -spec get_item(table_name(), key(), get_item_opts(), aws_config()) -> get_item_return().
 get_item(Table, Key, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(get_item_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.GetItem",
                [{<<"TableName">>, Table},
                 {<<"Key">>, dynamize_key(Key)}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(get_item_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_get_item.item, {ok, []}).
 
@@ -2828,12 +2811,11 @@ list_backups(Opts) ->
 -spec list_backups([list_backups_opt()], aws_config()) -> list_backups_return().
 list_backups(Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(list_backups_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
      Config,
-     NoRequest,
      "DynamoDB_20120810.ListBackups",
-     AwsOpts),
+     AwsOpts,
+     DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(list_backups_record(), Json, UOpts) end,
         DdbOpts, #ddb2_list_backups.backup_summaries).
 
@@ -2896,12 +2878,11 @@ list_global_tables(Config) when is_record(Config, aws_config) ->
                         -> list_global_tables_return().
 list_global_tables(Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(list_global_tables_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.ListGlobalTables",
-               AwsOpts),
+               AwsOpts,
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(list_global_tables_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_list_global_tables.global_tables, {ok, []}).
 
@@ -2956,12 +2937,11 @@ list_tables(Opts) ->
 -spec list_tables(list_tables_opts(), aws_config()) -> list_tables_return().
 list_tables(Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(list_tables_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.ListTables",
-               AwsOpts),
+               AwsOpts,
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(list_tables_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_list_tables.table_names, {ok, []}).
 
@@ -3024,12 +3004,10 @@ list_tags_of_resource(ResourceArn, Opts) ->
                            -> list_tags_of_resource_return().
 list_tags_of_resource(ResourceArn, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(list_tags_of_resource_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.ListTagsOfResource",
-               [{<<"ResourceArn">>, ResourceArn} | AwsOpts]),
+               [{<<"ResourceArn">>, ResourceArn} | AwsOpts], DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(list_tags_of_resource_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_list_tags_of_resource.tags, {ok, []}).
 
@@ -3127,14 +3105,13 @@ put_item(Table, Item, Opts) ->
 -spec put_item(table_name(), in_item(), put_item_opts(), aws_config()) -> put_item_return().
 put_item(Table, Item, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(put_item_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.PutItem",
                [{<<"TableName">>, Table},
                 {<<"Item">>, dynamize_item(Item)}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(put_item_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_put_item.attributes, {ok, []}).
 
@@ -3240,14 +3217,14 @@ q(Table, KeyConditionsOrExpression, Opts) ->
 -spec q(table_name(), conditions() | expression(), q_opts(), aws_config()) -> q_return().
 q(Table, KeyConditionsOrExpression, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(q_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
+
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.Query",
                [{<<"TableName">>, Table},
                 dynamize_q_key_conditions_or_expression(KeyConditionsOrExpression)]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(q_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_q.items, {ok, []}).
 
@@ -3293,13 +3270,12 @@ restore_table_from_backup(BackupArn, TargetTableName, Opts)
 restore_table_from_backup(BackupArn, TargetTableName, Opts, Config)
     when is_binary(BackupArn), is_binary(TargetTableName) ->
     {_AwsOpts, DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
      Config,
-     NoRequest,
      "DynamoDB_20120810.RestoreTableFromBackup",
      [{<<"BackupArn">>, BackupArn},
-      {<<"TargetTableName">>, TargetTableName}]),
+      {<<"TargetTableName">>, TargetTableName}],
+      DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(restore_table_from_backup_record(), Json, UOpts) end,
         DdbOpts, #ddb2_restore_table_from_backup.table_description).
 
@@ -3354,13 +3330,12 @@ restore_table_to_point_in_time(SourceTableName, TargetTableName, Opts)
 restore_table_to_point_in_time(SourceTableName, TargetTableName, Opts, Config)
     when is_binary(SourceTableName), is_binary(TargetTableName) ->
     {AwsOpts, DdbOpts} = opts(restore_table_to_point_in_time_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
       Config,
-      NoRequest,
       "DynamoDB_20120810.RestoreTableToPointInTime",
       [{<<"SourceTableName">>, SourceTableName},
-        {<<"TargetTableName">>, TargetTableName}] ++ AwsOpts),
+        {<<"TargetTableName">>, TargetTableName}] ++ AwsOpts,
+        DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(restore_table_to_point_in_time(), Json, UOpts) end,
         DdbOpts, #ddb2_restore_table_to_point_in_time.table_description).
 
@@ -3446,13 +3421,12 @@ scan(Table, Opts) ->
 -spec scan(table_name(), scan_opts(), aws_config()) -> scan_return().
 scan(Table, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(scan_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.Scan",
                [{<<"TableName">>, Table}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(scan_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_scan.items, {ok, []}).
 
@@ -3496,7 +3470,7 @@ tag_resource(ResourceArn, Tags) ->
                   -> tag_resource_return().
 tag_resource(ResourceArn, Tags, Config) ->
     erlcloud_ddb_impl:request(
-      Config, false,
+      Config,
       "DynamoDB_20120810.TagResource",
       [{<<"ResourceArn">>, ResourceArn},
        {<<"Tags">>, dynamize_tags(Tags)}]).
@@ -3594,13 +3568,12 @@ transact_get_items(RequestItems, Opts) ->
                               transact_get_items_return().
 transact_get_items(TransactItems, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(transact_get_items_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.TransactGetItems",
                [{<<"TransactItems">>, dynamize_transact_get_items_transact_items(TransactItems)}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               DdbOpts),
     case out(Return,
              fun(Json, UOpts) -> undynamize_record(transact_get_items_record(), Json, UOpts) end, DdbOpts) of
         {simple, #ddb2_transact_get_items{responses = Responses}} ->
@@ -3740,13 +3713,12 @@ transact_write_items(RequestItems, Opts) ->
                               transact_write_items_return().
 transact_write_items(TransactItems, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(transact_write_items_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.TransactWriteItems",
                [{<<"TransactItems">>, dynamize_transact_write_items_transact_items(TransactItems)}]
-               ++ AwsOpts),
+               ++ AwsOpts,
+               DdbOpts),
     case out(Return,
              fun(Json, UOpts) -> undynamize_record(transact_write_items_record(), Json, UOpts) end, DdbOpts,
              #ddb2_transact_write_items.attributes, {ok, []}) of
@@ -3784,7 +3756,7 @@ untag_resource(ResourceArn, TagKeys) ->
                   -> untag_resource_return().
 untag_resource(ResourceArn, TagKeys, Config) ->
     erlcloud_ddb_impl:request(
-      Config, false,
+      Config,
       "DynamoDB_20120810.UntagResource",
       [{<<"ResourceArn">>, ResourceArn},
        {<<"TagKeys">>, TagKeys}]).
@@ -3828,13 +3800,12 @@ update_continuous_backups(TableName, PointInTimeRecoveryEnabled, Opts)
 update_continuous_backups(TableName, PointInTimeRecoveryEnabled, Opts, Config)
     when is_binary(TableName), is_boolean(PointInTimeRecoveryEnabled) ->
     {_AwsOpts, DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
      Config,
-     NoRequest,
      "DynamoDB_20120810.UpdateContinuousBackups",
      [{<<"TableName">>, TableName},
-      {<<"PointInTimeRecoverySpecification">>, dynamize_point_in_time_recovery_enabled(PointInTimeRecoveryEnabled)}]),
+      {<<"PointInTimeRecoverySpecification">>, dynamize_point_in_time_recovery_enabled(PointInTimeRecoveryEnabled)}],
+      DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(continuous_backups_record(), Json, UOpts) end,
         DdbOpts, #ddb2_describe_continuous_backups.continuous_backups_description).
 
@@ -3951,15 +3922,14 @@ update_item(Table, Key, UpdatesOrExpression, Opts) ->
                  -> update_item_return().
 update_item(Table, Key, UpdatesOrExpression, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(update_item_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.UpdateItem",
                [{<<"TableName">>, Table},
                 {<<"Key">>, dynamize_key(Key)}]
                ++ dynamize_update_item_updates_or_expression(UpdatesOrExpression)
-               ++ AwsOpts),
+               ++ AwsOpts,
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_item_record(), Json, UOpts) end, DdbOpts, 
         #ddb2_update_item.attributes, {ok, []}).
 
@@ -4018,13 +3988,12 @@ update_global_table(GlobalTableName, ReplicaUpdates, Config) when is_record(Conf
                          -> update_global_table_return().
 update_global_table(GlobalTableName, ReplicaUpdates, Opts, Config) ->
     {[], DdbOpts} = opts([], Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.UpdateGlobalTable",
                [{<<"GlobalTableName">>, GlobalTableName},
-                {<<"ReplicaUpdates">>, dynamize_maybe_list(fun dynamize_replica_update/1, ReplicaUpdates)}]),
+                {<<"ReplicaUpdates">>, dynamize_maybe_list(fun dynamize_replica_update/1, ReplicaUpdates)}],
+                DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_global_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_update_global_table.global_table_description).
 
@@ -4168,12 +4137,10 @@ update_global_table_settings(GlobalTableName, Opts) ->
 -spec update_global_table_settings(table_name(), update_global_table_settings_opts(), aws_config()) -> update_global_table_settings_return().
 update_global_table_settings(GlobalTableName, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(update_global_table_settings_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
         Config,
-        NoRequest,
         "DynamoDB_20120810.UpdateGlobalTableSettings",
-        [{<<"GlobalTableName">>, GlobalTableName} | AwsOpts]),
+        [{<<"GlobalTableName">>, GlobalTableName} | AwsOpts], DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_global_table_settings_record(), Json, UOpts) end,
         DdbOpts, #ddb2_update_global_table_settings.replica_settings).
 
@@ -4339,12 +4306,11 @@ update_table(Table, Opts) ->
                   (table_name(), read_units(), write_units()) -> update_table_return().
 update_table(Table, Opts, Config) when is_list(Opts) ->
     {AwsOpts, DdbOpts} = opts(update_table_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.UpdateTable",
-               [{<<"TableName">>, Table} | AwsOpts]),
+               [{<<"TableName">>, Table} | AwsOpts],
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_update_table.table_description);
 update_table(Table, ReadUnits, WriteUnits) ->
@@ -4487,12 +4453,10 @@ update_table_replica_auto_scaling(Table, Opts, Config) when is_list(Opts) ->
     % Any non-default timeout already written to the config will not be overridden.
     UpdatedConfig = maybe_update_config_timeout(Config, 25000),
     {AwsOpts, DdbOpts} = opts(update_table_replica_auto_scaling_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Return = erlcloud_ddb_impl:request(
         UpdatedConfig,
-        NoRequest,
         "DynamoDB_20120810.UpdateTableReplicaAutoScaling",
-        [{<<"TableName">>, Table} | AwsOpts]),
+        [{<<"TableName">>, Table} | AwsOpts], DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_table_replica_auto_scaling_record(), Json, UOpts) end,
         DdbOpts, #ddb2_update_table_replica_auto_scaling.table_auto_scaling_description).
 
@@ -4560,13 +4524,12 @@ update_time_to_live(Table, AttributeName, Enabled, Config) ->
                          (table_name(), attr_name(), boolean()) -> update_time_to_live_return().
 update_time_to_live(Table, Opts, Config) when is_list(Opts) ->
     {AwsOpts, DdbOpts} = opts(update_time_to_live_opts(), Opts),
-    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Body = [{<<"TableName">>, Table}, {<<"TimeToLiveSpecification">>, AwsOpts}],
     Return = erlcloud_ddb_impl:request(
                Config,
-               NoRequest,
                "DynamoDB_20120810.UpdateTimeToLive",
-               Body),
+               Body,
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_time_to_live_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_update_time_to_live.time_to_live_specification);
 
