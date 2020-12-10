@@ -93,7 +93,7 @@ batch_get_item(RequestItems) ->
 -spec batch_get_item([batch_get_item_request_item()], aws_config()) -> json_return().
 batch_get_item(RequestItems, Config) ->
     Json = [{<<"RequestItems">>, [batch_get_item_request_item_json(R) || R <- RequestItems]}],
-    erlcloud_ddb_impl:request(Config, false, "DynamoDB_20111205.BatchGetItem", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.BatchGetItem", Json).
 
 -type batch_write_item_put() :: {put, item()}.
 -type batch_write_item_delete() :: {delete, key()}.
@@ -117,7 +117,7 @@ batch_write_item(RequestItems) ->
 -spec batch_write_item([batch_write_item_request_item()], aws_config()) -> json_return().
 batch_write_item(RequestItems, Config) ->
     Json = [{<<"RequestItems">>, [batch_write_item_request_item_json(R) || R <- RequestItems]}],
-    erlcloud_ddb_impl:request(Config, false, "DynamoDB_20111205.BatchWriteItem", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.BatchWriteItem", Json).
 
 
 -spec key_schema_value_json(key_schema_value()) -> jsx:json_term().
@@ -141,7 +141,7 @@ create_table(Table, KeySchema, ReadUnits, WriteUnits, Config) ->
             key_schema_json(KeySchema),
             {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
                                            {<<"WriteCapacityUnits">>, WriteUnits}]}],
-    erlcloud_ddb_impl:request(Config, false, "DynamoDB_20111205.CreateTable", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.CreateTable", Json).
 
     
 -spec delete_item(table_name(), key()) -> json_return().
@@ -157,7 +157,7 @@ delete_item(Table, Key, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             key_json(Key)] 
         ++ Opts,
-    erlcloud_ddb_impl:request(Config, false, "DynamoDB_20111205.DeleteItem", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.DeleteItem", Json).
 
     
 -spec delete_table(table_name()) -> json_return().
@@ -167,7 +167,7 @@ delete_table(Table) ->
 -spec delete_table(table_name(), aws_config()) -> json_return().
 delete_table(Table, Config) ->
     Json = [{<<"TableName">>, Table}],
-    erlcloud_ddb_impl:request(Config, false, "DynamoDB_20111205.DeleteTable", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.DeleteTable", Json).
 
     
 -spec describe_table(table_name()) -> json_return().
@@ -177,7 +177,7 @@ describe_table(Table) ->
 -spec describe_table(table_name(), aws_config()) -> json_return().
 describe_table(Table, Config) ->
     Json = [{<<"TableName">>, Table}],
-    erlcloud_ddb_impl:request(Config, false, "DynamoDB_20111205.DescribeTable", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.DescribeTable", Json).
 
 
 -spec get_item(table_name(), key()) -> json_return().
@@ -193,7 +193,7 @@ get_item(Table, Key, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             key_json(Key)] 
         ++ Opts,
-    erlcloud_ddb_impl:request(Config, false, "DynamoDB_20111205.GetItem", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.GetItem", Json).
 
 
 -spec list_tables() -> json_return().
@@ -206,7 +206,7 @@ list_tables(Opts) ->
 
 -spec list_tables(opts(), aws_config()) -> json_return().
 list_tables(Opts, Config) ->
-    erlcloud_ddb_impl:request(Config, false, "DynamoDB_20111205.ListTables", Opts).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.ListTables", Opts).
 
     
 -spec put_item(table_name(), item()) -> json_return().
@@ -222,7 +222,7 @@ put_item(Table, Item, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             item_json(Item)] 
         ++ Opts,
-    erlcloud_ddb_impl:request(Config, false, "DynamoDB_20111205.PutItem", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.PutItem", Json).
 
 
 -spec q(table_name(), hash_key()) -> json_return().
@@ -238,7 +238,7 @@ q(Table, HashKey, Opts, Config) ->
     Json = [{<<"TableName">>, Table},
             hash_key_json(HashKey)] 
         ++ Opts,
-    erlcloud_ddb_impl:request(Config, false, "DynamoDB_20111205.Query", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.Query", Json).
 
 
 -spec scan(table_name()) -> json_return().
@@ -253,7 +253,7 @@ scan(Table, Opts) ->
 scan(Table, Opts, Config) ->
     Json = [{<<"TableName">>, Table}]
         ++ Opts,
-    erlcloud_ddb_impl:request(Config, false, "DynamoDB_20111205.Scan", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.Scan", Json).
 
 
 -spec update_item(table_name(), key(), updates()) -> json_return().
@@ -270,7 +270,7 @@ update_item(Table, Key, Updates, Opts, Config) ->
             key_json(Key),
             updates_json(Updates)] 
         ++ Opts,
-    erlcloud_ddb_impl:request(Config, false, "DynamoDB_20111205.UpdateItem", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.UpdateItem", Json).
 
     
 -spec update_table(table_name(), non_neg_integer(), non_neg_integer()) -> json_return().
@@ -282,7 +282,7 @@ update_table(Table, ReadUnits, WriteUnits, Config) ->
     Json = [{<<"TableName">>, Table},
             {<<"ProvisionedThroughput">>, [{<<"ReadCapacityUnits">>, ReadUnits},
                                            {<<"WriteCapacityUnits">>, WriteUnits}]}],
-    erlcloud_ddb_impl:request(Config, false, "DynamoDB_20111205.UpdateTable", Json).
+    erlcloud_ddb_impl:request(Config, "DynamoDB_20111205.UpdateTable", Json).
 
 %% backoff and retry are here for backwards compat. Use the ones in erlcloud_ddb_impl instead.
 
