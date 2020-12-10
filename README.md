@@ -1,6 +1,6 @@
 # erlcloud: AWS APIs library for Erlang #
 
-[![Build Status](https://secure.travis-ci.org/erlcloud/erlcloud.png?branch=master)](http://travis-ci.org/erlcloud/erlcloud)
+[![Build Status](https://github.com/erlcloud/erlcloud/workflows/build/badge.svg)](https://github.com/erlcloud/erlcloud)
 
 This library is not developed or maintained by AWS thus lots of functionality is still missing comparing to [aws-cli](https://aws.amazon.com/cli/) or [boto](https://github.com/boto/boto).
 Required functionality is being added upon request.
