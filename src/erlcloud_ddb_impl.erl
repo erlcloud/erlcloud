@@ -68,16 +68,23 @@
         ]).
 
 %% Internal impl api
--export([request/4]).
+-export([request/3,
+         request/4]).
 
 -export_type([json_return/0, attempt/0, retry_fun/0]).
 
--type json_return() :: ok | {ok, jsx:json_term()} | {error, term()} | list().
+-type json_return() :: ok | {ok, jsx:json_term()} | {error, term()} | {ok, {request, headers(), jsx:json_text()}}.
 
 -type operation() :: string().
 
--spec request(aws_config(), boolean(), operation(), jsx:json_term()) -> json_return().
-request(Config0, MakeRequest, Operation, Json) ->
+
+-spec request(aws_config(), operation(), jsx:json_term()) -> json_return().
+request(Config0, Operation, Json) ->
+    request(Config0, Operation, Json, []).
+
+-spec request(aws_config(), operation(), jsx:json_term(), erlcloud_ddb2:ddb_opts()) -> json_return().
+request(Config0, Operation, Json, DdbOpts) ->
+    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Body = case Json of
                [] -> <<"{}">>;
                _ -> jsx:encode(Json)
@@ -85,7 +92,7 @@ request(Config0, MakeRequest, Operation, Json) ->
     case erlcloud_aws:update_config(Config0) of
         {ok, Config} ->
             Headers = headers(Config, Operation, Body),
-            maybe_request_and_retry(Config, Headers, Body, {attempt, 1}, MakeRequest);
+            maybe_request_and_retry(Config, Headers, Body, {attempt, 1}, NoRequest);
         {error, Reason} ->
             {error, Reason}
     end.
@@ -100,10 +107,11 @@ request(Config0, MakeRequest, Operation, Json) ->
 %% This algorithm is similar, except that it waits a random interval up to 2^(Attempt-2)*100ms. The average
 %% wait time should be the same as boto.
 
+-spec maybe_request_and_retry(aws_config(), headers(), jsx:json_text(), {attempt, non_neg_integer()}, boolean()) -> json_return().
 maybe_request_and_retry(Config, Headers, Body, Attempt, false) ->
     request_and_retry(Config, Headers, Body, Attempt);
 maybe_request_and_retry(_Config, Headers, Body, _Attempt, true) ->
-    [Headers, Body].
+    {ok, {request, Headers, Body}}.
 
 %% TODO refactor retry logic so that it can be used by all requests and move to erlcloud_aws
 
