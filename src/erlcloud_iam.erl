@@ -52,7 +52,7 @@
     list_instance_profiles/0, list_instance_profiles/1, list_instance_profiles/2,
     list_instance_profiles_all/0, list_instance_profiles_all/1, list_instance_profiles_all/2,
     get_instance_profile/1, get_instance_profile/2,
-    get_account_authorization_details/0, get_account_authorization_details/1,
+    get_account_authorization_details/0, get_account_authorization_details/1, get_account_authorization_details/2,
     get_account_summary/0, get_account_summary/1,
     get_account_password_policy/0, get_account_password_policy/1,
     generate_credential_report/0, generate_credential_report/1,
@@ -664,17 +664,25 @@ get_instance_profile(ProfileName, #aws_config{} = Config) ->
 %
 % Account APIs
 %
--spec get_account_authorization_details() -> {ok, proplist()} |  {error, any()}.
+-spec get_account_authorization_details() -> {ok, proplist()} | {ok, proplist(), string()} | {error, any()}.
 get_account_authorization_details() ->
     get_account_authorization_details(default_config()).
   
--spec get_account_authorization_details(aws_config()) -> {ok, proplist()} |  {error, any()}.
+-spec get_account_authorization_details(list() | aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} | {error, any()}.
 get_account_authorization_details(#aws_config{} = Config) ->
+    get_account_authorization_details([], #aws_config{} = Config);
+get_account_authorization_details(Params) ->
+    get_account_authorization_details(Params, default_config()).
+
+-spec get_account_authorization_details(list(), aws_config()) -> {ok, proplist()} | {ok, proplist(), string()} | {error, any()}.
+get_account_authorization_details(Params, #aws_config{} = Config) when is_list(Params) ->
     ItemPath = "/GetAccountAuthorizationDetailsResponse/GetAccountAuthorizationDetailsResult",
     DataTypeDef = data_type("AccountAuthorizationDetails"),
-    case iam_query(Config, "GetAccountAuthorizationDetails", [], ItemPath, DataTypeDef) of
+    case iam_query(Config, "GetAccountAuthorizationDetails", Params, ItemPath, DataTypeDef) of
         {ok, [Summary]} ->
             {ok, Summary};
+        {ok, [Summary], Marker} ->
+            {ok, Summary, Marker};
         {error, _} = Error -> Error
     end.
 
