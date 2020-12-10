@@ -1851,7 +1851,7 @@ create_global_table(GlobalTableName, ReplicationGroup, Opts, Config) ->
                "DynamoDB_20120810.CreateGlobalTable",
                [{<<"GlobalTableName">>, GlobalTableName},
                 {<<"ReplicationGroup">>, dynamize_maybe_list(fun dynamize_replica/1, ReplicationGroup)}],
-                DdbOpts),
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(create_global_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_create_global_table.global_table_description).
 
@@ -3007,7 +3007,8 @@ list_tags_of_resource(ResourceArn, Opts, Config) ->
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.ListTagsOfResource",
-               [{<<"ResourceArn">>, ResourceArn} | AwsOpts], DdbOpts),
+               [{<<"ResourceArn">>, ResourceArn} | AwsOpts],
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(list_tags_of_resource_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_list_tags_of_resource.tags, {ok, []}).
 
@@ -3275,7 +3276,7 @@ restore_table_from_backup(BackupArn, TargetTableName, Opts, Config)
      "DynamoDB_20120810.RestoreTableFromBackup",
      [{<<"BackupArn">>, BackupArn},
       {<<"TargetTableName">>, TargetTableName}],
-      DdbOpts),
+     DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(restore_table_from_backup_record(), Json, UOpts) end,
         DdbOpts, #ddb2_restore_table_from_backup.table_description).
 
@@ -3805,7 +3806,7 @@ update_continuous_backups(TableName, PointInTimeRecoveryEnabled, Opts, Config)
      "DynamoDB_20120810.UpdateContinuousBackups",
      [{<<"TableName">>, TableName},
       {<<"PointInTimeRecoverySpecification">>, dynamize_point_in_time_recovery_enabled(PointInTimeRecoveryEnabled)}],
-      DdbOpts),
+     DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(continuous_backups_record(), Json, UOpts) end,
         DdbOpts, #ddb2_describe_continuous_backups.continuous_backups_description).
 
@@ -3993,7 +3994,7 @@ update_global_table(GlobalTableName, ReplicaUpdates, Opts, Config) ->
                "DynamoDB_20120810.UpdateGlobalTable",
                [{<<"GlobalTableName">>, GlobalTableName},
                 {<<"ReplicaUpdates">>, dynamize_maybe_list(fun dynamize_replica_update/1, ReplicaUpdates)}],
-                DdbOpts),
+               DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_global_table_record(), Json, UOpts) end, 
         DdbOpts, #ddb2_update_global_table.global_table_description).
 
@@ -4140,7 +4141,8 @@ update_global_table_settings(GlobalTableName, Opts, Config) ->
     Return = erlcloud_ddb_impl:request(
         Config,
         "DynamoDB_20120810.UpdateGlobalTableSettings",
-        [{<<"GlobalTableName">>, GlobalTableName} | AwsOpts], DdbOpts),
+        [{<<"GlobalTableName">>, GlobalTableName} | AwsOpts],
+        DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_global_table_settings_record(), Json, UOpts) end,
         DdbOpts, #ddb2_update_global_table_settings.replica_settings).
 
@@ -4456,7 +4458,8 @@ update_table_replica_auto_scaling(Table, Opts, Config) when is_list(Opts) ->
     Return = erlcloud_ddb_impl:request(
         UpdatedConfig,
         "DynamoDB_20120810.UpdateTableReplicaAutoScaling",
-        [{<<"TableName">>, Table} | AwsOpts], DdbOpts),
+        [{<<"TableName">>, Table} | AwsOpts],
+        DdbOpts),
     out(Return, fun(Json, UOpts) -> undynamize_record(update_table_replica_auto_scaling_record(), Json, UOpts) end,
         DdbOpts, #ddb2_update_table_replica_auto_scaling.table_auto_scaling_description).
 
