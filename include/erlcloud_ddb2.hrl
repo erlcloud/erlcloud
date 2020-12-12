@@ -447,3 +447,9 @@
        {table_description :: undefined | #ddb2_table_description{}
        }).
 -endif.
+
+-record(ddb_request,
+       {headers :: erlcloud_ddb_impl:headers(),
+        body :: jsx:json_text(),
+        json :: jsx:json_term()
+       }).
