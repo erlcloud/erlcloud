@@ -14,6 +14,13 @@
          response_body :: undefined | binary()
         }).
 
+-record(ddb2_request,
+       {headers :: headers(),
+        body :: jsx:json_text(),
+        json :: jsx:json_term()
+       }).
+
+-type headers() :: [{string(), string()}].
 -type date_time() :: number().
 -type global_table_status() :: creating | active | deleting | updating.
 -type replica_status() :: creating | creation_failed | updating | deleting | active.
@@ -447,9 +454,3 @@
        {table_description :: undefined | #ddb2_table_description{}
        }).
 -endif.
-
--record(ddb_request,
-       {headers :: erlcloud_ddb_impl:headers(),
-        body :: jsx:json_text(),
-        json :: jsx:json_term()
-       }).
