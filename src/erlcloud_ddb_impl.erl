@@ -71,9 +71,9 @@
 -export([request/3,
          request/4]).
 
--export_type([json_return/0, attempt/0, retry_fun/0, headers/0]).
+-export_type([json_return/0, attempt/0, retry_fun/0]).
 
--type json_return() :: ok | {ok, jsx:json_term()} | {error, term()} | {ok, #ddb_request{}}.
+-type json_return() :: ok | {ok, jsx:json_term()} | {error, term()} | {ok, #ddb2_request{}}.
 
 -type operation() :: string().
 
@@ -111,7 +111,7 @@ request(Config0, Operation, Json, DdbOpts) ->
 maybe_request_and_retry(Config, Headers, Body, _Json, Attempt, false) ->
     request_and_retry(Config, Headers, Body, Attempt);
 maybe_request_and_retry(_Config, Headers, Body, Json, _Attempt, true) ->
-    {ok, #ddb_request{headers = Headers, body = Body, json = Json}}.
+    {ok, #ddb2_request{headers = Headers, body = Body, json = Json}}.
 
 %% TODO refactor retry logic so that it can be used by all requests and move to erlcloud_aws
 
@@ -190,7 +190,6 @@ retry_v1_wrap(#ddb2_error{should_retry = false} = Error, _) ->
 retry_v1_wrap(Error, RetryFun) ->
     RetryFun(Error#ddb2_error.attempt, Error#ddb2_error.reason).
 
--type headers() :: [{string(), string()}].
 -spec request_and_retry(aws_config(), headers(), jsx:json_text(), attempt()) ->
                                ok | {ok, jsx:json_term()} | {error, term()}.
 request_and_retry(_, _, _, {error, Reason}) ->

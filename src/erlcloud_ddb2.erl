@@ -1141,14 +1141,14 @@ return_item_collection_metrics_opt() ->
 -type undynamize_fun() :: fun((jsx:json_term(), undynamize_opts()) -> tuple()).
 
 -spec out(erlcloud_ddb_impl:json_return(), undynamize_fun(), ddb_opts()) 
-         -> {ok, jsx:json_term() | tuple() | #ddb_request{}} |
+         -> {ok, jsx:json_term() | tuple() | #ddb2_request{}} |
             {simple, term()} |
             {error, term()}.
 out({error, Reason}, _, _) ->
     {error, Reason};
 out(ok, _, _) ->
     {error, unexpected_empty_response};
-out({ok, #ddb_request{}} = Request, _Undynamize, _Opts) ->
+out({ok, #ddb2_request{}} = Request, _Undynamize, _Opts) ->
     Request;
 out({ok, Json}, Undynamize, Opts) ->
     case proplists:get_value(out, Opts, simple) of
@@ -3218,7 +3218,6 @@ q(Table, KeyConditionsOrExpression, Opts) ->
 -spec q(table_name(), conditions() | expression(), q_opts(), aws_config()) -> q_return().
 q(Table, KeyConditionsOrExpression, Opts, Config) ->
     {AwsOpts, DdbOpts} = opts(q_opts(), Opts),
-
     Return = erlcloud_ddb_impl:request(
                Config,
                "DynamoDB_20120810.Query",
