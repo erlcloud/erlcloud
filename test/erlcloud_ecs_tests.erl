@@ -2007,6 +2007,64 @@ list_services_output_tests(_) ->
         ],
     output_tests(?_f(erlcloud_ecs:list_services([{out, record}])), Tests).
 
+%% ListTagsForResource test based on the API examples:
+%% https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_ListTagsForResource.html
+list_tags_for_resource_input_tests(_) ->
+    Tests = 
+        [?_ecs_test(
+            {"ListTagsForResource example request",
+             ?_f(erlcloud_ecs:list_tags_for_resource("testArn")), "
+{
+    \"resourceArn\": \"testArn\"
+}
+"
+            })
+        ],
+    Response = "
+{
+    \"tags\": [
+      {
+        \"key\": \"test-key1\",
+        \"value\": \"test-value1\"
+      },
+      {
+        \"key\": \"test-key2\",
+        \"value\": \"test-value2\"
+      }
+    ]
+}
+",
+    input_tests(Response, Tests).
+
+list_tags_for_resource_output_tests(_) ->
+    Tests =
+        [?_ecs_test(
+            {"ListTagsForResources example response", "
+{
+    \"tags\": [
+      {
+        \"key\": \"test-key1\",
+        \"value\": \"test-value1\"
+      },
+      {
+        \"key\": \"test-key2\",
+        \"value\": \"test-value2\"
+      }
+    ]
+}
+",
+            {ok, [#ecs_tag{
+                    key = <<"test-key1">>,
+                    value = <<"test-value1">>
+                  },
+                  #ecs_tag{
+                    key = <<"test-key2">>,
+                    value = <<"test-value2">>
+                  }
+             ]}})
+        ],
+    output_tests(?_f(erlcloud_ecs:list_tags_for_resource("testArn")), Tests).
+
 %% ListTaskDefinitionFamilies test based on the API examples:
 %% http://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_ListTaskDefinitionFamilies.html
 list_task_definition_families_input_tests(_) ->
@@ -3336,64 +3394,6 @@ update_service_output_tests(_) ->
             }})
         ],
     output_tests(?_f(erlcloud_ecs:update_service("hello_world", [{desired_count, 3}, {out, record}])), Tests).
-
-%% ListTagsForResource test based on the API examples:
-%% https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_ListTagsForResource.html
-list_tags_for_resource_input_tests(_) ->
-    Tests = 
-        [?_ecs_test(
-            {"ListTagsForResource example request",
-             ?_f(erlcloud_ecs:list_tags_for_resource("testArn")), "
-{
-    \"resourceArn\": \"testArn\"
-}
-"
-            })
-        ],
-    Response = "
-{
-    \"tags\": [
-      {
-        \"key\": \"test-key1\",
-        \"value\": \"test-value1\"
-      },
-      {
-        \"key\": \"test-key2\",
-        \"value\": \"test-value2\"
-      }
-    ]
-}
-",
-    input_tests(Response, Tests).
-
-list_tags_for_resource_output_tests(_) ->
-    Tests =
-        [?_ecs_test(
-            {"ListTagsForResources example response", "
-{
-    \"tags\": [
-      {
-        \"key\": \"test-key1\",
-        \"value\": \"test-value1\"
-      },
-      {
-        \"key\": \"test-key2\",
-        \"value\": \"test-value2\"
-      }
-    ]
-}
-",
-            {ok, [#ecs_tag{
-                    key = <<"test-key1">>,
-                    value = <<"test-value1">>
-                  },
-                  #ecs_tag{
-                    key = <<"test-key2">>,
-                    value = <<"test-value2">>
-                  }
-             ]}})
-        ],
-    output_tests(?_f(erlcloud_ecs:list_tags_for_resource("testArn")), Tests).
 
 %%%===================================================================
 %%% Input test helpers

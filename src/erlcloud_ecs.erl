@@ -1992,6 +1992,48 @@ list_services(Opts, Config) ->
         EcsOpts).
 
 %%%------------------------------------------------------------------------------
+%% @doc 
+%% ECS API
+%% [https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_ListTagsForResource.html]
+%%
+%% ===Example===
+%%
+%% List tags for a given resource
+%%
+%% `
+%% {ok, Result} = erlcloud_ecs:list_tags_for_resource("resource-arn"),
+%% '
+%% @end
+%%%------------------------------------------------------------------------------
+-spec list_tags_for_resource(
+        Arn :: string_param()) -> ecs_return([#ecs_tag{}]).
+list_tags_for_resource(Arn) ->
+    list_tags_for_resource(Arn, [], default_config()).
+
+-spec list_tags_for_resource(
+        Arn :: string_param(),
+        Config :: aws_config()) -> ecs_return([#ecs_tag{}]).
+list_tags_for_resource(Arn, Config) when is_record(Config, aws_config) ->
+    list_tags_for_resource(Arn, [], default_config()).
+
+-spec list_tags_for_resource(
+        Arn :: string_param(),
+        Opts :: proplist(),
+        Config :: aws_config()) -> ecs_return([#ecs_tag{}]).
+list_tags_for_resource(Arn, Opts, #aws_config{} = Config) ->
+    {AwsOpts, EcsOpts} = opts([], Opts),
+    Return = ecs_request(
+                Config,
+                "ListTagsForResource",
+                [{<<"resourceArn">>, to_binary(Arn)}] ++ AwsOpts),
+    out(Return, fun(Json, UOpts) -> 
+                        TagsList = proplists:get_value(<<"tags">>, Json),
+                        decode_tags_list(TagsList, UOpts)
+                end,
+        EcsOpts).
+
+
+%%%------------------------------------------------------------------------------
 %% ListTaskDefinitionFamilies
 %%%------------------------------------------------------------------------------
 -type list_task_definition_families_opt() :: {family_prefix, string_param()} |
@@ -2532,47 +2574,6 @@ update_service(Service, Opts, #aws_config{} = Config) ->
                 "UpdateService",
                 [{<<"service">>, to_binary(Service)}] ++ AwsOpts),
     out(Return, fun(Json, UOpts) -> decode_single_record(service_record(), <<"service">>, Json, UOpts) end,
-        EcsOpts).
-
-%%%------------------------------------------------------------------------------
-%% @doc 
-%% ECS API
-%% [https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_ListTagsForResource.html]
-%%
-%% ===Example===
-%%
-%% List tags for a given resource
-%%
-%% `
-%% {ok, Result} = erlcloud_ecs:list_tags_for_resource("resource-arn"),
-%% '
-%% @end
-%%%------------------------------------------------------------------------------
--spec list_tags_for_resource(
-        Arn :: string_param()) -> ecs_return([#ecs_tag{}]).
-list_tags_for_resource(Arn) ->
-    list_tags_for_resource(Arn, [], default_config()).
-
--spec list_tags_for_resource(
-        Arn :: string_param(),
-        Config :: aws_config()) -> ecs_return([#ecs_tag{}]).
-list_tags_for_resource(Arn, Config) when is_record(Config, aws_config) ->
-    list_tags_for_resource(Arn, [], default_config()).
-
--spec list_tags_for_resource(
-        Arn :: string_param(),
-        Opts :: proplist(),
-        Config :: aws_config()) -> ecs_return([#ecs_tag{}]).
-list_tags_for_resource(Arn, Opts, #aws_config{} = Config) ->
-    {AwsOpts, EcsOpts} = opts([], Opts),
-    Return = ecs_request(
-                Config,
-                "ListTagsForResource",
-                [{<<"resourceArn">>, to_binary(Arn)}] ++ AwsOpts),
-    out(Return, fun(Json, UOpts) -> 
-                        TagsList = proplists:get_value(<<"tags">>, Json),
-                        decode_tags_list(TagsList, UOpts)
-                end,
         EcsOpts).
 
 %%%------------------------------------------------------------------------------
