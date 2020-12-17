@@ -38,6 +38,8 @@ iam_api_test_() ->
       fun get_group_policy_output_tests/1,
       fun get_login_profile_input_tests/1,
       fun get_login_profile_output_tests/1,
+      fun get_role_input_tests/1,
+      fun get_role_output_tests/1,
       fun get_role_policy_input_tests/1,
       fun get_role_policy_output_tests/1,
       fun get_user_policy_input_tests/1,
@@ -681,6 +683,55 @@ get_login_profile_output_tests(_) ->
              })
             ],
     output_tests(?_f(erlcloud_iam:get_login_profile("Bob")), Tests).
+
+-define(GET_ROLE_RESP,
+        "<GetRoleResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+        <GetRoleResult>
+          <Role>
+            <Path>/application_abc/component_xyz/</Path>
+            <Arn>arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access</Arn>
+            <RoleName>S3Access</RoleName>
+            <AssumeRolePolicyDocument>{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}</AssumeRolePolicyDocument>
+            <CreateDate>2012-05-08T23:34:01Z</CreateDate>
+            <RoleId>AROADBQP57FF2AEXAMPLE</RoleId>
+            <RoleLastUsed>
+              <LastUsedDate>2013-05-08T23:34:01Z</LastUsedDate>
+              <Region>us-east-1</Region>
+            </RoleLastUsed>
+          </Role>
+        </GetRoleResult>
+        </GetRoleResponse>").
+
+get_role_input_tests(_) ->
+    Tests =
+        [?_iam_test(
+            {"Test returning role.",
+                ?_f(erlcloud_iam:get_role("test")),
+                [
+                 {"Action", "GetRole"},
+                 {"RoleName", "test"}
+                 ]})
+        ],
+
+    input_tests(?GET_ROLE_RESP, Tests).
+
+get_role_output_tests(_) ->
+    Tests = [?_iam_test(
+             {"This returns the role",
+              ?GET_ROLE_RESP,
+              {ok, [{role_last_used,
+                    [[{region,"us-east-1"},
+                      {last_used_date,{{2013,5,8},{23,34,1}}}]]},
+                    {path,"/application_abc/component_xyz/"},
+                    {role_name,"S3Access"},
+                    {role_id,"AROADBQP57FF2AEXAMPLE"},
+                    {assume_role_policy_doc,
+                     "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"},
+                    {create_date,{{2012,5,8},{23,34,1}}},
+                    {arn, "arn:aws:iam::123456789012:role/application_abc/component_xyz/S3Access"}]}
+             })
+    ],
+    output_tests(?_f(erlcloud_iam:get_role("test")), Tests).
 
 -define(GET_ROLE_POLICY_RESP,
         "<GetRolePolicyResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">

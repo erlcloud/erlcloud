@@ -416,7 +416,7 @@ get_role(RoleName) when is_list(RoleName) ->
 -spec get_role(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
 get_role(RoleName, Config) ->
     get_role_impl([{"RoleName", RoleName}], Config).
-    
+
 get_role_impl(RoleNameParam, #aws_config{} = Config) ->
     ItemPath = "/GetRoleResponse/GetRoleResult/Role",
     case iam_query(Config, "GetRole", RoleNameParam, ItemPath, data_type("Role")) of
@@ -436,7 +436,7 @@ list_roles(PathPrefix) ->
 list_roles(PathPrefix, #aws_config{} = Config)
   when is_list(PathPrefix) ->
     ItemPath = "/ListRolesResponse/ListRolesResult/Roles/member",
-    iam_query(Config, "ListRoles", [{"PathPrefix", PathPrefix}], ItemPath, data_type("Role")).
+    iam_query(Config, "ListRoles", [{"PathPrefix", PathPrefix}], ItemPath, data_type("RoleList")).
 
 -spec list_roles_all() -> {ok, proplist()} |  {error, any()}.
 list_roles_all() -> list_roles([]).
@@ -450,7 +450,7 @@ list_roles_all(PathPrefix) ->
 list_roles_all(PathPrefix, #aws_config{} = Config)
   when is_list(PathPrefix) ->
     ItemPath = "/ListRolesResponse/ListRolesResult/Roles/member",
-    iam_query_all(Config, "ListRoles", [{"PathPrefix", PathPrefix}], ItemPath, data_type("Role")).
+    iam_query_all(Config, "ListRoles", [{"PathPrefix", PathPrefix}], ItemPath, data_type("RoleList")).
 
 -spec list_role_policies(string()) -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
 list_role_policies(RoleName) ->
@@ -946,7 +946,7 @@ data_type("InstanceProfile") ->
      {"Arn", arn, "String"},
      {"Path", path, "String"},
      {"InstanceProfileName", instance_profile_name, "String"},
-     {"Roles/member", roles, data_type("Role")},
+     {"Roles/member", roles, data_type("RoleList")},
      {"InstanceProfileId", instance_profile_id, "String"}];
 data_type("Group") ->
     [{"Path", path, "String"},
@@ -982,13 +982,21 @@ data_type("PasswordPolicy") ->
 data_type("PolicyDetail") ->
     [{"PolicyName", policy_name, "String"},
      {"PolicyDocument", policy_document, "Uri"}];
-data_type("Role") ->
+data_type("RoleList") ->
     [{"Arn", arn, "String"},
      {"CreateDate", create_date, "DateTime"},
      {"AssumeRolePolicyDocument", assume_role_policy_doc, "Uri"},
      {"RoleId", role_id, "String"},
      {"RoleName", role_name, "String"},
      {"Path", path, "String"}];
+data_type("Role") ->
+    [{"Arn", arn, "String"},
+     {"CreateDate", create_date, "DateTime"},
+     {"AssumeRolePolicyDocument", assume_role_policy_doc, "Uri"},
+     {"RoleId", role_id, "String"},
+     {"RoleName", role_name, "String"},
+     {"Path", path, "String"},
+     {"RoleLastUsed", role_last_used, data_type("RoleLastUsed")}];
 data_type("RoleDetail") ->
     [{"RolePolicyList/member", role_policy_list, data_type("PolicyDetail")},
      {"RoleName", role_name, "String"},
@@ -998,6 +1006,9 @@ data_type("RoleDetail") ->
      {"CreateDate", create_date, "DateTime"},
      {"AssumeRolePolicyDocument", assume_role_policy_document, "Uri"},
      {"Arn", arn, "String"}];
+data_type("RoleLastUsed") ->
+    [{"LastUsedDate", last_used_date, "DateTime"},
+     {"Region", region, "String"}];
 data_type("RolePolicyList") ->
     [{"PolicyDocument", policy_document, "Uri"},
      {"RoleName", role_name, "String"},
