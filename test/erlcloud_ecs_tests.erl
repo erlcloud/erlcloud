@@ -65,7 +65,7 @@ operation_test_() ->
       fun list_services_input_tests/1,
       fun list_services_output_tests/1,
       fun list_tags_for_resource_input_tests/1,
-      fun list_tags_for_resource_output_tests/1
+      fun list_tags_for_resource_output_tests/1,
       fun list_task_definition_families_input_tests/1,
       fun list_task_definition_families_output_tests/1,
       fun list_task_definitions_input_tests/1,
