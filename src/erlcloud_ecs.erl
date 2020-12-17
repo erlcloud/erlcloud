@@ -1992,6 +1992,20 @@ list_services(Opts, Config) ->
         EcsOpts).
 
 %%%------------------------------------------------------------------------------
+%% ListTagsForResource
+%%%------------------------------------------------------------------------------
+-spec list_tags_for_resource(
+        Arn :: string_param()) -> ecs_return([#ecs_tag{}]).
+list_tags_for_resource(Arn) ->
+    list_tags_for_resource(Arn, [], default_config()).
+
+-spec list_tags_for_resource(
+        Arn :: string_param(),
+        Config :: aws_config()) -> ecs_return([#ecs_tag{}]).
+list_tags_for_resource(Arn, Config) when is_record(Config, aws_config) ->
+    list_tags_for_resource(Arn, [], default_config()).
+
+%%%------------------------------------------------------------------------------
 %% @doc 
 %% ECS API
 %% [https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_ListTagsForResource.html]
@@ -2005,17 +2019,6 @@ list_services(Opts, Config) ->
 %% '
 %% @end
 %%%------------------------------------------------------------------------------
--spec list_tags_for_resource(
-        Arn :: string_param()) -> ecs_return([#ecs_tag{}]).
-list_tags_for_resource(Arn) ->
-    list_tags_for_resource(Arn, [], default_config()).
-
--spec list_tags_for_resource(
-        Arn :: string_param(),
-        Config :: aws_config()) -> ecs_return([#ecs_tag{}]).
-list_tags_for_resource(Arn, Config) when is_record(Config, aws_config) ->
-    list_tags_for_resource(Arn, [], default_config()).
-
 -spec list_tags_for_resource(
         Arn :: string_param(),
         Opts :: proplist(),

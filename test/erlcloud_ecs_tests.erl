@@ -64,6 +64,8 @@ operation_test_() ->
       fun list_container_instances_output_tests/1,
       fun list_services_input_tests/1,
       fun list_services_output_tests/1,
+      fun list_tags_for_resource_input_tests/1,
+      fun list_tags_for_resource_output_tests/1
       fun list_task_definition_families_input_tests/1,
       fun list_task_definition_families_output_tests/1,
       fun list_task_definitions_input_tests/1,
@@ -81,9 +83,7 @@ operation_test_() ->
       fun update_container_agent_input_tests/1,
       fun update_container_agent_output_tests/1,
       fun update_service_input_tests/1,
-      fun update_service_output_tests/1,
-      fun list_tags_for_resource_input_tests/1,
-      fun list_tags_for_resource_output_tests/1
+      fun update_service_output_tests/1
      ]
     }.
 
