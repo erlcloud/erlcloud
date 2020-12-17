@@ -68,15 +68,23 @@
         ]).
 
 %% Internal impl api
--export([request/3]).
+-export([request/3,
+         request/4]).
 
 -export_type([json_return/0, attempt/0, retry_fun/0]).
 
--type json_return() :: ok | {ok, jsx:json_term()} | {error, term()}.
+-type json_return() :: ok | {ok, jsx:json_term()} | {error, term()} | {ok, #ddb2_request{}}.
 
 -type operation() :: string().
+
+
 -spec request(aws_config(), operation(), jsx:json_term()) -> json_return().
 request(Config0, Operation, Json) ->
+    request(Config0, Operation, Json, []).
+
+-spec request(aws_config(), operation(), jsx:json_term(), erlcloud_ddb2:ddb_opts()) -> json_return().
+request(Config0, Operation, Json, DdbOpts) ->
+    NoRequest = proplists:get_value(no_request, DdbOpts, false),
     Body = case Json of
                [] -> <<"{}">>;
                _ -> jsx:encode(Json)
@@ -84,7 +92,7 @@ request(Config0, Operation, Json) ->
     case erlcloud_aws:update_config(Config0) of
         {ok, Config} ->
             Headers = headers(Config, Operation, Body),
-            request_and_retry(Config, Headers, Body, {attempt, 1});
+            maybe_request_and_retry(Config, Headers, Body, Json, {attempt, 1}, NoRequest);
         {error, Reason} ->
             {error, Reason}
     end.
@@ -98,6 +106,12 @@ request(Config0, Operation, Json) ->
 %% which means it will wait up to 12.8 seconds before the last attempt.
 %% This algorithm is similar, except that it waits a random interval up to 2^(Attempt-2)*100ms. The average
 %% wait time should be the same as boto.
+
+-spec maybe_request_and_retry(aws_config(), headers(), jsx:json_text(), jsx:json_term(), {attempt, non_neg_integer()}, boolean()) -> json_return().
+maybe_request_and_retry(Config, Headers, Body, _Json, Attempt, false) ->
+    request_and_retry(Config, Headers, Body, Attempt);
+maybe_request_and_retry(_Config, Headers, Body, Json, _Attempt, true) ->
+    {ok, #ddb2_request{headers = Headers, body = Body, json = Json}}.
 
 %% TODO refactor retry logic so that it can be used by all requests and move to erlcloud_aws
 
@@ -176,7 +190,6 @@ retry_v1_wrap(#ddb2_error{should_retry = false} = Error, _) ->
 retry_v1_wrap(Error, RetryFun) ->
     RetryFun(Error#ddb2_error.attempt, Error#ddb2_error.reason).
 
--type headers() :: [{string(), string()}].
 -spec request_and_retry(aws_config(), headers(), jsx:json_text(), attempt()) ->
                                ok | {ok, jsx:json_term()} | {error, term()}.
 request_and_retry(_, _, _, {error, Reason}) ->
