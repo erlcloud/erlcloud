@@ -107,7 +107,7 @@ request(Config0, Operation, Json, DdbOpts) ->
 %% This algorithm is similar, except that it waits a random interval up to 2^(Attempt-2)*100ms. The average
 %% wait time should be the same as boto.
 
--spec maybe_request_and_retry(aws_config(), headers(), jsx:json_text(), jsx:json_term(), {attempt, non_neg_integer()}, boolean()) -> json_return().
+-spec maybe_request_and_retry(aws_config(), ddb2_req_headers(), jsx:json_text(), jsx:json_term(), {attempt, non_neg_integer()}, boolean()) -> json_return().
 maybe_request_and_retry(Config, Headers, Body, _Json, Attempt, false) ->
     request_and_retry(Config, Headers, Body, Attempt);
 maybe_request_and_retry(_Config, Headers, Body, Json, _Attempt, true) ->
@@ -190,7 +190,7 @@ retry_v1_wrap(#ddb2_error{should_retry = false} = Error, _) ->
 retry_v1_wrap(Error, RetryFun) ->
     RetryFun(Error#ddb2_error.attempt, Error#ddb2_error.reason).
 
--spec request_and_retry(aws_config(), headers(), jsx:json_text(), attempt()) ->
+-spec request_and_retry(aws_config(), ddb2_req_headers(), jsx:json_text(), attempt()) ->
                                ok | {ok, jsx:json_term()} | {error, term()}.
 request_and_retry(_, _, _, {error, Reason}) ->
     {error, Reason};
@@ -274,7 +274,7 @@ client_error(Body, DDBError) ->
             end
     end.
 
--spec headers(aws_config(), string(), binary()) -> headers().
+-spec headers(aws_config(), string(), binary()) -> ddb2_req_headers().
 headers(Config, Operation, Body) ->
     Headers = [{"host", Config#aws_config.ddb_host},
                {"x-amz-target", Operation}],

@@ -15,12 +15,12 @@
         }).
 
 -record(ddb2_request,
-       {headers :: headers(),
+       {headers :: ddb2_req_headers(),
         body :: jsx:json_text(),
         json :: jsx:json_term()
        }).
 
--type headers() :: [{string(), string()}].
+-type ddb2_req_headers() :: [{string(), string()}].
 -type date_time() :: number().
 -type global_table_status() :: creating | active | deleting | updating.
 -type replica_status() :: creating | creation_failed | updating | deleting | active.
