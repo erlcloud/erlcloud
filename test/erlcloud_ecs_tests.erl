@@ -1615,20 +1615,26 @@ describe_tasks_input_tests(_) ->
     Tests = 
         [?_ecs_test(
             {"DescribeTasks example request",
-             ?_f(erlcloud_ecs:describe_tasks(["c09f0188-7f87-4b0f-bfc3-16296622b6fe"])), "
+             ?_f(erlcloud_ecs:describe_tasks(["c09f0188-7f87-4b0f-bfc3-16296622b6fe"], [{include, ["TAGS"]}])), "
 {
   \"tasks\": [
     \"c09f0188-7f87-4b0f-bfc3-16296622b6fe\"
+  ],
+  \"include\": [
+    \"TAGS\"
   ]
 }
 "
             }),
          ?_ecs_test(
             {"DescribeTasks binary input example request",
-             ?_f(erlcloud_ecs:describe_tasks([<<"c09f0188-7f87-4b0f-bfc3-16296622b6fe">>])), "
+             ?_f(erlcloud_ecs:describe_tasks([<<"c09f0188-7f87-4b0f-bfc3-16296622b6fe">>], [{include, [<<"TAGS">>]}])), "
 {
   \"tasks\": [
     \"c09f0188-7f87-4b0f-bfc3-16296622b6fe\"
+  ],
+  \"include\": [
+    \"TAGS\"
   ]
 }
 "
