@@ -1775,13 +1775,16 @@ describe_task_definition(TaskDefinition, Opts, #aws_config{} = Config) ->
 %%%------------------------------------------------------------------------------
 %% DescribeTasks
 %%%------------------------------------------------------------------------------
--type describe_tasks_opt() :: {cluster, string_param()} | out_opt().
+-type describe_tasks_opt() :: {cluster, string_param()} |
+                              {include, list(string_param())} | 
+                              out_opt().
 -type describe_tasks_opts() :: [describe_tasks_opt()].
 
 -spec describe_tasks_opts() -> opt_table().
 describe_tasks_opts() ->
     [
-        {cluster, <<"cluster">>, fun to_binary/1}
+        {cluster, <<"cluster">>, fun to_binary/1},
+        {include, <<"include">>, fun to_binary/1}
     ].
 
 -spec describe_tasks_record() -> record_desc().
