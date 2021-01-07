@@ -288,12 +288,12 @@ decode_tags_list(V, Opts) ->
 -spec describe_workspaces_opts() -> opt_table().
 describe_workspaces_opts() ->
     [
-        {bundle_id, <<"BundleId">>, fun to_binary/1},
-        {directory_id, <<"DirectoryId">>, fun to_binary/1},
+        {bundle_id, <<"BundleId">>, fun encode_json_value/1},
+        {directory_id, <<"DirectoryId">>, fun encode_json_value/1},
         {limit, <<"Limit">>, fun id/1},
-        {next_token, <<"NextToken">>, fun to_binary/1},
-        {user_name, <<"UserName">>, fun to_binary/1},
-        {workspace_ids, <<"WorkspaceIds">>, fun to_binary/1}
+        {next_token, <<"NextToken">>, fun encode_json_value/1},
+        {user_name, <<"UserName">>, fun encode_json_value/1},
+        {workspace_ids, <<"WorkspaceIds">>, fun encode_json_value/1}
     ].
 
 -spec describe_workspaces_record() -> record_desc().
@@ -347,7 +347,7 @@ describe_workspaces(Opts, #aws_config{} = Config) ->
 -spec describe_tags_opts() -> opt_table().
 describe_tags_opts() ->
     [
-        {resource_id, <<"ResourceId">>, fun to_binary/1}
+        {resource_id, <<"ResourceId">>, fun encode_json_value/1}
     ].
 
 -spec describe_tags(Opts :: describe_tags_opts()) -> workspaces_return([#workspaces_tag{}]).
@@ -385,6 +385,7 @@ describe_tags(Opts, #aws_config{} = Config) ->
 %%% Internal Functions
 %%%------------------------------------------------------------------------------
 workspaces_request(Config, Operation, Body) ->
+    io:format("!!!Body ~p~n", [Body]),
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
             workspaces_request_no_update(Config1, Operation, Body);
@@ -435,12 +436,12 @@ port_spec(#aws_config{workspaces_port=Port}) ->
     [":", erlang:integer_to_list(Port)].
 
 
-to_binary(undefined) -> undefined;
-to_binary(true) -> true;
-to_binary(false) -> false;
-to_binary(L) when is_list(L), is_list(hd(L)) -> [to_binary(V) || V <- L];
-to_binary(L) when is_list(L), is_binary(hd(L)) -> [to_binary(V) || V <- L];
-to_binary(L) when is_list(L) -> list_to_binary(L);
-to_binary(B) when is_binary(B) -> B;
-to_binary(A) when is_atom(A) -> atom_to_binary(A, latin1).
+encode_json_value(undefined) -> undefined;
+encode_json_value(true) -> true;
+encode_json_value(false) -> false;
+encode_json_value(L) when is_list(L), is_list(hd(L)) -> [encode_json_value(V) || V <- L];
+encode_json_value(L) when is_list(L), is_binary(hd(L)) -> [encode_json_value(V) || V <- L];
+encode_json_value(L) when is_list(L) -> list_to_binary(L);
+encode_json_value(B) when is_binary(B) -> B;
+encode_json_value(A) when is_atom(A) -> atom_to_binary(A, latin1).
 

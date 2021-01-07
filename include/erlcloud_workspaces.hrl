@@ -5,20 +5,12 @@
 
 -define(WORKSPACES_LIMIT, 25).
 
--type workspaces_key_value_pair() :: {string() | binary(), string() | binary()}.
 
 %%%------------------------------------------------------------------------------
 %%
 %% Common data types
 %%
 %%%------------------------------------------------------------------------------
--record(workspaces_pagination_options, {
-    max_results = ?WORKSPACES_LIMIT :: 1..25,
-    next_token :: binary()
-}).
--type(workspaces_pagination_options() :: #workspaces_pagination_options{}).
-
-%% helper record
 
 -record(workspace_modification_state, {
     resource :: undefined | binary(),
