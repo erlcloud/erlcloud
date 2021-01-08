@@ -30,7 +30,9 @@ operation_test_() ->
       fun describe_tags_input_tests/1,
       fun describe_tags_output_tests/1,
       fun describe_workspaces_input_tests/1,
-      fun describe_workspaces_output_tests/1
+      fun describe_workspaces_output_tests/1,
+      fun describe_workspace_directories_input_tests/1,
+      fun describe_workspace_directories_output_tests/1
      ]
     }.
 
@@ -45,6 +47,50 @@ stop(_) ->
 %%%===================================================================
 %%% Actual test specifiers
 %%%===================================================================
+
+%% DescribeTags test based on the API examples:
+%% https://docs.aws.amazon.com/workspaces/latest/api/API_DescribeTags.html
+describe_tags_input_tests(_) ->
+    Tests = 
+        [?_workspaces_test(
+            {"DescribeTags example request",
+             ?_f(erlcloud_workspaces:describe_tags([{resource_id, "ws-c8wvb67p1"}])), "
+{
+    \"ResourceId\": \"ws-c8wvb67p1\"
+}"
+            })
+        ],
+
+    Response = "
+{    
+    \"TagList\": [ 
+      { 
+         \"Key\": \"testkey\",
+         \"Value\": \"testvalue\"
+      }
+   ]
+}",
+    input_tests(Response, Tests).
+
+
+describe_tags_output_tests(_) ->
+    Tests =
+        [?_workspaces_test(
+            {"DescribeTags example response", "
+{    
+    \"TagList\": [ 
+      { 
+         \"Key\": \"testkey\",
+         \"Value\": \"testvalue\"
+      }
+   ]
+}",
+            {ok,[#workspaces_tag{
+                    key = <<"testkey">>,
+                    value = <<"testvalue">>
+                }]}
+        })],
+    output_tests(?_f(erlcloud_workspaces:describe_tags([{out, record}])), Tests).
 
 %% DescribeWorkspaces test based on the API examples:
 %% https://docs.aws.amazon.com/workspaces/latest/api/API_DescribeWorkspaces.html
@@ -145,50 +191,169 @@ describe_workspaces_output_tests(_) ->
         })],
     output_tests(?_f(erlcloud_workspaces:describe_workspaces([{out, record}])), Tests).
 
-
-%% DescribeTags test based on the API examples:
-%% https://docs.aws.amazon.com/workspaces/latest/api/API_DescribeTags.html
-describe_tags_input_tests(_) ->
+%% DescribeWorkspaceDirectories test based on the API examples:
+%% https://docs.aws.amazon.com/workspaces/latest/api/API_DescribeWorkspaceDirectories.html
+describe_workspace_directories_input_tests(_) ->
     Tests = 
         [?_workspaces_test(
-            {"DescribeTags example request",
-             ?_f(erlcloud_workspaces:describe_tags([{resource_id, "ws-c8wvb67p1"}])), "
+            {"DescribeWorkspaceDirectories example request",
+             ?_f(erlcloud_workspaces:describe_workspace_directories([
+                       {directory_ids, ["d-93671bd1a1", "d-93671bd1a2"]},
+                       {limit, 5},
+                       {next_token, "next-page"}])), "
 {
-    \"ResourceId\": \"ws-c8wvb67p1\"
+    \"DirectoryIds\": [\"d-93671bd1a1\", \"d-93671bd1a2\"],
+    \"Limit\": 5,
+    \"NextToken\": \"next-page\"
+    
 }"
             })
         ],
 
     Response = "
 {    
-    \"TagList\": [ 
-      { 
-         \"Key\": \"testkey\",
-         \"Value\": \"testvalue\"
-      }
-   ]
+    \"Directories\": [
+        {
+            \"DirectoryId\": \"d-93671bd1a1\",
+            \"Alias\": \"d-93671bd1a1\",
+            \"DirectoryName\": \"corp.amazonworkspaces.com\",
+            \"RegistrationCode\": \"wsdub+SATMNS\",
+            \"SubnetIds\": [
+                \"subnet-02d62b601c121d0cd\",
+                \"subnet-08b608fe3a2ecc505\"
+            ],
+            \"DnsIpAddresses\": [
+                \"172.16.1.36\",
+                \"172.16.0.49\"
+            ],
+            \"CustomerUserName\": \"Administrator\",
+            \"IamRoleId\": \"arn:aws:iam::352283894008:role/workspaces_DefaultRole\",
+            \"DirectoryType\": \"SIMPLE_AD\",
+            \"WorkspaceSecurityGroupId\": \"sg-064d3dbf40db978bd\",
+            \"State\": \"REGISTERED\",
+            \"WorkspaceCreationProperties\": {
+                \"EnableWorkDocs\": true,
+                \"EnableInternetAccess\": true,
+                \"UserEnabledAsLocalAdministrator\": true,
+                \"EnableMaintenanceMode\": true
+            },
+            \"WorkspaceAccessProperties\": {
+                \"DeviceTypeWindows\": \"ALLOW\",
+                \"DeviceTypeOsx\": \"ALLOW\",
+                \"DeviceTypeWeb\": \"DENY\",
+                \"DeviceTypeIos\": \"ALLOW\",
+                \"DeviceTypeAndroid\": \"ALLOW\",
+                \"DeviceTypeChromeOs\": \"ALLOW\",
+                \"DeviceTypeZeroClient\": \"ALLOW\"
+            },
+            \"Tenancy\": \"SHARED\",
+            \"SelfservicePermissions\": {
+                \"RestartWorkspace\": \"ENABLED\",
+                \"IncreaseVolumeSize\": \"ENABLED\",
+                \"ChangeComputeType\": \"ENABLED\",
+                \"SwitchRunningMode\": \"ENABLED\",
+                \"RebuildWorkspace\": \"ENABLED\"
+            }
+        }
+    ]
 }",
     input_tests(Response, Tests).
 
 
-describe_tags_output_tests(_) ->
+describe_workspace_directories_output_tests(_) ->
     Tests =
         [?_workspaces_test(
-            {"DescribeTags example response", "
+            {"DescribeWorkspaceDirectories example response", "
 {    
-    \"TagList\": [ 
-      { 
-         \"Key\": \"testkey\",
-         \"Value\": \"testvalue\"
-      }
-   ]
+    \"Directories\": [
+        {
+            \"DirectoryId\": \"d-93671bd1a1\",
+            \"Alias\": \"d-93671bd1a1\",
+            \"DirectoryName\": \"corp.amazonworkspaces.com\",
+            \"RegistrationCode\": \"wsdub+SATMNS\",
+            \"SubnetIds\": [
+                \"subnet-02d62b601c121d0cd\",
+                \"subnet-08b608fe3a2ecc505\"
+            ],
+            \"DnsIpAddresses\": [
+                \"172.16.1.36\",
+                \"172.16.0.49\"
+            ],
+            \"CustomerUserName\": \"Administrator\",
+            \"IamRoleId\": \"arn:aws:iam::352283111111:role/workspaces_DefaultRole\",
+            \"DirectoryType\": \"SIMPLE_AD\",
+            \"WorkspaceSecurityGroupId\": \"sg-064d3dbf40db978bd\",
+            \"State\": \"REGISTERED\",
+            \"WorkspaceCreationProperties\": {
+                \"EnableWorkDocs\": true,
+                \"EnableInternetAccess\": true,
+                \"UserEnabledAsLocalAdministrator\": true,
+                \"EnableMaintenanceMode\": true
+            },
+            \"WorkspaceAccessProperties\": {
+                \"DeviceTypeWindows\": \"ALLOW\",
+                \"DeviceTypeOsx\": \"ALLOW\",
+                \"DeviceTypeWeb\": \"DENY\",
+                \"DeviceTypeIos\": \"ALLOW\",
+                \"DeviceTypeAndroid\": \"ALLOW\",
+                \"DeviceTypeChromeOs\": \"ALLOW\",
+                \"DeviceTypeZeroClient\": \"ALLOW\"
+            },
+            \"Tenancy\": \"SHARED\",
+            \"SelfservicePermissions\": {
+                \"RestartWorkspace\": \"ENABLED\",
+                \"IncreaseVolumeSize\": \"ENABLED\",
+                \"ChangeComputeType\": \"ENABLED\",
+                \"SwitchRunningMode\": \"ENABLED\",
+                \"RebuildWorkspace\": \"ENABLED\"
+            }
+        }
+    ]
 }",
-            {ok,[#workspaces_tag{
-                    key = <<"testkey">>,
-                    value = <<"testvalue">>
-                }]}
+            {ok,#describe_workspace_directories{
+        next_token = undefined,
+        workspace_directories =
+            [#workspace_directory{
+                 alias = <<"d-93671bd1a1">>,
+                 customer_user_name = <<"Administrator">>,
+                 directory_id = <<"d-93671bd1a1">>,
+                 directory_name = <<"corp.amazonworkspaces.com">>,
+                 directory_type = <<"SIMPLE_AD">>,
+                 dns_ip_address = [<<"172.16.1.36">>,<<"172.16.0.49">>],
+                 iam_role_id =
+                     <<"arn:aws:iam::352283111111:role/workspaces_DefaultRole">>,
+                 ip_group_ids = undefined,
+                 registration_code = <<"wsdub+SATMNS">>,
+                 selfservice_permissions =
+                     #workspaces_selfservice_permissions{
+                         change_compute_type = <<"ENABLED">>,
+                         increase_volume_size = <<"ENABLED">>,
+                         rebuild_workspace = <<"ENABLED">>,
+                         restart_workspace = <<"ENABLED">>,
+                         switch_running_mode = <<"ENABLED">>},
+                 state = <<"REGISTERED">>,
+                 subnet_ids =
+                     [<<"subnet-02d62b601c121d0cd">>,
+                      <<"subnet-08b608fe3a2ecc505">>],
+                 tenancy = <<"SHARED">>,
+                 workspace_access_properties =
+                     #workspace_access_properties{
+                         device_type_android = <<"ALLOW">>,
+                         device_type_chrome_os = <<"ALLOW">>,
+                         device_type_ios = <<"ALLOW">>,device_type_osx = <<"ALLOW">>,
+                         device_type_web = <<"DENY">>,
+                         device_type_windows = <<"ALLOW">>,
+                         device_type_zero_client = <<"ALLOW">>},
+                 workspace_creation_properties =
+                     #workspace_creation_properties{
+                         custom_security_group_id = undefined,default_ou = undefined,
+                         enable_internet_access = true,
+                         enable_maintenance_mode = true,enable_work_docs = true,
+                         user_enabled_as_local_administrator = true},
+                 workspace_security_group_id = <<"sg-064d3dbf40db978bd">>}]}}
         })],
-    output_tests(?_f(erlcloud_workspaces:describe_tags([{out, record}])), Tests).
+    output_tests(?_f(erlcloud_workspaces:describe_workspace_directories([{out, record}])), Tests).
+
 
 %%%===================================================================
 %%% Input test helpers
