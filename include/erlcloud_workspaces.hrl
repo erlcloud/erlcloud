@@ -82,7 +82,7 @@
     registration_code :: undefined | binary(),
     selfservice_permissions :: undefined | #workspaces_selfservice_permissions{},
     state :: undefined | binary(),
-    subnet_ids :: undefined | binary(),
+    subnet_ids :: undefined | [binary()],
     tenancy :: undefined | binary(),
     workspace_access_properties :: undefined | #workspace_access_properties{},
     workspace_creation_properties :: undefined | #workspace_creation_properties{},
