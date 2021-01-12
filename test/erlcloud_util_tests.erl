@@ -52,6 +52,10 @@ test_proplists_to_map(_) ->
                    <<"UserEnabledAsLocalAdministrator">> => true},
              <<"WorkspaceSecurityGroupId">> =>
                  <<"sg-064d3dbf40db978bd">>}]},
-    [?_assertEqual(Expected, erlcloud_util:proplists_to_map(Proplist))].
+    [?_assertEqual(Expected, erlcloud_util:proplists_to_map(Proplist)),
+     ?_assertEqual(#{}, erlcloud_util:proplists_to_map([{}])),
+     ?_assertEqual([], erlcloud_util:proplists_to_map([])),
+     ?_assertEqual([<<"a">>, <<"b">>], erlcloud_util:proplists_to_map([<<"a">>, <<"b">>]))
+     ].
 
 

@@ -248,9 +248,14 @@ http_uri_encode(URI) ->
     http_uri:encode(URI).
 -endif.
 
--spec proplists_to_map(proplists:proplist()) -> map().
-proplists_to_map(Proplist) ->
-    proplists_to_map(Proplist, #{}).
+-spec proplists_to_map(proplists:proplist()) -> map() | any().
+proplists_to_map([]) -> [];
+proplists_to_map([{}]) -> #{};
+proplists_to_map([{_,_} | _] = Proplist) ->
+    proplists_to_map(Proplist, #{});
+proplists_to_map([Head | _Tail] = List) when is_list(Head) ->
+    [proplists_to_map(E) || E <- List];
+proplists_to_map(V) -> V.
 
 -spec proplists_to_map(proplists:proplist(), map()) -> map().
 proplists_to_map([], Acc) ->
@@ -258,9 +263,5 @@ proplists_to_map([], Acc) ->
 proplists_to_map([{Key, Val} | Tail], Acc) when is_list(Val) ->
     proplists_to_map(Tail, Acc#{Key => proplists_to_map(Val)});
 proplists_to_map([{Key, Val} | Tail], Acc) ->
-    proplists_to_map(Tail, Acc#{Key => Val});
-proplists_to_map([Head | _Tail] = List, _Acc) when is_list(Head) ->
-    [proplists_to_map(E) || E <- List];
-proplists_to_map(List, _Acc) ->
-    List.
+    proplists_to_map(Tail, Acc#{Key => Val}).
 
