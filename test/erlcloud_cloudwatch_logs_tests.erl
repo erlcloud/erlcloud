@@ -106,7 +106,11 @@ erlcloud_cloudwatch_test_() ->
         fun describe_log_streams_input_tests/1,
         fun describe_log_streams_output_tests/1,
 
-        fun put_logs_events_input_tests/1
+        fun put_logs_events_input_tests/1,
+
+        fun start_query_output_tests/1,
+        fun stop_query_output_tests/1,
+        fun get_query_results_output_tests/1
     ]}.
 
 
@@ -573,6 +577,51 @@ put_logs_events_input_tests(_) ->
               {<<"logGroupName">>, ?LOG_GROUP_NAME},
               {<<"logStreamName">>, ?LOG_STREAM_NAME},
               {<<"sequenceToken">>, ?LOG_SEQUENCE}]}
+        )
+    ]).
+
+start_query_output_tests(_) ->
+    output_tests(?_f(erlcloud_cloudwatch_logs:start_query(["LogGroupName1", "LogGroupName2", "LogGroupName3"],
+                                                          "stats count(*) by eventSource, eventName, awsRegion",
+                                                          1546300800,
+                                                          1546309800,
+                                                          100)), [
+        ?_cloudwatch_test(
+            {"Tests output format for start_query",
+             jsx:encode([{<<"queryId">>, <<"12ab3456-12ab-123a-789e-1234567890ab">>}]),
+             {ok, #{ query_id => "12ab3456-12ab-123a-789e-1234567890ab" }}}
+        )
+    ]).
+
+stop_query_output_tests(_) ->
+    output_tests(?_f(erlcloud_cloudwatch_logs:stop_query("12ab3456-12ab-123a-789e-1234567890ab")), [
+        ?_cloudwatch_test(
+            {"Tests output format for stop_query",
+             jsx:encode([{<<"success">>, true}]),
+             ok}
+        )
+    ]).
+
+get_query_results_output_tests(_) ->
+    output_tests(?_f(erlcloud_cloudwatch_logs:get_query_results("12ab3456-12ab-123a-789e-1234567890ab")), [
+        ?_cloudwatch_test(
+            {"Tests output format for get_query_results",
+             jsx:encode([{<<"results">>, [[{<<"field">>, <<"LogEvent1-field1-name">>},
+                                           {<<"value">>, <<"LogEvent1-field1-value">>}],
+                                          [{<<"field">>, <<"LogEvent1-field2-name">>},
+                                           {<<"value">>, <<"LogEvent1-field2-value">>}]]},
+                         {<<"statistics">>, [{<<"bytesScanned">>, 81349723.0},
+                                             {<<"recordsMatched">>, 360851.0},
+                                             {<<"recordsScanned">>, 610956.0}]},
+                         {<<"status">>, <<"Complete">>}]),
+             #{ results => [#{ field => "LogEvent1-field1-name",
+                               value => "LogEvent1-field1-value" },
+                            #{ field => "LogEvent1-field2-name",
+                               value => "LogEvent1-field2-value" }],
+                statistics => #{ bytes_scanned => 81349723.0,
+                                 records_matched => 360851.0,
+                                 records_scanned => 610956.0 },
+                status => complete }}
         )
     ]).
 

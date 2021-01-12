@@ -123,6 +123,7 @@
     start_query/4,
     start_query/5,
     start_query/6,
+
     stop_query/1,
     stop_query/2,
 
@@ -511,8 +512,8 @@ get_query_results(QueryId, Config) ->
                       value := string() }].
 results_from_get_query_results(In) ->
     lists:map(fun (Result) ->
-                  #{ field => proplists:get_value(<<"field">>, Result),
-                     value => proplists:get_value(<<"value">>, Result) }
+                  #{ field => binary_to_list(proplists:get_value(<<"field">>, Result)),
+                     value => binary_to_list(proplists:get_value(<<"value">>, Result)) }
               end,
               In).
 
@@ -750,7 +751,7 @@ list_tags_log_group(LogGroup, Config) ->
            QueryString :: string(),
            StartTime :: non_neg_integer(),
            EndTime :: non_neg_integer(),
-           Result :: {ok, QueryId :: string()} | {error, erlcloud_aws:httpc_result_error()}.
+           Result :: {ok, #{ query_id => string() }} | {error, erlcloud_aws:httpc_result_error()}.
 start_query(LogGroupNames0, QueryString, StartTime, EndTime) ->
     start_query(LogGroupNames0, QueryString, StartTime, EndTime, _Limit = 1000).
 
@@ -760,7 +761,7 @@ start_query(LogGroupNames0, QueryString, StartTime, EndTime) ->
            StartTime :: non_neg_integer(),
            EndTime :: non_neg_integer(),
            Limit :: 1..10000,
-           Result :: {ok, QueryId :: string()} | {error, erlcloud_aws:httpc_result_error()}.
+           Result :: {ok, #{ query_id => string() }} | {error, erlcloud_aws:httpc_result_error()}.
 start_query(LogGroupNames0, QueryString, StartTime, EndTime, Limit) ->
     start_query(LogGroupNames0, QueryString, StartTime, EndTime, Limit, default_config()).
 
