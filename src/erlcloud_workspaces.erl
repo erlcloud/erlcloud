@@ -32,7 +32,7 @@
 -define(OUTPUT_CHOICES, [json, record, map]).
 
 -export([
-     describe_tags/1, describe_tags/2,
+    describe_tags/1, describe_tags/2,
     describe_workspaces/0, describe_workspaces/1, describe_workspaces/2,
     describe_workspace_directories/0, describe_workspace_directories/1, describe_workspace_directories/2
 ]).
