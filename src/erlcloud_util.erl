@@ -248,7 +248,7 @@ http_uri_encode(URI) ->
     http_uri:encode(URI).
 -endif.
 
--spec proplists_to_map(proplists:proplist()) -> map() | any().
+-spec proplists_to_map(proplists:proplist() | any()) -> map() | any().
 proplists_to_map([]) -> [];
 proplists_to_map([{}]) -> #{};
 proplists_to_map([{_,_} | _] = Proplist) ->
