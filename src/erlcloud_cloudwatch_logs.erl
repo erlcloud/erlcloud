@@ -48,6 +48,22 @@
                              | erlcloud_aws:httpc_result_error()}
                      | {ok, jsx:json_term()}.
 
+-type query_status() :: cancelled
+                      | complete
+                      | failed
+                      | running
+                      | scheduled
+                      | timeout
+                      | unknown.
+-export_type([query_status/0]).
+
+-type query_results() :: #{ results := [#{ field := string(),
+                                           value := string() }],
+                            statistics := #{ bytes_scanned := float(),
+                                             records_matched := float(),
+                                             records_scanned := float() },
+                            status := query_status() }.
+-export_type([query_results/0]).
 
 %% Library initialization
 -export([
@@ -95,11 +111,20 @@
     describe_metric_filters/6,
     describe_metric_filters/7,
 
+    get_query_results/1,
+    get_query_results/2,
+
     put_logs_events/4,
     put_logs_events/5,
 
     list_tags_log_group/1,
     list_tags_log_group/2,
+
+    start_query/4,
+    start_query/5,
+    start_query/6,
+    stop_query/1,
+    stop_query/2,
 
     tag_log_group/2,
     tag_log_group/3
@@ -440,6 +465,78 @@ log_stream_order_by(last_event_time) -> <<"LastEventTime">>.
 %%------------------------------------------------------------------------------
 %% @doc
 %%
+%% GetQueryResults action
+%% https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_GetQueryResults.html
+%%
+%% ===Example===
+%%
+%%   Returns the results from the specified query.
+%%
+%% `
+%%   application:ensure_all_started(erlcloud).
+%%   {ok, Config} = erlcloud_aws:auto_config().
+%%   {ok, Results} = erlcloud_cloudwatch_logs:get_query_results("12ab3456-12ab-123a-789e-1234567890ab").
+%% `
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec get_query_results(QueryId) -> Results
+      when QueryId :: string(),
+           Results :: {ok, query_results()} | {error, erlcloud_aws:httpc_result_error()}.
+get_query_results(QueryId) ->
+    get_query_results(QueryId, default_config()).
+
+-spec get_query_results(QueryId, Config) -> Results
+      when QueryId :: string(),
+           Config :: aws_config(),
+           Results :: {ok, query_results()} | {error, erlcloud_aws:httpc_result_error()}.
+get_query_results(QueryId, Config) ->
+    Result0 = cw_request(Config, "GetQueryResults", [{<<"queryId">>, QueryId}]),
+    case Result0 of
+        {error, _} = E -> E;
+        {ok, Result} ->
+            Statistics = proplists:get_value(<<"statistics">>, Result),
+            #{ results => results_from_get_query_results(proplists:get_value(<<"results">>, Result)),
+               statistics => #{ bytes_scanned => proplists:get_value(<<"bytesScanned">>, Statistics),
+                                records_matched => proplists:get_value(<<"recordsMatched">>, Statistics),
+                                records_scanned => proplists:get_value(<<"recordsScanned">>, Statistics)
+               },
+               status => status_from_get_query_results(proplists:get_value(<<"status">>, Result))}
+    end.
+
+-spec results_from_get_query_results(In) -> Out
+      when In :: [[{binary(), binary()}]],
+           Out :: [#{ field := string(),
+                      value := string() }].
+results_from_get_query_results(In) ->
+    lists:map(fun (Result) ->
+                  #{ field => proplists:get_value(<<"field">>, Result),
+                     value => proplists:get_value(<<"value">>, Result) }
+              end,
+              In).
+
+-spec status_from_get_query_results(In) -> Out
+      when In :: binary(),
+           Out :: query_status().
+status_from_get_query_results(<<"Cancelled">>) ->
+    cancelled;
+status_from_get_query_results(<<"Complete">>) ->
+    complete;
+status_from_get_query_results(<<"Failed">>) ->
+    failed;
+status_from_get_query_results(<<"Running">>) ->
+    running;
+status_from_get_query_results(<<"Scheduled">>) ->
+    scheduled;
+status_from_get_query_results(<<"Timeout">>) ->
+    timeout;
+status_from_get_query_results(<<"Unknown">>) ->
+    unknown.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
 %% PutLogEvents action
 %% https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutLogEvents.html
 %%
@@ -626,6 +723,105 @@ list_tags_log_group(LogGroup, Config) ->
             {ok, Tags};
         {error, _} = Error ->
             Error
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% StartQuery action
+%% https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_StartQuery.html
+%%
+%% ===Example===
+%%
+%%   Schedules a query of log groups using CloudWatch Logs Insights. You specify the log groups
+%%   and time range to query, as well as the query string to use.
+%%
+%% `
+%%   {ok, _} = application:ensure_all_started(erlcloud).
+%%   {ok, Config} = erlcloud_aws:auto_config().
+%%   {ok, #{ query_id := QueryId }} = erlcloud_cloudwatch_logs:start_query(["LogGroupName1", "LogGroupName2", "LogGroupName3"], "stats count(*) by eventSource, eventName, awsRegion", 1546300800, 1546309800, 100).
+%% `
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec start_query(LogGroupNames, QueryString, StartTime, EndTime) -> Result
+      when LogGroupNames :: [log_group_name()],
+           QueryString :: string(),
+           StartTime :: non_neg_integer(),
+           EndTime :: non_neg_integer(),
+           Result :: {ok, QueryId :: string()} | {error, erlcloud_aws:httpc_result_error()}.
+start_query(LogGroupNames0, QueryString, StartTime, EndTime) ->
+    start_query(LogGroupNames0, QueryString, StartTime, EndTime, _Limit = 1000).
+
+-spec start_query(LogGroupNames, QueryString, StartTime, EndTime, Limit) -> Result
+      when LogGroupNames :: [log_group_name()],
+           QueryString :: string(),
+           StartTime :: non_neg_integer(),
+           EndTime :: non_neg_integer(),
+           Limit :: 1..10000,
+           Result :: {ok, QueryId :: string()} | {error, erlcloud_aws:httpc_result_error()}.
+start_query(LogGroupNames0, QueryString, StartTime, EndTime, Limit) ->
+    start_query(LogGroupNames0, QueryString, StartTime, EndTime, Limit, default_config()).
+
+-spec start_query(LogGroupNames, QueryString, StartTime, EndTime, Limit, Config) -> Result
+      when LogGroupNames :: [log_group_name()],
+           QueryString :: string(),
+           StartTime :: non_neg_integer(),
+           EndTime :: non_neg_integer(),
+           Limit :: 1..10000,
+           Config :: aws_config(),
+           Result :: {ok, #{ query_id => string() }} | {error, erlcloud_aws:httpc_result_error()}.
+start_query(LogGroupNames0, QueryString, StartTime, EndTime, Limit, Config) ->
+    LogGroupNames = case LogGroupNames0 of
+                        [LogGroupName] ->
+                            [{<<"logGroupName">>, LogGroupName}];
+                        _ ->
+                            [{<<"logGroupNames">>, LogGroupNames0}]
+                    end,
+    Result = cw_request(Config, "StartQuery", LogGroupNames ++ [{<<"queryString">>, QueryString},
+                                                                {<<"startTime">>, StartTime},
+                                                                {<<"endTime">>, EndTime},
+                                                                {<<"limit">>, Limit}]),
+    case Result of
+        {error, _} = E -> E;
+        {ok, OK} -> {ok, #{ query_id => binary_to_list(proplists:get_value(<<"queryId">>, OK)) }}
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc
+%%
+%% StopQuery action
+%% https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_StopQuery.html
+%%
+%% ===Example===
+%%
+%%   Stops a CloudWatch Logs Insights query that is in progress.
+%%
+%% `
+%%   {ok, _} = application:ensure_all_started(erlcloud).
+%%   {ok, Config} = erlcloud_aws:auto_config().
+%%   {ok, QueryId} = erlcloud_cloudwatch_logs:stop_query("ecef5848-8aa7-4c12-9665-bafe422f3247").
+%% `
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec stop_query(QueryId) -> Result
+      when QueryId :: string(),
+           Result :: ok | {error, erlcloud_aws:httpc_result_error()}.
+stop_query(QueryId) ->
+    stop_query(QueryId, default_config()).
+
+-spec stop_query(QueryId, Config) -> Result
+      when QueryId :: string(),
+           Config :: aws_config(),
+           Result :: ok.
+stop_query(QueryId, Config) ->
+    Result = cw_request(Config, "StopQuery", [{<<"queryId">>, QueryId}]),
+    case Result of
+        {error, _} = E -> E;
+        {ok, _} -> ok
     end.
 
 %%------------------------------------------------------------------------------
