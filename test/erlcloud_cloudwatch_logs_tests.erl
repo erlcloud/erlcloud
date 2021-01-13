@@ -606,10 +606,10 @@ get_query_results_output_tests(_) ->
     output_tests(?_f(erlcloud_cloudwatch_logs:get_query_results("12ab3456-12ab-123a-789e-1234567890ab")), [
         ?_cloudwatch_test(
             {"Tests output format for get_query_results",
-             jsx:encode([{<<"results">>, [[{<<"field">>, <<"LogEvent1-field1-name">>},
-                                           {<<"value">>, <<"LogEvent1-field1-value">>}],
-                                          [{<<"field">>, <<"LogEvent1-field2-name">>},
-                                           {<<"value">>, <<"LogEvent1-field2-value">>}]]},
+             jsx:encode([{<<"results">>, [[[{<<"field">>, <<"LogEvent1-field1-name">>},
+                                            {<<"value">>, <<"LogEvent1-field1-value">>}],
+                                           [{<<"field">>, <<"LogEvent1-field2-name">>},
+                                            {<<"value">>, <<"LogEvent1-field2-value">>}]]]},
                          {<<"statistics">>, [{<<"bytesScanned">>, 81349723.0},
                                              {<<"recordsMatched">>, 360851.0},
                                              {<<"recordsScanned">>, 610956.0}]},

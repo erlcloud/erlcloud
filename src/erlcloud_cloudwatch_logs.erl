@@ -508,10 +508,12 @@ get_query_results(QueryId, Config) ->
     end.
 
 -spec results_from_get_query_results(In) -> Out
-      when In :: [[{binary(), binary()}]],
+      when In :: [[[{binary(), binary()}]]],
            Out :: [#{ field := string(),
                       value := string() }].
-results_from_get_query_results(In) ->
+results_from_get_query_results([]) ->
+    [];
+results_from_get_query_results([In]) ->
     lists:map(fun (Result) ->
                   #{ field => binary_to_list(proplists:get_value(<<"field">>, Result)),
                      value => binary_to_list(proplists:get_value(<<"value">>, Result)) }
