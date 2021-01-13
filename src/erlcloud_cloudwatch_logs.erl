@@ -499,12 +499,12 @@ get_query_results(QueryId, Config) ->
         {error, _} = E -> E;
         {ok, Result} ->
             Statistics = proplists:get_value(<<"statistics">>, Result),
-            #{ results => results_from_get_query_results(proplists:get_value(<<"results">>, Result)),
-               statistics => #{ bytes_scanned => proplists:get_value(<<"bytesScanned">>, Statistics),
-                                records_matched => proplists:get_value(<<"recordsMatched">>, Statistics),
-                                records_scanned => proplists:get_value(<<"recordsScanned">>, Statistics)
-               },
-               status => status_from_get_query_results(proplists:get_value(<<"status">>, Result))}
+            {ok, #{ results => results_from_get_query_results(proplists:get_value(<<"results">>, Result)),
+                    statistics => #{ bytes_scanned => proplists:get_value(<<"bytesScanned">>, Statistics),
+                                     records_matched => proplists:get_value(<<"recordsMatched">>, Statistics),
+                                     records_scanned => proplists:get_value(<<"recordsScanned">>, Statistics)
+                    },
+                    status => status_from_get_query_results(proplists:get_value(<<"status">>, Result)) }}
     end.
 
 -spec results_from_get_query_results(In) -> Out
