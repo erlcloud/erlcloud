@@ -820,7 +820,7 @@ stop_query(QueryId) ->
 -spec stop_query(QueryId, Config) -> Result
       when QueryId :: string(),
            Config :: aws_config(),
-           Result :: ok.
+           Result :: ok | {error, erlcloud_aws:httpc_result_error()}.
 stop_query(QueryId, Config) ->
     Result = cw_request(Config, "StopQuery", [{<<"queryId">>, QueryId}]),
     case Result of
