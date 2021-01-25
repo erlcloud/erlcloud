@@ -477,7 +477,7 @@ log_stream_order_by(last_event_time) -> <<"LastEventTime">>.
 %% `
 %%   application:ensure_all_started(erlcloud).
 %%   {ok, Config} = erlcloud_aws:auto_config().
-%%   {ok, Results} = erlcloud_cloudwatch_logs:get_query_results("12ab3456-12ab-123a-789e-1234567890ab").
+%%   {ok, Results} = erlcloud_cloudwatch_logs:get_query_results("12ab3456-12ab-123a-789e-1234567890ab", Config).
 %% `
 %%
 %% @end
