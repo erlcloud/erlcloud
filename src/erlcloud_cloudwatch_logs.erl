@@ -112,8 +112,8 @@
     describe_metric_filters/6,
     describe_metric_filters/7,
 
-    get_query_results/1,
     get_query_results/2,
+    get_query_results/3,
 
     put_logs_events/4,
     put_logs_events/5,
@@ -477,34 +477,39 @@ log_stream_order_by(last_event_time) -> <<"LastEventTime">>.
 %% `
 %%   application:ensure_all_started(erlcloud).
 %%   {ok, Config} = erlcloud_aws:auto_config().
-%%   {ok, Results} = erlcloud_cloudwatch_logs:get_query_results("12ab3456-12ab-123a-789e-1234567890ab", Config).
+%%   {ok, Results} = erlcloud_cloudwatch_logs:get_query_results("12ab3456-12ab-123a-789e-1234567890ab", [], Config).
 %% `
 %%
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_query_results(QueryId) -> Results
+-spec get_query_results(QueryId, Options) -> Results
       when QueryId :: string(),
+           Options :: [{out, map}],
            Results :: {ok, query_results()} | {error, erlcloud_aws:httpc_result_error()}.
-get_query_results(QueryId) ->
-    get_query_results(QueryId, default_config()).
+get_query_results(QueryId, Options) ->
+    get_query_results(QueryId, Options, default_config()).
 
--spec get_query_results(QueryId, Config) -> Results
+-spec get_query_results(QueryId, Options, Config) -> Results
       when QueryId :: string(),
+           Options :: [{out, map}],
            Config :: aws_config(),
            Results :: {ok, query_results()} | {error, erlcloud_aws:httpc_result_error()}.
-get_query_results(QueryId, Config) ->
+get_query_results(QueryId, Options, Config) ->
     Result0 = cw_request(Config, "GetQueryResults", [{<<"queryId">>, QueryId}]),
+    Out = proplists:get_value(out, Options, undefined),
     case Result0 of
         {error, _} = E -> E;
-        {ok, Result} ->
+        {ok, Result} when Out =:= map ->
             Statistics = proplists:get_value(<<"statistics">>, Result),
             {ok, #{ results => results_from_get_query_results(proplists:get_value(<<"results">>, Result)),
                     statistics => #{ bytes_scanned => proplists:get_value(<<"bytesScanned">>, Statistics),
                                      records_matched => proplists:get_value(<<"recordsMatched">>, Statistics),
                                      records_scanned => proplists:get_value(<<"recordsScanned">>, Statistics)
                     },
-                    status => status_from_get_query_results(proplists:get_value(<<"status">>, Result)) }}
+                    status => status_from_get_query_results(proplists:get_value(<<"status">>, Result)) }};
+        _ ->
+            Result0
     end.
 
 -spec results_from_get_query_results(In) -> Out
