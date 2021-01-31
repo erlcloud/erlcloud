@@ -486,7 +486,8 @@ log_stream_order_by(last_event_time) -> <<"LastEventTime">>.
 -spec get_query_results(QueryId, Options) -> Results
       when QueryId :: string(),
            Options :: [{out, map}],
-           Results :: {ok, query_results()} | {error, erlcloud_aws:httpc_result_error()}.
+           Results :: {ok, query_results() | AWSAPIReturn} | {error, erlcloud_aws:httpc_result_error()},
+           AWSAPIReturn :: [{binary(), term()}]. % as per #API_GetQueryResults_ResponseSyntax
 get_query_results(QueryId, Options) ->
     get_query_results(QueryId, Options, default_config()).
 
@@ -494,7 +495,8 @@ get_query_results(QueryId, Options) ->
       when QueryId :: string(),
            Options :: [{out, map}],
            Config :: aws_config(),
-           Results :: {ok, query_results()} | {error, erlcloud_aws:httpc_result_error()}.
+           Results :: {ok, query_results() | AWSAPIReturn} | {error, erlcloud_aws:httpc_result_error()},
+           AWSAPIReturn :: [{binary(), term()}]. % as per #API_GetQueryResults_ResponseSyntax
 get_query_results(QueryId, Options, Config) ->
     Result0 = cw_request(Config, "GetQueryResults", [{<<"queryId">>, QueryId}]),
     Out = proplists:get_value(out, Options, undefined),
