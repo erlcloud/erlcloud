@@ -58,8 +58,8 @@
                       | unknown.
 -export_type([query_status/0]).
 
--type query_results() :: #{ results := [#{ field := string(),
-                                           value := string() }],
+-type query_results() :: #{ results := [[#{ field := string(),
+                                            value := string() }]],
                             statistics := #{ bytes_scanned := float(),
                                              records_matched := float(),
                                              records_scanned := float() },
@@ -516,14 +516,17 @@ get_query_results(QueryId, Options, Config) ->
 
 -spec results_from_get_query_results(In) -> Out
       when In :: [[[{binary(), binary()}]]],
-           Out :: [#{ field := string(),
-                      value := string() }].
+           Out :: [[#{ field := string(),
+                       value := string() }]].
 results_from_get_query_results([]) ->
     [];
-results_from_get_query_results([In]) ->
-    lists:map(fun (Result) ->
-                  #{ field => binary_to_list(proplists:get_value(<<"field">>, Result)),
-                     value => binary_to_list(proplists:get_value(<<"value">>, Result)) }
+results_from_get_query_results(In) ->
+    lists:map(fun (Results) ->
+                  lists:map(fun (Result) ->
+                                #{ field => binary_to_list(proplists:get_value(<<"field">>, Result)),
+                                   value => binary_to_list(proplists:get_value(<<"value">>, Result)) }
+                            end,
+                            Results)
               end,
               In).
 
