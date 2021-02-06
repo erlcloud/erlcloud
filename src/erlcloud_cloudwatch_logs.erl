@@ -58,8 +58,8 @@
                       | unknown.
 -export_type([query_status/0]).
 
--type query_results() :: #{ results := [[#{ field := string(),
-                                            value := string() }]],
+-type query_results() :: #{ results := [[#{ field := binary(),
+                                            value := binary() }]],
                             statistics := #{ bytes_scanned := float(),
                                              records_matched := float(),
                                              records_scanned := float() },
@@ -514,21 +514,17 @@ get_query_results(QueryId, Options, Config) ->
             Result0
     end.
 
--spec results_from_get_query_results(In) -> Out
-      when In :: [[[{binary(), binary()}]]],
-           Out :: [[#{ field := string(),
-                       value := string() }]].
+-spec results_from_get_query_results(ResultRows) -> Out
+      when ResultRows :: [[[{binary(), binary()}]]],
+           Out :: [[#{ field := binary(),
+                       value := binary() }]].
 results_from_get_query_results([]) ->
     [];
-results_from_get_query_results(In) ->
-    lists:map(fun (Results) ->
-                  lists:map(fun (Result) ->
-                                #{ field => binary_to_list(proplists:get_value(<<"field">>, Result)),
-                                   value => binary_to_list(proplists:get_value(<<"value">>, Result)) }
-                            end,
-                            Results)
-              end,
-              In).
+results_from_get_query_results(ResultRows) ->
+    [ [#{ field => proplists:get_value(<<"field">>, ResultField),
+          value => proplists:get_value(<<"value">>, ResultField) }
+       || ResultField <- ResultRow ]
+     || ResultRow <- ResultRows ].
 
 -spec status_from_get_query_results(In) -> Out
       when In :: binary(),
