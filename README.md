@@ -37,6 +37,7 @@ Service APIs implemented:
 - Simple Notification Service (SNS)
 - Web Application Firewall (WAF)
 - AWS Cost and Usage Report API
+- AWS Systems Manager (SSM)
 - and more to come
 
 The majority of API functions have been implemented.
