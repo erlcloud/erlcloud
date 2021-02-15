@@ -784,7 +784,10 @@ service_config( <<"application_autoscaling">>, Region, Config ) ->
     Config#aws_config{application_autoscaling_host = Host};
 service_config( <<"workspaces">> = Service, Region, Config ) ->
     Host = service_host(Service, Region),
-    Config#aws_config{workspaces_host = Host}.
+    Config#aws_config{workspaces_host = Host};
+service_config( <<"ssm">> = Service, Region, Config ) ->
+    Host = service_host(Service, Region),
+    Config#aws_config{ssm_host = Host}.
 
 
 %%%---------------------------------------------------------------------------
