@@ -27,7 +27,8 @@ operation_test_() ->
       fun get_shard_iterator_input_tests/1,
       fun get_shard_iterator_output_tests/1,
       fun list_streams_input_tests/1,
-      fun list_streams_output_tests/1
+      fun list_streams_output_tests/1,
+      fun undynamize_ddb_streams_record_output_tests/1
      ]}.
 
 start() ->
@@ -587,3 +588,48 @@ list_streams_output_tests(_) ->
                        table_name = <<"Forum">>}]}})
         ],
     output_tests(?_f(erlcloud_ddb_streams:list_streams()), Tests).
+
+
+undynamize_ddb_streams_record_output_tests(_) ->
+    DecodedResponse = jsx:decode(
+        <<"
+        {
+            \"awsRegion\": \"us-west-2\",
+            \"dynamodb\": {
+                \"ApproximateCreationDateTime\": 1551727994,
+                \"Keys\": {
+                    \"ForumName\": {\"S\": \"DynamoDB\"},
+                    \"Subject\": {\"S\": \"DynamoDB Thread 3\"}
+                },
+                \"SequenceNumber\": \"300000000000000499659\",
+                \"SizeBytes\": 41,
+                \"StreamViewType\": \"KEYS_ONLY\"
+            },
+            \"eventID\": \"e2fd9c34eff2d779b297b26f5fef4206\",
+            \"eventName\": \"INSERT\",
+            \"eventSource\": \"aws:dynamodb\",
+            \"eventVersion\": \"1.0\"
+        }">>, [{return_maps, false}]),
+    DDBStreamsStreamRecord = #ddb_streams_stream_record{approximate_creation_date_time = 1551727994,
+                                                        keys = [{<<"ForumName">>, <<"DynamoDB">>},
+                                                                {<<"Subject">>, <<"DynamoDB Thread 3">>}],
+                                                        new_image = undefined,
+                                                        old_image = undefined,
+                                                        sequence_number = <<"300000000000000499659">>,
+                                                        size_bytes = 41,
+                                                        stream_view_type = keys_only},
+    DDBStreamsStreamTypedRecord = DDBStreamsStreamRecord#ddb_streams_stream_record{keys = [{<<"ForumName">>, {s, <<"DynamoDB">>}},
+                                                                                           {<<"Subject">>, {s, <<"DynamoDB Thread 3">>}}]},
+
+    DDBStreamsRecord = #ddb_streams_record{aws_region = <<"us-west-2">>,
+                                           dynamodb = DDBStreamsStreamRecord,
+                                           event_id = <<"e2fd9c34eff2d779b297b26f5fef4206">>,
+                                           event_name = insert,
+                                           event_source = <<"aws:dynamodb">>,
+                                           event_version = <<"1.0">>},
+    DDBStreamsTypedRecord = DDBStreamsRecord#ddb_streams_record{dynamodb = DDBStreamsStreamTypedRecord},
+
+    [?_assertEqual({ok, DDBStreamsStreamRecord}, erlcloud_ddb_streams:undynamize_ddb_streams_record(DecodedResponse)),
+     ?_assertEqual({ok, DDBStreamsStreamRecord}, erlcloud_ddb_streams:undynamize_ddb_streams_record(DecodedResponse, [{out, simple}])),
+     ?_assertEqual({ok, DDBStreamsRecord}, erlcloud_ddb_streams:undynamize_ddb_streams_record(DecodedResponse, [{out, record}])),
+     ?_assertEqual({ok, DDBStreamsTypedRecord}, erlcloud_ddb_streams:undynamize_ddb_streams_record(DecodedResponse, [{out, typed_record}]))].
