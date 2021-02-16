@@ -65,6 +65,9 @@
          list_streams/0, list_streams/1, list_streams/2
         ]).
 
+%%% Exported DynamoDB Streams Undynamizers
+-export([undynamize_ddb_streams_record/1, undynamize_ddb_streams_record/2]).
+
 -export_type(
    [aws_region/0,
     event_id/0,
@@ -794,6 +797,32 @@ list_streams(Opts, Config) ->
     out(Return,
         fun(Json, UOpts) -> undynamize_record(list_streams_record(), Json, UOpts) end,
         DdbStreamsOpts, #ddb_streams_list_streams.streams).
+
+
+%%%------------------------------------------------------------------------------
+%%% Exported Undynamizers
+%%%------------------------------------------------------------------------------
+-type undynamize_ddb_streams_record_return() :: ddb_streams_return(#ddb_streams_record{}, #ddb_streams_stream_record{}).
+
+-spec undynamize_ddb_streams_record(json_term()) -> undynamize_ddb_streams_record_return().
+undynamize_ddb_streams_record(Return) ->
+    undynamize_ddb_streams_record(Return, []).
+
+%%------------------------------------------------------------------------------
+%% @doc Undynamizes a DynamoDB streams record.
+%% This function can be used to undynamize the jsx-decoded Data field of a
+%% record retrieved from Kinesis, after enabling Kinesis Data Streaming for
+%% a DynamoDB table.
+%%
+%% Change Data Capture for Kinesis Data Streams with DynamoDB:
+%% [http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/kds.html]
+%%------------------------------------------------------------------------------
+-spec undynamize_ddb_streams_record(json_term(), ddb_streams_opts()) -> undynamize_ddb_streams_record_return().
+undynamize_ddb_streams_record(Return, Opts) ->
+    out({ok, Return},
+        fun(Json, UOpts) -> undynamize_record(record_record(), Json, UOpts) end,
+        Opts, #ddb_streams_record.dynamodb).
+
 
 %%%------------------------------------------------------------------------------
 %%% Request
