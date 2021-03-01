@@ -46,7 +46,7 @@
                                     kms_master_key_id | kms_data_key_reuse_period_seconds |
                                     approximate_number_of_messages_not_visible | visibility_timeout |
                                     created_timestamp | last_modified_timestamp | policy |
-                                    queue_arn).
+                                    queue_arn | deduplication_scope | fifo_throughput_limit).
 
 -type(batch_entry() ::   {string(), string()}
                        | {string(), string(), [message_attribute()]}
@@ -238,7 +238,9 @@ encode_attribute_name(policy) -> "Policy";
 encode_attribute_name(redrive_policy) -> "RedrivePolicy";
 encode_attribute_name(kms_master_key_id) -> "KmsMasterKeyId";
 encode_attribute_name(kms_data_key_reuse_period_seconds) -> "KmsDataKeyReusePeriodSeconds";
-encode_attribute_name(all) -> "All".
+encode_attribute_name(all) -> "All";
+encode_attribute_name(deduplication_scope) -> "DeduplicationScope";
+encode_attribute_name(fifo_throughput_limit) -> "FifoThroughputLimit".
 
 
 decode_attribute_name("MessageRetentionPeriod") -> message_retention_period;
@@ -257,13 +259,17 @@ decode_attribute_name("RedrivePolicy") -> redrive_policy;
 decode_attribute_name("ContentBasedDeduplication") -> content_based_deduplication;
 decode_attribute_name("KmsMasterKeyId") -> kms_master_key_id;
 decode_attribute_name("KmsDataKeyReusePeriodSeconds") -> kms_data_key_reuse_period_seconds;
-decode_attribute_name("FifoQueue") -> fifo_queue.
+decode_attribute_name("FifoQueue") -> fifo_queue;
+decode_attribute_name("DeduplicationScope") -> deduplication_scope;
+decode_attribute_name("FifoThroughputLimit") -> fifo_throughput_limit.
 
 
 decode_attribute_value("Policy", Value) -> Value;
 decode_attribute_value("QueueArn", Value) -> Value;
 decode_attribute_value("RedrivePolicy", Value) -> Value;
 decode_attribute_value("KmsMasterKeyId", Value) -> Value;
+decode_attribute_value("DeduplicationScope", Value) -> Value;
+decode_attribute_value("FifoThroughputLimit", Value) -> Value;
 decode_attribute_value(_, "true") -> true;
 decode_attribute_value(_, "false") -> false;
 decode_attribute_value(_, Value) -> list_to_integer(Value).
