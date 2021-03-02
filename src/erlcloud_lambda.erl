@@ -379,7 +379,7 @@ invoke(FunctionName, Payload, Options, Qualifier) when is_binary(Qualifier) ->
 invoke(FunctionName, Payload, Options, Qualifier, Config = #aws_config{}) ->
     Path = base_path() ++ "functions/" ++ binary_to_list(FunctionName) ++ "/invocations",
     QParams = filter_undef([{"Qualifier", Qualifier}]),
-    lambda_request(Config, post, Path, Options, Payload, QParams).
+    lambda_request(Config, post, Path, Payload, QParams, Options).
 
 %%------------------------------------------------------------------------------
 %% ListAliases
@@ -722,31 +722,30 @@ base_path() ->
     "/" ++ ?API_VERSION ++ "/".
 
 lambda_request(Config, Method, Path, Body) ->
-    lambda_request(Config, Method, Path, [], Body, []).
-lambda_request(Config, Method, Path, Body, QParams) ->
-    lambda_request(Config, Method, Path, [], Body, QParams).
+    lambda_request(Config, Method, Path, Body, []).
 
-lambda_request(Config, Method, Path, Options, Body, QParam) ->
+lambda_request(Config, Method, Path, Body, QParams) ->
+    lambda_request(Config, Method, Path, Body, QParams, []).
+
+lambda_request(Config, Method, Path, Body, QParams, Options) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
-            lambda_request_no_update(Config1, Method, Path, Options, Body, QParam);
+            lambda_request_no_update(Config1, Method, Path, Options, Body, QParams);
         {error, Reason} ->
             {error, Reason}
     end.
 
-lambda_request_no_update(Config, Method, Path, Options, Body, QParam) ->
-    Form = case encode_body(Body) of
-               <<>>   -> erlcloud_http:make_query_string(QParam);
-               Value  -> Value
-           end,
+lambda_request_no_update(Config, Method, Path, Options, Body0, QParams) ->
     ShowRespHeaders = proplists:get_value(show_headers, Options, false),
     RawBody = proplists:get_value(raw_response_body, Options, false),
     Hdrs0 = proplists:delete(show_headers, Options),
     Hdrs = proplists:delete(raw_response_body, Hdrs0),
-    Headers = headers(Method, Path, Hdrs, Config, encode_body(Body), QParam),
+    Body = encode_body(Body0),
+    Headers = headers(Method, Path, Hdrs, Config, Body, QParams),
+    QueryString = erlcloud_http:make_query_string(QParams),
     case erlcloud_aws:do_aws_request_form_raw(
-           Method, Config#aws_config.lambda_scheme, Config#aws_config.lambda_host,
-           Config#aws_config.lambda_port, Path, Form, Headers, Config, ShowRespHeaders) of
+        Method, Config#aws_config.lambda_scheme, Config#aws_config.lambda_host,
+        Config#aws_config.lambda_port, Path, Body, Headers, QueryString, Config, ShowRespHeaders) of
         {ok, RespHeaders, RespBody} ->
             {ok, RespHeaders, decode_body(RespBody, RawBody)};
         {ok, RespBody} ->
@@ -771,9 +770,9 @@ encode_body([]) ->
 encode_body(Body) ->
     jsx:encode(Body).
 
-headers(Method, Uri, Hdrs, Config, Body, QParam) ->
+headers(Method, Uri, Hdrs, Config, Body, QParams) ->
     Headers = [{"host", Config#aws_config.lambda_host},
                {"content-type", "application/json"} | Hdrs],
     Region = erlcloud_aws:aws_region_from_host(Config#aws_config.lambda_host),
     erlcloud_aws:sign_v4(Method, Uri, Config,
-                         Headers, Body, Region, "lambda", QParam).
+                         Headers, Body, Region, "lambda", QParams).

@@ -734,7 +734,7 @@ cloudsearch_post_json(Host, Path, Body,
     case erlcloud_aws:aws_request_form_raw(
             post, Scheme, Host, Port, Path, Body,
             [{"content-type", "application/json"} | Headers],
-            Config) of
+            [], Config) of
        {ok, RespBody} ->
             {ok, jsx:decode(RespBody, [{return_maps, false}])};
        {error, Reason} ->

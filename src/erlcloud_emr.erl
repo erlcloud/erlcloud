@@ -202,7 +202,7 @@ request_no_update(Action, Json, Scheme, Host, Port, Service, Opts, Cfg) ->
     Region = erlcloud_aws:aws_region_from_host(Host),
     Headers = erlcloud_aws:sign_v4_headers(Cfg, H1, ReqBody, Region, Service) ++ H2,
     case erlcloud_aws:aws_request_form_raw(post, Scheme, Host, Port,
-                                           "/", ReqBody, Headers, Cfg) of
+                                           "/", ReqBody, Headers, [], Cfg) of
         {ok, Body} -> case proplists:get_value(out, Opts, json) of
                           raw -> {ok, Body};
                           _   -> case Body of

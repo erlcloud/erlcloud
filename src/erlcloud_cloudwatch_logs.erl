@@ -891,6 +891,7 @@ maybe_cw_request({ok, Config}, Action, Params) ->
             "/",
             Request,
             make_request_headers(Config, Action, Request),
+            [],
             Config
         )
     );

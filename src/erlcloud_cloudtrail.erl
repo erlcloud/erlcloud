@@ -201,7 +201,7 @@ request_impl(Method, Scheme, Host, Port, Path, Operation, Params, Body, #aws_con
     case erlcloud_aws:aws_request_form_raw(
         Method, Scheme, Host, Port, Path, Body, 
         [{"content-type", "application/x-amz-json-1.1"} | Headers], 
-        Config) of
+        [], Config) of
        {ok, RespBody} ->
             case Config#aws_config.cloudtrail_raw_result of
                 true -> {ok, RespBody};
