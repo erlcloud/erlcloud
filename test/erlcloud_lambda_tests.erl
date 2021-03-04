@@ -25,6 +25,7 @@ mocks() ->
      mocked_get_function(),
      mocked_get_function_configuration(),
      mocked_invoke(),
+     mocked_invoke_alias(),
      mocked_invoke_qualifier(),
      mocked_list_aliases(),
      mocked_list_event_source_mappings(),
@@ -158,6 +159,13 @@ mocked_invoke() ->
     [?BASE_URL ++ "functions/name/invocations", post, '_', <<"{}">>, '_', '_'],
     make_response(<<"{\"message\":\"Hello World!\"}">>)
   }.
+
+mocked_invoke_alias() ->
+  {
+    [?BASE_URL ++ "functions/name%3Aalias/invocations", post, '_', <<"{}">>, '_', '_'],
+    make_response(<<"{\"message\":\"Hello World!\"}">>)
+  }.
+
 
 mocked_invoke_qualifier() ->
   {
@@ -647,6 +655,11 @@ api_tests(_) ->
      end,
      fun() ->
              Result = erlcloud_lambda:invoke(<<"name">>, [], [raw_response_body], #aws_config{}),
+             Expected = {ok, <<"{\"message\":\"Hello World!\"}">>},
+             ?assertEqual(Expected, Result)
+     end,
+     fun() ->
+             Result = erlcloud_lambda:invoke(<<"name:alias">>, [], [raw_response_body], #aws_config{}),
              Expected = {ok, <<"{\"message\":\"Hello World!\"}">>},
              ?assertEqual(Expected, Result)
      end,

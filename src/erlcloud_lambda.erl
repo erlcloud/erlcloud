@@ -377,7 +377,8 @@ invoke(FunctionName, Payload, Options, Qualifier) when is_binary(Qualifier) ->
              Qualifier :: binary()| undefined,
              Config    :: aws_config()) -> return_val().
 invoke(FunctionName, Payload, Options, Qualifier, Config = #aws_config{}) ->
-    Path = base_path() ++ "functions/" ++ binary_to_list(FunctionName) ++ "/invocations",
+    URLFunctionName = erlcloud_http:url_encode(binary_to_list(FunctionName)),
+    Path = base_path() ++ "functions/" ++ URLFunctionName ++ "/invocations",
     QParams = filter_undef([{"Qualifier", Qualifier}]),
     lambda_request(Config, post, Path, Payload, QParams, Options).
 
