@@ -8,8 +8,8 @@
          aws_request_xml4/6, aws_request_xml4/8,
          aws_region_from_host/1,
          aws_request_form/8,
-         aws_request_form_raw/9,
-         do_aws_request_form_raw/10,
+         aws_request_form_raw/8, aws_request_form_raw/9,
+         do_aws_request_form_raw/9, do_aws_request_form_raw/10,
          param_list/2, default_config/0, auto_config/0, auto_config/1,
          default_config_region/2, default_config_override/1,
          update_config/1,clear_config/1, clear_expired_configs/0,
@@ -224,12 +224,23 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
     end,
     aws_request_form_raw(Method, Scheme, Host, Port, Path, list_to_binary(Form), RequestHeaders, [], Config).
 
+
+-spec aws_request_form_raw(Method :: atom(), Scheme :: string() | [string()],
+                           Host :: string(), Port :: undefined | integer() | string(),
+                           Path :: string(), Form :: iodata(), Headers :: list(),
+                           Config :: aws_config()) -> {ok, Body :: binary()} | {error, httpc_result_error()}.
+aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config) ->
+    do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, [], Config, false).
+
 -spec aws_request_form_raw(Method :: atom(), Scheme :: string() | [string()],
                            Host :: string(), Port :: undefined | integer() | string(),
                            Path :: string(), Form :: iodata(), Headers :: list(), QueryString :: string(),
                            Config :: aws_config()) -> {ok, Body :: binary()} | {error, httpc_result_error()}.
 aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, QueryString, Config) ->
     do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, QueryString, Config, false).
+
+do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config, ShowRespHeaders) ->
+    do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, [], Config, ShowRespHeaders).
 
 do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, QueryString, Config, ShowRespHeaders) ->
     URL = case Port of
