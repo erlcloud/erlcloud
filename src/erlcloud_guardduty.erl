@@ -115,7 +115,7 @@ guardduty_request_no_update(Config, Method, Path, Body, QParam) ->
     Headers = headers(Method, Path, Config, encode_body(Body), QParam),
     case erlcloud_aws:aws_request_form_raw(
            Method, Config#aws_config.guardduty_scheme, Config#aws_config.guardduty_host,
-           Config#aws_config.guardduty_port, Path, Form, Headers, Config) of
+           Config#aws_config.guardduty_port, Path, Form, Headers, [], Config) of
         {ok, Data} ->
             {ok, jsx:decode(Data, [{return_maps, false}])};
         E ->

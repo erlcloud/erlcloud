@@ -8,8 +8,8 @@
          aws_request_xml4/6, aws_request_xml4/8,
          aws_region_from_host/1,
          aws_request_form/8,
-         aws_request_form_raw/8,
-         do_aws_request_form_raw/9,
+         aws_request_form_raw/8, aws_request_form_raw/9,
+         do_aws_request_form_raw/9, do_aws_request_form_raw/10,
          param_list/2, default_config/0, auto_config/0, auto_config/1,
          default_config_region/2, default_config_override/1,
          update_config/1,clear_config/1, clear_expired_configs/0,
@@ -211,8 +211,8 @@ aws_request4_no_update(Method, Protocol, Host, Port, Path, Params, Service,
 
 
 -spec aws_request_form(Method :: atom(), Protocol :: undefined | string(), Host :: string(),
-                        Port :: undefined | integer() | string(), Path :: string(), Form :: [string()],
-                        Headers :: list(), Config :: aws_config()) -> {ok, Body :: binary()} | {error, httpc_result_error()}.
+                       Port :: undefined | integer() | string(), Path :: string(), Form :: [string()],
+                       Headers :: list(), Config :: aws_config()) -> {ok, Body :: binary()} | {error, httpc_result_error()}.
 aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
     RequestHeaders = case proplists:is_defined("content-type", Headers) of
       false -> [{"content-type", ?DEFAULT_CONTENT_TYPE} | Headers];
@@ -222,16 +222,27 @@ aws_request_form(Method, Protocol, Host, Port, Path, Form, Headers, Config) ->
         undefined -> "https://";
         _ -> [Protocol, "://"]
     end,
-    aws_request_form_raw(Method, Scheme, Host, Port, Path, list_to_binary(Form), RequestHeaders, Config).
+    aws_request_form_raw(Method, Scheme, Host, Port, Path, list_to_binary(Form), RequestHeaders, [], Config).
+
 
 -spec aws_request_form_raw(Method :: atom(), Scheme :: string() | [string()],
-                        Host :: string(), Port :: undefined | integer() | string(),
-                        Path :: string(), Form :: iodata(), Headers :: list(),
-                        Config :: aws_config()) -> {ok, Body :: binary()} | {error, httpc_result_error()}.
+                           Host :: string(), Port :: undefined | integer() | string(),
+                           Path :: string(), Form :: iodata(), Headers :: list(),
+                           Config :: aws_config()) -> {ok, Body :: binary()} | {error, httpc_result_error()}.
 aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config) ->
-    do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config, false).
+    do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, [], Config, false).
+
+-spec aws_request_form_raw(Method :: atom(), Scheme :: string() | [string()],
+                           Host :: string(), Port :: undefined | integer() | string(),
+                           Path :: string(), Form :: iodata(), Headers :: list(), QueryString :: string(),
+                           Config :: aws_config()) -> {ok, Body :: binary()} | {error, httpc_result_error()}.
+aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, QueryString, Config) ->
+    do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, QueryString, Config, false).
 
 do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config, ShowRespHeaders) ->
+    do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, [], Config, ShowRespHeaders).
+
+do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, QueryString, Config, ShowRespHeaders) ->
     URL = case Port of
         undefined -> [Scheme, Host, Path];
         _ -> [Scheme, Host, $:, port_to_str(Port), Path]
@@ -258,25 +269,16 @@ do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, Config,
                 Request#aws_request{should_retry = false}
         end,
 
+    {URI, Body} = aws_request_form_uri_and_body(Method, URL, Form, QueryString),
+    AwsRequest = #aws_request{uri = URI,
+                              method = Method,
+                              request_headers = Headers,
+                              request_body = Body},
+
     %% Note: httpc MUST be used with {timeout, timeout()} option
     %%       Many timeout related failures is observed at prod env
     %%       when library is used in 24/7 manner
-    Response =
-        case Method of
-            M when M =:= get orelse M =:= head orelse M =:= delete ->
-                Req = lists:flatten([URL, $?, Form]),
-                AwsRequest = #aws_request{uri = Req,
-                                          method = M,
-                                          request_headers = Headers,
-                                          request_body = <<>>},
-                erlcloud_retry:request(Config, AwsRequest, ResultFun);
-            _ ->
-                AwsRequest = #aws_request{uri = lists:flatten(URL),
-                                          method = Method,
-                                          request_headers = Headers,
-                                          request_body = Form},
-                erlcloud_retry:request(Config, AwsRequest, ResultFun)
-        end,
+    Response = erlcloud_retry:request(Config, AwsRequest, ResultFun),
 
     show_headers(ShowRespHeaders, request_to_return(Response)).
 
@@ -1040,6 +1042,33 @@ get_timeout(#aws_config{timeout = undefined}) ->
     ?ERLCLOUD_RETRY_TIMEOUT;
 get_timeout(#aws_config{timeout = Timeout}) ->
     Timeout.
+
+%% Construct the URI and body for an AWS request based on the Method, Form, and
+%% QueryString: if the request is a read/delete, join Form and QueryString in
+%% the URI and give an empty body; otherwise, pass the Form in the Body and
+%% the QueryString in the URI.
+aws_request_form_uri_and_body(Method, URL, Form, QueryString) when Method =:= delete;
+                                                                   Method =:= get;
+                                                                   Method =:= head ->
+    URI = make_uri(URL, join_query_strings([Form, QueryString])),
+    {URI, <<>>};
+aws_request_form_uri_and_body(_M, URL, Form, QueryString) ->
+    URI = make_uri(URL, QueryString),
+    {URI, Form}.
+
+
+%% Given a URL and a QueryString, combine them together appropriately (drop the
+%% QueryString if empty).
+make_uri(URL, QueryString) when QueryString =:= <<>>; QueryString == [] ->
+    lists:flatten(URL);
+make_uri(URL, QueryString) ->
+    lists:flatten([URL, $?, QueryString]).
+
+
+%% Join a list of query strings together with `&', filtering out empty ones.
+join_query_strings(QueryStrings) ->
+    lists:join($&, [QS || QS <- QueryStrings, QS /= <<>>, QS /= []]).
+
 
 %% Convert an aws_request record to return value as returned by http_headers_body
 request_to_return(#aws_request{response_type = ok,

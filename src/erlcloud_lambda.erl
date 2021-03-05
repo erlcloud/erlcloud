@@ -107,7 +107,7 @@ create_alias(FunctionName, FunctionVersion,
                          Options         :: proplist(),
                          Config          :: aws_config()) -> return_val().
 create_alias(FunctionName, FunctionVersion, AliasName, Options, Config) ->
-    Path = base_path() ++ "functions/" ++  binary_to_list(FunctionName) ++ "/aliases",
+    Path = base_path() ++ "functions/" ++  url_parameter(FunctionName) ++ "/aliases",
     Json = [{<<"FunctionVersion">>, FunctionVersion},
             {<<"Name">>, AliasName}
             | Options],
@@ -212,7 +212,7 @@ delete_event_source_mapping(Uuid) ->
 -spec delete_event_source_mapping(Uuid   :: binary(),
                                         Config :: aws_config()) -> return_val().
 delete_event_source_mapping(Uuid, Config) ->
-    Path = base_path() ++ "event-source-mappings/" ++ binary_to_list(Uuid),
+    Path = base_path() ++ "event-source-mappings/" ++ url_parameter(Uuid),
     lambda_request(Config, delete, Path, undefined).
 
 
@@ -239,7 +239,7 @@ get_alias(FunctionName, Name) ->
                 Config       :: aws_config()) -> return_val().
 get_alias(FunctionName, Name, Config) ->
     Path = base_path() ++ "functions/"
-        ++ binary_to_list(FunctionName) ++ "/aliases/" ++ binary_to_list(Name),
+        ++ url_parameter(FunctionName) ++ "/aliases/" ++ url_parameter(Name),
     lambda_request(Config, get, Path, undefined).
 
 %%------------------------------------------------------------------------------
@@ -262,7 +262,7 @@ get_event_source_mapping(Uuid) ->
 -spec get_event_source_mapping(Uuid   :: binary(),
                                Config :: aws_config()) -> return_val().
 get_event_source_mapping(Uuid, Config) ->
-    Path = base_path() ++ "event-source-mappings/" ++ binary_to_list(Uuid),
+    Path = base_path() ++ "event-source-mappings/" ++ url_parameter(Uuid),
     lambda_request(Config, get, Path, undefined).
 
 %%------------------------------------------------------------------------------
@@ -291,7 +291,7 @@ get_function(FunctionName, Config) ->
                    Qualifier    :: undefined | binary(),
                    Config       :: aws_config()) -> return_val().
 get_function(FunctionName, Qualifier, Config) ->
-    Path = base_path() ++ "functions/" ++ binary_to_list(FunctionName),
+    Path = base_path() ++ "functions/" ++ url_parameter(FunctionName),
     QParams = filter_undef([{"Qualifier", Qualifier}]),
     lambda_request(Config, get, Path, undefined, QParams).
 
@@ -317,7 +317,7 @@ get_function_configuration(FunctionName, Config) ->
     get_function_configuration(FunctionName, undefined, Config).
 
 get_function_configuration(Function, Qualifier, Config) ->
-    Path = base_path() ++ "functions/" ++ binary_to_list(Function) ++ "/configuration",
+    Path = base_path() ++ "functions/" ++ url_parameter(Function) ++ "/configuration",
     QParams = filter_undef([{"Qualifier", Qualifier}]),
     lambda_request(Config, get, Path, undefined, QParams).
 
@@ -377,9 +377,9 @@ invoke(FunctionName, Payload, Options, Qualifier) when is_binary(Qualifier) ->
              Qualifier :: binary()| undefined,
              Config    :: aws_config()) -> return_val().
 invoke(FunctionName, Payload, Options, Qualifier, Config = #aws_config{}) ->
-    Path = base_path() ++ "functions/" ++ binary_to_list(FunctionName) ++ "/invocations",
+    Path = base_path() ++ "functions/" ++ url_parameter(FunctionName) ++ "/invocations",
     QParams = filter_undef([{"Qualifier", Qualifier}]),
-    lambda_request(Config, post, Path, Options, Payload, QParams).
+    lambda_request(Config, post, Path, Payload, QParams, Options).
 
 %%------------------------------------------------------------------------------
 %% ListAliases
@@ -418,7 +418,7 @@ list_aliases(FunctionName, FunctionVersion, Marker, MaxItems) ->
                    Config          :: aws_config()) -> return_val().
 list_aliases(FunctionName, FunctionVersion, Marker, MaxItems, Config) ->
     Path = base_path() ++ "functions/"
-        ++ binary_to_list(FunctionName) ++ "/aliases",
+        ++ url_parameter(FunctionName) ++ "/aliases",
     QParams = filter_undef([{"Marker", Marker},
                             {"MaxItems", MaxItems},
                             {"FunctionVersion", FunctionVersion}]),
@@ -520,7 +520,7 @@ list_versions_by_function(Function, Marker, MaxItems) ->
                                 MaxItems     :: integer() | undefined,
                                 Config       :: aws_config()) -> return_val().
 list_versions_by_function(Function, Marker, MaxItems, Config) ->
-    Path = base_path() ++ "functions/" ++ binary_to_list(Function) ++ "/versions",
+    Path = base_path() ++ "functions/" ++ url_parameter(Function) ++ "/versions",
     QParams = filter_undef([{"Marker", Marker},
                             {"MaxItems", MaxItems}]),
     lambda_request(Config, get, Path, undefined, QParams).
@@ -553,7 +553,7 @@ publish_version(FunctionName, CodeSha, Description) ->
                       Description  :: binary() | undefined,
                       Config       :: aws_config()) -> return_val().
 publish_version(FunctionName, CodeSha, Description, Config) ->
-    Path = base_path() ++ "functions/" ++ binary_to_list(FunctionName) ++ "/versions",
+    Path = base_path() ++ "functions/" ++ url_parameter(FunctionName) ++ "/versions",
     Json = filter_undef([{<<"CodeSha">>, CodeSha},
                          {<<"Description">>, Description}]),
     lambda_request(Config, post, Path, Json).
@@ -590,7 +590,7 @@ update_alias(FunctionName, AliasName, Description, FunctionVersion) ->
                    Config          :: aws_config()) -> return_val().
 update_alias(FunctionName, AliasName, Description, FunctionVersion, Config) ->
     Path = base_path() ++ "functions/"
-        ++ binary_to_list(FunctionName) ++ "/aliases/" ++ binary_to_list(AliasName),
+        ++ url_parameter(FunctionName) ++ "/aliases/" ++ url_parameter(AliasName),
     Json = filter_undef([{"Description", Description},
                          {"FunctionVersion", FunctionVersion}]),
     lambda_request(Config, put, Path, Json).
@@ -622,7 +622,7 @@ update_event_source_mapping(Uuid, BatchSize, Enabled, FunctionName) ->
                                   FunctionName :: binary() | undefined,
                                   Config       :: aws_config()) -> return_val().
 update_event_source_mapping(Uuid, BatchSize, Enabled, FunctionName, Config) ->
-    Path = base_path() ++ "event-source-mappings/" ++ binary_to_list(Uuid),
+    Path = base_path() ++ "event-source-mappings/" ++ url_parameter(Uuid),
     Json = filter_undef([{<<"BatchSize">>, BatchSize},
                          {<<"Enabled">>, Enabled},
                          {<<"FunctionName">>, FunctionName}]),
@@ -652,7 +652,7 @@ update_function_code(FunctionName, Publish, Code) ->
                            Code         :: erlcloud_lambda_code(),
                            Config       :: aws_config()) -> return_val().
 update_function_code(FunctionName, Publish, Code, Config) ->
-    Path = base_path() ++ "functions/" ++ binary_to_list(FunctionName) ++ "/code",
+    Path = base_path() ++ "functions/" ++ url_parameter(FunctionName) ++ "/code",
     Json = [{<<"Publish">>, Publish} | from_record(Code)],
     lambda_request(Config, put, Path, Json).
 
@@ -700,7 +700,7 @@ update_function_configuration(FunctionName, Description, Handler,
     Configuration :: list(tuple()), % JSX json object
     Config       :: aws_config()) -> return_val().
 update_function_configuration(FunctionName, Configuration, Config) when is_list(Configuration) ->
-    Path = base_path() ++ "functions/" ++ binary_to_list(FunctionName) ++ "/configuration",
+    Path = base_path() ++ "functions/" ++ url_parameter(FunctionName) ++ "/configuration",
     Json = filter_undef(Configuration),
     lambda_request(Config, put, Path, Json).
 
@@ -718,35 +718,37 @@ from_record(#erlcloud_lambda_code{s3Bucket        = S3Bucket,
             {<<"ZipFile">>, ZipFile}],
     filter_undef(List).
 
+url_parameter(Param) ->
+    erlcloud_http:url_encode(binary_to_list(Param)).
+
 base_path() ->
     "/" ++ ?API_VERSION ++ "/".
 
 lambda_request(Config, Method, Path, Body) ->
-    lambda_request(Config, Method, Path, [], Body, []).
-lambda_request(Config, Method, Path, Body, QParams) ->
-    lambda_request(Config, Method, Path, [], Body, QParams).
+    lambda_request(Config, Method, Path, Body, []).
 
-lambda_request(Config, Method, Path, Options, Body, QParam) ->
+lambda_request(Config, Method, Path, Body, QParams) ->
+    lambda_request(Config, Method, Path, Body, QParams, []).
+
+lambda_request(Config, Method, Path, Body, QParams, Options) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
-            lambda_request_no_update(Config1, Method, Path, Options, Body, QParam);
+            lambda_request_no_update(Config1, Method, Path, Options, Body, QParams);
         {error, Reason} ->
             {error, Reason}
     end.
 
-lambda_request_no_update(Config, Method, Path, Options, Body, QParam) ->
-    Form = case encode_body(Body) of
-               <<>>   -> erlcloud_http:make_query_string(QParam);
-               Value  -> Value
-           end,
+lambda_request_no_update(Config, Method, Path, Options, Body0, QParams) ->
     ShowRespHeaders = proplists:get_value(show_headers, Options, false),
     RawBody = proplists:get_value(raw_response_body, Options, false),
     Hdrs0 = proplists:delete(show_headers, Options),
     Hdrs = proplists:delete(raw_response_body, Hdrs0),
-    Headers = headers(Method, Path, Hdrs, Config, encode_body(Body), QParam),
+    Body = encode_body(Body0),
+    Headers = headers(Method, Path, Hdrs, Config, Body, QParams),
+    QueryString = erlcloud_http:make_query_string(QParams),
     case erlcloud_aws:do_aws_request_form_raw(
-           Method, Config#aws_config.lambda_scheme, Config#aws_config.lambda_host,
-           Config#aws_config.lambda_port, Path, Form, Headers, Config, ShowRespHeaders) of
+        Method, Config#aws_config.lambda_scheme, Config#aws_config.lambda_host,
+        Config#aws_config.lambda_port, Path, Body, Headers, QueryString, Config, ShowRespHeaders) of
         {ok, RespHeaders, RespBody} ->
             {ok, RespHeaders, decode_body(RespBody, RawBody)};
         {ok, RespBody} ->
@@ -771,9 +773,9 @@ encode_body([]) ->
 encode_body(Body) ->
     jsx:encode(Body).
 
-headers(Method, Uri, Hdrs, Config, Body, QParam) ->
+headers(Method, Uri, Hdrs, Config, Body, QParams) ->
     Headers = [{"host", Config#aws_config.lambda_host},
                {"content-type", "application/json"} | Hdrs],
     Region = erlcloud_aws:aws_region_from_host(Config#aws_config.lambda_host),
-    erlcloud_aws:sign_v4(Method, Uri, Config,
-                         Headers, Body, Region, "lambda", QParam).
+    erlcloud_aws:sign_v4(Method, erlcloud_http:url_encode_loose(Uri), Config,
+                         Headers, Body, Region, "lambda", QParams).
