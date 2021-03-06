@@ -25,6 +25,19 @@
         {error, any()}).
 -export_type([request_fun/0]).
 
+% Imported from lhttpc_types.hrl
+-type body() :: binary()
+              | undefined % HEAD request.
+              | pid(). % When partial_download option is used.
+
+-type headers() :: [{atom() | string(), iodata()}]. % atom is of type 'Cache-Control' | 'Connection' | 'Date' | ...
+-export_type([headers/0]).
+
+-type result() :: {ok, {{StatusCode :: pos_integer(), StatusMsg :: string()}, headers(), body()}}
+                | {ok, {pid(), WindowSize :: non_neg_integer() | infinity}}
+                | {error, atom()}.
+-export_type([result/0]).
+
 request(URL, Method, Hdrs, Body, Timeout,
         #aws_config{http_client = lhttpc} = Config) ->
     request_lhttpc(URL, Method, Hdrs, Body, Timeout, Config);
