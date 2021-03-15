@@ -20,6 +20,8 @@ mocks() ->
      mocked_create_event_source_mapping(),
      mocked_create_function(),
      mocked_delete_event_source_mapping(),
+     mocked_delete_function(),
+     mocked_delete_function_qualifier(),
      mocked_get_alias(),
      mocked_get_event_source_mapping(),
      mocked_get_function(),
@@ -97,6 +99,18 @@ mocked_delete_event_source_mapping() ->
 "stProcessingResult\":\"No records processed\",\"State\":\"Deleting\",\"StateT"
 "ransitionReason\":\"User action\",\"UUID\":\"a45b58ec-a539-4c47-929e-174b4dd2"
 "d963\"}">>)
+    }.
+mocked_delete_function() ->
+    {
+        [?BASE_URL ++ "functions/name",
+            delete, '_', <<>>, '_', '_'],
+        make_response({204,"No Content"}, <<"">>)
+    }.
+mocked_delete_function_qualifier() ->
+    {
+        [?BASE_URL ++ "functions/name_qualifier?Qualifier=123",
+            delete, '_', <<>>, '_', '_'],
+        make_response({204,"No Content"}, <<"">>)
     }.
 mocked_get_alias() ->
         {
@@ -582,6 +596,18 @@ api_tests(_) ->
              ?assertEqual(Expected, Result)
      end,
      fun() ->
+             Result = erlcloud_lambda:delete_function(
+                        <<"name">>),
+             Expected = {ok, []},
+             ?assertEqual(Expected, Result)
+     end,
+     fun() ->
+             Result = erlcloud_lambda:delete_function(
+                        <<"name_qualifier">>, <<"123">>, #aws_config{}),
+             Expected = {ok, []},
+             ?assertEqual(Expected, Result)
+     end,
+     fun() ->
              Result = erlcloud_lambda:get_alias(<<"name">>, <<"aliasName">>),
              Expected = {ok, [{<<"AliasArn">>,
                                <<"arn:aws:lambda:us-east-1:352283894008:function:name:aliasName">>},
@@ -826,4 +852,7 @@ api_tests(_) ->
     ].
 
 make_response(Value) ->
-    {ok, {{200, <<"OK">>}, [], Value}}.
+    make_response({200, <<"OK">>}, Value).
+
+make_response(Status, Value) ->
+    {ok, {Status, [], Value}}.

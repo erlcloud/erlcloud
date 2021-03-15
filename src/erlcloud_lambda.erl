@@ -14,6 +14,7 @@
          create_event_source_mapping/4, create_event_source_mapping/5,
          create_function/6, create_function/7,
          delete_event_source_mapping/1, delete_event_source_mapping/2,
+         delete_function/1, delete_function/2, delete_function/3,
          get_alias/2, get_alias/3,
          get_event_source_mapping/1, get_event_source_mapping/2,
          get_function/1, get_function/2, get_function/3,
@@ -215,6 +216,34 @@ delete_event_source_mapping(Uuid, Config) ->
     Path = base_path() ++ "event-source-mappings/" ++ url_parameter(Uuid),
     lambda_request(Config, delete, Path, undefined).
 
+%%------------------------------------------------------------------------------
+%% DeleteFunction
+%%------------------------------------------------------------------------------
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% Lambda API:
+%% [https://docs.aws.amazon.com/lambda/latest/dg/API_DeleteFunction.html]
+%%
+%% ===Example===
+%%
+%%------------------------------------------------------------------------------
+-spec delete_function(FunctionName :: binary()) -> return_val().
+delete_function(FunctionName) ->
+    delete_function(FunctionName, default_config()).
+
+-spec delete_function(FunctionName :: binary(),
+    Config       :: aws_config()) -> return_val().
+delete_function(FunctionName, Config) ->
+    delete_function(FunctionName, undefined, Config).
+
+-spec delete_function(FunctionName :: binary(),
+    Qualifier    :: undefined | binary(),
+    Config       :: aws_config()) -> return_val().
+delete_function(FunctionName, Qualifier, Config) ->
+    Path = base_path() ++ "functions/" ++ url_parameter(FunctionName),
+    QParams = filter_undef([{"Qualifier", Qualifier}]),
+    lambda_request(Config, delete, Path, undefined, QParams).
 
 %%------------------------------------------------------------------------------
 %% GetAlias
