@@ -241,7 +241,7 @@ delete_function(FunctionName, Config) ->
     Qualifier    :: undefined | binary(),
     Config       :: aws_config()) -> return_val().
 delete_function(FunctionName, Qualifier, Config) ->
-    Path = base_path() ++ "functions/" ++ binary_to_list(FunctionName),
+    Path = base_path() ++ "functions/" ++ url_parameter(FunctionName),
     QParams = filter_undef([{"Qualifier", Qualifier}]),
     lambda_request(Config, delete, Path, undefined, QParams).
 
