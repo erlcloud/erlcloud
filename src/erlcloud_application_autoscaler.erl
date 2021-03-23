@@ -685,11 +685,29 @@ register_scalable_target(Configuration, BodyConfiguration) ->
 aas_result_fun(#aws_request{response_type = ok} = Request) ->
     Request;
 aas_result_fun(#aws_request{response_type = error,
-                           error_type = aws,
-                           response_status = Status} = Request) when
-%% Retry conflicting operations 409,Conflict and 500s
-%% including 503, SlowDown, Reduce your request rate.
-      Status =:= 409; Status >= 500 ->
+                            error_type = aws,
+                            response_status = 400,
+                            response_body = Body} = Request) ->
+    %% Retry on ThrottlingException, ConcurrentUpdateException
+    try jsx:decode(Body, [{return_maps, false}]) of
+        Json ->
+            case proplists:get_value(<<"__type">>, Json) of
+                <<"ThrottlingException">> ->
+                    Request#aws_request{should_retry = true};
+                <<"ConcurrentUpdateException">> ->
+                    Request#aws_request{should_retry = true};
+                _Other ->
+                    Request#aws_request{should_retry = false}
+            end
+    catch
+        error:badarg ->
+            Request#aws_request{should_retry = false}
+    end;
+aas_result_fun(#aws_request{response_type = error,
+                            error_type = aws,
+                            response_status = Status} = Request) when
+      Status >= 500 ->
+    %% Retry on InternalFailure (500) or ServiceUnavailable (503).
     Request#aws_request{should_retry = true};
 aas_result_fun(#aws_request{response_type = error, error_type = aws} = Request) ->
     Request#aws_request{should_retry = false};
