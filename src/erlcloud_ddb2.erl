@@ -429,7 +429,13 @@ dynamize_type(s) ->
 dynamize_type(n) ->
     <<"N">>;
 dynamize_type(b) ->
-    <<"B">>.
+    <<"B">>;
+dynamize_type(ss) ->
+    <<"SS">>;
+dynamize_type(ns) ->
+    <<"NS">>;
+dynamize_type(bs) ->
+    <<"BS">>.
 
 -spec dynamize_string(in_string_value()) -> binary().
 dynamize_string(Value) when is_binary(Value) ->
@@ -727,7 +733,13 @@ undynamize_type(<<"S">>, _) ->
 undynamize_type(<<"N">>, _) ->
     n;
 undynamize_type(<<"B">>, _) ->
-    b.
+    b;
+undynamize_type(<<"SS">>, _) ->
+    ss;
+undynamize_type(<<"NS">>, _) ->
+    ns;
+undynamize_type(<<"BS">>, _) ->
+    bs.
 
 -spec undynamize_number(binary(), undynamize_opts()) -> number().
 undynamize_number(Value, _) ->

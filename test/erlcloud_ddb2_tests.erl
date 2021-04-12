@@ -1094,7 +1094,8 @@ create_table_input_tests(_) ->
                    <<"Thread">>,
                    [{<<"ForumName">>, s},
                     {<<"Subject">>, s},
-                    {<<"LastPostDateTime">>, s}],
+                    {<<"LastPostDateTime">>, s},
+                    {<<"Posters">>, ss}],
                    {<<"ForumName">>, <<"Subject">>},
                    5,
                    5,
@@ -1116,6 +1117,10 @@ create_table_input_tests(_) ->
         {
             \"AttributeName\": \"LastPostDateTime\",
             \"AttributeType\": \"S\"
+        },
+        {
+            \"AttributeName\": \"Posters\",
+            \"AttributeType\": \"SS\"
         }
     ],
     \"GlobalSecondaryIndexes\": [
