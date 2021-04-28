@@ -1467,7 +1467,8 @@ table_description_record() ->
 %%%------------------------------------------------------------------------------
 
 -type batch_get_item_opt() :: return_consumed_capacity_opt() |
-                              out_opt().
+                              out_opt() |
+                              no_request_opt().
 -type batch_get_item_opts() :: [batch_get_item_opt()].
 
 -spec batch_get_item_opts() -> opt_table().
@@ -1541,7 +1542,7 @@ batch_get_item_record() ->
        end}
      ]}.
 
--type batch_get_item_return() :: ddb_return(#ddb2_batch_get_item{}, [out_item()]).
+-type batch_get_item_return() :: ddb_return(#ddb2_batch_get_item{} | #ddb2_request{}, [out_item()]).
 
 -spec batch_get_item(batch_get_item_request_items()) -> batch_get_item_return().
 batch_get_item(RequestItems) ->
@@ -1609,7 +1610,8 @@ batch_get_item(RequestItems, Opts, Config) ->
 
 -type batch_write_item_opt() :: return_consumed_capacity_opt() |
                                 return_item_collection_metrics_opt() |
-                                out_opt().
+                                out_opt() |
+                                no_request_opt().
 -type batch_write_item_opts() :: [batch_write_item_opt()].
 
 -spec batch_write_item_opts() -> opt_table().
@@ -1669,7 +1671,7 @@ batch_write_item_record() ->
        end}
      ]}.
 
--type batch_write_item_return() :: ddb_return(#ddb2_batch_write_item{}, #ddb2_batch_write_item{}).
+-type batch_write_item_return() :: ddb_return(#ddb2_batch_write_item{} | #ddb2_request{}, #ddb2_batch_write_item{}).
 
 -spec batch_write_item(batch_write_item_request_items()) -> batch_write_item_return().
 batch_write_item(RequestItems) ->
@@ -2108,7 +2110,8 @@ delete_backup(BackupArn, Opts, Config)
                            {return_values, none | all_old} |
                            return_consumed_capacity_opt() |
                            return_item_collection_metrics_opt() |
-                           out_opt().
+                           out_opt() |
+                           no_request_opt().
 -type delete_item_opts() :: [delete_item_opt()].
 
 -spec delete_item_opts() -> opt_table().
@@ -2131,7 +2134,7 @@ delete_item_record() ->
        fun undynamize_item_collection_metrics/2}
      ]}.
 
--type delete_item_return() :: ddb_return(#ddb2_delete_item{}, out_item()).
+-type delete_item_return() :: ddb_return(#ddb2_delete_item{} | #ddb2_request{}, out_item()).
 
 -spec delete_item(table_name(), key()) -> delete_item_return().
 delete_item(Table, Key) ->
@@ -2670,7 +2673,8 @@ describe_time_to_live(Table, DbOpts, Config) ->
                         attributes_to_get_opt() |
                         consistent_read_opt() |
                         return_consumed_capacity_opt() |
-                        out_opt().
+                        out_opt() |
+                        no_request_opt().
 -type get_item_opts() :: [get_item_opt()].
 
 -spec get_item_opts() -> opt_table().
@@ -2688,7 +2692,7 @@ get_item_record() ->
       {<<"ConsumedCapacity">>, #ddb2_get_item.consumed_capacity, fun undynamize_consumed_capacity/2}
      ]}.
 
--type get_item_return() :: ddb_return(#ddb2_get_item{}, out_item()).
+-type get_item_return() :: ddb_return(#ddb2_get_item{} | #ddb2_request{}, out_item()).
 
 -spec get_item(table_name(), key()) -> get_item_return().
 get_item(Table, Key) ->
@@ -3024,7 +3028,8 @@ list_tags_of_resource(ResourceArn, Opts, Config) ->
                         {return_values, none | all_old} |
                         return_consumed_capacity_opt() |
                         return_item_collection_metrics_opt() |
-                        out_opt().
+                        out_opt() |
+                        no_request_opt().
 -type put_item_opts() :: [put_item_opt()].
 
 -spec put_item_opts() -> opt_table().
@@ -3047,7 +3052,7 @@ put_item_record() ->
        fun undynamize_item_collection_metrics/2}
      ]}.
 
--type put_item_return() :: ddb_return(#ddb2_put_item{}, out_item()).
+-type put_item_return() :: ddb_return(#ddb2_put_item{} | #ddb2_request{}, out_item()).
 
 -spec put_item(table_name(), in_item()) -> put_item_return().
 put_item(Table, Item) ->
@@ -3171,7 +3176,7 @@ q_record() ->
       {<<"ScannedCount">>, #ddb2_q.scanned_count, fun id/2}
      ]}.
 
--type q_return() :: ddb_return(#ddb2_q{}, [out_item()]).
+-type q_return() :: ddb_return(#ddb2_q{} | #ddb2_request{}, [out_item()]).
 
 -spec q(table_name(), conditions() | expression()) -> q_return().
 q(Table, KeyConditionsOrExpression) ->
@@ -3358,7 +3363,8 @@ restore_table_to_point_in_time(SourceTableName, TargetTableName, Opts, Config)
                     {index_name, index_name()} |
                     {select, select()} |
                     return_consumed_capacity_opt() |
-                    out_opt().
+                    out_opt() |
+                    no_request_opt().
 -type scan_opts() :: [scan_opt()].
 
 -spec scan_opts() -> opt_table().
@@ -3390,7 +3396,7 @@ scan_record() ->
       {<<"ScannedCount">>, #ddb2_scan.scanned_count, fun id/2}
      ]}.
 
--type scan_return() :: ddb_return(#ddb2_scan{}, [out_item()]).
+-type scan_return() :: ddb_return(#ddb2_scan{} | #ddb2_request{}, [out_item()]).
 
 -spec scan(table_name()) -> scan_return().
 scan(Table) ->
@@ -3482,7 +3488,8 @@ tag_resource(ResourceArn, Tags, Config) ->
 -type transact_get_items_transact_item_opts() :: expression_attribute_names_opt() |
                            projection_expression_opt() |
                            return_consumed_capacity_opt() |
-                           out_opt().
+                           out_opt() |
+                           no_request_opt().
 -type transact_get_items_opts() :: [transact_get_items_transact_item_opts()].
 
 -type transact_get_items_get_item() :: {table_name(), key()}
@@ -3493,7 +3500,7 @@ tag_resource(ResourceArn, Tags, Config) ->
 -type transact_get_items_transact_item() :: transact_get_items_get().
 -type transact_get_items_transact_items() :: maybe_list(transact_get_items_transact_item()).
 
--type transact_get_items_return() :: ddb_return(#ddb2_transact_get_items{}, out_item()).
+-type transact_get_items_return() :: ddb_return(#ddb2_transact_get_items{} | #ddb2_request{}, out_item()).
 
 -spec dynamize_transact_get_items_transact_items(transact_get_items_transact_items())
                                           -> [jsx:json_term()].
@@ -3590,7 +3597,8 @@ transact_get_items(TransactItems, Opts, Config) ->
 -type transact_write_items_opt() :: client_request_token_opt() |
                                 return_consumed_capacity_opt() |
                                 return_item_collection_metrics_opt() |
-                                out_opt().
+                                out_opt() |
+                                no_request_opt().
 -type transact_write_items_opts() :: [transact_write_items_opt()].
 
 -type return_value_on_condition_check_failure_opt() :: {return_values_on_condition_check_failure, return_value()}.
@@ -3672,7 +3680,7 @@ transact_write_items_record() ->
        end}
      ]}.
 
--type transact_write_items_return() :: ddb_return(#ddb2_transact_write_items{}, out_item()).
+-type transact_write_items_return() :: ddb_return(#ddb2_transact_write_items{} | #ddb2_request{}, out_item()).
 
 -spec transact_write_items(transact_write_items_transact_items()) -> transact_write_items_return().
 transact_write_items(RequestItems) ->
@@ -3856,7 +3864,8 @@ dynamize_update_item_updates_or_expression(Updates) ->
                            {return_values, return_value()} |
                            return_consumed_capacity_opt() |
                            return_item_collection_metrics_opt() |
-                           out_opt().
+                           out_opt() |
+                           no_request_opt().
 -type update_item_opts() :: [update_item_opt()].
 
 -spec update_item_opts() -> opt_table().
@@ -3879,7 +3888,7 @@ update_item_record() ->
        fun undynamize_item_collection_metrics/2}
      ]}.
 
--type update_item_return() :: ddb_return(#ddb2_update_item{}, out_item()).
+-type update_item_return() :: ddb_return(#ddb2_update_item{} | #ddb2_request{}, out_item()).
 
 -spec update_item(table_name(), key(), in_updates() | expression()) -> update_item_return().
 update_item(Table, Key, UpdatesOrExpression) ->
