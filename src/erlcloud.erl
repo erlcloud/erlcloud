@@ -5,6 +5,8 @@
 -include("erlcloud_aws.hrl").
 -define(APP, erlcloud).
 
+-export_type([aws_config/0]).
+
 start() ->
     application:load(?APP),
     {ok, Apps} = application:get_key(?APP, applications),
