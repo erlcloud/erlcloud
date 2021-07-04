@@ -21,7 +21,7 @@
 %%% DynamoDB Higher Layer API
 -export([delete_all/2, delete_all/3, delete_all/4,
          delete_hash_key/3, delete_hash_key/4, delete_hash_key/5,
-         get_all/2, get_all/3, get_all/4,
+         get_all/2, get_all/3, get_all/4, get_all/5,
          put_all/2, put_all/3, put_all/4,
          list_tables_all/0, list_tables_all/1,
          q_all/2, q_all/3, q_all/4,
