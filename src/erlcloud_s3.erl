@@ -1869,6 +1869,17 @@ s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body,
     end,
 
     S3Host = Config#aws_config.s3_host,
+    
+    %% Allow to use a customized region
+    %% This seems to add compatibility with S3 like, on-premises 
+    %% providers such as Minio
+    S3Region = case Config#aws_config.s3_region of 
+                   "" ->
+                       aws_region_from_host(S3Host);
+                   UserDefinedRegion ->
+                       UserDefinedRegion
+               end,
+    
     AccessMethod = case Config#aws_config.s3_bucket_access_method of
         auto ->
             case erlcloud_util:is_dns_compliant_name(Bucket) orelse
@@ -1902,7 +1913,7 @@ s3_request4_no_update(Config, Method, Bucket, Path, Subresource, Params, Body,
         Method, EscapedPath, Config,
         [{"host", HostName} | FHeaders ],
         Body,
-        aws_region_from_host(S3Host),
+        S3Region,
         "s3", QueryParams),
 
     RequestURI = lists:flatten([
