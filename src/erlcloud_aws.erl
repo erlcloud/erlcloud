@@ -824,7 +824,7 @@ service_host( Service, Region ) when is_binary(Service) andalso is_binary(Region
 % magic can be done via EC2 DescribeVpcEndpoints/filter by VPC/filter by AZ.
 % however, permissions and describe* API throttling is not what we want to deal with here.
 get_host_vpc_endpoint(Service, Default) when is_binary(Service) ->
-    VPCEndpointsByService = application:get_env(erlcloud, services_vpc_endpoints, []),
+    VPCEndpointsByService = get_vpc_endpoints(),
     ConfiguredEndpoints = proplists:get_value(Service, VPCEndpointsByService, []),
     %% resolve through ENV if any
     Endpoints = case ConfiguredEndpoints of
@@ -861,9 +861,7 @@ string_split(String, Char) ->
 
 pick_vpc_endpoint([], Default) -> Default;
 pick_vpc_endpoint(Endpoints, Default) ->
-    % it fine to use default here - no IAM is used, only for http client
-    % one cannot use auto_config()/default_cfg() as it creates an infinite recursion.
-    case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", #aws_config{}) of
+    case get_availability_zone() of
         {ok, AZ} ->
             lists:foldl(
                 fun (E , Acc) ->
@@ -882,9 +880,30 @@ pick_vpc_endpoint(Endpoints, Default) ->
             Default
     end.
 
--spec get_vpc_endpoints () -> list({binary(), binary()}).
+-spec get_vpc_endpoints() -> list({binary(), binary()}).
 get_vpc_endpoints() ->
     application:get_env(erlcloud, services_vpc_endpoints, []).
+
+-spec get_availability_zone() -> {ok, binary()} | {error, term()}.
+get_availability_zone() ->
+    case application:get_env(erlcloud, availability_zone) of
+        {ok, AZ} = OkResult when is_binary(AZ) ->
+            OkResult;
+        _ ->
+            cache_instance_metadata_availability_zone()
+    end.
+
+-spec cache_instance_metadata_availability_zone() -> {ok, binary()} | {error, term()}.
+cache_instance_metadata_availability_zone() ->
+    % it fine to use default here - no IAM is used, only for http client
+    % one cannot use auto_config()/default_cfg() as it creates an infinite recursion.
+    case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", #aws_config{}) of
+        {ok, AZ} = OkResult ->
+            application:set_env(erlcloud, availability_zone, AZ),
+            OkResult;
+        {error, _} = Error ->
+            Error
+    end.
 
 -spec configure(aws_config()) -> {ok, aws_config()}.
 
