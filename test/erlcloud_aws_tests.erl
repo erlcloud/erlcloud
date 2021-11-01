@@ -912,3 +912,79 @@ service_config_waf_test() ->
                             [erlcloud_aws:service_config(
                                Service, Region, #aws_config{} )
                              || Region <- Regions]] ).
+
+get_host_vpc_endpoint_setup_fun() ->
+    meck:new(erlcloud_ec2_meta),
+    meck:expect(erlcloud_ec2_meta, get_instance_metadata,
+                fun("placement/availability-zone", #aws_config{}) ->
+                    {ok, <<"us-east-1a">>}
+                end).
+
+get_host_vpc_endpoint_teardown(_) ->
+    application:unset_env(erlcloud, availability_zone),
+    application:unset_env(erlcloud, services_vpc_endpoints),
+    meck:unload(erlcloud_ec2_meta).
+
+
+get_host_vpc_endpoint_test_() ->
+    {foreach,
+     fun get_host_vpc_endpoint_setup_fun/0,
+     fun get_host_vpc_endpoint_teardown/1,
+     [fun test_get_host_vpc_endpoint_no_settings/0,
+      fun test_get_host_vpc_endpoint_no_os_env/0,
+      fun test_get_host_vpc_endpoint_invalid_os_env/0,
+      fun test_get_host_vpc_endpoint_valid_os_env/0
+     ]}.
+
+test_get_host_vpc_endpoint_no_settings() ->
+    Default = <<"kinesis.us-east-1.amazonaws.com">>,
+    ?assertEqual(Default,
+                 erlcloud_aws:get_host_vpc_endpoint(<<"kinesis">>, Default)),
+    ?assertEqual(0, meck:num_calls(erlcloud_ec2_meta, get_instance_metadata, '_')).
+
+
+test_get_host_vpc_endpoint_no_os_env() ->
+    Service = <<"kinesis">>,
+    EnvVar = "KINESIS_VPC_ENDPOINTS",
+    Default = <<"kinesis.us-east-1.amazonaws.com">>,
+    application:set_env(erlcloud, services_vpc_endpoints, [{Service, {env, EnvVar}}]),
+    ?assertEqual(Default,
+                 erlcloud_aws:get_host_vpc_endpoint(<<"kinesis">>, Default)),
+    ?assertEqual(0, meck:num_calls(erlcloud_ec2_meta, get_instance_metadata, '_')).
+
+test_get_host_vpc_endpoint_invalid_os_env() ->
+    Service = <<"kinesis">>,
+    EnvVar = "KINESIS_VPC_ENDPOINTS",
+    EnvSetting = "vpc-xyz123-us-east-foobar.kinesis.us-east-1.vpce.amazonaws.com",
+    true = os:putenv("KINESIS_VPC_ENDPOINTS", EnvSetting),
+    Default = <<"kinesis.us-east-1.amazonaws.com">>,
+    application:set_env(erlcloud, services_vpc_endpoints, [{Service, {env, EnvVar}}]),
+    try
+        ?assertEqual(Default,
+                     erlcloud_aws:get_host_vpc_endpoint(<<"kinesis">>, Default)),
+        ?assertEqual(1, meck:num_calls(erlcloud_ec2_meta, get_instance_metadata, '_'))
+    after
+        true = os:unsetenv(EnvVar)
+    end.
+
+test_get_host_vpc_endpoint_valid_os_env() ->
+    Service = <<"kinesis">>,
+    EnvVar = "KINESIS_VPC_ENDPOINTS",
+    EnvSetting = "ABC:vpc-xyz123-us-east-1a.kinesis.us-east-1.vpce.amazonaws.com,"
+                 "DEF:vpc-xyz123-us-east-1b.kinesis.us-east-1.vpce.amazonaws.com",
+    true = os:putenv("KINESIS_VPC_ENDPOINTS", EnvSetting),
+    Default = <<"kinesis.us-east-1.amazonaws.com">>,
+    application:set_env(erlcloud, services_vpc_endpoints, [{Service, {env, EnvVar}}]),
+    try
+        ?assertEqual(undefined,
+                     application:get_env(erlcloud, availability_zone)),
+        ?assertEqual(<<"vpc-xyz123-us-east-1a.kinesis.us-east-1.vpce.amazonaws.com">>,
+                     erlcloud_aws:get_host_vpc_endpoint(<<"kinesis">>, Default)),
+        ?assertEqual({ok, <<"us-east-1a">>},
+                     application:get_env(erlcloud, availability_zone)),
+        ?assertEqual(<<"vpc-xyz123-us-east-1a.kinesis.us-east-1.vpce.amazonaws.com">>,
+                     erlcloud_aws:get_host_vpc_endpoint(<<"kinesis">>, Default)),
+        ?assertEqual(1, meck:num_calls(erlcloud_ec2_meta, get_instance_metadata, '_'))
+    after
+        true = os:unsetenv(EnvVar)
+    end.
