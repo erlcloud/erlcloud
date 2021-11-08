@@ -39,6 +39,10 @@ sns_api_test_() ->
       fun subscribe_output_tests/1,
       fun create_platform_application_input_tests/1,
       fun create_platform_application_output_tests/1,
+      fun get_platform_application_attributes_input_tests/1,
+      fun get_platform_application_attributes_output_tests/1,
+      fun set_platform_application_attributes_input_tests/1,
+      fun set_platform_application_attributes_output_tests/1,
       fun set_topic_attributes_input_tests/1,
       fun set_topic_attributes_output_tests/1,
       fun set_subscription_attributes_input_tests/1,
@@ -319,6 +323,96 @@ create_platform_application_output_tests(_) ->
             "arn:aws:sns:us-west-2:123456789012:app/ADM/TestApp"})
     ],
     output_tests(?_f(erlcloud_sns:create_platform_application("ADM", "TestApp")), Tests).
+
+
+get_platform_application_attributes_input_tests(_) ->
+    Tests =
+        [?_sns_test(
+            {"Test to get platform application attributes.",
+                ?_f(erlcloud_sns:get_platform_application_attributes("TestAppArn")),
+                [
+                    {"Action", "GetPlatformApplicationAttributes"},
+                    {"PlatformApplicationArn", "TestAppArn"}
+                ]})
+        ],
+
+    Response = "
+                <GetPlatformApplicationAttributesResponse xmlns=\"https://sns.amazonaws.com/doc/2010-03-31/\">
+                    <GetPlatformApplicationAttributesResult>
+                        <Attributes>
+                            <entry>
+                                <key>EventDeliveryFailure</key>
+                                <value>arn:aws:sns:us-west-2:123456789012:topicarn</value>
+                            </entry>
+                        </Attributes>
+                    </GetPlatformApplicationAttributesResult>
+                    <ResponseMetadata>
+                        <RequestId>b6f0e78b-e9d4-5a0e-b973-adc04e8a4ff9</RequestId>
+                    </ResponseMetadata>
+                </GetPlatformApplicationAttributesResponse>",
+
+    input_tests(Response, Tests).
+
+get_platform_application_attributes_output_tests(_) ->
+    Tests = [?_sns_test(
+        {"This is a get platform application attributes test.",
+         "<GetPlatformApplicationAttributesResponse xmlns=\"https://sns.amazonaws.com/doc/2010-03-31/\">
+              <GetPlatformApplicationAttributesResult>
+                  <Attributes>
+                      <entry>
+                          <key>EventDeliveryFailure</key>
+                          <value>arn:aws:sns:us-west-2:123456789012:topicarn</value>
+                      </entry>
+                  </Attributes>
+              </GetPlatformApplicationAttributesResult>
+              <ResponseMetadata>
+                  <RequestId>b6f0e78b-e9d4-5a0e-b973-adc04e8a4ff9</RequestId>
+              </ResponseMetadata>
+          </GetPlatformApplicationAttributesResponse>",
+         [{arn, "TestAppArn"},
+          {attributes, [{event_delivery_failure, "arn:aws:sns:us-west-2:123456789012:topicarn"}]}]
+        })
+    ],
+    output_tests(?_f(erlcloud_sns:get_platform_application_attributes("TestAppArn")), Tests).
+
+
+set_platform_application_attributes_input_tests(_) ->
+    Tests =
+        [?_sns_test(
+            {"Test to set platform application attributes.",
+                ?_f(erlcloud_sns:set_platform_application_attributes(
+                    "TestAppArn",
+                    [{platform_principal, "some-api-key"}])),
+                [
+                    {"Action", "SetPlatformApplicationAttributes"},
+                    {"PlatformApplicationArn", "TestAppArn"},
+                    {"Attributes.entry.1.key", "PlatformPrincipal"},
+                    {"Attributes.entry.1.value", "some-api-key"}
+                ]})
+        ],
+
+    Response = "
+                <SetPlatformApplicationAttributesResponse xmlns=\"https://sns.amazonaws.com/doc/2010-03-31/\">
+                    <ResponseMetadata>
+                        <RequestId>cf577bcc-b3dc-5463-88f1-3180b9412395</RequestId>
+                    </ResponseMetadata>
+                </SetPlatformApplicationAttributesResponse>",
+    input_tests(Response, Tests).
+
+set_platform_application_attributes_output_tests(_) ->
+    Tests = [?_sns_test(
+        {"This is a set platform application attributes test.",
+         "<SetPlatformApplicationAttributesResponse xmlns=\"https://sns.amazonaws.com/doc/2010-03-31/\">
+             <ResponseMetadata>
+                 <RequestId>cf577bcc-b3dc-5463-88f1-3180b9412395</RequestId>
+             </ResponseMetadata>
+          </SetPlatformApplicationAttributesResponse>",
+         "cf577bcc-b3dc-5463-88f1-3180b9412395"
+        })
+    ],
+    output_tests(?_f(
+        erlcloud_sns:set_platform_application_attributes("TestAppArn", [{platform_principal, "some-api_key"}])), Tests).
+
 
 %% Set topic attributes test based on the API examples:
 %% http://docs.aws.amazon.com/sns/latest/APIReference/API_SetTopicAttributes.html

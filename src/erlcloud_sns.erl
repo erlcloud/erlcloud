@@ -5,13 +5,22 @@
 -author('elbrujohalcon@inaka.net').
 
 -export([add_permission/3, add_permission/4,
-         create_platform_application/2,
-         create_platform_application/3,
-         create_platform_application/4,
-         create_platform_application/5,
+         create_platform_application/2, create_platform_application/3,
+         create_platform_application/4, create_platform_application/5,
+
+         list_platform_applications/0, list_platform_applications/1,
+         list_platform_applications/2, list_platform_applications/3,
+
+         get_platform_application_attributes/1, get_platform_application_attributes/2,
+         set_platform_application_attributes/2, set_platform_application_attributes/3,
+
          create_platform_endpoint/2, create_platform_endpoint/3,
          create_platform_endpoint/4, create_platform_endpoint/5,
          create_platform_endpoint/6,
+
+         list_endpoints_by_platform_application/1, list_endpoints_by_platform_application/2,
+         list_endpoints_by_platform_application/3, list_endpoints_by_platform_application/4,
+
          create_topic/1, create_topic/2,
          delete_endpoint/1, delete_endpoint/2, delete_endpoint/3,
          delete_topic/1, delete_topic/2,
@@ -28,10 +37,6 @@
          list_subscriptions_by_topic_all/1,
          list_subscriptions_by_topic_all/2,
 
-         list_endpoints_by_platform_application/1,
-         list_endpoints_by_platform_application/2,
-         list_endpoints_by_platform_application/3,
-         list_endpoints_by_platform_application/4,
          get_endpoint_attributes/1,
          get_endpoint_attributes/2,
          get_endpoint_attributes/3,
@@ -41,8 +46,6 @@
          publish_to_topic/5, publish_to_target/2, publish_to_target/3,
          publish_to_target/4, publish_to_target/5, publish_to_phone/2,
          publish_to_phone/3, publish_to_phone/4, publish/5, publish/6,
-         list_platform_applications/0, list_platform_applications/1,
-         list_platform_applications/2, list_platform_applications/3,
          confirm_subscription/1, confirm_subscription/2, confirm_subscription/3,
          confirm_subscription2/2, confirm_subscription2/3, confirm_subscription2/4,
          set_topic_attributes/3, set_topic_attributes/4,
@@ -106,7 +109,12 @@
 -type sns_application_attribute() :: event_endpoint_created
                                    | event_endpoint_deleted
                                    | event_endpoint_updated
-                                   | event_delivery_failure.
+                                   | event_delivery_failure
+                                   | platform_credential
+                                   | platform_principal
+                                   | success_feedback_role_arn
+                                   | failure_feedback_role_arn
+                                   | success_feedback_sample_rate.
 -type sns_application() :: [{arn, string()} | {attributes, [{arn|sns_application_attribute(), string()}]}].
 
 -type(sns_topic_attribute_name () :: 'Policy' | 'DisplayName' | 'DeliveryPolicy').
@@ -188,6 +196,34 @@ create_platform_application(Name, Platform, Attributes, Config) ->
 -spec create_platform_application(string(), string(), [{sns_endpoint_attribute(), string()}], string(), string()) -> string().
 create_platform_application(Name, Platform, Attributes, AccessKeyID, SecretAccessKey) ->
     create_platform_application(Name, Platform, Attributes, new_config(AccessKeyID, SecretAccessKey)).
+
+
+-spec get_platform_application_attributes(string()) -> sns_application().
+get_platform_application_attributes(PlatformApplicationArn) ->
+    get_platform_application_attributes(PlatformApplicationArn, default_config()).
+
+-spec get_platform_application_attributes(string(), aws_config()) -> sns_application().
+get_platform_application_attributes(PlatformApplicationArn, Config) ->
+    Params = [{"PlatformApplicationArn", PlatformApplicationArn}],
+    Doc = sns_xml_request(Config, "GetPlatformApplicationAttributes", Params),
+    Decoded =
+        erlcloud_xml:decode(
+            [{attributes, "GetPlatformApplicationAttributesResult/Attributes/entry",
+                fun extract_attribute/1
+            }],
+            Doc),
+    [{arn, PlatformApplicationArn} | Decoded].
+
+
+-spec set_platform_application_attributes(string(), [{sns_application_attribute(), string()}]) -> string().
+set_platform_application_attributes(PlatformApplicationArn, Attributes) ->
+    set_platform_application_attributes(PlatformApplicationArn, Attributes, default_config()).
+
+-spec set_platform_application_attributes(string(), [{sns_application_attribute(), string()}], aws_config()) -> string().
+set_platform_application_attributes(PlatformApplicationArn, Attributes, Config) ->
+    Params = [{"PlatformApplicationArn", PlatformApplicationArn}] ++ encode_attributes(Attributes),
+    Doc = sns_xml_request(Config, "SetPlatformApplicationAttributes", Params),
+    erlcloud_xml:get_text("ResponseMetadata/RequestId", Doc).
 
 
 -spec create_topic(string()) -> string().
