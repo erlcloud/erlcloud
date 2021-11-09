@@ -20,7 +20,9 @@
 
 -record(aws_config, {
           as_host="autoscaling.amazonaws.com"::string(),
+          ec2_protocol="https"::string(),
           ec2_host="ec2.amazonaws.com"::string(),
+          ec2_port=433::non_neg_integer(),
           iam_host="iam.amazonaws.com"::string(),
           sts_host="sts.amazonaws.com"::string(),
           s3_scheme="https://"::string(),
