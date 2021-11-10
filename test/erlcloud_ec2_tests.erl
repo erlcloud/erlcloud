@@ -859,7 +859,7 @@ describe_account_attributes_test() ->
             ]},
     meck:new(erlcloud_aws, [passthrough]),
     meck:expect(erlcloud_aws, aws_request_xml4,
-        fun(_,_,_,_,_,_) ->
+        fun(_,_,_,_,_,_,_,_) ->
             XMERL
         end),
     Result = erlcloud_ec2:describe_account_attributes(),
@@ -918,7 +918,7 @@ describe_nat_gateways_test() ->
         },
     meck:new(erlcloud_aws, [passthrough]),
     meck:expect(erlcloud_aws, aws_request_xml4,
-        fun(_,_,_,_,_,_) ->
+        fun(_,_,_,_,_,_,_,_) ->
             XMERL
         end),
     Result = erlcloud_ec2:describe_nat_gateways(),
@@ -991,7 +991,7 @@ describe_vpc_peering_connections_test() ->
         },
     meck:new(erlcloud_aws, [passthrough]),
     meck:expect(erlcloud_aws, aws_request_xml4,
-        fun(_,_,_,_,_,_) ->
+        fun(_,_,_,_,_,_,_,_) ->
             XMERL
         end),
     Result = erlcloud_ec2:describe_vpc_peering_connections(),
@@ -1456,7 +1456,7 @@ test_pagination([], _, _, _, _) -> ok;
 test_pagination([{TotalResults, ResultsPerPage} | Rest], ResponseGenerator, OriginalFunction, NormalParams, PagedParams) ->
     meck:new(erlcloud_aws, [passthrough]),
     meck:expect(erlcloud_aws, aws_request_xml4,
-        fun(_,_,_,Params,_,_) ->
+        fun(_,_,_,_,_,Params,_,_) ->
             NextTokenString = proplists:get_value("NextToken", Params),
             MaxResults = proplists:get_value("MaxResults", Params),
             {Start, End, NT} =
