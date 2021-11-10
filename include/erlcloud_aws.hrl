@@ -22,7 +22,7 @@
           as_host="autoscaling.amazonaws.com"::string(),
           ec2_protocol="https"::string(),
           ec2_host="ec2.amazonaws.com"::string(),
-          ec2_port=443::non_neg_integer(),
+          ec2_port=undefined::non_neg_integer()|undefined,
           iam_host="iam.amazonaws.com"::string(),
           sts_host="sts.amazonaws.com"::string(),
           s3_scheme="https://"::string(),
