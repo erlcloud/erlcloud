@@ -916,7 +916,7 @@ format_attribute_field(Num, {Key, Value}) ->
 
 -spec fields_for_attribute(string(), string() | binary() | number()) -> [{string(), string()}].
 fields_for_attribute(Name, Value) ->
-    [{"Key", Name} | fields_for_attribute(Value)].
+    [{"Name", Name} | fields_for_attribute(Value)].
 
 -spec fields_for_attribute(string() | binary() | number()) -> [{string(), string()}].
 fields_for_attribute(Value) when is_list(Value) ->
