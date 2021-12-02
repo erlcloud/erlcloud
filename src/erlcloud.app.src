@@ -24,7 +24,7 @@
       {services_vpc_endpoints, []},
       {ec2_meta_host_port, "169.254.169.254:80"} % allows for an alternative instance metadata service
   ]},
-  {licenses, ["MIT"]},
+  {licenses, ["BSD-2-Clause"]},
   {links, [{"Github", "https://github.com/erlcloud/erlcloud"}]}
  ]
 }.
