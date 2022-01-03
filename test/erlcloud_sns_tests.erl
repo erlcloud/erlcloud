@@ -52,7 +52,8 @@ sns_api_test_() ->
       fun list_subscriptions_input_tests/1,
       fun list_subscriptions_output_tests/1,
       fun list_subscriptions_by_topic_input_tests/1,
-      fun list_subscriptions_by_topic_output_tests/1
+      fun list_subscriptions_by_topic_output_tests/1,
+      fun publish_invalid_xml_response_output_tests/1
      ]}.
 
 start() ->
@@ -121,7 +122,11 @@ validate_params(Body, Expected) ->
 %% Validates the query body and responds with the provided response.
 -spec input_expect(string(), [expected_param()]) -> fun().
 input_expect(Response, Expected) ->
-    fun(_Url, post, _Headers, Body, _Timeout, _Config) ->
+    fun
+        (_Url, post, _Headers, "test message" = Body, _Timeout, _Config) ->
+            validate_params(Body, Expected),
+            {ok, {{200, "OK"}, [], <<"">>}};
+        (_Url, post, _Headers, Body, _Timeout, _Config) ->
             validate_params(Body, Expected),
             {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
@@ -168,7 +173,12 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
       fun() ->
               meck:expect(erlcloud_httpc, request, output_expect(Response)),
               erlcloud_ec2:configure(string:copies("A", 20), string:copies("a", 40)),
-              Actual = Fun(),
+              Actual = try
+                  Fun()
+                catch
+                  _Class:Error:_Stack ->
+                    Error
+                end,
               ?assertEqual(Result, Actual)
       end}}.
 
@@ -868,6 +878,15 @@ list_subscriptions_by_topic_output_tests(_) ->
               {owner, "123456789012"},
               {endpoint, "example@amazon.com"}]
         ]})
+    ]).
+
+publish_invalid_xml_response_output_tests(_) ->
+  Config = erlcloud_aws:default_config(),
+  output_tests(?_f(erlcloud_sns:publish(topic, "arn:aws:sns:us-east-1:123456789012:My-Topic", "test message", undefined, Config)),
+    [?_sns_test(
+      {"Test PublishTopic invalid XML return",
+        "",
+        {sns_error, invalid_xml_response_document}})
     ]).
 
 
