@@ -586,7 +586,7 @@ publish(Type, RecipientArn, Message, Subject, Attributes, Config) ->
         Doc ->
             erlcloud_xml:get_text("PublishResult/MessageId", Doc)
     catch
-        exit:{fatal,{expected_element_start_tag, _, _, _}}:_Stack ->
+        exit:{fatal,{expected_element_start_tag, _, _, _}} ->
             erlang:error({sns_error, invalid_xml_response_document})
     end.
 
