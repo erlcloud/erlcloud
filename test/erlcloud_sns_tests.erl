@@ -882,7 +882,7 @@ publish_invalid_xml_response_output_tests(_) ->
     [?_sns_test(
       {"Test PublishTopic invalid XML return",
         "",
-        {sns_error, invalid_xml_response_document}})
+        {aws_error, {invalid_xml_response_document, <<>>}}})
     ]).
 
 

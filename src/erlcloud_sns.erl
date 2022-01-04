@@ -580,14 +580,12 @@ publish(Type, RecipientArn, Message, Subject, Attributes, Config) ->
             Subject -> [{"Subject", Subject}]
         end,
     AttributesParam = message_attributes(Attributes),
-    try sns_xml_request(
+    case sns_xml_request(
             Config, "Publish",
             RecipientParam ++ MessageParams ++ SubjectParam ++ AttributesParam) of
-        Doc ->
-            erlcloud_xml:get_text("PublishResult/MessageId", Doc)
-    catch
-        exit:{fatal,{expected_element_start_tag, _, _, _}} ->
-            erlang:error({sns_error, invalid_xml_response_document})
+        {ok, Doc} ->
+            erlcloud_xml:get_text("PublishResult/MessageId", Doc);
+        Error -> Error
     end.
 
 -spec parse_event(iodata()) -> sns_event().
@@ -822,7 +820,8 @@ sns_xml_request(Config, Action, Params) ->
             ErrMsg = erlcloud_xml:get_text("Error/Message", XML),
             erlang:error({sns_error, ErrCode, ErrMsg});
         {error, Reason} ->
-            erlang:error({sns_error, Reason})
+            erlang:error({sns_error, Reason});
+        Otherwise -> Otherwise
     end.
 
 sns_request(Config, Action, Params) ->
