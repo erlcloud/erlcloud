@@ -89,7 +89,10 @@ aws_request_xml2(Method, Host, Path, Params, #aws_config{} = Config) ->
 aws_request_xml2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     case aws_request2(Method, Protocol, Host, Port, Path, Params, Config) of
         {ok, Body} ->
-            format_xml_response(Body);
+            case format_xml_response(Body) of
+                {ok, XML} -> {ok, XML};
+                Error -> {error, Error}
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
@@ -99,7 +102,10 @@ aws_request_xml4(Method, Host, Path, Params, Service, #aws_config{} = Config) ->
 aws_request_xml4(Method, Protocol, Host, Port, Path, Params, Service, #aws_config{} = Config) ->
     case aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) of
         {ok, Body} ->
-            format_xml_response(Body);
+            case format_xml_response(Body) of
+                {ok, XML} -> {ok, XML};
+                Error -> {error, Error}
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
@@ -334,7 +340,7 @@ encode_params(Params, Headers) ->
 raw_xml_response(Body) ->
     case format_xml_response(Body) of
         {ok, XML} -> XML;
-        Error -> Error
+        Error -> erlang:error(Error)
     end.
 
 format_xml_response(Body) ->

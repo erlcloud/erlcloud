@@ -820,8 +820,7 @@ sns_xml_request(Config, Action, Params) ->
             ErrMsg = erlcloud_xml:get_text("Error/Message", XML),
             erlang:error({sns_error, ErrCode, ErrMsg});
         {error, Reason} ->
-            erlang:error({sns_error, Reason});
-        Otherwise -> Otherwise
+            erlang:error({sns_error, Reason})
     end.
 
 sns_request(Config, Action, Params) ->
