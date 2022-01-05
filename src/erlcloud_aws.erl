@@ -344,13 +344,12 @@ raw_xml_response(Body) ->
     end.
 
 format_xml_response(Body) ->
-    XML = try 
-        element(1, xmerl_scan:string(binary_to_list(Body)))
+    try 
+        {ok, element(1, xmerl_scan:string(binary_to_list(Body)))}
     catch
         _:_ ->
             {aws_error, {invalid_xml_response_document, Body}}
-    end,
-    {ok, XML}.
+    end.
 
 %%%---------------------------------------------------------------------------
 -spec default_config() -> aws_config().
