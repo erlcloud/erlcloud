@@ -172,7 +172,7 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
               Actual = try
                   Fun()
                 catch
-                  _Class:Error:_Stack ->
+                  _Class:Error ->
                     Error
                 end,
               ?assertEqual(Result, Actual)

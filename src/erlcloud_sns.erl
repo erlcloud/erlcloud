@@ -580,13 +580,12 @@ publish(Type, RecipientArn, Message, Subject, Attributes, Config) ->
             Subject -> [{"Subject", Subject}]
         end,
     AttributesParam = message_attributes(Attributes),
-    case sns_xml_request(
+    Doc =
+        sns_xml_request(
             Config, "Publish",
-            RecipientParam ++ MessageParams ++ SubjectParam ++ AttributesParam) of
-        {ok, Doc} ->
-            erlcloud_xml:get_text("PublishResult/MessageId", Doc);
-        Error -> Error
-    end.
+            RecipientParam ++ MessageParams ++ SubjectParam ++ AttributesParam),
+    erlcloud_xml:get_text(
+        "PublishResult/MessageId", Doc).
 
 -spec parse_event(iodata()) -> sns_event().
 parse_event(EventSource) ->
