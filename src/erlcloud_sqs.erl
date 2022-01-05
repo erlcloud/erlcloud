@@ -42,11 +42,14 @@
                                   approximate_first_receive_timestamp |
                                   wait_time_seconds |
                                   receive_message_wait_time_seconds).
--type(sqs_queue_attribute_name() :: all | approximate_number_of_messages |
-                                    kms_master_key_id | kms_data_key_reuse_period_seconds |
-                                    approximate_number_of_messages_not_visible | visibility_timeout |
-                                    created_timestamp | last_modified_timestamp | policy |
-                                    queue_arn | deduplication_scope | fifo_throughput_limit | sqs_managed_sse_enabled).
+
+-type(sqs_queue_attribute_name() :: all | approximate_number_of_messages | approximate_number_of_messages_not_visible |
+                                    approximate_number_of_messages_delayed | created_timestamp | delay_seconds |
+                                    last_modified_timestamp | maximum_message_size | message_retention_period |
+                                    policy | queue_arn | receive_message_wait_time_seconds | redrive_policy |
+                                    visibility_timeout | kms_master_key_id | kms_data_key_reuse_period_seconds |
+                                    sqs_managed_sse_enabled | fifo_queue | content_cased_deduplication |
+                                    deduplication_scope | fifo_throughput_limit).
 
 -type(batch_entry() ::   {string(), string()}
                        | {string(), string(), [message_attribute()]}
@@ -223,47 +226,53 @@ get_queue_attributes(QueueName, AttributeNames, Config)
     [{decode_attribute_name(Name), decode_attribute_value(Name, Value)} || {Name, Value} <- Attrs].
 
 
-encode_attribute_name(message_retention_period) -> "MessageRetentionPeriod";
-encode_attribute_name(queue_arn) -> "QueueArn";
-encode_attribute_name(maximum_message_size) -> "MaximumMessageSize";
-encode_attribute_name(visibility_timeout) -> "VisibilityTimeout";
+encode_attribute_name(all) -> "All";
 encode_attribute_name(approximate_number_of_messages) -> "ApproximateNumberOfMessages";
 encode_attribute_name(approximate_number_of_messages_not_visible) -> "ApproximateNumberOfMessagesNotVisible";
 encode_attribute_name(approximate_number_of_messages_delayed) -> "ApproximateNumberOfMessagesDelayed";
-encode_attribute_name(last_modified_timestamp) -> "LastModifiedTimestamp";
 encode_attribute_name(created_timestamp) -> "CreatedTimestamp";
 encode_attribute_name(delay_seconds) -> "DelaySeconds";
-encode_attribute_name(receive_message_wait_time_seconds) -> "ReceiveMessageWaitTimeSeconds";
+encode_attribute_name(last_modified_timestamp) -> "LastModifiedTimestamp";
+encode_attribute_name(maximum_message_size) -> "MaximumMessageSize";
+encode_attribute_name(message_retention_period) -> "MessageRetentionPeriod";
 encode_attribute_name(policy) -> "Policy";
+encode_attribute_name(queue_arn) -> "QueueArn";
+encode_attribute_name(receive_message_wait_time_seconds) -> "ReceiveMessageWaitTimeSeconds";
 encode_attribute_name(redrive_policy) -> "RedrivePolicy";
+encode_attribute_name(visibility_timeout) -> "VisibilityTimeout";
+%% The following attributes apply only to server-side-encryption
 encode_attribute_name(kms_master_key_id) -> "KmsMasterKeyId";
 encode_attribute_name(kms_data_key_reuse_period_seconds) -> "KmsDataKeyReusePeriodSeconds";
-encode_attribute_name(all) -> "All";
+encode_attribute_name(sqs_managed_sse_enabled) -> "SqsManagedSseEnabled";
+%% The following attributes apply only to FIFO (first-in-first-out) queues
+encode_attribute_name(fifo_queue) -> "FifoQueue";
+encode_attribute_name(content_cased_deduplication) -> "ContentBasedDeduplication";
 encode_attribute_name(deduplication_scope) -> "DeduplicationScope";
-encode_attribute_name(fifo_throughput_limit) -> "FifoThroughputLimit";
-encode_attribute_name(sqs_managed_sse_enabled) -> "SqsManagedSseEnabled".
+encode_attribute_name(fifo_throughput_limit) -> "FifoThroughputLimit".
 
 
-decode_attribute_name("MessageRetentionPeriod") -> message_retention_period;
-decode_attribute_name("QueueArn") -> queue_arn;
-decode_attribute_name("MaximumMessageSize") -> maximum_message_size;
-decode_attribute_name("VisibilityTimeout") -> visibility_timeout;
 decode_attribute_name("ApproximateNumberOfMessages") -> approximate_number_of_messages;
 decode_attribute_name("ApproximateNumberOfMessagesNotVisible") -> approximate_number_of_messages_not_visible;
 decode_attribute_name("ApproximateNumberOfMessagesDelayed") -> approximate_number_of_messages_delayed;
-decode_attribute_name("LastModifiedTimestamp") -> last_modified_timestamp;
 decode_attribute_name("CreatedTimestamp") -> created_timestamp;
 decode_attribute_name("DelaySeconds") -> delay_seconds;
-decode_attribute_name("ReceiveMessageWaitTimeSeconds") -> receive_message_wait_time_seconds;
+decode_attribute_name("LastModifiedTimestamp") -> last_modified_timestamp;
+decode_attribute_name("MaximumMessageSize") -> maximum_message_size;
+decode_attribute_name("MessageRetentionPeriod") -> message_retention_period;
 decode_attribute_name("Policy") -> policy;
+decode_attribute_name("QueueArn") -> queue_arn;
+decode_attribute_name("ReceiveMessageWaitTimeSeconds") -> receive_message_wait_time_seconds;
 decode_attribute_name("RedrivePolicy") -> redrive_policy;
-decode_attribute_name("ContentBasedDeduplication") -> content_based_deduplication;
+decode_attribute_name("VisibilityTimeout") -> visibility_timeout;
+%% The following attributes apply only to server-side-encryption
 decode_attribute_name("KmsMasterKeyId") -> kms_master_key_id;
 decode_attribute_name("KmsDataKeyReusePeriodSeconds") -> kms_data_key_reuse_period_seconds;
+decode_attribute_name("SqsManagedSseEnabled") -> sqs_managed_sse_enabled;
+%% The following attributes apply only to FIFO (first-in-first-out) queues
 decode_attribute_name("FifoQueue") -> fifo_queue;
+decode_attribute_name("ContentBasedDeduplication") -> content_cased_deduplication;
 decode_attribute_name("DeduplicationScope") -> deduplication_scope;
 decode_attribute_name("FifoThroughputLimit") -> fifo_throughput_limit;
-decode_attribute_name("SqsManagedSseEnabled") -> sqs_managed_sse_enabled;
 decode_attribute_name(Name) -> Name.
 
 
