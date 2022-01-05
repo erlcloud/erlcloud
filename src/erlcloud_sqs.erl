@@ -275,7 +275,13 @@ decode_attribute_value("DeduplicationScope", Value) -> Value;
 decode_attribute_value("FifoThroughputLimit", Value) -> Value;
 decode_attribute_value(_, "true") -> true;
 decode_attribute_value(_, "false") -> false;
-decode_attribute_value(_, Value) -> list_to_integer(Value).
+decode_attribute_value(_, Value) ->
+    try
+        list_to_integer(Value)
+    catch
+        error:badarg ->
+            Value
+    end.
 
 
 -spec list_queues() -> [string()].

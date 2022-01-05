@@ -18,6 +18,10 @@ erlcloud_api_test_() ->
      fun stop/1,
      [
       fun set_queue_attributes/1,
+      fun get_queue_attributes_all_output/1,
+      fun get_queue_attributes_all_unknown_output/1,
+      fun get_queue_attributes_all_input/1,
+      fun get_queue_attributes_specific_input/1,
       fun get_queue_url/1,
       fun send_message_with_message_opts/1,
       fun send_message_with_message_attributes/1,
@@ -161,6 +165,194 @@ set_queue_attributes(_) ->
       <RequestId>40945605-b328-53b5-aed4-1cc24a7240e8</RequestId>
    </ResponseMetadata>
 </SetQueueAttributesResponse>",
+    input_tests(Response, Tests).
+
+get_queue_attributes_all_output(_) ->
+    GetQueueAttributesResponse = "
+<GetQueueAttributesResponse>
+    <GetQueueAttributesResult>
+        <Attribute>
+            <Name>ReceiveMessageWaitTimeSeconds</Name>
+            <Value>2</Value>
+        </Attribute>
+        <Attribute>
+            <Name>VisibilityTimeout</Name>
+            <Value>30</Value>
+        </Attribute>
+        <Attribute>
+            <Name>ApproximateNumberOfMessages</Name>
+            <Value>0</Value>
+        </Attribute>
+        <Attribute>
+            <Name>ApproximateNumberOfMessagesNotVisible</Name>
+            <Value>0</Value>
+        </Attribute>
+        <Attribute>
+            <Name>CreatedTimestamp</Name>
+            <Value>1286771522</Value>
+        </Attribute>
+        <Attribute>
+            <Name>LastModifiedTimestamp</Name>
+            <Value>1286771522</Value>
+        </Attribute>
+        <Attribute>
+            <Name>QueueArn</Name>
+            <Value>arn:aws:sqs:us-east-2:123456789012:MyQueue</Value>
+        </Attribute>
+        <Attribute>
+            <Name>MaximumMessageSize</Name>
+            <Value>8192</Value>
+        </Attribute>
+        <Attribute>
+            <Name>MessageRetentionPeriod</Name>
+            <Value>345600</Value>
+        </Attribute>
+    </GetQueueAttributesResult>
+    <ResponseMetadata>
+        <RequestId>1ea71be5-b5a2-4f9d-b85a-945d8d08cd0b</RequestId>
+    </ResponseMetadata>
+</GetQueueAttributesResponse>",
+
+    Expected = [{receive_message_wait_time_seconds, 2},
+                {visibility_timeout, 30},
+                {approximate_number_of_messages, 0},
+                {approximate_number_of_messages_not_visible, 0},
+                {created_timestamp, 1286771522},
+                {last_modified_timestamp, 1286771522},
+                {queue_arn, "arn:aws:sqs:us-east-2:123456789012:MyQueue"},
+                {maximum_message_size, 8192},
+                {message_retention_period, 345600}],
+    Tests =
+        [?_sqs_test(
+            {"Test receives a get queue attributes result with all attributes (default).",
+             GetQueueAttributesResponse, Expected})],
+
+    output_tests(?_f(erlcloud_sqs:get_queue_attributes("MyQueue")), Tests).
+
+get_queue_attributes_all_unknown_output(_) ->
+        GetQueueAttributesResponse = "
+<GetQueueAttributesResponse>
+    <GetQueueAttributesResult>
+        <Attribute>
+            <Name>ReceiveMessageWaitTimeSeconds</Name>
+            <Value>2</Value>
+        </Attribute>
+        <Attribute>
+            <Name>VisibilityTimeout</Name>
+            <Value>30</Value>
+        </Attribute>
+        <Attribute>
+            <Name>ApproximateNumberOfMessages</Name>
+            <Value>0</Value>
+        </Attribute>
+        <Attribute>
+            <Name>ApproximateNumberOfMessagesNotVisible</Name>
+            <Value>0</Value>
+        </Attribute>
+        <Attribute>
+            <Name>CreatedTimestamp</Name>
+            <Value>1286771522</Value>
+        </Attribute>
+        <Attribute>
+            <Name>LastModifiedTimestamp</Name>
+            <Value>1286771522</Value>
+        </Attribute>
+        <Attribute>
+            <Name>QueueArn</Name>
+            <Value>arn:aws:sqs:us-east-2:123456789012:MyQueue</Value>
+        </Attribute>
+        <Attribute>
+            <Name>MaximumMessageSize</Name>
+            <Value>8192</Value>
+        </Attribute>
+        <Attribute>
+            <Name>MessageRetentionPeriod</Name>
+            <Value>345600</Value>
+        </Attribute>
+        <Attribute>
+            <Name>UnrecognizedAttribute</Name>
+            <Value>UnrecognizedValue</Value>
+        </Attribute>
+    </GetQueueAttributesResult>
+    <ResponseMetadata>
+        <RequestId>1ea71be5-b5a2-4f9d-b85a-945d8d08cd0b</RequestId>
+    </ResponseMetadata>
+</GetQueueAttributesResponse>",
+    Expected = [{receive_message_wait_time_seconds,2},
+                {visibility_timeout, 30},
+                {approximate_number_of_messages, 0},
+                {approximate_number_of_messages_not_visible, 0},
+                {created_timestamp, 1286771522},
+                {last_modified_timestamp, 1286771522},
+                {queue_arn, "arn:aws:sqs:us-east-2:123456789012:MyQueue"},
+                {maximum_message_size, 8192},
+                {message_retention_period, 345600},
+                {"UnrecognizedAttribute", "UnrecognizedValue"}],
+    Tests =
+        [?_sqs_test(
+            {"Test receives a get queue attributes result with all attributes (default).",
+             GetQueueAttributesResponse, Expected})],
+
+    output_tests(?_f(erlcloud_sqs:get_queue_attributes("MyQueue")), Tests).
+
+get_queue_attributes_all_input(_) ->
+    Expected = [
+        {"Action", "GetQueueAttributes"},
+        {"AttributeName.1", "All"}
+    ],
+    Tests =
+        [?_sqs_test(
+            {"Test getting queue attributes (specific).",
+             ?_f(erlcloud_sqs:get_queue_attributes("MyQueue")),
+             Expected})],
+    Response = "
+<GetQueueAttributesResponse>
+    <GetQueueAttributesResult>
+        <Attribute>
+            <Name>QueueArn</Name>
+            <Value>arn:aws:sqs:us-east-2:123456789012:MyQueue</Value>
+        </Attribute>
+    </GetQueueAttributesResult>
+    <ResponseMetadata>
+        <RequestId>1ea71be5-b5a2-4f9d-b85a-945d8d08cd0b</RequestId>
+    </ResponseMetadata>
+</GetQueueAttributesResponse>",
+    input_tests(Response, Tests).
+
+get_queue_attributes_specific_input(_) ->
+    Expected = [
+        {"Action", "GetQueueAttributes"},
+        {"AttributeName.1", "VisibilityTimeout"},
+        {"AttributeName.2", "DelaySeconds"},
+        {"AttributeName.3", "ReceiveMessageWaitTimeSeconds"}
+    ],
+    Tests =
+        [?_sqs_test(
+            {"Test getting queue attributes (specific).",
+             ?_f(erlcloud_sqs:get_queue_attributes("MyQueue", [visibility_timeout,
+                                                               delay_seconds,
+                                                               receive_message_wait_time_seconds])),
+             Expected})],
+    Response = "
+<GetQueueAttributesResponse>
+    <GetQueueAttributesResult>
+        <Attribute>
+            <Name>VisibilityTimeout</Name>
+            <Value>30</Value>
+        </Attribute>
+        <Attribute>
+            <Name>DelaySeconds</Name>
+            <Value>0</Value>
+        </Attribute>
+        <Attribute>
+            <Name>ReceiveMessageWaitTimeSeconds</Name>
+            <Value>2</Value>
+        </Attribute>
+    </GetQueueAttributesResult>
+    <ResponseMetadata>
+        <RequestId>1ea71be5-b5a2-4f9d-b85a-945d8d08cd0b</RequestId>
+    </ResponseMetadata>
+</GetQueueAttributesResponse>",
     input_tests(Response, Tests).
 
 get_queue_url(_) ->
