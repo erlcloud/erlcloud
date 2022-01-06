@@ -73,23 +73,26 @@
 
 aws_request_xml(Method, Host, Path, Params, #aws_config{} = Config) ->
     Body = aws_request(Method, Host, Path, Params, Config),
-    element(1, xmerl_scan:string(binary_to_list(Body))).
+    raw_xml_response(Body).
 aws_request_xml(Method, Host, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Host, Path, Params, AccessKeyID, SecretAccessKey),
-    element(1, xmerl_scan:string(binary_to_list(Body))).
+    raw_xml_response(Body).
 aws_request_xml(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     Body = aws_request(Method, Protocol, Host, Port, Path, Params, Config),
-    element(1, xmerl_scan:string(binary_to_list(Body))).
+    raw_xml_response(Body).
 aws_request_xml(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey) ->
     Body = aws_request(Method, Protocol, Host, Port, Path, Params, AccessKeyID, SecretAccessKey),
-    element(1, xmerl_scan:string(binary_to_list(Body))).
+    raw_xml_response(Body).
 
 aws_request_xml2(Method, Host, Path, Params, #aws_config{} = Config) ->
     aws_request_xml2(Method, undefined, Host, undefined, Path, Params, Config).
 aws_request_xml2(Method, Protocol, Host, Port, Path, Params, #aws_config{} = Config) ->
     case aws_request2(Method, Protocol, Host, Port, Path, Params, Config) of
         {ok, Body} ->
-            {ok, element(1, xmerl_scan:string(binary_to_list(Body)))};
+            case format_xml_response(Body) of
+                {ok, XML} -> {ok, XML};
+                Error -> {error, Error}
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
@@ -99,7 +102,10 @@ aws_request_xml4(Method, Host, Path, Params, Service, #aws_config{} = Config) ->
 aws_request_xml4(Method, Protocol, Host, Port, Path, Params, Service, #aws_config{} = Config) ->
     case aws_request4(Method, Protocol, Host, Port, Path, Params, Service, Config) of
         {ok, Body} ->
-            {ok, element(1, xmerl_scan:string(binary_to_list(Body)))};
+            case format_xml_response(Body) of
+                {ok, XML} -> {ok, XML};
+                Error -> {error, Error}
+            end;
         {error, Reason} ->
             {error, Reason}
     end.
@@ -330,6 +336,20 @@ encode_params(Params, Headers) ->
     ?DEFAULT_CONTENT_TYPE -> {erlcloud_http:make_query_string(Params), LowerCaseHeaders};
     _ContentType -> {Params, LowerCaseHeaders}
   end.
+
+raw_xml_response(Body) ->
+    case format_xml_response(Body) of
+        {ok, XML} -> XML;
+        Error -> erlang:error(Error)
+    end.
+
+format_xml_response(Body) ->
+    try 
+        {ok, element(1, xmerl_scan:string(binary_to_list(Body)))}
+    catch
+        _:_ ->
+            {aws_error, {invalid_xml_response_document, Body}}
+    end.
 
 %%%---------------------------------------------------------------------------
 -spec default_config() -> aws_config().

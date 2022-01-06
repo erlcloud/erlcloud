@@ -22,3 +22,4 @@ ercloud.iml
 *[#]*[#]
 *[#]*
 .dialyzer_plt
+eunit.log

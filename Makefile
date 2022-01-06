@@ -63,7 +63,7 @@ ifeq ($(REBAR_VSN),2)
 	$(MAKE) compile
 	@$(REBAR) eunit skip_deps=true
 else
-	@$(REBAR) eunit
+	@ERL_FLAGS="-config $(PWD)/eunit" $(REBAR) eunit
 endif
 
 .dialyzer_plt:
