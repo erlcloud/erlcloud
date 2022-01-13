@@ -19,7 +19,7 @@
 -define(_f(F), fun() -> F end).
 
 -export([validate_body/2]).
-                            
+
 %%%===================================================================
 %%% Test entry points
 %%%===================================================================
@@ -86,9 +86,9 @@ validate_body(Body, Expected) ->
 %% Validates the request body and responds with the provided response.
 -spec input_expect(string(), expected_body()) -> fun().
 input_expect(Response, Expected) ->
-    fun(_Url, post, _Headers, Body, _Timeout, _Config) -> 
+    fun(_Url, post, _Headers, Body, _Timeout, _Config) ->
             validate_body(Body, Expected),
-            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% input_test converts an input_test specifier into an eunit test generator
@@ -96,7 +96,7 @@ input_expect(Response, Expected) ->
 -spec input_test(string(), input_test_spec()) -> tuple().
 input_test(Response, {Line, {Description, Fun, Expected}}) when
       is_list(Description) ->
-    {Description, 
+    {Description,
      {Line,
       fun() ->
               meck:expect(erlcloud_httpc, request, input_expect(Response, Expected)),
@@ -118,8 +118,8 @@ input_tests(Response, Tests) ->
 %% returns the mock of the erlcloud_httpc function output tests expect to be called.
 -spec output_expect(string()) -> fun().
 output_expect(Response) ->
-    fun(_Url, post, _Headers, _Body, _Timeout, _Config) -> 
-            {ok, {{200, "OK"}, [], list_to_binary(Response)}} 
+    fun(_Url, post, _Headers, _Body, _Timeout, _Config) ->
+            {ok, {{200, "OK"}, [], list_to_binary(Response)}}
     end.
 
 %% output_test converts an output_test specifier into an eunit test generator
@@ -141,9 +141,9 @@ output_test(Fun, {Line, {Description, Response, Result}}) ->
       end}}.
 %% output_test(Fun, {Line, {Response, Result}}) ->
 %%     output_test(Fun, {Line, {"", Response, Result}}).
-      
+
 %% output_tests converts a list of output_test specifiers into an eunit test generator
--spec output_tests(fun(), [output_test_spec()]) -> [term()].       
+-spec output_tests(fun(), [output_test_spec()]) -> [term()].
 output_tests(Fun, Tests) ->
     [output_test(Fun, Test) || Test <- Tests].
 
@@ -155,7 +155,7 @@ output_tests(Fun, Tests) ->
 -spec httpc_response(pos_integer(), string()) -> tuple().
 httpc_response(Code, Body) ->
     {ok, {{Code, ""}, [], list_to_binary(Body)}}.
-    
+
 -type error_test_spec() :: {pos_integer(), {string(), list(), term()}}.
 -spec error_test(fun(), error_test_spec()) -> tuple().
 error_test(Fun, {Line, {Description, Responses, Result}}) ->
@@ -169,7 +169,7 @@ error_test(Fun, {Line, {Description, Responses, Result}}) ->
               Actual = Fun(),
               ?assertEqual(Result, Actual)
       end}}.
-      
+
 -spec error_tests(fun(), [error_test_spec()]) -> [term()].
 error_tests(Fun, Tests) ->
     [error_test(Fun, Test) || Test <- Tests].
@@ -201,17 +201,17 @@ error_handling_tests(_) ->
 	 \"status\":{\"S\":\"online\"}
 	},
 \"ConsumedCapacityUnits\": 1
-}"                                   
+}"
                                   ),
     OkResult = {ok, [{<<"friends">>, [<<"Lynda">>, <<"Aaron">>]},
                      {<<"status">>, <<"online">>}]},
 
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"Test retry after ProvisionedThroughputExceededException",
              [httpc_response(400, "
 {\"__type\":\"com.amazonaws.dynamodb.v20111205#ProvisionedThroughputExceededException\",
-\"message\":\"The level of configured provisioned throughput for the table was exceeded. Consider increasing your provisioning level with the UpdateTable API\"}"
+\"Message\":\"The level of configured provisioned throughput for the table was exceeded. Consider increasing your provisioning level with the UpdateTable API\"}"
                             ),
               OkResponse],
              OkResult}),
@@ -219,7 +219,7 @@ error_handling_tests(_) ->
             {"Test ConditionalCheckFailed error",
              [httpc_response(400, "
 {\"__type\":\"com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException\",
-\"message\":\"The expected value did not match what was stored in the system.\"}"
+\"Message\":\"The expected value did not match what was stored in the system.\"}"
                             )],
              {error, {<<"ConditionalCheckFailedException">>, <<"The expected value did not match what was stored in the system.">>}}}),
          ?_ddb_test(
@@ -228,7 +228,7 @@ error_handling_tests(_) ->
               OkResponse],
              OkResult})
         ],
-    
+
     error_tests(?_f(erlcloud_ddb:get_item(<<"table">>, <<"key">>)), Tests).
 
 
@@ -239,8 +239,8 @@ batch_get_item_input_tests(_) ->
         [?_ddb_test(
             {"BatchGetItem example request",
              ?_f(erlcloud_ddb:batch_get_item(
-                   [{<<"comp2">>, [<<"Julie">>, 
-                                   <<"Mingus">>], 
+                   [{<<"comp2">>, [<<"Julie">>,
+                                   <<"Mingus">>],
                      [{attributes_to_get, [<<"user">>, <<"friends">>]}]},
                     {<<"comp1">>, [{<<"Casey">>, 1319509152},
                                    {<<"Dave">>, 1319509155},
@@ -281,7 +281,7 @@ batch_get_item_input_tests(_) ->
     input_tests(Response, Tests).
 
 batch_get_item_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"BatchGetItem example response", "
 {\"Responses\":
@@ -300,7 +300,7 @@ batch_get_item_output_tests(_) ->
     \"UnprocessedKeys\":{}
 }",
              {ok, #ddb_batch_get_item
-              {responses = 
+              {responses =
                    [#ddb_batch_get_item_response
                     {table = <<"comp1">>,
                      items = [[{<<"status">>, <<"online">>},
@@ -335,17 +335,17 @@ batch_get_item_output_tests(_) ->
     }
 }",
              {ok, #ddb_batch_get_item
-              {responses = [], 
-               unprocessed_keys = 
-                   [{<<"comp2">>, [{s, <<"Julie">>}, 
-                                   {s, <<"Mingus">>}], 
+              {responses = [],
+               unprocessed_keys =
+                   [{<<"comp2">>, [{s, <<"Julie">>},
+                                   {s, <<"Mingus">>}],
                      [{attributes_to_get, [<<"user">>, <<"friends">>]}]},
                     {<<"comp1">>, [{{s, <<"Casey">>}, {n, 1319509152}},
                                    {{s, <<"Dave">>}, {n, 1319509155}},
                                    {{s, <<"Riley">>}, {n, 1319509158}}],
                      [{attributes_to_get, [<<"user">>, <<"status">>]}]}]}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb:batch_get_item([{<<"table">>, [<<"key">>]}], [{out, record}])), Tests).
 
 %% BatchWriteItem test based on the API examples:
@@ -438,7 +438,7 @@ batch_write_item_input_tests(_) ->
     input_tests(Response, Tests).
 
 batch_write_item_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"BatchWriteItem example response", "
 {
@@ -468,7 +468,7 @@ batch_write_item_output_tests(_) ->
    }
 }",
              {ok, #ddb_batch_write_item
-              {responses = 
+              {responses =
                    [#ddb_batch_write_item_response
                     {table = <<"Thread">>,
                      consumed_capacity_units = 1.0},
@@ -534,7 +534,7 @@ batch_write_item_output_tests(_) ->
                     {<<"Thread">>, [{put, [{<<"ForumName">>, {s, <<"Amazon DynamoDB">>}},
                                            {<<"Subject">>, {s, <<"DynamoDB Thread 5">>}}]}]}]}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb:batch_write_item([], [{out, record}])), Tests).
 
 %% CreateTable test based on the API examples:
@@ -567,7 +567,7 @@ create_table_input_tests(_) ->
     input_tests(Response, Tests).
 
 create_table_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"CreateTable example response", "
 {\"TableDescription\":
@@ -591,7 +591,7 @@ create_table_output_tests(_) ->
                table_name = <<"comp-table">>,
                table_status = <<"CREATING">>}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb:create_table(<<"name">>, {<<"key">>, s}, 5, 10)), Tests).
 
 %% DeleteItem test based on the API examples:
@@ -625,7 +625,7 @@ delete_item_input_tests(_) ->
     input_tests(Response, Tests).
 
 delete_item_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"DeleteItem example response", "
 {\"Attributes\":
@@ -641,7 +641,7 @@ delete_item_output_tests(_) ->
                    {<<"time">>, 200},
                    {<<"user">>, <<"Mingus">>}]}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb:delete_item(<<"table">>, <<"key">>)), Tests).
 
 %% DeleteTable test based on the API examples:
@@ -650,7 +650,7 @@ delete_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"DeleteTable example request",
-             ?_f(erlcloud_ddb:delete_table(<<"Table1">>)), 
+             ?_f(erlcloud_ddb:delete_table(<<"Table1">>)),
              "{\"TableName\":\"Table1\"}"
             })
         ],
@@ -669,7 +669,7 @@ delete_table_input_tests(_) ->
     input_tests(Response, Tests).
 
 delete_table_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"DeleteTable example response", "
 {\"TableDescription\":
@@ -693,7 +693,7 @@ delete_table_output_tests(_) ->
                table_name = <<"Table1">>,
                table_status = <<"DELETING">>}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb:delete_table(<<"name">>)), Tests).
 
 %% DescribeTable test based on the API examples:
@@ -702,7 +702,7 @@ describe_table_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"DescribeTable example request",
-             ?_f(erlcloud_ddb:describe_table(<<"Table1">>)), 
+             ?_f(erlcloud_ddb:describe_table(<<"Table1">>)),
              "{\"TableName\":\"Table1\"}"
             })
         ],
@@ -723,7 +723,7 @@ describe_table_input_tests(_) ->
     input_tests(Response, Tests).
 
 describe_table_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"DescribeTable example response", "
 {\"Table\":
@@ -751,7 +751,7 @@ describe_table_output_tests(_) ->
                table_size_bytes = 949,
                table_status = <<"ACTIVE">>}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb:describe_table(<<"name">>)), Tests).
 
 %% GetItem test based on the API examples:
@@ -769,14 +769,14 @@ get_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"GetItem example request, with fully specified keys",
-             ?_f(erlcloud_ddb:get_item(<<"comptable">>, {{s, <<"Julie">>}, {n, 1307654345}}, 
+             ?_f(erlcloud_ddb:get_item(<<"comptable">>, {{s, <<"Julie">>}, {n, 1307654345}},
                                        [consistent_read,
                                         {attributes_to_get, [<<"status">>, <<"friends">>]}])),
              Example1Response}),
          ?_ddb_test(
             {"GetItem example request, with inferred key types",
-             ?_f(erlcloud_ddb:get_item(<<"comptable">>, {"Julie", 1307654345}, 
-                                       [consistent_read, 
+             ?_f(erlcloud_ddb:get_item(<<"comptable">>, {"Julie", 1307654345},
+                                       [consistent_read,
                                         {attributes_to_get, [<<"status">>, <<"friends">>]}])),
              Example1Response}),
          ?_ddb_test(
@@ -799,7 +799,7 @@ get_item_input_tests(_) ->
     input_tests(Response, Tests).
 
 get_item_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"GetItem example response", "
 {\"Item\":
@@ -835,15 +835,15 @@ get_item_output_tests(_) ->
                    {<<"b">>, <<5,182>>},
                    {<<"empty">>, <<>>}]}}),
          ?_ddb_test(
-            {"GetItem item not found", 
+            {"GetItem item not found",
              "{\"ConsumedCapacityUnits\": 0.5}",
              {ok, []}}),
          ?_ddb_test(
-            {"GetItem no attributes returned", 
+            {"GetItem no attributes returned",
              "{\"ConsumedCapacityUnits\":0.5,\"Item\":{}}",
              {ok, []}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb:get_item(<<"table">>, <<"key">>)), Tests).
 
 %% ListTables test based on the API examples:
@@ -852,12 +852,12 @@ list_tables_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"ListTables example request",
-             ?_f(erlcloud_ddb:list_tables([{limit, 3}, {exclusive_start_table_name, <<"comp2">>}])), 
+             ?_f(erlcloud_ddb:list_tables([{limit, 3}, {exclusive_start_table_name, <<"comp2">>}])),
              "{\"ExclusiveStartTableName\":\"comp2\",\"Limit\":3}"
             }),
          ?_ddb_test(
             {"ListTables empty request",
-             ?_f(erlcloud_ddb:list_tables()), 
+             ?_f(erlcloud_ddb:list_tables()),
              "{}"
             })
 
@@ -867,7 +867,7 @@ list_tables_input_tests(_) ->
     input_tests(Response, Tests).
 
 list_tables_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"ListTables example response",
              "{\"LastEvaluatedTableName\":\"comp5\",\"TableNames\":[\"comp3\",\"comp4\",\"comp5\"]}",
@@ -875,7 +875,7 @@ list_tables_output_tests(_) ->
               {last_evaluated_table_name = <<"comp5">>,
                table_names = [<<"comp3">>, <<"comp4">>, <<"comp5">>]}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb:list_tables([{out, record}])), Tests).
 
 %% PutItem test based on the API examples:
@@ -884,8 +884,8 @@ put_item_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"PutItem example request",
-             ?_f(erlcloud_ddb:put_item(<<"comp5">>, 
-                                       [{<<"time">>, 300}, 
+             ?_f(erlcloud_ddb:put_item(<<"comp5">>,
+                                       [{<<"time">>, 300},
                                         {<<"feeling">>, <<"not surprised">>},
                                         {<<"user">>, <<"Riley">>}],
                                        [{return_values, all_old},
@@ -903,8 +903,8 @@ put_item_input_tests(_) ->
             }),
          ?_ddb_test(
             {"PutItem float inputs",
-             ?_f(erlcloud_ddb:put_item(<<"comp5">>, 
-                                       [{<<"time">>, 300}, 
+             ?_f(erlcloud_ddb:put_item(<<"comp5">>,
+                                       [{<<"time">>, 300},
                                         {<<"typed float">>, {n, 1.2}},
                                         {<<"untyped float">>, 3.456},
                                         {<<"mixed set">>, {ns, [7.8, 9.0, 10]}}],
@@ -930,7 +930,7 @@ put_item_input_tests(_) ->
     input_tests(Response, Tests).
 
 put_item_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"PutItem example response", "
 {\"Attributes\":
@@ -943,7 +943,7 @@ put_item_output_tests(_) ->
                    {<<"time">>, 300},
                    {<<"user">>, <<"Riley">>}]}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb:put_item(<<"table">>, [])), Tests).
 
 %% Query test based on the API examples:
@@ -1002,7 +1002,7 @@ q_input_tests(_) ->
     input_tests(Response, Tests).
 
 q_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"Query example 1 response", "
 {\"Count\":2,\"Items\":[{
@@ -1048,7 +1048,7 @@ q_output_tests(_) ->
                          last_evaluated_key = undefined,
                          consumed_capacity_units = 1}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb:q(<<"table">>, <<"key">>, [{out, record}])), Tests).
 
 %% Scan test based on the API examples:
@@ -1057,7 +1057,7 @@ scan_input_tests(_) ->
     Tests =
         [?_ddb_test(
             {"Scan example 1 request",
-             ?_f(erlcloud_ddb:scan(<<"1-hash-rangetable">>)), 
+             ?_f(erlcloud_ddb:scan(<<"1-hash-rangetable">>)),
              "{\"TableName\":\"1-hash-rangetable\"}"
             }),
          ?_ddb_test(
@@ -1104,7 +1104,7 @@ scan_input_tests(_) ->
     input_tests(Response, Tests).
 
 scan_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"Scan example 1 response", "
 {\"Count\":4,\"Items\":[{
@@ -1202,7 +1202,7 @@ scan_output_tests(_) ->
                scanned_count = 2,
                consumed_capacity_units = 0.5}}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb:scan(<<"name">>, [{out, record}])), Tests).
 
 %% UpdateItem test based on the API examples:
@@ -1258,7 +1258,7 @@ update_item_input_tests(_) ->
     input_tests(Response, Tests).
 
 update_item_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"UpdateItem example response", "
 {\"Attributes\":
@@ -1273,7 +1273,7 @@ update_item_output_tests(_) ->
                    {<<"time">>, 1307654350},
                    {<<"user">>, <<"Julie">>}]}})
         ],
-    
+
     output_tests(?_f(erlcloud_ddb:update_item(<<"table">>, <<"key">>, [])), Tests).
 
 %% UpdateTable test based on the API examples:
@@ -1306,7 +1306,7 @@ update_table_input_tests(_) ->
     input_tests(Response, Tests).
 
 update_table_output_tests(_) ->
-    Tests = 
+    Tests =
         [?_ddb_test(
             {"UpdateTable example response", "
 {\"TableDescription\":
@@ -1333,6 +1333,5 @@ update_table_output_tests(_) ->
                table_name = <<"comp1">>,
                table_status = <<"UPDATING">>}}})
         ],
-    
-    output_tests(?_f(erlcloud_ddb:update_table(<<"name">>, 5, 15)), Tests).
 
+    output_tests(?_f(erlcloud_ddb:update_table(<<"name">>, 5, 15)), Tests).
