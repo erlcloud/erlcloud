@@ -143,7 +143,7 @@
           security_token=undefined::string()|undefined,
           %% epoch seconds when temporary credentials will expire
           expiration=undefined :: pos_integer()|undefined,
-          %% Network request timeout; if not specifed, the default timeout will be used:
+          %% Network request timeout; if not specified, the default timeout will be used:
           %% ddb: 1s for initial call, 10s for subsequence;
           %% s3:delete_objects_batch/{2,3}, cloudtrail: 1s;
           %% other services: 10s.
@@ -155,7 +155,7 @@
           %% Note: If the lhttpc pool does not exists it will be created one with the lhttpc
           %%  default settings [{connection_timeout,300000},{pool_size,1000}]
           lhttpc_pool=undefined::atom(),
-          %% Default to not retry failures (for backwards compatability).
+          %% Default to not retry failures (for backwards compatibility).
           %% Recommended to be set to default_retry to provide recommended retry behavior.
           %% Currently only affects S3 and service modules which use erlcloud_aws
           %% for issuing HTTP request to AWS, but intent is to change other services to use this as well.

@@ -754,7 +754,7 @@ list_subscriptions_by_topic_input_tests(_) ->
           {"TopicArn", "Arn"}
         ]}),
       ?_sns_test(
-        {"Test lists Subscriptions toke.",
+        {"Test lists Subscriptions token.",
           ?_f(erlcloud_sns:list_subscriptions_by_topic("Arn", "Token")),
           [
             {"Action","ListSubscriptionsByTopic"},

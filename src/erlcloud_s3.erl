@@ -441,7 +441,7 @@ get_bucket_policy(BucketName) ->
 
 %
 % Example request: erlcloud_s3:get_bucket_policy("bucket1234", Config).
-% Example success repsonse: {ok, "{\"Version\":\"2012-10-17\",\"Statement\": ..........}
+% Example success response: {ok, "{\"Version\":\"2012-10-17\",\"Statement\": ..........}
 % Example error response: {error,{http_error,404,"Not Found",
 %                               "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n
 %                               <Error>

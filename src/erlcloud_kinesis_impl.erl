@@ -27,7 +27,7 @@
 %% @author Ransom Richardson <ransom@ransomr.net>
 %% @doc
 %%
-%% Implementation of requests to DynamoDB. This code is shared accross
+%% Implementation of requests to DynamoDB. This code is shared across
 %% all API versions.
 %%
 %% @end

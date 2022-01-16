@@ -357,7 +357,7 @@ get_function_configuration(Function, Qualifier, Config) ->
 %% [http://docs.aws.amazon.com/lambda/latest/dg/API_Invoke.html]
 %%
 %% option {show_headers, true|false} may be used for invoking Lambdas
-%% this option changes returned spec of successfull Lambda invocation
+%% this option changes returned spec of successful Lambda invocation
 %%      false(default): output spec is {ok, Data}
 %%      true: output spec is {ok, Headers, Data} where additional headers of
 %%            Lambda invocation is returned

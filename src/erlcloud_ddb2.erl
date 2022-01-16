@@ -3196,7 +3196,7 @@ q(Table, KeyConditionsOrExpression, Opts) ->
 %%
 %% ===Example===
 %%
-%% Get up to 3 itesm from the "Thread" table with "ForumName" of
+%% Get up to 3 items from the "Thread" table with "ForumName" of
 %% "Amazon DynamoDB" and "LastPostDateTime" between specified
 %% value. Use the "LastPostIndex".
 %%
