@@ -316,7 +316,7 @@ describe_load_balancer_policies(Config = #aws_config{}) ->
 
 %% --------------------------------------------------------------------
 %% @doc describe_load_balancer_policies for specified ELB
-%%      with specificied policy names using default config.
+%%      with specified policy names using default config.
 %% @end
 %% --------------------------------------------------------------------
 -spec describe_load_balancer_policies(string(), list() | aws_config()) ->

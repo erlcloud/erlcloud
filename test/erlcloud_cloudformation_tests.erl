@@ -789,7 +789,7 @@ describe_stack_resource_output_tests(_) ->
                  <LogicalResourceId>MyDBInstance</LogicalResourceId>
                  <PhysicalResourceId>Resource ID</PhysicalResourceId>
                  <ResourceType>Resource Type</ResourceType>
-                 <LastUpdatedTimestamp>Tiemstamp</LastUpdatedTimestamp>
+                 <LastUpdatedTimestamp>Timestamp</LastUpdatedTimestamp>
                  <ResourceStatus>Status</ResourceStatus>
                </StackResourceDetail>
              </DescribeStackResourceResult>
@@ -814,7 +814,7 @@ describe_stack_resource_output_tests(_) ->
 
 describe_stack_events_output_tests(_) ->
 
-    Test = ?_cloudformation_test({"Test describe alls tack events",
+    Test = ?_cloudformation_test({"Test describe all tack events",
             <<"<DescribeStackEventsResponse xmlns="
             "\"http://cloudformation.amazonaws.com/doc/2010-05-15/\">
               <DescribeStackEventsResult>

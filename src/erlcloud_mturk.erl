@@ -1286,8 +1286,8 @@ search_qualification_types(Options, Config) ->
      ).
 
 -spec send_test_event_notification(proplist(), mturk_event_type()) -> ok.
-send_test_event_notification(Notificaiton, TestEventType) ->
-    send_test_event_notification(Notificaiton, TestEventType, default_config()).
+send_test_event_notification(Notification, TestEventType) ->
+    send_test_event_notification(Notification, TestEventType, default_config()).
 
 -spec send_test_event_notification(proplist(), mturk_event_type(), aws_config()) -> ok.
 send_test_event_notification(Notification, TestEventType, Config) ->

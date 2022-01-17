@@ -27,7 +27,7 @@
 %% @author Ransom Richardson <ransom@ransomr.net>
 %% @doc
 %%
-%% Implementation of requests to DynamoDB. This code is shared accross
+%% Implementation of requests to DynamoDB. This code is shared across
 %% all API versions.
 %% 
 %% The pluggable retry function provides a way to customize the retry behavior, as well
@@ -165,7 +165,7 @@ request_id_from_error(#ddb2_error{response_headers = Headers}) when is_list(Head
 request_id_from_error(#ddb2_error{}) ->
     undefined.
 
-%% For backwards compatability the default reason does not include the request id.
+%% For backwards compatibility the default reason does not include the request id.
 %% This function will update the error to have reason containing the request id.
 -spec error_reason2(#ddb2_error{}) -> #ddb2_error{}.
 error_reason2(#ddb2_error{error_type = http} = Error) ->

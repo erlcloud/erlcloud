@@ -519,7 +519,7 @@ auto_config() ->
 %% This function works the same as {@link auto_config/0}, but if credentials
 %% are developed from <em>User Profile</em> as the source, the
 %% <code>Options</code> parameter provided will be used to control the
-%% behavior.  The credential profile name choosen can be controlled by
+%% behavior.  The credential profile name chosen can be controlled by
 %% providing <code>{profile, atom()}</code> as part of the options, and if
 %% not specified the <code>default</code> profile will be used.
 %%
@@ -656,7 +656,7 @@ clear_expired_configs() ->
 %%
 %% If an invalid service name is provided, then this will throw an error,
 %% presuming that this is just a coding error.  This behavior allows the
-%% chaining of calls to this interface to allow concise configuraiton of a
+%% chaining of calls to this interface to allow concise configuration of a
 %% config for multiple services.
 %%
 service_config( Service, Region, Config ) when is_atom(Service) ->
