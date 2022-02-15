@@ -39,6 +39,7 @@ describe_test_() ->
      fun stop/1,
      [
       fun describe_vpcs_tests/1,
+      fun describe_regions_tests/1,
       fun describe_tags_input_tests/1,
       fun describe_tags_output_tests/1,
       fun request_spot_fleet_input_tests/1,
@@ -251,6 +252,41 @@ describe_vpcs_tests(_) ->
         })
     ],
     output_tests(?_f(erlcloud_ec2:describe_vpcs()), Tests).
+
+describe_regions_tests(_) ->
+    Tests = [
+        ?_ec2_test({
+            "Describe all the regions",
+            "<DescribeRegionsResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+               <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+               <regionInfo>
+                  <item>
+                     <regionName>af-south-1</regionName>
+                     <regionEndpoint>ec2.af-south-1.amazonaws.com</regionEndpoint>
+                     <optInStatus>opted-in</optInStatus>
+                  </item>
+                  <item>
+                     <regionName>ap-northeast-3</regionName>
+                     <regionEndpoint>ec2.ap-northeast-3.amazonaws.com</regionEndpoint>
+                     <optInStatus>opted-in</optInStatus>
+                  </item>
+               </regionInfo>
+            </DescribeRegionsResponse>",
+            {ok, [
+              [
+                {region_name,"af-south-1"},
+                {region_endpoint,"ec2.af-south-1.amazonaws.com"},
+                {opt_in_status,"opted-in"}
+              ],
+              [
+                {region_name,"ap-northeast-3"},
+                {region_endpoint,"ec2.ap-northeast-3.amazonaws.com"},
+                {opt_in_status,"opted-in"}
+              ]
+            ]}
+        })
+    ],
+    output_tests(?_f(erlcloud_ec2:describe_regions([], [{"opt-in-status", "opted-in"}], erlcloud_aws:default_config())), Tests).
 
 %% DescribeTags test based on the API examples:
 %% http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ApiReference-query-DescribeTags.html
