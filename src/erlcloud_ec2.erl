@@ -21,7 +21,7 @@
          %% Availability Zones and Regions
          describe_availability_zones/0, describe_availability_zones/1,
          describe_availability_zones/2,
-         describe_regions/0, describe_regions/1, describe_regions/2,
+         describe_regions/0, describe_regions/1, describe_regions/2, describe_regions/3,
 
          %% Elastic Block Store
          attach_volume/3, attach_volume/4,
@@ -1693,12 +1693,19 @@ describe_regions(RegionNames) ->
 
 -spec describe_regions([string()], aws_config()) -> ok_error(proplist()).
 describe_regions(RegionNames, Config)
+  when is_record(Config, aws_config) ->
+    describe_regions(RegionNames, none, Config).
+
+-spec describe_regions([string()], none | filter_list(), aws_config()) -> ok_error(proplist()).
+describe_regions(RegionNames, Filter, Config)
   when is_list(RegionNames) ->
-    case ec2_query(Config, "DescribeRegions", erlcloud_aws:param_list(RegionNames, "RegionName")) of
+    Params = erlcloud_aws:param_list(RegionNames, "RegionName") ++ list_to_ec2_filter(Filter),
+    case ec2_query(Config, "DescribeRegions", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             Items = xmerl_xpath:string("/DescribeRegionsResponse/regionInfo/item", Doc),
             {ok, [[{region_name, get_text("regionName", Item)},
-              {region_endpoint, get_text("regionEndpoint", Item)}
+                {region_endpoint, get_text("regionEndpoint", Item)},
+                {opt_in_status, get_text("optInStatus", Item)}
              ] || Item <- Items]};
         {error, _} = Error ->
             Error
