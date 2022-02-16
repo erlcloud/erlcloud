@@ -1689,7 +1689,7 @@ describe_regions(Config)
   when is_record(Config, aws_config) ->
     describe_regions([], Config);
 describe_regions(RegionNames) ->
-    describe_regions(RegionNames, none, default_config()).
+    describe_regions(RegionNames, default_config()).
 
 -spec describe_regions([string()], aws_config()) -> ok_error(proplist()).
 describe_regions(RegionNames, Config)
