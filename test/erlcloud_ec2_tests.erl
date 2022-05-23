@@ -39,7 +39,8 @@ describe_test_() ->
      fun stop/1,
      [
       fun describe_vpcs_tests/1,
-      fun describe_regions_tests/1,
+      fun describe_regions_input_tests/1,
+      fun describe_regions_output_tests/1,
       fun describe_tags_input_tests/1,
       fun describe_tags_output_tests/1,
       fun request_spot_fleet_input_tests/1,
@@ -253,7 +254,28 @@ describe_vpcs_tests(_) ->
     ],
     output_tests(?_f(erlcloud_ec2:describe_vpcs()), Tests).
 
-describe_regions_tests(_) ->
+describe_regions_input_tests(_) ->
+    Tests =
+        [?_ec2_test(
+            {"This example describes all regions.",
+                ?_f(erlcloud_ec2:describe_regions([], [{"opt-in-status", "opted-in"}], erlcloud_aws:default_config())),
+                [{"Action", "DescribeRegions"},
+                 {"Filter.1.Name","opt-in-status"},
+                 {"Filter.1.Value.1","opted-in"},
+                 {"AllRegions","false"}]}),
+        ?_ec2_test(
+            {"This example describes all regions.",
+                ?_f(erlcloud_ec2:describe_regions([], [], true, erlcloud_aws:default_config())),
+                [{"Action", "DescribeRegions"},
+                 {"AllRegions","true"}]})],
+    Response = "
+<DescribeRegionsResponse xmlns=\"http://ec2.amazonaws.com/doc/2012-12-01/\">
+   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+   <tagSet/>
+</DescribeRegionsResponse>",
+    input_tests(Response, Tests).
+
+describe_regions_output_tests(_) ->
     Tests = [
         ?_ec2_test({
             "Describe all the regions",

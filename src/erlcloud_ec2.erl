@@ -21,7 +21,7 @@
          %% Availability Zones and Regions
          describe_availability_zones/0, describe_availability_zones/1,
          describe_availability_zones/2,
-         describe_regions/0, describe_regions/1, describe_regions/2, describe_regions/3,
+         describe_regions/0, describe_regions/1, describe_regions/2, describe_regions/3, describe_regions/4,
 
          %% Elastic Block Store
          attach_volume/3, attach_volume/4,
@@ -1698,8 +1698,15 @@ describe_regions(RegionNames, Config)
 
 -spec describe_regions([string()], none | filter_list(), aws_config()) -> ok_error(proplist()).
 describe_regions(RegionNames, Filter, Config)
-  when is_list(RegionNames) ->
-    Params = erlcloud_aws:param_list(RegionNames, "RegionName") ++ list_to_ec2_filter(Filter),
+  when is_list(RegionNames), is_record(Config, aws_config) ->
+    describe_regions(RegionNames, Filter, false, Config).
+
+-spec describe_regions([string()], none | filter_list(), boolean(), aws_config()) -> ok_error(proplist()).
+describe_regions(RegionNames, Filter, AllRegions, Config)
+  when is_list(RegionNames), is_boolean(AllRegions), is_record(Config, aws_config) ->
+    Params = erlcloud_aws:param_list(RegionNames, "RegionName") ++
+        list_to_ec2_filter(Filter) ++
+        [{"AllRegions", AllRegions}],
     case ec2_query(Config, "DescribeRegions", Params, ?NEW_API_VERSION) of
         {ok, Doc} ->
             Items = xmerl_xpath:string("/DescribeRegionsResponse/regionInfo/item", Doc),
