@@ -826,7 +826,7 @@ service_host( <<"s3">>, <<"us-gov-west-1">> ) -> "s3-fips-us-gov-west-1.amazonaw
 service_host( <<"s3">>, <<"cn-north-1">> ) -> "s3.cn-north-1.amazonaws.com.cn";
 service_host( <<"s3">>, <<"cn-northwest-1">> ) -> "s3.cn-northwest-1.amazonaws.com.cn";
 service_host( <<"s3">>, Region ) ->
-    binary_to_list( <<"s3-", Region/binary, ".amazonaws.com">> );
+    binary_to_list( <<"s3.", Region/binary, ".amazonaws.com">> );
 service_host( <<"iam">>, <<"cn-north-1">> ) -> "iam.amazonaws.com.cn";
 service_host( <<"iam">>, <<"cn-northwest-1">> ) -> "iam.amazonaws.com.cn";
 service_host( <<"sdb">>, <<"us-east-1">> ) -> "sdb.amazonaws.com";
