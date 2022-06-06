@@ -694,16 +694,18 @@ admin_initiate_auth(PoolId, ClientId, AuthFlow, AuthParams, Cfg) ->
     {ok, map()} | {error, any()}.
 admin_initiate_auth(PoolId, ClientId, AuthFlow, AuthParams,
                     AnalyticsMeta, ClientMeta, ContextData, Cfg) ->
-    Body = #{
-        <<"AnalyticsMetadata">> => AnalyticsMeta,
+    Mandatory = #{
         <<"AuthFlow">>          => AuthFlow,
-        <<"AuthParameters">>    => AuthParams,
         <<"ClientId">>          => ClientId,
-        <<"ClientMetadata">>    => ClientMeta,
-        <<"ContextData">>       => ContextData,
         <<"UserPoolId">>        => PoolId
     },
-    request(Cfg, "AdminInitiateAuth", erlcloud_util:filter_empty_map(Body)).
+    Optional = #{
+        <<"AnalyticsMetadata">> => AnalyticsMeta,
+        <<"AuthParameters">>    => AuthParams,
+        <<"ClientMetadata">>    => ClientMeta,
+        <<"ContextData">>       => ContextData
+    },
+    request(Cfg, "AdminInitiateAuth", make_request_body(Mandatory, Optional)).
 
 -spec respond_to_auth_challenge(binary(), binary(), maps:map(), binary()) ->
     {ok, map()} | {error, any()}.
@@ -726,16 +728,18 @@ respond_to_auth_challenge(ClientId, ChallengeName, ChallengeResponses,
     {ok, map()} | {error, any()}.
 respond_to_auth_challenge(ClientId, ChallengeName, ChallengeResponses,
                           Session, AnalyticsMeta, ClientMeta, ContextData, Cfg) ->
-    Body = #{
-        <<"AnalyticsMetadata">>  => AnalyticsMeta,
+    Mandatory = #{
         <<"ChallengeName">>      => ChallengeName,
         <<"ChallengeResponses">> => ChallengeResponses,
-        <<"ClientId">>           => ClientId,
+        <<"ClientId">>           => ClientId
+    },
+    Optional = #{
+        <<"AnalyticsMetadata">>  => AnalyticsMeta,
         <<"ClientMetadata">>     => ClientMeta,
         <<"Session">>            => Session,
         <<"UserContextData">>    => ContextData
     },
-    request(Cfg, "RespondToAuthChallenge", erlcloud_util:filter_empty_map(Body)).
+    request(Cfg, "RespondToAuthChallenge", make_request_body(Mandatory, Optional)).
 
 -spec create_identity_provider(binary(), binary(), binary(), map()) ->
     {ok, map()} | {error, any()}.
@@ -756,24 +760,26 @@ create_identity_provider(UserPoolId, ProviderName, ProviderType,
     {ok, map()} | {error, any()}.
 create_identity_provider(UserPoolId, ProviderName, ProviderType,
                          ProviderDetails, AttributeMapping, IdpIdentifiers) ->
-  Config = erlcloud_aws:default_config(),
-  create_identity_provider(UserPoolId, ProviderName, ProviderType,
-                           ProviderDetails, AttributeMapping, IdpIdentifiers, Config).
+    Config = erlcloud_aws:default_config(),
+    create_identity_provider(UserPoolId, ProviderName, ProviderType,
+                            ProviderDetails, AttributeMapping, IdpIdentifiers, Config).
 
 -spec create_identity_provider(binary(), binary(), binary(), map(), map(),
                                list(), aws_config()) ->
     {ok, map()} | {error, any()}.
 create_identity_provider(UserPoolId, ProviderName, ProviderType, ProviderDetails,
                          AttributeMapping, IdpIdentifiers, Config) ->
-  Body = #{
-    <<"UserPoolId">>       => UserPoolId,
-    <<"ProviderName">>     => ProviderName,
-    <<"ProviderType">>     => ProviderType,
-    <<"ProviderDetails">>  => ProviderDetails,
-    <<"AttributeMapping">> => AttributeMapping,
-    <<"IdpIdentifiers">>   => IdpIdentifiers
-  },
-  request(Config, "CreateIdentityProvider", erlcloud_util:filter_empty_map(Body)).
+    Mandatory = #{
+      <<"UserPoolId">> => UserPoolId,
+      <<"ProviderName">> => ProviderName,
+      <<"ProviderType">> => ProviderType,
+      <<"ProviderDetails">> => ProviderDetails
+    },
+    Optional = #{
+      <<"AttributeMapping">> => AttributeMapping,
+      <<"IdpIdentifiers">> => IdpIdentifiers
+    },
+  request(Config, "CreateIdentityProvider", make_request_body(Mandatory, Optional)).
 
 -spec delete_identity_provider(binary(), binary()) ->
     ok | {error, any()}.
@@ -820,16 +826,16 @@ update_identity_provider(UserPoolId, ProviderName,
     {ok, map()} | {error, any()}.
 update_identity_provider(UserPoolId, ProviderName, ProviderDetails,
                          AttributeMapping, IdpIdentifiers, Config) ->
-    Body0 = #{
+    Mandatory = #{
         <<"UserPoolId">>       => UserPoolId,
-        <<"ProviderName">>     => ProviderName,
+        <<"ProviderName">>     => ProviderName
+    },
+    Optional = #{
         <<"ProviderDetails">>  => ProviderDetails,
         <<"AttributeMapping">> => AttributeMapping,
         <<"IdpIdentifiers">>   => IdpIdentifiers
     },
-    Body1 = erlcloud_util:filter_empty_map(Body0),
-    Body2 = erlcloud_util:filter_empty_list(Body1),
-    request(Config, "UpdateIdentityProvider", Body2).
+    request(Config, "UpdateIdentityProvider", make_request_body(Mandatory, Optional)).
 
 %%------------------------------------------------------------------------------
 %% Internal Functions
@@ -863,6 +869,9 @@ request_no_resp(Config, OperationName, Request) ->
         {ok, _} -> ok;
         Error   -> Error
     end.
+
+make_request_body(Mandatory, Optional) ->
+    maps:merge(Mandatory, erlcloud_util:filter_empty_map(Optional)).
 
 get_headers(#aws_config{cognito_host = Host} = Config, Operation, Body) ->
     Headers = [{"host", Host},
