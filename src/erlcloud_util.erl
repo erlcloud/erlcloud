@@ -206,11 +206,11 @@ filter_undef(Map) when is_map(Map) ->
     maps:filter(fun(_Key, Value) -> Value =/= undefined end, Map).
 
 -spec filter_empty_map(maps:map()) -> maps:map().
-filter_empty_map(Map) ->
+filter_empty_map(Map) when is_map(Map) ->
     maps:filter(fun(_Key, Value) -> Value =/= #{} end, Map).
 
 -spec filter_empty_list(maps:map()) -> maps:map().
-filter_empty_list(Map) ->
+filter_empty_list(Map) when is_map(Map) ->
     maps:filter(fun(_Key, Value) -> Value =/= [] end, Map).
 
 -ifdef(OTP_RELEASE).
