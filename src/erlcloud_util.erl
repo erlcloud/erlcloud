@@ -17,10 +17,13 @@
     encode_object_list/2,
     next_token/2,
     filter_undef/1,
+    filter_empty_map/1,
+    filter_empty_list/1,
     uri_parse/1,
     http_uri_decode/1,
     http_uri_encode/1,
-    proplists_to_map/1, proplists_to_map/2
+    proplists_to_map/1,
+    proplists_to_map/2
 ]).
 
 -define(MAX_ITEMS, 1000).
@@ -195,9 +198,20 @@ next_token(Path, XML) ->
             ok
     end.
 
--spec filter_undef(proplists:proplist()) -> proplists:proplist().
-filter_undef(List) ->
-    lists:filter(fun({_Name, Value}) -> Value =/= undefined end, List).
+-spec filter_undef(proplists:proplist() | maps:map()) ->
+    proplists:proplist() | maps:map().
+filter_undef(List) when is_list(List) ->
+    lists:filter(fun({_Name, Value}) -> Value =/= undefined end, List);
+filter_undef(Map) when is_map(Map) ->
+    maps:filter(fun(_Key, Value) -> Value =/= undefined end, Map).
+
+-spec filter_empty_map(maps:map()) -> maps:map().
+filter_empty_map(Map) ->
+    maps:filter(fun(_Key, Value) -> Value =/= #{} end, Map).
+
+-spec filter_empty_list(maps:map()) -> maps:map().
+filter_empty_list(Map) ->
+    maps:filter(fun(_Key, Value) -> Value =/= [] end, Map).
 
 -ifdef(OTP_RELEASE).
 -if(?OTP_RELEASE >= 23).
