@@ -126,6 +126,7 @@
 ]).
 
 -define(MAX_RESULTS, 60).
+-define(API_VERSION, "2016-04-18").
 
 -spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
@@ -875,8 +876,9 @@ make_request_body(Mandatory, Optional) ->
 
 get_headers(#aws_config{cognito_host = Host} = Config, Operation, Body) ->
     Headers = [{"host", Host},
-        {"x-amz-target", Operation},
-        {"content-type", "application/x-amz-json-1.1"}],
+               {"x-amz-target", Operation},
+               {"version", ?API_VERSION},
+               {"content-type", "application/x-amz-json-1.1"}],
     Region = erlcloud_aws:aws_region_from_host(Host),
     erlcloud_aws:sign_v4_headers(Config, Headers, Body, Region, "cognito-idp").
 
