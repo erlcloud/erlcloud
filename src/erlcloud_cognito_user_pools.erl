@@ -1,4 +1,4 @@
--module(erlcloud_cognito).
+-module(erlcloud_cognito_user_pools).
 
 -include("erlcloud_aws.hrl").
 
@@ -136,10 +136,10 @@ new(AccessKeyID, SecretAccessKey) ->
 
 -spec new(string(), string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey, Host) ->
-    #aws_config{access_key_id     = AccessKeyID,
-                secret_access_key = SecretAccessKey,
-                cognito_host      = Host,
-                retry             = fun erlcloud_retry:default_retry/1}.
+    #aws_config{access_key_id           = AccessKeyID,
+                secret_access_key       = SecretAccessKey,
+                cognito_user_pools_host = Host,
+                retry                   = fun erlcloud_retry:default_retry/1}.
 
 -spec configure(string(), string()) -> ok.
 configure(AccessKeyID, SecretAccessKey) ->
@@ -874,7 +874,7 @@ request_no_resp(Config, OperationName, Request) ->
 make_request_body(Mandatory, Optional) ->
     maps:merge(Mandatory, erlcloud_util:filter_empty_map(Optional)).
 
-get_headers(#aws_config{cognito_host = Host} = Config, Operation, Body) ->
+get_headers(#aws_config{cognito_user_pools_host = Host} = Config, Operation, Body) ->
     Headers = [{"host", Host},
                {"x-amz-target", Operation},
                {"version", ?API_VERSION},
@@ -893,8 +893,8 @@ handle_result(#aws_request{response_type = error,
                            error_type    = aws} = Request) ->
     Request#aws_request{should_retry = false}.
 
-get_url(#aws_config{cognito_scheme = Scheme,
-                    cognito_host   = Host}) ->
+get_url(#aws_config{cognito_user_pools_scheme = Scheme,
+                    cognito_user_pools_host   = Host}) ->
     Scheme ++ Host.
 
 list_all(Fun, Args, Config, Key, TokenAlias) ->

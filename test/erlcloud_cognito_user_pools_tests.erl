@@ -1,4 +1,4 @@
--module(erlcloud_cognito_tests).
+-module(erlcloud_cognito_user_pools_tests).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("erlcloud_aws.hrl").
