@@ -784,6 +784,9 @@ service_config( <<"glue">> = Service, Region, Config ) ->
 service_config( <<"athena">> = Service, Region, Config ) ->
     Host = service_host( Service, Region ),
     Config#aws_config{ athena_host = Host };
+service_config( <<"cognito_user_pools">> = Service, Region, Config ) ->
+  Host = service_host( Service, Region ),
+  Config#aws_config{ cognito_user_pools_host = Host };
 service_config( <<"states">> = Service, Region, Config ) ->
   Host = service_host( Service, Region ),
   Config#aws_config{ states_host = Host };
@@ -821,6 +824,8 @@ service_config( <<"ssm">> = Service, Region, Config ) ->
 %% This function handles the special and general cases of service host
 %% names.
 %%
+service_host( <<"cognito_user_pools">>, Region ) ->
+    binary_to_list(<<"cognito-idp.", Region/binary, ".amazonaws.com">>);
 service_host( <<"s3">>, <<"us-east-1">> ) -> "s3-external-1.amazonaws.com";
 service_host( <<"s3">>, <<"us-gov-west-1">> ) -> "s3-fips-us-gov-west-1.amazonaws.com";
 service_host( <<"s3">>, <<"cn-north-1">> ) -> "s3.cn-north-1.amazonaws.com.cn";
