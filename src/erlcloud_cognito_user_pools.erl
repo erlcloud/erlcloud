@@ -508,7 +508,7 @@ get_user_pool_mfa_config(UserPoolId, Config) ->
 list_identity_providers(UserPoolId) ->
     list_identity_providers(UserPoolId, ?MAX_RESULTS, undefined).
 
--spec list_identity_providers(binary(), integer(), binary()) ->
+-spec list_identity_providers(binary(), integer(), binary() | undefined) ->
     {ok, map()} | {error, any()}.
 list_identity_providers(UserPoolId, MaxResults, NextToken) ->
     Config = erlcloud_aws:default_config(),
@@ -573,13 +573,13 @@ describe_user_pool_client(UserPoolId, ClientId, Config) ->
 list_user_pool_clients(UserPoolId) ->
     list_user_pool_clients(UserPoolId, ?MAX_RESULTS, undefined).
 
--spec list_user_pool_clients(binary(), non_neg_integer(), binary()) ->
+-spec list_user_pool_clients(binary(), non_neg_integer(), binary() | undefined) ->
     {ok, map()} | {error, any()}.
 list_user_pool_clients(UserPoolId, MaxResults, NextToken) ->
     Config = erlcloud_aws:default_config(),
     list_user_pool_clients(UserPoolId, MaxResults, NextToken, Config).
 
--spec list_user_pool_clients(binary(), non_neg_integer(), binary(),
+-spec list_user_pool_clients(binary(), non_neg_integer(), binary() | undefined,
                              aws_config()) ->
     {ok, map()} | {error, any()}.
 list_user_pool_clients(UserPoolId, MaxResults, NextToken, Config) ->
