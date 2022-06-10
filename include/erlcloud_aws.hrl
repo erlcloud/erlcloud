@@ -1,11 +1,11 @@
 -ifndef(erlcloud_aws_hrl).
 -define(erlcloud_aws_hrl, 0).
 
--record(aws_assume_role,{
-    role_arn :: string() | undefined,
-    session_name = "erlcloud" :: string(),
-    duration_secs =  900 :: 900..43200,
-    external_id :: string() | undefined
+-record(aws_assume_role, {
+    role_arn                   :: string() | undefined,
+    session_name  = "erlcloud" :: string(),
+    duration_secs = 900        :: 900..43200,
+    external_id                :: string() | undefined
 }).
 
 -type(aws_assume_role() :: #aws_assume_role{}).
@@ -37,6 +37,8 @@
           s3_bucket_access_method=vhost::vhost|path|auto,
           s3_bucket_after_host=false::boolean(),
           sdb_host="sdb.amazonaws.com"::string(),
+          cognito_user_pools_host ="cognito-idp.eu-west-1.amazonaws.com"::string(),
+          cognito_user_pools_scheme ="https://"::string()|undefined,
           elb_host="elasticloadbalancing.amazonaws.com"::string(),
           rds_host="rds.us-east-1.amazonaws.com"::string(),
           ses_host="email.us-east-1.amazonaws.com"::string(),
