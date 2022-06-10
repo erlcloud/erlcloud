@@ -527,14 +527,14 @@ config() ->
                 retry_num         = 3}.
 
 setup() ->
-    erlcloud_cognito:configure("id", "key"),
+    erlcloud_cognito_user_pools:configure("id", "key"),
     MockedModules = [?EHTTPC, erlcloud_aws],
     meck:new(MockedModules, [passthrough]),
     meck:expect(erlcloud_aws, update_config, 1, {ok, config()}),
     meck:expect(?EHTTPC, request, 6, fun do_erlcloud_httpc_request/6),
     MockedModules.
 
-erlcloud_cognito_test_() ->
+erlcloud_cognito_user_pools_test_() ->
     {
         foreach,
         fun setup/0,
@@ -581,7 +581,7 @@ erlcloud_cognito_test_() ->
 test_list_users() ->
     Request  = #{<<"UserPoolId">> => ?USER_POOL_ID},
     Expected = {ok, ?LIST_USERS_RESP},
-    TestFun  = fun() -> erlcloud_cognito:list_users(?USER_POOL_ID) end,
+    TestFun  = fun() -> erlcloud_cognito_user_pools:list_users(?USER_POOL_ID) end,
     do_test(Request, Expected, TestFun).
 
 test_list_all_users() ->
@@ -606,7 +606,7 @@ test_list_all_users() ->
     meck:sequence(?EHTTPC, request, 6, [{ok, {{200, "OK"}, [], jsx:encode(Mocked1)}},
         {ok, {{200, "OK"}, [], jsx:encode(Mocked2)}}]),
     Expected = {ok, ?LIST_ALL_USERS},
-    Response = erlcloud_cognito:list_all_users(?USER_POOL_ID),
+    Response = erlcloud_cognito_user_pools:list_all_users(?USER_POOL_ID),
     ?assertEqual(Expected, Response).
 
 test_admin_list_groups_for_user() ->
@@ -616,7 +616,7 @@ test_admin_list_groups_for_user() ->
     },
     Expected = {ok, ?ADMIN_LIST_GROUPS_FOR_USERS},
     TestFun = fun() ->
-        erlcloud_cognito:admin_list_groups_for_user(?USERNAME, ?USER_POOL_ID, config())
+        erlcloud_cognito_user_pools:admin_list_groups_for_user(?USERNAME, ?USER_POOL_ID, config())
               end,
     do_test(Request, Expected, TestFun).
 
@@ -627,7 +627,7 @@ test_admin_get_user() ->
     },
     Expected = {ok, ?ADMIN_GET_USER},
     TestFun = fun() ->
-        erlcloud_cognito:admin_get_user(?USERNAME, ?USER_POOL_ID, config())
+        erlcloud_cognito_user_pools:admin_get_user(?USERNAME, ?USER_POOL_ID, config())
               end,
     do_test(Request, Expected, TestFun).
 
@@ -644,7 +644,7 @@ test_admin_create_user() ->
                               <<"UserPoolId">> => ?USER_POOL_ID},
     Expected = {ok, ?ADMIN_CREATE_USER},
     TestFun = fun() ->
-        erlcloud_cognito:admin_create_user(?USERNAME, ?USER_POOL_ID, UserAttributes)
+        erlcloud_cognito_user_pools:admin_create_user(?USERNAME, ?USER_POOL_ID, UserAttributes)
               end,
     do_test(Request, Expected, TestFun).
 
@@ -654,7 +654,7 @@ test_admin_delete_user() ->
         <<"UserPoolId">> => ?USER_POOL_ID
     },
     TestFun = fun() ->
-        erlcloud_cognito:admin_delete_user(?USERNAME, ?USER_POOL_ID, config())
+        erlcloud_cognito_user_pools:admin_delete_user(?USERNAME, ?USER_POOL_ID, config())
               end,
     do_test(Request, ok, TestFun).
 
@@ -665,7 +665,7 @@ test_admin_add_user_to_group() ->
         <<"UserPoolId">> => ?USER_POOL_ID,
         <<"GroupName">>  => GroupName},
     TestFun = fun() ->
-        erlcloud_cognito:admin_add_user_to_group(GroupName, ?USERNAME, ?USER_POOL_ID, config())
+        erlcloud_cognito_user_pools:admin_add_user_to_group(GroupName, ?USERNAME, ?USER_POOL_ID, config())
               end,
     do_test(Request, ok, TestFun).
 
@@ -676,7 +676,7 @@ test_admin_remove_user_from_group() ->
         <<"UserPoolId">> => ?USER_POOL_ID,
         <<"GroupName">>  => GroupName},
     TestFun = fun() ->
-        erlcloud_cognito:admin_remove_user_from_group(GroupName, ?USERNAME, ?USER_POOL_ID, config())
+        erlcloud_cognito_user_pools:admin_remove_user_from_group(GroupName, ?USERNAME, ?USER_POOL_ID, config())
               end,
     do_test(Request, ok, TestFun).
 
@@ -687,7 +687,7 @@ test_create_group() ->
         <<"GroupName">>  => GroupName},
     Expected = {ok, ?CREATE_GROUP},
     TestFun = fun() ->
-        erlcloud_cognito:create_group(GroupName, ?USER_POOL_ID, config())
+        erlcloud_cognito_user_pools:create_group(GroupName, ?USER_POOL_ID, config())
               end,
     do_test(Request, Expected, TestFun).
 
@@ -697,7 +697,7 @@ test_delete_group() ->
         <<"UserPoolId">> => ?USER_POOL_ID,
         <<"GroupName">>  => GroupName},
     TestFun = fun() ->
-        erlcloud_cognito:delete_group(GroupName, ?USER_POOL_ID, config())
+        erlcloud_cognito_user_pools:delete_group(GroupName, ?USER_POOL_ID, config())
               end,
     do_test(Request, ok, TestFun).
 
@@ -706,7 +706,7 @@ test_admin_reset_user_password() ->
         <<"Username">>   => ?USERNAME,
         <<"UserPoolId">> => ?USER_POOL_ID},
     TestFun = fun() ->
-      erlcloud_cognito:admin_reset_user_password(?USERNAME, ?USER_POOL_ID)
+      erlcloud_cognito_user_pools:admin_reset_user_password(?USERNAME, ?USER_POOL_ID)
               end,
     do_test(Request, ok, TestFun).
 
@@ -722,7 +722,7 @@ test_admin_update_user_attributes() ->
         <<"UserPoolId">>      => ?USER_POOL_ID,
         <<"Username">>        => ?USERNAME},
     TestFun = fun() ->
-        erlcloud_cognito:admin_update_user_attributes(?USERNAME, ?USER_POOL_ID, Attributes)
+        erlcloud_cognito_user_pools:admin_update_user_attributes(?USERNAME, ?USER_POOL_ID, Attributes)
               end,
     do_test(Request, ok, TestFun).
 
@@ -736,7 +736,7 @@ test_change_password() ->
         <<"ProposedPassword">> => NewPass
     },
     TestFun = fun() ->
-        erlcloud_cognito:change_password(OldPass, NewPass, AccessToken)
+        erlcloud_cognito_user_pools:change_password(OldPass, NewPass, AccessToken)
               end,
     do_test(Request, ok, TestFun).
 
@@ -744,11 +744,11 @@ test_list_user_pools() ->
     Expected = {ok, ?LIST_USER_POOLS},
     MaxResults = 60,
     Request = #{<<"MaxResults">> => MaxResults},
-    TestFun = fun() -> erlcloud_cognito:list_user_pools(MaxResults) end,
+    TestFun = fun() -> erlcloud_cognito_user_pools:list_user_pools(MaxResults) end,
     do_test(Request, Expected, TestFun).
 
 test_error_no_retry() ->
-    erlcloud_cognito:configure("test-access-key", "test-secret-key"),
+    erlcloud_cognito_user_pools:configure("test-access-key", "test-secret-key"),
     ErrCode = 400,
     Status = "Bad Request",
     ErrMsg = <<"Message">>,
@@ -758,7 +758,7 @@ test_error_no_retry() ->
     meck:expect(?EHTTPC, request, 6, {ok, {{ErrCode, Status}, [], ErrMsg}}),
     ?assertEqual(
         {error, {http_error, ErrCode, Status, ErrMsg, []}},
-        erlcloud_cognito:request(Config, Operation, Request)
+        erlcloud_cognito_user_pools:request(Config, Operation, Request)
     ).
 
 test_list_all_user_pools() ->
@@ -777,7 +777,7 @@ test_list_all_user_pools() ->
     meck:sequence(?EHTTPC, request, 6, [{ok, {{200, "OK"}, [], jsx:encode(Mocked1)}},
         {ok, {{200, "OK"}, [], jsx:encode(Mocked2)}}]),
     Expected = {ok, ?LIST_ALL_USER_POOLS},
-    Response = erlcloud_cognito:list_all_user_pools(),
+    Response = erlcloud_cognito_user_pools:list_all_user_pools(),
     ?assertEqual(Expected, Response).
 
 test_admin_set_user_password() ->
@@ -788,20 +788,20 @@ test_admin_set_user_password() ->
         <<"Password">>   => Pass,
         <<"Permanent">>  => false},
     TestFun = fun() ->
-        erlcloud_cognito:admin_set_user_password(?USERNAME, ?USER_POOL_ID, Pass)
+        erlcloud_cognito_user_pools:admin_set_user_password(?USERNAME, ?USER_POOL_ID, Pass)
               end,
     do_test(Request, ok, TestFun).
 
 test_describe_user_pool() ->
     Request = #{<<"UserPoolId">> => ?USER_POOL_ID},
     Expected = {ok, ?DESCRIBE_POOL},
-    TestFun = fun() -> erlcloud_cognito:describe_user_pool(?USER_POOL_ID) end,
+    TestFun = fun() -> erlcloud_cognito_user_pools:describe_user_pool(?USER_POOL_ID) end,
     do_test(Request, Expected, TestFun).
 
 test_get_user_pool_mfa_config() ->
     Request = #{<<"UserPoolId">> => ?USER_POOL_ID},
     Expected = {ok, ?MFA_CONFIG},
-    TestFun = fun() -> erlcloud_cognito:get_user_pool_mfa_config(?USER_POOL_ID) end,
+    TestFun = fun() -> erlcloud_cognito_user_pools:get_user_pool_mfa_config(?USER_POOL_ID) end,
     do_test(Request, Expected, TestFun).
 
 test_list_identity_providers() ->
@@ -810,7 +810,7 @@ test_list_identity_providers() ->
         <<"MaxResults">> => 60
     },
     Expected = {ok, ?LIST_IDENTITY_PROVIDERS},
-    TestFun = fun() -> erlcloud_cognito:list_identity_providers(?USER_POOL_ID) end,
+    TestFun = fun() -> erlcloud_cognito_user_pools:list_identity_providers(?USER_POOL_ID) end,
     do_test(Request, Expected, TestFun).
 
 test_list_all_identity_provider() ->
@@ -826,7 +826,7 @@ test_list_all_identity_provider() ->
     meck:sequence(?EHTTPC, request, 6, [{ok, {{200, "OK"}, [], jsx:encode(Mocked1)}},
         {ok, {{200, "OK"}, [], jsx:encode(Mocked2)}}]),
     Expected = {ok, ?LIST_ALL_IDENTITY_PROVIDERS},
-    Response = erlcloud_cognito:list_all_identity_providers(?USER_POOL_ID),
+    Response = erlcloud_cognito_user_pools:list_all_identity_providers(?USER_POOL_ID),
     ?assertEqual(Expected, Response).
 
 test_describe_identity_provider() ->
@@ -837,7 +837,7 @@ test_describe_identity_provider() ->
     },
     Expected = {ok, ?DESCRIBE_PROVIDER},
     TestFun = fun() ->
-        erlcloud_cognito:describe_identity_provider(?USER_POOL_ID, ProviderName)
+        erlcloud_cognito_user_pools:describe_identity_provider(?USER_POOL_ID, ProviderName)
               end,
     do_test(Request, Expected, TestFun).
 
@@ -847,13 +847,13 @@ test_describe_user_pool_client() ->
         <<"ClientId">>   => ?CLIENT_ID
     },
     Expected = {ok, ?DESCRIBE_USER_POOL_CLIENT},
-    TestFun = fun() -> erlcloud_cognito:describe_user_pool_client(?USER_POOL_ID, ?CLIENT_ID) end,
+    TestFun = fun() -> erlcloud_cognito_user_pools:describe_user_pool_client(?USER_POOL_ID, ?CLIENT_ID) end,
     do_test(Request, Expected, TestFun).
 
 test_list_user_pool_clients() ->
     Request  = #{<<"UserPoolId">> => ?USER_POOL_ID,
                  <<"MaxResults">> => 60},
-    TestFun  = fun() -> erlcloud_cognito:list_user_pool_clients(?USER_POOL_ID) end,
+    TestFun  = fun() -> erlcloud_cognito_user_pools:list_user_pool_clients(?USER_POOL_ID) end,
     Expected = {ok, ?LIST_USER_POOL_CLIENTS},
     do_test(Request, Expected, TestFun).
 
@@ -863,7 +863,7 @@ test_list_all_user_pool_clients() ->
     meck:sequence(?EHTTPC, request, 6, [{ok, {{200, "OK"}, [], jsx:encode(Mocked1)}},
                                         {ok, {{200, "OK"}, [], jsx:encode(Mocked2)}}]),
     Expected = {ok, ?LIST_ALL_USER_POOL_CLIENTS},
-    Response = erlcloud_cognito:list_all_user_pool_clients(?USER_POOL_ID),
+    Response = erlcloud_cognito_user_pools:list_all_user_pool_clients(?USER_POOL_ID),
     ?assertEqual(Expected, Response).
 
 test_admin_list_devices() ->
@@ -873,7 +873,7 @@ test_admin_list_devices() ->
         <<"Limit">>      => 60
     },
     Expected = {ok, ?ADMIN_LIST_DEVICE},
-    TestFun = fun() -> erlcloud_cognito:admin_list_devices(?USER_POOL_ID, ?USERNAME) end,
+    TestFun = fun() -> erlcloud_cognito_user_pools:admin_list_devices(?USER_POOL_ID, ?USERNAME) end,
     do_test(Request, Expected, TestFun).
 
 test_list_all_devices() ->
@@ -883,7 +883,7 @@ test_list_all_devices() ->
     meck:sequence(?EHTTPC, request, 6, [{ok, {{200, "OK"}, [], jsx:encode(Mocked1)}},
                                         {ok, {{200, "OK"}, [], jsx:encode(Mocked2)}}]),
     Expected = {ok, ?LIST_ALL_DEVICES},
-    Response = erlcloud_cognito:admin_list_all_devices(?USER_POOL_ID, ?USERNAME),
+    Response = erlcloud_cognito_user_pools:admin_list_all_devices(?USER_POOL_ID, ?USERNAME),
     ?assertEqual(Expected, Response).
 
 test_admin_forget_device() ->
@@ -893,7 +893,7 @@ test_admin_forget_device() ->
         <<"Username">>   => ?USERNAME,
         <<"DeviceKey">>  => DeviceKey
     },
-    TestFun = fun() -> erlcloud_cognito:admin_forget_device(?USER_POOL_ID, ?USERNAME, DeviceKey) end,
+    TestFun = fun() -> erlcloud_cognito_user_pools:admin_forget_device(?USER_POOL_ID, ?USERNAME, DeviceKey) end,
     do_test(Request, ok, TestFun).
 
 test_admin_confirm_signup() ->
@@ -902,7 +902,7 @@ test_admin_confirm_signup() ->
         <<"Username">>       => ?USERNAME,
         <<"ClientMetadata">> => #{}
     },
-    TestFun = fun() -> erlcloud_cognito:admin_confirm_signup(?USER_POOL_ID, ?USERNAME) end,
+    TestFun = fun() -> erlcloud_cognito_user_pools:admin_confirm_signup(?USER_POOL_ID, ?USERNAME) end,
     do_test(Request, {ok, #{}}, TestFun).
 
 test_admin_initiate_auth() ->
@@ -915,7 +915,7 @@ test_admin_initiate_auth() ->
         <<"ClientId">>       => ?CLIENT_ID,
         <<"UserPoolId">>     => ?USER_POOL_ID
     },
-    TestFun = fun() -> erlcloud_cognito:admin_initiate_auth(?USER_POOL_ID, ?CLIENT_ID,
+    TestFun = fun() -> erlcloud_cognito_user_pools:admin_initiate_auth(?USER_POOL_ID, ?CLIENT_ID,
                                                             AuthFlow, AuthParams) end,
     do_test(Request, {ok, ?ADMIN_INITIATE_AUTH}, TestFun).
 
@@ -930,7 +930,7 @@ test_respond_to_auth_challenge() ->
         <<"ClientId">>           => ?CLIENT_ID,
         <<"Session">>            => Session
     },
-    TestFun = fun() -> erlcloud_cognito:respond_to_auth_challenge(?CLIENT_ID, ChallengeName,
+    TestFun = fun() -> erlcloud_cognito_user_pools:respond_to_auth_challenge(?CLIENT_ID, ChallengeName,
                                                                   ChallengeResp, Session) end,
     do_test(Request, {ok, ?RESPOND_TO_AUTH_CHALLENGE}, TestFun).
 
@@ -955,7 +955,7 @@ test_create_identity_provider() ->
     <<"IdpIdentifiers">>   => IdpIdentifiers
   },
 
-  TestFun = fun() -> erlcloud_cognito:create_identity_provider(UserPoolId, ProviderName,
+  TestFun = fun() -> erlcloud_cognito_user_pools:create_identity_provider(UserPoolId, ProviderName,
                                                                ProviderType, ProviderDetails,
                                                                AttributeMapping, IdpIdentifiers) end,
   do_test(Request, {ok, ?CREATE_UPDATE_IDP}, TestFun).
@@ -969,7 +969,7 @@ test_delete_identity_provider() ->
     <<"ProviderName">> => ProviderName
   },
 
-  TestFun = fun() -> erlcloud_cognito:delete_identity_provider(UserPoolId, ProviderName) end,
+  TestFun = fun() -> erlcloud_cognito_user_pools:delete_identity_provider(UserPoolId, ProviderName) end,
   do_test(Request, ok, TestFun).
 
 test_update_identity_provider() ->
@@ -991,13 +991,13 @@ test_update_identity_provider() ->
     <<"IdpIdentifiers">>   => IdpIdentifiers
   },
 
-  TestFun = fun() -> erlcloud_cognito:update_identity_provider(UserPoolId, ProviderName,
+  TestFun = fun() -> erlcloud_cognito_user_pools:update_identity_provider(UserPoolId, ProviderName,
                                                                ProviderDetails, AttributeMapping,
                                                                IdpIdentifiers) end,
   do_test(Request, {ok, ?CREATE_UPDATE_IDP}, TestFun).
 
 test_error_retry() ->
-    erlcloud_cognito:configure("test-access-key", "test-secret-key"),
+    erlcloud_cognito_user_pools:configure("test-access-key", "test-secret-key"),
     ErrCode1 = 500,
     ErrCode2 = 400,
     Status1 = "Internal Server Error",
@@ -1012,11 +1012,11 @@ test_error_retry() ->
             {ok, {{ErrCode2, Status2}, [], ErrMsg2}}]),
     ?assertEqual(
         {error, {http_error, ErrCode2, Status2, ErrMsg2, []}},
-        erlcloud_cognito:request(Config, Operation, Request)
+        erlcloud_cognito_user_pools:request(Config, Operation, Request)
     ).
 
 do_test(Request, ExpectedResult, TestedFun) ->
-    erlcloud_cognito:configure("test-access-key", "test-secret-key"),
+    erlcloud_cognito_user_pools:configure("test-access-key", "test-secret-key"),
     ?assertEqual(ExpectedResult, TestedFun()),
     Encoded = jsx:encode(Request),
     ?assertMatch([{_, {?EHTTPC, request, [_, post, _, Encoded, _, _]}, _}],
