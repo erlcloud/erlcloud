@@ -49,6 +49,9 @@
     list_entities_for_policy_all/1, list_entities_for_policy_all/2, list_entities_for_policy_all/3, list_entities_for_policy_all/4,
     get_policy/1, get_policy/2,
     get_policy_version/2, get_policy_version/3,
+    get_server_certificate/1, get_server_certificate/2,
+    list_server_certificates/0, list_server_certificates/1, list_server_certificates/2,
+    list_server_certificates_all/0, list_server_certificates_all/1, list_server_certificates_all/2,
     list_instance_profiles/0, list_instance_profiles/1, list_instance_profiles/2,
     list_instance_profiles_all/0, list_instance_profiles_all/1, list_instance_profiles_all/2,
     get_instance_profile/1, get_instance_profile/2,
@@ -615,6 +618,79 @@ get_policy_version(PolicyArn, VersionId, #aws_config{} = Config)
     iam_query(Config, "GetPolicyVersion", [{"PolicyArn", PolicyArn}, {"VersionId", VersionId}], ItemPath, data_type("PolicyVersion")).
 
 %
+% ServerCertificate 
+%
+
+-spec get_server_certificate(string()) -> {ok, proplist()} |  {error, any()}.
+get_server_certificate(ServerCertificateName) ->
+    get_server_certificate(ServerCertificateName, default_config()).
+
+-spec get_server_certificate(string(), aws_config()) -> {ok, proplist()} |  {error, any()}.
+get_server_certificate(ServerCertificateName, #aws_config{} = Config) ->
+    Action = "GetServerCertificate",
+    Params = [{"ServerCertificateName", ServerCertificateName}],
+    case iam_query(Config, Action, Params) of
+        {ok, Doc} ->
+            ItemPath = "/GetServerCertificateResponse/GetServerCertificateResult/ServerCertificate",
+            [Item] = erlcloud_util:get_items(ItemPath, Doc),
+            Schema = [
+                {server_certificate_metadata, "ServerCertificateMetadata",
+                    {single, [
+                        {server_certificate_name, "ServerCertificateName", text},
+                        {server_certificate_id, "ServerCertificateId", text},
+                        {path, "Path", text},
+                        {arn, "Arn", text},
+                        {upload_date, "UploadDate", time},
+                        {expiration, "Expiration", time}
+                    ]}
+                },
+                {certificate_body, "CertificateBody", text},
+                {certificate_chain, "CertificateChain", optional_text}
+            ],
+            {ok, erlcloud_xml:decode(Schema, Item)};
+        {error, _} = Error ->
+            Error
+    end.
+
+-spec list_server_certificates() -> {ok, [proplist()]} | {ok, [proplist()], string()} |  {error, any()}.
+list_server_certificates() ->
+    list_server_certificates(default_config()).
+
+-spec list_server_certificates(string() | aws_config()) -> {ok, [proplist()]} | {ok, [proplist()], string()} |  {error, any()}.
+list_server_certificates(#aws_config{} = Config) ->
+    list_server_certificates("/", Config);
+list_server_certificates(PathPrefix) ->
+    list_server_certificates(PathPrefix, default_config()).
+
+-spec list_server_certificates(string(), aws_config()) -> {ok, [proplist()]} | {ok, [proplist()], string()} |  {error, any()}.
+list_server_certificates(PathPrefix, #aws_config{} = Config)
+  when is_list(PathPrefix) ->
+    Action = "ListServerCertificates",
+    Params = [{"PathPrefix", PathPrefix}],
+    ItemPath = "/ListServerCertificatesResponse/ListServerCertificatesResult/ServerCertificateMetadataList/member",
+    DataTypeDef = data_type("ServerCertificateMetadataList"),
+    iam_query(Config, Action, Params, ItemPath, DataTypeDef).
+
+-spec list_server_certificates_all() -> {ok, [proplist()]} |  {error, any()}.
+list_server_certificates_all() ->
+    list_server_certificates_all(default_config()).
+
+-spec list_server_certificates_all(string() | aws_config()) -> {ok, [proplist()]} | {error, any()}.
+list_server_certificates_all(#aws_config{} = Config) ->
+    list_server_certificates_all("/", Config);
+list_server_certificates_all(PathPrefix) ->
+    list_server_certificates_all(PathPrefix, default_config()).
+
+-spec list_server_certificates_all(string(), aws_config()) -> {ok, [proplist()]} |  {error, any()}.
+list_server_certificates_all(PathPrefix, #aws_config{} = Config)
+  when is_list(PathPrefix) ->
+    Action = "ListServerCertificates",
+    Params = [{"PathPrefix", PathPrefix}],
+    ItemPath = "/ListServerCertificatesResponse/ListServerCertificatesResult/ServerCertificateMetadataList/member",
+    DataTypeDef = data_type("ServerCertificateMetadataList"),
+    iam_query_all(Config, Action, Params, ItemPath, DataTypeDef).
+
+%
 % InstanceProfile
 %
 -spec list_instance_profiles() -> {ok, proplist()} | {ok, proplist(), string()} |  {error, any()}.
@@ -1065,7 +1141,14 @@ data_type("GetAccessKeyLastUsedResult") ->
     [{"UserName", user_name, "String"},
      {"AccessKeyLastUsed/Region", access_key_last_used_region, "String"},
      {"AccessKeyLastUsed/ServiceName", access_key_last_used_service_name, "String"},
-     {"AccessKeyLastUsed/LastUsedDate", access_key_last_used_date, "DateTime"}].
+     {"AccessKeyLastUsed/LastUsedDate", access_key_last_used_date, "DateTime"}];
+data_type("ServerCertificateMetadataList") ->
+    [{"Expiration", expiration, "DateTime"},
+     {"UploadDate", upload_date, "DateTime"},
+     {"Arn", arn, "String"},
+     {"Path", path, "String"},
+     {"ServerCertificateId", server_certificate_id, "String"},
+     {"ServerCertificateName", server_certificate_name, "String"}].
 
 data_fun("String") -> {erlcloud_xml, get_text};
 data_fun("DateTime") -> {erlcloud_xml, get_time};
