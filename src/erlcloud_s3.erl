@@ -50,7 +50,9 @@
          get_object_tagging/2, get_object_tagging/3,
          put_bucket_tagging/2, put_bucket_tagging/3,
          delete_bucket_tagging/1, delete_bucket_tagging/2,
-         get_bucket_tagging/1, get_bucket_tagging/2
+         get_bucket_tagging/1, get_bucket_tagging/2,
+         get_public_access_block/1, get_public_access_block/2,
+         put_public_access_block/2, put_public_access_block/3
     ]).
 
 -ifdef(TEST).
@@ -126,6 +128,7 @@ configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
 -type s3_bucket_attribute_name() :: acl
                                   | location
                                   | logging
+                                  | mfa_delete
                                   | request_payment
                                   | versioning
                                   | notification.
@@ -160,6 +163,14 @@ configure(AccessKeyID, SecretAccessKey, Host, Port, Scheme) ->
                                 | 'me-south-1'
                                 | 'sa-east-1'.
 
+-type public_access_block_attrib() :: block_public_policy
+                                    | ignore_public_acls
+                                    | block_public_policy
+                                    | restrict_public_buckets.
+
+-type public_access_block_param() :: {public_access_block_attrib(), boolean()}.
+
+-type public_access_block_configuration() :: [public_access_block_param()].
 
 -define(XMLNS_S3, "http://s3.amazonaws.com/doc/2006-03-01/").
 -define(XMLNS_SCHEMA_INSTANCE, "http://www.w3.org/2001/XMLSchema-instance").
@@ -579,6 +590,7 @@ get_bucket_attribute(BucketName, AttributeName, Config)
                acl             -> "acl";
                location        -> "location";
                logging         -> "logging";
+               mfa_delete      -> "versioning"; %% https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketVersioning.html#API_GetBucketVersioning_ResponseElements
                request_payment -> "requestPayment";
                versioning      -> "versioning";
                notification    -> "notification"
@@ -607,6 +619,11 @@ get_bucket_attribute(BucketName, AttributeName, Config)
                                   {target_prefix, "TargetPrefix", text},
                                   {target_trants, "TargetGrants/Grant", fun extract_acl/1}],
                     [{enabled, true}|erlcloud_xml:decode(Attributes, LoggingEnabled)]
+            end;
+        mfa_delete ->
+            case erlcloud_xml:get_text("/VersioningConfiguration/MFADelete", Doc) of
+                "Enabled"   -> enabled;
+                _           -> disabled
             end;
         request_payment ->
             case erlcloud_xml:get_text("/RequestPaymentConfiguration/Payer", Doc) of
@@ -1237,7 +1254,6 @@ list_multipart_uploads(BucketName, Options, HTTPHeaders, Config)
             Error
     end.
 
-
 -spec set_bucket_attribute(string(), atom(), term()) -> ok.
 
 set_bucket_attribute(BucketName, AttributeName, Value) ->
@@ -1283,7 +1299,8 @@ set_bucket_attribute(BucketName, AttributeName, Value, Config)
                          ]
                         },
                 {"requestPayment", RPXML};
-            versioning ->
+            Versioning when Versioning =:= versioning;
+                            Versioning =:= mfa_delete ->
                 Status = case proplists:get_value(status, Value) of
                              suspended -> "Suspended";
                              enabled -> "Enabled"
@@ -1681,6 +1698,69 @@ get_bucket_encryption(BucketName, Config) ->
         Error ->
             Error
     end.
+
+%% @doc
+%% S3 API:
+%% https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetPublicAccessBlock.html
+%%
+%% `
+%% {ok, [{block_public_acls, true},
+%%       {ignore_public_acls, true},
+%%       {block_public_policy, true},
+%%       {restrict_public_buckets, true}]} = erlcloud_s3:get_public_access_block("bucket-name").
+%% '
+%%
+-spec get_public_access_block(string()) ->
+    {ok, public_access_block_configuration()} | {error, any()}.
+get_public_access_block(BucketName) ->
+    get_public_access_block(BucketName, default_config()).
+
+-spec get_public_access_block(string(), aws_config()) ->
+    {ok, public_access_block_configuration()} | {error, any()}.
+get_public_access_block(BucketName, Config) ->
+    case s3_xml_request2(Config, get, BucketName, "/", "publicAccessBlock", [], <<>>, []) of
+        {ok, XML} ->
+            XPath = "/PublicAccessBlockConfiguration",
+            BlockPublicAcls = XPath ++ "/BlockPublicAcls",
+            IgnorePublicAcls = XPath ++ "/IgnorePublicAcls",
+            BlockPublicPolicy = XPath ++ "/BlockPublicPolicy",
+            RestrictPublicBuckets = XPath ++ "/RestrictPublicBuckets",
+            {ok, [
+                {block_public_acls,       erlcloud_xml:get_bool(BlockPublicAcls, XML)},
+                {ignore_public_acls,      erlcloud_xml:get_bool(IgnorePublicAcls, XML)},
+                {block_public_policy,     erlcloud_xml:get_bool(BlockPublicPolicy, XML)},
+                {restrict_public_buckets, erlcloud_xml:get_bool(RestrictPublicBuckets, XML)}
+            ]};
+        Error ->
+            Error
+    end.
+
+%% @doc
+%% S3 API:
+%% https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutPublicAccessBlock.html
+%%
+%% `
+%% PublicAccessBlock = [{block_public_acls, true},
+%%                      {ignore_public_acls, true},
+%%                      {block_public_policy, true},
+%%                      {restrict_public_buckets, true}],
+%% ok = erlcloud_s3:put_public_access_block("bucket-name", PublicAccessBlock).
+%% '
+%%
+-spec put_public_access_block(string(), public_access_block_configuration()) ->
+    ok | {error, any()}.
+put_public_access_block(BucketName, PublicAccessBlock) ->
+    put_public_access_block(BucketName, PublicAccessBlock, default_config()).
+
+-spec put_public_access_block(string(), public_access_block_configuration(), aws_config()) ->
+    ok | {error, any()}.
+put_public_access_block(BucketName, PublicAccessBlock, Config) ->
+    PublicAccessBlockXML = {'PublicAccessBlockConfiguration', [{xmlns, ?XMLNS_S3}],
+                            encode_public_access_block(PublicAccessBlock)},
+    POSTData = list_to_binary(xmerl:export_simple([PublicAccessBlockXML], xmerl_xml)),
+    Md5 = base64:encode(crypto:hash(md5, POSTData)),
+    Headers = [{"content-md5", Md5}, {"content-type", "application/xml"}],
+    s3_simple_request(Config, put, BucketName, "/", "publicAccessBlock", [], POSTData, Headers).
 
 %% @doc
 %% S3 API:
@@ -2084,3 +2164,19 @@ s3_endpoint_for_region(RegionName) ->
         _ ->
             lists:flatten(["s3-", RegionName, ".amazonaws.com"])
     end.
+
+encode_public_access_block(PublicAccessBlockConfiguration) ->
+    [encode_public_access_block_param(Param)
+        || {_Attrib, Value} = Param <- PublicAccessBlockConfiguration,
+                                       Value =:= true orelse Value =:= false].
+
+encode_public_access_block_param({block_public_acls, Value}) ->
+    {'BlockPublicAcls', [atom_to_list(Value)]};
+encode_public_access_block_param({ignore_public_acls, Value}) ->
+    {'IgnorePublicAcls', [atom_to_list(Value)]};
+encode_public_access_block_param({block_public_policy, Value}) ->
+    {'BlockPublicPolicy', [atom_to_list(Value)]};
+encode_public_access_block_param({restrict_public_buckets, Value}) ->
+    {'RestrictPublicBuckets', [atom_to_list(Value)]};
+encode_public_access_block_param(_) ->
+    throw(unknown_public_access_block_param).
