@@ -273,7 +273,7 @@ error_handling_tests(_) ->
             {"Test retry after ProvisionedThroughputExceededException",
              [httpc_response(400, "
 {\"__type\":\"com.amazonaws.dynamodb.v20111205#ProvisionedThroughputExceededException\",
-\"Message\":\"The level of configured provisioned throughput for the table was exceeded. Consider increasing your provisioning level with the UpdateTable API\"}"
+\"message\":\"The level of configured provisioned throughput for the table was exceeded. Consider increasing your provisioning level with the UpdateTable API\"}"
                             ),
               OkResponse],
              OkResult}),
@@ -281,7 +281,7 @@ error_handling_tests(_) ->
             {"Test ConditionalCheckFailed error",
              [httpc_response(400, "
 {\"__type\":\"com.amazonaws.dynamodb.v20111205#ConditionalCheckFailedException\",
-\"Message\":\"The expected value did not match what was stored in the system.\"}"
+\"message\":\"The expected value did not match what was stored in the system.\"}"
                             )],
              {error, {<<"ConditionalCheckFailedException">>, <<"The expected value did not match what was stored in the system.">>}}}),
          ?_ddb_test(
@@ -315,7 +315,7 @@ error_handling_tests(_) ->
             \"Message\":\"The conditional request failed\",
         }
     ],
-    \"Message\":\"Transaction cancelled, please refer cancellation reasons for specific reasons [None, ConditionalCheckFailed]\"
+    \"message\":\"Transaction cancelled, please refer cancellation reasons for specific reasons [None, ConditionalCheckFailed]\"
 }"
                             )],
               TransactionErrorResult}),
@@ -333,7 +333,7 @@ error_handling_tests(_) ->
             \"Message\":\"The level of configured provisioned throughput for the table was exceeded. Consider increasing your provisioning level with the UpdateTable API\",
         }
     ],
-    \"Message\":\"Transaction cancelled, please refer cancellation reasons for specific reasons [None, ProvisionedThroughputExceeded]\"
+    \"message\":\"Transaction cancelled, please refer cancellation reasons for specific reasons [None, ProvisionedThroughputExceeded]\"
 }"
                             ),
               TransactOkResponse],
