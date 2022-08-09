@@ -54,6 +54,7 @@
 -type httpc_result_ok() :: {http_client_headers(), binary()}.
 -type httpc_result_error() :: {http_error, Status :: pos_integer(), StatusLine :: string(), Body :: binary()}
                             | {socket_error, Reason :: term()}.
+-type headers() :: [{atom() | string(), iodata()}].
 -export_type([httpc_result_error/0]).
 -type httpc_result() :: {ok, httpc_result_ok()} | {error, httpc_result_error()}.
 -export_type([httpc_result/0]).
