@@ -63,7 +63,7 @@ md5(V) ->
 
 -ifndef(ERLANG_OTP_VERSION_19).
 rand_uniform(N) ->
-    random:uniform(N).
+    rand:uniform(N).
 -else.
 rand_uniform(N) ->
     rand:uniform(N).
