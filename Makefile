@@ -53,7 +53,7 @@ endif
 warnings: deps
 ifeq ($(REBAR_VSN),2)
 	@WARNINGS_AS_ERRORS=true $(REBAR) compile
-	@WARNINGS_AS_ERRORS=true $(REBAR) compile_only=true eunit
+	@AWS_DEFAULT_REGION=us-east-1 WARNINGS_AS_ERRORS=true $(REBAR) compile_only=true eunit
 else
 	@$(REBAR) as test compile
 endif
@@ -61,9 +61,9 @@ endif
 eunit: deps
 ifeq ($(REBAR_VSN),2)
 	$(MAKE) compile
-	@$(REBAR) eunit skip_deps=true
+	@AWS_DEFAULT_REGION=us-east-1 $(REBAR) eunit skip_deps=true
 else
-	@ERL_FLAGS="-config $(PWD)/eunit" $(REBAR) eunit
+	@AWS_DEFAULT_REGION=us-east-1 ERL_FLAGS="-config $(PWD)/eunit" $(REBAR) eunit
 endif
 
 .dialyzer_plt:
@@ -75,7 +75,7 @@ endif
 check: deps
 ifeq ($(REBAR_VSN),2)
 	$(MAKE) compile
-	@$(REBAR) compile_only=true eunit
+	@AWS_DEFAULT_REGION=us-east-1 $(REBAR) compile_only=true eunit
 	$(MAKE) .dialyzer_plt
 	dialyzer --no_check_plt --fullpath \
 		$(CHECK_EUNIT_FILES) \

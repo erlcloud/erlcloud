@@ -42,7 +42,8 @@ operation_test_() ->
             fun get_bucket_encryption_not_found_test/1,
             fun delete_bucket_encryption_test/1,
             fun hackney_proxy_put_validation_test/1,
-            fun get_bucket_and_key/1
+            fun get_bucket_and_key/1,
+            fun signature_test/1
         ]}.
 
 start() ->
@@ -829,58 +830,8 @@ get_bucket_and_key(_) ->
     Result = erlcloud_s3:get_bucket_and_key(ErlcloudS3ExportExample),
     ?_assertEqual({"some_bucket","path_to_file"}, Result).
 
-signature_test() ->
-    Config =
-        {aws_config,"autoscaling.amazonaws.com","ec2.amazonaws.com",
-            "iam.amazonaws.com","sts.amazonaws.com","https://",
-            "api.chef-server.dev",443,false,2,path,true,
-            "sdb.amazonaws.com",
-            "elasticloadbalancing.amazonaws.com",
-            "rds.us-east-1.amazonaws.com",
-            "email.us-east-1.amazonaws.com",
-            "queue.amazonaws.com",undefined,undefined,
-            "https://",
-            "elasticmapreduce.us-east-1.amazonaws.com",
-            undefined,"https://","sns.amazonaws.com",undefined,
-            "mechanicalturk.amazonaws.com",
-            "monitoring.amazonaws.com",undefined,undefined,
-            "https://","dynamodb.us-east-1.amazonaws.com",80,
-            fun erlcloud_ddb_impl:retry/1,"https://",
-            "streams.dynamodb.us-east-1.amazonaws.com",80,
-            "https://","route53.amazonaws.com","80","https://",
-            "lambda.us-east-1.amazonaws.com",443,"https://",
-            "states.us-east-1.amazonaws.com",443,"https://",
-            "redshift.us-east-1.amazonaws.com",443,"https://",
-            "kinesis.us-east-1.amazonaws.com",80,
-            fun erlcloud_kinesis_impl:retry/2,"https://",
-            "glue.us-east-1.amazonaws.com",443,"https://",
-            "athena.us-east-1.amazonaws.com",443,"https://",
-            "kms.us-east-1.amazonaws.com",80,"https://",
-            "inspector.us-west-2.amazonaws.com",80,"https://",
-            "cloudtrail.amazonaws.com",80,"https://",
-            "logs.us-east-1.amazonaws.com",443,
-            "cloudfront.amazonaws.com","https://",
-            "autoscaling.us-east-1.amazonaws.com",80,"https://",
-            "autoscaling.us-east-1.amazonaws.com",80,"https://",
-            "directconnect.us-east-1.amazonaws.com",80,
-            "https://","cloudsearch.us-east-1.amazonaws.com",
-            443,"cloudformation.us-east-1.amazonaws.com",
-            "https://","waf.amazonaws.com",443,"https://",
-            "ecs.us-east-1.amazonaws.com",443,"https://",
-            "entitlement.marketplace.us-east-1.amazonaws.com",
-            443,"https://",
-            "metering.marketplace.us-east-1.amazonaws.com",443,
-            "https://","guardduty.us-east-1.amazonaws.com",443,
-            "https://","cur.us-east-1.amazonaws.com",443,
-            "https://","config.us-east-1.amazonaws.com",443,
-            "",
-            "",
-            undefined,undefined,undefined,false,lhttpc,default,
-            undefined,fun erlcloud_retry:no_retry/1,
-            fun erlcloud_retry:only_http_errors/1,10,
-            {aws_assume_role,undefined,"erlcloud",900,undefined},
-            undefined,undefined,
-            {hackney_client_options,true,undefined,undefined}},
+signature_test(_) ->
+    Config = (erlcloud_s3:new("", "", "api.chef-server.dev", 443))#aws_config{s3_scheme="https://", s3_bucket_after_host=true, s3_bucket_access_method=path},
 
     Path1        = "/bookshelf/organization-c126c62de951893e9deee6b794cf1350/checksum-6a85b976cd88d448beae87d2c35f10e2",
     Date1        = "20210108T194543Z",
@@ -898,7 +849,7 @@ signature_test() ->
                    {"host","api.chef-server.dev:443"}],
     Payload      = "UNSIGNED-PAYLOAD",
     Result1      = erlcloud_s3:signature(Config, Path1, Date1, Region, Method1, QueryParams1, Headers1, Payload),
-    ?_assertEqual(Result1, "72db715536848fbd1886b2d8b6604fc6c1d3bed2cd362e85e412f6544bc261ea"),
+    ?assertEqual(Result1, "d1ef3ccb5ce2d5d5927ba5a7d7f9e583f8ba20fa5a497e775d1a6de3e451ef4f"),
     
     Method2      = get,
     QueryParams2 = [{"X-Amz-Algorithm","AWS4-HMAC-SHA256"},
@@ -910,4 +861,6 @@ signature_test() ->
                    {"X-Amz-SignedHeaders","host"}],
     Headers2     = [{"host","api.chef-server.dev:443"}],
     Result2      = erlcloud_s3:signature(Config, Path1, Date1, Region, Method2, QueryParams2, Headers2, Payload),
-    ?_assertEqual(Result2, "5a51120dbbbfb83219d869dfcbbb71befdabd910e359de307d579f4336cbe0b9").
+    ?assertEqual(Result2, "89fd7cd94fd35e10a877e8cb3f2261c8697cba5930f59cd84223d9e46e97c29f"),
+
+    ?_assertEqual(true, true).

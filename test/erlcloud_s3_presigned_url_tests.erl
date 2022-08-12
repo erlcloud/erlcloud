@@ -3,7 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 % to run:
-% ./rebar3 eunit --module=erlcloud_s3_presigned_url_tests
+% AWS_DEFAULT_REGION=us-east-1 ./rebar3 eunit --module=erlcloud_s3_presigned_url_tests
 
 % escape question marks with two backslashes (\\?)
 % .* matches 0 or more characters
@@ -12,7 +12,7 @@
 
 -define(URL, "https://bucket.host.com:441/key?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=access-key-id%2F20201005%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20201005T122030Z&X-Amz-Expires=0&X-Amz-SignedHeaders=X-User%3Bhost&X-Amz-Signature=57abbbb41e6f92e9dc791d920c63e9fc68a2ac19ab78d846b73eb8f56046a6f9").
 
- config() ->
+config() ->
     erlcloud_s3:new("access-key-id", "secret-access-key", "host.com", 441).
 
 make_presigned_v4_url_test() ->
