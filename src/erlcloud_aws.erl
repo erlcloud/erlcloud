@@ -1151,13 +1151,12 @@ sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams) ->
 -spec sign_v4(atom(), list(), aws_config(), headers(), string() | binary(), string(), string(), list(), string()) -> headers().
 sign_v4(Method, Uri, Config, Headers0, Payload, Region, Service, QueryParams, Date0) ->
     % use passed-in x-amz-date header or create one
-    Headers1 =
+    {Headers1, Date} =
         case proplists:get_value("x-amz-date", Headers0) of
             undefined ->
-                Date = Date0,
-                [{"x-amz-date", Date0} | Headers0];
-            Date ->
-                Headers0
+                {[{"x-amz-date", Date0} | Headers0], Date0};
+            ADate ->
+                {Headers0, ADate}
         end,
 
     {PayloadHash, Headers2} =
