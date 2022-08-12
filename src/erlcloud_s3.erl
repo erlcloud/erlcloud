@@ -1138,7 +1138,7 @@ get_object_url_elements(BucketName, Key, Config) ->
 signature(Config, Path, Date, Region, Method, QueryParams, Headers, Payload) ->
   Service = "s3",
   CredentialScope = erlcloud_aws:credential_scope(Date, Region, Service),
-  {CanonicalRequest, SignedHeaders} = erlcloud_aws:canonical_request(Method, Path, QueryParams, Headers, Payload),
+  {CanonicalRequest, _SignedHeaders} = erlcloud_aws:canonical_request(Method, Path, QueryParams, Headers, Payload),
   ToSign = erlcloud_aws:to_sign(Date, CredentialScope, CanonicalRequest),
   SigningKey = erlcloud_aws:signing_key(Config, Date, Region, Service),
   [Result] = erlcloud_aws:base16(erlcloud_util:sha256_mac(SigningKey, ToSign)),
