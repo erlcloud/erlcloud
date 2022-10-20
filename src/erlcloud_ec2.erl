@@ -1989,7 +1989,12 @@ extract_route(Node) ->
 extract_route_set(Node) ->
     [
      {destination_cidr_block, get_text("destinationCidrBlock", Node)},
-     {gateway_id, get_text("gatewayId", Node)},
+%%   {gateway_id, get_text("gatewayId", Node)},
+     case {{gateway_id, get_text("gatewayId", Node)},{nat_gateway_id, get_text("natGatewayId", Node)}} of
+            {{gateway_id, []},{nat_gateway_id, []}} -> [];
+            {{gateway_id, _},{nat_gateway_id, []}} -> {gateway_id, get_text("gatewayId", Node)};
+            {{gateway_id, []},{nat_gateway_id, _}} -> {nat_gateway_id, get_text("natGatewayId", Node)}
+     end,
      {instance_id, get_text("instanceId", Node)},
      {vpc_peering_conn_id, get_text("vpcPeeringConnectionId", Node)},
      {network_interface_id, get_text("networkInterfaceId", Node)},
