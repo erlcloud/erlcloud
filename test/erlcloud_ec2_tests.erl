@@ -60,7 +60,9 @@ describe_test_() ->
       fun delete_flow_logs_input_tests/1,
       fun delete_flow_logs_output_tests/1,
       fun describe_flow_logs_input_tests/1,
-      fun describe_flow_logs_output_tests/1
+      fun describe_flow_logs_output_tests/1,
+      fun describe_launch_template_versions_input_tests/1,
+      fun describe_launch_template_versions_output_tests/1
      ]}.
 
 start() ->
@@ -1315,6 +1317,316 @@ describe_reserved_instances_offerings_boundaries_test_() ->
         ?_assertException(error, function_clause, erlcloud_ec2:describe_reserved_instances_offerings([], 4, undefined)),
         ?_assertException(error, function_clause, erlcloud_ec2:describe_reserved_instances_offerings([], 1001, undefined))
     ].
+
+describe_launch_templates_test() ->
+    XML = "<DescribeLaunchTemplatesResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+    <requestId>1afa6e44-eb38-4229-8db6-d5eaexample</requestId>
+    <launchTemplates>
+        <item>
+            <createTime>2017-10-31T11:38:52.000Z</createTime>
+            <createdBy>arn:aws:iam::123456789012:root</createdBy>
+            <defaultVersionNumber>1</defaultVersionNumber>
+            <latestVersionNumber>1</latestVersionNumber>
+            <launchTemplateId>lt-0a20c965061f64abc</launchTemplateId>
+            <launchTemplateName>MyLaunchTemplate</launchTemplateName>
+        </item>
+    </launchTemplates>
+    </DescribeLaunchTemplatesResponse>",
+    XMERL = {ok, element(1, xmerl_scan:string(XML))},
+    ExpectedResult =
+        {ok,
+            [[
+                {created_by,"arn:aws:iam::123456789012:root"},
+                {create_time,{{2017,10,31},{11,38,52}}},
+                {default_version_number,1},
+                {launch_template_id,"lt-0a20c965061f64abc"},
+                {launch_template_name,"MyLaunchTemplate"},
+                {tag_set,[]}
+            ]]
+        },
+    meck:new(erlcloud_aws, [passthrough]),
+    meck:expect(erlcloud_aws, aws_request_xml4,
+        fun(_,_,_,_,_,_,_,_) ->
+            XMERL
+        end),
+    Result = erlcloud_ec2:describe_launch_templates(),
+    meck:unload(erlcloud_aws),
+    ?assertEqual(ExpectedResult, Result).
+
+describe_launch_template_versions_input_tests(_) ->
+    Tests = 
+        [?_ec2_test({
+            "This example describes a set of launch template versions for template with matching ID",
+            ?_f(erlcloud_ec2:describe_launch_template_versions("lt-0a20c965061f64abc")),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateId", "lt-0a20c965061f64abc"}]}),
+        ?_ec2_test({
+            "This example describes a set of launch template versions for template with matching name",
+            ?_f(erlcloud_ec2:describe_launch_template_versions(none, "Test-LT-foo", [])),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateName", "Test-LT-foo"}]}),
+        ?_ec2_test({
+            "This example describes launch template versions with matching version(s)",
+            ?_f(erlcloud_ec2:describe_launch_template_versions("lt-0f1b5e0ff43b7f2ad", none, [{launch_template_version, ["1"]}])),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateId", "lt-0f1b5e0ff43b7f2ad"},
+             {"LaunchTemplateVersion.1", "1"}]}),
+        ?_ec2_test({
+            "This example describes launch template versions with minimum version number",
+            ?_f(erlcloud_ec2:describe_launch_template_versions("lt-0a20c965061f64abc", none, [{min_version, 1}])),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateId", "lt-0a20c965061f64abc"},
+             {"MinVersion", "1"}]}),
+        ?_ec2_test({
+            "This example describes launch template versions with maximum version number",
+            ?_f(erlcloud_ec2:describe_launch_template_versions("lt-0a20c965061f64abc", none, [{max_version, 10}])),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateId", "lt-0a20c965061f64abc"},
+             {"MaxVersion", "10"}]}),
+        ?_ec2_test({
+            "This example describes launch template versions with max results count configured",
+            ?_f(erlcloud_ec2:describe_launch_template_versions("lt-0a20c965061f64abc", none, [], none, 10, undefined)),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateId", "lt-0a20c965061f64abc"},
+             {"MaxResults", "10"}]}),
+        ?_ec2_test({
+            "This example describes retrieval of subsequent launch template version result page",
+            ?_f(erlcloud_ec2:describe_launch_template_versions("lt-0a20c965061f64abc", none, [], none, 10, "next-token")),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateId", "lt-0a20c965061f64abc"},
+             {"NextToken", "next-token"},
+             {"MaxResults", "10"}]}),
+        ?_ec2_test({
+            "This example describes launch template versions with max results count configured selected by template name",
+            ?_f(erlcloud_ec2:describe_launch_template_versions(none, "SomeNameHere", [], none, 10, undefined)),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateName", "SomeNameHere"},
+             {"MaxResults", "10"}]}),
+        ?_ec2_test({
+            "This example describes retrieval of subsequent launch template version result page selected by template name",
+            ?_f(erlcloud_ec2:describe_launch_template_versions(none, "SomeNameHere", [], none, 10, "next-token")),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateName", "SomeNameHere"},
+             {"NextToken", "next-token"},
+             {"MaxResults", "10"}]})
+        ],
+    Response = "
+    <DescribeLaunchTemplateVersionsResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+        <requestId>65cadec1-b364-4354-8ca8-4176dexample</requestId>
+        <launchTemplateVersionSet>
+            <item>
+                <createTime>2017-10-31T11:38:52.000Z</createTime>
+                <createdBy>arn:aws:iam::123456789012:root</createdBy>
+                <defaultVersion>true</defaultVersion>
+                <launchTemplateData>
+                    <imageId>ami-8c1be5f6</imageId>
+                    <instanceType>t2.micro</instanceType>
+                </launchTemplateData>
+                <launchTemplateId>lt-0a20c965061f64abc</launchTemplateId>
+                <launchTemplateName>MyLaunchTemplate</launchTemplateName>
+                <versionDescription>FirstVersion</versionDescription>
+                <versionNumber>1</versionNumber>
+            </item>
+            <item>
+                <createTime>2017-10-31T11:52:03.000Z</createTime>
+                <createdBy>arn:aws:iam::123456789012:root</createdBy>
+                <defaultVersion>false</defaultVersion>
+                <launchTemplateData>
+                    <imageId>ami-12345678</imageId>
+                </launchTemplateData>
+                <launchTemplateId>lt-0a20c965061f64abc</launchTemplateId>
+                <launchTemplateName>MyLaunchTemplate</launchTemplateName>
+                <versionDescription>AMIOnlyv1</versionDescription>
+                <versionNumber>2</versionNumber>
+            </item>
+            <item>
+                <createTime>2017-10-31T11:55:15.000Z</createTime>
+                <createdBy>arn:aws:iam::123456789012:root</createdBy>
+                <defaultVersion>false</defaultVersion>
+                <launchTemplateData>
+                    <imageId>ami-aabbccdd</imageId>
+                </launchTemplateData>
+                <launchTemplateId>lt-0a20c965061f64abc</launchTemplateId>
+                <launchTemplateName>MyLaunchTemplate</launchTemplateName>
+                <versionDescription>AMIOnlyv2</versionDescription>
+                <versionNumber>3</versionNumber>
+            </item>
+        </launchTemplateVersionSet>
+    </DescribeLaunchTemplateVersionsResponse>
+    ",
+    input_tests(Response, Tests).
+
+describe_launch_template_versions_output_tests(_) ->
+    Tests =
+        [?_ec2_test(
+            {"This example describes all launch template versions for given template",
+            "<?xml version= \"1.0\" encoding= \"UTF-8\"?>
+            <DescribeLaunchTemplateVersionsResponse xmlns= \"http://ec2.amazonaws.com/doc/2016-11-15/\">
+                <requestId>c68f69e1-48fd-42c9-83cf-6b36cb07475b</requestId>
+                <launchTemplateVersionSet>
+                    <item>
+                        <createTime>2022-10-21T08:51:54.000Z</createTime>
+                        <createdBy>arn:aws:sts::123483894321:assumed-role/centralized-users/john.doe</createdBy>
+                        <defaultVersion>true</defaultVersion>
+                        <launchTemplateData>
+                            <cpuOptions>
+                                <coreCount>1</coreCount>
+                                <threadsPerCore>2</threadsPerCore>
+                            </cpuOptions>
+                            <disableApiStop>false</disableApiStop>
+                            <disableApiTermination>false</disableApiTermination>
+                            <ebsOptimized>true</ebsOptimized>
+                            <hibernationOptions>
+                                <configured>true</configured>
+                            </hibernationOptions>
+                            <iamInstanceProfile>
+                                <arn>arn:aws:iam::123483894321:instance-profile/ecsInstanceRole</arn>
+                            </iamInstanceProfile>
+                            <imageId>ami-5934df24</imageId>
+                            <instanceInitiatedShutdownBehavior>stop</instanceInitiatedShutdownBehavior>
+                            <instanceType>c5.large</instanceType>
+                            <maintenanceOptions>
+                                <autoRecovery>default</autoRecovery>
+                            </maintenanceOptions>
+                            <metadataOptions>
+                                <httpEndpoint>enabled</httpEndpoint>
+                                <httpTokens>optional</httpTokens>
+                            </metadataOptions>
+                            <monitoring>
+                                <enabled>true</enabled>
+                            </monitoring>
+                            <networkInterfaceSet>
+                                <item>
+                                    <deviceIndex>0</deviceIndex>
+                                    <networkInterfaceId>eni-060ceeb735813d39d</networkInterfaceId>
+                                </item>
+                            </networkInterfaceSet>
+                            <placement>
+                                <tenancy>default</tenancy>
+                            </placement>
+                            <privateDnsNameOptions>
+                                <enableResourceNameDnsARecord>true</enableResourceNameDnsARecord>
+                                <hostnameType>ip-name</hostnameType>
+                            </privateDnsNameOptions>
+                            <tagSpecificationSet>
+                                <item>
+                                    <resourceType>instance</resourceType>
+                                    <tagSet>
+                                        <item>
+                                            <key>tag1</key>
+                                            <value>134274125</value>
+                                        </item>
+                                    </tagSet>
+                                </item>
+                                <item>
+                                    <resourceType>volume</resourceType>
+                                    <tagSet>
+                                        <item>
+                                            <key>tag1</key>
+                                            <value>134274125</value>
+                                        </item>
+                                    </tagSet>
+                                </item>
+                            </tagSpecificationSet>
+                        </launchTemplateData>
+                        <launchTemplateId>lt-08ccaba0746110123</launchTemplateId>
+                        <launchTemplateName>nb-ec-test-1</launchTemplateName>
+                        <versionDescription>Test template foo</versionDescription>
+                        <versionNumber>1</versionNumber>
+                    </item>
+                </launchTemplateVersionSet>
+            </DescribeLaunchTemplateVersionsResponse>",
+                {ok, [[{created_by, "arn:aws:sts::123483894321:assumed-role/centralized-users/john.doe"},
+                       {create_time,{{2022,10,21},{8,51,54}}},
+                       {default_version,true},
+                       {launch_template_data,
+                           [[{block_device_mapping_set,[]},
+                             {capacity_reservation_specification,[]},
+                             {cpu_options,
+                                 [[{core_count,1},{threads_per_core,2}]]},
+                             {credit_specification,[]},
+                             {disable_api_stop,false},
+                             {disable_api_termination,false},
+                             {ebs_optimized,true},
+                             {elastic_gpu_specification_set,[]},
+                             {elastic_inference_accelerator_set,[]},
+                             {enclave_options,[{enabled,false}]},
+                             {hibernation_options,[{configured,true}]},
+                             {iam_instance_profile,
+                                 [[{arn,
+                                       "arn:aws:iam::123483894321:instance-profile/ecsInstanceRole"},
+                                   {id,[]}]]},
+                             {image_id,"ami-5934df24"},
+                             {instance_initiated_shutdown_behavior,"stop"},
+                             {instance_market_options,[]},
+                             {instance_requirements,[]},
+                             {instance_type,"c5.large"},
+                             {kernel_id,[]},
+                             {key_name,[]},
+                             {license_set,[]},
+                             {maintenance_options,
+                                 [[{auto_recovery,"default"}]]},
+                             {metadata_options,
+                                 [[{http_endpoint,"enabled"},
+                                   {http_protocol_ipv6,[]},
+                                   {http_put_response_hop_limit,0},
+                                   {http_tokens,"optional"},
+                                   {instance_metadata_tags,[]},
+                                   {state,[]}]]},
+                             {monitoring,[{enabled,true}]},
+                             {network_interface_set,
+                                 [[{associate_carrier_ip_address,false},
+                                   {associate_public_ip_address,false},
+                                   {delete_on_termination,false},
+                                   {description,[]},
+                                   {device_index,0},
+                                   {group_set,[]},
+                                   {interface_type,[]},
+                                   {ipv4_prefix_count,0},
+                                   {ipv4_prefix_set,[]},
+                                   {ipv6_address_count,0},
+                                   {ipv6_addresses_set,[]},
+                                   {ipv6_prefix_count,0},
+                                   {ipv6_prefix_set,[]},
+                                   {network_card_index,0},
+                                   {network_interface_id, "eni-060ceeb735813d39d"},
+                                   {private_ip_address,[]},
+                                   {private_ip_addresses_set,[]},
+                                   {secondary_private_ip_address_count,0},
+                                   {subnet_id,[]}]]},
+                             {placement,
+                                 [[{affinity,[]},
+                                   {availability_zone,[]},
+                                   {group_name,[]},
+                                   {host_id,[]},
+                                   {host_resource_group_arn,[]},
+                                   {partition_number,0},
+                                   {spread_domain,[]},
+                                   {tenancy,"default"}]]},
+                             {private_dns_name_options,
+                                 [[{enable_resource_name_dns_aaaa_record, false},
+                                   {enable_resource_name_dns_a_record,true},
+                                   {hostname_type,"ip-name"}]]},
+                             {ram_disk_id,[]},
+                             {security_group_id_set,[]},
+                             {security_group_set,[]},
+                             {tag_specification_set,
+                                 [[{resource_type,"instance"},
+                                   {tag_set,
+                                       [[{key,"tag1"},{value,"134274125"}]]}],
+                                  [{resource_type,"volume"},
+                                   {tag_set,
+                                       [[{key,"tag1"},
+                                         {value,"134274125"}]]}]]},
+                             {user_data,[]}]]},
+                       {launch_template_id,"lt-08ccaba0746110123"},
+                       {launch_template_name,"nb-ec-test-1"},
+                       {version_description,
+                           "Test template foo"},
+                       {version_number,1}]]}}
+         )
+    ],
+    output_tests(?_f(erlcloud_ec2:describe_launch_template_versions("lt-08ccaba0746110123")), Tests).
 
 generate_one_instance(N) ->
     "<item>
