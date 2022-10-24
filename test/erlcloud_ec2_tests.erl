@@ -926,7 +926,7 @@ describe_account_attributes_test() ->
     ?assertEqual(ExpectedResult, Result).
 
 describe_route_tables_tests() ->
-    XML = "<DescribeRouteTablesResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+    XML = "<DescribeRouteTablesResponse>
     <requestId>03c84dd4-bc36-48aa-8ac3-1d1fbaec96b5</requestId>
     <routeTableSet>
         <item>
