@@ -926,7 +926,7 @@ describe_account_attributes_test() ->
     ?assertEqual(ExpectedResult, Result).
 
 describe_route_tables_tests() ->
-    XML = "<DescribeRouteTablesResponse>
+    XML = "<DescribeRouteTablesResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
     <requestId>03c84dd4-bc36-48aa-8ac3-1d1fbaec96b5</requestId>
     <routeTableSet>
         <item>
@@ -955,8 +955,8 @@ describe_route_tables_tests() ->
             </routeSet>
             <associationSet>
                 <item>
-                    <routeTableAssociationId>rtbassoc-04c5c075b6f839f6e</routeTableAssociationId>
-                    <routeTableId>rtb-0b70ded185be2a2e4</routeTableId>
+                    <routeTableAssociationId>rtbassoc-123</routeTableAssociationId>
+                    <routeTableId>rtb-567</routeTableId>
                     <subnetId>subnet-0bdf348a667f86262</subnetId>
                     <main>false</main>
                     <associationState>
@@ -964,8 +964,8 @@ describe_route_tables_tests() ->
                     </associationState>
                 </item>
                 <item>
-                    <routeTableAssociationId>rtbassoc-0e0c96b3099aa9672</routeTableAssociationId>
-                    <routeTableId>rtb-0b70ded185be2a2e4</routeTableId>
+                    <routeTableAssociationId>rtbassoc-789</routeTableAssociationId>
+                    <routeTableId>rtb-345</routeTableId>
                     <main>true</main>
                     <associationState>
                         <state>associated</state>
@@ -977,125 +977,6 @@ describe_route_tables_tests() ->
                 <item>
                     <key>Name</key>
                     <value>PublicRT</value>
-                </item>
-            </tagSet>
-        </item>
-        <item>
-            <routeTableId>rtb-1fbf5d76</routeTableId>
-            <vpcId>vpc-85ad4fec</vpcId>
-            <ownerId>352283894008</ownerId>
-            <routeSet>
-                <item>
-                    <destinationCidrBlock>172.31.0.0/16</destinationCidrBlock>
-                    <gatewayId>local</gatewayId>
-                    <state>active</state>
-                    <origin>CreateRouteTable</origin>
-                </item>
-                <item>
-                    <destinationCidrBlock>0.0.0.0/0</destinationCidrBlock>
-                    <gatewayId>igw-9abc5ff3</gatewayId>
-                    <state>active</state>
-                    <origin>CreateRoute</origin>
-                </item>
-            </routeSet>
-            <associationSet>
-                <item>
-                    <routeTableAssociationId>rtbassoc-d19a78b8</routeTableAssociationId>
-                    <routeTableId>rtb-1fbf5d76</routeTableId>
-                    <main>true</main>
-                    <associationState>
-                        <state>associated</state>
-                    </associationState>
-                </item>
-            </associationSet>
-            <propagatingVgwSet/>
-            <tagSet/>
-        </item>
-        <item>
-            <routeTableId>rtb-c0d5eca9</routeTableId>
-            <vpcId>vpc-85ad4fec</vpcId>
-            <ownerId>352283894008</ownerId>
-            <routeSet>
-                <item>
-                    <destinationCidrBlock>172.31.0.0/16</destinationCidrBlock>
-                    <gatewayId>local</gatewayId>
-                    <state>active</state>
-                    <origin>CreateRouteTable</origin>
-                </item>
-                <item>
-                    <destinationCidrBlock>0.0.0.0/0</destinationCidrBlock>
-                    <gatewayId>igw-9abc5ff3</gatewayId>
-                    <state>active</state>
-                    <origin>CreateRoute</origin>
-                </item>
-            </routeSet>
-            <associationSet/>
-            <propagatingVgwSet/>
-            <tagSet>
-                <item>
-                    <key>AlertLogic-EnvironmentID</key>
-                    <value>E25AC49C-1B93-49DA-B60A-C98B16263650</value>
-                </item>
-                <item>
-                    <key>Name</key>
-                    <value>AlertLogic Security Route Table</value>
-                </item>
-                <item>
-                    <key>AlertLogic-AccountID</key>
-                    <value>2</value>
-                </item>
-                <item>
-                    <key>AlertLogic</key>
-                    <value>Security</value>
-                </item>
-            </tagSet>
-        </item>
-        <item>
-            <routeTableId>rtb-25e2d94c</routeTableId>
-            <vpcId>vpc-85ad4fec</vpcId>
-            <ownerId>352283894008</ownerId>
-            <routeSet>
-                <item>
-                    <destinationCidrBlock>172.31.0.0/16</destinationCidrBlock>
-                    <gatewayId>local</gatewayId>
-                    <state>active</state>
-                    <origin>CreateRouteTable</origin>
-                </item>
-                <item>
-                    <destinationCidrBlock>0.0.0.0/0</destinationCidrBlock>
-                    <gatewayId>igw-9abc5ff3</gatewayId>
-                    <state>active</state>
-                    <origin>CreateRoute</origin>
-                </item>
-            </routeSet>
-            <associationSet>
-                <item>
-                    <routeTableAssociationId>rtbassoc-7c659814</routeTableAssociationId>
-                    <routeTableId>rtb-25e2d94c</routeTableId>
-                    <subnetId>subnet-8e3060f5</subnetId>
-                    <main>false</main>
-                    <associationState>
-                        <state>associated</state>
-                    </associationState>
-                </item>
-            </associationSet>
-            <propagatingVgwSet/>
-            <tagSet>
-                <item>
-                    <key>Name</key>
-                    <value>AlertLogic Security Route Table</value>
-                </item>
-                <item>
-                    <key>AlertLogic</key>
-                    <value>Security</value>
-                </item>
-                <item>
-                    <key>AlertLogic-AccountID</key>
-                    <value>2</value>
-                </item>
-                <item>
-                    <key>AlertLogic-EnvironmentID</key>
-                    <value>D9351DD3-AEFD-4D48-847E-9FE8333B2F63</value>
                 </item>
             </tagSet>
         </item>
@@ -1131,96 +1012,15 @@ describe_route_tables_tests() ->
                         {state,"active"},
                         {origin,"CreateRoute"}]]},
             {association_set,
-                [[{route_table_association_id,"rtbassoc-04c5c075b6f839f6e"},
-                    {route_table_id,"rtb-0b70ded185be2a2e4"},
+                [[{route_table_association_id,"rtbassoc-123"},
+                    {route_table_id,"rtb-567"},
                     {main,"false"},
                     {subnet_id,"subnet-0bdf348a667f86262"}],
-                    [{route_table_association_id,"rtbassoc-0e0c96b3099aa9672"},
-                        {route_table_id,"rtb-0b70ded185be2a2e4"},
+                    [{route_table_association_id,"rtbassoc-789"},
+                        {route_table_id,"rtb-345"},
                         {main,"true"},
                         {subnet_id,[]}]]},
-            {tag_set,[[{key,"Name"},{value,"PublicRT"}]]}],
-            [{route_table_id,"rtb-1fbf5d76"},
-                {vpc_id,"vpc-85ad4fec"},
-                {route_set,
-                    [[{destination_cidr_block,"172.31.0.0/16"},
-                        {gateway_id,"local"},
-                        {nat_gateway_id,[]},
-                        {instance_id,[]},
-                        {vpc_peering_conn_id,[]},
-                        {network_interface_id,[]},
-                        {state,"active"},
-                        {origin,"CreateRouteTable"}],
-                        [{destination_cidr_block,"0.0.0.0/0"},
-                            {gateway_id,"igw-9abc5ff3"},
-                            {nat_gateway_id,[]},
-                            {instance_id,[]},
-                            {vpc_peering_conn_id,[]},
-                            {network_interface_id,[]},
-                            {state,"active"},
-                            {origin,"CreateRoute"}]]},
-                {association_set,
-                    [[{route_table_association_id,"rtbassoc-d19a78b8"},
-                        {route_table_id,"rtb-1fbf5d76"},
-                        {main,"true"},
-                        {subnet_id,[]}]]},
-                {tag_set,[]}],
-            [{route_table_id,"rtb-c0d5eca9"},
-                {vpc_id,"vpc-85ad4fec"},
-                {route_set,
-                    [[{destination_cidr_block,"172.31.0.0/16"},
-                        {gateway_id,"local"},
-                        {nat_gateway_id,[]},
-                        {instance_id,[]},
-                        {vpc_peering_conn_id,[]},
-                        {network_interface_id,[]},
-                        {state,"active"},
-                        {origin,"CreateRouteTable"}],
-                        [{destination_cidr_block,"0.0.0.0/0"},
-                            {gateway_id,"igw-9abc5ff3"},
-                            {nat_gateway_id,[]},
-                            {instance_id,[]},
-                            {vpc_peering_conn_id,[]},
-                            {network_interface_id,[]},
-                            {state,"active"},
-                            {origin,"CreateRoute"}]]},
-                {association_set,[]},
-                {tag_set,
-                    [[{key,"AlertLogic-EnvironmentID"},
-                        {value,"E25AC49C-1B93-49DA-B60A-C98B16263650"}],
-                        [{key,"Name"},{value,"AlertLogic Security Route Table"}],
-                        [{key,"AlertLogic-AccountID"},{value,"2"}],
-                        [{key,"AlertLogic"},{value,"Security"}]]}],
-            [{route_table_id,"rtb-25e2d94c"},
-                {vpc_id,"vpc-85ad4fec"},
-                {route_set,
-                    [[{destination_cidr_block,"172.31.0.0/16"},
-                        {gateway_id,"local"},
-                        {nat_gateway_id,[]},
-                        {instance_id,[]},
-                        {vpc_peering_conn_id,[]},
-                        {network_interface_id,[]},
-                        {state,"active"},
-                        {origin,"CreateRouteTable"}],
-                        [{destination_cidr_block,"0.0.0.0/0"},
-                            {gateway_id,"igw-9abc5ff3"},
-                            {nat_gateway_id,[]},
-                            {instance_id,[]},
-                            {vpc_peering_conn_id,[]},
-                            {network_interface_id,[]},
-                            {state,"active"},
-                            {origin,"CreateRoute"}]]},
-                {association_set,
-                    [[{route_table_association_id,"rtbassoc-7c659814"},
-                        {route_table_id,"rtb-25e2d94c"},
-                        {main,"false"},
-                        {subnet_id,"subnet-8e3060f5"}]]},
-                {tag_set,
-                    [[{key,"Name"},{value,"AlertLogic Security Route Table"}],
-                        [{key,"AlertLogic"},{value,"Security"}],
-                        [{key,"AlertLogic-AccountID"},{value,"2"}],
-                        [{key,"AlertLogic-EnvironmentID"},
-                            {value,"D9351DD3-AEFD-4D48-847E-9FE8333B2F63"}]]}]]},
+            {tag_set,[[{key,"Name"},{value,"PublicRT"}]]}]]},
     meck:new(erlcloud_aws, [passthrough]),
     meck:expect(erlcloud_aws, aws_request_xml4,
         fun(_,_,_,_,_,_,_,_) ->
