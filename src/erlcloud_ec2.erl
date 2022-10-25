@@ -1962,21 +1962,21 @@ extract_reserved_instances_offering(Node) ->
      {product_description, get_text("productDescription", Node)}
     ].
 
--spec describe_route_tables() -> ok_error(proplist()).
+-spec describe_route_tables() -> ok_error([proplist()]).
 describe_route_tables() ->
     describe_route_tables([], none, default_config()).
 
--spec describe_route_tables(filter_list() | none | aws_config()) -> ok_error(proplist()).
+-spec describe_route_tables(filter_list() | none | aws_config()) -> ok_error([proplist()]).
 describe_route_tables(Config) when is_record(Config, aws_config) ->
     describe_route_tables([], none, Config);
 describe_route_tables(Filter) ->
     describe_route_tables([], Filter, default_config()).
 
--spec describe_route_tables(filter_list() | none, aws_config()) -> ok_error(proplist()).
+-spec describe_route_tables(filter_list() | none, aws_config()) -> ok_error([proplist()]).
 describe_route_tables(Filter, Config) ->
     describe_route_tables([], Filter, Config).
 
--spec describe_route_tables([string()], filter_list() | none, aws_config()) -> ok_error(proplist()).
+-spec describe_route_tables([string()], filter_list() | none, aws_config()) -> ok_error([proplist()]).
 describe_route_tables(RouteTableIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(RouteTableIds, "RouteTableId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeRouteTables", Params, ?NEW_API_VERSION) of
@@ -2005,6 +2005,7 @@ extract_route_set(Node) ->
     [
      {destination_cidr_block, get_text("destinationCidrBlock", Node)},
      {gateway_id, get_text("gatewayId", Node)},
+     {nat_gateway_id, get_text("natGatewayId", Node)},
      {instance_id, get_text("instanceId", Node)},
      {vpc_peering_conn_id, get_text("vpcPeeringConnectionId", Node)},
      {network_interface_id, get_text("networkInterfaceId", Node)},

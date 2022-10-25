@@ -38,6 +38,7 @@ describe_test_() ->
      fun start/0,
      fun stop/1,
      [
+      fun describe_route_tables_tests/0,
       fun describe_vpcs_tests/1,
       fun describe_regions_input_tests/1,
       fun describe_regions_output_tests/1,
@@ -923,6 +924,111 @@ describe_account_attributes_test() ->
             XMERL
         end),
     Result = erlcloud_ec2:describe_account_attributes(),
+    meck:unload(erlcloud_aws),
+    ?assertEqual(ExpectedResult, Result).
+
+describe_route_tables_tests() ->
+    XML = "<DescribeRouteTablesResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+    <requestId>03c84dd4-bc36-48aa-8ac3-1d1fbaec96b5</requestId>
+    <routeTableSet>
+        <item>
+            <routeTableId>rtb-0b70ded185be2a2e4</routeTableId>
+            <vpcId>vpc-012ff464df6bbf762</vpcId>
+            <ownerId>352283894008</ownerId>
+            <routeSet>
+                <item>
+                    <destinationCidrBlock>10.0.0.0/26</destinationCidrBlock>
+                    <gatewayId>local</gatewayId>
+                    <state>active</state>
+                    <origin>CreateRouteTable</origin>
+                </item>
+                <item>
+                    <destinationCidrBlock>0.0.0.0/8</destinationCidrBlock>
+                    <natGatewayId>nat-06e45944bb42d3ba2</natGatewayId>
+                    <state>active</state>
+                    <origin>CreateRoute</origin>
+                </item>
+                <item>
+                    <destinationCidrBlock>0.0.0.0/0</destinationCidrBlock>
+                    <gatewayId>vgw-09fea3ed190b9ea1e</gatewayId>
+                    <state>active</state>
+                    <origin>CreateRoute</origin>
+                </item>
+            </routeSet>
+            <associationSet>
+                <item>
+                    <routeTableAssociationId>rtbassoc-123</routeTableAssociationId>
+                    <routeTableId>rtb-567</routeTableId>
+                    <subnetId>subnet-0bdf348a667f86262</subnetId>
+                    <main>false</main>
+                    <associationState>
+                        <state>associated</state>
+                    </associationState>
+                </item>
+                <item>
+                    <routeTableAssociationId>rtbassoc-789</routeTableAssociationId>
+                    <routeTableId>rtb-345</routeTableId>
+                    <main>true</main>
+                    <associationState>
+                        <state>associated</state>
+                    </associationState>
+                </item>
+            </associationSet>
+            <propagatingVgwSet/>
+            <tagSet>
+                <item>
+                    <key>Name</key>
+                    <value>PublicRT</value>
+                </item>
+            </tagSet>
+        </item>
+    </routeTableSet>
+</DescribeRouteTablesResponse>",
+    XMERL = {ok, element(1, xmerl_scan:string(XML))},
+    ExpectedResult =
+        {ok,[[{route_table_id,"rtb-0b70ded185be2a2e4"},
+            {vpc_id,"vpc-012ff464df6bbf762"},
+            {route_set,
+                [[{destination_cidr_block,"10.0.0.0/26"},
+                    {gateway_id,"local"},
+                    {nat_gateway_id,[]},
+                    {instance_id,[]},
+                    {vpc_peering_conn_id,[]},
+                    {network_interface_id,[]},
+                    {state,"active"},
+                    {origin,"CreateRouteTable"}],
+                    [{destination_cidr_block,"0.0.0.0/8"},
+                        {gateway_id,[]},
+                        {nat_gateway_id,"nat-06e45944bb42d3ba2"},
+                        {instance_id,[]},
+                        {vpc_peering_conn_id,[]},
+                        {network_interface_id,[]},
+                        {state,"active"},
+                        {origin,"CreateRoute"}],
+                    [{destination_cidr_block,"0.0.0.0/0"},
+                        {gateway_id,"vgw-09fea3ed190b9ea1e"},
+                        {nat_gateway_id,[]},
+                        {instance_id,[]},
+                        {vpc_peering_conn_id,[]},
+                        {network_interface_id,[]},
+                        {state,"active"},
+                        {origin,"CreateRoute"}]]},
+            {association_set,
+                [[{route_table_association_id,"rtbassoc-123"},
+                    {route_table_id,"rtb-567"},
+                    {main,"false"},
+                    {subnet_id,"subnet-0bdf348a667f86262"}],
+                    [{route_table_association_id,"rtbassoc-789"},
+                        {route_table_id,"rtb-345"},
+                        {main,"true"},
+                        {subnet_id,[]}]]},
+            {tag_set,[[{key,"Name"},{value,"PublicRT"}]]}]]},
+    meck:new(erlcloud_aws, [passthrough]),
+    meck:expect(erlcloud_aws, aws_request_xml4,
+        fun(_,_,_,_,_,_,_,_) ->
+            XMERL
+        end),
+    Result = erlcloud_ec2:describe_route_tables(),
     meck:unload(erlcloud_aws),
     ?assertEqual(ExpectedResult, Result).
     
