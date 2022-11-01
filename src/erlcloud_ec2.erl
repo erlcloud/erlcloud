@@ -201,6 +201,7 @@
          describe_launch_templates/4, describe_launch_templates/5,
 
          describe_launch_templates_all/0, describe_launch_templates_all/1,
+         describe_launch_templates_all/2, describe_launch_templates_all/3,
 
          describe_launch_template_versions/1, describe_launch_template_versions/3,
          describe_launch_template_versions/4, describe_launch_template_versions/5,
@@ -3991,16 +3992,31 @@ describe_launch_templates(LaunchTemplateIds, Filter, MaxResults, NextToken, Conf
 describe_launch_templates_all() ->
     describe_launch_templates_all(default_config()).
 
--spec describe_launch_templates_all(aws_config()) -> ok_error([proplist()]).
+-spec describe_launch_templates_all(aws_config() | launch_template_ids()) -> ok_error([proplist()]).
+describe_launch_templates_all(Ids)
+    when is_list(Ids) ->
+    describe_launch_templates_all(Ids, none, default_config(), undefined, []);
 describe_launch_templates_all(Config)
     when is_record(Config, aws_config) ->
-    describe_launch_templates_all(Config, undefined, []).
+    describe_launch_templates_all([], none, Config, undefined, []).
 
-describe_launch_templates_all(Config, Token, Acc)
-    when is_record(Config, aws_config) ->
-    case describe_launch_templates([], none, ?LAUNCH_TEMPLATES_MR_MAX, Token, Config) of
+-spec describe_launch_templates_all(launch_template_ids(), filter_list()) -> ok_error([proplist()]).
+describe_launch_templates_all(LaunchTemplateIds, FilterOpts)
+    when is_list(LaunchTemplateIds), is_list(FilterOpts) orelse FilterOpts =:= none ->
+    describe_launch_templates_all(LaunchTemplateIds, FilterOpts, default_config()).
+
+-spec describe_launch_templates_all(launch_template_ids(), filter_list(), aws_config()) -> ok_error([proplist()]).
+describe_launch_templates_all(LaunchTemplateIds, FilterOpts, Config)
+    when is_list(LaunchTemplateIds), is_list(FilterOpts) orelse FilterOpts =:= none,
+         is_record(Config, aws_config) ->
+    describe_launch_templates_all(LaunchTemplateIds, FilterOpts, Config, undefined, []).
+
+describe_launch_templates_all(LaunchTemplateIds, FilterOpts, Config, Token, Acc)
+    when is_list(LaunchTemplateIds), is_list(FilterOpts) orelse FilterOpts =:= none,
+         is_list(Token) orelse Token =:= undefined, is_record(Config, aws_config) ->
+    case describe_launch_templates(LaunchTemplateIds, FilterOpts, ?LAUNCH_TEMPLATES_MR_MAX, Token, Config) of
         {ok, Results, undefined} -> {ok, Results ++ Acc};
-        {ok, Results, Next} -> describe_launch_templates_all(Config, Next, Results ++ Acc);
+        {ok, Results, Next} -> describe_launch_templates_all(LaunchTemplateIds, FilterOpts, Config, Next, Results ++ Acc);
         {error, _} = Error -> Error
     end.
 
