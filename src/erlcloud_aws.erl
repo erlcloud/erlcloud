@@ -21,6 +21,7 @@
          request_to_return/1,
          sign_v4_headers/5,
          sign_v4/8,
+         canonical_query_string/1,
          get_service_status/1,
          is_throttling_error_response/1,
          get_timeout/1,
@@ -667,6 +668,11 @@ service_config( Service, Region, Config ) when is_atom(Region) ->
     service_config( Service, atom_to_binary(Region, latin1), Config );
 service_config( Service, Region, Config ) when is_list(Region) ->
     service_config( Service, list_to_binary(Region), Config );
+service_config( <<"access_analyzer">>, Region, Config ) ->
+    service_config( <<"access-analyzer">>, Region, Config );
+service_config( <<"access-analyzer">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{access_analyzer_host = Host};
 service_config( <<"as">>, Region, Config ) ->
     service_config( <<"autoscaling">>, Region, Config );
 service_config( <<"autoscaling">> = Service, Region, Config ) ->
@@ -1192,16 +1198,26 @@ canonical_headers(Headers) ->
     {Canonical, Signed}.
 
 %% @doc calculate canonical query string out of query params and according to v4 documentation
+-spec canonical_query_string(Params) -> String
+when Params :: [{Name, Value}],
+     Name :: atom() | string() | binary(),
+     Value :: atom() | string() | binary() | integer(),
+     String :: string().
 canonical_query_string([]) ->
     "";
 canonical_query_string(Params) ->
-    Normalized = [{erlcloud_http:url_encode(Name), erlcloud_http:url_encode(erlcloud_http:value_to_string(Value))} || {Name, Value} <- Params],
-    Sorted = lists:keysort(1, Normalized),
-    string:join([case Value of
-                     [] -> [Key, "="];
-                     _ -> [Key, "=", Value]
-                 end
-                 || {Key, Value} <- Sorted, Value =/= none, Value =/= undefined], "&").
+    Encoded = [encode_param(Name, Value) || {Name, Value} <- Params],
+    Sorted = lists:sort(Encoded),
+    string:join(Sorted, "&").
+
+encode_param(Name, Value) ->
+    EncodedName = erlcloud_http:url_encode(erlcloud_http:value_to_string(Name)),
+    case erlcloud_http:url_encode(erlcloud_http:value_to_string(Value)) of
+        "" ->
+            EncodedName ++ "=";
+        EncodedValue ->
+            EncodedName ++ "=" ++ EncodedValue
+    end.
 
 trimall(Value) ->
     %% TODO - remove excess internal whitespace in header values

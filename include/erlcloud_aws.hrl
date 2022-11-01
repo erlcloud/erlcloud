@@ -19,6 +19,7 @@
 -type(hackney_client_options() :: #hackney_client_options{}).
 
 -record(aws_config, {
+          access_analyzer_host="access-analyzer.us-east-1.amazonaws.com"::string(),
           as_host="autoscaling.amazonaws.com"::string(),
           ec2_protocol="https"::string(),
           ec2_host="ec2.amazonaws.com"::string(),
