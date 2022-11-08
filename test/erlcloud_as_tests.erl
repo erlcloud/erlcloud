@@ -151,6 +151,37 @@ mocked_groups() ->
         </TerminationPolicies>
         <MaxSize>10</MaxSize>
       </member>
+      <member>
+        <Tags/>
+        <SuspendedProcesses/>
+        <AutoScalingGroupName>my-test-asg-lbs</AutoScalingGroupName>
+        <HealthCheckType>ELB</HealthCheckType>
+        <CreatedTime>2013-05-06T17:47:15.107Z</CreatedTime>
+        <EnabledMetrics/>
+        <LaunchTemplate>
+          <LaunchTemplateId>lt-036fea5ec210c3294</LaunchTemplateId>
+          <LaunchTemplateName>asg-test-launch-template-spec-1</LaunchTemplateName>
+          <Version>2</Version>
+        </LaunchTemplate>
+        <Instances/>
+        <DesiredCapacity>2</DesiredCapacity>
+        <AvailabilityZones>
+          <member>us-east-1b</member>
+          <member>us-east-1a</member>
+        </AvailabilityZones>
+        <LoadBalancerNames>
+          <member>my-test-asg-loadbalancer</member>
+        </LoadBalancerNames>
+        <MinSize>2</MinSize>
+        <VPCZoneIdentifier/>
+        <HealthCheckGracePeriod>120</HealthCheckGracePeriod>
+        <DefaultCooldown>300</DefaultCooldown>
+        <AutoScalingGroupARN>arn:aws:autoscaling:us-east-1:803981987763:autoScalingGroup:ca861182-c8f9-4ca7-b1eb-cd35505f5ebb:autoScalingGroupName/my-test-asg-lbs</AutoScalingGroupARN>
+        <TerminationPolicies>
+          <member>Default</member>
+        </TerminationPolicies>
+        <MaxSize>10</MaxSize>
+      </member>
     </AutoScalingGroups>
   </DescribeAutoScalingGroupsResult>
   <ResponseMetadata>
@@ -171,7 +202,23 @@ expected_groups() ->
         vpc_zone_id = [""],
         instances = [],
         status = []
-        
+    }, #aws_autoscaling_group{
+        group_name = "my-test-asg-lbs",
+        availability_zones = ["us-east-1b", "us-east-1a"],
+        load_balancer_names = ["my-test-asg-loadbalancer"],
+        tags = [],
+        desired_capacity = 2,
+        min_size = 2,
+        max_size = 10,
+        launch_configuration_name = [],
+        launch_template = #aws_launch_template_spec{
+          id = "lt-036fea5ec210c3294",
+          name = "asg-test-launch-template-spec-1",
+          version = "2"
+        },
+        vpc_zone_id = [""],
+        instances = [],
+        status = []
 }].
 
 mocked_instances() ->
