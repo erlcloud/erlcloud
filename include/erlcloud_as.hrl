@@ -32,11 +32,19 @@
           min_size :: undefined | integer(),
           max_size :: undefined | integer(),
           launch_configuration_name :: undefined | string(),
+          launch_template :: undefined | aws_launch_template_spec(),
           vpc_zone_id :: undefined | list(string()),
           instances :: undefined | list(aws_autoscaling_instance()),
           status :: undefined | string()
          }).
 -type(aws_autoscaling_group() :: #aws_autoscaling_group{}).
+
+-record(aws_launch_template_spec, {
+          id :: string(),
+          name :: string(),
+          version :: string()
+}).
+-type(aws_launch_template_spec() :: #aws_launch_template_spec{}).
 
 -record(aws_launch_config, {
           name :: string(),
