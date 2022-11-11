@@ -1575,6 +1575,9 @@ describe_launch_template_versions_output_tests(_) ->
                         <createdBy>arn:aws:sts::123483894321:assumed-role/centralized-users/john.doe</createdBy>
                         <defaultVersion>true</defaultVersion>
                         <launchTemplateData>
+                            <creditSpecification>
+                                <cpuCredits>standard</cpuCredits>
+                            </creditSpecification>
                             <cpuOptions>
                                 <coreCount>1</coreCount>
                                 <threadsPerCore>2</threadsPerCore>
@@ -1650,7 +1653,8 @@ describe_launch_template_versions_output_tests(_) ->
                              {capacity_reservation_specification,[]},
                              {cpu_options,
                                  [[{core_count,1},{threads_per_core,2}]]},
-                             {credit_specification,[]},
+                             {credit_specification,[
+                                 [{cpu_credits, "standard"}]]},
                              {disable_api_stop,false},
                              {disable_api_termination,false},
                              {ebs_optimized,true},
