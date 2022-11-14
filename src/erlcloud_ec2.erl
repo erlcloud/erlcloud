@@ -4280,7 +4280,7 @@ extract_iam_instance_profile(Node) ->
 
 extract_credit_specification(Node) ->
     [
-        {cpu_credits, get_integer("cpuCredits", Node)}
+        {cpu_credits, get_text("cpuCredits", Node)}
     ].
 
 extract_range(Node, FnConvert) ->
