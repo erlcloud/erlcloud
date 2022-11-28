@@ -52,6 +52,8 @@
     get_server_certificate/1, get_server_certificate/2,
     list_server_certificates/0, list_server_certificates/1, list_server_certificates/2,
     list_server_certificates_all/0, list_server_certificates_all/1, list_server_certificates_all/2,
+    list_server_certificate_tags/1, list_server_certificate_tags/2,
+    list_server_certificate_tags_all/1, list_server_certificate_tags_all/2,
     list_instance_profiles/0, list_instance_profiles/1, list_instance_profiles/2,
     list_instance_profiles_all/0, list_instance_profiles_all/1, list_instance_profiles_all/2,
     get_instance_profile/1, get_instance_profile/2,
@@ -690,6 +692,34 @@ list_server_certificates_all(PathPrefix, #aws_config{} = Config)
     DataTypeDef = data_type("ServerCertificateMetadataList"),
     iam_query_all(Config, Action, Params, ItemPath, DataTypeDef).
 
+-spec list_server_certificate_tags(string()) -> {ok, [proplist()]} | {error, any()}.
+list_server_certificate_tags(ServerCertificateName)
+  when is_list(ServerCertificateName) ->
+    list_server_certificate_tags(ServerCertificateName, default_config()).
+
+-spec list_server_certificate_tags(string(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
+list_server_certificate_tags(ServerCertificateName, #aws_config{} = Config)
+  when is_list(ServerCertificateName) ->
+    Action = "ListServerCertificateTags",
+    Params = [{"ServerCertificateName", ServerCertificateName}],
+    ItemPath = "/ListServerCertificateTagsResponse/ListServerCertificateTagsResult/Tags/member",
+    DataTypeDef = data_type("ServerCertificateTags"),
+    iam_query(Config, Action, Params, ItemPath, DataTypeDef).
+
+-spec list_server_certificate_tags_all(string()) -> {ok, [proplist()]} | {error, any()}.
+list_server_certificate_tags_all(ServerCertificateName)
+  when is_list(ServerCertificateName) ->
+    list_server_certificate_tags_all(ServerCertificateName, default_config()).
+
+-spec list_server_certificate_tags_all(string(), aws_config()) -> {ok, [proplist()]} | {error, any()}.
+list_server_certificate_tags_all(ServerCertificateName, #aws_config{} = Config)
+  when is_list(ServerCertificateName) ->
+    Action = "ListServerCertificateTags",
+    Params = [{"ServerCertificateName", ServerCertificateName}],
+    ItemPath = "/ListServerCertificateTagsResponse/ListServerCertificateTagsResult/Tags/member",
+    DataTypeDef = data_type("ServerCertificateTags"),
+    iam_query_all(Config, Action, Params, ItemPath, DataTypeDef).
+
 %
 % InstanceProfile
 %
@@ -1148,7 +1178,10 @@ data_type("ServerCertificateMetadataList") ->
      {"Arn", arn, "String"},
      {"Path", path, "String"},
      {"ServerCertificateId", server_certificate_id, "String"},
-     {"ServerCertificateName", server_certificate_name, "String"}].
+     {"ServerCertificateName", server_certificate_name, "String"}];
+data_type("ServerCertificateTags") ->
+    [{"Value", value, "String"},
+     {"Key", key, "String"}].
 
 data_fun("String") -> {erlcloud_xml, get_text};
 data_fun("DateTime") -> {erlcloud_xml, get_time};
