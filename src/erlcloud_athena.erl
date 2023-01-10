@@ -10,17 +10,31 @@
     batch_get_named_query/1,
     batch_get_named_query/2,
 
+    batch_get_prepared_statement/2,
+    batch_get_prepared_statement/3,
+
     batch_get_query_execution/1,
     batch_get_query_execution/2,
 
     create_named_query/4,
     create_named_query/5,
     create_named_query/6,
+
+    create_prepared_statement/3,
+    create_prepared_statement/4,
+    create_prepared_statement/5,
+
     delete_named_query/1,
     delete_named_query/2,
 
+    delete_prepared_statement/2,
+    delete_prepared_statement/3,
+
     get_named_query/1,
     get_named_query/2,
+
+    get_prepared_statement/2,
+    get_prepared_statement/3,
 
     get_query_execution/1,
     get_query_execution/2,
@@ -33,6 +47,10 @@
     list_named_queries/1,
     list_named_queries/2,
 
+    list_prepared_statements/1,
+    list_prepared_statements/2,
+    list_prepared_statements/3,
+
     list_query_executions/0,
     list_query_executions/1,
     list_query_executions/2,
@@ -43,7 +61,11 @@
     start_query_execution/7,
 
     stop_query_execution/1,
-    stop_query_execution/2
+    stop_query_execution/2,
+
+    update_prepared_statement/3,
+    update_prepared_statement/4,
+    update_prepared_statement/5
 ]).
 
 -spec new(string(), string()) -> aws_config().
@@ -113,6 +135,19 @@ batch_get_named_query(NamedQueryIds, Config) ->
 
 %% @doc
 %% Athena API:
+%% https://docs.aws.amazon.com/athena/latest/APIReference/API_BatchGetPreparedStatement.html
+%%
+-spec batch_get_prepared_statement(binary(), list(binary())) -> {ok, map()} | {error, any()}.
+batch_get_prepared_statement(WorkGroup, PreparedStatementNames) ->
+    batch_get_prepared_statement(WorkGroup, PreparedStatementNames, default_config()).
+
+-spec batch_get_prepared_statement(binary(), list(binary()), aws_config()) -> {ok, map()} | {error, any()}.
+batch_get_prepared_statement(WorkGroup, PreparedStatementNames, Config) ->
+    Request = #{<<"WorkGroup">> => WorkGroup, <<"PreparedStatementNames">> => PreparedStatementNames},
+    request(Config, "BatchGetPreparedStatement", Request).
+
+%% @doc
+%% Athena API:
 %% http://docs.aws.amazon.com/athena/latest/APIReference/API_BatchGetQueryExecution.html
 %%
 -spec batch_get_query_execution([binary()]) -> {ok, map()} | {error, any()}.
@@ -162,18 +197,40 @@ create_named_query(ClientReqToken, Db, Name, Query, Description)
     {ok, binary()} | {error, any()}.
 create_named_query(ClientReqToken, Db, Name, Query, Description, Config) ->
     Request0 = #{<<"ClientRequestToken">> => ClientReqToken,
-                  <<"Database">>           => Db,
-                  <<"Name">>               => Name,
-                  <<"QueryString">>        => Query},
-    Request1 = update_query_description(Request0, Description),
+                  <<"Database">>          => Db,
+                  <<"Name">>              => Name,
+                  <<"QueryString">>       => Query},
+    Request1 = update_description(Request0, Description),
     case request(Config, "CreateNamedQuery", Request1) of
         {ok, Res} -> {ok, maps:get(<<"NamedQueryId">>, Res)};
         Error     -> Error
     end.
 
-update_query_description(Request, undefined)   -> Request;
-update_query_description(Request, Description) ->
-    maps:put(<<"Description">>, Description, Request).
+%% @doc
+%% Athena API:
+%% https://docs.aws.amazon.com/athena/latest/APIReference/API_CreatePreparedStatement.html
+%%
+-spec create_prepared_statement(binary(), binary(), binary()) -> ok | {error, any()}.
+create_prepared_statement(WorkGroup, StatementName, QueryStatement) ->
+    create_prepared_statement(WorkGroup, StatementName, QueryStatement, undefined, default_config()).
+
+-spec create_prepared_statement(binary(), binary(), binary(), binary() | aws_config()) -> ok | {error, any()}.
+create_prepared_statement(WorkGroup, StatementName, QueryStatement, Config) when is_record(Config, aws_config) ->
+    create_prepared_statement(WorkGroup, StatementName, QueryStatement, undefined, Config);
+create_prepared_statement(WorkGroup, StatementName, QueryStatement, Description) when is_binary(Description) ->
+    create_prepared_statement(WorkGroup, StatementName, QueryStatement, Description, default_config()).
+
+-spec create_prepared_statement(binary(), binary(), binary(), binary() | undefined, aws_config()) -> ok | {error, any()}.
+create_prepared_statement(WorkGroup, StatementName, QueryStatement, Description, Config) ->
+    Request0 = #{<<"WorkGroup">>      => WorkGroup,
+                 <<"StatementName">>  => StatementName,
+                 <<"QueryStatement">> => QueryStatement},
+    Request = update_description(Request0, Description),
+    case request(Config, "CreatePreparedStatement", Request) of
+        {ok, _} -> ok;
+        Error   -> Error
+    end.
+
 
 %% @doc
 %% Athena API:
@@ -190,6 +247,22 @@ delete_named_query(NamedQueryId, Config) ->
         {ok, _} -> ok;
         Error   -> Error
     end.
+%% @doc
+%% Athena API:
+%% https://docs.aws.amazon.com/athena/latest/APIReference/API_DeletePreparedStatement.html
+%%
+
+-spec delete_prepared_statement(binary(), binary()) -> ok | {error | any}.
+delete_prepared_statement(WorkGroup, StatementName) ->
+    delete_prepared_statement(WorkGroup, StatementName, default_config()).
+
+-spec delete_prepared_statement(binary(), binary(), aws_config()) -> ok | {error | any}.
+delete_prepared_statement(WorkGroup, StatementName, Config) ->
+    Request = #{<<"WorkGroup">> => WorkGroup, <<"StatementName">> => StatementName},
+    case request(Config, "DeletePreparedStatement", Request) of
+        {ok, _} -> ok;
+        Error   -> Error
+    end.
 
 %% @doc
 %% Athena API:
@@ -203,6 +276,19 @@ get_named_query(NamedQueryId) ->
 get_named_query(NamedQueryId, Config) ->
     Request = #{<<"NamedQueryId">> => NamedQueryId},
     request(Config, "GetNamedQuery", Request).
+
+%% @doc
+%% Athena API:
+%% https://docs.aws.amazon.com/athena/latest/APIReference/API_GetPreparedStatement.html
+%%
+-spec get_prepared_statement(binary(), binary()) -> {ok, map()} | {error, any()}.
+get_prepared_statement(WorkGroup, StatementName) ->
+    get_prepared_statement(WorkGroup, StatementName, default_config()).
+
+-spec get_prepared_statement(binary(), binary(), aws_config()) -> {ok, map()} | {error, any()}.
+get_prepared_statement(WorkGroup, StatementName, Config) ->
+    Request = #{<<"WorkGroup">> => WorkGroup, <<"StatementName">> => StatementName},
+    request(Config, "GetPreparedStatement", Request).
 
 %% @doc
 %% Athena API:
@@ -269,6 +355,31 @@ list_named_queries(PaginationMap) when is_map(PaginationMap) ->
 -spec list_named_queries(map(), aws_config()) -> {ok, map} | {error, any()}.
 list_named_queries(PaginationMap, Config) ->
     request(Config, "ListNamedQueries", PaginationMap).
+
+%% @doc
+%% Athena API:
+%% https://docs.aws.amazon.com/athena/latest/APIReference/API_ListPreparedStatements.html
+%%
+%% `
+%% erlcloud_athena:list_prepared_statements(<<"some-work-group">>,
+%%                                          #{<<"MaxResults">> => 1,
+%%                                            <<"NextToken">>  => <<"some-token">>}).
+%% '
+%%
+- spec list_prepared_statements(binary()) -> {ok, map()} | {error, any()}.
+list_prepared_statements(WorkGroup) ->
+    list_prepared_statements(WorkGroup, #{}, default_config()).
+
+- spec list_prepared_statements(binary(), map() | aws_config()) -> {ok, map()} | {error, any()}.
+list_prepared_statements(WorkGroup, Config) when is_record(Config, aws_config) ->
+    list_prepared_statements(WorkGroup, #{}, Config);
+list_prepared_statements(WorkGroup, PaginationMap) when is_map(PaginationMap) ->
+    list_prepared_statements(WorkGroup, PaginationMap, default_config()).
+
+-spec list_prepared_statements(binary(), map(), aws_config()) -> {ok, map()} | {error, any()}.
+list_prepared_statements(WorkGroup, PaginationMap, Config) ->
+    Request = PaginationMap#{<<"WorkGroup">> => WorkGroup},
+    request(Config, "ListPreparedStatements", Request).
 
 %% @doc
 %% Athena API:
@@ -364,6 +475,31 @@ get_encrypt_config(EncryptOption, KmsKey) ->
 
 %% @doc
 %% Athena API:
+%% https://docs.aws.amazon.com/athena/latest/APIReference/API_UpdatePreparedStatement.html
+%%
+-spec update_prepared_statement(binary(), binary(), binary()) -> ok | {error, any()}.
+update_prepared_statement(WorkGroup, StatementName, QueryStatement) ->
+    update_prepared_statement(WorkGroup, StatementName, QueryStatement, undefined, default_config()).
+
+-spec update_prepared_statement(binary(), binary(), binary(), binary() | aws_config()) -> ok | {error, any()}.
+update_prepared_statement(WorkGroup, StatementName, QueryStatement, Config) when is_record(Config, aws_config) ->
+    update_prepared_statement(WorkGroup, StatementName, QueryStatement, undefined, Config);
+update_prepared_statement(WorkGroup, StatementName, QueryStatement, Description) when is_binary(Description) ->
+    update_prepared_statement(WorkGroup, StatementName, QueryStatement, Description, default_config()).
+
+-spec update_prepared_statement(binary(), binary(), binary(), binary() | undefined, aws_config()) -> ok | {error, any()}.
+update_prepared_statement(WorkGroup, StatementName, QueryStatement, Description, Config) ->
+    Request0 = #{<<"WorkGroup">>      => WorkGroup,
+                 <<"StatementName">>  => StatementName,
+                 <<"QueryStatement">> => QueryStatement},
+    Request = update_description(Request0, Description),
+    case request(Config, "UpdatePreparedStatement", Request) of
+        {ok, _} -> ok;
+        Error   -> Error
+    end.
+
+%% @doc
+%% Athena API:
 %% http://docs.aws.amazon.com/athena/latest/APIReference/API_StopQueryExecution.html
 %%
 -spec stop_query_execution(binary()) -> ok | {error, any()}.
@@ -429,3 +565,7 @@ get_url(#aws_config{athena_scheme = Scheme,
                     athena_host   = Host,
                     athena_port   = Port}) ->
     Scheme ++ Host ++ ":" ++ integer_to_list(Port).
+
+update_description(Request, undefined)   -> Request;
+update_description(Request, Description) ->
+    maps:put(<<"Description">>, Description, Request).
