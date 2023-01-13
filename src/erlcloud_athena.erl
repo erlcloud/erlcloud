@@ -437,7 +437,7 @@ list_query_executions(Config) when is_record(Config, aws_config) ->
 list_query_executions(PaginationMap) when is_map(PaginationMap) ->
     list_query_executions(PaginationMap, [], default_config()).
 
--spec list_query_executions(map(), aws_config()) ->
+-spec list_query_executions(map(), aws_config() | list_query_executions_opts()) ->
     {ok, map()} | {error, any()}.
 list_query_executions(PaginationMap, Config) when is_record(Config, aws_config) ->
     list_query_executions(PaginationMap, [], Config);
