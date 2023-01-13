@@ -193,6 +193,7 @@ erlcloud_athena_test_() ->
             fun test_start_query_execution_with_encryption/0,
             fun test_start_query_execution_without_kms_key/0,
             fun test_start_query_execution_without_encrypt_option/0,
+            fun test_start_query_execution_with_workgroup_option/0,
             fun test_stop_query_execution/0,
             fun test_error_no_retry/0,
             fun test_error_retry/0,
@@ -229,12 +230,13 @@ test_create_named_query() ->
                 <<"Database">>           => ?DB_NAME_1,
                 <<"Name">>               => ?QUERY_NAME_1,
                 <<"QueryString">>        => ?QUERY_STR_1,
-                <<"Description">>        => ?QUERY_DESC_1},
+                <<"Description">>        => ?QUERY_DESC_1,
+                <<"WorkGroup">>          => ?WORKGROUP},
     Expected = {ok, ?QUERY_ID_1},
     TestFun  = fun() ->
         erlcloud_athena:create_named_query(?CLIENT_TOKEN, ?DB_NAME_1,
                                            ?QUERY_NAME_1, ?QUERY_STR_1,
-                                           ?QUERY_DESC_1)
+                                           ?QUERY_DESC_1, [{workgroup, ?WORKGROUP}])
                end,
     do_test(Request, Expected, TestFun).
 
@@ -288,8 +290,8 @@ test_get_query_results() ->
 
 test_list_named_queries() ->
     Expected = {ok, ?LIST_NAMED_QUERIES_RESP},
-    TestFun  = fun() -> erlcloud_athena:list_named_queries() end,
-    do_test(#{}, Expected, TestFun).
+    TestFun  = fun() -> erlcloud_athena:list_named_queries(#{}, [{workgroup, ?WORKGROUP}]) end,
+    do_test(#{<<"WorkGroup">> => ?WORKGROUP}, Expected, TestFun).
 
 test_list_prepared_statements() ->
     Request  = #{<<"WorkGroup">> => ?WORKGROUP},
@@ -301,8 +303,8 @@ test_list_query_executions() ->
     Request  = #{<<"MaxResults">> => 1,
                  <<"NextToken">>  => ?CLIENT_TOKEN},
     Expected = {ok, ?LIST_QUERY_EXECUTIONS_RESP},
-    TestFun  = fun() -> erlcloud_athena:list_query_executions(Request) end,
-    do_test(Request, Expected, TestFun).
+    TestFun  = fun() -> erlcloud_athena:list_query_executions(Request, [{workgroup, ?WORKGROUP}]) end,
+    do_test(Request#{<<"WorkGroup">> => ?WORKGROUP}, Expected, TestFun).
 
 test_start_query_execution() ->
     Request  = get_start_query_execution_req(#{}),
@@ -345,6 +347,17 @@ test_start_query_execution_without_encrypt_option() ->
         erlcloud_athena:start_query_execution(?CLIENT_TOKEN, ?DB_NAME_1,
                                               ?QUERY_STR_1, ?LOCATION_1,
                                               undefined, <<"some-key">>)
+               end,
+    do_test(Request, Expected, TestFun).
+
+test_start_query_execution_with_workgroup_option() ->
+    Request  = get_start_query_execution_req(#{<<"WorkGroup">> => ?WORKGROUP},#{}),
+    Expected = {ok, ?QUERY_ID_1},
+    TestFun  = fun() ->
+        erlcloud_athena:start_query_execution(?CLIENT_TOKEN, ?DB_NAME_1,
+                                              ?QUERY_STR_1, ?LOCATION_1,
+                                              undefined, undefined,
+                                              [{workgroup, ?WORKGROUP}])
                end,
     do_test(Request, Expected, TestFun).
 
@@ -422,8 +435,10 @@ do_erlcloud_httpc_request(_, post, Headers, _, _, _) ->
     {ok, {{200, "OK"}, [], jsx:encode(RespBody)}}.
 
 get_start_query_execution_req(EncryptConfig) ->
+    get_start_query_execution_req(#{}, EncryptConfig).
+get_start_query_execution_req(ReqBody, EncryptConfig) ->
     ResultConfig = EncryptConfig#{<<"OutputLocation">> => ?LOCATION_1},
-    #{<<"ClientRequestToken">>    => ?CLIENT_TOKEN,
-      <<"QueryExecutionContext">> => #{<<"Database">> => ?DB_NAME_1},
-      <<"QueryString">>           => ?QUERY_STR_1,
-      <<"ResultConfiguration">>   => ResultConfig}.
+    ReqBody#{<<"ClientRequestToken">>    => ?CLIENT_TOKEN,
+             <<"QueryExecutionContext">> => #{<<"Database">> => ?DB_NAME_1},
+             <<"QueryString">>           => ?QUERY_STR_1,
+             <<"ResultConfiguration">>   => ResultConfig}.
