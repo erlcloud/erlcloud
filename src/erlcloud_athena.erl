@@ -367,12 +367,12 @@ get_query_results(QueryExecutionId, PaginationMap, Config) ->
 
 -spec list_named_queries() -> {ok, map()} | {error, any()}.
 list_named_queries() ->
-    list_named_queries(#{}, undefined, default_config()).
+    list_named_queries(#{}, [], default_config()).
 
 -spec list_named_queries(map() | aws_config()) ->
     {ok, map()} | {error, any()}.
 list_named_queries(Config) when is_record(Config, aws_config) ->
-    list_named_queries(#{}, undefined, Config);
+    list_named_queries(#{}, [], Config);
 list_named_queries(PaginationMap) when is_map(PaginationMap) ->
     list_named_queries(PaginationMap, [], default_config()).
 
