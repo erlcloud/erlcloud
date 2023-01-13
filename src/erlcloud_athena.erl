@@ -511,8 +511,8 @@ start_query_execution(ClientReqToken, Db, Query, OutputLocation,
 -spec start_query_execution(binary(), binary(), binary(), binary(),
                             binary() | undefined,
                             binary() | undefined,
-                            map(),
-                            aws_config() | start_query_execution_opts()) ->
+                            start_query_execution_opts(),
+                            aws_config()) ->
     {ok, binary()} | {error, any()}.
 start_query_execution(ClientReqToken, Db, Query, OutputLocation,
                       EncryptionOption, KmsKey, Options, Config) ->
