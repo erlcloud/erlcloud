@@ -1165,13 +1165,18 @@ sign_v4(Method, Uri, Config, Headers0, Payload, Region, Service, QueryParams, Da
                    undefined -> Headers2;
                    Token -> [{"x-amz-security-token", Token} | Headers2]
                end,
-    {Request, SignedHeaders} = canonical_request(Method, Uri, QueryParams, Headers3, PayloadHash),
+    Headers4 =
+        case proplists:get_value("host", Headers3) of
+            undefined -> Headers3;
+            Host -> [{"host", string:lowercase(Host)} | proplists:delete("host", Headers3)]
+        end,
+    {Request, SignedHeaders} = canonical_request(Method, Uri, QueryParams, Headers4, PayloadHash),
     CredentialScope = credential_scope(Date, Region, Service),
     ToSign = to_sign(Date, CredentialScope, Request),
     SigningKey = signing_key(Config, Date, Region, Service),
     Signature = base16(erlcloud_util:sha256_mac( SigningKey, ToSign)),
     Authorization = authorization(Config, CredentialScope, SignedHeaders, Signature),
-    [{"Authorization", lists:flatten(Authorization)} | Headers3].
+    [{"Authorization", lists:flatten(Authorization)} | Headers4].
 
 -spec iso_8601_basic_time() -> string().
 iso_8601_basic_time() ->
