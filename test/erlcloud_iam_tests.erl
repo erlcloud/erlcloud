@@ -77,6 +77,9 @@ iam_api_test_() ->
       fun list_server_certificates_input_tests/1,
       fun list_server_certificates_output_tests/1,
       fun list_server_certificates_all_output_tests/1,
+      fun list_server_certificate_tags_input_tests/1,
+      fun list_server_certificate_tags_output_tests/1,
+      fun list_server_certificate_tags_all_output_tests/1,
       fun list_instance_profiles_input_tests/1,
       fun list_instance_profiles_output_tests/1,
       fun list_instance_profiles_all_output_tests/1,
@@ -1906,6 +1909,111 @@ list_server_certificates_all_output_tests(_) ->
         })
     ],
     output_tests_seq(?_f(erlcloud_iam:list_server_certificates_all("test")), Tests).
+
+-define(SERVER_CERTIFICATE_TAGS_RESP,
+    "<ListServerCertificateTagsResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+      <ListServerCertificateTagsResult>
+        <IsTruncated>false</IsTruncated>
+        <Tags>
+          <member>
+            <Key>Dept</Key>
+            <Value>12345</Value>
+          </member>
+          <member>
+            <Key>Team</Key>
+            <Value>Accounting</Value>
+          </member>
+        </Tags>
+      </ListServerCertificateTagsResult>
+      <ResponseMetadata>
+        <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+      </ResponseMetadata>
+    </ListServerCertificateTagsResponse>"
+).
+
+list_server_certificate_tags_input_tests(_) ->
+  Tests = [
+    ?_iam_test({
+      "Test input for returning server certificate tags",
+      ?_f(erlcloud_iam:list_server_certificate_tags("test")),
+      [{"Action", "ListServerCertificateTags"}, {"ServerCertificateName", "test"}]
+    })
+  ],
+  input_tests(?SERVER_CERTIFICATE_TAGS_RESP, Tests).
+
+list_server_certificate_tags_output_tests(_) ->
+  Tests = [
+    ?_iam_test({
+      "Test returning server certificate tags",
+      ?SERVER_CERTIFICATE_TAGS_RESP,
+      {ok, [
+        [{key, "Dept"},
+        {value, "12345"}],
+        [{key, "Team"},
+        {value, "Accounting"}]
+      ]}
+    })
+  ],
+  output_tests(?_f(erlcloud_iam:list_server_certificate_tags("test")), Tests).
+
+-define(SERVER_CERTIFICATE_TAGS_ALL_RESP, [
+    "<ListServerCertificateTagsResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+      <ListServerCertificateTagsResult>
+        <IsTruncated>true</IsTruncated>
+        <Marker>marker</Marker>
+        <Tags>
+          <member>
+            <Key>Dept</Key>
+            <Value>12345</Value>
+          </member>
+          <member>
+            <Key>Team</Key>
+            <Value>Accounting</Value>
+          </member>
+        </Tags>
+      </ListServerCertificateTagsResult>
+      <ResponseMetadata>
+        <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+      </ResponseMetadata>
+    </ListServerCertificateTagsResponse>",
+    "<ListServerCertificateTagsResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+      <ListServerCertificateTagsResult>
+        <IsTruncated>false</IsTruncated>
+        <Tags>
+          <member>
+            <Key>Dept</Key>
+            <Value>00001</Value>
+          </member>
+          <member>
+            <Key>Team</Key>
+            <Value>Engineering</Value>
+          </member>
+        </Tags>
+      </ListServerCertificateTagsResult>
+      <ResponseMetadata>
+        <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+      </ResponseMetadata>
+    </ListServerCertificateTagsResponse>"
+]).
+
+list_server_certificate_tags_all_output_tests(_) ->
+  Tests = [
+    ?_iam_test({
+      "Test returning all pages of server certificate tags",
+      ?SERVER_CERTIFICATE_TAGS_ALL_RESP,
+      {ok, [
+        [{key, "Dept"},
+        {value, "12345"}],
+        [{key, "Team"},
+        {value, "Accounting"}],
+        [{key, "Dept"},
+        {value, "00001"}],
+        [{key, "Team"},
+        {value, "Engineering"}]
+      ]}
+    })
+  ],
+  output_tests_seq(?_f(erlcloud_iam:list_server_certificate_tags_all("test")), Tests).
 
 -define(LIST_INSTANCE_PROFILES_RESP,
         "<ListInstanceProfilesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
