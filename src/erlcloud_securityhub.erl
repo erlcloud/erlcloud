@@ -31,7 +31,6 @@ describe_hub(Params) ->
     Result :: {ok, securityhub()}| {error, not_found} | {error, term()}.
 describe_hub(AwsConfig, Params) ->
     Path = ["accounts"],
-    ct:pal("Params ~p",[Params]),
     case request(AwsConfig, _Method = get, Path, Params) of
         {ok, Response} ->
             {ok, Response};
@@ -70,8 +69,6 @@ init_request(AwsConfig, Method, Path, Params, Payload) ->
     Region = erlcloud_aws:aws_region_from_host(Host),
     Headers = [{"host", Host}, {"content-type", "application/json"}],
     SignedHeaders = erlcloud_aws:sign_v4(Method, NormPath, AwsConfig, Headers, Payload, Region, Service, Params),
-    ct:pal("NormPath ~p",[NormPath]),
-    ct:pal("NormParams ~p",[NormParams]),
     #aws_request{
         service = securityhub,
         method = Method,
@@ -107,9 +104,7 @@ decode_response(AwsRequest) ->
         <<>> ->
             ok;
         ResponseBody ->
-            ct:pal("Response ~p",[ResponseBody]),
             Json = jsx:decode(ResponseBody, [{return_maps, false}]),
-            ct:pal("Json ~p",[Json]),
             {ok, Json}
     end.
 
