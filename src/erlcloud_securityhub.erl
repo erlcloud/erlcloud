@@ -36,8 +36,6 @@ describe_hub(AwsConfig, Params) ->
             {ok, Response};
         {error, {<<"ResourceNotFoundException">>, _Message}} ->
             {error, not_found};
-        {error, {<<"InvalidAccessException">>, _Message}} ->
-            {error, permission_denied};
         {error, Reason} ->
             {error, Reason}
     end.
@@ -62,7 +60,7 @@ request(AwsConfig0, Method, Path, Params, RequestBody) ->
     end.
 
 init_request(AwsConfig, Method, Path, Params, Payload) ->
-    Host = AwsConfig#aws_config.security_hub_host,
+    Host = AwsConfig#aws_config.securityhub_host,
     Service = "securityhub",
     NormPath = norm_path(Path),
     NormParams = norm_params(Params),
