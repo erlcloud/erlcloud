@@ -63,7 +63,9 @@ describe_test_() ->
       fun describe_flow_logs_input_tests/1,
       fun describe_flow_logs_output_tests/1,
       fun describe_launch_template_versions_input_tests/1,
-      fun describe_launch_template_versions_output_tests/1
+      fun describe_launch_template_versions_output_tests/1,
+      fun describe_security_groups_input_tests/1,
+      fun describe_security_groups_output_tests/1
      ]}.
 
 start() ->
@@ -1737,6 +1739,117 @@ describe_launch_template_versions_output_tests(_) ->
          )
     ],
     output_tests(?_f(erlcloud_ec2:describe_launch_template_versions("lt-08ccaba0746110123")), Tests).
+
+generate_security_group_response() ->
+    "<DescribeSecurityGroupsResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+            <requestId>1d62eae0-acdd-481d-88c9-example</requestId>
+            <securityGroupInfo>
+                <item>
+                    <ownerId>123456789012</ownerId>
+                    <groupId>sg-9bf6ceff</groupId>
+                    <groupName>SSHAccess</groupName>
+                    <groupDescription>Security group for SSH access</groupDescription>
+                    <vpcId>vpc-31896b55</vpcId>
+                    <ipPermissions>
+                        <item>
+                            <ipProtocol>tcp</ipProtocol>
+                            <fromPort>22</fromPort>
+                            <toPort>22</toPort>
+                            <groups/>
+                            <ipRanges>
+                                <item>
+                                    <cidrIp>0.0.0.0/0</cidrIp>
+                                </item>
+                            </ipRanges>
+                            <ipv6Ranges>
+                                <item>
+                                    <cidrIpv6>::/0</cidrIpv6>
+                                </item>
+                            </ipv6Ranges>
+                            <prefixListIds/>
+                        </item>
+                    </ipPermissions>
+                    <ipPermissionsEgress>
+                        <item>
+                            <ipProtocol>-1</ipProtocol>
+                            <groups/>
+                            <ipRanges>
+                                <item>
+                                    <cidrIp>0.0.0.0/0</cidrIp>
+                                </item>
+                            </ipRanges>
+                            <ipv6Ranges>
+                                <item>
+                                    <cidrIpv6>::/0</cidrIpv6>
+                                </item>
+                            </ipv6Ranges>
+                            <prefixListIds/>
+                        </item>
+                    </ipPermissionsEgress>
+                </item>
+            </securityGroupInfo>
+        </DescribeSecurityGroupsResponse>".
+
+describe_security_groups_input_tests(_) ->
+    Tests =
+        [?_ec2_test({
+            "Describe security group(s), default call with no additional parameters",
+            ?_f(erlcloud_ec2:describe_security_groups()),
+            [{"Action", "DescribeSecurityGroups"}]}),
+        ?_ec2_test({
+            "Describe security group(s) matching the given group name",
+            ?_f(erlcloud_ec2:describe_security_groups(["SSHAccess"])),
+            [{"Action", "DescribeSecurityGroups"},
+             {"GroupName.1", "SSHAccess"}]}),
+        ?_ec2_test({
+            "Describe security group(s) matching the given group ID(s)",
+            ?_f(erlcloud_ec2:describe_security_groups(["sg-9bf6ceff"], [], none, erlcloud_aws:default_config())),
+            [{"Action", "DescribeSecurityGroups"},
+             {"GroupId.1", "sg-9bf6ceff"}]}),
+        ?_ec2_test({
+            "Describe security group(s) matching the given set of filters",
+            ?_f(erlcloud_ec2:describe_security_groups([], [], [{
+                "ip-permission-ipv6-cidr", ["::/0"]}], erlcloud_aws:default_config())),
+            [{"Action", "DescribeSecurityGroups"},
+             {"Filter.1.Name" ,"ip-permission-ipv6-cidr"},
+             {"Filter.1.Value.1", "%3A%3A%2F0"}]})
+        ],
+    Response = generate_security_group_response(),
+    input_tests(Response, Tests).
+
+describe_security_groups_output_tests(_) ->
+    Tests = [
+        ?_ec2_test({
+                "Coverage for DescribeSecurityGroup API Request",
+                generate_security_group_response(),
+            {ok, [[
+                {owner_id, "123456789012"},
+                {group_id, "sg-9bf6ceff"},
+                {group_name, "SSHAccess"},
+                {group_description, "Security group for SSH access"},
+                {vpc_id, "vpc-31896b55"},
+                {ip_permissions, [[
+                    {ip_protocol, tcp},
+                    {from_port, 22},
+                    {to_port, 22},
+                    {users, []},
+                    {groups, []},
+                    {ip_ranges, ["0.0.0.0/0"]},
+                    {ipv6_ranges, ["::/0"]}]
+                ]},
+                {ip_permissions_egress, [[
+                    {ip_protocol, '-1'},
+                    {from_port, 0},
+                    {to_port, 0},
+                    {users, []},
+                    {groups, []},
+                    {ip_ranges, ["0.0.0.0/0"]},
+                    {ipv6_ranges, ["::/0"]}]
+                ]},
+                {tag_set, []}]]}
+        })
+    ],
+    output_tests(?_f(erlcloud_ec2:describe_security_groups()), Tests).
 
 generate_one_instance(N) ->
     "<item>

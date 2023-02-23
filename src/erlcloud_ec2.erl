@@ -2088,7 +2088,8 @@ extract_ip_permissions(Node) ->
      {users, get_list("groups/item/userId", Node)},
      {groups,
       [extract_user_id_group_pair(Item) || Item <- xmerl_xpath:string("groups/item", Node)]},
-     {ip_ranges, get_list("ipRanges/item/cidrIp", Node)}
+     {ip_ranges, get_list("ipRanges/item/cidrIp", Node)},
+     {ipv6_ranges, get_list("ipv6Ranges/item/cidrIpv6", Node)}
     ].
 
 extract_user_id_group_pair(Node) ->
