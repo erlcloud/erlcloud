@@ -668,6 +668,9 @@ service_config( Service, Region, Config ) when is_atom(Region) ->
     service_config( Service, atom_to_binary(Region, latin1), Config );
 service_config( Service, Region, Config ) when is_list(Region) ->
     service_config( Service, list_to_binary(Region), Config );
+service_config( <<"securityhub">> = Service, Region, Config ) ->
+    Host = service_host( Service, Region ),
+    Config#aws_config{securityhub_host = Host};
 service_config( <<"access_analyzer">>, Region, Config ) ->
     service_config( <<"access-analyzer">>, Region, Config );
 service_config( <<"access-analyzer">> = Service, Region, Config ) ->
