@@ -72,6 +72,14 @@ iam_api_test_() ->
       fun list_role_policies_input_tests/1,
       fun list_role_policies_output_tests/1,
       fun list_role_policies_all_output_tests/1,
+      fun get_server_certificate_input_tests/1,
+      fun get_server_certificate_output_tests/1,
+      fun list_server_certificates_input_tests/1,
+      fun list_server_certificates_output_tests/1,
+      fun list_server_certificates_all_output_tests/1,
+      fun list_server_certificate_tags_input_tests/1,
+      fun list_server_certificate_tags_output_tests/1,
+      fun list_server_certificate_tags_all_output_tests/1,
       fun list_instance_profiles_input_tests/1,
       fun list_instance_profiles_output_tests/1,
       fun list_instance_profiles_all_output_tests/1,
@@ -1717,6 +1725,295 @@ list_role_policies_all_output_tests(_) ->
              })
             ],
     output_tests_seq(?_f(erlcloud_iam:list_role_policies_all("S3Access")), Tests).
+
+-define(SERVER_CERTIFICATE_BODY,
+"-----BEGIN CERTIFICATE-----
+MIICdzCCAeCgAwIBAgIGANc+Ha2wMA0GCSqGSIb3DQEBBQUAMFMxCzAJBgNVBAYT
+AlVTMRMwEQYDVQQKEwpBbWF6b24uY29tMQwwCgYDVQQLEwNBV1MxITAfBgNVBAMT
+GEFXUyBMaW1pdGVkLUFzc3VyYW5jZSBDQTAeFw0wOTAyMDQxNzE5MjdaFw0xMDAy
+MDQxNzE5MjdaMFIxCzAJBgNVBAYTAlVTMRMwEQYDVQQKEwpBbWF6b24uY29tMRcw
+FQYDVQQLEw5BV1MtRGV2ZWxvcGVyczEVMBMGA1UEAxMMNTdxNDl0c3ZwYjRtMIGf
+MA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCpB/vsOwmT/O0td1RqzKjttSBaPjbr
+dqwNe9BrOyB08fw2+Ch5oonZYXfGUrT6mkYXH5fQot9HvASrzAKHO596FdJA6DmL
+ywdWe1Oggk7zFSXO1Xv+3vPrJtaYxYo3eRIp7w80PMkiOv6M0XK8ubcTouODeJbf
+suDqcLnLDxwsvwIDAQABo1cwVTAOBgNVHQ8BAf8EBAMCBaAwFgYDVR0lAQH/BAww
+CgYIKwYBBQUHAwIwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQULGNaBphBumaKbDRK
+CAi0mH8B3mowDQYJKoZIhvcNAQEFBQADgYEAuKxhkXaCLGcqDuweKtO/AEw9ZePH
+wr0XqsaIK2HZboqruebXEGsojK4Ks0WzwgrEynuHJwTn760xe39rSqXWIOGrOBaX
+wFpWHVjTFMKk+tSDG1lssLHyYWWdFFU4AnejRGORJYNaRHgVTKjHphc5jEhHm0BX
+AEaHzTpmEXAMPLE=
+-----END CERTIFICATE-----").
+
+-define(GET_SERVER_CERTIFICATE_RESP,
+"<GetServerCertificateResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+  <GetServerCertificateResult>
+    <ServerCertificate>
+      <ServerCertificateMetadata>
+        <ServerCertificateName>ProdServerCert</ServerCertificateName>
+        <Path>/company/servercerts/</Path>
+        <Arn>arn:aws:iam::123456789012:server-certificate/company/servercerts/ProdServerCert</Arn>
+        <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
+        <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
+        <Expiration>2012-05-08T01:02:03.004Z</Expiration>
+      </ServerCertificateMetadata>
+      <CertificateBody>"
+        ++ ?SERVER_CERTIFICATE_BODY ++
+      "</CertificateBody>
+    </ServerCertificate>
+  </GetServerCertificateResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</GetServerCertificateResponse>").
+
+get_server_certificate_input_tests(_) ->
+    Tests = [
+        ?_iam_test({
+            "Test returning a server certificate.",
+            ?_f(erlcloud_iam:get_server_certificate("test")),
+            [{"Action", "GetServerCertificate"}, {"ServerCertificateName", "test"}]
+        })
+    ],
+    input_tests(?GET_SERVER_CERTIFICATE_RESP, Tests).
+
+get_server_certificate_output_tests(_) ->
+    Tests = [
+        ?_iam_test({
+            "This returns the server certificate",
+            ?GET_SERVER_CERTIFICATE_RESP,
+            {ok, [
+                {server_certificate_metadata, [
+                    {server_certificate_name, "ProdServerCert"},
+                    {server_certificate_id, "ASCACKCEVSQ6C2EXAMPLE"},
+                    {path, "/company/servercerts/"},
+                    {arn, "arn:aws:iam::123456789012:server-certificate/company/servercerts/ProdServerCert"},
+                    {upload_date, {{2010,5,8}, {1,2,3}}},
+                    {expiration, {{2012,5,8}, {1,2,3}}}
+                ]},
+                {certificate_body, ?SERVER_CERTIFICATE_BODY}
+            ]}
+        })
+    ],
+    output_tests(?_f(erlcloud_iam:get_server_certificate("test")), Tests).
+
+-define(LIST_SERVER_CERTIFICATES_RESP,
+"<ListServerCertificatesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+  <ListServerCertificatesResult>
+    <IsTruncated>false</IsTruncated>
+    <ServerCertificateMetadataList>
+      <member>
+        <ServerCertificateName>ProdServerCert</ServerCertificateName>
+        <Path>/company/servercerts/</Path>
+        <Arn>arn:aws:iam::123456789012:server-certificate/company/servercerts/ProdServerCert</Arn>
+        <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
+        <ServerCertificateId>ASCACKCEVSQ6C2EXAMPLE</ServerCertificateId>
+        <Expiration>2012-05-08T01:02:03.004Z</Expiration>
+      </member>
+    </ServerCertificateMetadataList>
+  </ListServerCertificatesResult>
+  <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ListServerCertificatesResponse>").
+
+list_server_certificates_input_tests(_) ->
+    Tests = [
+        ?_iam_test({
+            "Test returning a list of server certificates.",
+            ?_f(erlcloud_iam:list_server_certificates("test")),
+            [{"Action", "ListServerCertificates"}, {"PathPrefix", "test"}]
+        })
+    ],
+    input_tests(?LIST_SERVER_CERTIFICATES_RESP, Tests).
+
+list_server_certificates_output_tests(_) ->
+    Tests = [
+        ?_iam_test({
+            "Test returning a list of server certificates.",
+            ?LIST_SERVER_CERTIFICATES_RESP,
+            {ok, [
+                [
+                    {server_certificate_name, "ProdServerCert"},
+                    {server_certificate_id, "ASCACKCEVSQ6C2EXAMPLE"},
+                    {path, "/company/servercerts/"},
+                    {arn, "arn:aws:iam::123456789012:server-certificate/company/servercerts/ProdServerCert"},
+                    {upload_date, {{2010,5,8}, {1,2,3}}},
+                    {expiration, {{2012,5,8}, {1,2,3}}}
+                ]
+            ]}
+        })
+    ],
+    output_tests(?_f(erlcloud_iam:list_server_certificates("test")), Tests).
+
+list_server_certificates_all_output_tests(_) ->
+    Tests = [
+        ?_iam_test({
+            "Test returning all server certificates",
+            [
+                "<ListServerCertificatesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+                <ListServerCertificatesResult>
+                  <IsTruncated>true</IsTruncated>
+                  <Marker>marker</Marker>
+                  <ServerCertificateMetadataList>
+                    <member>
+                      <ServerCertificateName>ProdServerCert</ServerCertificateName>
+                      <Path>/company/servercerts/</Path>
+                      <Arn>arn:aws:iam::123456789012:server-certificate/company/servercerts/ProdServerCert</Arn>
+                      <UploadDate>2010-05-08T01:02:03.004Z</UploadDate>
+                      <ServerCertificateId>ASCACKCEVSQ6CEXAMPLE1</ServerCertificateId>
+                      <Expiration>2012-05-08T01:02:03.004Z</Expiration>
+                    </member>
+                  </ServerCertificateMetadataList>
+                </ListServerCertificatesResult>
+                <ResponseMetadata>
+                  <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                </ResponseMetadata>
+              </ListServerCertificatesResponse>",
+              "<ListServerCertificatesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+                <ListServerCertificatesResult>
+                  <IsTruncated>false</IsTruncated>
+                  <ServerCertificateMetadataList>
+                    <member>
+                      <ServerCertificateName>TestServerCert</ServerCertificateName>
+                      <Path>/company/servercerts/</Path>
+                      <Arn>arn:aws:iam::123456789012:server-certificate/company/servercerts/TestServerCert</Arn>
+                      <UploadDate>2010-05-08T03:01:02.004Z</UploadDate>
+                      <ServerCertificateId>ASCACKCEVSQ6CEXAMPLE2</ServerCertificateId>
+                      <Expiration>2012-05-08T03:01:02.004Z</Expiration>
+                    </member>
+                  </ServerCertificateMetadataList>
+                </ListServerCertificatesResult>
+                <ResponseMetadata>
+                  <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+                </ResponseMetadata>
+              </ListServerCertificatesResponse>"
+            ],
+            {ok, [
+                [
+                    {server_certificate_name, "ProdServerCert"},
+                    {server_certificate_id, "ASCACKCEVSQ6CEXAMPLE1"},
+                    {path, "/company/servercerts/"},
+                    {arn, "arn:aws:iam::123456789012:server-certificate/company/servercerts/ProdServerCert"},
+                    {upload_date, {{2010,5,8}, {1,2,3}}},
+                    {expiration, {{2012,5,8}, {1,2,3}}}
+                ],
+                [
+                    {server_certificate_name, "TestServerCert"},
+                    {server_certificate_id, "ASCACKCEVSQ6CEXAMPLE2"},
+                    {path, "/company/servercerts/"},
+                    {arn, "arn:aws:iam::123456789012:server-certificate/company/servercerts/TestServerCert"},
+                    {upload_date, {{2010,5,8}, {3,1,2}}},
+                    {expiration, {{2012,5,8}, {3,1,2}}}
+                ]       
+            ]}
+        })
+    ],
+    output_tests_seq(?_f(erlcloud_iam:list_server_certificates_all("test")), Tests).
+
+-define(SERVER_CERTIFICATE_TAGS_RESP,
+    "<ListServerCertificateTagsResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+      <ListServerCertificateTagsResult>
+        <IsTruncated>false</IsTruncated>
+        <Tags>
+          <member>
+            <Key>Dept</Key>
+            <Value>12345</Value>
+          </member>
+          <member>
+            <Key>Team</Key>
+            <Value>Accounting</Value>
+          </member>
+        </Tags>
+      </ListServerCertificateTagsResult>
+      <ResponseMetadata>
+        <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+      </ResponseMetadata>
+    </ListServerCertificateTagsResponse>"
+).
+
+list_server_certificate_tags_input_tests(_) ->
+  Tests = [
+    ?_iam_test({
+      "Test input for returning server certificate tags",
+      ?_f(erlcloud_iam:list_server_certificate_tags("test")),
+      [{"Action", "ListServerCertificateTags"}, {"ServerCertificateName", "test"}]
+    })
+  ],
+  input_tests(?SERVER_CERTIFICATE_TAGS_RESP, Tests).
+
+list_server_certificate_tags_output_tests(_) ->
+  Tests = [
+    ?_iam_test({
+      "Test returning server certificate tags",
+      ?SERVER_CERTIFICATE_TAGS_RESP,
+      {ok, [
+        [{key, "Dept"},
+        {value, "12345"}],
+        [{key, "Team"},
+        {value, "Accounting"}]
+      ]}
+    })
+  ],
+  output_tests(?_f(erlcloud_iam:list_server_certificate_tags("test")), Tests).
+
+-define(SERVER_CERTIFICATE_TAGS_ALL_RESP, [
+    "<ListServerCertificateTagsResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+      <ListServerCertificateTagsResult>
+        <IsTruncated>true</IsTruncated>
+        <Marker>marker</Marker>
+        <Tags>
+          <member>
+            <Key>Dept</Key>
+            <Value>12345</Value>
+          </member>
+          <member>
+            <Key>Team</Key>
+            <Value>Accounting</Value>
+          </member>
+        </Tags>
+      </ListServerCertificateTagsResult>
+      <ResponseMetadata>
+        <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+      </ResponseMetadata>
+    </ListServerCertificateTagsResponse>",
+    "<ListServerCertificateTagsResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">
+      <ListServerCertificateTagsResult>
+        <IsTruncated>false</IsTruncated>
+        <Tags>
+          <member>
+            <Key>Dept</Key>
+            <Value>00001</Value>
+          </member>
+          <member>
+            <Key>Team</Key>
+            <Value>Engineering</Value>
+          </member>
+        </Tags>
+      </ListServerCertificateTagsResult>
+      <ResponseMetadata>
+        <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+      </ResponseMetadata>
+    </ListServerCertificateTagsResponse>"
+]).
+
+list_server_certificate_tags_all_output_tests(_) ->
+  Tests = [
+    ?_iam_test({
+      "Test returning all pages of server certificate tags",
+      ?SERVER_CERTIFICATE_TAGS_ALL_RESP,
+      {ok, [
+        [{key, "Dept"},
+        {value, "12345"}],
+        [{key, "Team"},
+        {value, "Accounting"}],
+        [{key, "Dept"},
+        {value, "00001"}],
+        [{key, "Team"},
+        {value, "Engineering"}]
+      ]}
+    })
+  ],
+  output_tests_seq(?_f(erlcloud_iam:list_server_certificate_tags_all("test")), Tests).
 
 -define(LIST_INSTANCE_PROFILES_RESP,
         "<ListInstanceProfilesResponse xmlns=\"https://iam.amazonaws.com/doc/2010-05-08/\">

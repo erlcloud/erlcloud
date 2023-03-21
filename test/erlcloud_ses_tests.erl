@@ -25,6 +25,7 @@ operation_test_() ->
       fun send_raw_email_tests/1,
       fun set_identity_dkim_enabled_tests/1,
       fun set_identity_feedback_forwarding_enabled_tests/1,
+      fun set_identity_headers_in_notifications_enabled_tests/1,
       fun set_identity_notification_topic_tests/1,
       fun verify_domain_dkim_tests/1,
       fun verify_domain_identity_tests/1,
@@ -135,6 +136,9 @@ get_identity_notification_attributes_tests(_) ->
         <key>user@example.com</key>
         <value>
           <ForwardingEnabled>true</ForwardingEnabled>
+          <HeadersInBounceNotificationsEnabled>true</HeadersInBounceNotificationsEnabled>
+          <HeadersInComplaintNotificationsEnabled>true</HeadersInComplaintNotificationsEnabled>
+          <HeadersInDeliveryNotificationsEnabled>true</HeadersInDeliveryNotificationsEnabled>
           <BounceTopic>arn:aws:sns:us-east-1:123456789012:example</BounceTopic>
           <ComplaintTopic>arn:aws:sns:us-east-1:123456789012:example</ComplaintTopic>
           <DeliveryTopic>arn:aws:sns:us-east-1:123456789012:example</DeliveryTopic>
@@ -149,6 +153,9 @@ get_identity_notification_attributes_tests(_) ->
         meck:expect(erlcloud_httpc, request, input_expect(Response, Expected)),
         ?assertEqual({ok, [{notification_attributes, [{"user@example.com",
                                                        [{forwarding_enabled, true},
+                                                        {headers_in_bounce_notifications_enabled, true},
+                                                        {headers_in_complaint_notifications_enabled, true},
+                                                        {headers_in_delivery_notifications_enabled, true},
                                                         {bounce_topic, "arn:aws:sns:us-east-1:123456789012:example"},
                                                         {complaint_topic, "arn:aws:sns:us-east-1:123456789012:example"},
                                                         {delivery_topic, "arn:aws:sns:us-east-1:123456789012:example"}]}]}]},
@@ -419,6 +426,22 @@ set_identity_feedback_forwarding_enabled_tests(_) ->
 </SetIdentityFeedbackForwardingEnabledResponse>",
         meck:expect(erlcloud_httpc, request, input_expect(Response, Expected)),
         ?assertEqual(ok, erlcloud_ses:set_identity_feedback_forwarding_enabled("user@example.com", true))
+     end
+    ].
+
+set_identity_headers_in_notifications_enabled_tests(_) ->
+    [fun() ->
+        configure(),
+        Expected = "Action=SetIdentityHeadersInNotificationsEnabled&Version=2010-12-01&Identity=user%40example.com&NotificationType=Bounce&Enabled=true",
+        Response =
+            "<SetIdentityHeadersInNotificationsEnabledResponse xmlns=\"http://ses.amazonaws.com/doc/2010-12-01/\">
+              <SetIdentityHeadersInNotificationsEnabledResult />
+              <ResponseMetadata>
+                <RequestId>299f4af4-b72a-11e1-901f-1fbd90e8104f</RequestId>
+              </ResponseMetadata>
+            </SetIdentityHeadersInNotificationsEnabledResponse>",
+        meck:expect(erlcloud_httpc, request, input_expect(Response, Expected)),
+        ?assertEqual(ok, erlcloud_ses:set_identity_headers_in_notifications_enabled("user@example.com", bounce, true))
      end
     ].
 

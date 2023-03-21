@@ -248,7 +248,7 @@ client_error(Body, DDBError) ->
                 undefined ->
                     DDBError#ddb2_error{error_type = http, should_retry = false};
                 FullType ->
-                    Message = proplists:get_value(<<"Message">>, Json, <<>>),
+                    Message = proplists:get_value(<<"message">>, Json, <<>>),
                     case binary:split(FullType, <<"#">>) of
                         [_, Type] when
                               Type =:= <<"ProvisionedThroughputExceededException">> orelse

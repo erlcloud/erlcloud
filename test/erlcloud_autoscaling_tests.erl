@@ -306,6 +306,7 @@ describe_autoscaling_groups_all_output_tests(_) ->
 </DescribeAutoScalingGroupsResponse>", "
 <DescribeAutoScalingGroupsResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
 <DescribeAutoScalingGroupsResult>
+    <NextToken>blah</NextToken>
     <AutoScalingGroups>
       <member>
         <Tags/>
@@ -339,11 +340,52 @@ describe_autoscaling_groups_all_output_tests(_) ->
   <ResponseMetadata>
     <RequestId>0f02a07d-b677-11e2-9eb0-dd50EXAMPLE</RequestId>
   </ResponseMetadata>
+</DescribeAutoScalingGroupsResponse>", "
+<DescribeAutoScalingGroupsResponse xmlns=\"http://autoscaling.amazonaws.com/doc/2011-01-01/\">
+<DescribeAutoScalingGroupsResult>
+    <AutoScalingGroups>
+      <member>
+        <Tags/>
+        <SuspendedProcesses/>
+        <AutoScalingGroupName>my-test-asg-lbs</AutoScalingGroupName>
+        <HealthCheckType>ELB</HealthCheckType>
+        <CreatedTime>2013-05-06T17:47:15.107Z</CreatedTime>
+        <EnabledMetrics/>
+        <LaunchTemplate>
+          <LaunchTemplateId>lt-036fea5ec210c3294</LaunchTemplateId>
+          <LaunchTemplateName>asg-test-launch-template-spec-1</LaunchTemplateName>
+          <Version>2</Version>
+        </LaunchTemplate>
+        <Instances/>
+        <DesiredCapacity>2</DesiredCapacity>
+        <AvailabilityZones>
+          <member>us-east-1b</member>
+          <member>us-east-1a</member>
+        </AvailabilityZones>
+        <LoadBalancerNames>
+          <member>my-test-asg-loadbalancer</member>
+        </LoadBalancerNames>
+        <MinSize>2</MinSize>
+        <VPCZoneIdentifier/>
+        <HealthCheckGracePeriod>120</HealthCheckGracePeriod>
+        <DefaultCooldown>300</DefaultCooldown>
+        <AutoScalingGroupARN>arn:aws:autoscaling:us-east-1:803981987763:autoScalingGroup:ca861182-c8f9-4ca7-b1eb-cd35505f5ebb:autoScalingGroupName/my-test-asg-lbs</AutoScalingGroupARN>
+        <TerminationPolicies>
+          <member>Default</member>
+        </TerminationPolicies>
+        <MaxSize>10</MaxSize>
+      </member>
+    </AutoScalingGroups>
+  </DescribeAutoScalingGroupsResult>
+  <ResponseMetadata>
+    <RequestId>0f02a07d-b677-11e2-9eb0-dd50EXAMPLE</RequestId>
+  </ResponseMetadata>
 </DescribeAutoScalingGroupsResponse>"],
     {ok, [[
             {autoscaling_group_name, "my-test-asg-lbs"},
             {autoscaling_group_arn, "arn:aws:autoscaling:us-east-1:803981987763:autoScalingGroup:ca861182-c8f9-4ca7-b1eb-cd35505f5ebb:autoScalingGroupName/my-test-asg-lbs"},
             {launch_configuration_name, "my-test-lc1"},
+            {launch_template, []},
             {min_size, 2},
             {max_size, 10},
             {create_time,{{2013,5,6},{17,47,15}}},
@@ -360,6 +402,7 @@ describe_autoscaling_groups_all_output_tests(_) ->
             {autoscaling_group_name, "my-test-asg-lbs"},
             {autoscaling_group_arn, "arn:aws:autoscaling:us-east-1:803981987763:autoScalingGroup:ca861182-c8f9-4ca7-b1eb-cd35505f5ebb:autoScalingGroupName/my-test-asg-lbs"},
             {launch_configuration_name, "my-test-lc2"},
+            {launch_template, []},
             {min_size, 2},
             {max_size, 10},
             {create_time,{{2013,5,6},{17,47,15}}},
@@ -376,6 +419,7 @@ describe_autoscaling_groups_all_output_tests(_) ->
             {autoscaling_group_name, "my-test-asg-lbs"},
             {autoscaling_group_arn, "arn:aws:autoscaling:us-east-1:803981987763:autoScalingGroup:ca861182-c8f9-4ca7-b1eb-cd35505f5ebb:autoScalingGroupName/my-test-asg-lbs"},
             {launch_configuration_name, "my-test-lc3"},
+            {launch_template, []},
             {min_size, 2},
             {max_size, 10},
             {create_time,{{2013,5,6},{17,47,15}}},
@@ -392,6 +436,7 @@ describe_autoscaling_groups_all_output_tests(_) ->
             {autoscaling_group_name, "my-test-asg-lbs"},
             {autoscaling_group_arn, "arn:aws:autoscaling:us-east-1:803981987763:autoScalingGroup:ca861182-c8f9-4ca7-b1eb-cd35505f5ebb:autoScalingGroupName/my-test-asg-lbs"},
             {launch_configuration_name, "my-test-lc4"},
+            {launch_template, []},
             {min_size, 2},
             {max_size, 10},
             {create_time,{{2013,5,6},{17,47,15}}},
@@ -404,7 +449,28 @@ describe_autoscaling_groups_all_output_tests(_) ->
             {load_balancers,["my-test-asg-loadbalancer"]},
             {instances,[]},
             {tag_set,[]}
-         ]]}})],
+         ], [
+            {autoscaling_group_name, "my-test-asg-lbs"},
+            {autoscaling_group_arn, "arn:aws:autoscaling:us-east-1:803981987763:autoScalingGroup:ca861182-c8f9-4ca7-b1eb-cd35505f5ebb:autoScalingGroupName/my-test-asg-lbs"},
+            {launch_configuration_name, []},
+            {launch_template, [
+              {launch_template_id, "lt-036fea5ec210c3294"},
+              {launch_template_name, "asg-test-launch-template-spec-1"},
+              {launch_template_version, "2"}
+            ]},
+            {min_size, 2},
+            {max_size, 10},
+            {create_time,{{2013,5,6},{17,47,15}}},
+            {health_check_type, "ELB"},
+            {desired_capacity,2},
+            {placement_group,[]},
+            {status,[]},
+            {subnets, []},
+            {availability_zones,["us-east-1b","us-east-1a"]},
+            {load_balancers,["my-test-asg-loadbalancer"]},
+            {instances,[]},
+            {tag_set,[]}
+          ]]}})],
     %% Remaining AWS API examples return subsets of the same data
     output_tests_seq(?_f(erlcloud_autoscaling:describe_autoscaling_groups_all()), Tests).
 
@@ -477,6 +543,7 @@ describe_autoscaling_groups_output_tests(_) ->
             {autoscaling_group_name, "my-test-asg-lbs"},
             {autoscaling_group_arn, "arn:aws:autoscaling:us-east-1:803981987763:autoScalingGroup:ca861182-c8f9-4ca7-b1eb-cd35505f5ebb:autoScalingGroupName/my-test-asg-lbs"},
             {launch_configuration_name, "my-test-lc"},
+            {launch_template, []},
             {min_size, 2},
             {max_size, 10},
             {create_time,{{2013,5,6},{17,47,15}}},

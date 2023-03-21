@@ -131,6 +131,7 @@ extract_autoscaling_group(Item) ->
         {autoscaling_group_name, get_text("AutoScalingGroupName", Item)},
         {autoscaling_group_arn, get_text("AutoScalingGroupARN", Item)},
         {launch_configuration_name, get_text("LaunchConfigurationName", Item)},
+        {launch_template, extract_launch_template(xmerl_xpath:string("LaunchTemplate", Item))},
         {min_size, get_integer("MinSize", Item)},
         {max_size, get_integer("MaxSize", Item)},
         {create_time, erlcloud_xml:get_time("CreatedTime", Item)},
@@ -178,6 +179,14 @@ extract_launch_configuration(Item) ->
         {key_name, get_text("KeyName", Item)},
         {user_data, get_text("UserData", Item)},
         {security_groups, [get_text(L) || L <- xmerl_xpath:string("SecurityGroups/member", Item)]}
+    ].
+
+extract_launch_template([]) -> [];
+extract_launch_template([Item]) ->
+    [
+        {launch_template_id, get_text("LaunchTemplateId", Item)},
+        {launch_template_name, get_text("LaunchTemplateName", Item)},
+        {launch_template_version, get_text("Version", Item)}
     ].
 
 autoscaling_query(Config, Action, Params) ->
