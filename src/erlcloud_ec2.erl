@@ -193,8 +193,21 @@
          
          % VPC peering connections
          describe_vpc_peering_connections/0, describe_vpc_peering_connections/1,
-         describe_vpc_peering_connections/2, describe_vpc_peering_connections/3
-    
+         describe_vpc_peering_connections/2, describe_vpc_peering_connections/3,
+
+         % Launch templates
+         describe_launch_templates/0, describe_launch_templates/1,
+         describe_launch_templates/2, describe_launch_templates/3,
+         describe_launch_templates/4, describe_launch_templates/5,
+
+         describe_launch_templates_all/0, describe_launch_templates_all/1,
+         describe_launch_templates_all/2, describe_launch_templates_all/3,
+
+         describe_launch_template_versions/1, describe_launch_template_versions/3,
+         describe_launch_template_versions/4, describe_launch_template_versions/5,
+         describe_launch_template_versions/6, describe_launch_template_versions/7,
+
+         describe_launch_template_versions_all/2, describe_launch_template_versions_all/3
     ]).
 
 -import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
@@ -228,6 +241,8 @@
 -define(NAT_GATEWAYS_MR_MAX, 1000).
 -define(FLOWS_MR_MIN, 1).
 -define(FLOWS_MR_MAX, 1000).
+-define(LAUNCH_TEMPLATES_MR_MIN, 1).
+-define(LAUNCH_TEMPLATES_MR_MAX, 200).
 
 -type filter_list() :: [{string() | atom(),[string()] | string()}] | none.
 -type ec2_param_list() :: [{string(),string()}].
@@ -253,6 +268,7 @@
 -type vpc_peering_connection_ids() :: [string()].
 -type flow_id() :: string().
 -type ec2_flow_ids() :: [flow_id()].
+-type launch_template_ids() :: [string()].
 
 
 -spec new(string(), string()) -> aws_config().
@@ -1947,21 +1963,21 @@ extract_reserved_instances_offering(Node) ->
      {product_description, get_text("productDescription", Node)}
     ].
 
--spec describe_route_tables() -> ok_error(proplist()).
+-spec describe_route_tables() -> ok_error([proplist()]).
 describe_route_tables() ->
     describe_route_tables([], none, default_config()).
 
--spec describe_route_tables(filter_list() | none | aws_config()) -> ok_error(proplist()).
+-spec describe_route_tables(filter_list() | none | aws_config()) -> ok_error([proplist()]).
 describe_route_tables(Config) when is_record(Config, aws_config) ->
     describe_route_tables([], none, Config);
 describe_route_tables(Filter) ->
     describe_route_tables([], Filter, default_config()).
 
--spec describe_route_tables(filter_list() | none, aws_config()) -> ok_error(proplist()).
+-spec describe_route_tables(filter_list() | none, aws_config()) -> ok_error([proplist()]).
 describe_route_tables(Filter, Config) ->
     describe_route_tables([], Filter, Config).
 
--spec describe_route_tables([string()], filter_list() | none, aws_config()) -> ok_error(proplist()).
+-spec describe_route_tables([string()], filter_list() | none, aws_config()) -> ok_error([proplist()]).
 describe_route_tables(RouteTableIds, Filter, Config) ->
     Params = erlcloud_aws:param_list(RouteTableIds, "RouteTableId") ++ list_to_ec2_filter(Filter),
     case ec2_query(Config, "DescribeRouteTables", Params, ?NEW_API_VERSION) of
@@ -1990,6 +2006,7 @@ extract_route_set(Node) ->
     [
      {destination_cidr_block, get_text("destinationCidrBlock", Node)},
      {gateway_id, get_text("gatewayId", Node)},
+     {nat_gateway_id, get_text("natGatewayId", Node)},
      {instance_id, get_text("instanceId", Node)},
      {vpc_peering_conn_id, get_text("vpcPeeringConnectionId", Node)},
      {network_interface_id, get_text("networkInterfaceId", Node)},
@@ -2071,7 +2088,8 @@ extract_ip_permissions(Node) ->
      {users, get_list("groups/item/userId", Node)},
      {groups,
       [extract_user_id_group_pair(Item) || Item <- xmerl_xpath:string("groups/item", Node)]},
-     {ip_ranges, get_list("ipRanges/item/cidrIp", Node)}
+     {ip_ranges, get_list("ipRanges/item/cidrIp", Node)},
+     {ipv6_ranges, get_list("ipv6Ranges/item/cidrIpv6", Node)}
     ].
 
 extract_user_id_group_pair(Node) ->
@@ -3895,4 +3913,468 @@ extract_unsuccesful_item(Node) ->
     [ {resource_id, get_text("resourceId", Node)},
       {error, [ {code, get_text("error/code", Node)},
                 {message, get_text("error/message", Node)}]}
+    ].
+
+%%%------------------------------------------------------------------------------
+%% @doc
+%% Launch Templates API - DescribeLaunchTemplates
+%% [https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeLaunchTemplates.html]
+%%
+%% ===Example===
+%%
+%% Describe launch templates with matching launch template IDs.
+%%
+%% `
+%% {ok, Results} = erlcloud_ec2:describe_launch_templates(["lt-0a20c965061f64abc", "lt-32415965061f007aa"])
+%% '
+%% @end
+%%%------------------------------------------------------------------------------
+-spec describe_launch_templates() -> ok_error([proplist()]).
+describe_launch_templates() ->
+    describe_launch_templates([]).
+
+-spec describe_launch_templates(launch_template_ids()) -> ok_error([proplist()]);
+                               (aws_config()) -> ok_error([proplist()]).
+describe_launch_templates(LaunchTemplateIds)
+    when is_list(LaunchTemplateIds) ->
+    describe_launch_templates(LaunchTemplateIds, []);
+describe_launch_templates(Config)
+    when is_record(Config, aws_config) ->
+    describe_launch_templates([], Config).
+
+-spec describe_launch_templates(launch_template_ids(), filter_list()) -> ok_error([proplist()]);
+                               (launch_template_ids(), aws_config()) -> ok_error([proplist()]).
+describe_launch_templates(LaunchTemplateIds, Filter)
+    when is_list(LaunchTemplateIds), is_list(Filter) ->
+    describe_launch_templates(LaunchTemplateIds, Filter, default_config());
+describe_launch_templates(LaunchTemplateIds, Config)
+    when is_list(LaunchTemplateIds), is_record(Config, aws_config) ->
+    describe_launch_templates(LaunchTemplateIds, [], Config).
+
+-spec describe_launch_templates(launch_template_ids(), filter_list(), aws_config()) -> ok_error([proplist()]).
+describe_launch_templates(LaunchTemplateIds, Filter, Config)
+    when is_list(LaunchTemplateIds), is_list(Filter), is_record(Config, aws_config) ->
+    Params = erlcloud_aws:param_list(LaunchTemplateIds, "LaunchTemplateId") ++ list_to_ec2_filter(Filter),
+    case ec2_query(Config, "DescribeLaunchTemplates", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            LaunchTemplates = extract_results("DescribeLaunchTemplatesResponse", "launchTemplates", fun extract_launch_template/1, Doc),
+            {ok, LaunchTemplates};
+        {error, _} = E -> E
+    end.
+
+-spec describe_launch_templates(launch_template_ids(), filter_list(), ec2_max_result(), ec2_token()) -> ok_error([proplist()]);
+                               (filter_list(), ec2_max_result(), ec2_token(), aws_config()) -> ok_error([proplist()]).
+describe_launch_templates(LaunchTemplateIds, Filter, MaxResults, NextToken)
+    when is_list(LaunchTemplateIds), is_list(Filter) orelse Filter =:= none, is_integer(MaxResults),
+         is_list(NextToken) orelse NextToken =:= undefined ->
+    describe_launch_templates(LaunchTemplateIds, Filter, MaxResults, NextToken, default_config());
+describe_launch_templates(Filter, MaxResults, NextToken, Config)
+    when is_list(Filter) orelse Filter =:= none, is_integer(MaxResults),
+         is_list(NextToken) orelse NextToken =:= undefined, is_record(Config, aws_config) ->
+    describe_launch_templates([], Filter, MaxResults, NextToken, Config).
+
+-spec describe_launch_templates(launch_template_ids(), filter_list(), ec2_max_result(), ec2_token(), aws_config()) -> ok_error([proplist()], ec2_token()).
+describe_launch_templates(LaunchTemplateIds, Filter, MaxResults, NextToken, Config)
+    when is_list(LaunchTemplateIds), is_list(Filter) orelse Filter =:= none,
+         is_integer(MaxResults) andalso MaxResults >= ?LAUNCH_TEMPLATES_MR_MIN andalso MaxResults =< ?LAUNCH_TEMPLATES_MR_MAX,
+         is_list(NextToken) orelse NextToken =:= undefined,
+         is_record(Config, aws_config) ->
+    Params = erlcloud_aws:param_list(LaunchTemplateIds, "LaunchTemplateId") ++ list_to_ec2_filter(Filter) ++
+             [{"MaxResults", MaxResults}, {"NextToken", NextToken}],
+    case ec2_query(Config, "DescribeLaunchTemplates", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            LaunchTemplates = extract_results("DescribeLaunchTemplatesResponse", "launchTemplates", fun extract_launch_template/1, Doc),
+            NewNextToken = extract_next_token("DescribeLaunchTemplatesResponse", Doc),
+            {ok, LaunchTemplates, NewNextToken};
+        {error, _} = E -> E
+    end.
+
+-spec describe_launch_templates_all() -> ok_error([proplist()]).
+describe_launch_templates_all() ->
+    describe_launch_templates_all(default_config()).
+
+-spec describe_launch_templates_all(aws_config() | launch_template_ids()) -> ok_error([proplist()]).
+describe_launch_templates_all(Ids)
+    when is_list(Ids) ->
+    describe_launch_templates_all(Ids, none, default_config(), undefined, []);
+describe_launch_templates_all(Config)
+    when is_record(Config, aws_config) ->
+    describe_launch_templates_all([], none, Config, undefined, []).
+
+-spec describe_launch_templates_all(launch_template_ids(), filter_list()) -> ok_error([proplist()]).
+describe_launch_templates_all(LaunchTemplateIds, FilterOpts)
+    when is_list(LaunchTemplateIds), is_list(FilterOpts) orelse FilterOpts =:= none ->
+    describe_launch_templates_all(LaunchTemplateIds, FilterOpts, default_config()).
+
+-spec describe_launch_templates_all(launch_template_ids(), filter_list(), aws_config()) -> ok_error([proplist()]).
+describe_launch_templates_all(LaunchTemplateIds, FilterOpts, Config)
+    when is_list(LaunchTemplateIds), is_list(FilterOpts) orelse FilterOpts =:= none,
+         is_record(Config, aws_config) ->
+    describe_launch_templates_all(LaunchTemplateIds, FilterOpts, Config, undefined, []).
+
+describe_launch_templates_all(LaunchTemplateIds, FilterOpts, Config, Token, Acc)
+    when is_list(LaunchTemplateIds), is_list(FilterOpts) orelse FilterOpts =:= none,
+         is_list(Token) orelse Token =:= undefined, is_record(Config, aws_config) ->
+    case describe_launch_templates(LaunchTemplateIds, FilterOpts, ?LAUNCH_TEMPLATES_MR_MAX, Token, Config) of
+        {ok, Results, undefined} -> {ok, Results ++ Acc};
+        {ok, Results, Next} -> describe_launch_templates_all(LaunchTemplateIds, FilterOpts, Config, Next, Results ++ Acc);
+        {error, _} = Error -> Error
+    end.
+
+launch_template_version_opts() ->
+    [
+        {launch_template_version, "LaunchTemplateVersion"},
+        {max_version, "MaxVersion"},
+        {min_version, "MinVersion"}
+    ].
+
+set_launch_template_optional_selector({_, none}, Acc) -> Acc;
+set_launch_template_optional_selector({_, []}, Acc) -> Acc;
+set_launch_template_optional_selector({Key, Value}, Acc) ->
+    [{Key, Value} | Acc].
+
+set_launch_template_selectors(LaunchTemplateId, LaunchTemplateName) ->
+    ArgList = [{"LaunchTemplateId", LaunchTemplateId}, {"LaunchTemplateName", LaunchTemplateName}],
+    lists:foldl(fun set_launch_template_optional_selector/2, [], ArgList).
+
+set_launch_template_version_opts(Opts) ->
+    OptTable = launch_template_version_opts(),
+    Sorted = lists:ukeysort(1, Opts),
+    FnFolder = fun({K, Val}, Acc) ->
+        case lists:keyfind(K, 1, OptTable) of
+            {launch_template_version, ApiArg} -> erlcloud_aws:param_list(Val, ApiArg) ++ Acc;
+            {_, ApiArg} -> [{ApiArg, Val} | Acc];
+            false -> Acc
+        end
+    end,
+    lists:foldl(FnFolder, [], Sorted).
+
+%%%------------------------------------------------------------------------------
+%% @doc
+%% Launch Templates API - DescribeLaunchTemplateVersions
+%% [https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeLaunchTemplateVersions.html]
+%%
+%% ===Example===
+%%
+%% Describe launch template versions for the template described by ID.
+%%
+%% `
+%% {ok, Results} = erlcloud_ec2:describe_launch_template_versions("lt-0a20c965061f64abc")
+%% '
+%%
+%% Describe launch template versions for the template with the given name.
+%%
+%% `
+%% {ok, Results} = erlcloud_ec2:describe_launch_template_versions(none, "MyTemplateName")
+%% '
+%%
+%% Describe most recent launch template version for the template with the given ID.
+%%
+%% `
+%% {ok, Results} = erlcloud_ec2:describe_launch_template_versions("lt-0a20c965061f64abc", none, [{launch_template_version, ["$Latest"]}])
+%% '
+%%
+%% @end
+%%%------------------------------------------------------------------------------
+-spec describe_launch_template_versions(string()) -> ok_error([proplist()]).
+describe_launch_template_versions(LaunchTemplateId) ->
+    describe_launch_template_versions(LaunchTemplateId, none, []).
+
+-spec describe_launch_template_versions(string() | none, string() | none, list()) -> ok_error([proplist()]);
+                                       (string() | none, string() | none, aws_config()) -> ok_error([proplist()]).
+describe_launch_template_versions(LaunchTemplateId, LaunchTemplateName, Opts)
+    when is_list(LaunchTemplateId) orelse LaunchTemplateId =:= none,
+         is_list(LaunchTemplateName) orelse LaunchTemplateName =:= none,
+         is_list(Opts) ->
+    describe_launch_template_versions(LaunchTemplateId, LaunchTemplateName, Opts, default_config());
+describe_launch_template_versions(LaunchTemplateId, LaunchTemplateName, Config)
+    when is_list(LaunchTemplateId) orelse LaunchTemplateId =:= none,
+         is_list(LaunchTemplateName) orelse LaunchTemplateName =:= none,
+         is_record(Config, aws_config) ->
+    describe_launch_template_versions(LaunchTemplateId, LaunchTemplateName, [], Config).
+
+-spec describe_launch_template_versions(string() | none, string() | none, list(), filter_list()) -> ok_error([proplist()]);
+                                       (string() | none, string() | none, list(), aws_config()) -> ok_error([proplist()]).
+describe_launch_template_versions(LaunchTemplateId, LaunchTemplateName, Opts, Filter)
+    when is_list(LaunchTemplateId) orelse LaunchTemplateId =:= none,
+         is_list(LaunchTemplateName) orelse LaunchTemplateName =:= none,
+         is_list(Opts), is_list(Filter) ->
+    describe_launch_template_versions(LaunchTemplateId, LaunchTemplateName, Opts, Filter, default_config());
+describe_launch_template_versions(LaunchTemplateId, LaunchTemplateName, Opts, Config)
+    when is_list(LaunchTemplateId) orelse LaunchTemplateId =:= none,
+         is_list(LaunchTemplateName) orelse LaunchTemplateName =:= none,
+         is_list(Opts), is_record(Config, aws_config) ->
+    describe_launch_template_versions(LaunchTemplateId, LaunchTemplateName, Opts, [], Config).
+
+-spec describe_launch_template_versions(string() | none, string() | none, list(), filter_list(), aws_config()) -> ok_error([proplist()]).
+describe_launch_template_versions(LaunchTemplateId, LaunchTemplateName, Opts, Filter, Config)
+    when is_list(LaunchTemplateId) orelse LaunchTemplateId =:= none,
+         is_list(LaunchTemplateName) orelse LaunchTemplateName =:= none,
+         is_list(Opts), is_list(Filter), is_record(Config, aws_config) ->
+    Params = set_launch_template_selectors(LaunchTemplateId, LaunchTemplateName) ++
+             set_launch_template_version_opts(Opts) ++ list_to_ec2_filter(Filter),
+    case ec2_query(Config, "DescribeLaunchTemplateVersions", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            LaunchTemplateVersions = extract_results("DescribeLaunchTemplateVersionsResponse", "launchTemplateVersionSet", fun extract_launch_template_version/1, Doc),
+            {ok, LaunchTemplateVersions};
+        {error, _} = E -> E
+    end.
+
+-spec describe_launch_template_versions(string() | none, string() | none, list(), filter_list(), ec2_max_result(), ec2_token()) -> ok_error([proplist()]).
+describe_launch_template_versions(LaunchTemplateId, LaunchTemplateName, Opts, Filter, MaxResults, NextToken)
+    when is_list(LaunchTemplateId) orelse LaunchTemplateId =:= none,
+         is_list(LaunchTemplateName) orelse LaunchTemplateName =:= none, is_list(Opts), is_list(Filter) orelse Filter =:= none,
+         is_integer(MaxResults) andalso MaxResults >= ?LAUNCH_TEMPLATES_MR_MIN andalso MaxResults =< ?LAUNCH_TEMPLATES_MR_MAX,
+         is_list(NextToken) orelse NextToken =:= undefined ->
+    describe_launch_template_versions(LaunchTemplateId, LaunchTemplateName, Opts, Filter, MaxResults, NextToken, default_config()).
+
+-spec describe_launch_template_versions(string() | none, string() | none, list(), filter_list(), ec2_max_result(), ec2_token(), aws_config())
+    -> ok_error([proplist()], ec2_token()).
+describe_launch_template_versions(LaunchTemplateId, LaunchTemplateName, Opts, Filter, MaxResults, NextToken, Config)
+    when is_list(LaunchTemplateId) orelse LaunchTemplateId =:= none,
+         is_list(LaunchTemplateName) orelse LaunchTemplateName =:= none, is_list(Opts), is_list(Filter) orelse Filter =:= none,
+         is_list(NextToken) orelse NextToken =:= undefined,
+         is_integer(MaxResults) andalso MaxResults >= ?LAUNCH_TEMPLATES_MR_MIN andalso MaxResults =< ?LAUNCH_TEMPLATES_MR_MAX,
+         is_record(Config, aws_config) ->
+    Params = set_launch_template_version_opts(Opts) ++ list_to_ec2_filter(Filter) ++
+             set_launch_template_selectors(LaunchTemplateId, LaunchTemplateName) ++
+             [{"NextToken", NextToken}, {"MaxResults", MaxResults}],
+    case ec2_query(Config, "DescribeLaunchTemplateVersions", Params, ?NEW_API_VERSION) of
+        {ok, Doc} ->
+            LaunchTemplateVersions = extract_results("DescribeLaunchTemplateVersionsResponse", "launchTemplateVersionSet", fun extract_launch_template_version/1, Doc),
+            NewNextToken = extract_next_token("DescribeLaunchTemplateVersionsResponse", Doc),
+            {ok, LaunchTemplateVersions, NewNextToken};
+        {error, _} = E -> E
+    end.
+
+-spec describe_launch_template_versions_all(string() | none, string() | none) -> ok_error([proplist()]).
+describe_launch_template_versions_all(LaunchTemplateId, LaunchTemplateName)
+    when is_list(LaunchTemplateId) orelse LaunchTemplateId =:= none,
+         is_list(LaunchTemplateName) orelse LaunchTemplateName =:= none ->
+    describe_launch_template_versions_all(LaunchTemplateId, LaunchTemplateName, default_config()).
+
+-spec describe_launch_template_versions_all(string() | none, string() | none, aws_config()) -> ok_error([proplist()]).
+describe_launch_template_versions_all(LaunchTemplateId, LaunchTemplateName, Config)
+    when is_list(LaunchTemplateId) orelse LaunchTemplateId =:= none,
+         is_list(LaunchTemplateName) orelse LaunchTemplateName =:= none,
+         is_record(Config, aws_config) ->
+    describe_launch_template_versions_all(LaunchTemplateId, LaunchTemplateName, Config, undefined, []).
+
+describe_launch_template_versions_all(LaunchTemplateId, LaunchTemplateName, Config, Token, Acc) ->
+    case describe_launch_template_versions(LaunchTemplateId, LaunchTemplateName, [], none, ?LAUNCH_TEMPLATES_MR_MAX, Token, Config) of
+        {ok, Results, undefined} -> {ok, Results ++ Acc};
+        {ok, Results, Next} ->
+            describe_launch_template_versions_all(LaunchTemplateId, LaunchTemplateName, Config, Next, Results ++ Acc);
+        {error, _} = Error -> Error
+    end.
+
+extract_launch_template(Node) ->
+    [
+        {created_by, get_text("createdBy", Node)},
+        {create_time, erlcloud_xml:get_time("createTime", Node)},
+        {default_version_number, get_integer("defaultVersionNumber", Node)},
+        {launch_template_id, get_text("launchTemplateId", Node)},
+        {launch_template_name, get_text("launchTemplateName", Node)},
+        {tag_set, [extract_tag_item(Item) || Item <- xmerl_xpath:string("tagSet/item", Node, [])]}
+    ].
+
+extract_launch_template_version(Node) ->
+    [
+        {created_by, get_text("createdBy", Node)},
+        {create_time, erlcloud_xml:get_time("createTime", Node)},
+        {default_version, get_bool("defaultVersion", Node)},
+        {launch_template_data, transform_item_list(Node, "launchTemplateData", fun extract_launch_template_data/1)},
+        {launch_template_id, get_text("launchTemplateId", Node)},
+        {launch_template_name, get_text("launchTemplateName", Node)},
+        {version_description, get_text("versionDescription", Node)},
+        {version_number, get_integer("versionNumber", Node)}
+    ].
+
+extract_capacity_reservation_target(Node) ->
+    [
+        {capacity_reservation_id, get_text("capacityReservationId", Node)},
+        {capacity_reservation_resource_group_arn, get_text("capacityReservationResourceGroupArn", Node)}
+    ].
+
+extract_capacity_reservation_spec(Node) ->
+    [
+        {capacity_reservation_preference, get_text("capacityReservationPreference", Node)},
+        {capacity_reservation_target, transform_item_list(Node, "capacityReservationTarget", fun extract_capacity_reservation_target/1)}
+    ].
+
+extract_elastic_gpu_specification(Node) ->
+    [{type, get_text("type", Node)}].
+
+extract_elastic_inference_accelerator(Node) ->
+    [
+        {count, get_integer("count", Node)},
+        {type, get_text("type", Node)}
+    ].
+
+extract_spot_market_options(Node) ->
+    [
+        {block_duration_minutes, get_integer("blockDurationMinutes", Node)},
+        {instance_interruption_behaviour, get_text("instanceInterruptionBehavior", Node)},
+        {max_price, get_text("maxPrice", Node)},
+        {spot_instance_type, get_text("spotInstanceType", Node)},
+        {valid_until, erlcloud_xml:get_time("validUntil", Node)}
+    ].
+
+extract_instance_market_options(Node) ->
+    [
+        {market_type, get_text("marketType", Node)},
+        {spot_options, transform_item_list(Node, "spotOptions", fun extract_spot_market_options/1)}
+    ].
+
+extract_license_configuration(Node) ->
+    [{license_configuration_arn, get_text("licenseConfigurationArn", Node)}].
+
+extract_maintenance_options(Node) ->
+    [{auto_recovery, get_text("autoRecovery", Node)}].
+
+extract_metadata_options(Node) ->
+    [
+        {http_endpoint, get_text("httpEndpoint", Node)},
+        {http_protocol_ipv6, get_text("httpProtocolIpv6", Node)},
+        {http_put_response_hop_limit, get_integer("httpPutResponseHopLimit", Node)},
+        {http_tokens, get_text("httpTokens", Node)},
+        {instance_metadata_tags, get_text("instanceMetadataTags", Node)},
+        {state, get_text("state", Node)}
+    ].
+
+extract_launch_template_placement(Node) ->
+    [
+        {affinity, get_text("affinity", Node)},
+        {availability_zone, get_text("availabilityZone", Node)},
+        {group_name, get_text("groupName", Node)},
+        {host_id, get_text("hostId", Node)},
+        {host_resource_group_arn, get_text("hostResourceGroupArn", Node)},
+        {partition_number, get_integer("partitionNumber", Node)},
+        {spread_domain, get_text("spreadDomain", Node)},
+        {tenancy, get_text("tenancy", Node)}
+    ].
+
+extract_private_dns_name_options(Node) ->
+    [
+        {enable_resource_name_dns_aaaa_record, get_bool("enableResourceNameDnsAAAARecord", Node)},
+        {enable_resource_name_dns_a_record, get_bool("enableResourceNameDnsARecord", Node)},
+        {hostname_type, get_text("hostnameType", Node)}
+    ].
+
+extract_tag_specification(Node) ->
+    [
+        {resource_type, get_text("resourceType", Node)},
+        {tag_set, transform_item_list(Node, "tagSet/item", fun extract_tag_item/1)}
+    ].
+
+extract_cpu_options(Node) ->
+    [
+        {core_count, get_integer("coreCount", Node)},
+        {threads_per_core, get_integer("threadsPerCore", Node)}
+    ].
+
+extract_iam_instance_profile(Node) ->
+    [
+        {arn, get_text("arn", Node)},
+        {id, get_text("id", Node)}
+    ].
+
+extract_credit_specification(Node) ->
+    [
+        {cpu_credits, get_text("cpuCredits", Node)}
+    ].
+
+extract_range(Node, FnConvert) ->
+        [
+        {max, FnConvert("max", Node)},
+        {min, FnConvert("min", Node)}        
+    ].
+
+extract_int_range(Node) -> extract_range(Node, fun erlcloud_xml:get_integer/2).
+extract_float_range(Node) -> extract_range(Node, fun erlcloud_xml:get_float/2).
+
+extract_instance_requirements(Node) ->
+    [
+        {accelerator_count, transform_item_list(Node, "acceleratorCount", fun extract_int_range/1)},
+        {accelerator_manufacturer_set, transform_item_list(Node, "acceleratorManufacturerSet/item", fun erlcloud_xml:get_text/1)},
+        {accelerator_name_set, transform_item_list(Node, "acceleratorNameSet/item", fun erlcloud_xml:get_text/1)},
+        {accelerator_total_memory_mib, transform_item_list(Node, "acceleratorTotalMemoryMiB", fun extract_int_range/1)},
+        {accelerator_type_set, transform_item_list(Node, "acceleratorTypeSet/item", fun erlcloud_xml:get_text/1)},
+        {bare_metal, get_text("bareMetal", Node)},
+        {baseline_ebs_bandwidth_mbps, transform_item_list(Node, "baselineEbsBandwidthMbps", fun extract_int_range/1)},
+        {burstable_performance, get_text("burstablePerformance", Node)},
+        {cpu_manufacturer_set, transform_item_list(Node, "cpuManufacturerSet/item", fun erlcloud_xml:get_text/1)},
+        {excluded_instance_type_set, transform_item_list(Node, "excludedInstanceTypeSet/item", fun erlcloud_xml:get_text/1)},
+        {instance_generation_set, transform_item_list(Node, "instanceGenerationSet/item", fun erlcloud_xml:get_text/1)},
+        {local_storage, get_text("localStorage", Node)},
+        {local_storage_type_set, transform_item_list(Node, "localStorageTypeSet/item", fun erlcloud_xml:get_text/1)},
+        {memory_gib_per_vcpu, transform_item_list(Node, "memoryGiBPerVCpu", fun extract_float_range/1)},
+        {memory_mib, transform_item_list(Node, "memoryMiB", fun extract_int_range/1)},
+        {network_interface_count, transform_item_list(Node, "networkInterfaceCount", fun extract_int_range/1)},
+        {on_demand_max_price_percentage_over_lowest_price, get_integer("onDemandMaxPricePercentageOverLowestPrice", Node)},
+        {require_hibernate_support, get_bool("requireHibernateSupport", Node)},
+        {spot_max_price_percentage_over_lowest_price, get_integer("spotMaxPricePercentageOverLowestPrice", Node)},
+        {total_local_storage_gb, transform_item_list(Node, "totalLocalStorageGB", fun extract_float_range/1)},
+        {vcpu_count, transform_item_list(Node, "vCpuCount", fun extract_int_range/1)}
+    ].
+
+extract_network_interface_specification(Node) ->
+    [
+        {associate_carrier_ip_address, get_bool("associateCarrierIpAddress", Node)},
+        {associate_public_ip_address, get_bool("associatePublicIpAddress", Node)},
+        {delete_on_termination, get_bool("deleteOnTermination", Node)},
+        {description, get_text("description", Node)},
+        {device_index, get_integer("deviceIndex", Node)},
+        {group_set, transform_item_list(Node, "groupSet", fun(N) -> {group_id, get_text("groupId", N)} end)},
+        {interface_type, get_text("interfaceType", Node)},
+        {ipv4_prefix_count, get_integer("ipv4PrefixCount", Node)},
+        {ipv4_prefix_set, transform_item_list(Node, "ipv4PrefixSet/item", fun(N) -> {ipv4_prefix, get_text("ipv4Prefix", N)} end)},
+        {ipv6_address_count, get_integer("ipv6AddressCount", Node)},
+        {ipv6_addresses_set, transform_item_list(Node, "ipv6AddressesSet/item", fun(N) -> {ipv6_address, get_text("ipv6Address", N)} end)},
+        {ipv6_prefix_count, get_integer("ipv6PrefixCount", Node)},
+        {ipv6_prefix_set, transform_item_list(Node, "ipv6AddressesSet/item", fun(N) -> {ipv6_prefix, get_text("ipv6Prefix", N)} end)},
+        {network_card_index, get_integer("networkCardIndex", Node)},
+        {network_interface_id, get_text("networkInterfaceId", Node)},
+        {private_ip_address, get_text("privateIpAddress", Node)},
+        {private_ip_addresses_set, transform_item_list(Node, "privateIpAddressesSet/item", fun extract_private_ip_address/1)},
+        {secondary_private_ip_address_count, get_integer("secondaryPrivateIpAddressCount", Node)},
+        {subnet_id, get_text("subnetId", Node)}
+    ].
+
+transform_item_list(ParentNode, Tag, FncTransform) ->
+    [FncTransform(Item) || Item <- xmerl_xpath:string(Tag, ParentNode)].
+
+extract_launch_template_data(Node) ->
+    [
+        {block_device_mapping_set, transform_item_list(Node, "blockDeviceMappingSet/item", fun extract_block_device_mapping/1)},
+        {capacity_reservation_specification, transform_item_list(Node, "capacityReservationSpecification", fun extract_capacity_reservation_spec/1)},
+        {cpu_options, transform_item_list(Node, "cpuOptions", fun extract_cpu_options/1)},
+        {credit_specification, transform_item_list(Node, "creditSpecification", fun extract_credit_specification/1)},
+        {disable_api_stop, get_bool("disableApiStop", Node)},
+        {disable_api_termination, get_bool("disableApiTermination", Node)},
+        {ebs_optimized, get_bool("ebsOptimized", Node)},
+        {elastic_gpu_specification_set, transform_item_list(Node, "elasticGpuSpecificationSet/item", fun extract_elastic_gpu_specification/1)},
+        {elastic_inference_accelerator_set, transform_item_list(Node, "elasticInferenceAcceleratorSet/item", fun extract_elastic_inference_accelerator/1)},
+        {enclave_options, [{enabled, get_bool("enclaveOptions/enabled", Node)}]},
+        {hibernation_options, [{configured, get_bool("hibernationOptions/configured", Node)}]},
+        {iam_instance_profile, transform_item_list(Node, "iamInstanceProfile", fun extract_iam_instance_profile/1)},
+        {image_id, get_text("imageId", Node)},
+        {instance_initiated_shutdown_behavior, get_text("instanceInitiatedShutdownBehavior", Node)},
+        {instance_market_options, transform_item_list(Node, "instanceMarketOptions", fun extract_instance_market_options/1)},
+        {instance_requirements, transform_item_list(Node, "instanceRequirements", fun extract_instance_requirements/1)},
+        {instance_type, get_text("instanceType", Node)},
+        {kernel_id, get_text("kernelId", Node)},
+        {key_name, get_text("keyName", Node)},
+        {license_set, transform_item_list(Node, "licenseSet/item", fun extract_license_configuration/1)},
+        {maintenance_options, transform_item_list(Node, "maintenanceOptions", fun extract_maintenance_options/1)},
+        {metadata_options, transform_item_list(Node, "metadataOptions", fun extract_metadata_options/1)},
+        {monitoring, [{enabled, get_bool("monitoring/enabled", Node)}]},
+        {network_interface_set, transform_item_list(Node, "networkInterfaceSet/item", fun extract_network_interface_specification/1)},
+        {placement, transform_item_list(Node, "placement", fun extract_launch_template_placement/1)},
+        {private_dns_name_options, transform_item_list(Node, "privateDnsNameOptions", fun extract_private_dns_name_options/1)},
+        {ram_disk_id, get_text("ramDiskId", Node)},
+        {security_group_id_set, [get_text(Item) || Item <- xmerl_xpath:string("securityGroupIdSet/item", Node)]},
+        {security_group_set, [get_text(Item) || Item <- xmerl_xpath:string("securityGroupSet/item", Node)]},
+        {tag_specification_set, transform_item_list(Node, "tagSpecificationSet/item", fun extract_tag_specification/1)},
+        {user_data, get_text("userData", Node)}
     ].

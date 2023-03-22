@@ -38,6 +38,7 @@ describe_test_() ->
      fun start/0,
      fun stop/1,
      [
+      fun describe_route_tables_tests/0,
       fun describe_vpcs_tests/1,
       fun describe_regions_input_tests/1,
       fun describe_regions_output_tests/1,
@@ -60,7 +61,11 @@ describe_test_() ->
       fun delete_flow_logs_input_tests/1,
       fun delete_flow_logs_output_tests/1,
       fun describe_flow_logs_input_tests/1,
-      fun describe_flow_logs_output_tests/1
+      fun describe_flow_logs_output_tests/1,
+      fun describe_launch_template_versions_input_tests/1,
+      fun describe_launch_template_versions_output_tests/1,
+      fun describe_security_groups_input_tests/1,
+      fun describe_security_groups_output_tests/1
      ]}.
 
 start() ->
@@ -923,6 +928,111 @@ describe_account_attributes_test() ->
     Result = erlcloud_ec2:describe_account_attributes(),
     meck:unload(erlcloud_aws),
     ?assertEqual(ExpectedResult, Result).
+
+describe_route_tables_tests() ->
+    XML = "<DescribeRouteTablesResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+    <requestId>03c84dd4-bc36-48aa-8ac3-1d1fbaec96b5</requestId>
+    <routeTableSet>
+        <item>
+            <routeTableId>rtb-0b70ded185be2a2e4</routeTableId>
+            <vpcId>vpc-012ff464df6bbf762</vpcId>
+            <ownerId>352283894008</ownerId>
+            <routeSet>
+                <item>
+                    <destinationCidrBlock>10.0.0.0/26</destinationCidrBlock>
+                    <gatewayId>local</gatewayId>
+                    <state>active</state>
+                    <origin>CreateRouteTable</origin>
+                </item>
+                <item>
+                    <destinationCidrBlock>0.0.0.0/8</destinationCidrBlock>
+                    <natGatewayId>nat-06e45944bb42d3ba2</natGatewayId>
+                    <state>active</state>
+                    <origin>CreateRoute</origin>
+                </item>
+                <item>
+                    <destinationCidrBlock>0.0.0.0/0</destinationCidrBlock>
+                    <gatewayId>vgw-09fea3ed190b9ea1e</gatewayId>
+                    <state>active</state>
+                    <origin>CreateRoute</origin>
+                </item>
+            </routeSet>
+            <associationSet>
+                <item>
+                    <routeTableAssociationId>rtbassoc-123</routeTableAssociationId>
+                    <routeTableId>rtb-567</routeTableId>
+                    <subnetId>subnet-0bdf348a667f86262</subnetId>
+                    <main>false</main>
+                    <associationState>
+                        <state>associated</state>
+                    </associationState>
+                </item>
+                <item>
+                    <routeTableAssociationId>rtbassoc-789</routeTableAssociationId>
+                    <routeTableId>rtb-345</routeTableId>
+                    <main>true</main>
+                    <associationState>
+                        <state>associated</state>
+                    </associationState>
+                </item>
+            </associationSet>
+            <propagatingVgwSet/>
+            <tagSet>
+                <item>
+                    <key>Name</key>
+                    <value>PublicRT</value>
+                </item>
+            </tagSet>
+        </item>
+    </routeTableSet>
+</DescribeRouteTablesResponse>",
+    XMERL = {ok, element(1, xmerl_scan:string(XML))},
+    ExpectedResult =
+        {ok,[[{route_table_id,"rtb-0b70ded185be2a2e4"},
+            {vpc_id,"vpc-012ff464df6bbf762"},
+            {route_set,
+                [[{destination_cidr_block,"10.0.0.0/26"},
+                    {gateway_id,"local"},
+                    {nat_gateway_id,[]},
+                    {instance_id,[]},
+                    {vpc_peering_conn_id,[]},
+                    {network_interface_id,[]},
+                    {state,"active"},
+                    {origin,"CreateRouteTable"}],
+                    [{destination_cidr_block,"0.0.0.0/8"},
+                        {gateway_id,[]},
+                        {nat_gateway_id,"nat-06e45944bb42d3ba2"},
+                        {instance_id,[]},
+                        {vpc_peering_conn_id,[]},
+                        {network_interface_id,[]},
+                        {state,"active"},
+                        {origin,"CreateRoute"}],
+                    [{destination_cidr_block,"0.0.0.0/0"},
+                        {gateway_id,"vgw-09fea3ed190b9ea1e"},
+                        {nat_gateway_id,[]},
+                        {instance_id,[]},
+                        {vpc_peering_conn_id,[]},
+                        {network_interface_id,[]},
+                        {state,"active"},
+                        {origin,"CreateRoute"}]]},
+            {association_set,
+                [[{route_table_association_id,"rtbassoc-123"},
+                    {route_table_id,"rtb-567"},
+                    {main,"false"},
+                    {subnet_id,"subnet-0bdf348a667f86262"}],
+                    [{route_table_association_id,"rtbassoc-789"},
+                        {route_table_id,"rtb-345"},
+                        {main,"true"},
+                        {subnet_id,[]}]]},
+            {tag_set,[[{key,"Name"},{value,"PublicRT"}]]}]]},
+    meck:new(erlcloud_aws, [passthrough]),
+    meck:expect(erlcloud_aws, aws_request_xml4,
+        fun(_,_,_,_,_,_,_,_) ->
+            XMERL
+        end),
+    Result = erlcloud_ec2:describe_route_tables(),
+    meck:unload(erlcloud_aws),
+    ?assertEqual(ExpectedResult, Result).
     
 describe_nat_gateways_test() ->
     XML = "<DescribeNatGatewaysResponse>
@@ -1315,6 +1425,431 @@ describe_reserved_instances_offerings_boundaries_test_() ->
         ?_assertException(error, function_clause, erlcloud_ec2:describe_reserved_instances_offerings([], 4, undefined)),
         ?_assertException(error, function_clause, erlcloud_ec2:describe_reserved_instances_offerings([], 1001, undefined))
     ].
+
+describe_launch_templates_test() ->
+    XML = "<DescribeLaunchTemplatesResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+    <requestId>1afa6e44-eb38-4229-8db6-d5eaexample</requestId>
+    <launchTemplates>
+        <item>
+            <createTime>2017-10-31T11:38:52.000Z</createTime>
+            <createdBy>arn:aws:iam::123456789012:root</createdBy>
+            <defaultVersionNumber>1</defaultVersionNumber>
+            <latestVersionNumber>1</latestVersionNumber>
+            <launchTemplateId>lt-0a20c965061f64abc</launchTemplateId>
+            <launchTemplateName>MyLaunchTemplate</launchTemplateName>
+        </item>
+    </launchTemplates>
+    </DescribeLaunchTemplatesResponse>",
+    XMERL = {ok, element(1, xmerl_scan:string(XML))},
+    ExpectedResult =
+        {ok,
+            [[
+                {created_by,"arn:aws:iam::123456789012:root"},
+                {create_time,{{2017,10,31},{11,38,52}}},
+                {default_version_number,1},
+                {launch_template_id,"lt-0a20c965061f64abc"},
+                {launch_template_name,"MyLaunchTemplate"},
+                {tag_set,[]}
+            ]]
+        },
+    meck:new(erlcloud_aws, [passthrough]),
+    meck:expect(erlcloud_aws, aws_request_xml4,
+        fun(_,_,_,_,_,_,_,_) ->
+            XMERL
+        end),
+    Result = erlcloud_ec2:describe_launch_templates(),
+    meck:unload(erlcloud_aws),
+    ?assertEqual(ExpectedResult, Result).
+
+describe_launch_template_versions_input_tests(_) ->
+    Tests = 
+        [?_ec2_test({
+            "This example describes a set of launch template versions for template with matching ID",
+            ?_f(erlcloud_ec2:describe_launch_template_versions("lt-0a20c965061f64abc")),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateId", "lt-0a20c965061f64abc"}]}),
+        ?_ec2_test({
+            "This example describes a set of launch template versions for template with matching name",
+            ?_f(erlcloud_ec2:describe_launch_template_versions(none, "Test-LT-foo", [])),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateName", "Test-LT-foo"}]}),
+        ?_ec2_test({
+            "This example describes launch template versions with matching version(s)",
+            ?_f(erlcloud_ec2:describe_launch_template_versions("lt-0f1b5e0ff43b7f2ad", none, [{launch_template_version, ["1"]}])),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateId", "lt-0f1b5e0ff43b7f2ad"},
+             {"LaunchTemplateVersion.1", "1"}]}),
+        ?_ec2_test({
+            "This example describes launch template versions with minimum version number",
+            ?_f(erlcloud_ec2:describe_launch_template_versions("lt-0a20c965061f64abc", none, [{min_version, 1}])),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateId", "lt-0a20c965061f64abc"},
+             {"MinVersion", "1"}]}),
+        ?_ec2_test({
+            "This example describes launch template versions with maximum version number",
+            ?_f(erlcloud_ec2:describe_launch_template_versions("lt-0a20c965061f64abc", none, [{max_version, 10}])),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateId", "lt-0a20c965061f64abc"},
+             {"MaxVersion", "10"}]}),
+        ?_ec2_test({
+            "This example describes launch template versions with max results count configured",
+            ?_f(erlcloud_ec2:describe_launch_template_versions("lt-0a20c965061f64abc", none, [], none, 10, undefined)),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateId", "lt-0a20c965061f64abc"},
+             {"MaxResults", "10"}]}),
+        ?_ec2_test({
+            "This example describes retrieval of subsequent launch template version result page",
+            ?_f(erlcloud_ec2:describe_launch_template_versions("lt-0a20c965061f64abc", none, [], none, 10, "next-token")),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateId", "lt-0a20c965061f64abc"},
+             {"NextToken", "next-token"},
+             {"MaxResults", "10"}]}),
+        ?_ec2_test({
+            "This example describes launch template versions with max results count configured selected by template name",
+            ?_f(erlcloud_ec2:describe_launch_template_versions(none, "SomeNameHere", [], none, 10, undefined)),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateName", "SomeNameHere"},
+             {"MaxResults", "10"}]}),
+        ?_ec2_test({
+            "This example describes retrieval of subsequent launch template version result page selected by template name",
+            ?_f(erlcloud_ec2:describe_launch_template_versions(none, "SomeNameHere", [], none, 10, "next-token")),
+            [{"Action", "DescribeLaunchTemplateVersions"},
+             {"LaunchTemplateName", "SomeNameHere"},
+             {"NextToken", "next-token"},
+             {"MaxResults", "10"}]})
+        ],
+    Response = "
+    <DescribeLaunchTemplateVersionsResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+        <requestId>65cadec1-b364-4354-8ca8-4176dexample</requestId>
+        <launchTemplateVersionSet>
+            <item>
+                <createTime>2017-10-31T11:38:52.000Z</createTime>
+                <createdBy>arn:aws:iam::123456789012:root</createdBy>
+                <defaultVersion>true</defaultVersion>
+                <launchTemplateData>
+                    <imageId>ami-8c1be5f6</imageId>
+                    <instanceType>t2.micro</instanceType>
+                </launchTemplateData>
+                <launchTemplateId>lt-0a20c965061f64abc</launchTemplateId>
+                <launchTemplateName>MyLaunchTemplate</launchTemplateName>
+                <versionDescription>FirstVersion</versionDescription>
+                <versionNumber>1</versionNumber>
+            </item>
+            <item>
+                <createTime>2017-10-31T11:52:03.000Z</createTime>
+                <createdBy>arn:aws:iam::123456789012:root</createdBy>
+                <defaultVersion>false</defaultVersion>
+                <launchTemplateData>
+                    <imageId>ami-12345678</imageId>
+                </launchTemplateData>
+                <launchTemplateId>lt-0a20c965061f64abc</launchTemplateId>
+                <launchTemplateName>MyLaunchTemplate</launchTemplateName>
+                <versionDescription>AMIOnlyv1</versionDescription>
+                <versionNumber>2</versionNumber>
+            </item>
+            <item>
+                <createTime>2017-10-31T11:55:15.000Z</createTime>
+                <createdBy>arn:aws:iam::123456789012:root</createdBy>
+                <defaultVersion>false</defaultVersion>
+                <launchTemplateData>
+                    <imageId>ami-aabbccdd</imageId>
+                </launchTemplateData>
+                <launchTemplateId>lt-0a20c965061f64abc</launchTemplateId>
+                <launchTemplateName>MyLaunchTemplate</launchTemplateName>
+                <versionDescription>AMIOnlyv2</versionDescription>
+                <versionNumber>3</versionNumber>
+            </item>
+        </launchTemplateVersionSet>
+    </DescribeLaunchTemplateVersionsResponse>
+    ",
+    input_tests(Response, Tests).
+
+describe_launch_template_versions_output_tests(_) ->
+    Tests =
+        [?_ec2_test(
+            {"This example describes all launch template versions for given template",
+            "<?xml version= \"1.0\" encoding= \"UTF-8\"?>
+            <DescribeLaunchTemplateVersionsResponse xmlns= \"http://ec2.amazonaws.com/doc/2016-11-15/\">
+                <requestId>c68f69e1-48fd-42c9-83cf-6b36cb07475b</requestId>
+                <launchTemplateVersionSet>
+                    <item>
+                        <createTime>2022-10-21T08:51:54.000Z</createTime>
+                        <createdBy>arn:aws:sts::123483894321:assumed-role/centralized-users/john.doe</createdBy>
+                        <defaultVersion>true</defaultVersion>
+                        <launchTemplateData>
+                            <creditSpecification>
+                                <cpuCredits>standard</cpuCredits>
+                            </creditSpecification>
+                            <cpuOptions>
+                                <coreCount>1</coreCount>
+                                <threadsPerCore>2</threadsPerCore>
+                            </cpuOptions>
+                            <disableApiStop>false</disableApiStop>
+                            <disableApiTermination>false</disableApiTermination>
+                            <ebsOptimized>true</ebsOptimized>
+                            <hibernationOptions>
+                                <configured>true</configured>
+                            </hibernationOptions>
+                            <iamInstanceProfile>
+                                <arn>arn:aws:iam::123483894321:instance-profile/ecsInstanceRole</arn>
+                            </iamInstanceProfile>
+                            <imageId>ami-5934df24</imageId>
+                            <instanceInitiatedShutdownBehavior>stop</instanceInitiatedShutdownBehavior>
+                            <instanceType>c5.large</instanceType>
+                            <maintenanceOptions>
+                                <autoRecovery>default</autoRecovery>
+                            </maintenanceOptions>
+                            <metadataOptions>
+                                <httpEndpoint>enabled</httpEndpoint>
+                                <httpTokens>optional</httpTokens>
+                            </metadataOptions>
+                            <monitoring>
+                                <enabled>true</enabled>
+                            </monitoring>
+                            <networkInterfaceSet>
+                                <item>
+                                    <deviceIndex>0</deviceIndex>
+                                    <networkInterfaceId>eni-060ceeb735813d39d</networkInterfaceId>
+                                </item>
+                            </networkInterfaceSet>
+                            <placement>
+                                <tenancy>default</tenancy>
+                            </placement>
+                            <privateDnsNameOptions>
+                                <enableResourceNameDnsARecord>true</enableResourceNameDnsARecord>
+                                <hostnameType>ip-name</hostnameType>
+                            </privateDnsNameOptions>
+                            <tagSpecificationSet>
+                                <item>
+                                    <resourceType>instance</resourceType>
+                                    <tagSet>
+                                        <item>
+                                            <key>tag1</key>
+                                            <value>134274125</value>
+                                        </item>
+                                    </tagSet>
+                                </item>
+                                <item>
+                                    <resourceType>volume</resourceType>
+                                    <tagSet>
+                                        <item>
+                                            <key>tag1</key>
+                                            <value>134274125</value>
+                                        </item>
+                                    </tagSet>
+                                </item>
+                            </tagSpecificationSet>
+                        </launchTemplateData>
+                        <launchTemplateId>lt-08ccaba0746110123</launchTemplateId>
+                        <launchTemplateName>nb-ec-test-1</launchTemplateName>
+                        <versionDescription>Test template foo</versionDescription>
+                        <versionNumber>1</versionNumber>
+                    </item>
+                </launchTemplateVersionSet>
+            </DescribeLaunchTemplateVersionsResponse>",
+                {ok, [[{created_by, "arn:aws:sts::123483894321:assumed-role/centralized-users/john.doe"},
+                       {create_time,{{2022,10,21},{8,51,54}}},
+                       {default_version,true},
+                       {launch_template_data,
+                           [[{block_device_mapping_set,[]},
+                             {capacity_reservation_specification,[]},
+                             {cpu_options,
+                                 [[{core_count,1},{threads_per_core,2}]]},
+                             {credit_specification,[
+                                 [{cpu_credits, "standard"}]]},
+                             {disable_api_stop,false},
+                             {disable_api_termination,false},
+                             {ebs_optimized,true},
+                             {elastic_gpu_specification_set,[]},
+                             {elastic_inference_accelerator_set,[]},
+                             {enclave_options,[{enabled,false}]},
+                             {hibernation_options,[{configured,true}]},
+                             {iam_instance_profile,
+                                 [[{arn,
+                                       "arn:aws:iam::123483894321:instance-profile/ecsInstanceRole"},
+                                   {id,[]}]]},
+                             {image_id,"ami-5934df24"},
+                             {instance_initiated_shutdown_behavior,"stop"},
+                             {instance_market_options,[]},
+                             {instance_requirements,[]},
+                             {instance_type,"c5.large"},
+                             {kernel_id,[]},
+                             {key_name,[]},
+                             {license_set,[]},
+                             {maintenance_options,
+                                 [[{auto_recovery,"default"}]]},
+                             {metadata_options,
+                                 [[{http_endpoint,"enabled"},
+                                   {http_protocol_ipv6,[]},
+                                   {http_put_response_hop_limit,0},
+                                   {http_tokens,"optional"},
+                                   {instance_metadata_tags,[]},
+                                   {state,[]}]]},
+                             {monitoring,[{enabled,true}]},
+                             {network_interface_set,
+                                 [[{associate_carrier_ip_address,false},
+                                   {associate_public_ip_address,false},
+                                   {delete_on_termination,false},
+                                   {description,[]},
+                                   {device_index,0},
+                                   {group_set,[]},
+                                   {interface_type,[]},
+                                   {ipv4_prefix_count,0},
+                                   {ipv4_prefix_set,[]},
+                                   {ipv6_address_count,0},
+                                   {ipv6_addresses_set,[]},
+                                   {ipv6_prefix_count,0},
+                                   {ipv6_prefix_set,[]},
+                                   {network_card_index,0},
+                                   {network_interface_id, "eni-060ceeb735813d39d"},
+                                   {private_ip_address,[]},
+                                   {private_ip_addresses_set,[]},
+                                   {secondary_private_ip_address_count,0},
+                                   {subnet_id,[]}]]},
+                             {placement,
+                                 [[{affinity,[]},
+                                   {availability_zone,[]},
+                                   {group_name,[]},
+                                   {host_id,[]},
+                                   {host_resource_group_arn,[]},
+                                   {partition_number,0},
+                                   {spread_domain,[]},
+                                   {tenancy,"default"}]]},
+                             {private_dns_name_options,
+                                 [[{enable_resource_name_dns_aaaa_record, false},
+                                   {enable_resource_name_dns_a_record,true},
+                                   {hostname_type,"ip-name"}]]},
+                             {ram_disk_id,[]},
+                             {security_group_id_set,[]},
+                             {security_group_set,[]},
+                             {tag_specification_set,
+                                 [[{resource_type,"instance"},
+                                   {tag_set,
+                                       [[{key,"tag1"},{value,"134274125"}]]}],
+                                  [{resource_type,"volume"},
+                                   {tag_set,
+                                       [[{key,"tag1"},
+                                         {value,"134274125"}]]}]]},
+                             {user_data,[]}]]},
+                       {launch_template_id,"lt-08ccaba0746110123"},
+                       {launch_template_name,"nb-ec-test-1"},
+                       {version_description,
+                           "Test template foo"},
+                       {version_number,1}]]}}
+         )
+    ],
+    output_tests(?_f(erlcloud_ec2:describe_launch_template_versions("lt-08ccaba0746110123")), Tests).
+
+generate_security_group_response() ->
+    "<DescribeSecurityGroupsResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+            <requestId>1d62eae0-acdd-481d-88c9-example</requestId>
+            <securityGroupInfo>
+                <item>
+                    <ownerId>123456789012</ownerId>
+                    <groupId>sg-9bf6ceff</groupId>
+                    <groupName>SSHAccess</groupName>
+                    <groupDescription>Security group for SSH access</groupDescription>
+                    <vpcId>vpc-31896b55</vpcId>
+                    <ipPermissions>
+                        <item>
+                            <ipProtocol>tcp</ipProtocol>
+                            <fromPort>22</fromPort>
+                            <toPort>22</toPort>
+                            <groups/>
+                            <ipRanges>
+                                <item>
+                                    <cidrIp>0.0.0.0/0</cidrIp>
+                                </item>
+                            </ipRanges>
+                            <ipv6Ranges>
+                                <item>
+                                    <cidrIpv6>::/0</cidrIpv6>
+                                </item>
+                            </ipv6Ranges>
+                            <prefixListIds/>
+                        </item>
+                    </ipPermissions>
+                    <ipPermissionsEgress>
+                        <item>
+                            <ipProtocol>-1</ipProtocol>
+                            <groups/>
+                            <ipRanges>
+                                <item>
+                                    <cidrIp>0.0.0.0/0</cidrIp>
+                                </item>
+                            </ipRanges>
+                            <ipv6Ranges>
+                                <item>
+                                    <cidrIpv6>::/0</cidrIpv6>
+                                </item>
+                            </ipv6Ranges>
+                            <prefixListIds/>
+                        </item>
+                    </ipPermissionsEgress>
+                </item>
+            </securityGroupInfo>
+        </DescribeSecurityGroupsResponse>".
+
+describe_security_groups_input_tests(_) ->
+    Tests =
+        [?_ec2_test({
+            "Describe security group(s), default call with no additional parameters",
+            ?_f(erlcloud_ec2:describe_security_groups()),
+            [{"Action", "DescribeSecurityGroups"}]}),
+        ?_ec2_test({
+            "Describe security group(s) matching the given group name",
+            ?_f(erlcloud_ec2:describe_security_groups(["SSHAccess"])),
+            [{"Action", "DescribeSecurityGroups"},
+             {"GroupName.1", "SSHAccess"}]}),
+        ?_ec2_test({
+            "Describe security group(s) matching the given group ID(s)",
+            ?_f(erlcloud_ec2:describe_security_groups(["sg-9bf6ceff"], [], none, erlcloud_aws:default_config())),
+            [{"Action", "DescribeSecurityGroups"},
+             {"GroupId.1", "sg-9bf6ceff"}]}),
+        ?_ec2_test({
+            "Describe security group(s) matching the given set of filters",
+            ?_f(erlcloud_ec2:describe_security_groups([], [], [{
+                "ip-permission-ipv6-cidr", ["::/0"]}], erlcloud_aws:default_config())),
+            [{"Action", "DescribeSecurityGroups"},
+             {"Filter.1.Name" ,"ip-permission-ipv6-cidr"},
+             {"Filter.1.Value.1", "%3A%3A%2F0"}]})
+        ],
+    Response = generate_security_group_response(),
+    input_tests(Response, Tests).
+
+describe_security_groups_output_tests(_) ->
+    Tests = [
+        ?_ec2_test({
+                "Coverage for DescribeSecurityGroup API Request",
+                generate_security_group_response(),
+            {ok, [[
+                {owner_id, "123456789012"},
+                {group_id, "sg-9bf6ceff"},
+                {group_name, "SSHAccess"},
+                {group_description, "Security group for SSH access"},
+                {vpc_id, "vpc-31896b55"},
+                {ip_permissions, [[
+                    {ip_protocol, tcp},
+                    {from_port, 22},
+                    {to_port, 22},
+                    {users, []},
+                    {groups, []},
+                    {ip_ranges, ["0.0.0.0/0"]},
+                    {ipv6_ranges, ["::/0"]}]
+                ]},
+                {ip_permissions_egress, [[
+                    {ip_protocol, '-1'},
+                    {from_port, 0},
+                    {to_port, 0},
+                    {users, []},
+                    {groups, []},
+                    {ip_ranges, ["0.0.0.0/0"]},
+                    {ipv6_ranges, ["::/0"]}]
+                ]},
+                {tag_set, []}]]}
+        })
+    ],
+    output_tests(?_f(erlcloud_ec2:describe_security_groups()), Tests).
 
 generate_one_instance(N) ->
     "<item>

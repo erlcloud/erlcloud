@@ -48,6 +48,7 @@
 -export([set_identity_dkim_enabled/2, set_identity_dkim_enabled/3]).
 -export([set_identity_feedback_forwarding_enabled/2, set_identity_feedback_forwarding_enabled/3]).
 -export([set_identity_notification_topic/3, set_identity_notification_topic/4]).
+-export([set_identity_headers_in_notifications_enabled/3, set_identity_headers_in_notifications_enabled/4]).
 
 -export([update_custom_verification_email_template/2, update_custom_verification_email_template/3]).
 
@@ -82,11 +83,14 @@
 
 -type verification_status() :: pending | success | failed | temporary_failure | not_started.
 
+-type notification_type() :: bounce | complaint | delivery.
+
 -export_type([custom_template_attribute_names/0, custom_template_attributes/0,
               identity/0, identities/0,
               email/0, emails/0,
               domain/0,
-              verification_status/0]).
+              verification_status/0,
+              notification_type/0]).
 
 %%%------------------------------------------------------------------------------
 %%% Library initialization
@@ -874,8 +878,6 @@ set_identity_feedback_forwarding_enabled(Identity, ForwardingEnabled, Config) ->
 %%% SetIdentityNotificationTopic
 %%%------------------------------------------------------------------------------
 
--type notification_type() :: bounce | complaint | delivery.
-
 -type sns_topic() :: string() | binary().
 
 -type set_identity_notification_topic_result() :: ok | {error, term()}.
@@ -911,6 +913,44 @@ set_identity_notification_topic(Identity, NotificationType, SnsTopic, Config) ->
                             {notification_type, NotificationType},
                             {sns_topic, SnsTopic}]),
     case ses_request(Config, "SetIdentityNotificationTopic", Params) of
+        {ok, _Doc} -> ok;
+        {error, Reason} -> {error, Reason}
+    end.
+
+
+%%%------------------------------------------------------------------------------
+%%% SetIdentityHeadersInNotificationsEnabled
+%%%------------------------------------------------------------------------------
+
+set_identity_headers_in_notifications_enabled(Identity, NotificationType, Enabled) ->
+    set_identity_headers_in_notifications_enabled(Identity, NotificationType, Enabled, default_config()).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% SES API:
+%% [https://docs.aws.amazon.com/ses/latest/APIReference/API_SetIdentityHeadersInNotificationsEnabled.html]
+%%
+%% ===Example===
+%%
+%% Enable headers in notifications for an identity.
+%%
+%% `
+%%  ok = erlcloud_ses:set_identity_headers_in_notifications_enabled(<<"user@example.com">>, bounce, true).
+%% '
+%%
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec set_identity_headers_in_notifications_enabled(identity(),
+                                                    notification_type(),
+                                                    boolean(),
+                                                    aws_config()) ->
+    ok | {error, term()}.
+set_identity_headers_in_notifications_enabled(Identity, NotificationType, Enabled, Config) ->
+    Params = encode_params([{identity, Identity},
+                            {notification_type, NotificationType},
+                            {enabled, Enabled}]),
+    case ses_request(Config, "SetIdentityHeadersInNotificationsEnabled", Params) of
         {ok, _Doc} -> ok;
         {error, Reason} -> {error, Reason}
     end.
@@ -1080,6 +1120,8 @@ encode_params([{destination, Destination} | T], Acc) ->
     encode_params(T, encode_destination(Destination, Acc));
 encode_params([{email_address, EmailAddress} | T], Acc) when is_list(EmailAddress); is_binary(EmailAddress) ->
     encode_params(T, [{"EmailAddress", EmailAddress} | Acc]);
+encode_params([{enabled, Enabled} | T], Acc) when is_boolean(Enabled) ->
+    encode_params(T, [{"Enabled", Enabled} | Acc]);
 encode_params([{dkim_enabled, DkimEnabled} | T], Acc) when is_boolean(DkimEnabled) ->
     encode_params(T, [{"DkimEnabled", DkimEnabled} | Acc]);
 encode_params([{domain, Domain} | T], Acc) when is_list(Domain); is_binary(Domain) ->
@@ -1259,6 +1301,15 @@ decode_dkim_attributes(DkimAttributesDoc) ->
 decode_notification_attributes(NotificationAttributesDoc) ->
     [{erlcloud_xml:get_text("key", Entry),
       erlcloud_xml:decode([{forwarding_enabled, "value/ForwardingEnabled", boolean},
+                           {headers_in_bounce_notifications_enabled,
+                            "value/HeadersInBounceNotificationsEnabled",
+                            boolean},
+                           {headers_in_complaint_notifications_enabled,
+                            "value/HeadersInComplaintNotificationsEnabled",
+                            boolean},
+                           {headers_in_delivery_notifications_enabled,
+                            "value/HeadersInDeliveryNotificationsEnabled",
+                            boolean},
                            {bounce_topic, "value/BounceTopic", optional_text},
                            {complaint_topic, "value/ComplaintTopic", optional_text},
                            {delivery_topic, "value/DeliveryTopic", optional_text}],

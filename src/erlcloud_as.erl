@@ -170,6 +170,7 @@ extract_group(G) ->
        min_size = erlcloud_xml:get_integer("MinSize", G),
        max_size = erlcloud_xml:get_integer("MaxSize", G),
        launch_configuration_name = get_text("LaunchConfigurationName", G),
+       launch_template = extract_launch_template_spec(xmerl_xpath:string("LaunchTemplate", G)),
        vpc_zone_id = [ erlcloud_xml:get_text(Zid) || Zid <- xmerl_xpath:string("VPCZoneIdentifier", G)],
        status = get_text("Status", G)
     }.
@@ -177,6 +178,13 @@ extract_tags_from_group(G) ->
     [{erlcloud_xml:get_text("Key", T), erlcloud_xml:get_text("Value", T)} || 
         T <- xmerl_xpath:string("Tags/member", G)].
 
+extract_launch_template_spec([]) -> undefined;
+extract_launch_template_spec([L]) ->
+    #aws_launch_template_spec{
+        id = get_text("LaunchTemplateId", L),
+        name = get_text("LaunchTemplateName", L),
+        version = get_text("Version", L)
+    }.
 %% --------------------------------------------------------------------
 %% @doc set_desired_capacity(GroupName, Capacity, false, default_config())
 %% @end
