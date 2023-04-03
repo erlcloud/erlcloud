@@ -11,6 +11,7 @@
 -export([
     create_secret_binary/3, create_secret_binary/4, create_secret_binary/5,
     create_secret_string/3, create_secret_string/4, create_secret_string/5,
+    delete_secret/1, delete_secret/2, delete_secret/3,
     get_secret_value/2, get_secret_value/3
 ]).
 
@@ -33,10 +34,14 @@
                               | {description, binary()}
                               | {force_overwrite_replica_secret, boolean()}
                               | {kms_key_id, binary()}
-                              | {secret_binary, binary()}
-                              | {secret_string, binary()}
+                              | {secret_binary, binary()} %% Note AWS accepts either SecretBinary or SecretString,
+                              | {secret_string, binary()} %% not both at the same time
                               | {tags, proplist()}.
 -type create_secret_options() :: [create_secret_option()].
+
+-type delete_secret_option() :: {force_delete_without_recovery, boolean()} %% Note you can't use both this parameter and RecoveryWindowInDays.
+                              | {recovery_window_in_days, pos_integer()}.  %% If none of these two options are specified then SM defaults to 30 day recovery window
+-type delete_secret_options() :: [delete_secret_option()].
 
 %%%------------------------------------------------------------------------------
 %%% Library initialization.
@@ -162,6 +167,36 @@ create_secret_string(Name, ClientRequestToken, SecretString, Opts, Config) ->
     create_secret(Name, ClientRequestToken, [Secret | Opts], Config).
 
 %%------------------------------------------------------------------------------
+%% DeleteSecret
+%%------------------------------------------------------------------------------
+%% @doc
+%% SM API:
+%% [https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html]
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec delete_secret(SecretId :: binary()) -> sm_response().
+delete_secret(SecretId) ->
+    delete_secret(SecretId, []).
+
+-spec delete_secret(SecretId :: binary(), Opts :: delete_secret_options()) -> sm_response().
+delete_secret(SecretId, Opts) ->
+    delete_secret(SecretId, Opts, erlcloud_aws:default_config()).
+
+-spec delete_secret(SecretId :: binary(), Opts :: delete_secret_options(),
+        Config :: aws_config()) -> sm_response().
+delete_secret(SecretId, Opts, Config) ->
+    Json = lists:map(
+        fun
+            ({force_delete_without_recovery, Val}) -> {<<"ForceDeleteWithoutRecovery">>, Val};
+            ({recovery_window_in_days, Val}) -> {<<"RecoveryWindowInDays">>, Val};
+            (Other) -> Other
+        end,
+        [{<<"SecretId">>, SecretId} | Opts]),
+    sm_request(Config, "secretsmanager.DeleteSecret", Json).
+
+
+%%------------------------------------------------------------------------------
 %% GetSecretValue
 %%------------------------------------------------------------------------------
 %% @doc
@@ -256,8 +291,8 @@ create_secret_payload(SecretName, Opts) ->
             ({description, Val}) -> {<<"Description">>, Val};
             ({force_overwrite_replica_secret, Val}) -> {<<"ForceOverwriteReplicaSecret">>, Val};
             ({kms_key_id, Val}) -> {<<"KmsKeyId">>, Val};
-            ({secret_binary, Val}) -> {<<"SecretBinary">>, Val}; %% note AWS accepts either SecretBinary or SecretString
-            ({secret_string, Val}) -> {<<"SecretString">>, Val}; %% not both at the same time
+            ({secret_binary, Val}) -> {<<"SecretBinary">>, Val};
+            ({secret_string, Val}) -> {<<"SecretString">>, Val};
             ({tags, Val}) -> {<<"Tags">>, Val};
             (Other) -> Other
         end,
