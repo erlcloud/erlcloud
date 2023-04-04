@@ -11,8 +11,12 @@
 -export([
     create_secret_binary/3, create_secret_binary/4, create_secret_binary/5,
     create_secret_string/3, create_secret_string/4, create_secret_string/5,
+    delete_resource_policy/1, delete_resource_policy/2,
     delete_secret/1, delete_secret/2, delete_secret/3,
-    get_secret_value/2, get_secret_value/3
+    describe_secret/1, describe_secret/2,
+    get_resource_policy/1, get_resource_policy/2,
+    get_secret_value/2, get_secret_value/3,
+    put_resource_policy/2, put_resource_policy/3, put_resource_policy/4
 ]).
 
 %%%------------------------------------------------------------------------------
@@ -42,6 +46,9 @@
 -type delete_secret_option() :: {force_delete_without_recovery, boolean()} %% Note you can't use both this parameter and RecoveryWindowInDays.
                               | {recovery_window_in_days, pos_integer()}.  %% If none of these two options are specified then SM defaults to 30 day recovery window
 -type delete_secret_options() :: [delete_secret_option()].
+
+-type put_resource_policy_option() :: {block_public_policy, boolean()}.
+-type put_resource_policy_options() :: [put_resource_policy_option()].
 
 %%%------------------------------------------------------------------------------
 %%% Library initialization.
@@ -167,6 +174,24 @@ create_secret_string(Name, ClientRequestToken, SecretString, Opts, Config) ->
     create_secret(Name, ClientRequestToken, [Secret | Opts], Config).
 
 %%------------------------------------------------------------------------------
+%% DeleteResourcePolicy
+%%------------------------------------------------------------------------------
+%% @doc
+%% SM API:
+%% [https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteResourcePolicy.html]
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec delete_resource_policy(SecretId :: binary()) -> sm_response().
+delete_resource_policy(SecretId) ->
+    delete_resource_policy(SecretId, erlcloud_aws:default_config()).
+
+-spec delete_resource_policy(SecretId :: binary(), Config :: aws_config()) -> sm_response().
+delete_resource_policy(SecretId, Config) ->
+    Json = [{<<"SecretId">>, SecretId}],
+    sm_request(Config, "secretsmanager.DeleteResourcePolicy", Json).
+
+%%------------------------------------------------------------------------------
 %% DeleteSecret
 %%------------------------------------------------------------------------------
 %% @doc
@@ -195,6 +220,41 @@ delete_secret(SecretId, Opts, Config) ->
         [{<<"SecretId">>, SecretId} | Opts]),
     sm_request(Config, "secretsmanager.DeleteSecret", Json).
 
+%%------------------------------------------------------------------------------
+%% DescribeSecret
+%%------------------------------------------------------------------------------
+%% @doc
+%% SM API:
+%% [https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DescibeSecret.html]
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec describe_secret(SecretId :: binary()) -> sm_response().
+describe_secret(SecretId) ->
+    describe_secret(SecretId, erlcloud_aws:default_config()).
+
+-spec describe_secret(SecretId :: binary(), Config :: aws_config()) -> sm_response().
+describe_secret(SecretId, Config) ->
+    Json = [{<<"SecretId">>, SecretId}],
+    sm_request(Config, "secretsmanager.DescribeSecret", Json).
+
+%%------------------------------------------------------------------------------
+%% GetResourcePolicy
+%%------------------------------------------------------------------------------
+%% @doc
+%% SM API:
+%% [https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetResourcePolicy.html]
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec get_resource_policy(SecretId :: binary()) -> sm_response().
+get_resource_policy(SecretId) ->
+    get_resource_policy(SecretId, erlcloud_aws:default_config()).
+
+-spec get_resource_policy(SecretId :: binary(), Config :: aws_config()) -> sm_response().
+get_resource_policy(SecretId, Config) ->
+    Json = [{<<"SecretId">>, SecretId}],
+    sm_request(Config, "secretsmanager.GetResourcePolicy", Json).
 
 %%------------------------------------------------------------------------------
 %% GetSecretValue
@@ -209,7 +269,6 @@ delete_secret(SecretId, Opts, Config) ->
 get_secret_value(SecretId, Opts) ->
     get_secret_value(SecretId, Opts, erlcloud_aws:default_config()).
 
-
 -spec get_secret_value(SecretId :: binary(), Opts :: get_secret_value_options(),
         Config :: aws_config()) -> sm_response().
 get_secret_value(SecretId, Opts, Config) ->
@@ -221,6 +280,37 @@ get_secret_value(SecretId, Opts, Config) ->
         end,
         [{<<"SecretId">>, SecretId} | Opts]),
     sm_request(Config, "secretsmanager.GetSecretValue", Json).
+
+%%------------------------------------------------------------------------------
+%% PutResourcePolicy
+%%------------------------------------------------------------------------------
+%% @doc
+%% SM API:
+%% [https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_PutResourcePolicy.html]
+%% @end
+%%------------------------------------------------------------------------------
+
+-spec put_resource_policy(SecretId :: binary(), ResourcePolicy :: binary()) -> sm_response().
+put_resource_policy(SecretId, ResourcePolicy) ->
+    put_resource_policy(SecretId, ResourcePolicy, []).
+
+-spec put_resource_policy(SecretId :: binary(), ResourcePolicy :: binary(),
+                          Opts :: put_resource_policy_options()) -> sm_response().
+put_resource_policy(SecretId, ResourcePolicy, Opts) ->
+    put_resource_policy(SecretId, ResourcePolicy, Opts, erlcloud_aws:default_config()).
+
+-spec put_resource_policy(SecretId :: binary(), ResourcePolicy :: binary(),
+                          Opts :: put_resource_policy_options(),
+                          Config :: aws_config()) -> sm_response().
+put_resource_policy(SecretId, ResourcePolicy, Opts, Config) ->
+    Json = lists:map(
+        fun
+            ({block_public_policy, Val}) -> {<<"BlockPublicPolicy">>, Val};
+            (Other) -> Other
+        end,
+        [{<<"SecretId">>, SecretId}, {<<"ResourcePolicy">>, ResourcePolicy} | Opts]),
+    sm_request(Config, "secretsmanager.PutResourcePolicy", Json).
+
 
 %%%------------------------------------------------------------------------------
 %%% Internal Functions
