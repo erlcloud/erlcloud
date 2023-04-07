@@ -1179,7 +1179,7 @@ make_presigned_v4_url(ExpireTime, BucketName, Method, Key, QueryParams, Headers0
     HostHeader =
         case lists:any(fun({"host", _}) -> true; (_) -> false end, Headers0) of
             true -> [];
-            _    -> [{"host", lists:flatten([Host, port_spec(Config)])}]
+            _    -> [{"host", Host ++ port_spec(Config)}]
         end,
 
     Headers = lists:keysort(1, HostHeader ++ Headers0),
@@ -2117,10 +2117,12 @@ s3_result_fun(#aws_request{response_type = error, error_type = aws} = Request) -
 
 default_config() -> erlcloud_aws:default_config().
 
-port_spec(#aws_config{s3_port=80}) ->
-    "";
+port_spec(#aws_config{s3_scheme = "https://", s3_port=443}) ->
+    [];
+port_spec(#aws_config{s3_scheme = "http://", s3_port=80}) ->
+    [];
 port_spec(#aws_config{s3_port=Port}) ->
-    [":", erlang:integer_to_list(Port)].
+    ":" ++ erlang:integer_to_list(Port).
 
 %% Extract region form s3 endpoint names.
 %% http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region

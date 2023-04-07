@@ -29,7 +29,7 @@
           sts_host="sts.amazonaws.com"::string(),
           s3_scheme="https://"::string(),
           s3_host="s3.amazonaws.com"::string(),
-          s3_port=80::non_neg_integer(),
+          s3_port=443::non_neg_integer(),
           s3_follow_redirect=false::boolean(),
           s3_follow_redirect_count=2::non_neg_integer(),
           %% When set to 'auto' access method is chosen
