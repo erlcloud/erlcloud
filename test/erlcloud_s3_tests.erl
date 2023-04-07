@@ -42,7 +42,8 @@ operation_test_() ->
             fun get_bucket_encryption_not_found_test/1,
             fun delete_bucket_encryption_test/1,
             fun hackney_proxy_put_validation_test/1,
-            fun get_bucket_and_key/1
+            fun get_bucket_and_key/1,
+            fun signature_test/1
         ]}.
 
 start() ->
@@ -828,3 +829,38 @@ get_bucket_and_key(_) ->
     ErlcloudS3ExportExample = "https://s3.amazonaws.com/some_bucket/path_to_file",
     Result = erlcloud_s3:get_bucket_and_key(ErlcloudS3ExportExample),
     ?_assertEqual({"some_bucket","path_to_file"}, Result).
+
+signature_test(_) ->
+    Config = (erlcloud_s3:new("", "", "api.chef-server.dev", 443))#aws_config{s3_scheme="https://", s3_bucket_after_host=true, s3_bucket_access_method=path},
+
+    Path1        = "/bookshelf/organization-c126c62de951893e9deee6b794cf1350/checksum-6a85b976cd88d448beae87d2c35f10e2",
+    Date1        = "20210108T194543Z",
+    Region       = "us-east-1",
+    Method1      = put,
+    QueryParams1 = [{"X-Amz-Algorithm","AWS4-HMAC-SHA256"},
+                   {"X-Amz-Credential",
+                    ["8ab7976fbfba7fd648cf486b32e0ca1cca8bf894",47,
+                     ["20210108",47,"us-east-1",47,"s3","/aws4_request"]]},
+                   {"X-Amz-Date","20210108T194543Z"},
+                   {"X-Amz-Expires","900"},
+                   {"X-Amz-SignedHeaders","content-md5;content-type;host"}],
+    Headers1     = [{"content-md5",<<"aoW5ds2I1Ei+rofSw18Q4g==">>},
+                   {"content-type","application/x-binary"},
+                   {"host","api.chef-server.dev:443"}],
+    Payload      = "UNSIGNED-PAYLOAD",
+    Result1      = erlcloud_s3:signature(Config, Path1, Date1, Region, Method1, QueryParams1, Headers1, Payload),
+    ?assertEqual(Result1, "d1ef3ccb5ce2d5d5927ba5a7d7f9e583f8ba20fa5a497e775d1a6de3e451ef4f"),
+    
+    Method2      = get,
+    QueryParams2 = [{"X-Amz-Algorithm","AWS4-HMAC-SHA256"},
+                   {"X-Amz-Credential",
+                    ["8ab7976fbfba7fd648cf486b32e0ca1cca8bf894",47,
+                     ["20210108",47,"us-east-1",47,"s3","/aws4_request"]]},
+                   {"X-Amz-Date","20210108T194543Z"},
+                   {"X-Amz-Expires","28800"},
+                   {"X-Amz-SignedHeaders","host"}],
+    Headers2     = [{"host","api.chef-server.dev:443"}],
+    Result2      = erlcloud_s3:signature(Config, Path1, Date1, Region, Method2, QueryParams2, Headers2, Payload),
+    ?assertEqual(Result2, "89fd7cd94fd35e10a877e8cb3f2261c8697cba5930f59cd84223d9e46e97c29f"),
+
+    ?_assertEqual(true, true).
