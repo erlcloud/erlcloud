@@ -31,6 +31,10 @@
          set_object_acl/3, set_object_acl/4,
          make_link/3, make_link/4,
          make_get_url/3, make_get_url/4,
+         make_presigned_v4_url/5,
+         make_presigned_v4_url/6,
+         make_presigned_v4_url/7,
+         make_presigned_v4_url/8,
          start_multipart/2, start_multipart/5,
          upload_part/5, upload_part/7,
          complete_multipart/4, complete_multipart/6,
@@ -61,6 +65,7 @@
 -export([create_notification_xml/1]).
 -export([create_notification_param_xml/2]).
 -export([encode_inventory/1]).
+-export([signature/8]).
 -endif.
 
 -include("erlcloud.hrl").
@@ -488,9 +493,9 @@ get_bucket_lifecycle(BucketName) ->
 -spec get_bucket_lifecycle(BucketName::string(), Config::aws_config()) -> {ok, list(proplist())} | {error, Reason::term()}.
 get_bucket_lifecycle(BucketName, Config)
     when is_record(Config, aws_config) ->
-        case s3_request2(Config, get, BucketName, "/", "lifecycle", [], <<>>, []) of
-            {ok, {_Headers, Body}} ->
-                {ok, parse_lifecycle(element(1, xmerl_scan:string(binary_to_list(Body))))};
+        case s3_xml_request2(Config, get, BucketName, "/", "lifecycle", [], <<>>, []) of
+            {ok, XML} ->
+                {ok, parse_lifecycle(XML)};
             Error ->
                 Error
         end.
@@ -506,7 +511,7 @@ put_bucket_lifecycle(BucketName, Policy, Config)
     put_bucket_lifecycle(BucketName, list_to_binary(XmlPolicy), Config);
 put_bucket_lifecycle(BucketName, XmlPolicy, Config)
   when is_list(BucketName), is_binary(XmlPolicy), is_record(Config, aws_config) ->
-    Md5 = base64:encode(crypto:hash(md5, XmlPolicy)),
+    Md5 = base64:encode(erlang:md5(XmlPolicy)),
     s3_simple_request(Config, put, BucketName, "/", "lifecycle",
                       [], XmlPolicy, [{"Content-MD5", Md5}]).
 
@@ -621,7 +626,7 @@ get_bucket_attribute(BucketName, AttributeName, Config)
                     [{enabled, true}|erlcloud_xml:decode(Attributes, LoggingEnabled)]
             end;
         mfa_delete ->
-            case erlcloud_xml:get_text("/VersioningConfiguration/MFADelete", Doc) of
+            case erlcloud_xml:get_text("/VersioningConfiguration/MfaDelete", Doc) of
                 "Enabled"   -> enabled;
                 _           -> disabled
             end;
@@ -1101,16 +1106,94 @@ make_link(Expire_time, BucketName, Key, Config) ->
 
 -spec get_object_url(string(), string()) -> string().
 
- get_object_url(BucketName, Key) ->
+get_object_url(BucketName, Key) ->
   get_object_url(BucketName, Key, default_config()).
 
 -spec get_object_url(string(), string(), aws_config()) -> string().
 
- get_object_url(BucketName, Key, Config) ->
+get_object_url(BucketName, Key, Config) ->
   case Config#aws_config.s3_bucket_after_host of
       false -> lists:flatten([Config#aws_config.s3_scheme, BucketName, ".", Config#aws_config.s3_host, port_spec(Config), "/", Key]);
       true  -> lists:flatten([Config#aws_config.s3_scheme, Config#aws_config.s3_host, port_spec(Config), "/", BucketName, "/", Key])
   end.
+
+-spec get_object_url_elements(string(), string(), aws_config()) -> {Host::string(), Path::string(), URL::string()}.
+get_object_url_elements(BucketName, Key, Config) ->
+    Key0 = case lists:prefix("/", Key) of
+               true -> erlcloud_http:url_encode_loose(Key);
+               false -> "/" ++ erlcloud_http:url_encode_loose(Key)
+           end,
+
+    case Config#aws_config.s3_bucket_after_host of
+        false ->
+            Host = BucketName ++ "." ++ Config#aws_config.s3_host,
+            {Host, Key0, lists:flatten([Config#aws_config.s3_scheme, Host, port_spec(Config), Key0])};
+        true  ->
+            Host = Config#aws_config.s3_host,
+            Path = lists:flatten(["/", BucketName, Key0]),
+            {Host, Path, lists:flatten([Config#aws_config.s3_scheme, Host, port_spec(Config), Path])}
+    end.
+
+-spec signature(aws_config(), string(), string(), string(), atom(), proplist(), proplist(), string()) -> string().
+signature(Config, Path, Date, Region, Method, QueryParams, Headers, Payload) ->
+  Service = "s3",
+  CredentialScope = erlcloud_aws:credential_scope(Date, Region, Service),
+  {CanonicalRequest, _SignedHeaders} = erlcloud_aws:canonical_request(Method, Path, QueryParams, Headers, Payload),
+  ToSign = erlcloud_aws:to_sign(Date, CredentialScope, CanonicalRequest),
+  SigningKey = erlcloud_aws:signing_key(Config, Date, Region, Service),
+  [Result] = erlcloud_aws:base16(erlcloud_util:sha256_mac(SigningKey, ToSign)),
+  Result.
+
+-spec make_presigned_v4_url(integer(), string(), atom(), string(), [atom() | tuple()]) -> string().
+make_presigned_v4_url(ExpireTime, BucketName, Method, Key, Params) ->
+  make_presigned_v4_url(ExpireTime, BucketName, Method, Key, Params, default_config()).
+
+%% Authenticating Requests: Using Query Parameters
+%% https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
+%% Example:
+%%   test() ->
+%%       application:ensure_all_started(erlcloud),
+%%       {ok, DefaultCfg} = erlcloud_aws:profile(),
+%%       AWSCfg = DefaultCfg#aws_config{s3_host = "s3.your_region.amazonaws.com"},
+%%       BucketName = "your_bucket_name",
+%%       Key = "your_object_key",
+%%       URL = erlcloud_s3:make_presigned_v4_url(604800, BucketName, put, Key, [{"X-User", "12333333"}], AWSCfg),
+%%       io:format("~s~n", [URL]).
+-spec make_presigned_v4_url(integer(), string(), atom(), string(), proplist(), aws_config()) -> string().
+make_presigned_v4_url(ExpireTime, BucketName, Method, Key, QueryParams, Config) when is_integer(ExpireTime) ->
+    make_presigned_v4_url(ExpireTime, BucketName, Method, Key, QueryParams, [], Config).
+
+-spec make_presigned_v4_url(integer(), string(), atom(), string(), proplist(), proplist(), aws_config()) -> string().
+make_presigned_v4_url(ExpireTime, BucketName, Method, Key, QueryParams, Headers0, Config) when is_integer(ExpireTime) ->
+    Date = erlcloud_aws:iso_8601_basic_time(),
+    make_presigned_v4_url(ExpireTime, BucketName, Method, Key, QueryParams, Headers0, Date, Config).
+
+% Headers0: [{"casefolded-string", val}...]
+-spec make_presigned_v4_url(integer(), string(), atom(), string(), proplist(), proplist(), string(), aws_config()) -> string().
+make_presigned_v4_url(ExpireTime, BucketName, Method, Key, QueryParams, Headers0, Date, Config) when is_integer(ExpireTime) ->
+    {Host, Path, URL} = get_object_url_elements(BucketName, Key, Config),
+    Region = erlcloud_aws:aws_region_from_host(Config#aws_config.s3_host),
+    Credential = erlcloud_aws:credential(Config, Date, Region, "s3"),
+
+    % if a host header was passed in, use that; otherwise default to config
+    HostHeader =
+        case lists:any(fun({"host", _}) -> true; (_) -> false end, Headers0) of
+            true -> [];
+            _    -> [{"host", Host ++ port_spec(Config)}]
+        end,
+
+    Headers = lists:keysort(1, HostHeader ++ Headers0),
+    SignedHeaders = string:join([element(1, X) || X <- Headers], ";"),
+
+    QP1 = [{"X-Amz-Algorithm", "AWS4-HMAC-SHA256"},
+          {"X-Amz-Credential", Credential},
+          {"X-Amz-Date", Date},
+          {"X-Amz-Expires", integer_to_list(ExpireTime)},
+          {"X-Amz-SignedHeaders", SignedHeaders}] ++ QueryParams,
+    Payload = "UNSIGNED-PAYLOAD",
+    Signature = signature(Config, Path, Date, Region, Method, QP1, Headers, Payload),
+    QueryStr = erlcloud_http:make_query_string(QP1 ++ [{"X-Amz-Signature", Signature}], no_assignment),
+    lists:flatten([URL, "?", QueryStr]).
 
 -spec make_get_url(integer(), string(), string()) -> iolist().
 
@@ -1189,9 +1272,9 @@ complete_multipart(BucketName, Key, UploadId, ETags, HTTPHeaders, Config)
                                                       [{'PartNumber', [integer_to_list(Num)]},
                                                        {'ETag', [ETag]}] } || {Num, ETag} <- ETags]}], xmerl_xml)),
 
-    case s3_request2(Config, post, BucketName, [$/|Key], [], [{"uploadId", UploadId}],
-                     POSTData, HTTPHeaders) of
-        {ok, {_Headers, _Body}} ->
+    case s3_xml_request2(Config, post, BucketName, [$/|Key], [], [{"uploadId", UploadId}],
+                         POSTData, HTTPHeaders) of
+        {ok, _XML} ->
             ok;
         Error ->
             Error
@@ -1329,7 +1412,7 @@ put_object_tagging(BucketName, Key, TagList, #aws_config{} = Config) when is_lis
     TaggingXML = {'Tagging',
       [{'TagSet', encode_tags(TagList)}]},
     POSTData = unicode:characters_to_binary(xmerl:export_simple([TaggingXML], xmerl_xml)),
-    Md5 = base64:encode(crypto:hash(md5, POSTData)),
+    Md5 = base64:encode(erlang:md5(POSTData)),
     Headers = [{"content-md5", Md5}, {"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, [$/|Key], "tagging", [], POSTData, Headers).
 
@@ -1360,7 +1443,7 @@ put_bucket_tagging(BucketName, TagList, #aws_config{} = Config) when is_list(Buc
     TaggingXML = {'Tagging',
 		  [{'TagSet', encode_tags(TagList)}]},
     POSTData = list_to_binary(xmerl:export_simple([TaggingXML], xmerl_xml)),
-    Md5 = base64:encode(crypto:hash(md5, POSTData)),
+    Md5 = base64:encode(erlang:md5(POSTData)),
     Headers = [{"content-md5", Md5}, {"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, "/", "tagging", [], POSTData, Headers).
 
@@ -1413,9 +1496,9 @@ list_bucket_inventory(BucketName, Token) when is_list(BucketName), is_list(Token
     {ok, Result:: list(term())} | {error, Reason::term()}.
 list_bucket_inventory(BucketName, Token, #aws_config{} = Config) when is_list(BucketName) ->
     Params = [{"continuation-token", Token}],
-    case s3_request2(Config, get, BucketName, "/", "inventory", Params, <<>>, []) of
-        {ok, {_Headers, Body}} ->
-            list_inventory_result(element(1, xmerl_scan:string(binary_to_list(Body))));
+    case s3_xml_request2(Config, get, BucketName, "/", "inventory", Params, <<>>, []) of
+        {ok, XML} ->
+            list_inventory_result(XML);
         Error ->
             Error
     end.
@@ -1523,9 +1606,9 @@ get_bucket_inventory(BucketName, InventoryId, #aws_config{} = Config)
     when is_list(BucketName), is_list(InventoryId) ->
 
     Params = [{"id", InventoryId}],
-    case s3_request2(Config, get, BucketName, "/", "inventory", Params, <<>>, []) of
-        {ok, {_Headers, Body}} ->
-            {ok, extract_inventory_configuration(element(1, xmerl_scan:string(binary_to_list(Body))))};
+    case s3_xml_request2(Config, get, BucketName, "/", "inventory", Params, <<>>, []) of
+        {ok, XML} ->
+            {ok, extract_inventory_configuration(XML)};
         Error ->
             Error
     end.
@@ -1549,7 +1632,7 @@ put_bucket_inventory(BucketName, Inventory, #aws_config{} = Config)
         -> ok | {error, Reason::term()}.
 put_bucket_inventory(BucketName, InventoryId, XmlInventory, #aws_config{} = Config)
     when is_list(BucketName), is_list(InventoryId), is_binary(XmlInventory) ->
-    Md5 = base64:encode(crypto:hash(md5, XmlInventory)),
+    Md5 = base64:encode(erlang:md5(XmlInventory)),
     Params = [{"id", InventoryId}],
     Headers = [{"Content-MD5", Md5}, {"content-type", "application/xml"}],
     s3_simple_request(Config, put, BucketName, "/", "inventory", Params, XmlInventory, Headers).
@@ -1861,6 +1944,7 @@ encode_grantee(Grantee) ->
 
 s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
+        {_Headers, undefined} -> ok;
         {_Headers, <<>>} -> ok;
         {_Headers, Body} ->
             XML = element(1,xmerl_scan:string(binary_to_list(Body))),
@@ -1915,11 +1999,21 @@ s3_request2(Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers
             {error, Reason}
     end.
 
-s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
+s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
+    Headers =
+        case Method of
+            M when M == get; M == head; M == delete ->
+                Headers0;
+            _ ->
+                case proplists:get_value("content-type", Headers0) of
+                    undefined -> [{"content-type", "text/xml"} | Headers0];
+                    _         -> Headers0
+                end
+        end,
     case s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
         {ok, {_Headers, <<>>}} -> ok;
         {ok, {_Headers, Body}} ->
-            XML = element(1,xmerl_scan:string(binary_to_list(Body))),
+            {XML, _Tail} = xmerl_scan:string(binary_to_list(Body)),
             case XML of
                 #xmlElement{name='Error'} ->
                     ErrCode = erlcloud_xml:get_text("/Error/Code", XML),
@@ -2029,10 +2123,12 @@ s3_result_fun(#aws_request{response_type = error, error_type = aws} = Request) -
 
 default_config() -> erlcloud_aws:default_config().
 
-port_spec(#aws_config{s3_port=80}) ->
-    "";
+port_spec(#aws_config{s3_scheme = "https://", s3_port=443}) ->
+    [];
+port_spec(#aws_config{s3_scheme = "http://", s3_port=80}) ->
+    [];
 port_spec(#aws_config{s3_port=Port}) ->
-    [":", erlang:integer_to_list(Port)].
+    ":" ++ erlang:integer_to_list(Port).
 
 %% Extract region form s3 endpoint names.
 %% http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region

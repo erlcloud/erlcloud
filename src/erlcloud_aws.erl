@@ -20,12 +20,19 @@
          http_body/1,
          request_to_return/1,
          sign_v4_headers/5,
-         sign_v4/8,
+         sign_v4/8, sign_v4/9,
          canonical_query_string/1,
          get_service_status/1,
          is_throttling_error_response/1,
          get_timeout/1,
-         profile/0, profile/1, profile/2
+         profile/0, profile/1, profile/2,
+         iso_8601_basic_time/0, iso_8601_basic_time/1,
+         to_sign/3,
+         signing_key/4,
+         base16/1,
+         canonical_request/5,
+         credential_scope/3,
+         credential/4
 ]).
 
 -include("erlcloud.hrl").
@@ -48,6 +55,7 @@
 -type httpc_result_ok() :: {http_client_headers(), binary()}.
 -type httpc_result_error() :: {http_error, Status :: pos_integer(), StatusLine :: string(), Body :: binary()}
                             | {socket_error, Reason :: term()}.
+-type headers() :: [{atom() | string(), iodata()}].
 -export_type([httpc_result_error/0]).
 -type httpc_result() :: {ok, httpc_result_ok()} | {error, httpc_result_error()}.
 -export_type([httpc_result/0]).
@@ -1147,22 +1155,45 @@ sign_v4_headers(Config, Headers, Payload, Region, Service) ->
 -spec sign_v4(atom(), list(), aws_config(), erlcloud_httpc:headers(), string() | binary(), string(), string(), list()) -> erlcloud_httpc:headers().
 sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams) ->
     Date = iso_8601_basic_time(),
-    {PayloadHash, Headers1} =
-        sign_v4_content_sha256_header( [{"x-amz-date", Date} | Headers], Payload ),
-    Headers2 = case Config#aws_config.security_token of
-                   undefined -> Headers1;
-                   Token -> [{"x-amz-security-token", Token} | Headers1]
+    sign_v4(Method, Uri, Config, Headers, Payload, Region, Service, QueryParams, Date).
+
+-spec sign_v4(atom(), list(), aws_config(), headers(), string() | binary(), string(), string(), list(), string()) -> headers().
+sign_v4(Method, Uri, Config, Headers0, Payload, Region, Service, QueryParams, Date0) ->
+    % use passed-in x-amz-date header or create one
+    {Headers1, Date} =
+        case proplists:get_value("x-amz-date", Headers0) of
+            undefined ->
+                {[{"x-amz-date", Date0} | Headers0], Date0};
+            ADate ->
+                {Headers0, ADate}
+        end,
+
+    {PayloadHash, Headers2} =
+        sign_v4_content_sha256_header(Headers1, Payload),
+    Headers3 = case Config#aws_config.security_token of
+                   undefined -> Headers2;
+                   Token -> [{"x-amz-security-token", Token} | Headers2]
                end,
-    {Request, SignedHeaders} = canonical_request(Method, Uri, QueryParams, Headers2, PayloadHash),
+    Headers4 =
+        case proplists:get_value("host", Headers3) of
+            undefined -> Headers3;
+            Host -> [{"host", string:lowercase(Host)} | proplists:delete("host", Headers3)]
+        end,
+    {Request, SignedHeaders} = canonical_request(Method, Uri, QueryParams, Headers4, PayloadHash),
     CredentialScope = credential_scope(Date, Region, Service),
     ToSign = to_sign(Date, CredentialScope, Request),
     SigningKey = signing_key(Config, Date, Region, Service),
     Signature = base16(erlcloud_util:sha256_mac( SigningKey, ToSign)),
     Authorization = authorization(Config, CredentialScope, SignedHeaders, Signature),
-    [{"Authorization", lists:flatten(Authorization)} | Headers2].
+    [{"Authorization", lists:flatten(Authorization)} | Headers4].
 
+-spec iso_8601_basic_time() -> string().
 iso_8601_basic_time() ->
-    {{Year,Month,Day},{Hour,Min,Sec}} = calendar:universal_time(),
+    iso_8601_basic_time(calendar:universal_time()).
+
+-spec iso_8601_basic_time(tuple()) -> string().
+iso_8601_basic_time(Datetime) ->
+    {{Year,Month,Day},{Hour,Min,Sec}} = Datetime,
     lists:flatten([
         integer_to_list(Year), two_digits(Month), two_digits(Day), $T,
         two_digits(Hour), two_digits(Min), two_digits(Sec), $Z
@@ -1233,9 +1264,14 @@ hash_encode(Data) ->
 base16(Data) ->
     [binary:bin_to_list(base16:encode(Data))].
 
+-spec credential_scope(string(), string(), string()) -> string().
 credential_scope(Date, Region, Service) ->
     DateOnly = string:left(Date, 8),
     [DateOnly, $/, Region, $/, Service, "/aws4_request"].
+
+-spec credential(aws_config(), string(), string(), string()) -> string().
+credential(Config, Date, Region, Service) ->
+    [Config#aws_config.access_key_id, $/, credential_scope(Date, Region, Service)].
 
 to_sign(Date, CredentialScope, Request) ->
     ["AWS4-HMAC-SHA256\n",

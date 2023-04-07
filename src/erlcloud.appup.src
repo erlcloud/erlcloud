@@ -1,6 +1,7 @@
 %%-*-: erlang -*-
-{"3.6.7",
+{"3.6.8",
  [
+  {"3.6.7",[{restart_application,erlcloud}]},
   {"3.5.16",[{restart_application,erlcloud}]},
   %% emqx e4.3.9/e4.4.3 relied on version erlcloud 3.2.8, but it was
   %% upgraded to 3.5.16 in e4.3.10/e4.4.4.
@@ -10,6 +11,7 @@
   {<<".*">>,[]}
  ],
  [
+  {"3.6.7",[{restart_application,erlcloud}]},
   {"3.5.16",[{restart_application,erlcloud}]},
   {"3.2.8",[{restart_application,erlcloud}]},
   {<<".*">>,[]}
