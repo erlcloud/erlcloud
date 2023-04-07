@@ -621,7 +621,7 @@ get_bucket_attribute(BucketName, AttributeName, Config)
                     [{enabled, true}|erlcloud_xml:decode(Attributes, LoggingEnabled)]
             end;
         mfa_delete ->
-            case erlcloud_xml:get_text("/VersioningConfiguration/MFADelete", Doc) of
+            case erlcloud_xml:get_text("/VersioningConfiguration/MfaDelete", Doc) of
                 "Enabled"   -> enabled;
                 _           -> disabled
             end;
