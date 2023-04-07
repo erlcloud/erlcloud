@@ -493,9 +493,9 @@ get_bucket_lifecycle(BucketName) ->
 -spec get_bucket_lifecycle(BucketName::string(), Config::aws_config()) -> {ok, list(proplist())} | {error, Reason::term()}.
 get_bucket_lifecycle(BucketName, Config)
     when is_record(Config, aws_config) ->
-        case s3_request2(Config, get, BucketName, "/", "lifecycle", [], <<>>, []) of
-            {ok, {_Headers, Body}} ->
-                {ok, parse_lifecycle(element(1, xmerl_scan:string(binary_to_list(Body))))};
+        case s3_xml_request2(Config, get, BucketName, "/", "lifecycle", [], <<>>, []) of
+            {ok, XML} ->
+                {ok, parse_lifecycle(XML)};
             Error ->
                 Error
         end.
@@ -1272,9 +1272,9 @@ complete_multipart(BucketName, Key, UploadId, ETags, HTTPHeaders, Config)
                                                       [{'PartNumber', [integer_to_list(Num)]},
                                                        {'ETag', [ETag]}] } || {Num, ETag} <- ETags]}], xmerl_xml)),
 
-    case s3_request2(Config, post, BucketName, [$/|Key], [], [{"uploadId", UploadId}],
-                     POSTData, HTTPHeaders) of
-        {ok, {_Headers, _Body}} ->
+    case s3_xml_request2(Config, post, BucketName, [$/|Key], [], [{"uploadId", UploadId}],
+                         POSTData, HTTPHeaders) of
+        {ok, _XML} ->
             ok;
         Error ->
             Error
@@ -1496,9 +1496,9 @@ list_bucket_inventory(BucketName, Token) when is_list(BucketName), is_list(Token
     {ok, Result:: list(term())} | {error, Reason::term()}.
 list_bucket_inventory(BucketName, Token, #aws_config{} = Config) when is_list(BucketName) ->
     Params = [{"continuation-token", Token}],
-    case s3_request2(Config, get, BucketName, "/", "inventory", Params, <<>>, []) of
-        {ok, {_Headers, Body}} ->
-            list_inventory_result(element(1, xmerl_scan:string(binary_to_list(Body))));
+    case s3_xml_request2(Config, get, BucketName, "/", "inventory", Params, <<>>, []) of
+        {ok, XML} ->
+            list_inventory_result(XML);
         Error ->
             Error
     end.
@@ -1606,9 +1606,9 @@ get_bucket_inventory(BucketName, InventoryId, #aws_config{} = Config)
     when is_list(BucketName), is_list(InventoryId) ->
 
     Params = [{"id", InventoryId}],
-    case s3_request2(Config, get, BucketName, "/", "inventory", Params, <<>>, []) of
-        {ok, {_Headers, Body}} ->
-            {ok, extract_inventory_configuration(element(1, xmerl_scan:string(binary_to_list(Body))))};
+    case s3_xml_request2(Config, get, BucketName, "/", "inventory", Params, <<>>, []) of
+        {ok, XML} ->
+            {ok, extract_inventory_configuration(XML)};
         Error ->
             Error
     end.
@@ -1944,6 +1944,7 @@ encode_grantee(Grantee) ->
 
 s3_simple_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
     case s3_request(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
+        {_Headers, undefined} -> ok;
         {_Headers, <<>>} -> ok;
         {_Headers, Body} ->
             XML = element(1,xmerl_scan:string(binary_to_list(Body))),
@@ -1979,12 +1980,7 @@ s3_request(Config, Method, Host, Path, Subreasource, Params, POSTData, Headers) 
 
 %% s3_request2 returns {ok, Body} or {error, Reason} instead of throwing as s3_request does
 %% This is the preferred pattern for new APIs
-s3_request2(Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers0) ->
-    Headers =
-        case proplists:get_value("content-type", Headers0) of
-            undefined -> [{"content-type", "text/xml"} | Headers0];
-            _         -> Headers0
-        end,
+s3_request2(Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers) ->
     case erlcloud_aws:update_config(Config) of
         {ok, Config1} ->
             case s3_request4_no_update(Config1, Method, Bucket, Path,
@@ -2003,11 +1999,21 @@ s3_request2(Config, Method, Bucket, Path, Subresource, Params, POSTData, Headers
             {error, Reason}
     end.
 
-s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) ->
+s3_xml_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers0) ->
+    Headers =
+        case Method of
+            M when M == get; M == head; M == delete ->
+                Headers0;
+            _ ->
+                case proplists:get_value("content-type", Headers0) of
+                    undefined -> [{"content-type", "text/xml"} | Headers0];
+                    _         -> Headers0
+                end
+        end,
     case s3_request2(Config, Method, Host, Path, Subresource, Params, POSTData, Headers) of
         {ok, {_Headers, <<>>}} -> ok;
         {ok, {_Headers, Body}} ->
-            XML = element(1,xmerl_scan:string(binary_to_list(Body))),
+            {XML, _Tail} = xmerl_scan:string(binary_to_list(Body)),
             case XML of
                 #xmlElement{name='Error'} ->
                     ErrCode = erlcloud_xml:get_text("/Error/Code", XML),
