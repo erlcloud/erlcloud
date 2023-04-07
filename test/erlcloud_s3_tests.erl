@@ -849,7 +849,6 @@ signature_test(_) ->
                    {"host","api.chef-server.dev:443"}],
     Payload      = "UNSIGNED-PAYLOAD",
     Result1      = erlcloud_s3:signature(Config, Path1, Date1, Region, Method1, QueryParams1, Headers1, Payload),
-    ?assertEqual(Result1, "d1ef3ccb5ce2d5d5927ba5a7d7f9e583f8ba20fa5a497e775d1a6de3e451ef4f"),
     
     Method2      = get,
     QueryParams2 = [{"X-Amz-Algorithm","AWS4-HMAC-SHA256"},
@@ -861,6 +860,6 @@ signature_test(_) ->
                    {"X-Amz-SignedHeaders","host"}],
     Headers2     = [{"host","api.chef-server.dev:443"}],
     Result2      = erlcloud_s3:signature(Config, Path1, Date1, Region, Method2, QueryParams2, Headers2, Payload),
-    ?assertEqual(Result2, "89fd7cd94fd35e10a877e8cb3f2261c8697cba5930f59cd84223d9e46e97c29f"),
 
-    ?_assertEqual(true, true).
+    [?_assertEqual(Result1, "d1ef3ccb5ce2d5d5927ba5a7d7f9e583f8ba20fa5a497e775d1a6de3e451ef4f"),
+     ?_assertEqual(Result2, "89fd7cd94fd35e10a877e8cb3f2261c8697cba5930f59cd84223d9e46e97c29f")].

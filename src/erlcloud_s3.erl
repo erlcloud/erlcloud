@@ -1120,8 +1120,8 @@ get_object_url(BucketName, Key, Config) ->
 -spec get_object_url_elements(string(), string(), aws_config()) -> {Host::string(), Path::string(), URL::string()}.
 get_object_url_elements(BucketName, Key, Config) ->
     Key0 = case lists:prefix("/", Key) of
-               true -> Key;
-               false -> "/" ++ Key
+               true -> erlcloud_http:url_encode_loose(Key);
+               false -> "/" ++ erlcloud_http:url_encode_loose(Key)
            end,
 
     case Config#aws_config.s3_bucket_after_host of
