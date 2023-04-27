@@ -5,10 +5,23 @@
 
 -export([get_instance_metadata/0, get_instance_metadata/1, get_instance_metadata/2,
         get_instance_user_data/0, get_instance_user_data/1,
-        get_instance_dynamic_data/0, get_instance_dynamic_data/1, get_instance_dynamic_data/2]).
+        get_instance_dynamic_data/0, get_instance_dynamic_data/1, get_instance_dynamic_data/2,
+        get_metadata_api_token/0, get_metadata_api_token/1]).
 
 
+-spec get_metadata_api_token() -> {ok, binary()} | {error, erlcloud_aws:httpc_result_error()}.
+%%%---------------------------------------------------------------------------
+%% @doc Retrieve the instance meta data token for the instance this code is running on. Will fail if not an EC2 instance.
+%%
+%% This convenience function will retrieve the metadata token from the AWS available at http://<host:port>/latest/api/token
+%%
+get_metadata_api_token() ->
+   get_metadata_api_token(erlcloud_aws:default_config()).
 
+-spec get_metadata_api_token(Config :: aws_config() ) -> {ok, binary()} | {error, erlcloud_aws:httpc_result_error()}.
+get_metadata_api_token(Config) ->
+   TokenMetaDataPath = "http://" ++ ec2_meta_host_port() ++ "/latest/api/token",
+    erlcloud_aws:http_body(erlcloud_httpc:request(TokenMetaDataPath, put, [{"X-aws-ec2-metadata-token-ttl-seconds", "21600"}], <<>>, erlcloud_aws:get_timeout(Config), Config)).
 
 -spec get_instance_metadata() -> {ok, binary()} | {error, erlcloud_aws:httpc_result_error()}.
 get_instance_metadata() ->
@@ -32,7 +45,9 @@ get_instance_metadata(Config) ->
 %%
 get_instance_metadata(ItemPath, Config) ->
     MetaDataPath = "http://" ++ ec2_meta_host_port() ++ "/latest/meta-data/" ++ ItemPath,
-    erlcloud_aws:http_body(erlcloud_httpc:request(MetaDataPath, get, [], <<>>, erlcloud_aws:get_timeout(Config), Config)).
+    {ok, Token} = get_metadata_api_token(Config),
+    Headers = [{"X-aws-ec2-metadata-token", Token}],
+    erlcloud_aws:http_body(erlcloud_httpc:request(MetaDataPath, get, Headers, <<>>, erlcloud_aws:get_timeout(Config), Config)).
 
 
 -spec get_instance_user_data() -> {ok, binary()} | {error, erlcloud_aws:httpc_result_error()}.
