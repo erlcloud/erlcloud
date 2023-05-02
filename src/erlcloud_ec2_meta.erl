@@ -11,9 +11,12 @@
 
 -spec get_metadata_api_token() -> {ok, binary()} | {error, erlcloud_aws:httpc_result_error()}.
 %%%---------------------------------------------------------------------------
-%% @doc Retrieve the instance meta data token for the instance this code is running on. Will fail if not an EC2 instance.
+%% @doc Retrieve the instance meta data api token for the instance this code is running on. This is necessary on IMDSv2 enforced instances.
+%% AWS introduced Instance Metadata Service Version 2 (IMDSv2) in November 2019 to address security concerns
+%% and provide improved defense against various types of attacks, such as Server Side Request Forgery (SSRF) attacks.
+%% * Will fail if not an EC2 instance.
 %%
-%% This convenience function will retrieve the metadata token from the AWS available at http://<host:port>/latest/api/token
+%% This convenience function will retrieve the metadata api token from the AWS available at http://<host:port>/latest/api/token
 %%
 get_metadata_api_token() ->
    get_metadata_api_token(erlcloud_aws:default_config()).
