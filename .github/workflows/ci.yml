@@ -9,7 +9,7 @@ on:
       - master
 jobs:
   ci:
-    name: Run checks and tests over ${{matrix.otp_vsn}} and ${{matrix.os}} (rebar2? ${{matrix.force_rebar2}})
+    name: Run checks and tests over ${{matrix.otp_vsn}} and ${{matrix.os}}
     runs-on: ${{matrix.os}}
     container:
       image: erlang:${{matrix.otp_vsn}}
@@ -17,13 +17,10 @@ jobs:
       matrix:
         otp_vsn: [19.3, 20.3, 21.3, 22.3, 23.3, 24.0]
         os: [ubuntu-latest]
-        force_rebar2: [true, false]
-    env:
-      FORCE_REBAR2: ${{matrix.force_rebar2}}
     steps:
       - uses: actions/checkout@v2
       - run: export
-      - run: make travis-install
+      - run: make rebar3-install
       - run: make warnings
       - run: make check
       - run: make eunit
