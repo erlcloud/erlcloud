@@ -915,8 +915,12 @@ service_config_waf_test() ->
 
 get_host_vpc_endpoint_setup_fun() ->
     meck:new(erlcloud_ec2_meta),
+    meck:expect(erlcloud_ec2_meta, generate_session_token,
+                fun(60, #aws_config{}) ->
+                    {ok, <<"60_seconds_imdsv2_token">>}
+                end),
     meck:expect(erlcloud_ec2_meta, get_instance_metadata,
-                fun("placement/availability-zone", #aws_config{}) ->
+                fun("placement/availability-zone", #aws_config{}, <<"60_seconds_imdsv2_token">>) ->
                     {ok, <<"us-east-1a">>}
                 end).
 

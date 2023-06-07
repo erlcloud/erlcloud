@@ -931,7 +931,9 @@ get_availability_zone() ->
 cache_instance_metadata_availability_zone() ->
     % it fine to use default here - no IAM is used, only for http client
     % one cannot use auto_config()/default_cfg() as it creates an infinite recursion.
-    case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", #aws_config{}) of
+    Config = #aws_config{},
+    IMDSv2Token = maybe_imdsv2_session_token(Config),
+    case erlcloud_ec2_meta:get_instance_metadata("placement/availability-zone", Config, IMDSv2Token) of
         {ok, AZ} = OkResult ->
             application:set_env(erlcloud, availability_zone, AZ),
             OkResult;
@@ -974,13 +976,14 @@ timestamp_to_gregorian_seconds(Timestamp) ->
 get_credentials_from_metadata(Config) ->
     %% TODO this function should retry on errors getting credentials
     %% First get the list of roles
-    case erlcloud_ec2_meta:get_instance_metadata("iam/security-credentials/", Config) of
+    IMDSv2Token = maybe_imdsv2_session_token(Config),
+    case erlcloud_ec2_meta:get_instance_metadata("iam/security-credentials/", Config, IMDSv2Token) of
         {error, Reason} ->
             {error, Reason};
         {ok, Body} ->
             %% Always use the first role
             [Role | _] = binary:split(Body, <<$\n>>),
-            case erlcloud_ec2_meta:get_instance_metadata("iam/security-credentials/" ++ binary_to_list(Role), Config) of
+            case erlcloud_ec2_meta:get_instance_metadata("iam/security-credentials/" ++ binary_to_list(Role), Config, IMDSv2Token) of
                 {error, Reason} ->
                     {error, Reason};
                 {ok, Json} ->
@@ -1562,3 +1565,10 @@ get_env_for_role_credentials(Arn, ExtId) ->
 set_env_for_role_credentials(Arn, ExtId, Val) ->
     % application:set_env is undocumented in regards to type(Par) =/= atom()
     application:set_env(erlcloud, {role_credentials, Arn, ExtId}, Val).
+
+-spec maybe_imdsv2_session_token(aws_config()) -> binary() | undefined.
+maybe_imdsv2_session_token(Config) ->
+    case erlcloud_ec2_meta:generate_session_token(60, Config) of
+        {ok, Token} -> Token;
+        _Error -> undefined
+    end.
