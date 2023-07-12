@@ -79,7 +79,7 @@
           kinesis_scheme="https://"::string(),
           kinesis_host="kinesis.us-east-1.amazonaws.com"::string(),
           kinesis_port=80::non_neg_integer(),
-          kinesis_retry=fun erlcloud_kinesis_impl:retry/2::erlcloud_kinesis_impl:retry_fun(),
+          kinesis_retry=fun erlcloud_kinesis_impl:retry/3::erlcloud_kinesis_impl:retry_fun(),
           glue_scheme="https://"::string(),
           glue_host="glue.us-east-1.amazonaws.com"::string(),
           glue_port=443::non_neg_integer(),
