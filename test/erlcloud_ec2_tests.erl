@@ -956,6 +956,12 @@ describe_route_tables_tests() ->
                     <state>active</state>
                     <origin>CreateRoute</origin>
                 </item>
+                <item>
+                    <destinationCidrBlock>::/64</destinationCidrBlock>
+                    <gatewayId>igw-1456db71</gatewayId>
+                    <state>active</state>
+                    <origin>CreateRoute</origin>
+                </item>
             </routeSet>
             <associationSet>
                 <item>
@@ -1017,7 +1023,16 @@ describe_route_tables_tests() ->
                         {vpc_peering_conn_id,[]},
                         {network_interface_id,[]},
                         {state,"active"},
-                        {origin,"CreateRoute"}]]},
+                        {origin,"CreateRoute"}],
+                    [{destination_cidr_block,[]},
+                    {destination_ipv6_cidr_block,"::/64"},
+                    {gateway_id,"igw-1456db71"},
+                    {nat_gateway_id,[]},
+                    {instance_id,[]},
+                    {vpc_peering_conn_id,[]},
+                    {network_interface_id,[]},
+                    {state,"active"},
+                    {origin,"CreateRoute"}]]},
             {association_set,
                 [[{route_table_association_id,"rtbassoc-123"},
                     {route_table_id,"rtb-567"},
