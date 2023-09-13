@@ -957,7 +957,7 @@ describe_route_tables_tests() ->
                     <origin>CreateRoute</origin>
                 </item>
                 <item>
-                    <destinationIpv6CidrBlock>::/64</destinationCidrBlock>
+                    <destinationIpv6CidrBlock>::/64</destinationIpv6CidrBlock>
                     <gatewayId>igw-1456db71</gatewayId>
                     <state>active</state>
                     <origin>CreateRoute</origin>
