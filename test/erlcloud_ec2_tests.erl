@@ -956,6 +956,12 @@ describe_route_tables_tests() ->
                     <state>active</state>
                     <origin>CreateRoute</origin>
                 </item>
+                <item>
+                    <destinationIpv6CidrBlock>::/64</destinationIpv6CidrBlock>
+                    <gatewayId>igw-1456db71</gatewayId>
+                    <state>active</state>
+                    <origin>CreateRoute</origin>
+                </item>
             </routeSet>
             <associationSet>
                 <item>
@@ -992,6 +998,7 @@ describe_route_tables_tests() ->
             {vpc_id,"vpc-012ff464df6bbf762"},
             {route_set,
                 [[{destination_cidr_block,"10.0.0.0/26"},
+                    {destination_ipv6_cidr_block,[]},
                     {gateway_id,"local"},
                     {nat_gateway_id,[]},
                     {instance_id,[]},
@@ -1000,6 +1007,7 @@ describe_route_tables_tests() ->
                     {state,"active"},
                     {origin,"CreateRouteTable"}],
                     [{destination_cidr_block,"0.0.0.0/8"},
+                        {destination_ipv6_cidr_block,[]},
                         {gateway_id,[]},
                         {nat_gateway_id,"nat-06e45944bb42d3ba2"},
                         {instance_id,[]},
@@ -1008,13 +1016,23 @@ describe_route_tables_tests() ->
                         {state,"active"},
                         {origin,"CreateRoute"}],
                     [{destination_cidr_block,"0.0.0.0/0"},
+                        {destination_ipv6_cidr_block,[]},
                         {gateway_id,"vgw-09fea3ed190b9ea1e"},
                         {nat_gateway_id,[]},
                         {instance_id,[]},
                         {vpc_peering_conn_id,[]},
                         {network_interface_id,[]},
                         {state,"active"},
-                        {origin,"CreateRoute"}]]},
+                        {origin,"CreateRoute"}],
+                    [{destination_cidr_block,[]},
+                    {destination_ipv6_cidr_block,"::/64"},
+                    {gateway_id,"igw-1456db71"},
+                    {nat_gateway_id,[]},
+                    {instance_id,[]},
+                    {vpc_peering_conn_id,[]},
+                    {network_interface_id,[]},
+                    {state,"active"},
+                    {origin,"CreateRoute"}]]},
             {association_set,
                 [[{route_table_association_id,"rtbassoc-123"},
                     {route_table_id,"rtb-567"},

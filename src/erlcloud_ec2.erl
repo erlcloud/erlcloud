@@ -2005,6 +2005,7 @@ extract_route(Node) ->
 extract_route_set(Node) ->
     [
      {destination_cidr_block, get_text("destinationCidrBlock", Node)},
+     {destination_ipv6_cidr_block, get_text("destinationIpv6CidrBlock", Node)},
      {gateway_id, get_text("gatewayId", Node)},
      {nat_gateway_id, get_text("natGatewayId", Node)},
      {instance_id, get_text("instanceId", Node)},
