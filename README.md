@@ -1,6 +1,9 @@
 # erlcloud: AWS APIs library for Erlang
 
-[![Build Status](https://github.com/erlcloud/erlcloud/workflows/build/badge.svg)](https://github.com/erlcloud/erlcloud)
+[![Build Status](https://github.com/erlcloud/erlcloud/workflows/build/badge.svg)](https://github.com/erlcloud/erlcloud/actions/workflows/ci.yml)
+[![Hex.pm](https://img.shields.io/hexpm/v/erlcloud)](https://hex.pm/packages/erlcloud)
+[![Hex.pm](https://img.shields.io/hexpm/l/erlcloud)](COPYRIGHT)
+
 
 This library is not developed or maintained by AWS thus lots of functionality
 is still missing comparing to [aws-cli](https://aws.amazon.com/cli/) or
@@ -105,8 +108,10 @@ make
 make run
 ```
 
-If you're using erlcloud in your application, add it as a dependency in your
-application's configuration file.  To use erlcloud in the shell, you can start
+To use erlcloud in your application, add it as a dependency in your
+application's configuration file.  erlcloud is also available as a [Hex](https://hex.pm) package,  refer to the Hex [`mix` usage docs](https://hex.pm/docs/usage) or [`rebar3` usage docs](https://hex.pm/docs/rebar3-usage) for more help including dependencies using Hex syntax.
+
+To use erlcloud in the shell, you can start
 it by calling:
 
 ```erlang
@@ -284,3 +289,10 @@ as provided by OTP team.
   ddb2, ecs.
 - Library should not expose any long running or stateful processes - no
   gen_servers, no caches and etc.
+
+
+## Publishing to hex.pm
+
+erlcloud is available as a [Hex](https://hex.pm) package. A new version of the package can be published by maintainers using mix or rebar3. A `hex-publish` make target that uses rebar3 is provided for maintainers to use or reference when publishing a new version of the package.
+
+Github Actions will eventually be used to automatically publish new versions.

@@ -1,4 +1,4 @@
-.PHONY: all get-deps clean compile run eunit check check-eunit doc
+.PHONY: all get-deps clean compile run eunit check check-eunit doc hex-publish rebar3-install
 
 REBAR=$(shell which rebar3 || echo ./rebar3)
 
@@ -39,6 +39,9 @@ check: .dialyzer_plt
 
 doc:
 	@$(REBAR) edoc
+
+hex-publish:
+	@$(REBAR) hex publish
 
 rebar3-install:
 	wget https://s3.amazonaws.com/rebar3/rebar3
