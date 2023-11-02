@@ -371,8 +371,14 @@ create_secret(SecretName, ClientRequestToken, Opts, Config) ->
     sm_request(Config, "secretsmanager.CreateSecret", Json).
 
 put_secret(SecretId, ClientRequestToken, Opts, Config) ->
-    Opts1 = [{client_request_token, ClientRequestToken} | Opts],
-    Json = put_secret_payload(SecretId, Opts1),
+    Json = lists:map(
+        fun
+            ({secret_binary, Val}) -> {<<"SecretBinary">>, Val};
+            ({secret_string, Val}) -> {<<"SecretString">>, Val};
+            ({version_stages, Val}) -> {<<"VersionStages">>, Val};
+            (Other) -> Other
+        end,
+        [{<<"SecretId">>, SecretId}, {<<"ClientRequestToken">>, ClientRequestToken} | Opts]),
     sm_request(Config, "secretsmanager.PutSecretValue", Json).
 
 
@@ -441,16 +447,4 @@ create_secret_payload(SecretName, Opts) ->
             (Other) -> Other
         end,
         [{<<"Name">>, SecretName} | Opts]),
-    Json.
-
-put_secret_payload(SecretId, Opts) ->
-    Json = lists:map(
-        fun
-            ({client_request_token, Val}) -> {<<"ClientRequestToken">>, Val};
-            ({secret_binary, Val}) -> {<<"SecretBinary">>, Val};
-            ({secret_string, Val}) -> {<<"SecretString">>, Val};
-            ({version_stages, Val}) -> {<<"VersionStages">>, Val};
-            (Other) -> Other
-        end,
-        [{<<"SecretId">>, SecretId} | Opts]),
     Json.
