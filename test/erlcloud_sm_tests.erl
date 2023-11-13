@@ -23,7 +23,7 @@
 %%%===================================================================
 
 -define(SECRET_ID, <<"MyTestDatabaseSecret">>).
--define(SECRET_STRING, <<"{\"username\":\"sergio\",\"password\":\"SECRET-PASSWORD\"}">>).
+-define(SECRET_STRING, <<"{\"username\":\"david\",\"password\":\"SECRET-PASSWORD\"}">>).
 -define(SECRET_BINARY, base64:encode(?SECRET_STRING)).
 -define(CLIENT_REQUEST_TOKEN, <<"EXAMPLE2-90ab-cdef-fedc-ba987EXAMPLE">>).
 -define(VERSION_ID, <<"EXAMPLE1-90ab-cdef-fedc-ba987SECRET1">>).
