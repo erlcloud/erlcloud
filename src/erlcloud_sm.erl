@@ -16,7 +16,9 @@
     describe_secret/1, describe_secret/2,
     get_resource_policy/1, get_resource_policy/2,
     get_secret_value/2, get_secret_value/3,
-    put_resource_policy/2, put_resource_policy/3, put_resource_policy/4
+    put_resource_policy/2, put_resource_policy/3, put_resource_policy/4,
+    put_secret_binary/3, put_secret_binary/4, put_secret_binary/5,
+    put_secret_string/3, put_secret_string/4, put_secret_string/5
 ]).
 
 %%%------------------------------------------------------------------------------
@@ -49,6 +51,12 @@
 
 -type put_resource_policy_option() :: {block_public_policy, boolean()}.
 -type put_resource_policy_options() :: [put_resource_policy_option()].
+
+-type put_secret_value_option() :: {client_request_token, binary()}
+                                 | {secret_binary, binary()}
+                                 | {secret_string, binary()}
+                                 | {version_stages, [binary()]}.
+-type put_secret_value_options() :: [put_secret_value_option()].
 
 %%%------------------------------------------------------------------------------
 %%% Library initialization.
@@ -311,6 +319,47 @@ put_resource_policy(SecretId, ResourcePolicy, Opts, Config) ->
         [{<<"SecretId">>, SecretId}, {<<"ResourcePolicy">>, ResourcePolicy} | Opts]),
     sm_request(Config, "secretsmanager.PutResourcePolicy", Json).
 
+%%------------------------------------------------------------------------------
+%% PutSecretValue
+%%------------------------------------------------------------------------------
+%% @doc
+%% SM API:
+%% [https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_PutSecretValue.html]
+%% @end
+%%------------------------------------------------------------------------------
+-spec put_secret_string(SecretId :: binary(), ClientRequestToken :: binary(),
+                        SecretString :: binary()) -> sm_response().
+put_secret_string(SecretId, ClientRequestToken, SecretString) ->
+    put_secret_string(SecretId, ClientRequestToken, SecretString, []).
+
+-spec put_secret_string(SecretId :: binary(), ClientRequestToken :: binary(),
+                        SecretString :: binary(), Opts :: put_secret_value_options()) -> sm_response().
+put_secret_string(SecretId, ClientRequestToken, SecretString, Opts) ->
+    put_secret_string(SecretId, ClientRequestToken, SecretString, Opts, erlcloud_aws:default_config()).
+
+-spec put_secret_string(SecretId :: binary(), ClientRequestToken :: binary(),
+                        SecretString :: binary(), Opts :: put_secret_value_options(),
+                        Config :: aws_config()) -> sm_response().
+put_secret_string(SecretId, ClientRequestToken, SecretString, Opts, Config) ->
+    Secret = {secret_string, SecretString},
+    put_secret(SecretId, ClientRequestToken, [Secret | Opts], Config).
+
+-spec put_secret_binary(SecretId :: binary(), ClientRequestToken :: binary(),
+                        SecretBinary :: binary()) -> sm_response().
+put_secret_binary(SecretId, ClientRequestToken, SecretBinary) ->
+    put_secret_binary(SecretId, ClientRequestToken, SecretBinary, []).
+
+-spec put_secret_binary(SecretId :: binary(), ClientRequestToken :: binary(),
+                        SecretBinary :: binary(), Opts :: put_secret_value_options()) -> sm_response().
+put_secret_binary(SecretId, ClientRequestToken, SecretBinary, Opts) ->
+    put_secret_binary(SecretId, ClientRequestToken, SecretBinary, Opts, erlcloud_aws:default_config()).
+
+-spec put_secret_binary(SecretId :: binary(), ClientRequestToken :: binary(),
+                        SecretBinary :: binary(), Opts :: put_secret_value_options(),
+                        Config :: aws_config()) -> sm_response().
+put_secret_binary(SecretId, ClientRequestToken, SecretBinary, Opts, Config) ->
+    Secret = {secret_binary, base64:encode(SecretBinary)},
+    put_secret(SecretId, ClientRequestToken, [Secret | Opts], Config).
 
 %%%------------------------------------------------------------------------------
 %%% Internal Functions
@@ -320,6 +369,17 @@ create_secret(SecretName, ClientRequestToken, Opts, Config) ->
     Opts1 = [{client_request_token, ClientRequestToken} | Opts],
     Json = create_secret_payload(SecretName, Opts1),
     sm_request(Config, "secretsmanager.CreateSecret", Json).
+
+put_secret(SecretId, ClientRequestToken, Opts, Config) ->
+    Json = lists:map(
+        fun
+            ({secret_binary, Val}) -> {<<"SecretBinary">>, Val};
+            ({secret_string, Val}) -> {<<"SecretString">>, Val};
+            ({version_stages, Val}) -> {<<"VersionStages">>, Val};
+            (Other) -> Other
+        end,
+        [{<<"SecretId">>, SecretId}, {<<"ClientRequestToken">>, ClientRequestToken} | Opts]),
+    sm_request(Config, "secretsmanager.PutSecretValue", Json).
 
 
 sm_request(Config, Operation, Body) ->
@@ -388,4 +448,3 @@ create_secret_payload(SecretName, Opts) ->
         end,
         [{<<"Name">>, SecretName} | Opts]),
     Json.
-

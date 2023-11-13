@@ -23,6 +23,9 @@
 %%%===================================================================
 
 -define(SECRET_ID, <<"MyTestDatabaseSecret">>).
+-define(SECRET_STRING, <<"{\"username\":\"david\",\"password\":\"SECRET-PASSWORD\"}">>).
+-define(SECRET_BINARY, base64:encode(?SECRET_STRING)).
+-define(CLIENT_REQUEST_TOKEN, <<"EXAMPLE2-90ab-cdef-fedc-ba987EXAMPLE">>).
 -define(VERSION_ID, <<"EXAMPLE1-90ab-cdef-fedc-ba987SECRET1">>).
 -define(VERSION_STAGE, <<"AWSPREVIOUS">>).
 
@@ -36,7 +39,9 @@ operation_test_() ->
         fun stop/1,
         [
             fun get_secret_value_input_tests/1,
-            fun get_secret_value_output_tests/1
+            fun get_secret_value_output_tests/1,
+            fun put_secret_value_input_tests/1,
+            fun put_secret_value_output_tests/1
         ]}.
 
 start() ->
@@ -185,3 +190,45 @@ get_secret_value_output_tests(_) ->
     output_tests(?_f(erlcloud_sm:get_secret_value(?SECRET_ID, [{version_id, ?VERSION_ID}])), Tests),
     output_tests(?_f(erlcloud_sm:get_secret_value(?SECRET_ID, [{version_stage, ?VERSION_STAGE}])), Tests).
 
+
+put_secret_value_input_tests(_) ->
+    Tests = [
+        ?_sm_test(
+            {"put_secret_string input test",
+                ?_f(erlcloud_sm:put_secret_string(?SECRET_ID, ?CLIENT_REQUEST_TOKEN, ?SECRET_STRING)),
+                jsx:encode([
+                    {<<"ClientRequestToken">>,?CLIENT_REQUEST_TOKEN},
+                    {<<"SecretId">>,?SECRET_ID},
+                    {<<"SecretString">>,?SECRET_STRING}])
+            }),
+        ?_sm_test(
+            {"put_secret_binary input test",
+                ?_f(erlcloud_sm:put_secret_binary(?SECRET_ID, ?CLIENT_REQUEST_TOKEN, ?SECRET_STRING)),
+                jsx:encode([
+                    {<<"ClientRequestToken">>,?CLIENT_REQUEST_TOKEN},
+                    {<<"SecretId">>,?SECRET_ID},
+                    {<<"SecretBinary">>,?SECRET_BINARY}])
+            })
+    ],
+    Response = <<>>,
+    input_tests(Response, Tests).
+
+
+-define(PUT_SECRET_VALUE_RESP,[
+    {<<"ARN">>,
+        <<"arn:aws:secretsmanager:us-west-2:123456789012:secret:MyTestDatabaseSecret-a1b2c3">>},
+    {<<"Name">>, ?SECRET_ID},
+    {<<"VersionId">>, ?VERSION_ID},
+    {<<"VersionStages">>, [?VERSION_STAGE]}
+]).
+
+
+put_secret_value_output_tests(_) ->
+    Tests = [?_sm_test(
+        {"put_secret_string output test",
+            jsx:encode(?PUT_SECRET_VALUE_RESP),
+            {ok, ?PUT_SECRET_VALUE_RESP}}
+    )],
+
+    output_tests(?_f(erlcloud_sm:put_secret_string(?SECRET_ID, ?CLIENT_REQUEST_TOKEN, ?SECRET_STRING)), Tests),
+    output_tests(?_f(erlcloud_sm:put_secret_binary(?SECRET_ID, ?CLIENT_REQUEST_TOKEN, ?SECRET_STRING)), Tests).
