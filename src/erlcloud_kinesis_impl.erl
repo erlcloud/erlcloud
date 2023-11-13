@@ -38,7 +38,7 @@
 -include("erlcloud_aws.hrl").
 
 %% Helpers
--export([backoff/1, retry/2]).
+-export([backoff/1, retry/2, retry/3]).
 
 %% Internal impl api
 -export([request/3, request/4]).
@@ -89,11 +89,15 @@ backoff(Attempt) ->
     timer:sleep(erlcloud_util:rand_uniform((1 bsl (Attempt - 1)) * 100)).
 
 -type attempt() :: {attempt, pos_integer()} | {error, term()}.
--type retry_fun() :: fun((pos_integer(), term()) -> attempt()).
+-type retry_fun() :: fun((pos_integer(), non_neg_integer(), term()) -> attempt()).
 -spec retry(pos_integer(), term()) -> attempt().
-retry(Attempt, Reason) when Attempt >= ?NUM_ATTEMPTS ->
+retry(Attempt, Reason) ->
+    retry(Attempt, ?NUM_ATTEMPTS, Reason).
+
+-spec retry(pos_integer(), pos_integer(), term()) -> attempt().
+retry(Attempt, MaxAttempt, Reason) when Attempt > MaxAttempt ->
     {error, Reason};
-retry(Attempt, _) ->
+retry(Attempt, _, _) ->
     backoff(Attempt),
     {attempt, Attempt + 1}.
 
@@ -108,6 +112,7 @@ request_and_retry(_, _, _, _, {error, Reason}) ->
     {error, Reason};
 request_and_retry(Config, Headers, Body, ShouldDecode, {attempt, Attempt}) ->
     RetryFun = Config#aws_config.kinesis_retry,
+    MaxAttempt = Config#aws_config.retry_num,
     case erlcloud_httpc:request(
            url(Config), post,
            [{<<"content-type">>, <<"application/x-amz-json-1.1">>} | Headers],
@@ -123,20 +128,20 @@ request_and_retry(Config, Headers, Body, ShouldDecode, {attempt, Attempt}) ->
         {ok, {{Status, StatusLine}, _, RespBody}} when Status >= 400 andalso Status < 500 ->
             case client_error(Status, StatusLine, RespBody) of
                 {retry, Reason} ->
-                    request_and_retry(Config, Headers, Body, ShouldDecode, RetryFun(Attempt, Reason));
+                    request_and_retry(Config, Headers, Body, ShouldDecode, RetryFun(Attempt, MaxAttempt, Reason));
                 {error, Reason} ->
                     {error, Reason}
             end;
 
         {ok, {{Status, StatusLine}, _, RespBody}} when Status >= 500 ->
-            request_and_retry(Config, Headers, Body, ShouldDecode, RetryFun(Attempt, {http_error, Status, StatusLine, RespBody}));
+            request_and_retry(Config, Headers, Body, ShouldDecode, RetryFun(Attempt, MaxAttempt, {http_error, Status, StatusLine, RespBody}));
 
         {ok, {{Status, StatusLine}, _, RespBody}} ->
             {error, {http_error, Status, StatusLine, RespBody}};
 
         {error, Reason} ->
             %% TODO there may be some http errors, such as certificate error, that we don't want to retry
-            request_and_retry(Config, Headers, Body, ShouldDecode, RetryFun(Attempt, Reason))
+            request_and_retry(Config, Headers, Body, ShouldDecode, RetryFun(Attempt, MaxAttempt, Reason))
     end.
 
 -spec client_error(pos_integer(), string(), binary()) -> {retry, term()} | {error, term()}.
