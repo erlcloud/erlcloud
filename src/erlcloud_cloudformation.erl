@@ -491,8 +491,9 @@ list_all(Fun, Params, Config, Acc) ->
                 undefined ->
                     lists:foldl(fun erlang:'++'/2, [], [Data | Acc]);
                 _ ->
-                    list_all(Fun, [{next_token, NextToken} | Params],
-                        Config, [Data | Acc])
+                    list_all(Fun, 
+			     [convert_param({next_token, NextToken}) | Params],
+			     Config, [Data | Acc])
             end;
         {error, Reason} ->
             {error, Reason}
