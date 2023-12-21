@@ -1076,7 +1076,7 @@ sign_get(Expire_time, BucketName, Key, Config)
         SecurityToken -> "x-amz-security-token:" ++ SecurityToken ++ "\n"
     end,
     To_sign = lists:flatten(["GET\n\n\n", Expires, "\n", SecurityTokenToSign, "/", BucketName, "/", Key]),
-    Sig = base64:encode(erlcloud_util:sha_mac(Config#aws_config.secret_access_key, To_sign)),
+    Sig = base64:encode(erlcloud_util:sha256_mac(Config#aws_config.secret_access_key, To_sign)),
     {Sig, Expires}.
 
 -spec make_link(integer(), string(), string()) -> {integer(), string(), string()}.
