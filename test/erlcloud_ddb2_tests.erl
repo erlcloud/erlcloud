@@ -1372,6 +1372,95 @@ create_table_input_tests(_) ->
         }
     ]
 }"
+            }),
+         ?_ddb_test(
+            {"CreateTable with deletion_protection_enabled = true",
+             ?_f(erlcloud_ddb2:create_table(
+                   <<"Thread">>,
+                   [{<<"ForumName">>, s},
+                    {<<"Subject">>, s},
+                    {<<"LastPostDateTime">>, s}],
+                   {<<"ForumName">>, <<"Subject">>},
+                   5,
+                   5,
+                   [{local_secondary_indexes,
+                     [{<<"LastPostIndex">>, <<"LastPostDateTime">>, keys_only}]},
+                    {global_secondary_indexes,
+                     [{<<"SubjectIndex">>, {<<"Subject">>, <<"LastPostDateTime">>}, keys_only, 10, 5}]},
+                    {deletion_protection_enabled, true}]
+                  )), "
+{
+    \"AttributeDefinitions\": [
+        {
+            \"AttributeName\": \"ForumName\",
+            \"AttributeType\": \"S\"
+        },
+        {
+            \"AttributeName\": \"Subject\",
+            \"AttributeType\": \"S\"
+        },
+        {
+            \"AttributeName\": \"LastPostDateTime\",
+            \"AttributeType\": \"S\"
+        }
+    ],
+    \"GlobalSecondaryIndexes\": [
+        {
+            \"IndexName\": \"SubjectIndex\",
+            \"KeySchema\": [
+                {
+                    \"AttributeName\": \"Subject\",
+                    \"KeyType\": \"HASH\"
+                },
+                {
+                    \"AttributeName\": \"LastPostDateTime\",
+                    \"KeyType\": \"RANGE\"
+                }
+            ],
+            \"Projection\": {
+                \"ProjectionType\": \"KEYS_ONLY\"
+            },
+            \"ProvisionedThroughput\": {
+                \"ReadCapacityUnits\": 10,
+                \"WriteCapacityUnits\": 5
+            }
+        }
+    ],
+    \"DeletionProtectionEnabled\": true,
+    \"TableName\": \"Thread\",
+    \"KeySchema\": [
+        {
+            \"AttributeName\": \"ForumName\",
+            \"KeyType\": \"HASH\"
+        },
+        {
+            \"AttributeName\": \"Subject\",
+            \"KeyType\": \"RANGE\"
+        }
+    ],
+    \"LocalSecondaryIndexes\": [
+        {
+            \"IndexName\": \"LastPostIndex\",
+            \"KeySchema\": [
+                {
+                    \"AttributeName\": \"ForumName\",
+                    \"KeyType\": \"HASH\"
+                },
+                {
+                    \"AttributeName\": \"LastPostDateTime\",
+                    \"KeyType\": \"RANGE\"
+                }
+            ],
+            \"Projection\": {
+                \"ProjectionType\": \"KEYS_ONLY\"
+            }
+        }
+    ],
+    \"ProvisionedThroughput\": {
+        \"ReadCapacityUnits\": 5,
+        \"WriteCapacityUnits\": 5
+    }
+}"
             })
         ],
 
@@ -3086,7 +3175,8 @@ describe_table_output_tests(_) ->
         },
         \"TableName\": \"Thread\",
         \"TableSizeBytes\": 0,
-        \"TableStatus\": \"ACTIVE\"
+        \"TableStatus\": \"ACTIVE\",
+        \"DeletionProtectionEnabled\": true
     }
 }",
              {ok, #ddb2_table_description
@@ -3132,7 +3222,8 @@ describe_table_output_tests(_) ->
                                                      replica_status = active}],
                table_name = <<"Thread">>,
                table_size_bytes = 0,
-               table_status = active}}})
+               table_status = active,
+               deletion_protection_enabled = true}}})
         ],
 
     output_tests(?_f(erlcloud_ddb2:describe_table(<<"name">>)), Tests).
@@ -6688,6 +6779,15 @@ update_table_input_tests(_) ->
 {
     \"TableName\": \"Thread\",
     \"BillingMode\": \"PAY_PER_REQUEST\"
+}"
+            }),
+        ?_ddb_test(
+            {"UpdateTable example request deletion_protection_enabled = false",
+             ?_f(erlcloud_ddb2:update_table(<<"Thread">>,
+                                            [{deletion_protection_enabled, false}])), "
+{
+    \"TableName\": \"Thread\",
+    \"DeletionProtectionEnabled\": false
 }"
             })
         ],
