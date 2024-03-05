@@ -156,6 +156,7 @@
         {attribute_definitions :: undefined | erlcloud_ddb2:attr_defs(),
          billing_mode_summary :: undefined | #ddb2_billing_mode_summary{},
          creation_date_time :: undefined | number(),
+         deletion_protection_enabled :: undefined | boolean(),
          global_secondary_indexes :: undefined | [#ddb2_global_secondary_index_description{}],
          global_table_version :: undefined | binary(),
          item_count :: undefined | integer(),
