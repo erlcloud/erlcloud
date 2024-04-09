@@ -168,6 +168,7 @@
     delete_item_opts/0,
     delete_item_return/0,
     delete_table_return/0,
+    deletion_protection_enabled/0,
     describe_global_table_return/0,
     describe_global_table_settings_return/0,
     describe_table_return/0,
@@ -381,6 +382,8 @@ default_config() -> erlcloud_aws:default_config().
                      {attr_name(), {in_attr_value(), in_attr_value()}, between} |
                      {attr_name(), [in_attr_value(),...], in}.
 -type conditions() :: maybe_list(condition()).
+
+-type deletion_protection_enabled() :: boolean_opt(deletion_protection_enabled).
 
 -type select() :: all_attributes | all_projected_attributes | count | specific_attributes.
 
@@ -1439,6 +1442,7 @@ table_description_record() ->
      [{<<"AttributeDefinitions">>, #ddb2_table_description.attribute_definitions, fun undynamize_attr_defs/2},
       {<<"BillingModeSummary">>, #ddb2_table_description.billing_mode_summary, fun undynamize_billing_mode_summary/2},
       {<<"CreationDateTime">>, #ddb2_table_description.creation_date_time, fun id/2},
+      {<<"DeletionProtectionEnabled">>, #ddb2_table_description.deletion_protection_enabled, fun id/2},
       {<<"GlobalSecondaryIndexes">>, #ddb2_table_description.global_secondary_indexes,
        fun(V, Opts) -> [undynamize_record(global_secondary_index_description_record(), I, Opts) || I <- V] end},
       {<<"GlobalTableVersion">>, #ddb2_table_description.global_table_version, fun id/2},
@@ -1892,7 +1896,8 @@ dynamize_sse_specification({enabled, Enabled}) when is_boolean(Enabled) ->
                             {global_secondary_indexes, global_secondary_indexes()} |
                             {provisioned_throughput, {read_units(), write_units()}} |
                             {sse_specification, sse_specification()} |
-                            {stream_specification, stream_specification()}.
+                            {stream_specification, stream_specification()} |
+                            boolean_opt(deletion_protection_enabled).
 -type create_table_opts() :: [create_table_opt()].
 
 -spec create_table_opts(key_schema()) -> opt_table().
@@ -1904,7 +1909,8 @@ create_table_opts(KeySchema) ->
       fun dynamize_global_secondary_indexes/1},
      {provisioned_throughput, <<"ProvisionedThroughput">>, fun dynamize_provisioned_throughput/1},
      {sse_specification, <<"SSESpecification">>, fun dynamize_sse_specification/1},
-     {stream_specification, <<"StreamSpecification">>, fun dynamize_stream_specification/1}].
+     {stream_specification, <<"StreamSpecification">>, fun dynamize_stream_specification/1},
+     {deletion_protection_enabled, <<"DeletionProtectionEnabled">>, fun id/1}].
 
 -spec create_table_record() -> record_desc().
 create_table_record() ->
@@ -4271,6 +4277,7 @@ dynamize_replication_group_updates(Updates) ->
                             {attribute_definitions, attr_defs()} |
                             {global_secondary_index_updates, global_secondary_index_updates()} |
                             {stream_specification, stream_specification()} |
+                            boolean_opt(deletion_protection_enabled) |
                             out_opt().
 -type update_table_opts() :: [update_table_opt()].
 
@@ -4282,7 +4289,8 @@ update_table_opts() ->
      {global_secondary_index_updates, <<"GlobalSecondaryIndexUpdates">>,
       fun dynamize_global_secondary_index_updates/1},
      {stream_specification, <<"StreamSpecification">>, fun dynamize_stream_specification/1},
-     {replica_updates, <<"ReplicaUpdates">>, fun dynamize_replication_group_updates/1}].
+     {replica_updates, <<"ReplicaUpdates">>, fun dynamize_replication_group_updates/1},
+     {deletion_protection_enabled, <<"DeletionProtectionEnabled">>, fun id/1}].
 
 -spec update_table_record() -> record_desc().
 update_table_record() ->
