@@ -357,7 +357,6 @@ create_launch_config(#aws_launch_config{
           ++ when_defined(Monitoring, [{"InstanceMonitoring.Enabled", atom_to_list(Monitoring)}], [])
           ++ member_params("SecurityGroups.member.", SGroups)
           ++ when_defined(KeyPair, [{"KeyName", KeyPair}], []),
-    io:format("~p ~n", [Params]),
     create_launch_config(Params, Config);
 
 create_launch_config(Params, Config) ->
