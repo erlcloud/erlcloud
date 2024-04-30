@@ -1574,6 +1574,8 @@ maybe_imdsv2_session_token(Config) ->
 %%%%%%%%%%%%%%%%%
 
 % Takes the query response and turns it into a map if desired
+parse_response({ok, Response}, _) when is_atom(Response) ->
+    {ok, Response};
 parse_response({ok, Response}, map) ->
     {ok, _Res} = erlcloud_xml:xml_to_map(Response);
 parse_response({ok, Response}, _) ->
