@@ -1,7 +1,7 @@
 -module(erlcloud_xml).
 -export([decode/2, decode/3, get_bool/2, get_float/2, get_integer/2,
          get_integer/3, get_list/2, get_text/1, get_text/2,
-         get_text/3, get_time/2]).
+         get_text/3, get_time/2, xml_to_map/1]).
 
 -include_lib("xmerl/include/xmerl.hrl").
 
@@ -125,3 +125,54 @@ parse_time(String) ->
         nomatch ->
             error
     end.
+
+xml_to_map(Doc) ->
+    {ok, T} = do_xml_to_map(Doc),
+    {ok, maps:from_list([T])}.
+
+
+do_xml_to_map(#xmlElement{name = Name, content = []}) ->
+    Name2 = lists:reverse(atom_to_list(Name)),
+
+    case Name2 of
+        %% consider element names with suffix "*Set" to be a list type
+        [$t, $e, $S | _] ->
+            {ok, {Name, []}};
+        _ ->
+        %% consider everything else to be an empty string
+        %% we may make a statement in the docs that an empty list maybe returned
+        %% as an empty binary, to make client aware of possible variations in the
+        %% response
+
+            {ok, {Name, <<>>}}
+    end;
+
+do_xml_to_map(#xmlElement{name = Name, content = [#xmlText{value = Text}]}) ->
+    {ok, {Name, normalize_text(Text)}};
+do_xml_to_map(#xmlElement{name = Name, content = Content}) ->
+    L = [ V ||
+        E <- Content,
+        {ok, V} <- [do_xml_to_map(E)]
+    ],
+    Value =
+        case L of
+            [{item, _} | _] ->
+                %% raise an exception if the list contains anything else than "item"
+                [ begin {item, V} = T, V end || T <- L ];
+            [{member, _} | _] ->
+                [ begin {member, V} = T, V end || T <- L ];
+            _ ->
+                maps:from_list(L)
+        end,
+
+    {ok, {Name, Value}};
+
+%% multiple text items?
+%% text mixed with elements?
+do_xml_to_map(#xmlText{}) ->
+    ignore.
+
+
+normalize_text("true") -> true;
+normalize_text("false") -> false;
+normalize_text(Text) -> iolist_to_binary(Text).

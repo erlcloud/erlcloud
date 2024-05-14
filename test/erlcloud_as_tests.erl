@@ -21,12 +21,24 @@ autoscaling_test_() ->
       fun terminate_tests/1,
       fun create_tests/1,
       fun detach_instances_tests/1,
-      fun lifecycle_hooks_tests/1]}.
+      fun lifecycle_hooks_tests/1
+    ]}.
+
+autoscaling_query_test_() ->
+  {foreach,
+   fun start2/0,
+   fun stop/1,
+   [fun as_query_test_xmerl/0,
+    fun as_query_test_map/0
+   ]}.
 
 start() ->
     meck:new(erlcloud_aws, [non_strict]),
     mocked_aws_xml().
 
+start2() ->
+    meck:new(erlcloud_aws, [passthrough]).
+    
 stop(_) ->
     meck:unload(erlcloud_aws).
 
@@ -96,7 +108,100 @@ lifecycle_hooks_tests(_) ->
       fun() ->
              Res = extract_result(erlcloud_as:complete_lifecycle_action("my-test-asg-lbs", "CONTINUE", "TestHook", {instance_id, "i-bdae7a84"})),
              ?assertEqual(Res, expected_complete_lifecycle_action()) end].
-    
+  
+as_query_test_xmerl() ->
+  XML = 
+    "<DescribeTagsResponse xmlns=\"https://autoscaling.amazonaws.com/doc/2011-01-01/\">
+      <DescribeTagsResult>
+        <Tags>      
+          <member>
+            <ResourceId>my-asg</ResourceId>
+            <PropagateAtLaunch>true</PropagateAtLaunch>
+            <Value>test</Value>
+            <Key>environment</Key>
+            <ResourceType>auto-scaling-group</ResourceType>
+          </member>
+        </Tags>
+      </DescribeTagsResult>
+      <ResponseMetadata>
+        <RequestId>7c6e177f-f082-11e1-ac58-3714bEXAMPLE</RequestId>
+      </ResponseMetadata>
+    </DescribeTagsResponse>",
+  XMERL = {ok, element(1, xmerl_scan:string(XML))},
+  meck:expect(erlcloud_aws, aws_request_xml4,
+      fun(_,_,_,_,_,_) ->
+          XMERL
+      end),
+  Conf = #aws_config{},
+  Action = <<"DescribeTags">>,
+  Params = #{},
+  Opts = #{},
+  Result = erlcloud_as:query(Conf, Action, Params, Opts),
+  ?assertEqual(XMERL, Result).
+
+as_query_test_map() ->
+  XML = 
+    "<DescribeTagsResponse xmlns=\"https://autoscaling.amazonaws.com/doc/2011-01-01/\">
+      <DescribeTagsResult>
+        <Tags>      
+          <member>
+            <ResourceId>my-asg</ResourceId>
+            <PropagateAtLaunch>true</PropagateAtLaunch>
+            <Value>test</Value>
+            <Key>environment</Key>
+            <ResourceType>auto-scaling-group</ResourceType>
+          </member>
+          <member>
+            <ResourceId>other-asg</ResourceId>
+            <PropagateAtLaunch>false</PropagateAtLaunch>
+            <Value>value</Value>
+            <Key>environment</Key>
+            <ResourceType>auto-scaling-group</ResourceType>
+          </member>
+        </Tags>
+      </DescribeTagsResult>
+      <ResponseMetadata>
+        <RequestId>7c6e177f-f082-11e1-ac58-3714bEXAMPLE</RequestId>
+      </ResponseMetadata>
+    </DescribeTagsResponse>",
+    XMERL = {ok, element(1, xmerl_scan:string(XML))},
+    ExpectedResult = {ok, 
+      #{'DescribeTagsResponse' =>
+            #{'DescribeTagsResult' =>
+                  #{'Tags' =>
+                        [#{'Value'             => <<"test">>,
+                            'Key'               => <<"environment">>,
+                            'PropagateAtLaunch' => true,
+                            'ResourceId'        => <<"my-asg">>,
+                            'ResourceType'      => <<"auto-scaling-group">>
+                          },
+                          #{'Value'             => <<"value">>,
+                            'Key'               => <<"environment">>,
+                            'PropagateAtLaunch' => false,
+                            'ResourceId'        => <<"other-asg">>,
+                            'ResourceType'      => <<"auto-scaling-group">>
+                          }
+                      ]
+                },
+            'ResponseMetadata' =>
+                #{'RequestId' => <<"7c6e177f-f082-11e1-ac58-3714bEXAMPLE">>
+                  }
+            }
+    }}, 
+    meck:expect(erlcloud_aws, aws_request_xml4,
+        fun(_,_,_,_,_,_) ->
+            XMERL
+        end),
+    Conf = #aws_config{},
+    Action = <<"DescribeTags">>,
+    Params = #{},
+    Opts = #{
+        response_format => map
+    },
+    Result = erlcloud_as:query(Conf, Action, Params, Opts),
+    ?assertEqual(ExpectedResult, Result).
+
+
 mocked_aws_xml() ->
     meck:expect(erlcloud_aws, default_config, [{[], #aws_config{}}]),
     meck:expect(erlcloud_aws, aws_request_xml4, [

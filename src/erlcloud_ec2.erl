@@ -207,7 +207,11 @@
          describe_launch_template_versions/4, describe_launch_template_versions/5,
          describe_launch_template_versions/6, describe_launch_template_versions/7,
 
-         describe_launch_template_versions_all/2, describe_launch_template_versions_all/3
+         describe_launch_template_versions_all/2, describe_launch_template_versions_all/3,
+
+         % Generic Action handler
+         private_ip_params/1, prepare_action_params/2,
+         query/4
     ]).
 
 -import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
@@ -270,6 +274,11 @@
 -type ec2_flow_ids() :: [flow_id()].
 -type launch_template_ids() :: [string()].
 
+-type query_opts() :: #{
+    api_version => string(),
+    filter => filter_list(),
+    response_format => map | none
+}.
 
 -spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
@@ -3574,8 +3583,42 @@ ec2_query(Config, Action, Params, ApiVersion) ->
                                   Config#aws_config.ec2_port,
                                   "/", QParams, "ec2", Config).
 
-default_config() -> erlcloud_aws:default_config().
+% Exported Query Function with parameter handling
+% Query takes in: 
+% - an aws_config
+%   - an ec2 action string: list of possible are found here https://docs.aws.amazon.com/AWSEC2/latest/APIReference/OperationList-query-ec2.html
+% - a map of query parameters: An example can be found here https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeImages.html
+    % NOTE: Any fields in the documentation that end in ".N", may just store a list - No need to include ".N".   
+% - Params that have dry_run enabled, will return a 412 from AWS to denote a successful dry-run.
 
+-spec query(aws_config(), string(), map(), query_opts()) -> ok_error().
+query(Config, Action, Params, Opts) ->
+    ApiVersion= maps:get(version, Opts, ?NEW_API_VERSION),
+    Filter = maps:get(filter, Opts, []),
+    ResponseFormat = maps:get(response_format, Opts, none),
+    erlcloud_aws:parse_response(do_query(Config, Action, Params, Filter, ApiVersion), ResponseFormat).
+
+do_query(Config, Action, MapParams, Filter, ApiVersion) -> 
+    Params = prepare_action_params(MapParams, Filter),
+    case ec2_query(Config, Action, Params, ApiVersion) of
+        {ok, Results} ->
+            {ok, Results};
+        % AWS will return a 412 if a dry run is performed and is successful
+        {error, {http_error, 412, _, _}} -> 
+            {ok, dry_run_success};
+        {error, _} = E -> E
+    end.
+
+% Take parameters in map form, as specified in https://docs.aws.amazon.com/AWSEC2/latest/APIReference/OperationList-query-ec2.html
+% and a list for filters 
+prepare_action_params(ParamsMap, []) when is_map(ParamsMap) ->
+    erlcloud_aws:process_params(ParamsMap);
+prepare_action_params(ParamsMap, Filters) when is_map(ParamsMap) ->
+    erlcloud_aws:process_params(ParamsMap) ++ list_to_ec2_filter(Filters). % Add the filters 
+
+% Take a map of parameters as specified in https://docs.aws.amazon.com/AWSEC2/latest/APIReference/OperationList-query-ec2.html
+% Handles the formatting of the parameters, such as lists, and nested maps
+% Take FilterList and convert it to format [{Filter.N.Key, Value}, ...] 
 list_to_ec2_filter(none) ->
     [];
 list_to_ec2_filter(List) ->
@@ -3583,22 +3626,23 @@ list_to_ec2_filter(List) ->
 
 list_to_ec2_filter([], _Count, Res) ->
     Res;
-list_to_ec2_filter([{N, V}|T], Count, Res)
-    when is_atom(N) ->
-    NewName = [case Char of $_ -> $-; _ -> Char end || Char <- atom_to_list(N)],
+list_to_ec2_filter([{N, V}|T], Count, Res) when is_atom(N) ->
+    NewName = erlcloud_aws:to_bitstring([case Char of $_ -> $-; _ -> Char end || Char <- atom_to_list(N)]),
     list_to_ec2_filter([{NewName, V}|T], Count, Res);
 list_to_ec2_filter([{N, V}|T], Count, Res) ->
-    Tup = {io_lib:format("Filter.~p.Name", [Count]), N},
+    Tup = {erlcloud_aws:to_bitstring(io_lib:format("Filter.~p.Name", [Count])), N},
     Vals = list_to_ec2_values(V, Count, 1, []),
     list_to_ec2_filter(T, Count + 1, lists:flatten([Tup, Vals, Res])).
 
 list_to_ec2_values([], _Count, _VCount, Res) ->
     Res;
 list_to_ec2_values([H|T], Count, VCount, Res) when is_list(H) ->
-    Tup = {io_lib:format("Filter.~p.Value.~p", [Count, VCount]), H},
+    Tup = {erlcloud_aws:to_bitstring(io_lib:format("Filter.~p.Value.~p", [Count, VCount])), H},
     list_to_ec2_values(T, Count, VCount + 1, [Tup|Res]);
 list_to_ec2_values(V, Count, VCount, _Res) ->
-    {io_lib:format("Filter.~p.Value.~p", [Count, VCount]), V}.
+    {erlcloud_aws:to_bitstring(io_lib:format("Filter.~p.Value.~p", [Count, VCount])), V}.
+
+default_config() -> erlcloud_aws:default_config().
 
 -spec describe_vpn_gateways() -> ok_error([proplist()]).
 describe_vpn_gateways() ->
