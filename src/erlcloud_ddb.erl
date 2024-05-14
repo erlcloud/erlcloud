@@ -664,7 +664,7 @@ batch_get_item_record() ->
        end}
      ]}.
 
--type batch_get_item_return() :: ddb_return(#ddb_batch_get_item{}, [erlcloud_ddb:out_item()]).
+-type batch_get_item_return() :: ddb_return(#ddb_batch_get_item{}, [out_item()]).
 
 -spec batch_get_item(batch_get_item_request_items()) -> batch_get_item_return().
 batch_get_item(RequestItems) ->
