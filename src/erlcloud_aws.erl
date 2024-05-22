@@ -1580,7 +1580,17 @@ parse_response({ok, Response}, map) ->
     {ok, _Res} = erlcloud_xml:xml_to_map(Response);
 parse_response({ok, Response}, _) ->
     {ok, Response};
-parse_response({error, _} = ErrRes, _Format) -> 
+parse_response({error,{http_error,ErrorCode,_, Body}} = Error, map) ->
+  case format_xml_response(Body) of
+    {ok, XML} ->
+      case erlcloud_xml:xml_to_map(XML) of
+        {ok, Map} -> {error, {ErrorCode, Map}};
+        _ -> Error
+      end;
+    {aws_error, {invalid_xml_response_document, _}} ->
+      Error
+  end;
+parse_response({error, _} = ErrRes, _Format) ->
     ErrRes.
 
 concat_key(<<>>, Key) when is_bitstring(Key); is_atom(Key)  ->
