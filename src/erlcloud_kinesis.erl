@@ -969,7 +969,7 @@ list_all_tags_pagination_test_() ->
     meck:sequence(EK, request, 3,
                   [{ok, [{<<"HasMoreTags">>, true},  {<<"Tags">>, Tags1}]},
                    {ok, [{<<"HasMoreTags">>, false}, {<<"Tags">>, Tags2}]}]),
-    Result = erlcloud_kinesis:list_all_tags_for_stream(<<"stream">>),
+    Result = list_all_tags_for_stream(<<"stream">>),
     meck:unload(EK),
     ?_assertEqual({ok, [{<<"k1">>, <<"v1">>},
                         {<<"k2">>, <<"v2">>},
