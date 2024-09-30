@@ -59,6 +59,11 @@
          get_notification_attribute/2]).
 -export([new/2, new/3, configure/2, configure/3]).
 
+
+
+-export([query/4]).
+
+
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 -define(API_VERSION, "2010-03-31").
@@ -67,6 +72,10 @@
 -opaque sns_notification() :: sns_message().
 -type sns_event_type() :: subscription_confirmation | notification.
 -export_type([sns_event/0, sns_event_type/0, sns_notification/0]).
+
+-type ok_error() :: {ok, map()} | {error, error_reason()}.
+-type query_opts() :: map().
+-type error_reason() :: erlcloud_aws:httpc_result_error() | term().
 
 -type sns_endpoint_attribute() :: custom_user_data
                                 | enabled
@@ -837,6 +846,28 @@ sns_request(Config, Action, Params) ->
         {error, Reason} ->
             erlang:error({sns_error, Reason})
     end.
+
+-spec query(aws_config(), string(), proplist() | map(), query_opts()) -> ok_error().
+query(Config, Action, Params, Opts) ->
+    ResponseFormat = maps:get(response_format, Opts, map),
+    erlcloud_aws:parse_response(do_query(Config, Action, Params), ResponseFormat).
+
+prepare_action_params(ParamsMap) when is_map(ParamsMap) ->
+    {error, not_yet_implemented};
+prepare_action_params(ParamsList) when is_list(ParamsList) ->
+    ParamsList.
+
+do_query(Config, Action, Params) -> 
+    PreparedParams = prepare_action_params(Params),
+    case sns_xml_request(Config, Action, PreparedParams) of
+        {ok, Results} ->
+            {ok, Results};
+        % AWS will return a 412 if a dry run is performed and is successful
+        {error, {http_error, 412, _, _}} -> 
+            {ok, dry_run_success};
+        {error, _} = E -> E
+    end.
+
 
 list_all(Fun, Type, Config, Token, Acc) ->
     Res = Fun(Token, Config),
