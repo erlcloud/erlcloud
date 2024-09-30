@@ -31,7 +31,7 @@
          complete_lifecycle_action/4, complete_lifecycle_action/5,
          record_lifecycle_action_heartbeat/3, record_lifecycle_action_heartbeat/4,
 
-         query/4,prepare_action_params/1
+         query/3,query/4,prepare_action_params/1
 ]).
 
 -define(API_VERSION, "2011-01-01").
@@ -808,9 +808,13 @@ query(Config, Action, Params, Opts) ->
     ApiVersion= maps:get(version, Opts, ?API_VERSION),
     ResponseFormat = maps:get(response_format, Opts, none),
     erlcloud_aws:parse_response(do_query(Config, Action, Params, ApiVersion), ResponseFormat).
+query(Config, Action, Params) ->
+    query(Config, Action, Params, #{}).
 
 prepare_action_params(ParamsMap) when is_map(ParamsMap) ->
-    erlcloud_aws:process_params(ParamsMap, <<>>, <<"member">>).
+    erlcloud_aws:process_params(ParamsMap, <<>>, <<"member">>);
+prepare_action_params(ParamsList) when is_list(ParamsList) ->
+    ParamsList.
 
 do_query(Config, Action, MapParams, ApiVersion) -> 
     Params = prepare_action_params(MapParams),
