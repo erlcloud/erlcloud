@@ -211,7 +211,7 @@
 
          % Generic Action handler
          private_ip_params/1, prepare_action_params/2,
-         query/4
+         query/3, query/4
     ]).
 
 -import(erlcloud_xml, [get_text/1, get_text/2, get_text/3, get_bool/2, get_list/2, get_integer/2]).
@@ -3590,17 +3590,19 @@ ec2_query(Config, Action, Params, ApiVersion) ->
 % - a map of query parameters: An example can be found here https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeImages.html
     % NOTE: Any fields in the documentation that end in ".N", may just store a list - No need to include ".N".   
 % - Params that have dry_run enabled, will return a 412 from AWS to denote a successful dry-run.
-
--spec query(aws_config(), string(), map(), query_opts()) -> ok_error().
+-spec query(aws_config(), string(), proplist() | map(), query_opts()) -> ok_error().
 query(Config, Action, Params, Opts) ->
-    ApiVersion= maps:get(version, Opts, ?NEW_API_VERSION),
+    ApiVersion = maps:get(version, Opts, ?NEW_API_VERSION),
     Filter = maps:get(filter, Opts, []),
     ResponseFormat = maps:get(response_format, Opts, none),
     erlcloud_aws:parse_response(do_query(Config, Action, Params, Filter, ApiVersion), ResponseFormat).
+-spec query(aws_config(), string(), proplist() | map()) -> ok_error().
+query(Config, Action, Params) ->
+    query(Config, Action, Params, #{}).
 
-do_query(Config, Action, MapParams, Filter, ApiVersion) -> 
-    Params = prepare_action_params(MapParams, Filter),
-    case ec2_query(Config, Action, Params, ApiVersion) of
+do_query(Config, Action, Params, Filter, ApiVersion) -> 
+    PreparedParams = prepare_action_params(Params, Filter),
+    case ec2_query(Config, Action, PreparedParams, ApiVersion) of
         {ok, Results} ->
             {ok, Results};
         % AWS will return a 412 if a dry run is performed and is successful
@@ -3609,12 +3611,19 @@ do_query(Config, Action, MapParams, Filter, ApiVersion) ->
         {error, _} = E -> E
     end.
 
-% Take parameters in map form, as specified in https://docs.aws.amazon.com/AWSEC2/latest/APIReference/OperationList-query-ec2.html
-% and a list for filters 
-prepare_action_params(ParamsMap, []) when is_map(ParamsMap) ->
-    erlcloud_aws:process_params(ParamsMap);
-prepare_action_params(ParamsMap, Filters) when is_map(ParamsMap) ->
-    erlcloud_aws:process_params(ParamsMap) ++ list_to_ec2_filter(Filters). % Add the filters 
+% Handle both proplist and map inputs, with optional filters
+% User may send a map for us to convert to proplist, or they may send an already formatted proplist.
+prepare_action_params(Params, Filter) ->
+    case {is_map(Params), Filter} of
+        {true, []} ->
+            erlcloud_aws:process_params(Params);
+        {true, _} ->
+            erlcloud_aws:process_params(Params) ++ list_to_ec2_filter(Filter);
+        {false, []} ->
+            Params;
+        {false, _} ->
+            Params ++ list_to_ec2_filter(Filter)
+    end.
 
 % Take a map of parameters as specified in https://docs.aws.amazon.com/AWSEC2/latest/APIReference/OperationList-query-ec2.html
 % Handles the formatting of the parameters, such as lists, and nested maps
