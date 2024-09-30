@@ -15,8 +15,7 @@
 -type ok_error() :: {ok, map()} | {error, error_reason()}.
 -type query_opts() :: map().
 
-
--type error_reason() :: metadata_not_available | container_credentials_unavailable | erlcloud_aws:httpc_result_error().
+-type error_reason() :: erlcloud_aws:httpc_result_error() | term().
 
 %% Library initialization
 -export([

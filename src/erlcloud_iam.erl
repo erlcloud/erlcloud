@@ -71,6 +71,7 @@
 
 
 -type ok_error() :: {ok, map()} | {error, error_reason()}.
+-type error_reason() :: erlcloud_aws:httpc_result_error() | term().
 -type query_opts() :: map().
 
 -export([query/3, query/4]).

@@ -10,8 +10,8 @@
 -export([list_distributions/0, list_distributions/1,
          list_distributions/2, list_distributions/3,
          get_distribution/1, get_distribution/2]).
-        
--export([query/3, query/4]).
+
+-export([query/4, query/5]).
 
 -define(API_VERSION, "2016-11-25").
 
@@ -19,8 +19,9 @@
 -type ok_error(Ok) :: {ok, Ok} | {error, term()}.
 -type ok_error(Ok1, Ok2) :: {ok, Ok1, Ok2} | {error, term()}.
 -type ok_error() :: {ok, map()} | {error, error_reason()}.
--type error_reason() :: metadata_not_available | container_credentials_unavailable | erlcloud_aws:httpc_result_error().
+-type error_reason() :: erlcloud_aws:httpc_result_error() | term().
 -type query_opts() :: map().
+-type api_method() :: get | post.
 
 -define(MAX_RESULTS, 100).
 
@@ -234,23 +235,23 @@ cloudfront_query(Method, Config, Action, Params, ApiVersion) ->
                                   Params, "cloudfront", Config).
 
 
--spec query(aws_config(), string(), proplist() | map(), query_opts()) -> ok_error().
-query(Config, Action, Params, Opts) ->
+-spec query(api_method(), aws_config(), string(), proplist() | map(), query_opts()) -> ok_error().
+query(Method, Config, Action, Params, Opts) ->
     ApiVersion= maps:get(version, Opts, ?API_VERSION),
     ResponseFormat = maps:get(response_format, Opts, none),
-    erlcloud_aws:parse_response(do_query(Config, Action, Params, ApiVersion), ResponseFormat).
--spec query(aws_config(), string(), proplist() | map()) -> ok_error().
-query(Config, Action, Params) ->
-    query(Config, Action, Params, #{}).
+    erlcloud_aws:parse_response(do_query(Method, Config, Action, Params, ApiVersion), ResponseFormat).
+-spec query(api_method(), aws_config(), string(), proplist() | map()) -> ok_error().
+query(Method, Config, Action, Params) ->
+    query(Method, Config, Action, Params, #{}).
 
 prepare_action_params(ParamsMap) when is_map(ParamsMap) ->
     {error, not_yet_implemented};
 prepare_action_params(ParamsList) when is_list(ParamsList) ->
     ParamsList.
 
-do_query(Config, Action, MapParams, ApiVersion) -> 
+do_query(Method, Config, Action, MapParams, ApiVersion) -> 
     Params = prepare_action_params(MapParams),
-    case cloudfront_query(Config, Action, Params, ApiVersion) of
+    case cloudfront_query(Method, Config, Action, Params, ApiVersion) of
         {ok, Results} ->
             {ok, Results};
         % AWS will return a 412 if a dry run is performed and is successful

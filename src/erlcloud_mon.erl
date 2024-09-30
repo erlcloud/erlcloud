@@ -30,6 +30,7 @@
 
 -type ok_error() :: {ok, map()} | {error, error_reason()}.
 -type query_opts() :: map().
+-type error_reason() :: erlcloud_aws:httpc_result_error() | term().
 
 -export([query/3, query/4]).
     
@@ -37,7 +38,6 @@
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 -include("erlcloud_mon.hrl").
--include_lib("xmerl/include/xmerl.hrl").
 
 -import(erlcloud_xml, [get_text/2, get_time/2, get_bool/2, get_integer/2,
                        get_float/2, get_text/1]).

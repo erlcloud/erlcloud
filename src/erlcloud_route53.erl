@@ -13,7 +13,7 @@
 -type ok_error() :: {ok, map()} | {error, error_reason()}.
 -type query_opts() :: map().
 -type error_reason() :: erlcloud_aws:httpc_result_error() | term().
-
+-type api_method() :: get | post.
 
 -export([configure/2, configure/3, new/2, new/3]).
 
@@ -512,11 +512,12 @@ route53_query(Method, Config, Action, Path, Params, ApiVersion) ->
     erlcloud_aws:aws_request_xml4(Method, Config#aws_config.route53_host,
                                   Path, QParams, "route53", Config).
 
-
+-spec query(api_method(), aws_config(), string(), string(), proplist() | map(), query_opts()) -> ok_error().
 query(Method, Config, Action, Path, Params, Opts) ->
     ApiVersion = maps:get(version, Opts, ?API_VERSION),
     ResponseFormat = maps:get(response_format, Opts, map),
     erlcloud_aws:parse_response(do_query(Method, Config, Action, Path, Params, ApiVersion), ResponseFormat).
+-spec query(api_method(), aws_config(), string(), string(), proplist() | map()) -> ok_error().
 query(Method, Config, Action, Path, Params) ->
     query(Method, Config, Action, Path, Params, #{}).
 
