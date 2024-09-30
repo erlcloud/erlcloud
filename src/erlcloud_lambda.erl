@@ -10,6 +10,7 @@
 %%% Library initialization.
 -export([configure/2, configure/3, configure/4,
          new/2, new/3, new/4]).
+-export([query/6]).
 -export([create_alias/4, create_alias/5,
          create_event_source_mapping/4, create_event_source_mapping/5,
          create_function/6, create_function/7,
@@ -80,6 +81,17 @@ configure(AccessKeyID, SecretAccessKey, Host, Port) ->
     erlcloud_config:configure(AccessKeyID, SecretAccessKey, Host, Port, fun new/4).
 
 default_config() -> erlcloud_aws:default_config().
+
+
+query(Config, Method, Path, Body, QParams, Options) ->
+  ApiVersion = proplists:get_value(version, Options, ?API_VERSION),
+  Options2 = proplists:delete(version, Options),
+  BasePath = "/" ++ ApiVersion ++ "/",
+  case lambda_request(Config, Method, BasePath ++ Path, Body, QParams, [{raw_response_body, true} | Options2]) of
+    {ok, Bin} ->
+      {ok, jiffy:decode(Bin, [return_maps, copy_strings])};
+    Error -> Error
+  end.
 
 %%------------------------------------------------------------------------------
 %% CreateAlias

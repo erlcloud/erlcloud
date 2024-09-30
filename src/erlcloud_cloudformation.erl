@@ -12,14 +12,18 @@
 -type params() :: proplists:proplist().
 -type cloudformation_list() :: [proplists:proplist()].
 
+-type ok_error() :: {ok, map()} | {error, error_reason()}.
+-type query_opts() :: map().
 
--type error_reason() :: metadata_not_available | container_credentials_unavailable | erlcloud_aws:httpc_result_error().
+-type error_reason() :: erlcloud_aws:httpc_result_error() | term().
 
 %% Library initialization
 -export([
     configure/2,
     new/2
 ]).
+
+-export([query/3, query/4]).
 
 
 %% Cloud Formation API Functions
@@ -81,6 +85,39 @@ new(AccessKeyID, SecretAccessKey) ->
 %%==============================================================================
 %% Cloud Formation API Functions
 %%==============================================================================
+cfn_query(Config, Action, Params, ApiVersion) ->
+    QParams = [
+        {"Action", Action},
+        {"Version", ApiVersion}
+        | Params],
+    erlcloud_aws:aws_request_xml4(post, Config#aws_config.cloudformation_host,
+        "/", QParams, "cloudformation", Config).
+
+-spec query(aws_config(), string(), proplist() | map(), query_opts()) -> ok_error().
+query(Config, Action, Params, Opts) ->
+    ApiVersion = maps:get(version, Opts, ?API_VERSION),
+    ResponseFormat = maps:get(response_format, Opts, map),
+    erlcloud_aws:parse_response(do_query(Config, Action, Params, ApiVersion), ResponseFormat).
+-spec query(aws_config(), string(), proplist() | map()) -> ok_error().
+query(Config, Action, Params) ->
+    query(Config, Action, Params, #{}).
+
+prepare_action_params(ParamsMap) when is_map(ParamsMap) ->
+    {error, not_yet_implemented};
+prepare_action_params(ParamsList) when is_list(ParamsList) ->
+    ParamsList.
+
+do_query(Config, Action, Params, ApiVersion) -> 
+    PreparedParams = prepare_action_params(Params),
+    case cfn_query(Config, Action, PreparedParams, ApiVersion) of
+        {ok, Results} ->
+            {ok, Results};
+        % AWS will return a 412 if a dry run is performed and is successful
+        {error, {http_error, 412, _, _}} -> 
+            {ok, dry_run_success};
+        {error, _} = E -> E
+    end.
+
 -spec create_stack(cloudformation_create_stack_input()) ->
     {ok, string()} | {error, error_reason()}.
 create_stack(Spec = #cloudformation_create_stack_input{}) ->

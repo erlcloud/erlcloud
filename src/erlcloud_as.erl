@@ -29,7 +29,9 @@
 
          describe_lifecycle_hooks/1, describe_lifecycle_hooks/2, describe_lifecycle_hooks/3,
          complete_lifecycle_action/4, complete_lifecycle_action/5,
-         record_lifecycle_action_heartbeat/3, record_lifecycle_action_heartbeat/4
+         record_lifecycle_action_heartbeat/3, record_lifecycle_action_heartbeat/4,
+
+         query/3,query/4,prepare_action_params/1
 ]).
 
 -define(API_VERSION, "2011-01-01").
@@ -82,6 +84,12 @@
 -define(RECORD_LIFECYCLE_ACTION_HEARTBEAT_ACTIVITY, 
         "/RecordLifecycleActionHeartbeatResponse/ResponseMetadata/RequestId").
 
+    
+-type ok_error() :: ok | {error, term()}.
+-type query_opts() :: #{
+    api_version => string(),
+    response_format => map | none
+}.
 
 %% --------------------------------------------------------------------
 %% @doc Calls describe_groups([], default_configuration())
@@ -349,7 +357,6 @@ create_launch_config(#aws_launch_config{
           ++ when_defined(Monitoring, [{"InstanceMonitoring.Enabled", atom_to_list(Monitoring)}], [])
           ++ member_params("SecurityGroups.member.", SGroups)
           ++ when_defined(KeyPair, [{"KeyName", KeyPair}], []),
-    io:format("~p ~n", [Params]),
     create_launch_config(Params, Config);
 
 create_launch_config(Params, Config) ->
@@ -763,15 +770,8 @@ extract_as_activity(A) ->
 get_text(Label, Doc) ->
     erlcloud_xml:get_text(Label, Doc).
 
-%% @TODO:  spec is too general with terms I think
--spec as_query(aws_config(), string(), list({string(), term()}), string()) -> {ok, #xmlElement{}} | {error, term()}.
-as_query(Config, Action, Params, ApiVersion) ->
-    QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
-    erlcloud_aws:aws_request_xml4(post, Config#aws_config.as_host,
-                                  "/", QParams, "autoscaling", Config).
-
-
 when_defined(Value, Return, DefaultReturn) ->
+
     case Value of 
         undefined ->
             DefaultReturn;
@@ -795,3 +795,36 @@ tag_to_member_param(#aws_autoscaling_tag{
       when_defined(ResourceId, {Prefix ++ "ResourceId", ResourceId}, []),
       when_defined(ResourceType, {Prefix ++ "ResourceType", ResourceType}, [])
     ].
+
+%% @TODO:  spec is too general with terms I think
+-spec as_query(aws_config(), string(), list({string(), term()}), string()) -> {ok, #xmlElement{}} | {error, term()}.
+as_query(Config, Action, Params, ApiVersion) ->
+    QParams = [{"Action", Action}, {"Version", ApiVersion}|Params],
+    erlcloud_aws:aws_request_xml4(post, Config#aws_config.as_host,
+                                  "/", QParams, "autoscaling", Config).
+
+-spec query(aws_config(), string(), map(), query_opts()) -> ok_error().
+query(Config, Action, Params, Opts) ->
+    ApiVersion= maps:get(version, Opts, ?API_VERSION),
+    ResponseFormat = maps:get(response_format, Opts, none),
+    erlcloud_aws:parse_response(do_query(Config, Action, Params, ApiVersion), ResponseFormat).
+query(Config, Action, Params) ->
+    query(Config, Action, Params, #{}).
+
+prepare_action_params(ParamsMap) when is_map(ParamsMap) ->
+    erlcloud_aws:process_params(ParamsMap, <<>>, <<"member">>);
+prepare_action_params(ParamsList) when is_list(ParamsList) ->
+    ParamsList.
+
+do_query(Config, Action, MapParams, ApiVersion) -> 
+    Params = prepare_action_params(MapParams),
+    case as_query(Config, Action, Params, ApiVersion) of
+        {ok, Results} ->
+            {ok, Results};
+        % AWS will return a 412 if a dry run is performed and is successful
+        {error, {http_error, 412, _, _}} -> 
+            {ok, dry_run_success};
+        {error, _} = E -> E
+    end.
+
+

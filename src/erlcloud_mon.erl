@@ -28,10 +28,16 @@
          test2/0
         ]).
 
+-type ok_error() :: {ok, map()} | {error, error_reason()}.
+-type query_opts() :: map().
+-type error_reason() :: erlcloud_aws:httpc_result_error() | term().
+
+-export([query/3, query/4]).
+    
+
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 -include("erlcloud_mon.hrl").
--include_lib("xmerl/include/xmerl.hrl").
 
 -import(erlcloud_xml, [get_text/2, get_time/2, get_bool/2, get_integer/2,
                        get_float/2, get_text/1]).
@@ -657,6 +663,31 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
     ok.
 
 default_config() -> erlcloud_aws:default_config().
+
+-spec query(aws_config(), string(), proplist() | map(), query_opts()) -> ok_error().
+query(Config, Action, Params, Opts) ->
+    ApiVersion = maps:get(version, Opts, ?API_VERSION),
+    ResponseFormat = maps:get(response_format, Opts, map),
+    erlcloud_aws:parse_response(do_query(Config, Action, Params, ApiVersion), ResponseFormat).
+-spec query(aws_config(), string(), proplist() | map()) -> ok_error().
+query(Config, Action, Params) ->
+    query(Config, Action, Params, #{}).
+
+prepare_action_params(ParamsMap) when is_map(ParamsMap) ->
+    {error, not_yet_implemented};
+prepare_action_params(ParamsList) when is_list(ParamsList) ->
+    ParamsList.
+
+do_query(Config, Action, Params, ApiVersion) -> 
+    PreparedParams = prepare_action_params(Params),
+    case mon_query(Config, Action, PreparedParams, ApiVersion) of
+        {ok, Results} ->
+            {ok, Results};
+        % AWS will return a 412 if a dry run is performed and is successful
+        {error, {http_error, 412, _, _}} -> 
+            {ok, dry_run_success};
+        {error, _} = E -> E
+    end.
 
 %%------------------------------------------------------------------------------
 %% tests

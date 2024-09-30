@@ -25,7 +25,10 @@
          get_service_status/1,
          is_throttling_error_response/1,
          get_timeout/1,
-         profile/0, profile/1, profile/2
+         profile/0, profile/1, profile/2,
+         concat_key/2,
+         to_bitstring/1,value_to_string/1,
+         parse_response/2, process_params/1, process_params/2, process_params/3
 ]).
 
 -include("erlcloud.hrl").
@@ -285,7 +288,6 @@ do_aws_request_form_raw(Method, Scheme, Host, Port, Path, Form, Headers, QuerySt
     %%       Many timeout related failures is observed at prod env
     %%       when library is used in 24/7 manner
     Response = erlcloud_retry:request(Config, AwsRequest, ResultFun),
-
     show_headers(ShowRespHeaders, request_to_return(Response)).
 
 show_headers(true, {ok, {Headers, Body}}) ->
@@ -1522,15 +1524,11 @@ profiles_assume( Credential, Role, ExternalId,
         erlcloud_sts:assume_role( Config, Role, Name, Duration, ExtId ),
     {ok, AssumedConfig}.
 
-
 config_credential({Id, Secret}, Config) ->
     Config#aws_config{ access_key_id = Id, secret_access_key = Secret };
 config_credential({Id, Secret, Token}, Config) ->
     Config#aws_config{ access_key_id = Id, secret_access_key = Secret, security_token = Token };
 config_credential(#aws_config{} = Config, _) -> Config.
-
-
-
 
 error_msg( Message ) ->
     Error = iolist_to_binary( Message ),
@@ -1572,3 +1570,62 @@ maybe_imdsv2_session_token(Config) ->
         {ok, Token} -> Token;
         _Error -> undefined
     end.
+
+%%%%%%%%%%%%%%%%%
+
+% Takes the query response and turns it into a map if desired
+parse_response({ok, Response}, _) when is_atom(Response) ->
+    {ok, Response};
+parse_response({ok, Response}, map) ->
+    {ok, _Res} = erlcloud_xml:xml_to_map(Response);
+parse_response({ok, Response}, _) ->
+    {ok, Response};
+parse_response({error,{http_error,ErrorCode,_, Body}} = Error, map) ->
+  case format_xml_response(Body) of
+    {ok, XML} ->
+      case erlcloud_xml:xml_to_map(XML) of
+        {ok, Map} -> {error, {ErrorCode, Map}};
+        _ -> Error
+      end;
+    {aws_error, {invalid_xml_response_document, _}} ->
+      Error
+  end;
+parse_response({error, _} = ErrRes, _Format) ->
+    ErrRes.
+
+concat_key(<<>>, Key) when is_bitstring(Key); is_atom(Key)  ->
+    to_bitstring(Key);
+concat_key(<<>>, Key) when is_list(Key) -> 
+    list_to_bitstring(Key);
+concat_key(ParentKey, Key) ->
+    BiParentKey = to_bitstring(ParentKey),
+    BiKey = to_bitstring(Key),
+    <<BiParentKey/binary, ".", BiKey/binary>>.
+
+%%% Conversions
+to_bitstring(In) when is_bitstring(In) ->
+    In;
+to_bitstring(In) when is_list(In) ->
+    list_to_binary(In);
+to_bitstring(In) when is_atom(In) ->
+    erlang:atom_to_binary(In, utf8).
+
+process_params(Params) ->
+    process_params(Params, <<>>, <<>>).
+process_params(Params, ParentKey) ->
+    process_params(Params, ParentKey, <<>>).
+process_params(Params, ParentKey, ListPrependStr) when is_map(Params) ->
+    process_params2(maps:to_list(Params), ParentKey, ListPrependStr);
+    
+process_params(Params, ParentKey, ListPrependStr) when is_list(Params) ->
+    Indexes = lists:seq(1, length(Params)),
+    BinIndexes = [ erlcloud_aws:concat_key(ListPrependStr, integer_to_binary(Index)) || Index <- Indexes],
+    process_params2(lists:zip(BinIndexes, Params), ParentKey, ListPrependStr);
+    
+process_params(Value, ParentKey, _)  ->
+    [{ParentKey, Value}].
+    
+process_params2(KV, ParentKey, ListPrependStr) ->
+    [ Result || {Key, Param} <- KV,
+        Result <- process_params(Param, erlcloud_aws:concat_key(ParentKey, Key), ListPrependStr)].
+

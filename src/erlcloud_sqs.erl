@@ -24,6 +24,7 @@
          delete_message_batch/2, delete_message_batch/3,
          change_message_visibility_batch/3, change_message_visibility_batch/4
         ]).
+-export([query/5]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -33,6 +34,10 @@
 -define(SEND_BATCH_FIELD(N, F, V), {"SendMessageBatchRequestEntry." ++ N ++ F, V}).
 -define(DELETE_BATCH_FIELD(N, F, V), {"DeleteMessageBatchRequestEntry." ++ N ++ F, V}).
 -define(CHANGE_VISIBILITY_BATCH_FIELD(N, F, V), {"ChangeMessageVisibilityBatchRequestEntry." ++ N ++ F, V}).
+
+-type ok_error() :: {ok, map()} | {error, error_reason()}.
+-type query_opts() :: map().
+-type error_reason() :: erlcloud_aws:httpc_result_error() | term().
 
 -type(sqs_permission() :: all | send_message | receive_message | delete_message |
                           change_message_visibility | get_queue_attributes).
@@ -709,6 +714,27 @@ sqs_request(Config, QueueName, Action, Params) ->
             Body;
         {error, Reason} ->
             erlang:error({aws_error, Reason})
+    end.
+
+-spec query(aws_config(), string(), string(), proplist() | map(), query_opts()) -> ok_error().
+query(Config, QueueName, Action, Params, Opts) ->
+    ResponseFormat = maps:get(response_format, Opts, map),
+    erlcloud_aws:parse_response(do_query(Config, QueueName, Action, Params), ResponseFormat).
+
+prepare_action_params(ParamsMap) when is_map(ParamsMap) ->
+    {error, not_yet_implemented};
+prepare_action_params(ParamsList) when is_list(ParamsList) ->
+    ParamsList.
+
+do_query(Config, QueueName, Action, Params) -> 
+    PreparedParams = prepare_action_params(Params),
+    case sqs_xml_request(Config, QueueName, Action, PreparedParams) of
+        {ok, Results} ->
+            {ok, Results};
+        % AWS will return a 412 if a dry run is performed and is successful
+        {error, {http_error, 412, _, _}} -> 
+            {ok, dry_run_success};
+        {error, _} = E -> E
     end.
 
 queue_path([$/|QueueName]) -> [$/ |erlcloud_http:url_encode(QueueName)];

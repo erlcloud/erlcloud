@@ -3,6 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("erlcloud.hrl").
 -include("erlcloud_ec2.hrl").
+-include("erlcloud_aws.hrl").
 
 %% Unit tests for ec2.
 %% These tests work by using meck to mock erlcloud_httpc. There are two classes of test: input and output.
@@ -65,7 +66,9 @@ describe_test_() ->
       fun describe_launch_template_versions_input_tests/1,
       fun describe_launch_template_versions_output_tests/1,
       fun describe_security_groups_input_tests/1,
-      fun describe_security_groups_output_tests/1
+      fun describe_security_groups_output_tests/1, 
+      fun ec2_query_test_xmerl/0,
+      fun ec2_query_test_map/0
      ]}.
 
 start() ->
@@ -1868,6 +1871,96 @@ describe_security_groups_output_tests(_) ->
         })
     ],
     output_tests(?_f(erlcloud_ec2:describe_security_groups()), Tests).
+
+ec2_query_test_xmerl() ->
+        XML = "<DescribeLaunchTemplatesResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+        <requestId>1afa6e44-eb38-4229-8db6-d5eaexample</requestId>
+        <launchTemplates>
+            <item>
+                <createTime>2017-10-31T11:38:52.000Z</createTime>
+                <createdBy>arn:aws:iam::123456789012:root</createdBy>
+                <defaultVersionNumber>1</defaultVersionNumber>
+                <latestVersionNumber>1</latestVersionNumber>
+                <launchTemplateId>lt-0a20c965061f64abc</launchTemplateId>
+                <launchTemplateName>MyLaunchTemplate</launchTemplateName>
+            </item>
+        </launchTemplates>
+        </DescribeLaunchTemplatesResponse>",
+        XMERL = {ok, element(1, xmerl_scan:string(XML))},
+        meck:new(erlcloud_aws, [passthrough]),
+        meck:expect(erlcloud_aws, aws_request_xml4,
+            fun(_,_,_,_,_,_,_,_) ->
+                XMERL
+            end),
+        Conf = #aws_config{},
+        Action = <<"DescribeLaunchTemplates">>,
+        Params = #{},
+        Opts = #{},
+        Result = erlcloud_ec2:query(Conf, Action, Params, Opts),
+        meck:unload(erlcloud_aws),
+        ?assertEqual(XMERL, Result).
+
+ec2_query_test_map() ->
+    XML = "<DescribeLaunchTemplatesResponse xmlns=\"http://ec2.amazonaws.com/doc/2016-11-15/\">
+    <requestId>1afa6e44-eb38-4229-8db6-d5eaexample</requestId>
+    <launchTemplates>
+        <item>
+            <createTime>2017-10-31T11:38:52.000Z</createTime>
+            <createdBy>arn:aws:iam::123456789012:root</createdBy>
+            <defaultVersionNumber>1</defaultVersionNumber>
+            <latestVersionNumber>1</latestVersionNumber>
+            <launchTemplateId>lt-0a20c965061f64abc</launchTemplateId>
+            <launchTemplateName>MyLaunchTemplate</launchTemplateName>
+        </item>
+        <item>
+            <createTime>2017-10-31T11:38:52.000Z</createTime>
+            <createdBy>arn:aws:iam::123456789012:root</createdBy>
+            <defaultVersionNumber>1</defaultVersionNumber>
+            <latestVersionNumber>1</latestVersionNumber>
+            <launchTemplateId>lt-01234</launchTemplateId>
+            <launchTemplateName>abcTemplate</launchTemplateName>
+        </item>
+    </launchTemplates>
+    </DescribeLaunchTemplatesResponse>",
+    XMERL = {ok, element(1, xmerl_scan:string(XML))},
+    ExpectedResult = {ok,#{'DescribeLaunchTemplatesResponse' =>
+                           #{requestId =>
+                                 <<"1afa6e44-eb38-4229-8db6-d5eaexample">>,
+                             launchTemplates =>
+                                 [#{createTime =>
+                                        <<"2017-10-31T11:38:52.000Z">>,
+                                    createdBy =>
+                                        <<"arn:aws:iam::123456789012:root">>,
+                                    defaultVersionNumber => <<"1">>,
+                                    latestVersionNumber => <<"1">>,
+                                    launchTemplateId =>
+                                        <<"lt-0a20c965061f64abc">>,
+                                    launchTemplateName =>
+                                        <<"MyLaunchTemplate">>},
+                                  #{createTime =>
+                                        <<"2017-10-31T11:38:52.000Z">>,
+                                    createdBy =>
+                                        <<"arn:aws:iam::123456789012:root">>,
+                                    defaultVersionNumber => <<"1">>,
+                                    latestVersionNumber => <<"1">>,
+                                    launchTemplateId => <<"lt-01234">>,
+                                    launchTemplateName =>
+                                        <<"abcTemplate">>}]}}},
+    meck:new(erlcloud_aws, [passthrough]),
+    meck:expect(erlcloud_aws, aws_request_xml4,
+        fun(_,_,_,_,_,_,_,_) ->
+            XMERL
+        end),
+    Conf = #aws_config{},
+    Action = <<"DescribeLaunchTemplates">>,
+    Params = #{},
+    Opts = #{
+        response_format => map
+    },
+    Result = erlcloud_ec2:query(Conf, Action, Params, Opts),
+    meck:unload(erlcloud_aws),
+    ?assertEqual(ExpectedResult, Result).
+
 
 generate_one_instance(N) ->
     "<item>

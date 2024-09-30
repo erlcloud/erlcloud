@@ -12,7 +12,9 @@ request_test_() ->
       fun test_request_prot_host_port_str/1,
       fun test_request_prot_host_port_int/1,
       fun test_get_service_status/1,
-      fun test_auto_config_with_env/1]}.
+      fun test_auto_config_with_env/1,
+      fun validate_map_params/0
+    ]}.
 
 start() ->
     meck:new(erlcloud_httpc),
@@ -992,3 +994,28 @@ test_get_host_vpc_endpoint_valid_os_env() ->
     after
         true = os:unsetenv(EnvVar)
     end.
+
+validate_map_params() -> 
+    Params = #{
+        <<"key1">> => <<"val1">>,
+        <<"key2">> => [<<"val21">>, <<"val22">>],
+        <<"key3">> => #{
+            <<"skey1">> => <<"val31">>,
+            <<"skey2">> => [<<"a">>,<<"b">>],
+            <<"skey3">> => #{<<"nkey1">> => <<"nested">>}
+                    },
+        <<"key4">> => [#{<<"skey1">> => 10}, #{<<"skey1">>=> 20},#{<<"skey1">>=> 30}]
+    },
+    DesiredResult = [
+        {<<"key1">>,<<"val1">>},
+        {<<"key2.1">>,<<"val21">>},
+        {<<"key2.2">>,<<"val22">>},
+        {<<"key3.skey1">>,<<"val31">>},
+        {<<"key3.skey2.1">>,<<"a">>},
+        {<<"key3.skey2.2">>,<<"b">>},
+        {<<"key3.skey3.nkey1">>,<<"nested">>},
+        {<<"key4.1.skey1">>,10},
+        {<<"key4.2.skey1">>,20},
+        {<<"key4.3.skey1">>,30}
+    ],
+    ?assertEqual(DesiredResult, erlcloud_aws:process_params(Params)).

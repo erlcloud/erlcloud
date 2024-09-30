@@ -10,6 +10,11 @@
 -type(aws_route53_zone() :: proplists:proplist()).
 -type(aws_route53_resourceset() :: proplists:proplist()).
 
+-type ok_error() :: {ok, map()} | {error, error_reason()}.
+-type query_opts() :: map().
+-type error_reason() :: erlcloud_aws:httpc_result_error() | term().
+-type api_method() :: get | post.
+
 -export([configure/2, configure/3, new/2, new/3]).
 
 -export([describe_zone/1, describe_zone/2, describe_zone/3]).
@@ -24,6 +29,8 @@
 -export([describe_delegation_sets/0, describe_delegation_sets/1,
         describe_delegation_sets/2, describe_delegation_sets_all/0,
         describe_delegation_sets_all/1, describe_delegation_sets_all/2]).
+
+-export([query/5, query/6]).
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
@@ -504,3 +511,28 @@ route53_query(Method, Config, Action, Path, Params, ApiVersion) ->
     QParams = [{"Action", Action}, {"Version", ApiVersion} | Params],
     erlcloud_aws:aws_request_xml4(Method, Config#aws_config.route53_host,
                                   Path, QParams, "route53", Config).
+
+-spec query(api_method(), aws_config(), string(), string(), proplist() | map(), query_opts()) -> ok_error().
+query(Method, Config, Action, Path, Params, Opts) ->
+    ApiVersion = maps:get(version, Opts, ?API_VERSION),
+    ResponseFormat = maps:get(response_format, Opts, map),
+    erlcloud_aws:parse_response(do_query(Method, Config, Action, Path, Params, ApiVersion), ResponseFormat).
+-spec query(api_method(), aws_config(), string(), string(), proplist() | map()) -> ok_error().
+query(Method, Config, Action, Path, Params) ->
+    query(Method, Config, Action, Path, Params, #{}).
+
+prepare_action_params(ParamsMap) when is_map(ParamsMap) ->
+    {error, not_yet_implemented};
+prepare_action_params(ParamsList) when is_list(ParamsList) ->
+    ParamsList.
+
+do_query(Method, Config, Action, Path, Params, ApiVersion) -> 
+    PreparedParams = prepare_action_params(Params),
+    case route53_query(Method, Config, Action, Path, PreparedParams, ApiVersion) of
+        {ok, Results} ->
+            {ok, Results};
+        % AWS will return a 412 if a dry run is performed and is successful
+        {error, {http_error, 412, _, _}} -> 
+            {ok, dry_run_success};
+        {error, _} = E -> E
+    end.

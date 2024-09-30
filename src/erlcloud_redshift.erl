@@ -11,6 +11,7 @@
 -export([describe_clusters_all/0, describe_clusters_all/1,
          describe_clusters_all/2]).
 -export([describe_cluster/1, describe_cluster/2, describe_cluster/3]).
+-export([query/3, query/4]).
 
 -type(clusters_marker_return() :: {ok, list(proplists:proplist())} |
                                   {ok, list(proplists:proplist()), list()} |
@@ -18,7 +19,9 @@
 -type(clusters_return() :: {ok, list(proplists:proplist())} |
                                   {error, term()}).
 -type(cluster_return() :: {ok, proplists:proplist()} | {error, term()}).
-
+-type ok_error() :: {ok, map()} | {error, error_reason()}.
+-type query_opts() :: map().
+-type error_reason() :: erlcloud_aws:httpc_result_error() | term().
 
 -spec new(string(), string()) -> aws_config().
 new(AccessKeyID, SecretAccessKey) ->
@@ -44,9 +47,37 @@ configure(AccessKeyID, SecretAccessKey, Host) ->
 -spec redshift_query(aws_config(), string(), list({string(), string()})) ->
     {ok, term()} | {error, term()}.
 redshift_query(Config, Action, Params) ->
-    QParams = [{"Action", Action}, {"Version", ?API_VERSION} | Params],
+    redshift_query(Config, Action, Params, ?API_VERSION).
+redshift_query(Config, Action, Params, ApiVersion) ->
+    QParams = [{"Action", Action}, {"Version", ApiVersion} | Params],
     erlcloud_aws:aws_request_xml4(get, Config#aws_config.redshift_host,
-                                  "/", QParams, "redshift", Config).
+                                    "/", QParams, "redshift", Config).
+
+-spec query(aws_config(), string(), proplist() | map(), query_opts()) -> ok_error().
+query(Config, Action, Params, Opts) ->
+    ApiVersion = maps:get(version, Opts, ?API_VERSION),
+    ResponseFormat = maps:get(response_format, Opts, map),
+    erlcloud_aws:parse_response(do_query(Config, Action, Params, ApiVersion), ResponseFormat).
+-spec query(aws_config(), string(), proplist() | map()) -> ok_error().
+query(Config, Action, Params) ->
+    query(Config, Action, Params, #{}).
+
+prepare_action_params(ParamsMap) when is_map(ParamsMap) ->
+    {error, not_yet_implemented};
+prepare_action_params(ParamsList) when is_list(ParamsList) ->
+    ParamsList.
+
+do_query(Config, Action, Params, ApiVersion) -> 
+    PreparedParams = prepare_action_params(Params),
+    case redshift_query(Config, Action, PreparedParams, ApiVersion) of
+        {ok, Results} ->
+            {ok, Results};
+        % AWS will return a 412 if a dry run is performed and is successful
+        {error, {http_error, 412, _, _}} -> 
+            {ok, dry_run_success};
+        {error, _} = E -> E
+    end.
+
 
 -spec describe_cluster(list()) -> cluster_return().
 describe_cluster(Id) ->

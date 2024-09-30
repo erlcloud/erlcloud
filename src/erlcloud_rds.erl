@@ -1,11 +1,9 @@
 -module(erlcloud_rds).
 
-
+-include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
 
-
 -define(API_VERSION, "2014-10-31").
-
 
 -type access_key_id() :: string().
 -type secret_access_key() :: string().
@@ -18,6 +16,11 @@
 -type describe_params() :: proplists:proplist().
 -type error_reason() :: term().
 -type error_res() :: {error, error_reason()}.
+
+-type ok_error() :: {ok, map()} | {error, error_reason()}.
+-type query_opts() :: map().
+
+-export([query/3, query/4]).
 
 
 %% Library initialization
@@ -252,10 +255,36 @@ describe_db_subnet_groups_all(Config) ->
 
 
 rds_query(Config, Action, Params) ->
-    Query = [{"Action", Action}, {"Version", ?API_VERSION} | Params],
+    rds_query(Config, Action, Params, ?API_VERSION).
+rds_query(Config, Action, Params, ApiVersion) ->
+    Query = [{"Action", Action}, {"Version", ApiVersion} | Params],
     erlcloud_aws:aws_request_xml4(
         post, Config#aws_config.rds_host, "/", Query, "rds", Config).
 
+-spec query(aws_config(), string(), proplist() | map(), query_opts()) -> ok_error().
+query(Config, Action, Params, Opts) ->
+    ApiVersion = maps:get(version, Opts, ?API_VERSION),
+    ResponseFormat = maps:get(response_format, Opts, map),
+    erlcloud_aws:parse_response(do_query(Config, Action, Params, ApiVersion), ResponseFormat).
+-spec query(aws_config(), string(), proplist() | map()) -> ok_error().
+query(Config, Action, Params) ->
+    query(Config, Action, Params, #{}).
+
+prepare_action_params(ParamsMap) when is_map(ParamsMap) ->
+    {error, not_yet_implemented};
+prepare_action_params(ParamsList) when is_list(ParamsList) ->
+    ParamsList.
+
+do_query(Config, Action, Params, ApiVersion) -> 
+    PreparedParams = prepare_action_params(Params),
+    case rds_query(Config, Action, PreparedParams, ApiVersion) of
+        {ok, Results} ->
+            {ok, Results};
+        % AWS will return a 412 if a dry run is performed and is successful
+        {error, {http_error, 412, _, _}} -> 
+            {ok, dry_run_success};
+        {error, _} = E -> E
+    end.
 
 default_config() ->
     erlcloud_aws:default_config().

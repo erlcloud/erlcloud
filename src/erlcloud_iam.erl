@@ -69,6 +69,14 @@
     list_virtual_mfa_devices_all/0, list_virtual_mfa_devices_all/1, list_virtual_mfa_devices_all/2
 ]).
 
+
+-type ok_error() :: {ok, map()} | {error, error_reason()}.
+-type error_reason() :: erlcloud_aws:httpc_result_error() | term().
+-type query_opts() :: map().
+
+-export([query/3, query/4]).
+
+
 -export([get_uri/2]).
 
 -define(API_VERSION, "2010-05-08").
@@ -1203,3 +1211,29 @@ make_list_virtual_mfa_devices_param(undefined, _) ->
     [];
 make_list_virtual_mfa_devices_param(Param, ParamString) ->
     [{ParamString, Param}].
+
+
+-spec query(aws_config(), string(), proplist() | map(), query_opts()) -> ok_error().
+query(Config, Action, Params, Opts) ->
+    ApiVersion = maps:get(version, Opts, ?API_VERSION),
+    ResponseFormat = maps:get(response_format, Opts, map),
+    erlcloud_aws:parse_response(do_query(Config, Action, Params, ApiVersion), ResponseFormat).
+-spec query(aws_config(), string(), proplist() | map()) -> ok_error().
+query(Config, Action, Params) ->
+    query(Config, Action, Params, #{}).
+
+prepare_action_params(ParamsMap) when is_map(ParamsMap) ->
+    {error, not_yet_implemented};
+prepare_action_params(ParamsList) when is_list(ParamsList) ->
+    ParamsList.
+
+do_query(Config, Action, Params, ApiVersion) -> 
+    PreparedParams = prepare_action_params(Params),
+    case iam_query(Config, Action, PreparedParams, ApiVersion) of
+        {ok, Results} ->
+            {ok, Results};
+        % AWS will return a 412 if a dry run is performed and is successful
+        {error, {http_error, 412, _, _}} -> 
+            {ok, dry_run_success};
+        {error, _} = E -> E
+    end.

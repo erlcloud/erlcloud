@@ -1,6 +1,8 @@
 -module(erlcloud_cloudfront).
 
+-include("erlcloud.hrl").
 -include("erlcloud_xmerl.hrl").
+-include("erlcloud_aws.hrl").
 
 %% Library initialization.
 -export([configure/2, configure/3, new/2, new/3]).
@@ -9,14 +11,17 @@
          list_distributions/2, list_distributions/3,
          get_distribution/1, get_distribution/2]).
 
+-export([query/4, query/5]).
+
 -define(API_VERSION, "2016-11-25").
 
--include("erlcloud.hrl").
--include("erlcloud_aws.hrl").
--include("erlcloud_ec2.hrl").
 
 -type ok_error(Ok) :: {ok, Ok} | {error, term()}.
 -type ok_error(Ok1, Ok2) :: {ok, Ok1, Ok2} | {error, term()}.
+-type ok_error() :: {ok, map()} | {error, error_reason()}.
+-type error_reason() :: erlcloud_aws:httpc_result_error() | term().
+-type query_opts() :: map().
+-type api_method() :: get | post.
 
 -define(MAX_RESULTS, 100).
 
@@ -228,4 +233,31 @@ cloudfront_query(Method, Config, Action, Params, ApiVersion) ->
     erlcloud_aws:aws_request_xml4(Method, Config#aws_config.cloudfront_host,
                                   lists:append(["/", ApiVersion, "/", Action]), 
                                   Params, "cloudfront", Config).
+
+
+-spec query(api_method(), aws_config(), string(), proplist() | map(), query_opts()) -> ok_error().
+query(Method, Config, Action, Params, Opts) ->
+    ApiVersion= maps:get(version, Opts, ?API_VERSION),
+    ResponseFormat = maps:get(response_format, Opts, none),
+    erlcloud_aws:parse_response(do_query(Method, Config, Action, Params, ApiVersion), ResponseFormat).
+-spec query(api_method(), aws_config(), string(), proplist() | map()) -> ok_error().
+query(Method, Config, Action, Params) ->
+    query(Method, Config, Action, Params, #{}).
+
+prepare_action_params(ParamsMap) when is_map(ParamsMap) ->
+    {error, not_yet_implemented};
+prepare_action_params(ParamsList) when is_list(ParamsList) ->
+    ParamsList.
+
+do_query(Method, Config, Action, MapParams, ApiVersion) -> 
+    Params = prepare_action_params(MapParams),
+    case cloudfront_query(Method, Config, Action, Params, ApiVersion) of
+        {ok, Results} ->
+            {ok, Results};
+        % AWS will return a 412 if a dry run is performed and is successful
+        {error, {http_error, 412, _, _}} -> 
+            {ok, dry_run_success};
+        {error, _} = E -> E
+    end.
+
 
