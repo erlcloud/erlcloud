@@ -524,7 +524,11 @@ bundle_instance(InstanceID, Bucket, Prefix, AccessKeyID, UploadPolicy,
             Error
     end.
 
+-spec extract_bundle_task(Nodes :: [xmerl_xpath_doc_nodes()]) -> proplist();
+                         (Node :: xmerl_xpath_doc_nodes()) -> proplist().
 extract_bundle_task([Node]) ->
+    extract_bundle_task(Node);
+extract_bundle_task(Node) ->
     [
      {instance_id, get_text("instanceId", Node)},
      {bundle_id, get_text("bundleId", Node)},

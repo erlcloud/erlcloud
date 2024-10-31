@@ -34,6 +34,7 @@
 
 -include("erlcloud.hrl").
 -include("erlcloud_aws.hrl").
+-include("erlcloud_xmerl.hrl").
 
 -define(API_VERSION, "2012-06-01").
 
@@ -471,11 +472,11 @@ create_load_balancer_policy(LB, PolicyName, PolicyTypeName, AttrList, Config)
     ok.
 
 
--spec describe_load_balancer_attributes(string()) -> proplist().
+-spec describe_load_balancer_attributes(string()) -> proplist() | no_return().
 describe_load_balancer_attributes(Name) ->
     describe_load_balancer_attributes(Name, default_config()).
 
--spec describe_load_balancer_attributes(string(), aws_config()) -> proplist().
+-spec describe_load_balancer_attributes(string(), aws_config()) -> proplist() | no_return().
 describe_load_balancer_attributes(Name, Config) ->
     Node = elb_request(Config,
         "DescribeLoadBalancerAttributes",
@@ -486,7 +487,7 @@ describe_load_balancer_attributes(Name, Config) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
--spec extract_elb_attribs(proplist()) -> proplist().
+-spec extract_elb_attribs(xmerl_xpath_doc_nodes()) -> proplist() | no_return().
 extract_elb_attribs(Node) ->
     RootPath = "DescribeLoadBalancerAttributesResult/LoadBalancerAttributes",
     erlcloud_xml:decode(

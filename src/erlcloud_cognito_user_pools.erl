@@ -254,13 +254,13 @@ admin_get_user(UserName, UserPoolId, Config) ->
 admin_create_user(UserName, UserPoolId) ->
     admin_create_user(UserName, UserPoolId, #{}).
 
--spec admin_create_user(binary(), binary(), maps:maps()) ->
+-spec admin_create_user(binary(), binary(), map()) ->
     {ok, map()} | {error, any()}.
 admin_create_user(UserName, UserPoolId, OptionalArgs) ->
     Config = erlcloud_aws:default_config(),
     admin_create_user(UserName, UserPoolId, OptionalArgs, Config).
 
--spec admin_create_user(binary(), binary(), maps:maps(), aws_config()) ->
+-spec admin_create_user(binary(), binary(), map(), aws_config()) ->
     {ok, map()} | {error, any()}.
 admin_create_user(UserName, UserPoolId, OptionalArgs, Config) ->
     Body = OptionalArgs#{
@@ -661,13 +661,13 @@ admin_forget_device(UserPoolId, Username, DeviceKey, Config) ->
 admin_confirm_signup(UserPoolId, Username) ->
     admin_confirm_signup(UserPoolId, Username, #{}).
 
--spec admin_confirm_signup(binary(), binary(), maps:map()) ->
+-spec admin_confirm_signup(binary(), binary(), map()) ->
     {ok, map()} | {error, any()}.
 admin_confirm_signup(UserPoolId, Username, ClientMetadata) ->
     Config = erlcloud_aws:default_config(),
     admin_confirm_signup(UserPoolId, Username, ClientMetadata, Config).
 
--spec admin_confirm_signup(binary(), binary(), maps:map(), aws_config()) ->
+-spec admin_confirm_signup(binary(), binary(), map(), aws_config()) ->
     {ok, map()} | {error, any()}.
 admin_confirm_signup(UserPoolId, Username, ClientMetadata, Config) ->
     Body = #{
@@ -677,21 +677,21 @@ admin_confirm_signup(UserPoolId, Username, ClientMetadata, Config) ->
     },
     request(Config, "AdminConfirmSignUp", Body).
 
--spec admin_initiate_auth(binary(), binary(), binary(), maps:map()) ->
+-spec admin_initiate_auth(binary(), binary(), binary(), map()) ->
     {ok, map()} | {error, any()}.
 admin_initiate_auth(PoolId, ClientId, AuthFlow, AuthParams) ->
     Cfg = erlcloud_aws:default_config(),
     admin_initiate_auth(PoolId, ClientId, AuthFlow, AuthParams, Cfg).
 
 -spec admin_initiate_auth(binary(), binary(), binary(),
-                          maps:map(), aws_config()) ->
+                          map(), aws_config()) ->
     {ok, map()} | {error, any()}.
 admin_initiate_auth(PoolId, ClientId, AuthFlow, AuthParams, Cfg) ->
     admin_initiate_auth(PoolId, ClientId, AuthFlow, AuthParams,
                         #{}, #{}, #{}, Cfg).
 
--spec admin_initiate_auth(binary(), binary(), binary(), maps:map(),
-                          maps:map(), maps:map(), maps:map(), aws_config()) ->
+-spec admin_initiate_auth(binary(), binary(), binary(), map(),
+                          map(), map(), map(), aws_config()) ->
     {ok, map()} | {error, any()}.
 admin_initiate_auth(PoolId, ClientId, AuthFlow, AuthParams,
                     AnalyticsMeta, ClientMeta, ContextData, Cfg) ->
@@ -708,14 +708,14 @@ admin_initiate_auth(PoolId, ClientId, AuthFlow, AuthParams,
     },
     request(Cfg, "AdminInitiateAuth", make_request_body(Mandatory, Optional)).
 
--spec respond_to_auth_challenge(binary(), binary(), maps:map(), binary()) ->
+-spec respond_to_auth_challenge(binary(), binary(), map(), binary()) ->
     {ok, map()} | {error, any()}.
 respond_to_auth_challenge(ClientId, ChallengeName, ChallengeResponses, Session) ->
     Cfg = erlcloud_aws:default_config(),
     respond_to_auth_challenge(ClientId, ChallengeName, ChallengeResponses,
                               Session, Cfg).
 
--spec respond_to_auth_challenge(binary(), binary(), maps:map(), binary(),
+-spec respond_to_auth_challenge(binary(), binary(), map(), binary(),
                                 aws_config()) ->
     {ok, map()} | {error, any()}.
 respond_to_auth_challenge(ClientId, ChallengeName, ChallengeResponses,
@@ -723,8 +723,8 @@ respond_to_auth_challenge(ClientId, ChallengeName, ChallengeResponses,
     respond_to_auth_challenge(ClientId, ChallengeName, ChallengeResponses,
                               Session, #{}, #{}, #{}, Cfg).
 
--spec respond_to_auth_challenge(binary(), binary(), maps:map(), binary(),
-                                maps:map(), maps:map(), maps:map(),
+-spec respond_to_auth_challenge(binary(), binary(), map(), binary(),
+                                map(), map(), map(),
                                 aws_config()) ->
     {ok, map()} | {error, any()}.
 respond_to_auth_challenge(ClientId, ChallengeName, ChallengeResponses,

@@ -198,18 +198,18 @@ next_token(Path, XML) ->
             ok
     end.
 
--spec filter_undef(proplists:proplist() | maps:map()) ->
-    proplists:proplist() | maps:map().
+-spec filter_undef(proplists:proplist() | map()) ->
+    proplists:proplist() | map().
 filter_undef(List) when is_list(List) ->
     lists:filter(fun({_Name, Value}) -> Value =/= undefined end, List);
 filter_undef(Map) when is_map(Map) ->
     maps:filter(fun(_Key, Value) -> Value =/= undefined end, Map).
 
--spec filter_empty_map(maps:map()) -> maps:map().
+-spec filter_empty_map(map()) -> map().
 filter_empty_map(Map) when is_map(Map) ->
     maps:filter(fun(_Key, Value) -> Value =/= #{} end, Map).
 
--spec filter_empty_list(maps:map()) -> maps:map().
+-spec filter_empty_list(map()) -> map().
 filter_empty_list(Map) when is_map(Map) ->
     maps:filter(fun(_Key, Value) -> Value =/= [] end, Map).
 

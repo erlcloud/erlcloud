@@ -1,4 +1,4 @@
-.PHONY: all get-deps clean compile run eunit check check-eunit doc hex-publish rebar3-install
+.PHONY: all get-deps clean compile run eunit check doc hex-publish rebar3-install
 
 REBAR=$(shell which rebar3 || echo ./rebar3)
 
@@ -28,14 +28,8 @@ warnings:
 eunit:
 	@ERL_FLAGS="-config $(PWD)/eunit" $(REBAR) eunit
 
-.dialyzer_plt:
-	dialyzer --build_plt -r _build/default \
-		--apps erts kernel stdlib inets crypto public_key ssl xmerl \
-		--fullpath \
-		--output_plt .dialyzer_plt
-
-check: .dialyzer_plt
-	@$(REBAR) as test dialyzer
+check:
+	@$(REBAR) as dialyzer do dialyzer --update-plt
 
 doc:
 	@$(REBAR) edoc

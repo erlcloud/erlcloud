@@ -20,7 +20,7 @@
 
 -define(MAX_RESULTS, 100).
 
--spec extract_distribution_summary(Node :: list()) -> proplist().
+-spec extract_distribution_summary(Node :: xmerl_xpath_doc_nodes()) -> proplist().
 extract_distribution_summary(Node) ->
     erlcloud_xml:decode(
       [
@@ -58,7 +58,7 @@ extract_distribution(Node) ->
       ], Node) ++ extract_distribution_config(hd(xmerl_xpath:string("DistributionConfig", Node))).
 
 
--spec extract_distribution_config(Node :: list()) -> proplist().
+-spec extract_distribution_config(Node :: xmerl_xpath_doc_nodes()) -> proplist().
 extract_distribution_config(Node) ->
     erlcloud_xml:decode(
       [
@@ -79,7 +79,7 @@ extract_distribution_config(Node) ->
       ], Node).
 
 
--spec extract_cache_behavior(Node :: list()) -> proplist().
+-spec extract_cache_behavior(Node :: xmerl_xpath_doc_nodes()) -> proplist().
 extract_cache_behavior(Node) ->
     erlcloud_xml:decode(
     [
