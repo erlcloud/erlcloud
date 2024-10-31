@@ -585,7 +585,7 @@ test_list_users() ->
     do_test(Request, Expected, TestFun).
 
 test_list_all_users() ->
-    Mocked1 = ?LIST_USERS_RESP#{<<"PaginationToken">> => "1"},
+    Mocked1 = maps:put(<<"PaginationToken">>, "1", ?LIST_USERS_RESP),
     Mocked2 = #{<<"Users">> => [
         #{
             <<"Attributes">> =>
@@ -858,7 +858,7 @@ test_list_user_pool_clients() ->
     do_test(Request, Expected, TestFun).
 
 test_list_all_user_pool_clients() ->
-    Mocked1 = ?LIST_USER_POOL_CLIENTS#{<<"NextToken">> => <<"next">>},
+    Mocked1 = maps:put(<<"NextToken">>, <<"next">>, ?LIST_USER_POOL_CLIENTS),
     Mocked2 = ?LIST_USER_POOL_CLIENTS,
     meck:sequence(?EHTTPC, request, 6, [{ok, {{200, "OK"}, [], jsx:encode(Mocked1)}},
                                         {ok, {{200, "OK"}, [], jsx:encode(Mocked2)}}]),
@@ -877,9 +877,9 @@ test_admin_list_devices() ->
     do_test(Request, Expected, TestFun).
 
 test_list_all_devices() ->
-    Mocked1 = ?ADMIN_LIST_DEVICE#{<<"PaginationToken">> => <<"next page">>},
+    Mocked1 = maps:put(<<"PaginationToken">>, <<"next page">>, ?ADMIN_LIST_DEVICE),
     Devices = hd(maps:get(<<"Devices">>, ?ADMIN_LIST_DEVICE)),
-    Mocked2 = ?ADMIN_LIST_DEVICE#{<<"Devices">> => [Devices#{<<"DeviceKey">> => <<"testKey2">>}]},
+    Mocked2 = maps:put(<<"Devices">>, [Devices#{<<"DeviceKey">> => <<"testKey2">>}], ?ADMIN_LIST_DEVICE),
     meck:sequence(?EHTTPC, request, 6, [{ok, {{200, "OK"}, [], jsx:encode(Mocked1)}},
                                         {ok, {{200, "OK"}, [], jsx:encode(Mocked2)}}]),
     Expected = {ok, ?LIST_ALL_DEVICES},
