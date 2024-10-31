@@ -1,0 +1,23 @@
+---
+name: Publish to Hex.pm
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    container: erlang:27
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: 'Fix up git directory ownership (see https://github.com/actions/checkout/issues/1049)'
+        run: git config --global --add safe.directory '*'
+
+      - name: Publish to Hex.pm
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+        run: rebar3 hex publish package -r hexpm --yes
