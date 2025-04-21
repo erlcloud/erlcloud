@@ -23,6 +23,7 @@
          delete_object/2, delete_object/3,
          delete_object_version/3, delete_object_version/4,
          head_object/2, head_object/3, head_object/4,
+         head_bucket/1, head_bucket/2, head_bucket/3,
          get_object/2, get_object/3, get_object/4,
          get_object_acl/2, get_object_acl/3, get_object_acl/4,
          get_object_torrent/2, get_object_torrent/3,
@@ -815,6 +816,24 @@ head_object(BucketName, Key, Options) ->
 head_object(BucketName, Key, Options, Config) ->
     get_or_head(head, BucketName, Key, Options, Config).
 
+-spec head_bucket(string()) -> proplist().
+
+head_bucket(BucketName) ->
+    head_bucket(BucketName, []).
+
+-spec head_bucket(string(), proplist() | aws_config()) -> proplist().
+
+head_bucket(BucketName, Config)
+  when is_record(Config, aws_config) ->
+    head_bucket(BucketName, [], Config);
+head_bucket(BucketName, Options) ->
+    head_bucket(BucketName, Options, default_config()).
+
+-spec head_bucket(string(), proplist(), aws_config()) -> proplist().
+
+head_bucket(BucketName, Options, Config) ->
+    get_or_head(head, BucketName, Options, Config).
+
 -spec get_object(string(), string()) -> proplist().
 
 get_object(BucketName, Key) ->
@@ -833,6 +852,26 @@ get_object(BucketName, Key, Options) ->
 
 get_object(BucketName, Key, Options, Config) ->
     get_or_head(get, BucketName, Key, Options, Config).
+
+get_or_head(Method, BucketName, Options, Config) ->
+    RequestHeaders = [{"Range", proplists:get_value(range, Options)},
+                      {"If-Modified-Since", proplists:get_value(if_modified_since, Options)},
+                      {"If-Unmodified-Since", proplists:get_value(if_unmodified_since, Options)},
+                      {"If-Match", proplists:get_value(if_match, Options)},
+                      {"If-None-Match", proplists:get_value(if_none_match, Options)},
+                      {"x-amz-server-side-encryption-customer-algorithm", proplists:get_value(server_side_encryption_customer_algorithm, Options)},
+                      {"x-amz-server-side-encryption-customer-key", proplists:get_value(server_side_encryption_customer_key, Options)},
+                      {"x-amz-server-side-encryption-customer-key-md5", proplists:get_value(server_side_encryption_customer_key_md5, Options)}],
+    Subresource = case proplists:get_value(version_id, Options) of
+                      undefined -> "";
+                      Version   -> ["versionId=", Version]
+                  end,
+    {Headers, _Body} = s3_request(Config, Method, BucketName, [$/], Subresource, [], <<>>, RequestHeaders),
+    [{content_length, proplists:get_value("content-length", Headers)},
+     {content_type, proplists:get_value("content-type", Headers)},
+     {access_point_alias, proplists:get_value("x-amz-access-point-alias", Headers)},
+     {bucket_region, proplists:get_value("x-amz-bucket-region", Headers)}|
+     extract_metadata(Headers)].
 
 get_or_head(Method, BucketName, Key, Options, Config) ->
     RequestHeaders = [{"Range", proplists:get_value(range, Options)},
