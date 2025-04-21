@@ -866,7 +866,7 @@ get_or_head(Method, BucketName, Options, Config) ->
                       undefined -> "";
                       Version   -> ["versionId=", Version]
                   end,
-    {Headers, Body} = s3_request(Config, Method, BucketName, [$/], Subresource, [], <<>>, RequestHeaders),
+    {Headers, _Body} = s3_request(Config, Method, BucketName, [$/], Subresource, [], <<>>, RequestHeaders),
     [{content_length, proplists:get_value("content-length", Headers)},
      {content_type, proplists:get_value("content-type", Headers)},
      {access_point_alias, proplists:get_value("x-amz-access-point-alias", Headers)},
