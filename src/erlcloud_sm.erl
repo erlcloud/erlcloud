@@ -213,10 +213,6 @@ batch_get_secret_value(FiltersOrSecretIdList, Opts, Config) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec get_random_password() -> sm_response().
-get_random_password() ->
-    get_random_password([]).
-
 -spec cancel_rotate_secret(SecretId :: binary()) -> sm_response().
 cancel_rotate_secret(SecretId) ->
     cancel_rotate_secret(SecretId, erlcloud_aws:default_config()).
@@ -446,6 +442,10 @@ describe_secret(SecretId, Config) ->
 %% [https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetRandomPassword.html]
 %% @end
 %%------------------------------------------------------------------------------
+
+-spec get_random_password() -> sm_response().
+get_random_password() ->
+    get_random_password([]).
 
 -spec get_random_password(Opts :: get_random_password_options()) -> sm_response().
 get_random_password(Opts) ->
